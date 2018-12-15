@@ -3,6 +3,9 @@ theory Assertion imports
 
 begin
 
+no_notation FForm ("F _")
+no_notation EExp ("E _")
+
 (*evalF defines the semantics of assertions written in first-order logic*)
 primrec evalF :: "state => fform => bool" where
 "evalF (f,WTrue) = (True)" |
@@ -66,9 +69,9 @@ Less_eval : "ievalF (f,e1 [<] e2,c,d) = evalFP(f,e1 [<] e2,c)" and
 Great_eval: "ievalF (f,e1 [>] e2,c,d) = evalFP(f,e1 [>] e2,c)" and*)
 Not_eval: "ievalF (f,[~] form1,c,d) = (~ (ievalF (f,form1,c,d)))" and
 And_eval: "ievalF (f,form1 [&] form2,c,d) = ((ievalF (f,form1,c,d)) & (ievalF (f,form2,c,d)))" and
-Or_eval: "ievalF (f,F [|] G,c,d) = ((ievalF (f,F,c,d)) | (ievalF (f,G,c,d)))" and
+Or_eval: "ievalF (f,F' [|] G,c,d) = ((ievalF (f,F',c,d)) | (ievalF (f,G,c,d)))" and
 Imply_eval: "ievalF (f,form1 [-->] form2,c,d) = ((ievalF (f,form1,c,d)) --> (ievalF (f,form2,c,d)))" and
-Equiv_eval: "ievalF (f,form1 [<->] form2,c,d) = ((ievalF (f,form1,c,d)) <-> (ievalF (f,form2,c,d)))" and
+Equiv_eval: "ievalF (f,form1 [<->] form2,c,d) = ((ievalF (f,form1,c,d)) \<longleftrightarrow> (ievalF (f,form2,c,d)))" and
 ALL_eval: "ievalF (f,WALL x form1,c,d)= (ALL (v::real). ievalF((%t. List.map(%s. %y i. if y=x & i=R then RR(v) else s(y,i),f(t))), form1, c, d))" and
 EX_eval: "ievalF (f,WEX x form1,c,d)= (EX (v::real). ievalF((%t. List.map(%s. %y i. if y=x & i=R then RR(v) else s(y,i),f(t))), form1, c, d))"
 
