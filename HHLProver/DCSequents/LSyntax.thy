@@ -1,8 +1,7 @@
-header {* Abstract syntax for Logic. *}
+section {* Abstract syntax for Logic. *}
 
 theory LSyntax 
-  imports  Main
-  "~~/HOL/Real"
+  imports  Main HOL.Real
 begin
 
 (*Expressions of HCSP language.*)
@@ -117,7 +116,7 @@ primrec formT :: "fform => bool" where
 "formT (fform1 [&] fform2) = ((formT fform1) & (formT fform2))" |
 "formT (fform1 [|] fform2) = ((formT fform1) | (formT fform2))" |
 "formT (fform1 [-->] fform2) = ((formT fform1) --> (formT fform2))" |
-"formT (fform1 [<->] fform2) = ((formT fform1) <-> (formT fform2))" |
+"formT (fform1 [<->] fform2) = ((formT fform1) \<longleftrightarrow> (formT fform2))" |
 "formT (WALL x fform1)= (let (r::real) = rvar(x) in (ALL r::real. (formT fform1)))" |
 "formT (WEX x fform1)= (let (r::real) = rvar(x) in (EX r::real. (formT fform1)))"
 

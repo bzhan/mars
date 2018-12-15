@@ -1,4 +1,4 @@
-header {*The sequent calculus for interval logic*}
+section {*The sequent calculus for interval logic*}
 
 theory ILSequent
 imports DLK0
