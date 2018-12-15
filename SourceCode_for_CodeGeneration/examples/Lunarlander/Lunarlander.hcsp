@@ -1,0 +1,15 @@
+systemDef Slow_ph::= Lander||Controller
+
+variableDef ::=m;v;r;L_Fc;C_m;C_v;Fc
+channelDef ::=ch_m;ch_v;ch_Fc
+constantDef ::=gM=1.622;Isp1=2548;Isp2=2842;p=0.128;bound=3000
+
+processDef Lander::=m=1250;v=-2;r=30;L_Fc=2027.5;P**
+processDef P::=if L_Fc<=bound then P1 else SKIP;if L_Fc>bound then P2 else SKIP
+processDef P1::=DOT(v,m,r,L_Fc)={(L_Fc/m)-gM,-L_Fc/Isp1,v,0} DOMAIN(TRUE) INTERRUPT({ch_m!!m}{P1_1})
+processDef P1_1::=ch_v!!v;ch_Fc??L_Fc
+processDef P2::=DOT(v,m,r,L_Fc)={(L_Fc/m)-gM,-L_Fc/Isp2,v,0} DOMAIN(TRUE) INTERRUPT({ch_m!!m}{P1_1})
+
+processDef Controller::=Fc=2027.5;C**
+processDef C::=WAIT(p);ch_m??C_m;ch_v??C_v;Fc=C_m*gM-0.01*(Fc-C_m*gM)-0.6*(C_v+2)*C_m;ch_Fc!!Fc
+

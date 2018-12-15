@@ -1,0 +1,30 @@
+cd $MARSHOME/CaseStudies/HCS---------（切换到例子目录）
+
+java -jar $MARSHOME/Sim2HCSP/Sim2HCSP.jar -compact true -xml hcs.xml -uds uds/---------（从Simulink/Stateflow模型生成用于证明的hcsp文件）
+
+cp proof/goal.thy proof/assertionDef.thy .---------（描述安全性质的goal文件和辅助证明的assertionDef文件拷贝至例子目录）
+
+using isabelle to prove...---------（no subgoals表示性质满足，并且找到系统不变式） waiting...  generating invariant ...
+
+InvChecker.nb---------（利用mathematica观察不变式的图形表示）
+
+java -jar $MARSHOME/Sim2HCSP/Sim2HCSP.jar -compact false -xml hcs.xml -uds uds/---------（将Simulink/Stateflow模型转换成用于代码生成的hcsp文件）
+
+java -jar $MARSHOME/HCSP2SystemC/HCSP2SystemC.jar -hcsploc system.hcsp -delta 0 -ep 972.5 -h 0.0002 -vep 0.05 -T 10---------（选定参数，从hcsp生成SystemC代码）
+
+make
+
+./system ---------（运行SystemC代码，这里，我们仅观察所有变量的取值范围）
+
+
+
+cd $MARSHOME/CaseStudies/waterTank
+
+java -jar $MARSHOME/Sim2HCSP/Sim2HCSP.jar -compact false -xml waterTank.xml -uds uds/
+
+java -jar $MARSHOME/HCSP2SystemC/HCSP2SystemC.jar -hcsploc system.hcsp -delta 0 -ep 0.22 -h 0.008 -vep 0.2 -T 16
+
+make
+
+./system
+

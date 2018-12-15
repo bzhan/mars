@@ -1,0 +1,10 @@
+MARS_v1.1版本包含了代码生成功能，原MARS版本可在陈明帅主页找到；
+
+SourceCode_for_CodeGeneration是代码生成的源码，其中sim2hcsp（simulink/stateflow到HCSP的转换）是对邹亮之前代码的简单修改，目的是方便从验证后的HCSP自动生成SystemC代码（因为邹亮工具生成的HCSP和我们用于代码生成的HCSP拥有不同的语法结构）；HCSP2SC是HCSP代码生成工具的源代码；examples是代码生成工具测试的一些例子（有ODE也有DDE）；examples_MARS是整个MARS工具链下的两个完整例子（从simulink/stateflow建模，到生成HCSP模型，然后验证，最后生成SystemC代码）；
+
+工具的具体安装和使用，请参见文件MARS_v1.1/manual_draft中的描述；
+
+安装过程中需要的软件可以在目录/home/yangg/MARS中找到；
+
+本机已安装所需软件，例子也都跑通，可以直接使用。
+

@@ -1,0 +1,42 @@
+x+1=2 & y*3<7 | -z/3>0 => x*y*z<0
+
+x'=1+2+3+4 ; y'=x+5 ; z'=z/6
+
+a:=1+2*3/4;v:=0;s:=1;t:=2; <v'=a;s'=v;t'=1 && t<5>
+
+a:=2;v:=1;s:=0;t:=0; a>1&v<2 -> <v'=a;s'=v;t'=1 && t<5|v-s=0>
+
+a:=2;v:=1;s:=0; ((a>1&v<2 -> <v'=a && v<10>) LI (a>1&s<2 -> <s'=a && s<8>))
+
+a:=2;v:=1; a>1&v<2 -> <v'=a && v<10>; s:=1; a>1&s<2 -> <s'=a && s<8>
+
+e:=1;ch!e;e:=2 || x:=0;y:=0;ch?x;y:=x+1
+e:=0; <e'=1 && e<2>; ch!e || x:=3; ch?x
+
+e:=0; ch!e; <e'=1 && e<2>; ch!e || x:=3; ch?x; ch?x
+e:=0; ch!e; <e'=1 && e<2>; ch!e || x:=3; ch?x; ch?x; ch1!x || ch1?y
+
+x:=0; e:=0; (ch1!e -> x:=1 [[ ch2!e -> x:=2) || y:=0; ch2?y
+x:=0; e:=0; (ch1!e -> x:=1 [[ ch2!e -> x:=2 [[ ch3!e -> x:=3) || y:=0; ch2?y
+
+x:=0; e:=0; <e'=1 && e<2> [[> (ch1!e -> x:=1 [[ ch2!e -> x:=2) || y:=0; ch2?y
+x:=0; e:=0; <e'=1 && e<2> [[> (ch1!e -> x:=1 [[ ch2!e -> x:=2 [[ ch3!e -> x:=3) || y:=0; ch2?y
+x:=0; e:=0; <e'=1 && e<2> [[> (ch1!e -> x:=1 [[ ch2!e -> x:=2) || t:=0; <t'=1 && t<1>;ch2?y
+
+x:=0; (x:=x+1)**
+x:=0; (y:=x; <x'=1 && x<y+1>)**
+v:=0;s:=1;t:=0; (temp:=t;a:=100/s; <v'=a;s'=v;t'=1 && t<temp+1>)**
+
+# control:=2027.5;v:=-2;m:=1250;r:=30;(<m'=-control/2842;v'=control/m-1.622;r'=v && control<3000|control=3000>)
+
+# x:=0; <x'=1 && x<2|x=2>; <x'=2 && x<8>
+
+# F:=1;(<v'=F && True>[[>(chv!v->skip [[ chf?F->skip))** || F1:=1;(chv?v1;F1:=v1+F1;chf!F1)**
+
+# (<v'=F && True>[[>(chv!v->skip [[ chf?F->skip))** || F1:=1;(chv?v1;F1:=v1+F1;chf!F1)**
+
+# (<v'=F && True>[[>(chv!v->skip [[ chf?F->skip))** || F1:=1;(chv?v1;F1:=v1+F1;chf!F1;temp:=t;<t'=1 && t<temp+0.128>)**
+
+# f:=2027.5;v:=-2;m:=1250;r:=30; (<m'=-f/2842;v'=f/m-1.622;r'=v && f<3000|f=3000>[[>(chm!m->skip [[ chv!v->skip [[ chf?f->skip))** || f1:=2027.5;temp:=0;t:=0;(temp:=t; chv?v1;chm?m1;f1:=m1*(1.622-0.01*(f1/m1-1.622)-0.6*(v1+2));chf!f1; <t'=1 && t<temp+0.128>)**
+
+f:=2027.5;v:=-2;m:=1250;r:=30; (<m'=-f/2842;v'=f/m-1.622;r'=v && f<3000|f=3000>[[>(chm!m->skip [[ chv!v->skip [[ chf?f->skip);<m'=-f/2548;v'=f/m-1.622;r'=v && f>3000>[[>(chm!m->skip [[ chv!v->skip [[ chf?f->skip))** || f1:=2027.5;temp:=0;t:=0;(temp:=t; chv?v1;chm?m1;f1:=(1.622-0.01*(f1/m1-1.622)-0.6*(v1+2))*m1;chf!f1; <t'=1 && t<temp+0.128>)**

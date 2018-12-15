@@ -1,0 +1,16 @@
+systemDef WTS::= Watertank||Controller
+
+variableDef ::=v;d;y;x
+channelDef ::=wl;cv
+constantDef ::=Qmax=2;pi=3.14;r=0.18;g=9.8;p=1;lb=4.4;ub=5.6;delay=0.1
+
+processDef Watertank::=d=4.5;cv??v;wl!!d;W**
+processDef W::=if v==1 then W1 else SKIP;if v==0 then W2 else SKIP
+processDef W1::=DOT(d)={Qmax-pi*r*r*sqrt(g*(d+d@delay))} DOMAIN(TRUE) INTERRUPT({wl!!d}{W1_1})
+processDef W1_1::=cv??v
+processDef W2::=DOT(d)={-pi*r*r*sqrt(g*(d+d@delay))} DOMAIN(TRUE) INTERRUPT({wl!!d}{W1_1})
+
+processDef Controller::=y=1;cv!!y;wl??x;C**
+processDef C::=WAIT(p);wl??x;if x>=ub then C1 else SKIP;if x<=lb then C2 else SKIP;cv!!y
+processDef C1::=y=0;
+processDef C2::=y=1;

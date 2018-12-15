@@ -1,0 +1,8 @@
+systemDef singleDDE_01::= DDE_01
+
+variableDef ::=y
+constantDef ::=delay=1.3;
+
+processDef DDE_01::=DOT(y)={y*(1-y@delay)} DOMAIN(TRUE)
+
+

@@ -1,0 +1,6856 @@
+Model {
+  Name			  "h2s"
+  Version		  7.9
+  MdlSubVersion		  0
+  GraphicalInterface {
+    NumRootInports	    0
+    NumRootOutports	    0
+    ParameterArgumentNames  ""
+    ComputedModelVersion    "1.2"
+    NumModelReferences	    0
+    NumTestPointedSignals   0
+  }
+  SavedCharacterEncoding  "UTF-8"
+  slprops.hdlmdlprops {
+    $PropName		    "HDLParams"
+    $ObjectID		    1
+    Array {
+      Type		      "Cell"
+      Dimension		      2
+      Cell		      "HDLSubsystem"
+      Cell		      "h2s"
+      PropName		      "mdlProps"
+    }
+  }
+  SaveDefaultBlockParams  on
+  ScopeRefreshTime	  0.035000
+  OverrideScopeRefreshTime on
+  DisableAllScopes	  off
+  DataTypeOverride	  "UseLocalSettings"
+  DataTypeOverrideAppliesTo "AllNumericTypes"
+  MinMaxOverflowLogging	  "UseLocalSettings"
+  MinMaxOverflowArchiveMode "Overwrite"
+  FPTRunName		  "Run 1"
+  MaxMDLFileLineLength	  120
+  Created		  "Wed Aug 14 13:20:05 2013"
+  Creator		  "touch_sky_"
+  UpdateHistory		  "UpdateHistoryNever"
+  ModifiedByFormat	  "%<Auto>"
+  LastModifiedBy	  "mingshuai"
+  ModifiedDateFormat	  "%<Auto>"
+  LastModifiedDate	  "Tue Mar 17 11:37:25 2015"
+  RTWModifiedTimeStamp	  348493029
+  ModelVersionFormat	  "1.%<AutoIncrement:2>"
+  ConfigurationManager	  "None"
+  SampleTimeColors	  off
+  SampleTimeAnnotations	  off
+  LibraryLinkDisplay	  "disabled"
+  WideLines		  off
+  ShowLineDimensions	  off
+  ShowPortDataTypes	  off
+  ShowDesignRanges	  off
+  ShowLoopsOnError	  on
+  IgnoreBidirectionalLines off
+  ShowStorageClass	  off
+  ShowTestPointIcons	  on
+  ShowSignalResolutionIcons on
+  ShowViewerIcons	  on
+  SortedOrder		  off
+  ExecutionContextIcon	  off
+  ShowLinearizationAnnotations on
+  BlockNameDataTip	  off
+  BlockParametersDataTip  off
+  BlockDescriptionStringDataTip	off
+  ToolBar		  on
+  StatusBar		  on
+  BrowserShowLibraryLinks off
+  BrowserLookUnderMasks	  off
+  SimulationMode	  "normal"
+  LinearizationMsg	  "none"
+  Profile		  off
+  ParamWorkspaceSource	  "MATLABWorkspace"
+  AccelSystemTargetFile	  "accel.tlc"
+  AccelTemplateMakefile	  "accel_default_tmf"
+  AccelMakeCommand	  "make_rtw"
+  TryForcingSFcnDF	  off
+  Object {
+    $PropName		    "DataLoggingOverride"
+    $ObjectID		    2
+    $ClassName		    "Simulink.SimulationData.ModelLoggingInfo"
+    model_		    "test3"
+    overrideMode_	    [0.0]
+    Array {
+      Type		      "Cell"
+      Dimension		      1
+      Cell		      "test3"
+      PropName		      "logAsSpecifiedByModels_"
+    }
+    Array {
+      Type		      "Cell"
+      Dimension		      1
+      Cell		      []
+      PropName		      "logAsSpecifiedByModelsSSIDs_"
+    }
+  }
+  RecordCoverage	  off
+  CovPath		  "/"
+  CovSaveName		  "covdata"
+  CovMetricSettings	  "dw"
+  CovNameIncrementing	  off
+  CovHtmlReporting	  on
+  CovForceBlockReductionOff on
+  covSaveCumulativeToWorkspaceVar on
+  CovSaveSingleToWorkspaceVar on
+  CovCumulativeVarName	  "covCumulativeData"
+  CovCumulativeReport	  off
+  CovReportOnPause	  on
+  CovModelRefEnable	  "Off"
+  CovExternalEMLEnable	  off
+  ExtModeBatchMode	  off
+  ExtModeEnableFloating	  on
+  ExtModeTrigType	  "manual"
+  ExtModeTrigMode	  "normal"
+  ExtModeTrigPort	  "1"
+  ExtModeTrigElement	  "any"
+  ExtModeTrigDuration	  1000
+  ExtModeTrigDurationFloating "auto"
+  ExtModeTrigHoldOff	  0
+  ExtModeTrigDelay	  0
+  ExtModeTrigDirection	  "rising"
+  ExtModeTrigLevel	  0
+  ExtModeArchiveMode	  "off"
+  ExtModeAutoIncOneShot	  off
+  ExtModeIncDirWhenArm	  off
+  ExtModeAddSuffixToVar	  off
+  ExtModeWriteAllDataToWs off
+  ExtModeArmWhenConnect	  on
+  ExtModeSkipDownloadWhenConnect off
+  ExtModeLogAll		  on
+  ExtModeAutoUpdateStatusClock on
+  BufferReuse		  on
+  ShowModelReferenceBlockVersion off
+  ShowModelReferenceBlockIO off
+  Array {
+    Type		    "Handle"
+    Dimension		    1
+    Simulink.ConfigSet {
+      $ObjectID		      3
+      Version		      "1.12.0"
+      Array {
+	Type			"Handle"
+	Dimension		9
+	Simulink.SolverCC {
+	  $ObjectID		  4
+	  Version		  "1.12.0"
+	  StartTime		  "0.0"
+	  StopTime		  "15.0"
+	  AbsTol		  "auto"
+	  FixedStep		  "0.0001"
+	  InitialStep		  "auto"
+	  MaxNumMinSteps	  "-1"
+	  MaxOrder		  5
+	  ZcThreshold		  "auto"
+	  ConsecutiveZCsStepRelTol "10*128*eps"
+	  MaxConsecutiveZCs	  "1000"
+	  ExtrapolationOrder	  4
+	  NumberNewtonIterations  1
+	  MaxStep		  "auto"
+	  MinStep		  "auto"
+	  MaxConsecutiveMinStep	  "1"
+	  RelTol		  "1e-3"
+	  SolverMode		  "Auto"
+	  EnableConcurrentExecution off
+	  ConcurrentTasks	  off
+	  Solver		  "ode3"
+	  SolverName		  "ode3"
+	  SolverJacobianMethodControl "auto"
+	  ShapePreserveControl	  "DisableAll"
+	  ZeroCrossControl	  "UseLocalSettings"
+	  ZeroCrossAlgorithm	  "Nonadaptive"
+	  AlgebraicLoopSolver	  "TrustRegion"
+	  SolverResetMethod	  "Fast"
+	  PositivePriorityOrder	  off
+	  AutoInsertRateTranBlk	  off
+	  SampleTimeConstraint	  "Unconstrained"
+	  InsertRTBMode		  "Whenever possible"
+	}
+	Simulink.DataIOCC {
+	  $ObjectID		  5
+	  Version		  "1.12.0"
+	  Decimation		  "1"
+	  ExternalInput		  "[t, u]"
+	  FinalStateName	  "xFinal"
+	  InitialState		  "xInitial"
+	  LimitDataPoints	  on
+	  MaxDataPoints		  "1000"
+	  LoadExternalInput	  off
+	  LoadInitialState	  off
+	  SaveFinalState	  off
+	  SaveCompleteFinalSimState off
+	  SaveFormat		  "Array"
+	  SignalLoggingSaveFormat "ModelDataLogs"
+	  SaveOutput		  on
+	  SaveState		  off
+	  SignalLogging		  on
+	  DSMLogging		  on
+	  InspectSignalLogs	  off
+	  SaveTime		  on
+	  ReturnWorkspaceOutputs  off
+	  StateSaveName		  "xout"
+	  TimeSaveName		  "tout"
+	  OutputSaveName	  "yout"
+	  SignalLoggingName	  "logsout"
+	  DSMLoggingName	  "dsmout"
+	  OutputOption		  "RefineOutputTimes"
+	  OutputTimes		  "[]"
+	  ReturnWorkspaceOutputsName "out"
+	  Refine		  "1"
+	}
+	Simulink.OptimizationCC {
+	  $ObjectID		  6
+	  Version		  "1.12.0"
+	  Array {
+	    Type		    "Cell"
+	    Dimension		    8
+	    Cell		    "BooleansAsBitfields"
+	    Cell		    "PassReuseOutputArgsAs"
+	    Cell		    "PassReuseOutputArgsThreshold"
+	    Cell		    "ZeroExternalMemoryAtStartup"
+	    Cell		    "ZeroInternalMemoryAtStartup"
+	    Cell		    "OptimizeModelRefInitCode"
+	    Cell		    "NoFixptDivByZeroProtection"
+	    Cell		    "UseSpecifiedMinMax"
+	    PropName		    "DisabledProps"
+	  }
+	  BlockReduction	  on
+	  BooleanDataType	  on
+	  ConditionallyExecuteInputs on
+	  InlineParams		  off
+	  UseIntDivNetSlope	  off
+	  UseFloatMulNetSlope	  off
+	  UseSpecifiedMinMax	  off
+	  InlineInvariantSignals  off
+	  OptimizeBlockIOStorage  on
+	  BufferReuse		  on
+	  EnhancedBackFolding	  off
+	  StrengthReduction	  off
+	  ExpressionFolding	  on
+	  BooleansAsBitfields	  off
+	  BitfieldContainerType	  "uint_T"
+	  EnableMemcpy		  on
+	  MemcpyThreshold	  64
+	  PassReuseOutputArgsAs	  "Structure reference"
+	  ExpressionDepthLimit	  2147483647
+	  FoldNonRolledExpr	  on
+	  LocalBlockOutputs	  on
+	  RollThreshold		  5
+	  SystemCodeInlineAuto	  off
+	  StateBitsets		  off
+	  DataBitsets		  off
+	  UseTempVars		  off
+	  ZeroExternalMemoryAtStartup on
+	  ZeroInternalMemoryAtStartup on
+	  InitFltsAndDblsToZero	  off
+	  NoFixptDivByZeroProtection off
+	  EfficientFloat2IntCast  off
+	  EfficientMapNaN2IntZero on
+	  OptimizeModelRefInitCode off
+	  LifeSpan		  "inf"
+	  MaxStackSize		  "Inherit from target"
+	  BufferReusableBoundary  on
+	  SimCompilerOptimization "Off"
+	  AccelVerboseBuild	  off
+	  ParallelExecutionInRapidAccelerator on
+	}
+	Simulink.DebuggingCC {
+	  $ObjectID		  7
+	  Version		  "1.12.0"
+	  RTPrefix		  "error"
+	  ConsistencyChecking	  "none"
+	  ArrayBoundsChecking	  "none"
+	  SignalInfNanChecking	  "none"
+	  SignalRangeChecking	  "none"
+	  ReadBeforeWriteMsg	  "UseLocalSettings"
+	  WriteAfterWriteMsg	  "UseLocalSettings"
+	  WriteAfterReadMsg	  "UseLocalSettings"
+	  AlgebraicLoopMsg	  "warning"
+	  ArtificialAlgebraicLoopMsg "warning"
+	  SaveWithDisabledLinksMsg "warning"
+	  SaveWithParameterizedLinksMsg	"warning"
+	  CheckSSInitialOutputMsg on
+	  UnderspecifiedInitializationDetection	"Classic"
+	  MergeDetectMultiDrivingBlocksExec "none"
+	  CheckExecutionContextPreStartOutputMsg off
+	  CheckExecutionContextRuntimeOutputMsg	off
+	  SignalResolutionControl "UseLocalSettings"
+	  BlockPriorityViolationMsg "warning"
+	  MinStepSizeMsg	  "warning"
+	  TimeAdjustmentMsg	  "none"
+	  MaxConsecutiveZCsMsg	  "error"
+	  MaskedZcDiagnostic	  "warning"
+	  IgnoredZcDiagnostic	  "warning"
+	  SolverPrmCheckMsg	  "warning"
+	  InheritedTsInSrcMsg	  "warning"
+	  DiscreteInheritContinuousMsg "warning"
+	  MultiTaskDSMMsg	  "error"
+	  MultiTaskCondExecSysMsg "error"
+	  MultiTaskRateTransMsg	  "error"
+	  SingleTaskRateTransMsg  "none"
+	  TasksWithSamePriorityMsg "warning"
+	  SigSpecEnsureSampleTimeMsg "warning"
+	  CheckMatrixSingularityMsg "none"
+	  IntegerOverflowMsg	  "warning"
+	  Int32ToFloatConvMsg	  "warning"
+	  ParameterDowncastMsg	  "error"
+	  ParameterOverflowMsg	  "error"
+	  ParameterUnderflowMsg	  "none"
+	  ParameterPrecisionLossMsg "warning"
+	  ParameterTunabilityLossMsg "warning"
+	  FixptConstUnderflowMsg  "none"
+	  FixptConstOverflowMsg	  "none"
+	  FixptConstPrecisionLossMsg "none"
+	  UnderSpecifiedDataTypeMsg "none"
+	  UnnecessaryDatatypeConvMsg "none"
+	  VectorMatrixConversionMsg "none"
+	  InvalidFcnCallConnMsg	  "error"
+	  FcnCallInpInsideContextMsg "Enable All"
+	  SignalLabelMismatchMsg  "none"
+	  UnconnectedInputMsg	  "warning"
+	  UnconnectedOutputMsg	  "warning"
+	  UnconnectedLineMsg	  "warning"
+	  SFcnCompatibilityMsg	  "none"
+	  FrameProcessingCompatibilityMsg "warning"
+	  UniqueDataStoreMsg	  "none"
+	  BusObjectLabelMismatch  "warning"
+	  RootOutportRequireBusObject "warning"
+	  AssertControl		  "UseLocalSettings"
+	  EnableOverflowDetection off
+	  ModelReferenceIOMsg	  "none"
+	  ModelReferenceMultiInstanceNormalModeStructChecksumCheck "error"
+	  ModelReferenceVersionMismatchMessage "none"
+	  ModelReferenceIOMismatchMessage "none"
+	  ModelReferenceCSMismatchMessage "none"
+	  UnknownTsInhSupMsg	  "warning"
+	  ModelReferenceDataLoggingMessage "warning"
+	  ModelReferenceSymbolNameMessage "warning"
+	  ModelReferenceExtraNoncontSigs "error"
+	  StateNameClashWarn	  "warning"
+	  SimStateInterfaceChecksumMismatchMsg "warning"
+	  SimStateOlderReleaseMsg "error"
+	  InitInArrayFormatMsg	  "warning"
+	  StrictBusMsg		  "ErrorLevel1"
+	  BusNameAdapt		  "WarnAndRepair"
+	  NonBusSignalsTreatedAsBus "none"
+	  LoggingUnavailableSignals "error"
+	  BlockIODiagnostic	  "none"
+	  SFUnusedDataAndEventsDiag "warning"
+	  SFUnexpectedBacktrackingDiag "warning"
+	  SFInvalidInputDataAccessInChartInitDiag "warning"
+	  SFNoUnconditionalDefaultTransitionDiag "warning"
+	  SFTransitionOutsideNaturalParentDiag "warning"
+	  SFUnconditionalTransitionShadowingDiag "warning"
+	}
+	Simulink.HardwareCC {
+	  $ObjectID		  8
+	  Version		  "1.12.0"
+	  ProdBitPerChar	  8
+	  ProdBitPerShort	  16
+	  ProdBitPerInt		  32
+	  ProdBitPerLong	  32
+	  ProdBitPerFloat	  32
+	  ProdBitPerDouble	  64
+	  ProdBitPerPointer	  32
+	  ProdLargestAtomicInteger "Char"
+	  ProdLargestAtomicFloat  "None"
+	  ProdIntDivRoundTo	  "Undefined"
+	  ProdEndianess		  "Unspecified"
+	  ProdWordSize		  32
+	  ProdShiftRightIntArith  on
+	  ProdHWDeviceType	  "32-bit Generic"
+	  TargetBitPerChar	  8
+	  TargetBitPerShort	  16
+	  TargetBitPerInt	  32
+	  TargetBitPerLong	  32
+	  TargetBitPerFloat	  32
+	  TargetBitPerDouble	  64
+	  TargetBitPerPointer	  32
+	  TargetLargestAtomicInteger "Char"
+	  TargetLargestAtomicFloat "None"
+	  TargetShiftRightIntArith on
+	  TargetIntDivRoundTo	  "Undefined"
+	  TargetEndianess	  "Unspecified"
+	  TargetWordSize	  32
+	  TargetTypeEmulationWarnSuppressLevel 0
+	  TargetPreprocMaxBitsSint 32
+	  TargetPreprocMaxBitsUint 32
+	  TargetHWDeviceType	  "Specified"
+	  TargetUnknown		  off
+	  ProdEqTarget		  on
+	}
+	Simulink.ModelReferenceCC {
+	  $ObjectID		  9
+	  Version		  "1.12.0"
+	  UpdateModelReferenceTargets "IfOutOfDateOrStructuralChange"
+	  CheckModelReferenceTargetMessage "error"
+	  EnableParallelModelReferenceBuilds off
+	  ParallelModelReferenceErrorOnInvalidPool on
+	  ParallelModelReferenceMATLABWorkerInit "None"
+	  ModelReferenceNumInstancesAllowed "Multi"
+	  PropagateVarSize	  "Infer from blocks in model"
+	  ModelReferencePassRootInputsByReference on
+	  ModelReferenceMinAlgLoopOccurrences off
+	  PropagateSignalLabelsOutOfModel off
+	  SupportModelReferenceSimTargetCustomCode off
+	}
+	Simulink.SFSimCC {
+	  $ObjectID		  10
+	  Version		  "1.12.0"
+	  SFSimEnableDebug	  on
+	  SFSimOverflowDetection  on
+	  SFSimEcho		  on
+	  SimBlas		  on
+	  SimCtrlC		  on
+	  SimExtrinsic		  on
+	  SimIntegrity		  on
+	  SimUseLocalCustomCode	  off
+	  SimParseCustomCode	  on
+	  SimBuildMode		  "sf_incremental_build"
+	}
+	Simulink.RTWCC {
+	  $BackupClass		  "Simulink.RTWCC"
+	  $ObjectID		  11
+	  Version		  "1.12.0"
+	  Array {
+	    Type		    "Cell"
+	    Dimension		    9
+	    Cell		    "IncludeHyperlinkInReport"
+	    Cell		    "GenerateTraceInfo"
+	    Cell		    "GenerateTraceReport"
+	    Cell		    "GenerateTraceReportSl"
+	    Cell		    "GenerateTraceReportSf"
+	    Cell		    "GenerateTraceReportEml"
+	    Cell		    "GenerateWebview"
+	    Cell		    "GenerateCodeMetricsReport"
+	    Cell		    "GenerateCodeReplacementReport"
+	    PropName		    "DisabledProps"
+	  }
+	  SystemTargetFile	  "grt.tlc"
+	  GenCodeOnly		  off
+	  MakeCommand		  "make_rtw"
+	  GenerateMakefile	  on
+	  TemplateMakefile	  "grt_default_tmf"
+	  GenerateReport	  off
+	  SaveLog		  off
+	  RTWVerbose		  on
+	  RetainRTWFile		  off
+	  ProfileTLC		  off
+	  TLCDebug		  off
+	  TLCCoverage		  off
+	  TLCAssert		  off
+	  ProcessScriptMode	  "Default"
+	  ConfigurationMode	  "Optimized"
+	  ConfigAtBuild		  off
+	  RTWUseLocalCustomCode	  off
+	  RTWUseSimCustomCode	  off
+	  IncludeHyperlinkInReport off
+	  LaunchReport		  off
+	  TargetLang		  "C"
+	  IncludeBusHierarchyInRTWFileBlockHierarchyMap	off
+	  IncludeERTFirstTime	  off
+	  GenerateTraceInfo	  off
+	  GenerateTraceReport	  off
+	  GenerateTraceReportSl	  off
+	  GenerateTraceReportSf	  off
+	  GenerateTraceReportEml  off
+	  GenerateCodeInfo	  off
+	  GenerateWebview	  off
+	  GenerateCodeMetricsReport off
+	  GenerateCodeReplacementReport	off
+	  RTWCompilerOptimization "Off"
+	  CheckMdlBeforeBuild	  "Off"
+	  CustomRebuildMode	  "OnUpdate"
+	  Array {
+	    Type		    "Handle"
+	    Dimension		    2
+	    Simulink.CodeAppCC {
+	      $ObjectID		      12
+	      Version		      "1.12.0"
+	      Array {
+		Type			"Cell"
+		Dimension		21
+		Cell			"IgnoreCustomStorageClasses"
+		Cell			"IgnoreTestpoints"
+		Cell			"InsertBlockDesc"
+		Cell			"InsertPolySpaceComments"
+		Cell			"SFDataObjDesc"
+		Cell			"MATLABFcnDesc"
+		Cell			"SimulinkDataObjDesc"
+		Cell			"DefineNamingRule"
+		Cell			"SignalNamingRule"
+		Cell			"ParamNamingRule"
+		Cell			"InlinedPrmAccess"
+		Cell			"CustomSymbolStr"
+		Cell			"CustomSymbolStrGlobalVar"
+		Cell			"CustomSymbolStrType"
+		Cell			"CustomSymbolStrField"
+		Cell			"CustomSymbolStrFcn"
+		Cell			"CustomSymbolStrFcnArg"
+		Cell			"CustomSymbolStrBlkIO"
+		Cell			"CustomSymbolStrTmpVar"
+		Cell			"CustomSymbolStrMacro"
+		Cell			"ReqsInCode"
+		PropName		"DisabledProps"
+	      }
+	      ForceParamTrailComments off
+	      GenerateComments	      on
+	      IgnoreCustomStorageClasses on
+	      IgnoreTestpoints	      off
+	      IncHierarchyInIds	      off
+	      MaxIdLength	      31
+	      PreserveName	      off
+	      PreserveNameWithParent  off
+	      ShowEliminatedStatement off
+	      IncAutoGenComments      off
+	      SimulinkDataObjDesc     off
+	      SFDataObjDesc	      off
+	      MATLABFcnDesc	      off
+	      IncDataTypeInIds	      off
+	      MangleLength	      1
+	      CustomSymbolStrGlobalVar "$R$N$M"
+	      CustomSymbolStrType     "$N$R$M"
+	      CustomSymbolStrField    "$N$M"
+	      CustomSymbolStrFcn      "$R$N$M$F"
+	      CustomSymbolStrFcnArg   "rt$I$N$M"
+	      CustomSymbolStrBlkIO    "rtb_$N$M"
+	      CustomSymbolStrTmpVar   "$N$M"
+	      CustomSymbolStrMacro    "$R$N$M"
+	      DefineNamingRule	      "None"
+	      ParamNamingRule	      "None"
+	      SignalNamingRule	      "None"
+	      InsertBlockDesc	      off
+	      InsertPolySpaceComments off
+	      SimulinkBlockComments   on
+	      MATLABSourceComments    off
+	      EnableCustomComments    off
+	      InlinedPrmAccess	      "Literals"
+	      ReqsInCode	      off
+	      UseSimReservedNames     off
+	    }
+	    Simulink.GRTTargetCC {
+	      $BackupClass	      "Simulink.TargetCC"
+	      $ObjectID		      13
+	      Version		      "1.12.0"
+	      Array {
+		Type			"Cell"
+		Dimension		16
+		Cell			"GeneratePreprocessorConditionals"
+		Cell			"IncludeMdlTerminateFcn"
+		Cell			"CombineOutputUpdateFcns"
+		Cell			"SuppressErrorStatus"
+		Cell			"ERTCustomFileBanners"
+		Cell			"GenerateSampleERTMain"
+		Cell			"GenerateTestInterfaces"
+		Cell			"ModelStepFunctionPrototypeControlCompliant"
+		Cell			"CPPClassGenCompliant"
+		Cell			"MultiInstanceERTCode"
+		Cell			"PurelyIntegerCode"
+		Cell			"SupportComplex"
+		Cell			"SupportAbsoluteTime"
+		Cell			"SupportContinuousTime"
+		Cell			"SupportNonInlinedSFcns"
+		Cell			"PortableWordSizes"
+		PropName		"DisabledProps"
+	      }
+	      TargetFcnLib	      "ansi_tfl_table_tmw.mat"
+	      TargetLibSuffix	      ""
+	      TargetPreCompLibLocation ""
+	      CodeReplacementLibrary  "ANSI_C"
+	      UtilityFuncGeneration   "Auto"
+	      ERTMultiwordTypeDef     "System defined"
+	      CodeExecutionProfiling  off
+	      ERTMultiwordLength      256
+	      MultiwordLength	      2048
+	      GenerateFullHeader      on
+	      GenerateSampleERTMain   off
+	      GenerateTestInterfaces  off
+	      IsPILTarget	      off
+	      ModelReferenceCompliant on
+	      ParMdlRefBuildCompliant on
+	      CompOptLevelCompliant   on
+	      ConcurrentExecutionCompliant on
+	      IncludeMdlTerminateFcn  on
+	      GeneratePreprocessorConditionals "Disable all"
+	      CombineOutputUpdateFcns on
+	      CombineSignalStateStructs	off
+	      SuppressErrorStatus     off
+	      ERTFirstTimeCompliant   off
+	      IncludeFileDelimiter    "Auto"
+	      ERTCustomFileBanners    off
+	      SupportAbsoluteTime     on
+	      LogVarNameModifier      "rt_"
+	      MatFileLogging	      on
+	      MultiInstanceERTCode    off
+	      SupportNonFinite	      on
+	      SupportComplex	      on
+	      PurelyIntegerCode	      off
+	      SupportContinuousTime   on
+	      SupportNonInlinedSFcns  on
+	      SupportVariableSizeSignals off
+	      EnableShiftOperators    on
+	      ParenthesesLevel	      "Nominal"
+	      PortableWordSizes	      off
+	      ModelStepFunctionPrototypeControlCompliant off
+	      CPPClassGenCompliant    off
+	      AutosarCompliant	      off
+	      GRTInterface	      off
+	      UseMalloc		      off
+	      ExtMode		      off
+	      ExtModeStaticAlloc      off
+	      ExtModeTesting	      off
+	      ExtModeStaticAllocSize  1000000
+	      ExtModeTransport	      0
+	      ExtModeMexFile	      "ext_comm"
+	      ExtModeIntrfLevel	      "Level1"
+	      RTWCAPISignals	      off
+	      RTWCAPIParams	      off
+	      RTWCAPIStates	      off
+	      RTWCAPIRootIO	      off
+	      GenerateASAP2	      off
+	    }
+	    PropName		    "Components"
+	  }
+	}
+	hdlcoderui.hdlcc {
+	  $ObjectID		  14
+	  Version		  "1.12.0"
+	  Description		  "HDL Coder custom configuration component"
+	  Name			  "HDL Coder"
+	  Array {
+	    Type		    "Cell"
+	    Dimension		    1
+	    Cell		    ""
+	    PropName		    "HDLConfigFile"
+	  }
+	  HDLCActiveTab		  "0"
+	}
+	PropName		"Components"
+      }
+      Name		      "Configuration"
+      CurrentDlgPage	      "Solver"
+      ConfigPrmDlgPosition     [ 233, 518, 1133, 1196 ] 
+    }
+    PropName		    "ConfigurationSets"
+  }
+  Simulink.ConfigSet {
+    $PropName		    "ActiveConfigurationSet"
+    $ObjectID		    3
+  }
+  ExplicitPartitioning	  off
+  BlockDefaults {
+    ForegroundColor	    "black"
+    BackgroundColor	    "white"
+    DropShadow		    off
+    NamePlacement	    "normal"
+    FontName		    "Helvetica"
+    FontSize		    10
+    FontWeight		    "normal"
+    FontAngle		    "normal"
+    ShowName		    on
+    BlockRotation	    0
+    BlockMirror		    off
+  }
+  AnnotationDefaults {
+    HorizontalAlignment	    "center"
+    VerticalAlignment	    "middle"
+    ForegroundColor	    "black"
+    BackgroundColor	    "white"
+    DropShadow		    off
+    FontName		    "Helvetica"
+    FontSize		    10
+    FontWeight		    "normal"
+    FontAngle		    "normal"
+    UseDisplayTextAsClickCallback off
+  }
+  LineDefaults {
+    FontName		    "Helvetica"
+    FontSize		    9
+    FontWeight		    "normal"
+    FontAngle		    "normal"
+  }
+  BlockParameterDefaults {
+    Block {
+      BlockType		      Constant
+      Value		      "1"
+      VectorParams1D	      on
+      SamplingMode	      "Sample based"
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Inherit from 'Constant value'"
+      LockScale		      off
+      SampleTime	      "inf"
+      FramePeriod	      "inf"
+      PreserveConstantTs      off
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Inherit via back propagation"
+      LockScale		      off
+      ConvertRealWorld	      "Real World Value (RWV)"
+      RndMeth		      "Zero"
+      SaturateOnIntegerOverflow	on
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      Inport
+      Port		      "1"
+      OutputFunctionCall      off
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: auto"
+      LockScale		      off
+      BusOutputAsStruct	      off
+      PortDimensions	      "-1"
+      VarSizeSig	      "Inherit"
+      SampleTime	      "-1"
+      SignalType	      "auto"
+      SamplingMode	      "auto"
+      LatchByDelayingOutsideSignal off
+      LatchInputForFeedbackSignals off
+      Interpolate	      on
+    }
+    Block {
+      BlockType		      Integrator
+      ExternalReset	      "none"
+      InitialConditionSource  "internal"
+      InitialCondition	      "0"
+      LimitOutput	      off
+      UpperSaturationLimit    "inf"
+      LowerSaturationLimit    "-inf"
+      ShowSaturationPort      off
+      ShowStatePort	      off
+      AbsoluteTolerance	      "auto"
+      IgnoreLimit	      off
+      ZeroCross		      on
+      ContinuousStateAttributes	"''"
+    }
+    Block {
+      BlockType		      Logic
+      Operator		      "AND"
+      Inputs		      "2"
+      IconShape		      "rectangular"
+      AllPortsSameDT	      on
+      OutDataTypeStr	      "Inherit: Logical (see Configuration Parameters: Optimization)"
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      Outport
+      Port		      "1"
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: auto"
+      LockScale		      off
+      BusOutputAsStruct	      off
+      PortDimensions	      "-1"
+      VarSizeSig	      "Inherit"
+      SampleTime	      "-1"
+      SignalType	      "auto"
+      SamplingMode	      "auto"
+      SourceOfInitialOutputValue "Dialog"
+      OutputWhenDisabled      "held"
+      InitialOutput	      "[]"
+    }
+    Block {
+      BlockType		      Product
+      Inputs		      "2"
+      Multiplication	      "Element-wise(.*)"
+      CollapseMode	      "All dimensions"
+      CollapseDim	      "1"
+      InputSameDT	      on
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Same as first input"
+      LockScale		      off
+      RndMeth		      "Zero"
+      SaturateOnIntegerOverflow	on
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      RelationalOperator
+      Operator		      ">="
+      InputSameDT	      on
+      OutDataTypeStr	      "Inherit: Logical (see Configuration Parameters: Optimization)"
+      ZeroCross		      on
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      Scope
+      ModelBased	      off
+      TickLabels	      "OneTimeTick"
+      ZoomMode		      "on"
+      Grid		      "on"
+      TimeRange		      "auto"
+      YMin		      "-5"
+      YMax		      "5"
+      SaveToWorkspace	      off
+      SaveName		      "ScopeData"
+      DataFormat	      "Array"
+      LimitDataPoints	      on
+      MaxDataPoints	      "5000"
+      Decimation	      "1"
+      SampleInput	      off
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      SubSystem
+      ShowPortLabels	      "FromPortIcon"
+      Permissions	      "ReadWrite"
+      PermitHierarchicalResolution "All"
+      TreatAsAtomicUnit	      off
+      CheckFcnCallInpInsideContextMsg off
+      SystemSampleTime	      "-1"
+      RTWFcnNameOpts	      "Auto"
+      RTWFileNameOpts	      "Auto"
+      RTWMemSecFuncInitTerm   "Inherit from model"
+      RTWMemSecFuncExecute    "Inherit from model"
+      RTWMemSecDataConstants  "Inherit from model"
+      RTWMemSecDataInternal   "Inherit from model"
+      RTWMemSecDataParameters "Inherit from model"
+      SimViewingDevice	      off
+      DataTypeOverride	      "UseLocalSettings"
+      DataTypeOverrideAppliesTo	"AllNumericTypes"
+      MinMaxOverflowLogging   "UseLocalSettings"
+      SFBlockType	      "NONE"
+      Variant		      off
+      GeneratePreprocessorConditionals off
+    }
+    Block {
+      BlockType		      Sum
+      IconShape		      "rectangular"
+      Inputs		      "++"
+      CollapseMode	      "All dimensions"
+      CollapseDim	      "1"
+      InputSameDT	      on
+      AccumDataTypeStr	      "Inherit: Inherit via internal rule"
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Same as first input"
+      LockScale		      off
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	on
+      SampleTime	      "-1"
+    }
+    Block {
+      BlockType		      Switch
+      Criteria		      "u2 >= Threshold"
+      Threshold		      "0"
+      InputSameDT	      on
+      OutMin		      "[]"
+      OutMax		      "[]"
+      OutDataTypeStr	      "Inherit: Inherit via internal rule"
+      LockScale		      off
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	on
+      ZeroCross		      on
+      SampleTime	      "-1"
+      AllowDiffInputSizes     off
+    }
+    Block {
+      BlockType		      UnitDelay
+      X0		      "0"
+      InputProcessing	      "Inherited"
+      SampleTime	      "1"
+      StateMustResolveToSignalObject off
+      RTWStateStorageClass    "Auto"
+      HasFrameUpgradeWarning  on
+    }
+  }
+  System {
+    Name		    "h2s"
+    Location		    [1366, 51, 3046, 1050]
+    Open		    on
+    ModelBrowserVisibility  off
+    ModelBrowserWidth	    200
+    ScreenColor		    "white"
+    PaperOrientation	    "landscape"
+    PaperPositionMode	    "auto"
+    PaperType		    "usletter"
+    PaperUnits		    "inches"
+    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+    TiledPageScale	    1
+    ShowPageBoundaries	    off
+    ZoomFactor		    "100"
+    ReportName		    "simulink-default.rpt"
+    SIDHighWatermark	    "21"
+    Block {
+      BlockType		      Constant
+      Name		      "Constant30"
+      SID		      "0"
+      Position		      [190, 170, 220, 190]
+    }
+    Block {
+      BlockType		      DataTypeConversion
+      Name		      "Data Type Conversion"
+      SID		      "0"
+      Position		      [285, 280, 345, 300]
+      OutDataTypeStr	      "boolean"
+      RndMeth		      "Floor"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      Scope
+      Name		      "Scope1"
+      SID		      "0"
+      Ports		      [7]
+      Position		      [735, 259, 800, 381]
+      Floating		      off
+      Location		      [1, 527, 1367, 1271]
+      Open		      off
+      NumInputPorts	      "7"
+      List {
+	ListType		AxesTitles
+	axes1			"%<SignalLabel>"
+	axes2			"%<SignalLabel>"
+	axes3			"%<SignalLabel>"
+	axes4			"%<SignalLabel>"
+	axes5			"%<SignalLabel>"
+	axes6			"%<SignalLabel>"
+	axes7			"%<SignalLabel>"
+      }
+      List {
+	ListType		ScopeGraphics
+	FigureColor		"[0.5 0.5 0.5]"
+	AxesColor		"[0 0 0]"
+	AxesTickColor		"[1 1 1]"
+	LineColors		"[0 1 0;1 0 1;0 1 1;1 0 0;0 1 0;0 0 1]"
+	LineStyles		"-|-|-|-|-|-"
+	LineWidths		"[1 1 1 1 1 1]"
+	MarkerStyles		"none|none|none|none|none|none"
+      }
+      ShowLegends	      off
+      YMin		      "-5~-5~-5~-5~-5~-5~-5"
+      YMax		      "5~5~5~5~5~5~5"
+      DataFormat	      "StructureWithTime"
+      LimitDataPoints	      off
+      MaxDataPoints	      "500000"
+      SampleTime	      "0"
+    }
+    Block {
+      BlockType		      SubSystem
+      Name		      "SubSystem1"
+      SID		      "0"
+      Ports		      [7, 7]
+      Position		      [1065, 1138, 1235, 1222]
+      MinAlgLoopOccurrences   off
+      PropExecContextOutsideSubsystem off
+      RTWSystemCode	      "Auto"
+      FunctionWithSeparateData off
+      Opaque		      off
+      RequestExecContextInheritance off
+      MaskHideContents	      off
+      System {
+	Name			"SubSystem1"
+	Location		[70, 200, 650, 460]
+	Open			off
+	ModelBrowserVisibility	off
+	ModelBrowserWidth	200
+	ScreenColor		"white"
+	PaperOrientation	"landscape"
+	PaperPositionMode	"auto"
+	PaperType		"usletter"
+	PaperUnits		"inches"
+	TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+	TiledPageScale		1
+	ShowPageBoundaries	off
+	ZoomFactor		"100"
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_ok"
+	  SID			  "0"
+	  Position		  [165, 215, 195, 235]
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_control1"
+	  SID			  "0"
+	  Position		  [165, 280, 195, 300]
+	  Port			  "2"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_plantv11"
+	  SID			  "0"
+	  Position		  [165, 345, 195, 365]
+	  Port			  "3"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_plantm11"
+	  SID			  "0"
+	  Position		  [165, 410, 195, 430]
+	  Port			  "4"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_plantr11"
+	  SID			  "0"
+	  Position		  [165, 475, 195, 495]
+	  Port			  "5"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_t"
+	  SID			  "0"
+	  Position		  [165, 540, 195, 560]
+	  Port			  "6"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Inport
+	  Name			  "In_temp"
+	  SID			  "0"
+	  Position		  [675, 215, 705, 235]
+	  Port			  "7"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  SubSystem
+	  Name			  "SubSystem14"
+	  SID			  "0"
+	  Ports			  [6, 6]
+	  Position		  [780, 1205, 950, 1290]
+	  MinAlgLoopOccurrences	  off
+	  PropExecContextOutsideSubsystem off
+	  RTWSystemCode		  "Auto"
+	  FunctionWithSeparateData off
+	  Opaque		  off
+	  RequestExecContextInheritance	off
+	  MaskHideContents	  off
+	  System {
+	    Name		    "SubSystem14"
+	    Location		    [70, 200, 650, 460]
+	    Open		    off
+	    ModelBrowserVisibility  off
+	    ModelBrowserWidth	    200
+	    ScreenColor		    "white"
+	    PaperOrientation	    "landscape"
+	    PaperPositionMode	    "auto"
+	    PaperType		    "usletter"
+	    PaperUnits		    "inches"
+	    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+	    TiledPageScale	    1
+	    ShowPageBoundaries	    off
+	    ZoomFactor		    "100"
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_ok"
+	      SID		      "0"
+	      Position		      [165, 215, 195, 235]
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_control1"
+	      SID		      "0"
+	      Position		      [165, 280, 195, 300]
+	      Port		      "2"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantv11"
+	      SID		      "0"
+	      Position		      [165, 345, 195, 365]
+	      Port		      "3"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantm11"
+	      SID		      "0"
+	      Position		      [165, 410, 195, 430]
+	      Port		      "4"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantr11"
+	      SID		      "0"
+	      Position		      [165, 475, 195, 495]
+	      Port		      "5"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_t"
+	      SID		      "0"
+	      Position		      [675, 215, 705, 235]
+	      Port		      "6"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      SubSystem
+	      Name		      "SubSystem15"
+	      SID		      "0"
+	      Ports		      [2, 2]
+	      Position		      [820, 1243, 990, 1327]
+	      MinAlgLoopOccurrences   off
+	      PropExecContextOutsideSubsystem off
+	      RTWSystemCode	      "Auto"
+	      FunctionWithSeparateData off
+	      Opaque		      off
+	      RequestExecContextInheritance off
+	      MaskHideContents	      off
+	      System {
+		Name			"SubSystem15"
+		Location		[70, 200, 650, 460]
+		Open			off
+		ModelBrowserVisibility	off
+		ModelBrowserWidth	200
+		ScreenColor		"white"
+		PaperOrientation	"landscape"
+		PaperPositionMode	"auto"
+		PaperType		"usletter"
+		PaperUnits		"inches"
+		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+		TiledPageScale		1
+		ShowPageBoundaries	off
+		ZoomFactor		"100"
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_ok"
+		  SID			  "0"
+		  Position		  [110, 75, 140, 95]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_t"
+		  SID			  "0"
+		  Position		  [110, 190, 140, 210]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Constant
+		  Name			  "Constant25"
+		  SID			  "0"
+		  Position		  [755, 1285, 785, 1305]
+		  Value			  "0"
+		}
+		Block {
+		  BlockType		  Switch
+		  Name			  "Switch21"
+		  SID			  "0"
+		  Position		  [585, 225, 635, 255]
+		  Criteria		  "u2 > Threshold"
+		  InputSameDT		  off
+		  SaturateOnIntegerOverflow off
+		}
+		Block {
+		  BlockType		  Switch
+		  Name			  "Switch22"
+		  SID			  "0"
+		  Position		  [740, 360, 790, 390]
+		  Criteria		  "u2 > Threshold"
+		  InputSameDT		  off
+		  SaturateOnIntegerOverflow off
+		}
+		Block {
+		  BlockType		  UnitDelay
+		  Name			  "Unit Delay14"
+		  SID			  "0"
+		  Position		  [395, 100, 425, 120]
+		  BlockMirror		  on
+		  InputProcessing	  "Elements as channels (sample based)"
+		  SampleTime		  "0"
+		}
+		Block {
+		  BlockType		  UnitDelay
+		  Name			  "Unit Delay15"
+		  SID			  "0"
+		  Position		  [750, 295, 780, 315]
+		  BlockMirror		  on
+		  InputProcessing	  "Elements as channels (sample based)"
+		  SampleTime		  "0"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_ok"
+		  SID			  "0"
+		  Position		  [1015, 75, 1045, 95]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_t"
+		  SID			  "0"
+		  Position		  [1015, 315, 1045, 335]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Line {
+		  SrcBlock		  "Switch22"
+		  SrcPort		  1
+		  Points		  [20, 0]
+		  Branch {
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		  }
+		  Branch {
+		    DstBlock		    "Unit Delay15"
+		    DstPort		    1
+		  }
+		}
+		Line {
+		  SrcBlock		  "Switch21"
+		  SrcPort		  1
+		  DstBlock		  "Switch22"
+		  DstPort		  3
+		}
+		Line {
+		  SrcBlock		  "In_ok"
+		  SrcPort		  1
+		  Points		  [20, 0]
+		  Branch {
+		    DstBlock		    "Unit Delay14"
+		    DstPort		    1
+		  }
+		  Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		  }
+		  Branch {
+		    DstBlock		    "Switch21"
+		    DstPort		    2
+		  }
+		}
+		Line {
+		  SrcBlock		  "Constant25"
+		  SrcPort		  1
+		  DstBlock		  "Switch21"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "In_t"
+		  SrcPort		  1
+		  DstBlock		  "Switch21"
+		  DstPort		  3
+		}
+		Line {
+		  SrcBlock		  "Unit Delay15"
+		  SrcPort		  1
+		  DstBlock		  "Switch22"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Unit Delay14"
+		  SrcPort		  1
+		  DstBlock		  "Switch22"
+		  DstPort		  2
+		}
+	      }
+	    }
+	    Block {
+	      BlockType		      SubSystem
+	      Name		      "SubSystem16"
+	      SID		      "0"
+	      Ports		      [5, 5]
+	      Position		      [810, 1308, 980, 1392]
+	      MinAlgLoopOccurrences   off
+	      PropExecContextOutsideSubsystem off
+	      RTWSystemCode	      "Auto"
+	      FunctionWithSeparateData off
+	      Opaque		      off
+	      RequestExecContextInheritance off
+	      MaskHideContents	      off
+	      System {
+		Name			"SubSystem16"
+		Location		[70, 200, 650, 460]
+		Open			off
+		ModelBrowserVisibility	off
+		ModelBrowserWidth	200
+		ScreenColor		"white"
+		PaperOrientation	"landscape"
+		PaperPositionMode	"auto"
+		PaperType		"usletter"
+		PaperUnits		"inches"
+		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+		TiledPageScale		1
+		ShowPageBoundaries	off
+		ZoomFactor		"100"
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_ok"
+		  SID			  "0"
+		  Position		  [165, 215, 195, 235]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_control1"
+		  SID			  "0"
+		  Position		  [165, 280, 195, 300]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantv11"
+		  SID			  "0"
+		  Position		  [165, 345, 195, 365]
+		  Port			  "3"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantm11"
+		  SID			  "0"
+		  Position		  [165, 410, 195, 430]
+		  Port			  "4"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantr11"
+		  SID			  "0"
+		  Position		  [675, 215, 705, 235]
+		  Port			  "5"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  SubSystem
+		  Name			  "SubSystem17"
+		  SID			  "0"
+		  Ports			  [2, 2]
+		  Position		  [1145, 1158, 1315, 1242]
+		  MinAlgLoopOccurrences	  off
+		  PropExecContextOutsideSubsystem off
+		  RTWSystemCode		  "Auto"
+		  FunctionWithSeparateData off
+		  Opaque		  off
+		  RequestExecContextInheritance	off
+		  MaskHideContents	  off
+		  System {
+		    Name		    "SubSystem17"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [110, 190, 140, 210]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant26"
+		    SID			    "0"
+		    Position		    [185, 485, 215, 505]
+		    Value		    "30"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch23"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch24"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay16"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay17"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Switch24"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay17"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch23"
+		    SrcPort		    1
+		    DstBlock		    "Switch24"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay16"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch23"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant26"
+		    SrcPort		    1
+		    DstBlock		    "Switch23"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Switch23"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay17"
+		    SrcPort		    1
+		    DstBlock		    "Switch24"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay16"
+		    SrcPort		    1
+		    DstBlock		    "Switch24"
+		    DstPort		    2
+		    }
+		  }
+		}
+		Block {
+		  BlockType		  SubSystem
+		  Name			  "SubSystem18"
+		  SID			  "0"
+		  Ports			  [4, 4]
+		  Position		  [1255, 718, 1425, 802]
+		  MinAlgLoopOccurrences	  off
+		  PropExecContextOutsideSubsystem off
+		  RTWSystemCode		  "Auto"
+		  FunctionWithSeparateData off
+		  Opaque		  off
+		  RequestExecContextInheritance	off
+		  MaskHideContents	  off
+		  System {
+		    Name		    "SubSystem18"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [165, 215, 195, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [165, 280, 195, 300]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [165, 345, 195, 365]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [675, 215, 705, 235]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem19"
+		    SID			    "0"
+		    Ports		    [2, 2]
+		    Position		    [1045, 468, 1215, 552]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem19"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [110, 190, 140, 210]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant27"
+		    SID			    "0"
+		    Position		    [1305, 10, 1335, 30]
+		    Value		    "1250"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch25"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch26"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay18"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay19"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Switch26"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay19"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch25"
+		    SrcPort		    1
+		    DstBlock		    "Switch26"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay18"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch25"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant27"
+		    SrcPort		    1
+		    DstBlock		    "Switch25"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "Switch25"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay19"
+		    SrcPort		    1
+		    DstBlock		    "Switch26"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay18"
+		    SrcPort		    1
+		    DstBlock		    "Switch26"
+		    DstPort		    2
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem20"
+		    SID			    "0"
+		    Ports		    [3, 3]
+		    Position		    [1205, 588, 1375, 672]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem20"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [165, 215, 195, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [165, 280, 195, 300]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [675, 215, 705, 235]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem21"
+		    SID			    "0"
+		    Ports		    [2, 2]
+		    Position		    [65, 778, 235, 862]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem21"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [110, 190, 140, 210]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add11"
+		    SID			    "0"
+		    Ports		    [1, 1]
+		    Position		    [600, 735, 630, 755]
+		    Inputs		    "-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant28"
+		    SID			    "0"
+		    Position		    [995, 735, 1025, 755]
+		    Value		    "2"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch27"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch28"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay20"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay21"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Switch28"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay21"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch27"
+		    SrcPort		    1
+		    DstBlock		    "Switch28"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay20"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch27"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Add11"
+		    SrcPort		    1
+		    DstBlock		    "Switch27"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant28"
+		    SrcPort		    1
+		    DstBlock		    "Add11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "Switch27"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay21"
+		    SrcPort		    1
+		    DstBlock		    "Switch28"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay20"
+		    SrcPort		    1
+		    DstBlock		    "Switch28"
+		    DstPort		    2
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem22"
+		    SID			    "0"
+		    Ports		    [2, 2]
+		    Position		    [755, 698, 925, 782]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem22"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [110, 190, 140, 210]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant29"
+		    SID			    "0"
+		    Position		    [385, 135, 415, 155]
+		    Value		    "2027.5"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch29"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch30"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay22"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay23"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Switch30"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay23"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch29"
+		    SrcPort		    1
+		    DstBlock		    "Switch30"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay22"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch29"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant29"
+		    SrcPort		    1
+		    DstBlock		    "Switch29"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "Switch29"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay23"
+		    SrcPort		    1
+		    DstBlock		    "Switch30"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay22"
+		    SrcPort		    1
+		    DstBlock		    "Switch30"
+		    DstPort		    2
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [580, 280, 610, 300]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1125, 215, 1155, 235]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1125, 280, 1155, 300]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem22"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem22"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem22"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem21"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem21"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem22"
+		    SrcPort		    2
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem21"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem21"
+		    SrcPort		    2
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [580, 215, 610, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [580, 345, 610, 365]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1125, 215, 1155, 235]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1125, 280, 1155, 300]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem20"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem20"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem20"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem20"
+		    SrcPort		    2
+		    DstBlock		    "SubSystem19"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem19"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem20"
+		    SrcPort		    1
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem20"
+		    SrcPort		    3
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem19"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem19"
+		    SrcPort		    2
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		  }
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_control1"
+		  SID			  "0"
+		  Position		  [580, 215, 610, 235]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantv11"
+		  SID			  "0"
+		  Position		  [580, 280, 610, 300]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantm11"
+		  SID			  "0"
+		  Position		  [580, 410, 610, 430]
+		  Port			  "3"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_ok"
+		  SID			  "0"
+		  Position		  [1125, 215, 1155, 235]
+		  Port			  "4"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantr11"
+		  SID			  "0"
+		  Position		  [1125, 280, 1155, 300]
+		  Port			  "5"
+		  IconDisplay		  "Port number"
+		}
+		Line {
+		  SrcBlock		  "In_ok"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem18"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "In_control1"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem18"
+		  DstPort		  2
+		}
+		Line {
+		  SrcBlock		  "In_plantv11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem18"
+		  DstPort		  3
+		}
+		Line {
+		  SrcBlock		  "In_plantm11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem18"
+		  DstPort		  4
+		}
+		Line {
+		  SrcBlock		  "SubSystem18"
+		  SrcPort		  3
+		  DstBlock		  "SubSystem17"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "In_plantr11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem17"
+		  DstPort		  2
+		}
+		Line {
+		  SrcBlock		  "SubSystem18"
+		  SrcPort		  1
+		  DstBlock		  "Out_control1"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem18"
+		  SrcPort		  2
+		  DstBlock		  "Out_plantv11"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem18"
+		  SrcPort		  4
+		  DstBlock		  "Out_plantm11"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem17"
+		  SrcPort		  1
+		  DstBlock		  "Out_ok"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem17"
+		  SrcPort		  2
+		  DstBlock		  "Out_plantr11"
+		  DstPort		  1
+		}
+	      }
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_control1"
+	      SID		      "0"
+	      Position		      [580, 215, 610, 235]
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantv11"
+	      SID		      "0"
+	      Position		      [580, 280, 610, 300]
+	      Port		      "2"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantm11"
+	      SID		      "0"
+	      Position		      [580, 345, 610, 365]
+	      Port		      "3"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantr11"
+	      SID		      "0"
+	      Position		      [580, 475, 610, 495]
+	      Port		      "4"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_ok"
+	      SID		      "0"
+	      Position		      [1125, 215, 1155, 235]
+	      Port		      "5"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_t"
+	      SID		      "0"
+	      Position		      [1125, 280, 1155, 300]
+	      Port		      "6"
+	      IconDisplay	      "Port number"
+	    }
+	    Line {
+	      SrcBlock		      "In_ok"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem16"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_control1"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem16"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "In_plantv11"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem16"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "In_plantm11"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem16"
+	      DstPort		      4
+	    }
+	    Line {
+	      SrcBlock		      "In_plantr11"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem16"
+	      DstPort		      5
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem16"
+	      SrcPort		      4
+	      DstBlock		      "SubSystem15"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_t"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem15"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem16"
+	      SrcPort		      1
+	      DstBlock		      "Out_control1"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem16"
+	      SrcPort		      2
+	      DstBlock		      "Out_plantv11"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem16"
+	      SrcPort		      3
+	      DstBlock		      "Out_plantm11"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem16"
+	      SrcPort		      5
+	      DstBlock		      "Out_plantr11"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem15"
+	      SrcPort		      1
+	      DstBlock		      "Out_ok"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem15"
+	      SrcPort		      2
+	      DstBlock		      "Out_t"
+	      DstPort		      1
+	    }
+	  }
+	}
+	Block {
+	  BlockType		  SubSystem
+	  Name			  "SubSystem2"
+	  SID			  "0"
+	  Ports			  [7, 7]
+	  Position		  [1180, 1238, 1350, 1322]
+	  MinAlgLoopOccurrences	  off
+	  PropExecContextOutsideSubsystem off
+	  RTWSystemCode		  "Auto"
+	  FunctionWithSeparateData off
+	  Opaque		  off
+	  RequestExecContextInheritance	off
+	  MaskHideContents	  off
+	  System {
+	    Name		    "SubSystem2"
+	    Location		    [70, 200, 650, 460]
+	    Open		    off
+	    ModelBrowserVisibility  off
+	    ModelBrowserWidth	    200
+	    ScreenColor		    "white"
+	    PaperOrientation	    "landscape"
+	    PaperPositionMode	    "auto"
+	    PaperType		    "usletter"
+	    PaperUnits		    "inches"
+	    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+	    TiledPageScale	    1
+	    ShowPageBoundaries	    off
+	    ZoomFactor		    "100"
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_ok"
+	      SID		      "0"
+	      Position		      [215, 60, 245, 80]
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantm11"
+	      SID		      "0"
+	      Position		      [1295, 940, 1325, 960]
+	      Port		      "2"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_control1"
+	      SID		      "0"
+	      Position		      [880, 1095, 910, 1115]
+	      Port		      "3"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantv11"
+	      SID		      "0"
+	      Position		      [830, 1050, 860, 1070]
+	      Port		      "4"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_t"
+	      SID		      "0"
+	      Position		      [785, 1015, 815, 1035]
+	      Port		      "5"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_temp"
+	      SID		      "0"
+	      Position		      [860, 985, 890, 1005]
+	      Port		      "6"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Inport
+	      Name		      "In_plantr11"
+	      SID		      "0"
+	      Position		      [845, 1170, 875, 1190]
+	      Port		      "7"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Sum
+	      Name		      "Add10"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [480, 217, 520, 248]
+	      InputSameDT	      off
+	      OutDataTypeStr	      "Inherit: Inherit via internal rule"
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Constant
+	      Name		      "Constant24"
+	      SID		      "0"
+	      Position		      [415, 525, 445, 545]
+	      Value		      "rand()*10000"
+	    }
+	    Block {
+	      BlockType		      Product
+	      Name		      "Divide9"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [515, 302, 545, 333]
+	      Inputs		      "**"
+	      InputSameDT	      off
+	      OutDataTypeStr	      "Inherit: Inherit via internal rule"
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical\nOperator10"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [880, 117, 910, 148]
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical\nOperator11"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [300, 627, 335, 658]
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical\nOperator12"
+	      SID		      "0"
+	      Ports		      [1, 1]
+	      Position		      [965, 169, 995, 201]
+	      Operator		      "NOT"
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical\nOperator13"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [325, 472, 360, 503]
+	      Operator		      "OR"
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical\nOperator9"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [880, 62, 910, 93]
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      RelationalOperator
+	      Name		      "Relational\nOperator5"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [415, 427, 445, 458]
+	      Operator		      ">"
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      RelationalOperator
+	      Name		      "Relational\nOperator6"
+	      SID		      "0"
+	      Ports		      [2, 1]
+	      Position		      [415, 367, 445, 398]
+	      Operator		      "=="
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      SubSystem
+	      Name		      "SubSystem3"
+	      SID		      "0"
+	      Ports		      [7, 7]
+	      Position		      [1285, 1333, 1455, 1417]
+	      MinAlgLoopOccurrences   off
+	      PropExecContextOutsideSubsystem off
+	      RTWSystemCode	      "Auto"
+	      FunctionWithSeparateData off
+	      Opaque		      off
+	      RequestExecContextInheritance off
+	      MaskHideContents	      off
+	      System {
+		Name			"SubSystem3"
+		Location		[70, 200, 650, 460]
+		Open			off
+		ModelBrowserVisibility	off
+		ModelBrowserWidth	200
+		ScreenColor		"white"
+		PaperOrientation	"landscape"
+		PaperPositionMode	"auto"
+		PaperType		"usletter"
+		PaperUnits		"inches"
+		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+		TiledPageScale		1
+		ShowPageBoundaries	off
+		ZoomFactor		"100"
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_ok"
+		  SID			  "0"
+		  Position		  [165, 215, 195, 235]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantm11"
+		  SID			  "0"
+		  Position		  [165, 280, 195, 300]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_control1"
+		  SID			  "0"
+		  Position		  [165, 345, 195, 365]
+		  Port			  "3"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantv11"
+		  SID			  "0"
+		  Position		  [165, 410, 195, 430]
+		  Port			  "4"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_t"
+		  SID			  "0"
+		  Position		  [165, 475, 195, 495]
+		  Port			  "5"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_temp"
+		  SID			  "0"
+		  Position		  [165, 540, 195, 560]
+		  Port			  "6"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "In_plantr11"
+		  SID			  "0"
+		  Position		  [165, 605, 195, 625]
+		  Port			  "7"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  SubSystem
+		  Name			  "SubSystem4"
+		  SID			  "0"
+		  Ports			  [7, 7]
+		  Position		  [1390, 1418, 1560, 1502]
+		  MinAlgLoopOccurrences	  off
+		  PropExecContextOutsideSubsystem off
+		  RTWSystemCode		  "Auto"
+		  FunctionWithSeparateData off
+		  Opaque		  off
+		  RequestExecContextInheritance	off
+		  MaskHideContents	  off
+		  System {
+		    Name		    "SubSystem4"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [75, 150, 105, 170]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [655, 540, 685, 560]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [75, 460, 105, 480]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [75, 525, 105, 545]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [75, 590, 105, 610]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [75, 655, 105, 675]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [75, 720, 105, 740]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator2"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [465, 225, 495, 245]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator3"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [655, 70, 685, 90]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator4"
+		    SID			    "0"
+		    Ports		    [1, 1]
+		    Position		    [380, 30, 410, 50]
+		    Operator		    "NOT"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem5"
+		    SID			    "0"
+		    Ports		    [6, 5]
+		    Position		    [1485, 1490, 1655, 1575]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem5"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_enable"
+		    SID			    "0"
+		    Position		    [1580, 1520, 1610, 1540]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [1545, 1545, 1575, 1565]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [1520, 1590, 1535, 1600]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [1370, 1360, 1400, 1380]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [1345, 1345, 1375, 1365]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [625, 850, 655, 870]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add1"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1540, 1460, 1570, 1480]
+		    Inputs		    "+-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add2"
+		    SID			    "0"
+		    Ports		    [1, 1]
+		    Position		    [1320, 1310, 1350, 1330]
+		    Inputs		    "-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant1"
+		    SID			    "0"
+		    Position		    [1560, 1575, 1590, 1595]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant2"
+		    SID			    "0"
+		    Position		    [1590, 1635, 1620, 1655]
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant3"
+		    SID			    "0"
+		    Position		    [1580, 1705, 1610, 1725]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant4"
+		    SID			    "0"
+		    Position		    [1405, 1410, 1435, 1430]
+		    Value		    "1.622"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant5"
+		    SID			    "0"
+		    Position		    [1160, 1320, 1190, 1340]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant6"
+		    SID			    "0"
+		    Position		    [855, 965, 885, 985]
+		    Value		    "2842"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant7"
+		    SID			    "0"
+		    Position		    [535, 805, 565, 825]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide1"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1485, 1540, 1515, 1560]
+		    Inputs		    "*/"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide2"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [960, 1047, 975, 1058]
+		    Inputs		    "*/"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantm11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1445, 1365, 1475, 1405]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantr11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [725, 870, 755, 910]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantv11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1620, 1612, 1635, 1643]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_t"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1645, 1565, 1675, 1605]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantm11"
+		    SID			    "0"
+		    Position		    [1260, 1270, 1310, 1300]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantr11"
+		    SID			    "0"
+		    Position		    [635, 755, 685, 785]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantv11"
+		    SID			    "0"
+		    Position		    [1680, 1655, 1730, 1685]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_t"
+		    SID			    "0"
+		    Position		    [1660, 1525, 1710, 1555]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1555, 1565, 1585, 1585]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1460, 1470, 1490, 1490]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1335, 1260, 1365, 1280]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [550, 635, 580, 655]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [500, 575, 530, 595]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_enable"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Switch_t"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant1"
+		    SrcPort		    1
+		    DstBlock		    "Switch_t"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_t"
+		    SrcPort		    1
+		    DstBlock		    "Int_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "Int_t"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_t"
+		    SrcPort		    1
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant2"
+		    SrcPort		    1
+		    DstBlock		    "Switch_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant3"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantv11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantv11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Add1"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Divide1"
+		    SrcPort		    1
+		    DstBlock		    "Add1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Divide1"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Divide2"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantm11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Divide1"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant4"
+		    SrcPort		    1
+		    DstBlock		    "Add1"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant5"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantm11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Add2"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Divide2"
+		    SrcPort		    1
+		    DstBlock		    "Add2"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant6"
+		    SrcPort		    1
+		    DstBlock		    "Divide2"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant7"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantr11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantr11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem6"
+		    SID			    "0"
+		    Ports		    [3, 1]
+		    Position		    [465, 528, 635, 612]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem6"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [330, 350, 360, 370]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [260, 215, 290, 235]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [145, 90, 175, 110]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add3"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [205, 140, 235, 160]
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant8"
+		    SID			    "0"
+		    Position		    [315, 300, 345, 320]
+		    Value		    "3000"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant9"
+		    SID			    "0"
+		    Position		    [190, 65, 220, 85]
+		    Value		    "0.128"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator1"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [415, 470, 445, 490]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    RelationalOperator
+		    Name		    "Relational\nOperator1"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [375, 412, 420, 443]
+		    Operator		    "<"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    RelationalOperator
+		    Name		    "Relational\nOperator2"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [290, 230, 320, 250]
+		    Operator		    "<"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out1"
+		    SID			    "0"
+		    Position		    [240, 140, 270, 160]
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Relational\nOperator1"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant8"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator1"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Relational\nOperator2"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator1"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator2"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Add3"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator2"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    DstBlock		    "Add3"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant9"
+		    SrcPort		    1
+		    DstBlock		    "Add3"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator1"
+		    SrcPort		    1
+		    DstBlock		    "Out1"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch1"
+		    SID			    "0"
+		    Position		    [1085, 265, 1135, 295]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch2"
+		    SID			    "0"
+		    Position		    [1085, 330, 1135, 360]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch3"
+		    SID			    "0"
+		    Position		    [1085, 395, 1135, 425]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch4"
+		    SID			    "0"
+		    Position		    [1085, 460, 1135, 490]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch5"
+		    SID			    "0"
+		    Position		    [1085, 525, 1135, 555]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1235, 70, 1265, 90]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_temp"
+		    SID			    "0"
+		    Position		    [755, 550, 785, 570]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1235, 205, 1265, 225]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1235, 270, 1265, 290]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1235, 335, 1265, 355]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [1235, 400, 1265, 420]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [1235, 465, 1265, 485]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem6"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Logical\nOperator2"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Logical\nOperator4"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Logical\nOperator2"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Logical\nOperator3"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch1"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch2"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch3"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch4"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch5"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator2"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem5"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator4"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator3"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator3"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem5"
+		    SrcPort		    5
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem6"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch3"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem5"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem6"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch1"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem6"
+		    DstPort		    3
+		    }
+		    Branch {
+		    DstBlock		    "Out_temp"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch1"
+		    SrcPort		    1
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch2"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem5"
+		    SrcPort		    2
+		    DstBlock		    "Switch2"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch4"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem5"
+		    SrcPort		    3
+		    DstBlock		    "Switch4"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch3"
+		    SrcPort		    1
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch5"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem5"
+		    SrcPort		    4
+		    DstBlock		    "Switch5"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem5"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch1"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem5"
+		    DstPort		    3
+		    }
+		    Branch {
+		    DstBlock		    "Switch2"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem5"
+		    DstPort		    4
+		    }
+		    Branch {
+		    DstBlock		    "Switch3"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem5"
+		    DstPort		    5
+		    }
+		    Branch {
+		    DstBlock		    "Switch4"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem5"
+		    DstPort		    6
+		    }
+		    Branch {
+		    DstBlock		    "Switch5"
+		    DstPort		    3
+		    }
+		    }
+		  }
+		}
+		Block {
+		  BlockType		  SubSystem
+		  Name			  "SubSystem7"
+		  SID			  "0"
+		  Ports			  [7, 7]
+		  Position		  [275, 363, 445, 447]
+		  MinAlgLoopOccurrences	  off
+		  PropExecContextOutsideSubsystem off
+		  RTWSystemCode		  "Auto"
+		  FunctionWithSeparateData off
+		  Opaque		  off
+		  RequestExecContextInheritance	off
+		  MaskHideContents	  off
+		  System {
+		    Name		    "SubSystem7"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [165, 215, 195, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [165, 280, 195, 300]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [165, 345, 195, 365]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [165, 410, 195, 430]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [165, 475, 195, 495]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [165, 540, 195, 560]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [675, 215, 705, 235]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem11"
+		    SID			    "0"
+		    Ports		    [6, 6]
+		    Position		    [725, 675, 895, 760]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem11"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [165, 215, 195, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [165, 280, 195, 300]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [165, 345, 195, 365]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [165, 410, 195, 430]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [675, 215, 705, 235]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [675, 280, 705, 300]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem12"
+		    SID			    "0"
+		    Ports		    [3, 3]
+		    Position		    [690, 643, 860, 727]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem12"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [110, 320, 140, 340]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [110, 190, 140, 210]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch11"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch12"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay1"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay2"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_temp"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1015, 445, 1045, 465]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay1"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch11"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch12"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_temp"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay2"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch11"
+		    SrcPort		    1
+		    DstBlock		    "Switch12"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Switch11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    DstBlock		    "Switch11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay2"
+		    SrcPort		    1
+		    DstBlock		    "Switch12"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay1"
+		    SrcPort		    1
+		    DstBlock		    "Switch12"
+		    DstPort		    2
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem13"
+		    SID			    "0"
+		    Ports		    [4, 4]
+		    Position		    [685, 568, 855, 652]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem13"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [110, 75, 140, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [925, 1010, 955, 1030]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [1100, 1170, 1130, 1190]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [1160, 940, 1190, 960]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add7"
+		    SID			    "0"
+		    Ports		    [3, 1]
+		    Position		    [1000, 1060, 1030, 1080]
+		    Inputs		    "+--"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add8"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1110, 1085, 1140, 1105]
+		    Inputs		    "+-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add9"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1125, 1235, 1155, 1255]
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant19"
+		    SID			    "0"
+		    Position		    [985, 1125, 1015, 1145]
+		    Value		    "1.622"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant20"
+		    SID			    "0"
+		    Position		    [1100, 1000, 1130, 1020]
+		    Value		    "0.01"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant21"
+		    SID			    "0"
+		    Position		    [1085, 1250, 1115, 1270]
+		    Value		    "1.622"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant22"
+		    SID			    "0"
+		    Position		    [1055, 1325, 1085, 1345]
+		    Value		    "0.6"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant23"
+		    SID			    "0"
+		    Position		    [1195, 795, 1225, 815]
+		    Value		    "2"
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide5"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [740, 585, 770, 605]
+		    Inputs		    "**"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide6"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [945, 1105, 975, 1125]
+		    Inputs		    "**"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide7"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1175, 1100, 1205, 1120]
+		    Inputs		    "*/"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide8"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [1100, 1330, 1130, 1350]
+		    Inputs		    "**"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch13"
+		    SID			    "0"
+		    Position		    [585, 225, 635, 255]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch14"
+		    SID			    "0"
+		    Position		    [740, 360, 790, 390]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay3"
+		    SID			    "0"
+		    Position		    [395, 100, 425, 120]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    UnitDelay
+		    Name		    "Unit Delay4"
+		    SID			    "0"
+		    Position		    [750, 295, 780, 315]
+		    BlockMirror		    on
+		    InputProcessing	    "Elements as channels (sample based)"
+		    SampleTime		    "0"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1015, 75, 1045, 95]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [1015, 315, 1045, 335]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1015, 995, 1045, 1015]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1200, 870, 1230, 890]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Switch14"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Unit Delay4"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch13"
+		    SrcPort		    1
+		    DstBlock		    "Switch14"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Unit Delay3"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch13"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Divide5"
+		    SrcPort		    1
+		    DstBlock		    "Switch13"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    Points		    [30, -15]
+		    }
+		    Branch {
+		    DstBlock		    "Divide5"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Divide7"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Add7"
+		    SrcPort		    1
+		    DstBlock		    "Divide5"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant19"
+		    SrcPort		    1
+		    DstBlock		    "Add7"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Divide6"
+		    SrcPort		    1
+		    DstBlock		    "Add7"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant20"
+		    SrcPort		    1
+		    DstBlock		    "Divide6"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Add8"
+		    SrcPort		    1
+		    DstBlock		    "Divide6"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Divide7"
+		    SrcPort		    1
+		    DstBlock		    "Add8"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Divide7"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch13"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant21"
+		    SrcPort		    1
+		    DstBlock		    "Add8"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Divide8"
+		    SrcPort		    1
+		    DstBlock		    "Add7"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Constant22"
+		    SrcPort		    1
+		    DstBlock		    "Divide8"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Add9"
+		    SrcPort		    1
+		    DstBlock		    "Divide8"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Add9"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant23"
+		    SrcPort		    1
+		    DstBlock		    "Add9"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay4"
+		    SrcPort		    1
+		    DstBlock		    "Switch14"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Unit Delay3"
+		    SrcPort		    1
+		    DstBlock		    "Switch14"
+		    DstPort		    2
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [580, 280, 610, 300]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [580, 345, 610, 365]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [580, 410, 610, 430]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1125, 215, 1155, 235]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_temp"
+		    SID			    "0"
+		    Position		    [1125, 280, 1155, 300]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1125, 345, 1155, 365]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem13"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem13"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem13"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem13"
+		    DstPort		    4
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem13"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem12"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem12"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem12"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem13"
+		    SrcPort		    2
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem13"
+		    SrcPort		    3
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem13"
+		    SrcPort		    4
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem12"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem12"
+		    SrcPort		    2
+		    DstBlock		    "Out_temp"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem12"
+		    SrcPort		    3
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem8"
+		    SID			    "0"
+		    Ports		    [7, 7]
+		    Position		    [230, 313, 400, 397]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem8"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_ok"
+		    SID			    "0"
+		    Position		    [75, 150, 105, 170]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [655, 540, 685, 560]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [75, 460, 105, 480]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [75, 525, 105, 545]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [75, 590, 105, 610]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [75, 655, 105, 675]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [75, 720, 105, 740]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator6"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [465, 225, 495, 245]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator7"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [655, 70, 685, 90]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator8"
+		    SID			    "0"
+		    Ports		    [1, 1]
+		    Position		    [380, 30, 410, 50]
+		    Operator		    "NOT"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem10"
+		    SID			    "0"
+		    Ports		    [3, 1]
+		    Position		    [145, 1188, 315, 1272]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem10"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [305, 1110, 335, 1130]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [635, 805, 665, 825]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_temp"
+		    SID			    "0"
+		    Position		    [570, 670, 600, 690]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add6"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [600, 730, 630, 750]
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant17"
+		    SID			    "0"
+		    Position		    [260, 1165, 290, 1185]
+		    Value		    "3000"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant18"
+		    SID			    "0"
+		    Position		    [610, 655, 640, 675]
+		    Value		    "0.128"
+		    }
+		    Block {
+		    BlockType		    Logic
+		    Name		    "Logical\nOperator5"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [110, 1245, 140, 1265]
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    RelationalOperator
+		    Name		    "Relational\nOperator3"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [70, 1200, 100, 1220]
+		    Operator		    ">"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    RelationalOperator
+		    Name		    "Relational\nOperator4"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [315, 1180, 345, 1200]
+		    Operator		    "<"
+		    OutDataTypeStr	    "boolean"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out1"
+		    SID			    "0"
+		    Position		    [675, 725, 705, 745]
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "Relational\nOperator3"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator5"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator3"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant17"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator3"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Relational\nOperator4"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator5"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator4"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Add6"
+		    SrcPort		    1
+		    DstBlock		    "Relational\nOperator4"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    DstBlock		    "Add6"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant18"
+		    SrcPort		    1
+		    DstBlock		    "Add6"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator5"
+		    SrcPort		    1
+		    DstBlock		    "Out1"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    SubSystem
+		    Name		    "SubSystem9"
+		    SID			    "0"
+		    Ports		    [6, 5]
+		    Position		    [195, 315, 365, 400]
+		    MinAlgLoopOccurrences   off
+		    PropExecContextOutsideSubsystem off
+		    RTWSystemCode	    "Auto"
+		    FunctionWithSeparateData off
+		    Opaque		    off
+		    RequestExecContextInheritance off
+		    MaskHideContents	    off
+		    System {
+		    Name		    "SubSystem9"
+		    Location		    [70, 200, 650, 460]
+		    Open		    off
+		    ModelBrowserVisibility  off
+		    ModelBrowserWidth	    200
+		    ScreenColor		    "white"
+		    PaperOrientation	    "landscape"
+		    PaperPositionMode	    "auto"
+		    PaperType		    "usletter"
+		    PaperUnits		    "inches"
+		    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+		    TiledPageScale	    1
+		    ShowPageBoundaries	    off
+		    ZoomFactor		    "100"
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_enable"
+		    SID			    "0"
+		    Position		    [120, 290, 150, 310]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_t"
+		    SID			    "0"
+		    Position		    [50, 230, 80, 250]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantv11"
+		    SID			    "0"
+		    Position		    [515, 870, 545, 890]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_control1"
+		    SID			    "0"
+		    Position		    [400, 980, 430, 1000]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantm11"
+		    SID			    "0"
+		    Position		    [145, 930, 175, 950]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Inport
+		    Name		    "In_plantr11"
+		    SID			    "0"
+		    Position		    [220, 1015, 250, 1035]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add4"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [370, 905, 400, 925]
+		    Inputs		    "+-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Sum
+		    Name		    "Add5"
+		    SID			    "0"
+		    Ports		    [1, 1]
+		    Position		    [70, 900, 100, 920]
+		    Inputs		    "-"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant10"
+		    SID			    "0"
+		    Position		    [455, 790, 485, 810]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant11"
+		    SID			    "0"
+		    Position		    [480, 745, 510, 765]
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant12"
+		    SID			    "0"
+		    Position		    [405, 985, 435, 1005]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant13"
+		    SID			    "0"
+		    Position		    [305, 965, 335, 985]
+		    Value		    "1.622"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant14"
+		    SID			    "0"
+		    Position		    [115, 995, 145, 1015]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant15"
+		    SID			    "0"
+		    Position		    [155, 915, 185, 935]
+		    Value		    "2548"
+		    }
+		    Block {
+		    BlockType		    Constant
+		    Name		    "Constant16"
+		    SID			    "0"
+		    Position		    [150, 1140, 180, 1160]
+		    Value		    "0"
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide3"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [395, 855, 425, 875]
+		    Inputs		    "*/"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Product
+		    Name		    "Divide4"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [65, 950, 95, 970]
+		    Inputs		    "*/"
+		    InputSameDT		    off
+		    OutDataTypeStr	    "Inherit: Inherit via internal rule"
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantm11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [245, 950, 275, 990]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantr11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [320, 1035, 350, 1075]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_plantv11"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [615, 890, 645, 930]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Integrator
+		    Name		    "Int_t"
+		    SID			    "0"
+		    Ports		    [2, 1]
+		    Position		    [150, 250, 180, 290]
+		    InitialConditionSource  "external"
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantm11"
+		    SID			    "0"
+		    Position		    [215, 945, 265, 975]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantr11"
+		    SID			    "0"
+		    Position		    [250, 1090, 300, 1120]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_plantv11"
+		    SID			    "0"
+		    Position		    [505, 935, 555, 965]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch_t"
+		    SID			    "0"
+		    Position		    [555, 740, 605, 770]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [495, 690, 525, 710]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [435, 915, 465, 935]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [135, 930, 165, 950]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [185, 1115, 215, 1135]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [195, 1140, 210, 1150]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_enable"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Switch_t"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant10"
+		    SrcPort		    1
+		    DstBlock		    "Switch_t"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_t"
+		    SrcPort		    1
+		    DstBlock		    "Int_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "Int_t"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_t"
+		    SrcPort		    1
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant11"
+		    SrcPort		    1
+		    DstBlock		    "Switch_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant12"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantv11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantv11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Add4"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Divide3"
+		    SrcPort		    1
+		    DstBlock		    "Add4"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Divide3"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Divide4"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantm11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Divide3"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Constant13"
+		    SrcPort		    1
+		    DstBlock		    "Add4"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant14"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantm11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Add5"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Divide4"
+		    SrcPort		    1
+		    DstBlock		    "Add5"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Constant15"
+		    SrcPort		    1
+		    DstBlock		    "Divide4"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Constant16"
+		    SrcPort		    1
+		    DstBlock		    "Switch_plantr11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "Switch_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantr11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Int_plantr11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Int_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch10"
+		    SID			    "0"
+		    Position		    [1085, 525, 1135, 555]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch6"
+		    SID			    "0"
+		    Position		    [1085, 265, 1135, 295]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch7"
+		    SID			    "0"
+		    Position		    [1085, 330, 1135, 360]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch8"
+		    SID			    "0"
+		    Position		    [1085, 395, 1135, 425]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Switch
+		    Name		    "Switch9"
+		    SID			    "0"
+		    Position		    [1085, 460, 1135, 490]
+		    Criteria		    "u2 > Threshold"
+		    InputSameDT		    off
+		    SaturateOnIntegerOverflow off
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1235, 70, 1265, 90]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_temp"
+		    SID			    "0"
+		    Position		    [755, 550, 785, 570]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1235, 205, 1265, 225]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1235, 270, 1265, 290]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1235, 335, 1265, 355]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [1235, 400, 1265, 420]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [1235, 465, 1265, 485]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem10"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Logical\nOperator6"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Logical\nOperator8"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "Logical\nOperator6"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Logical\nOperator7"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch6"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch7"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch8"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch9"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch10"
+		    DstPort		    2
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator6"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem9"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator8"
+		    SrcPort		    1
+		    DstBlock		    "Logical\nOperator7"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "Logical\nOperator7"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem9"
+		    SrcPort		    5
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem10"
+		    DstPort		    1
+		    }
+		    Branch {
+		    DstBlock		    "Switch8"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem9"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem10"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch6"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem10"
+		    DstPort		    3
+		    }
+		    Branch {
+		    DstBlock		    "Out_temp"
+		    DstPort		    1
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "Switch6"
+		    SrcPort		    1
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch7"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem9"
+		    SrcPort		    2
+		    DstBlock		    "Switch7"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch9"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem9"
+		    SrcPort		    3
+		    DstBlock		    "Switch9"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch8"
+		    SrcPort		    1
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "Switch10"
+		    SrcPort		    1
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem9"
+		    SrcPort		    4
+		    DstBlock		    "Switch10"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem9"
+		    DstPort		    2
+		    }
+		    Branch {
+		    DstBlock		    "Switch6"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem9"
+		    DstPort		    3
+		    }
+		    Branch {
+		    DstBlock		    "Switch7"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem9"
+		    DstPort		    4
+		    }
+		    Branch {
+		    DstBlock		    "Switch8"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem9"
+		    DstPort		    5
+		    }
+		    Branch {
+		    DstBlock		    "Switch9"
+		    DstPort		    3
+		    }
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    Points		    [20, 0]
+		    Branch {
+		    DstBlock		    "SubSystem9"
+		    DstPort		    6
+		    }
+		    Branch {
+		    DstBlock		    "Switch10"
+		    DstPort		    3
+		    }
+		    }
+		    }
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_ok"
+		    SID			    "0"
+		    Position		    [1125, 215, 1155, 235]
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_temp"
+		    SID			    "0"
+		    Position		    [1125, 280, 1155, 300]
+		    Port		    "2"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_t"
+		    SID			    "0"
+		    Position		    [1125, 345, 1155, 365]
+		    Port		    "3"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantv11"
+		    SID			    "0"
+		    Position		    [1125, 410, 1155, 430]
+		    Port		    "4"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantm11"
+		    SID			    "0"
+		    Position		    [1125, 475, 1155, 495]
+		    Port		    "5"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_plantr11"
+		    SID			    "0"
+		    Position		    [1125, 540, 1155, 560]
+		    Port		    "6"
+		    IconDisplay		    "Port number"
+		    }
+		    Block {
+		    BlockType		    Outport
+		    Name		    "Out_control1"
+		    SID			    "0"
+		    Position		    [1125, 605, 1155, 625]
+		    Port		    "7"
+		    IconDisplay		    "Port number"
+		    }
+		    Line {
+		    SrcBlock		    "In_ok"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "In_plantm11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "In_control1"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "In_plantv11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    4
+		    }
+		    Line {
+		    SrcBlock		    "In_t"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    5
+		    }
+		    Line {
+		    SrcBlock		    "In_temp"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem11"
+		    DstPort		    6
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    4
+		    DstBlock		    "SubSystem8"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    5
+		    DstBlock		    "SubSystem8"
+		    DstPort		    2
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    6
+		    DstBlock		    "SubSystem8"
+		    DstPort		    3
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    3
+		    DstBlock		    "SubSystem8"
+		    DstPort		    4
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem8"
+		    DstPort		    5
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem11"
+		    SrcPort		    2
+		    DstBlock		    "SubSystem8"
+		    DstPort		    6
+		    }
+		    Line {
+		    SrcBlock		    "In_plantr11"
+		    SrcPort		    1
+		    DstBlock		    "SubSystem8"
+		    DstPort		    7
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    1
+		    DstBlock		    "Out_ok"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    2
+		    DstBlock		    "Out_temp"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    3
+		    DstBlock		    "Out_t"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    4
+		    DstBlock		    "Out_plantv11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    5
+		    DstBlock		    "Out_plantm11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    6
+		    DstBlock		    "Out_plantr11"
+		    DstPort		    1
+		    }
+		    Line {
+		    SrcBlock		    "SubSystem8"
+		    SrcPort		    7
+		    DstBlock		    "Out_control1"
+		    DstPort		    1
+		    }
+		  }
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_ok"
+		  SID			  "0"
+		  Position		  [1125, 215, 1155, 235]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_temp"
+		  SID			  "0"
+		  Position		  [1125, 280, 1155, 300]
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_t"
+		  SID			  "0"
+		  Position		  [1125, 345, 1155, 365]
+		  Port			  "3"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantv11"
+		  SID			  "0"
+		  Position		  [1125, 410, 1155, 430]
+		  Port			  "4"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantm11"
+		  SID			  "0"
+		  Position		  [1125, 475, 1155, 495]
+		  Port			  "5"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_plantr11"
+		  SID			  "0"
+		  Position		  [1125, 540, 1155, 560]
+		  Port			  "6"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Out_control1"
+		  SID			  "0"
+		  Position		  [1125, 605, 1155, 625]
+		  Port			  "7"
+		  IconDisplay		  "Port number"
+		}
+		Line {
+		  SrcBlock		  "In_ok"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "In_plantm11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  2
+		}
+		Line {
+		  SrcBlock		  "In_control1"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  3
+		}
+		Line {
+		  SrcBlock		  "In_plantv11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  4
+		}
+		Line {
+		  SrcBlock		  "In_t"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  5
+		}
+		Line {
+		  SrcBlock		  "In_temp"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  6
+		}
+		Line {
+		  SrcBlock		  "In_plantr11"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem7"
+		  DstPort		  7
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  1
+		  DstBlock		  "SubSystem4"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  2
+		  DstBlock		  "SubSystem4"
+		  DstPort		  2
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  3
+		  DstBlock		  "SubSystem4"
+		  DstPort		  3
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  4
+		  DstBlock		  "SubSystem4"
+		  DstPort		  4
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  7
+		  DstBlock		  "SubSystem4"
+		  DstPort		  5
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  5
+		  DstBlock		  "SubSystem4"
+		  DstPort		  6
+		}
+		Line {
+		  SrcBlock		  "SubSystem7"
+		  SrcPort		  6
+		  DstBlock		  "SubSystem4"
+		  DstPort		  7
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  1
+		  DstBlock		  "Out_ok"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  2
+		  DstBlock		  "Out_temp"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  3
+		  DstBlock		  "Out_t"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  4
+		  DstBlock		  "Out_plantv11"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  5
+		  DstBlock		  "Out_plantm11"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  6
+		  DstBlock		  "Out_plantr11"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "SubSystem4"
+		  SrcPort		  7
+		  DstBlock		  "Out_control1"
+		  DstPort		  1
+		}
+	      }
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch15"
+	      SID		      "0"
+	      Position		      [975, 530, 1025, 570]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch16"
+	      SID		      "0"
+	      Position		      [975, 570, 1025, 610]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch17"
+	      SID		      "0"
+	      Position		      [975, 610, 1025, 650]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch18"
+	      SID		      "0"
+	      Position		      [975, 650, 1025, 690]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch19"
+	      SID		      "0"
+	      Position		      [975, 690, 1025, 730]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      Switch
+	      Name		      "Switch20"
+	      SID		      "0"
+	      Position		      [975, 730, 1025, 770]
+	      Criteria		      "u2 > Threshold"
+	      InputSameDT	      off
+	      SaturateOnIntegerOverflow	off
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay10"
+	      SID		      "0"
+	      Position		      [850, 573, 885, 607]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay11"
+	      SID		      "0"
+	      Position		      [850, 613, 885, 647]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay12"
+	      SID		      "0"
+	      Position		      [850, 653, 885, 687]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay13"
+	      SID		      "0"
+	      Position		      [850, 693, 885, 727]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay5"
+	      SID		      "0"
+	      Position		      [965, 238, 1000, 272]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay6"
+	      SID		      "0"
+	      Position		      [390, 217, 420, 253]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay7"
+	      SID		      "0"
+	      Position		      [680, 119, 710, 151]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay8"
+	      SID		      "0"
+	      Position		      [850, 493, 885, 527]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      UnitDelay
+	      Name		      "Unit Delay9"
+	      SID		      "0"
+	      Position		      [850, 533, 885, 567]
+	      BlockMirror	      on
+	      InputProcessing	      "Elements as channels (sample based)"
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_ok"
+	      SID		      "0"
+	      Position		      [1155, 70, 1185, 90]
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_temp"
+	      SID		      "0"
+	      Position		      [1245, 810, 1260, 820]
+	      Port		      "2"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_t"
+	      SID		      "0"
+	      Position		      [1280, 760, 1310, 780]
+	      Port		      "3"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantv11"
+	      SID		      "0"
+	      Position		      [1345, 735, 1375, 755]
+	      Port		      "4"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantm11"
+	      SID		      "0"
+	      Position		      [1300, 700, 1330, 720]
+	      Port		      "5"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_plantr11"
+	      SID		      "0"
+	      Position		      [1225, 930, 1255, 950]
+	      Port		      "6"
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Out_control1"
+	      SID		      "0"
+	      Position		      [1290, 890, 1320, 910]
+	      Port		      "7"
+	      IconDisplay	      "Port number"
+	    }
+	    Line {
+	      SrcBlock		      "In_ok"
+	      SrcPort		      1
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Logical\nOperator9"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Divide9"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Logical\nOperator11"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Relational\nOperator5"
+	      SrcPort		      1
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Logical\nOperator9"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Logical\nOperator13"
+		DstPort			2
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Logical\nOperator9"
+	      SrcPort		      1
+	      DstBlock		      "Out_ok"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      1
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Unit Delay5"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Logical\nOperator10"
+		DstPort			2
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay5"
+	      SrcPort		      1
+	      DstBlock		      "Logical\nOperator12"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Logical\nOperator12"
+	      SrcPort		      1
+	      DstBlock		      "Logical\nOperator10"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Logical\nOperator10"
+	      SrcPort		      1
+	      DstBlock		      "Unit Delay7"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay7"
+	      SrcPort		      1
+	      DstBlock		      "Add10"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay6"
+	      SrcPort		      1
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Add10"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Relational\nOperator6"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Divide9"
+	      SrcPort		      1
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Unit Delay6"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Relational\nOperator6"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Relational\nOperator5"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Switch15"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Switch16"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Switch17"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Switch18"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Switch19"
+		DstPort			2
+	      }
+	      Branch {
+		DstBlock		"Switch20"
+		DstPort			2
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Add10"
+	      SrcPort		      1
+	      DstBlock		      "Divide9"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Relational\nOperator6"
+	      SrcPort		      1
+	      DstBlock		      "Logical\nOperator13"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Constant24"
+	      SrcPort		      1
+	      DstBlock		      "Relational\nOperator5"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Logical\nOperator13"
+	      SrcPort		      1
+	      DstBlock		      "Logical\nOperator11"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Logical\nOperator11"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      2
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_temp"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay12"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      3
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_t"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay11"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      4
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_plantv11"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay10"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      5
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_plantm11"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay8"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      6
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_plantr11"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay13"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "SubSystem3"
+	      SrcPort		      7
+	      Points		      [20, 0]
+	      Branch {
+		DstBlock		"Out_control1"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Unit Delay9"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay8"
+	      SrcPort		      1
+	      DstBlock		      "Switch15"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_plantm11"
+	      SrcPort		      1
+	      DstBlock		      "Switch15"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch15"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay9"
+	      SrcPort		      1
+	      DstBlock		      "Switch16"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_control1"
+	      SrcPort		      1
+	      DstBlock		      "Switch16"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch16"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay10"
+	      SrcPort		      1
+	      DstBlock		      "Switch17"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_plantv11"
+	      SrcPort		      1
+	      DstBlock		      "Switch17"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch17"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      4
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay11"
+	      SrcPort		      1
+	      DstBlock		      "Switch18"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_t"
+	      SrcPort		      1
+	      DstBlock		      "Switch18"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch18"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      5
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay12"
+	      SrcPort		      1
+	      DstBlock		      "Switch19"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_temp"
+	      SrcPort		      1
+	      DstBlock		      "Switch19"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch19"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      6
+	    }
+	    Line {
+	      SrcBlock		      "Unit Delay13"
+	      SrcPort		      1
+	      DstBlock		      "Switch20"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "In_plantr11"
+	      SrcPort		      1
+	      DstBlock		      "Switch20"
+	      DstPort		      3
+	    }
+	    Line {
+	      SrcBlock		      "Switch20"
+	      SrcPort		      1
+	      DstBlock		      "SubSystem3"
+	      DstPort		      7
+	    }
+	  }
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_ok"
+	  SID			  "0"
+	  Position		  [1125, 215, 1155, 235]
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_temp"
+	  SID			  "0"
+	  Position		  [1125, 280, 1155, 300]
+	  Port			  "2"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_t"
+	  SID			  "0"
+	  Position		  [1125, 345, 1155, 365]
+	  Port			  "3"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_plantv11"
+	  SID			  "0"
+	  Position		  [1125, 410, 1155, 430]
+	  Port			  "4"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_plantm11"
+	  SID			  "0"
+	  Position		  [1125, 475, 1155, 495]
+	  Port			  "5"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_plantr11"
+	  SID			  "0"
+	  Position		  [1125, 540, 1155, 560]
+	  Port			  "6"
+	  IconDisplay		  "Port number"
+	}
+	Block {
+	  BlockType		  Outport
+	  Name			  "Out_control1"
+	  SID			  "0"
+	  Position		  [1125, 605, 1155, 625]
+	  Port			  "7"
+	  IconDisplay		  "Port number"
+	}
+	Line {
+	  SrcBlock		  "In_ok"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "In_control1"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  2
+	}
+	Line {
+	  SrcBlock		  "In_plantv11"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  3
+	}
+	Line {
+	  SrcBlock		  "In_plantm11"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  4
+	}
+	Line {
+	  SrcBlock		  "In_plantr11"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  5
+	}
+	Line {
+	  SrcBlock		  "In_t"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem14"
+	  DstPort		  6
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  5
+	  DstBlock		  "SubSystem2"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  3
+	  DstBlock		  "SubSystem2"
+	  DstPort		  2
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem2"
+	  DstPort		  3
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  2
+	  DstBlock		  "SubSystem2"
+	  DstPort		  4
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  6
+	  DstBlock		  "SubSystem2"
+	  DstPort		  5
+	}
+	Line {
+	  SrcBlock		  "In_temp"
+	  SrcPort		  1
+	  DstBlock		  "SubSystem2"
+	  DstPort		  6
+	}
+	Line {
+	  SrcBlock		  "SubSystem14"
+	  SrcPort		  4
+	  DstBlock		  "SubSystem2"
+	  DstPort		  7
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  1
+	  DstBlock		  "Out_ok"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  2
+	  DstBlock		  "Out_temp"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  3
+	  DstBlock		  "Out_t"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  4
+	  DstBlock		  "Out_plantv11"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  5
+	  DstBlock		  "Out_plantm11"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  6
+	  DstBlock		  "Out_plantr11"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "SubSystem2"
+	  SrcPort		  7
+	  DstBlock		  "Out_control1"
+	  DstPort		  1
+	}
+      }
+    }
+    Line {
+      SrcBlock		      "Constant30"
+      SrcPort		      1
+      DstBlock		      "Data Type Conversion"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "Data Type Conversion"
+      SrcPort		      1
+      DstBlock		      "SubSystem1"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      1
+      DstBlock		      "Scope1"
+      DstPort		      1
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      2
+      DstBlock		      "Scope1"
+      DstPort		      2
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      3
+      DstBlock		      "Scope1"
+      DstPort		      3
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      4
+      DstBlock		      "Scope1"
+      DstPort		      4
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      5
+      DstBlock		      "Scope1"
+      DstPort		      5
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      6
+      DstBlock		      "Scope1"
+      DstPort		      6
+    }
+    Line {
+      SrcBlock		      "SubSystem1"
+      SrcPort		      7
+      DstBlock		      "Scope1"
+      DstPort		      7
+    }
+  }
+}

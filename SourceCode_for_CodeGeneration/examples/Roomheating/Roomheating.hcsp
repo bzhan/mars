@@ -1,0 +1,18 @@
+systemDef RH::= Room||Controller
+
+variableDef ::=x1;x2;R_h1;R_h2;C_x1;C_x2;h1;h2;owner
+channelDef ::=ch_x1;ch_x2;ch_h1;ch_h2;
+constantDef ::=u=4;p=0.1;on1=10;on2=10;off1=12;off2=12;get1=8;get2=8;diff1=0.5;diff2=0.5
+
+processDef Room::=x1=10;x2=10;R_h1=1;R_h2=0;R**
+processDef R::=DOT(x1,x2)={0.25*x2-0.45*x1+0.2*u+5*R_h1,0.25*x1-0.65*x2+0.15*u+5*R_h2} DOMAIN(TRUE) INTERRUPT({ch_x1!!x1}{R_1})
+processDef R_1::=ch_x2!!x2;ch_h1??R_h1;ch_h2??R_h2
+
+processDef Controller::=owner=1;h1=1;h2=0;C**
+processDef C::=WAIT(p);ch_x1??C_x1;ch_x2??C_x2;if owner==1&&C_x2<=get2&&(C_x1-C_x2)>=diff2 then C_1 else SKIP;if owner==2&&C_x1<=get1&&(C_x2-C_x1)>=diff1 then C_2 else SKIP;if owner==2&&C_x2<=on2 then C_3 else SKIP;if owner==1&&C_x1<=on1 then C_4 else SKIP;if C_x1>=off1 then C_5 else SKIP;if C_x2>=off2 then C_6 else SKIP;ch_h1!!h1;ch_h2!!h2
+processDef C_1::=owner=2;h1=0;h2=1
+processDef C_2::=owner=1;h1=1;h2=0
+processDef C_3::=h1=0;h2=1
+processDef C_4::=h1=1;h2=0
+processDef C_5::=h1=0
+processDef C_6::=h2=0

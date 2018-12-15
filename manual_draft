@@ -1,0 +1,89 @@
+================================================================
+MARS (Modeling, Analyzing and veRifying hybrid Systems)：混成系统
+建模，分析及验证工具集，最新版本中，已新增自动代码生成模块。
+
+版本：MARS_v1.1
+适用系统：Linux
+================================================================
+一. 如何安装？
+    
+    1. 解压MARS压缩包，得到如下目录结构
+          /MARS_v1.1-------------------主目录
+          /MARS_v1.1/CaseStudies-------示例
+          /MARS_v1.1/Sim2HCSP----------实现Simulink模型到HCSP模型的转换
+          /MARS_v1.1/HCSP2SystemC------实现HCSP模型到SystemC代码的生成
+          /MARS_v1.1/H2S---------------实现HCSP模型到Simulink模型的反向转换
+          /MARS_v1.1/HHLProver---------混成霍尔逻辑证明器
+          /MARS_v1.1/QEInvGenerator----量词消去法求解不变式
+          /MARS_v1.1/SOSInvGenerator---半定规划法求解不变式
+          /MARS_v1.1/README.md
+    2. 安装必要的软件和库文件
+       a. binfmt-support---------------便于直接运行.jar包
+	      $ sudo apt-get install binfmt-support
+
+       b. C++ compiler-----------------C++编译器
+	      $ sudo apt-get install g++
+
+       c. Flex and Bison---------------生成语法分析器
+	      $ sudo apt-get install Flex Bison
+
+       d. JRE--------------------------java环境
+	      http://www.oracle.com/technetwork/java/javase/downloads/index-jsp-138363.html
+              注：参考网上linux配置java环境的文章
+
+       e. Isabelle---------------------已在Isabelle2014上测试有效
+	      http://isabelle.in.tum.de/（下载安装Isabelle2014）
+
+       f. Mathematica------------------已在Mathematica_10上测试有效
+	      http://www.wolfram.com/mathematica/
+              注：参考网上linux下Mathematica_10的安装与破解文章，如：http://www.linuxdiyf.com/linux/21016.html    &    http://jingyan.baidu.com/article/7c6fb42868512480642c9033.html
+
+       g. Matlab-----------------------已在Matlab_12a~Matlab_14a上测试有效
+	      http://www.mathworks.com/products/matlab/
+              注：可参考 http://blog.csdn.net/lanbing510/article/details/41698285
+
+       h. Yalmip-----------------------优化问题建模语言
+	      http://users.isy.liu.se/johanl/yalmip/
+              注：Yalmip解压后的目录需加入matlab的path中（首先修改matlab安装目录中pathdef.m文件的权限为“读写”，然后在matlab命令行使用pathtool命令将Yalmip目录加入）。
+
+       i. SDPT3------------------------半定规划求解器，被Yalmip调用
+	      http://www.math.nus.edu.sg/~mattohkc/sdpt3.html
+              注：SDPT3解压后的目录需加入matlab的path中（需修改SDPT3目录中startup.m文件名或将其删除，否则matlab启动会遇到错误）。
+
+       j. OGDF-------------------------用于图形的自动排列，在HCSP到Simulink反向转换中需要此库文件
+	      http://www.ogdf.net/doku.php/tech:download
+
+       k. SystemC-2.3.1----------------SystemC运行环境
+	      http://www.systemc.org/
+              注：SystemC安装与运行可参考网上教程
+
+    3. 设置系统环境变量
+       $ sudo gedit /etc/profile-------打开配置文件，末尾加入
+                                       export OGDFHOME=".../OGDF"
+                                       export MARSHOME=".../MARS_v1.1"
+                                       export MATLABHOME=".../Matlab_R2014a/bin"
+                                       export MATHEMATICAHOME=".../Mathematica10/Executables"
+                                       保存，注销重新登录或重启计算机，使配置生效
+    
+    至此，MARS环境搭建完毕，下面以一个例子说明MARS的使用过程。
+
+二. 示例
+
+    以CaseStudies中的hcs（探月器降落控制系统）为例：
+
+    1. 生成Simulink模型（hcs.mdl）的xml格式（hcs.xml）：
+           在Matlab的hcs.mdl所在目录下执行命令：save_system('hcs.mdl', 'hcs.xml','ExportToXML', true)
+    2. 将hcs.mdl和hcs.xml拷贝至$MARSHOME/CaseStudies/HCS目录
+    3. 根据需要在$MARSHOME/CaseStudies/HCS/uds中定义Simulink模型子模块的功能（control，plant_m1和plant_v1文件）
+    4. $ cd $MARSHOME/CaseStudies/HCS------------切换工作目录
+    5. $ java -jar $MARSHOME/Sim2HCSP/Sim2HCSP.jar -compact true -xml hcs.xml -uds uds/ ---实现Simulink模型到HCSP的转换
+    6. 编写$MARSHOME/CaseStudies/HCS/proof中的assertionDef.thy和goal.thy文件，用于定义证明过程
+    7. cp proof/goal.thy proof/assertionDef.thy .  -------拷贝至当前目录
+    8. 启动Isabelle(本机已配置好，直接在命令行输入isabelle即可启动Isabelle)，打开$MARSHOME/CaseStudies/HCS/goal.thy文件, 点击“Yes”加载其他文件，证明过程中，在弹出的命令窗口中输入不变式模板的degree，例如6; 最后，在Isabelle的输出窗口输出“No subgoals!”，代表证明结束并生成正确的系统不变式，可在$MARSHOME/SOSInvGenerator/output中查看生成的不变式，亦可通过Mathematica文件$MARSHOME/SOSInvGenerator/InvChecker.nb观察不变式的图形表示
+    9. $ java -jar $MARSHOME/Sim2HCSP/Sim2HCSP.jar -compact false -xml hcs.xml -uds uds/  ---------再次执行$MARSHOME/Sim2HCSP/Sim2HCSP.jar，将-compact参数设置为false，得到用于生成SystemC代码的system.hcsp文件
+    10. java -jar $MARSHOME/HCSP2SystemC/HCSP2SystemC.jar -hcsploc system.hcsp -delta 0 -ep 972.5 -h 0.0002 -vep 0.05 -T 10  --------调用$MARSHOME/HCSP2SystemC/HCSP2SystemC.jar，并设置相应参数值，由system.hcsp生成system.cpp
+    11. 编写Makefile文件用于编译system.cpp
+    12. make ---------------------执行Makefile，编译system.cpp
+    13. ./system -----------------运行生成的可执行文件，查看系统变量输出
+    
+

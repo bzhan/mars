@@ -1,0 +1,5 @@
+st: 0
+init: plant_v1_1 := (Real -2)
+0: diff(plant_v1_1) == (control_1/plant_m1_1) - (Real 1.622)
+0b: 
+type: false

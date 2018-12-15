@@ -1,0 +1,5 @@
+st: 0
+init: plant_1 := (Real 5)
+0: diff(plant_1) == (control_1*(Real 0.8))-(Real 0.0314)*(sqrt((Real 19.6)*plant_1))
+0b: 
+type: false

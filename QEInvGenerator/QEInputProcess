@@ -1,0 +1,1120 @@
+#!/usr/local/bin/WolframScript -script
+
+(*Generate propositinal formula from ODE*)
+
+UnpackList[X_] := Module[{res, exprHead},
+   	exprHead = Head[X];
+   	res = {};
+   	Switch[exprHead, 
+    		List, res = UnpackList[X[[1]]],
+    			_, res = X
+    	];
+   	res
+   ];
+
+GetConjItem[X_] := Module[{res, exprHead, i, len},
+   	exprHead = Head[X];
+   	res = {};
+   	Switch[exprHead, 
+    		And, len = Length[X];
+    		For[i = 1, i <= len, i++,
+     			AppendTo[res, X[[i]]]
+     			],
+    		_, AppendTo[res, X]
+    	];
+   	res
+   ];
+
+GetDisjItem[X_] := Module[{res, exprHead, i, len},
+   	exprHead = Head[X];
+   	res = {};
+   	Switch[exprHead, 
+    		Or, len = Length[X];
+    		For[i = 1, i <= len, i++,
+     			AppendTo[res, X[[i]]]
+     			],
+    			_, AppendTo[res, X]
+    	];
+   	res
+   ];
+
+Lie[P_, VarList_, DieList_] := Module[{m, i, res},
+   	m := Length[VarList];
+   	res := 0;
+   	For[i = 1, i <= m, i++,
+    		res = res + D[P, VarList[[i]]]*DieList[[i]];
+    	];
+   	res
+   	];
+
+(*Inv*)
+IdealMembership[f_, J_, varList_] := Module[{gb},
+   gb := GroebnerBasis[J, varList];
+   Length[Variables[PolynomialReduce[f, gb, varList][[2]]]] == 0
+   ];
+
+Npf[P_, VarList_, DieList_] := Module[{times, myDiff, MyDiff, tmp},
+   	times = 1;
+   	MyDiff = {P};
+   	myDiff = Lie[MyDiff[[times]], VarList, DieList];
+   	While[! IdealMembership[myDiff, MyDiff, VarList],
+    		tmp = Append[MyDiff, myDiff];
+    		MyDiff = tmp;
+    		times++;
+    		myDiff = Lie[MyDiff[[times]], VarList, DieList]
+    		];
+   	times - 1
+   	];
+
+
+PsiPlus[P_, VarList_, DieList_] := 
+  Module[{npf, i, res, tmp, j, lieP},
+   	npf = Npf[P, VarList, DieList];
+   	lieP = {P};
+   	For[i = 1, i <= npf, i++,
+    	tmp = Lie[lieP[[i]], VarList, DieList];
+    	lieP = Append[lieP, tmp];
+    	];
+   	res := P > 0;
+   	For[i = 1, i <= npf, i++,
+    		tmp = True;
+    		For[j = 1, j <= i, j++,
+     		tmp = lieP[[j]] == 0 && tmp;
+     	];
+    	tmp = tmp && lieP[[i + 1]] > 0;
+    	res = res || tmp;
+    	];
+   	res // TraditionalForm
+   ];
+
+VarPhiPlus[P_, VarList_, DieList_] := 
+  Module[{npf, i, res, tmp, j, lieP},
+   	npf = Npf[P, VarList, DieList];
+   	lieP = {P};
+   	For[i = 1, i <= npf, i++,
+    		tmp = Lie[lieP[[i]], VarList, DieList];
+    		lieP = Append[lieP, tmp];
+    	];
+   	res := P > 0;
+   	For[i = 1, i <= npf, i++,
+    		tmp = True;
+    		For[j = 1, j <= i, j++,
+     		tmp = lieP[[j]] == 0 && tmp;
+     		];
+    		tmp = tmp && lieP[[i + 1]]*(-1)^i > 0;
+    		res = res || tmp;
+    	];
+   	res // TraditionalForm
+   ];
+
+Phi[P_, VarList_, DieList_] := Module[{npf, i, res, tmp, j, lieP},
+   	npf = Npf[P, VarList, DieList];
+   	lieP = {P};
+   	For[i = 1, i <= npf, i++,
+    		tmp = Lie[lieP[[i]], VarList, DieList];
+    		lieP = Append[lieP, tmp];
+    	];
+   	res := P == 0;
+   	For[i = 1, i <= npf, i++,
+    		res = res && lieP[[i + 1]] == 0;
+    	];
+   	res // TraditionalForm
+   ];
+
+Haseq[e_] := Module[{n, tmp, X, strE},
+   	strE = ToString[e];
+   	! StringFreeQ[strE, "="]
+   ];
+
+PsiPlusPortal[E_, VarList_, DieList_] := Module[{res},
+   	If[Haseq[E],
+    		res = 
+     PsiPlus[E[[1]], VarList, DieList] || 
+      Phi[E[[1]], VarList, DieList],
+    		res = PsiPlus[E[[1]], VarList, DieList]
+    	];
+   	res // TraditionalForm
+   ];
+
+VarPhiPlusPortal[E_, VarList_, DieList_] := Module[{res},
+   	If[Haseq[E],
+    		res = 
+     VarPhiPlus[E[[1]], VarList, DieList] || 
+      Phi[E[[1]], VarList, DieList],
+    		res = VarPhiPlus[E[[1]], VarList, DieList]
+    	];
+   	res // TraditionalForm
+   ];
+
+PsiC[CC_, VarList_, DieList_] := 
+  Module[{strC, ListstrC, len, res, psiPlus, i, strTmp, ConjForm},
+   	ConjForm = GetConjItem[CC];
+   	len = Length[ConjForm];
+   	res = True;
+   	For[i = 1, i <= len, i++,
+    		psiPlus = PsiPlusPortal[ConjForm[[i]], VarList, DieList];
+    		res = res && psiPlus;
+    	];
+   	res // TraditionalForm
+   ];
+
+VarPhiC[CC_, VarList_, DieList_] := 
+  Module[{strC, ListstrC, len, res, varphiPlus, i, strTmp, ConjForm},
+   	ConjForm = GetConjItem[CC];
+   	len = Length[ConjForm];
+   	res = True;
+   	For[i = 1, i <= len, i++,
+    		varphiPlus = VarPhiPlusPortal[ConjForm[[i]], VarList, DieList];
+    		res = res && varphiPlus;
+    	];
+   	res // TraditionalForm
+   ];
+
+Psi[T_, VarList_, DieList_] := 
+  Module[{strT, ListstrT, len, i, strC, psiC, res, tmpT, DisjForm},
+   	tmpT = LogicalExpand[T];
+   	DisjForm = GetDisjItem[tmpT];
+   	len = Length[DisjForm];
+   	res = False;
+   	For[i = 1, i <= len, i++,
+    		psiC = PsiC[DisjForm[[i]], VarList, DieList];
+    		res = res || psiC;
+    	];
+   	res // TraditionalForm
+   ];
+
+FinalPsi[T_, VarList_, DieList_] := Module[{res, n},
+   	n = Length[T];
+   	If[n == 0,
+    		res = True,
+    		res = Psi[T, VarList, DieList]
+    	];
+   	res // TraditionalForm
+   ];
+
+VarPhi[T_, VarList_, DieList_] := 
+  Module[{strT, ListstrT, len, i, strC, varphiC, res, tmpT, 
+    DisjForm},
+   	tmpT = LogicalExpand[T];
+   	DisjForm = GetDisjItem[tmpT];
+   	len = Length[DisjForm];
+   	res = False;
+   	For[i = 1, i <= len, i++,
+    		varphiC = VarPhiC[DisjForm[[i]], VarList, DieList];
+    		res = res || varphiC;
+    	];
+   	res // TraditionalForm
+   ];
+
+FinalVarPhi[T_, VarList_, DieList_] := Module[{res, n},
+   	n = Length[T];
+   	If[n == 0,
+    		res = True,
+    		res = VarPhi[T, VarList, DieList]
+    	];
+   	res // TraditionalForm
+   ];
+
+CloseRegion[R_] := Module[{tmp, boundary},
+   boundary = 
+    R /. {Greater -> Equal, Less -> Equal, GreaterEqual -> Equal, 
+      LessEqual -> Equal};
+   tmp = R || boundary
+   ];
+
+GetODECond[VarList_, DieList_, Domain_, Template_] := 
+  Module[{phiB, phiT, phiIVB, phiIVT},
+   	phiB = FinalPsi[Domain, VarList, DieList];
+   	phiT = FinalPsi[Template, VarList, DieList];
+   	phiIVB = FinalVarPhi[Domain, VarList, DieList];
+   	phiIVT = FinalVarPhi[Template, VarList, DieList];
+   	((Template && Domain && phiB) \[Implies] 
+      phiT) && ((\[Not] Template && Domain && 
+        phiIVB) \[Implies] \[Not] phiIVT)
+   ];
+
+
+
+(*----------------------------------------------------------*)
+(*-------------------\
+Generate Template----------------------*)
+(*----------------------------------------------------------*)
+
+paraCounter = 1;
+paraName = "a";
+NewPara := Module[{res},
+      res = ToExpression[paraName <> ToString[paraCounter]];
+      paraCounter++;
+      res
+      ];
+HasNoElem[X_, e_] := Module[{res, i, len, tmp},
+      len = Length[X];
+      res = True;
+      For[i = 1, i <= len, i++,
+        tmp = X[[i]];
+        res = res && ! (tmp == e)
+        ];
+      If[ToString[res] == "False", False, True]
+      ];
+ProductByElement[X_, Y_] := Module[{res, i, lenX, j, lenY, tmp},
+      res = {};
+      lenX = Length[X];
+      lenY = Length[Y];
+      For[i = 1, i <= lenX, i++,
+        For[j = 1, j <= lenY, j++,
+          tmp = X[[i]]*Y[[j]];
+          If[HasNoElem[res, tmp], AppendTo[res, tmp], res]
+          ]
+        ];
+      res
+      ];
+TemplateGenerater[X_, n_] := 
+    Module[{itemlist, i, iItemList, tmpList, len, template, 
+    paralist, 
+        res, para},
+      itemlist = X;
+      iItemList = X;
+      For[i = 2, i <= n, i++,
+        tmpList = ProductByElement[iItemList, X];
+        iItemList = tmpList;
+        itemlist = Join[itemlist, iItemList]
+        ];
+   
+      len = Length[itemlist];
+      para = NewPara;
+      paralist = {para};
+      template = para;
+      For[i = 1, i <= len, i++,
+        para = NewPara;
+        AppendTo[paralist, para];
+        template += para*itemlist[[i]]
+        ];
+      res = {template >= 0, paralist}
+      ];
+
+
+(*This Section transforms ODE into polynomial ones*)varCounter = 1;
+varCounter = 1;
+varName = "w";
+
+NewVar := Module[{res},
+   res = ToExpression[varName <> ToString[varCounter]];
+   varCounter++;
+   res
+   ];
+
+ParseExpr[diff_, var_, factor_] := Module[{exprHead, res},
+   If[IsConstant[diff, var], ParseConst[diff, var, factor],
+    exprHead = Head[diff];
+    Switch[exprHead, 
+     Symbol, ParseAtom[diff, var, factor],
+     Sin, ParseSin[diff, var, factor],
+     Cos, ParseCos[diff, var, factor],
+     Plus, ParsePlus[diff, var, factor],
+     Times, ParseTimes[diff, var, factor],
+     Log, ParseLog[diff, var, factor],
+     Power, ParsePower[diff, var, factor]
+     ]
+    ]
+   ];
+ParsePower[diff_, var_, factor_] := Module[{base, expo, res},
+   base = diff[[1]];
+   expo = diff[[2]];
+   res = {{}, {}, {}, {}, {}};
+   If[IsConstant[base, var], res = ParseExpo[diff, var, factor], 
+    res = ParsePower2[diff, var, factor]];
+   res
+   ];
+ParseExpo[diff_, var_, factor_] := 
+  Module[{base, expo, res, op, opExpr, opODE, opPara, v, opD, ode, 
+    deria, value, para, rpRule, rpRuleSet},
+   base = diff[[1]];
+   expo = diff[[2]];
+   op =  expo;
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]];
+   opODE = opExpr[[2]];
+   v = NewVar;
+   para = Append[opPara, v];
+   opD = opExpr[[3]];
+   ode = Append[opODE, Log[base]*v*opD];
+   deria =  Log[base]*v*opD;
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = AppendTo[opExpr[[5]], rpRule];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParsePower2[diff_, var_, factor_] := 
+  Module[{base, expo, res, expoHead},
+   base = diff[[1]];
+   expo = diff[[2]];
+   expoHead = Head[expo];
+   res = {{}, {}, {}, {}, {}};
+   Switch[expoHead,
+    Integer, res = ParsePowerInteger[diff, var, factor],
+    Rational, res = ParsePowerRational[diff, var, factor]
+    ];
+   res
+   ];
+ParsePowerRational[diff_, var_, factor_] := 
+  Module[{base, expo, res, op, opExpr, opODE, opPara, v, u, opD, ode, 
+    deria, value, para, deno, num, opV, rpRuleSet, rpRule},
+   base = diff[[1]];
+   expo = diff[[2]];
+   deno = Denominator[expo];
+   num = expo*deno;
+   op =  base^num;
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]];
+   opODE = opExpr[[2]];
+   v = NewVar;
+   u = NewVar;
+   para = Append[Append[opPara, v], u];
+   opD = opExpr[[3]];
+   opV = opExpr[[4]];
+   ode = Append[
+     Append[opODE, (factor^deno)*(1/deno)*u*opD],  (1 - deno)/deno*u*
+      opD*(1/opV)];
+   deria = (factor^deno)*(1/deno)*u*opD;
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = AppendTo[opExpr[[5]], rpRule];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParsePowerInteger[diff_, var_, factor_] := Module[{base, expo, res},
+   base = diff[[1]];
+   expo = diff[[2]];
+   res = {{}, {}, {}, {}, {}};
+   If[expo < 0, res = ParseNegInt[diff, var, factor], 
+    res = ParsePosInt[diff, var, factor]];
+   res
+   ];
+ParseNegInt[diff_, var_, factor_] := 
+  Module[{base, expo, res, op, opExpr, opODE, opPara, v, opD, ode, 
+    deria, value, para, rpRuleSet, rpRule},
+   base = diff[[1]];
+   expo = diff[[2]];
+   op =  base^(-1*expo);
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]];
+   opODE = opExpr[[2]];
+   v = NewVar;
+   para = Append[opPara, v];
+   opD = opExpr[[3]];
+   ode = Append[opODE, -1*v^2*opD*(1/factor)];
+   deria =  -1*v^2*opD*(1/factor);
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = AppendTo[opExpr[[5]], rpRule];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParsePosInt[diff_, var_, factor_] := 
+  Module[{base, expo, res, op, opExpr, opODE, opPara, opD, ode, deria,
+     value, para, rpRuleSet, rpRule},
+   base = diff[[1]];
+   expo = diff[[2]];
+   op =  base;
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]];
+   opODE = opExpr[[2]];
+   para = opPara;
+   opD = opExpr[[3]];
+   ode = opODE;
+   deria =  expo*(opExpr[[4]])^(expo - 1)*opD*factor;
+   value = (opExpr[[4]])^expo*factor;
+   
+   rpRuleSet = opExpr[[5]];
+    
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseConst[c_, var_, factor_] := 
+  Module [{para, ode, deria, value, res, rpRuleSet},
+   para = {};
+   ode = {};
+   deria = 0;
+   value = c*factor;
+   rpRuleSet = {}; 
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseAtom[x_, var_, factor_] := 
+  Module[{para, ode, deria, value, res, rpRuleSet},
+   para = {};
+   ode = {};
+   deria = x'*factor;
+   value = x*factor;
+   
+   rpRuleSet = {}; 
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParsePlus[diff_, var_, factor_] := 
+  Module[{para, ode, res, op1, op2, op1Expr, op2Expr, op1Para, op1ODE,
+     op2Para, op2ODE, tmpVar, tmpODE, deria, value, rpRuleSet},
+   op1 = diff[[1]];
+   op2 = diff[[2]];
+   op1Expr = ParseExpr [op1, var, factor];
+   op2Expr = ParseExpr[op2, var, factor];
+   op1Para = op1Expr[[1]];
+   op1ODE = op1Expr[[2]];
+   op2Para = op2Expr[[1]];
+   op2ODE = op2Expr[[2]];
+   If[Length[op1Para] != 0 && Length[op2Para] != 0, 
+     
+    tmpVar = NewVar;
+    para = Append[Join[op1Para, op2Para], tmpVar];
+    tmpODE = op1Expr[[3]] + op2Expr[[3]];
+    ode = Append[Join[op1ODE, op2ODE], tmpODE];
+    deria = tmpODE;
+    value = tmpVar,
+    
+    para = Join[op1Para, op2Para];
+    ode = Join[op1ODE, op2ODE];
+    deria = op1Expr[[3]] + op2Expr[[3]];
+    value = op1Expr[[4]] + op2Expr[[4]];
+    ];
+   
+   rpRuleSet = Join[op1Expr[[5]], op2Expr[[5]]];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseTimes[diff_, var_, factor_] := 
+  Module[{para, ode, res, op1, op2, op1Expr, op2Expr, op1Para, op1ODE,
+     op2Para, op2ODE, tmpVar, tmpODE, deria, value, rpRuleSet},
+   op1 = diff[[1]];
+   op2 = diff[[2]];
+   If[! IsConstant[op1, var] && ! IsConstant[op2, var],
+    (*If both multiplier are not consant*)
+    
+    op1Expr = ParseExpr [op1, var, factor];
+    op2Expr = ParseExpr[op2, var, 1];
+    op1Para = op1Expr[[1]];
+    op1ODE = op1Expr[[2]];
+    op2Para = op2Expr[[1]];
+    op2ODE = op2Expr[[2]];
+    If[Length[op1Para] != 0 && Length[op2Para] != 0, 
+     
+     tmpVar = NewVar;
+     para = Append[Join[op1Para, op2Para], tmpVar];
+     tmpODE = op1*op2Expr[[3]] + op2*op1Expr[[3]];
+     ode = Append[Join[op1ODE, op2ODE], tmpODE];
+     deria = tmpODE;
+     value = tmpVar, 
+     
+     para = Join[op1Para, op2Para];
+     ode = Join[op1ODE, op2ODE];
+     deria = op1*op2Expr[[3]] + op2*op1Expr[[3]];
+     value = op1Expr[[4]]*op2Expr[[4]]
+     ],
+    If[IsConstant[op1, var],
+     (*op1 is constant*)
+     op1Expr = ParseExpr [op1, var, 1];
+     op2Expr = ParseExpr[op2, var, factor*op1];
+     op1Para = op1Expr[[1]];
+     op1ODE = op1Expr[[2]];
+     op2Para = op2Expr[[1]];
+     op2ODE = op2Expr[[2]];
+     
+     para = Join[op1Para, op2Para];
+     ode = Join[op1ODE, op2ODE];
+     deria = op2Expr[[3]];
+     value = op2Expr[[4]],
+     
+     (*op2 is constant*)
+     
+     op1Expr = ParseExpr [op1, var, factor*op2];
+     op2Expr = ParseExpr[op2, var, 1];
+     op1Para = op1Expr[[1]];
+     op1ODE = op1Expr[[2]];
+     op2Para = op2Expr[[1]];
+     op2ODE = op2Expr[[2]];
+     
+     para = Join[op1Para, op2Para];
+     ode = Join[op1ODE, op2ODE];
+     deria = op1Expr[[3]];
+     value = op1Expr[[4]]
+     ]
+    ];
+   rpRuleSet = Join[op1Expr[[5]], op2Expr[[5]]];
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseSin[diff_, var_, factor_] := 
+  Module[{para, ode, res, op, opExpr, opODE, opPara, opD, v, u, deria,
+     value, rpRuleSet, rpRule},
+   op =  diff[[1]];
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]];
+   opODE = opExpr[[2]];
+   v = NewVar; 
+   u = NewVar;
+   para = Append[Append[opPara, v], u];
+   opD = opExpr[[3]];
+   ode = Append[Append[opODE, factor*u*opD],  -1*v*opD*(1/factor)];
+   deria = u*opD*factor;
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = AppendTo[opExpr[[5]], rpRule];
+    
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseCos[diff_, var_, factor_] := 
+  Module[{para, ode, res, op, opExpr, opODE, opPara, opD, v, u, deria,
+     value, rpRuleSet, rpRule},
+   op =  diff[[1]];
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]]; 
+   opODE = opExpr[[2]];
+   v = NewVar;
+   u = NewVar;
+   para = Append[Append[opPara, v], u];
+   opD = opExpr[[3]];
+   ode = Append[Append[opODE, -1*u*opD*factor], v*opD*(1/factor)];
+   deria = -1*u*opD*factor;
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = AppendTo[opExpr[[5]], rpRule];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+ParseLog[diff_, var_, factor_] := 
+  Module[{para, ode, res, op, opExpr, opODE, opPara, opD, v, u, deria,
+     value, rpRuleSet, rpRule},
+   op =  diff[[1]];
+   opExpr = ParseExpr [op, var, 1];
+   opPara = opExpr[[1]]; 
+   opODE = opExpr[[2]];
+   v = NewVar;
+   u = NewVar;
+   para = Append[Append[opPara, v], u];
+   opD = opExpr[[3]];
+   ode = Append[Append[opODE, factor*u*opD], -1*u^2*opD];
+   deria = u*opD*factor;
+   value = v;
+   
+   rpRule = v -> factor*diff;
+   rpRuleSet = opExpr[[5]];
+   
+   res = {para, ode, deria, value, rpRuleSet}
+   ];
+
+IsConstant[expr_, var_] := Module[{res},
+   If[IsExprZero[D[expr, {var}]], True, False] 
+   ];
+IsExprZero[expr_] := Module[{res, i, len},
+   res = True; 
+   len = Length[expr];
+   If[len == 0, 
+    res = IsConstZero[expr],
+    For[i = 1, i <= Length[expr], i++,
+     res = res && IsExprZero[expr[[i]]]
+     ]
+    ];
+   res
+   ];
+IsConstZero[expr_] := Module[{res, strExpr},
+   strExpr = ToString[expr];
+   If[strExpr == "0", True, False]
+   ];
+
+
+PolyDiff[Para_, Diff_] := 
+  Module[{resDiff, tmp, exprBef, exprAfter, res, para, diff, i, j, 
+    rpRuleSet, rpRule, rpVar, delVarIdx, finalVar, finalD, 
+    rprVariants, rprLeft, rprRight, rpr2Equation, varlist},
+   resDiff = {};
+   For[i = 1, i <= Length[Diff], i++,
+    para = Para[[i]]; 
+    diff = Diff[[i]];
+    tmp = ParseExpr[diff, Para, 1];
+    resDiff = Append[resDiff, tmp]; 
+    ];
+   res = {{}, {}};
+   For[i = 1, i <= Length[resDiff], i++,
+    res = {Join[res[[1]], resDiff[[i]][[1]]], 
+       Join[res[[2]], resDiff[[i]][[2]]]};
+    ];
+   For[i = 1, i <= Length[Para], i++,
+    exprBef = Para[[i]]';
+    exprAfter = resDiff[[i]][[4]];
+    res = {res[[1]], res[[2]] /. exprBef -> exprAfter};
+    ];
+   For[i = 1, i <= Length[Para], i++,
+    res = {Append[res[[1]], Para[[i]]], 
+       Append[res[[2]], resDiff[[i]][[4]]]};
+    ];
+   
+   rpRuleSet = {};
+   For[i = 1, i <= Length[resDiff], i++,
+    For[j = 1, j <= Length[resDiff[[i]][[5]]], j++,
+     AppendTo[rpRuleSet, resDiff[[i]][[5]][[j]]]
+     ]
+    ];
+   
+   
+   rprVariants = {};
+   For[i = 1, i <= Length[rpRuleSet], i++,
+    rpRule = rpRuleSet[[i]];
+    rprLeft = rpRule[[1]];
+    rprRight = rpRule[[2]];
+    rpr2Equation = rprLeft == rprRight;
+    
+    varlist = Variables[rprRight];
+    For[i = 1, i <= Length[varlist], i++,
+     AppendTo[rprVariants, Solve[rpr2Equation, varlist[[i]]][[1]]]
+     ];
+    ];
+   
+   (*Delete the replaced variable*)
+   delVarIdx = {};
+   For[i = 1, i <= Length[rprVariants], i++,
+    rpVar = rprVariants[[i]][[1]][[1]]
+    ];
+   
+   For[j = 1, j <= Length[res[[1]]], j++,
+    For[i = 1, i <= Length[rprVariants], i++,
+     rpVar = rprVariants[[i]][[1]][[1]];
+     If[ToString[rpVar] == ToString[res[[1]][[j]]],
+      AppendTo[delVarIdx, {j}], True]
+     ]
+    ];
+   
+   finalVar = Delete[res[[1]], delVarIdx];
+   finalD = Delete[res[[2]], delVarIdx];
+   
+   
+   {{finalVar, finalD}, Append[rprVariants, rpRuleSet]}
+   ];
+
+
+(*This section process the constraints from Isabelle*)
+
+transSubstF[substF_] := 
+  Module[{h, ruleSet, sub, resRSet, resExpr, subRSet, subExpr, i},
+   h = Head[substF];
+   resRSet = {};
+   Switch[h,
+    List, ruleSet = substF[[1]];
+    sub = transSubstF[substF[[2]]];
+    For[i = 1, i < Length[ruleSet], i++,
+     AppendTo[resRSet, ruleSet[[i]]]
+     ];
+    subRSet = sub[[1]];
+    For[i = 1, i < Length[subRSet], i++,
+     AppendTo[resRSet, subRSet[[i]]]
+     ];
+    resExpr = sub[[2]];
+    ,
+    _, resExpr = substF
+    ];
+   AppendTo[resRSet, Null];
+   {resRSet, resExpr}
+   ];
+transSubstCons[Cons_] := Module[{substF, resRSet, resExpr, i},
+   substF = transSubstF[Cons[[2]]];
+   resRSet = {};
+   For[i = 1, i < Length[substF[[1]]], i++,
+    AppendTo[resRSet, substF[[1]][[i]] ] 
+    ];
+   {Cons[[1]], {substF[[2]], resRSet}}
+   ];
+
+
+applyRPR2Subst[consSet_, rpr_] := 
+  Module[{rpRule, substrSet, substRule, i, j, substrLeft, substrRight,
+     rprLeft, rprRigth, midLeft, midRight, resLeft, resRight, resRule,
+     varlist, tmp, k, res, resSubstrSet, resSubstRule, resSet, m, 
+    cons},
+   resSet = {};
+   For[m = 1, m <= Length[consSet], m++,
+    cons = consSet[[m]];
+    substrSet = cons[[2]][[2]];
+    resRule = {};
+    
+    rpRule = rpr;
+    rprLeft = rpRule[[1]];
+    rprRigth = rpRule[[2]];
+    resSubstrSet = {};
+    For[j = 1, j <= Length[substrSet], j++,
+     substRule = substrSet[[j]];
+     substrLeft = substRule[[1]];
+     substrRight = substRule[[2]];
+     resSubstRule = {};
+     If[ToString[rprLeft] == ToString[substrLeft],
+      midLeft = rprRigth;
+      midRight = substrRight /. rpRule;
+      varlist = Variables[midLeft];
+      For[k = 1, k <= Length[varlist], k++,
+       resLeft = varlist[[k]];
+       tmp = midLeft/resLeft;
+       resRight = midRight/tmp;
+       AppendTo[resSubstRule, {resLeft, resRight}]
+       ],
+      AppendTo[resSubstRule, substRule]
+      ];
+     AppendTo[resSubstrSet, resSubstRule]
+     ];
+    tmp = Tuples[resSubstrSet];
+    resRule = Join[resRule, tmp];
+    
+    res = {};
+    For[i = 1, i <= Length[resRule], i++,
+     AppendTo[res, {cons[[1]], {cons[[2]][[1]], resRule[[i]]}}]
+     ];
+    AppendTo[resSet, res];
+    ];
+   resSet
+   ];
+
+applyRPR2Formula[formula_, rpr_] := 
+  Module[{neversaynever, tmp, formulaTmp, res},
+   formulaTmp = formula /. {Inv -> neversaynever == 0, rpr};
+   tmp = Reduce[formulaTmp];
+   res = tmp /. neversaynever == 0 -> Inv;
+   res
+   ];
+
+applyRPR2SimpCons[cons_, rpr_] := 
+  Module[{initCons, rpRule, i, tmp, res, left, right},
+   res = {};
+   For[i = 1, i <= Length[cons], i++,
+    tmp = cons[[i]];
+    AppendTo[
+     res, {{applyRPR2Formula[tmp[[1]], rpr], 
+       applyRPR2Formula[tmp[[2]], rpr]}}]
+    ];
+   res
+   ];
+
+transODECons[Cons_] := Module[{oldODE, newODE, tmp, rpRules, Domain},
+   oldODE = Cons[[1]][[1]];
+   tmp = PolyDiff[oldODE[[1]], oldODE[[2]]];
+   newODE = tmp[[1]];
+   rpRules = tmp[[2]];
+   Domain = Cons[[1]][[2]];
+   
+   (*result*)
+   {{newODE, Domain}, rpRules}
+   ];
+
+FindUsefulVarsInGoalCons[goalCons_] := 
+  Module[{goal, goalAsump, atomFFORM, exp, varlist, var2add, 
+    varInCons},
+   
+   varInCons = {};
+   (*Find useful variables in goalCons*)
+   goal = goalCons[[2]];
+   goalAsump = goalCons[[1]];
+   
+   (*Find variables in assumption*)
+   
+   For[i = 1, i <= Length[goalAsump], i++,
+    atomFFORM = goalAsump[[i]];
+    For[j = 1, j <= Length[atomFFORM], j++,
+     exp = atomFFORM[[j]];
+     varlist = Variables[exp];
+     For[k = 1, k <= Length[varlist], k++,
+      var2add = varlist[[k]];
+      If[MemberQ[varInCons, var2add], True,
+       AppendTo[varInCons, var2add]]
+      ];
+     ]
+    ];
+   
+   (*Find variables in goal*)
+   For[i = 1, i <= Length[goal], i++,
+    atomFFORM = goal[[i]];
+    For[j = 1, j <= Length[atomFFORM], j++,
+     exp = atomFFORM[[j]];
+     varlist = Variables[exp];
+     For[k = 1, k <= Length[varlist], k++,
+      var2add = varlist[[k]];
+      If[MemberQ[varInCons, var2add], True,
+       AppendTo[varInCons, var2add]]
+      ];
+     ]
+    ];
+   varInCons
+   ];
+
+findDependentVarsInODE[ODE_, var_] := 
+  Module[{dependentVars, odeVars, odeDs, tmplist, i, j, var2add, 
+    reslist},
+   odeVars = ODE[[1]];
+   odeDs = ODE[[2]];
+   dependentVars = {};
+   For[i = 1, i <= Length[odeVars], i++,
+    If[ToString[var] == ToString[odeVars[[i]]],
+     tmplist = Variables[odeDs[[i]]];
+     For[j = 1, j <= Length[tmplist], j++,
+      var2add = tmplist[[j]];
+      If[! 
+         MemberQ[dependentVars, var2add] && (ToString[var] !=  
+          ToString[var2add]),
+       AppendTo[dependentVars, var2add],
+       True]
+      ],
+     True
+     ]
+    ];
+   (*Find the dependent variables of the found variables*)
+   
+   reslist = dependentVars;
+   For[i = 1, i <= Length[dependentVars], i++,
+    tmplist = findDependentVarsInODE[ODE, dependentVars[[i]]];
+    For[j = 1, j <= Length[tmplist], j++,
+     var2add = tmplist[[j]];
+     If[MemberQ[reslist, var2add], True,
+      AppendTo[reslist, var2add]]
+     ]
+    ];
+   reslist
+   ];
+
+eliUselessVarInODECons[ODECons_, usefulVars_] := 
+  Module[{tmplist, dependentVarlist, i, j, var2add, resODEVars, 
+    resODEDs, usefulVarlist, ODEVars, ODEDs},
+   dependentVarlist = {};
+   For[i = 1, i <= Length[usefulVars], i++,
+    tmplist = findDependentVarsInODE[ODECons[[1]], usefulVars[[i]]];
+    For[j = 1, j <= Length[tmplist], j++, 
+     var2add = tmplist[[j]];
+     If[MemberQ[dependentVarlist, var2add], True,
+      AppendTo[dependentVarlist, var2add]]
+     ]
+    ];
+   usefulVarlist = Join[dependentVarlist, usefulVars];
+   resODEVars = {};
+   resODEDs = {};
+   ODEVars = ODECons[[1]][[1]];
+   ODEDs = ODECons[[1]][[2]];
+   
+   For[i = 1, i <= Length[ODEVars], i++,
+    If[MemberQ[usefulVarlist, ODEVars[[i]]],
+     AppendTo[resODEVars, ODEVars[[i]]];
+     AppendTo[resODEDs, ODEDs[[i]]],
+     True
+     ]
+    ];
+   {{{resODEVars, resODEDs}, ODECons[[2]]}}
+   ];
+
+
+getRPRoftwoRPRs[rpr1_, rpr2_] := 
+  Module[{rpRule1, rpRule2, i, j, resRules},
+   resRules = {};
+   For[i = 1, i <= Length[rpr1], i++,
+    rpRule1 = rpr1[[i]];
+    For[j = 1, j <= Length[rpr2], j++,
+     rpRule2 = rpr2[[j]][[1]];
+     If[ToString[rpRule1[[2]]] == ToString[rpRule2[[2]]],
+      AppendTo[resRules, rpRule2[[1]] -> rpRule1[[1]]]
+      ]
+     ]
+    ];
+   resRules
+   ];
+
+CONSTYPESIMPLE = 0;
+CONSTYPESAFE = 1;
+CONSTYPEINIT = 2;
+CONSTYPESUBST = 3;
+CONSTYPEDIFF = 4;
+GetConsType[cons_] := Module[{res},
+   Switch[Head[cons[[2]]], List, res = CONSTYPESUBST, _, 
+    Switch[Head[cons[[1]]], List, res = CONSTYPEDIFF, _, 
+     res = CONSTYPESIMPLE]];
+   res 
+   ];
+
+FindAllElement[exp_] := Module[{i, res},
+   res = {};
+   If[Length[exp] == 0,
+    res = {exp},
+    For[i = 1, i <= Length[exp], i++,
+     res = Join[res, FindAllElement[exp[[i]]]]
+     ]
+    ];
+   res
+   ];
+RemoveRedudantElement[list_] := Module[{res, i},
+   res = {};
+   For[i = 1, i <= Length[list], i++,
+    If[! MemberQ[res, list[[i]]], AppendTo[res, list[[i]]]]
+    ];
+   res
+   ];
+FindVariables[expr_] := 
+  Module[{res, delIdxList, delElementList, allElement, i, element, 
+    tmp},
+   delIdxList = {};
+   allElement = FindAllElement[expr];
+   delElementList = {Sin, Cos, LessEqual, Less, Greater, GreaterEqual};
+   For[i = 1, i <= Length[allElement], i++,
+    element = allElement[[i]];
+    Switch[Head[element],
+     Symbol, 
+     If[MemberQ[delElementList, element], AppendTo[delIdxList, {i}]],
+     _, AppendTo[delIdxList, {i}]
+     ]
+    ];
+   tmp = Delete[allElement, delIdxList];
+   res = RemoveRedudantElement[tmp]
+   ];
+FindGoalInCons[cons_] := Module[{res, i},
+   For[i = 1, i <= Length[cons], i++,
+    If[Length[cons[[i]][[2]]] != 0, res = cons[[i]][[2]]]
+    ];
+   res
+   ];
+
+ElimiInvalidSubstCons[cons_, varlist_] := 
+  Module[{resSubstConsSet, delList, i, j, k, varInSubstCons},
+   delList = {};
+   resSubstConsSet = cons;
+   For[i = 1, i <= Length[resSubstConsSet], i++,
+    For[j = 1, j <= Length[resSubstConsSet[[i]]], j++,
+     varInSubstCons = FindVariables[resSubstConsSet[[i]][[j]]];
+     For[k = 1, k <= Length[varInSubstCons], k++, 
+      If[! MemberQ[varlist, varInSubstCons[[k]]], 
+       AppendTo[delList, {i, j}]]]
+     ]
+    ];
+   delList = RemoveRedudantElement[delList];
+   Delete[resSubstConsSet, delList]
+   ];
+
+processGNCInput[input_] := 
+  Module[{consODESet, consODE, tmp, allCons, rpRules, res, cons3Set, 
+    i, cons1Set, cons2Set, cons4Set, cons5Set, resConsSet, j, rpRule, 
+    polyODEConsSet, r2rSet, tmpCons, tmprprSet, tmpODESet, 
+    tmpResConsSet, consSubstSet, consSimpSet, resSimpConsSet, 
+    resSubstConsSet, k, varsInODE, delList, varInSubstCons, m},
+   (*tmp=StringReplace[input,"_"\[Rule]"0"];*)
+   
+   tmp = StringReplace[
+     input, {"plant_t" -> "t", "plant_v1_1" -> "v", 
+      "plant_m1_1" -> "m", "control_1" -> "Fc", "plant_r1_1" -> "r", 
+      "_" -> "0"}];
+   allCons = ToExpression[tmp];
+   consSubstSet = {};
+   consSimpSet = {};
+   consODESet = {};
+   
+   For[i = 1, i < Length[allCons], 
+    i++,(*The last element of allCons is Null*)
+    tmp = allCons[[i]];
+    Switch[GetConsType[tmp],
+     CONSTYPESIMPLE, AppendTo[consSimpSet, tmp],
+     CONSTYPESUBST, AppendTo[consSubstSet, tmp],
+     CONSTYPEDIFF, AppendTo[consODESet, tmp]];
+    ];
+   
+   (*Transform the constraints*)
+   tmp = {};
+   For[i = 1, i <= Length[consSubstSet], i++,
+    AppendTo[tmp, transSubstCons[consSubstSet[[i]]]]
+    ];
+   consSubstSet = tmp;
+   (*Transform the ODE constraints*)
+   polyODEConsSet = {};
+   rpRules = {};
+   For[i = 1, i <= Length[consODESet], i++,
+    consODE = consODESet[[i]];
+    tmp = transODECons[consODE];
+    tmpCons = tmp[[1]];
+    tmprprSet = tmp[[2]];
+    r2rSet = getRPRoftwoRPRs[rpRules, tmprprSet];
+    tmprprSet = tmprprSet /. r2rSet;
+    For[j = 1, j <= Length[tmprprSet], j++,
+     If[! MemberQ[rpRules, tmprprSet[[j]]],
+      rpRules = Join[rpRules, tmprprSet[[j]]]
+      , True]
+     ];
+    AppendTo[polyODEConsSet, tmpCons /. r2rSet]
+    ];
+   
+   res = {};
+   If[Length[rpRules] == 0,
+    res = {Join[consSimpSet, Join[consSubstSet, polyODEConsSet]]},
+    For[i = 1, i <= Length[rpRules], i++,
+      (*Apply transformation rules to other constraints*)
+      
+      rpRule = rpRules[[i]];
+      resSimpConsSet = applyRPR2SimpCons[consSimpSet, rpRule];
+      resSubstConsSet = applyRPR2Subst[consSubstSet, rpRule];
+      
+      (*Eliminate unnecessary variables*)
+      tmpODESet = {};
+      varlist = FindVariables[resSimpConsSet];
+      For[j = 1, j <= Length[polyODEConsSet], j++,
+       AppendTo[tmpODESet, 
+        eliUselessVarInODECons[polyODEConsSet[[j]], varlist]]
+       ];
+      
+      (*Eliminate invalid tuple considering substcons*)
+      
+      varsInODE = FindVariables[tmpODESet];
+      varsInODE = Join[varsInODE, {Inv}];
+      resSubstConsSet = 
+       ElimiInvalidSubstCons[resSubstConsSet, varsInODE];
+      
+      tmpResConsSet = {};
+      For[k = 1, k <= Length[resSimpConsSet], k++,
+       AppendTo[tmpResConsSet, resSimpConsSet[[k]]]
+       ];
+      For[k = 1, k <= Length[resSubstConsSet], k++,
+       AppendTo[tmpResConsSet, resSubstConsSet[[k]]]
+       ];
+      tmpResConsSet = Join[tmpResConsSet, tmpODESet];
+      
+      resConsSet = Tuples[tmpResConsSet];
+      For[j = 1, j <= Length[resConsSet], j++,
+       AppendTo[res, resConsSet[[j]]]
+       ]
+      ];
+    ];
+   
+   
+   res = RemoveRedudantElement[res]
+   ];
+
+
+input=$ScriptCommandLine[[2]];
+resInput=processGNCInput[input];
+
+
+tempOrder = << "fileN";
+diffVars = {};
+For[i = 1, i <= Length[resInput[[1]]], i++,
+  If[GetConsType[resInput[[1]][[i]]] == CONSTYPEDIFF, 
+   diffVars = resInput[[1]][[i]][[1]][[1]]]
+  ];
+template = TemplateGenerater[diffVars, tempOrder];
+res = {resInput, template}
+
+dir = DirectoryName[$InputFileName];
+fname = FileNameJoin[{dir, "template"}];
+fp = OpenWrite[fname];
+WriteString[fp, ToString[InputForm[template[[1]]]]];
+Close[fp];
+
+dir = DirectoryName[$InputFileName];
+fname = FileNameJoin[{dir, "tempPara"}];
+fp2 = OpenWrite[fname];
+para = template[[2]];
+For[i = 1, i <= Length[para], i++,
+  WriteLine[fp2, ToString[i] <> ": " <> ToString[para[[i]]]]
+  ];
+Close[fp2];
+
+Print[res]
+
+

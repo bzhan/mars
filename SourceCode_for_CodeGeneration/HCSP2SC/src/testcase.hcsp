@@ -1,0 +1,11 @@
+systemDef S::= P||Q
+
+variableDef ::=x=0;y=0;ch;chh
+
+processDef P::=WAIT(2);ch!!x;P1;P1^Q1;P1**;if x==1 then M1 else SKIP;DOT(x)={x} DOMAIN(x<5);SKIP
+processDef Q::=WAIT(1);ch??y;Q1;if y==1 then N1 else SKIP;DOT(y)={y+1} DOMAIN(y<5) INTERRUPT({chh!!y}{Q1})
+
+processDef P1::=x=1
+processDef M1::=x=x+1
+processDef Q1::=y=1
+processDef N1::=y=0

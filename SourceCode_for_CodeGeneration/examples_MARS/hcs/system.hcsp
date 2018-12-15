@@ -1,0 +1,46 @@
+systemDef P::= PC1||PD1
+
+variableDef ::=plant_v1_1;plant_m1_1;control_1;plant_r1_1;plant_v1_1_1;plant_m1_1_1;control_1_0
+channelDef ::=Ch_plant_v1_1_1;Ch_plant_m1_1_1;Ch_control_1_0
+
+processDef PC1_1 ::= plant_v1_1 = -2;  plant_m1_1 = 1250; plant_r1_1=30
+processDef commI1 ::=Ch_control_1_0??control_1_0;Ch_plant_m1_1_1!!plant_m1_1;Ch_plant_v1_1_1!!plant_v1_1
+
+processDef interrupt_3_proc ::= Ch_plant_v1_1_1!!plant_v1_1;Ch_control_1_0??control_1_0
+processDef domain_3_proc ::= DOT(plant_v1_1,plant_m1_1,plant_r1_1)={(control_1_0/plant_m1_1)-(1.622),-(control_1_0/(2548)),plant_v1_1} DOMAIN(TRUE) INTERRUPT({ Ch_plant_m1_1_1!!plant_m1_1}{interrupt_3_proc})
+processDef PC1_2 ::= if ((control_1_0>(3000))) then domain_3_proc else SKIP 
+processDef interrupt_4_proc ::= Ch_plant_v1_1_1!!plant_v1_1;Ch_control_1_0??control_1_0
+processDef domain_4_proc ::= DOT(plant_v1_1,plant_m1_1,plant_r1_1)={(control_1_0/plant_m1_1)-(1.622),-(control_1_0/(2842)),plant_v1_1} DOMAIN(TRUE) INTERRUPT({ Ch_plant_m1_1_1!!plant_m1_1}{interrupt_4_proc})
+processDef PC1_3 ::= if ((control_1_0<=(3000))) then domain_4_proc else SKIP 
+processDef PC1_init::=PC1_1;commI1
+processDef PC1_rep ::=PC1_2;PC1_3
+processDef PC1 ::=PC1_init;PC1_rep**
+
+processDef PD1_1 ::=control_1=(2027.5)
+
+processDef PD1_2 ::=Ch_control_1_0!!control_1;Ch_plant_m1_1_1??plant_m1_1_1;Ch_plant_v1_1_1??plant_v1_1_1
+
+
+processDef PD1_3 ::=control_1=(plant_m1_1_1*((1.622)-(0.01)*(control_1/plant_m1_1_1-(1.622))-(0.6)*(plant_v1_1_1+(2))))
+
+processDef PD1_4 ::=WAIT(0.128)
+
+processDef PD1_5 ::=Ch_plant_m1_1_1??plant_m1_1_1;Ch_plant_v1_1_1??plant_v1_1_1
+
+
+processDef PD1_6 ::=control_1=(plant_m1_1_1*((1.622)-(0.01)*(control_1/plant_m1_1_1-(1.622))-(0.6)*(plant_v1_1_1+(2))))
+
+processDef PD1_7 ::=Ch_control_1_0!!control_1
+
+
+processDef PD1_init1 ::= PD1_1
+processDef PD1_init2 ::= PD1_2
+processDef PD1_init3 ::= PD1_3
+processDef PD1_init ::= PD1_init1; PD1_init2; PD1_init3
+processDef PD1_rep1 ::=  PD1_4
+processDef PD1_rep2 ::= PD1_5
+processDef PD1_rep3 ::= PD1_6
+processDef PD1_rep4 ::= PD1_7
+processDef PD1_rep ::= PD1_rep1; PD1_rep2; PD1_rep3; PD1_rep4
+processDef PD1 ::= PD1_init;PD1_rep**
+
