@@ -6,7 +6,7 @@
 But make a modification to adapt to our application. 
 *)
 
-header {* Classical First-Order Sequent Calculus *}
+section {* Classical First-Order Sequent Calculus *}
 
 theory DLK0
 imports DSequents
