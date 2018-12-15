@@ -22,7 +22,7 @@ primrec evalF :: "state => fform => bool" where
 "evalF (f,form1 [&] form2) = ((evalF (f,form1)) & (evalF (f,form2)))" |
 "evalF (f,form1 [|] form2) = ((evalF (f,form1)) | (evalF (f,form2)))" |
 "evalF (f,form1 [-->] form2) = ((evalF (f,form1)) --> (evalF (f,form2)))" |
-"evalF (f,form1 [<->] form2) = ((evalF (f,form1)) <-> (evalF (f,form2)))" |
+"evalF (f,form1 [<->] form2) = ((evalF (f,form1)) \<longleftrightarrow> (evalF (f,form2)))" |
 "evalF (f,WALL x form1)= (ALL (v::real). (evalF((%a. %i. (if (a=x) then (RR (v)) else (f(a, i)))), form1)))" |
 "evalF (f,WEX x form1)= (EX (v::real). evalF((%a. %i. (if (a=x) then (RR (v)) else f(a, i))), form1))"
 
