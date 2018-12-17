@@ -12,14 +12,8 @@ theory DLK0
 imports DSequents
 begin
 
-class "term"
-default_sort "term"
-
 consts 
-
   Trueprop :: "two_seqi"
-
- 
 
 syntax
  "_Trueprop" :: "two_seqe" ("((_)/ |- (_))" [6,6] 5)

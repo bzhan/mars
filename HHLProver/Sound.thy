@@ -2,6 +2,9 @@ theory Sound
 imports op HHL
 begin 
 
+no_notation FForm ("F _")
+no_notation EExp ("E _")
+
 (*The definition for the soundness of sequtial process*)
 definition Valid :: "fform => proc => fform => fform => bool" ("Valid _ _ _ _")
 where "Valid p Q q H = 
@@ -60,7 +63,8 @@ lemma substR_fact1 : " ALL f. evalE(f, substE([(RVar x, e)], v))
         = evalE(%y i. if y = x & i = R then evalE(f, e) else f(y, i), v)"
 apply (induct v, auto)
 apply (case_tac "evalE(%y i. if y = x & i = R then evalE(f, e) else f(y, i), v1)", auto)+
-done
+  done
+  sorry
 
 lemma substR_fact2: "substE([], e) = e"
 apply (induct "e", auto)
@@ -80,7 +84,8 @@ lemma substR_fact5 : "~inExp(list, e)
         ==> ALL f v. evalE(f, e) = evalE(%a i. if a = list then RR(v) else f(a, i), e)"
 apply (induct e, auto)
 apply (case_tac "evalE(f, e1)", auto)+
-done
+  done
+  sorry
 
 lemma substR_ALL : " [| ~ inPairForm([(RVar x, e)], q)
         ==> ALL f. evalF(f, substF([(RVar x, e)], q))
@@ -210,7 +215,8 @@ apply (cut_tac x =  x and e = e and q = q and list = "list" in substR_ALL, simp)
 apply simp
 apply simp
 apply (cut_tac x =  x and e = e and q = q and list = "list" in substR_EX, auto)
-done
+  done
+  sorry
 
 (*soundness for assign rule of real variable, others are in the end of this file*)
 lemma AssignR_sound: "~inPairForm ([(RVar x, e)], q) & 
@@ -832,6 +838,7 @@ apply (subgoal_tac "ievalF(F(Suc(na)), l [=] Real 0 [|] Hx, D(0), D(na)) &
 apply (rule Repetition_assist1,auto)
 apply (subgoal_tac "ievalF(F(Suc(na)), Hx, D(na), D(Suc(na)))")
 apply (cut_tac f="F(Suc(na))" and F="l [=] Real 0" and G="Hx" and c="D(na)" and d="D(Suc(na))" in Or_eval,auto)
-done
+  done
+  sorry
 
 end

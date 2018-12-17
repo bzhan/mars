@@ -14,9 +14,6 @@ type_synonym now = real
 type_synonym state = "string => typeid => val"
 type_synonym cstate = "now => (state list)"
 
-axiomatization where
-state_spec : "!!g::state. g(x, i) == case i of R => RR (_) | S => SS (_) | B => BB (_)"
-
 primrec evalE :: "state => exp => val" where
 "evalE (f, RVar (x)) = f (x, R)" |
 "evalE (f, SVar (x)) = f (x, S)" |

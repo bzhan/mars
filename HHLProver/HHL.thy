@@ -1,4 +1,4 @@
-header {* Abstract syntax for Hybrid CSP. *}
+section {* Abstract syntax for Hybrid CSP. *}
 
 theory HHL
   imports  HCSP_Com

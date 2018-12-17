@@ -15,8 +15,8 @@ axiomatization where
 ltrans : "l = RVar (''l'')" and
 l_pos : "|- l[>=]Real 0"
 
-datatype non = F  fform  ("F _")
-              |E  exp    ("E _")
+datatype non = FForm  fform  ("F _")
+              |EExp  exp    ("E _")
 
 
 section {*Definitions and rules for rigid and chop-free.*}
