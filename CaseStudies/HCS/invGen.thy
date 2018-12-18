@@ -7,7 +7,7 @@ declare [[ML_print_depth = 50]]
 ML{*
 
 fun transReal t = Syntax.pretty_term @{context} t
-  |> Pretty.str_of
+  |> Pretty.string_of
   |> YXML.parse_body
   |> XML.content_of;
 fun transString t = HOLogic.dest_string t;
@@ -327,24 +327,24 @@ oracle inv_oracle_QE = {* fn ct =>
 
 ML{*
 
-val inv_oracle_SOS_tac =
+fun inv_oracle_SOS_tac ctxt =
   CSUBGOAL (fn (goal, i) =>
   (case try inv_oracle_SOS goal of
     NONE => no_tac
-  | SOME thm => rtac thm i))
-val inv_oracle_QE_tac =
+  | SOME th => resolve_tac ctxt [th] i))
+fun inv_oracle_QE_tac ctxt =
   CSUBGOAL (fn (goal, i) =>
   (case try inv_oracle_QE goal of
     NONE => no_tac
-  | SOME thm => rtac thm i))
+  | SOME th => resolve_tac ctxt [th] i))
 *}
 
 method_setup inv_oracle_SOS = {*
-  Scan.succeed (K (Method.SIMPLE_METHOD' inv_oracle_SOS_tac))
+  Scan.succeed (Method.SIMPLE_METHOD' o inv_oracle_SOS_tac)
 *} 
 
 method_setup inv_oracle_QE = {*
-  Scan.succeed (K (Method.SIMPLE_METHOD' inv_oracle_QE_tac))
+  Scan.succeed (Method.SIMPLE_METHOD' o inv_oracle_QE_tac)
 *} 
 
 end

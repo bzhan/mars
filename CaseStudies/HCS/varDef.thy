@@ -1,5 +1,5 @@
 theory varDef
-	imports "/home/yangg/MARS/MARS_v1.1/HHLProver/HHL"
+	imports "../../HHLProver/HHL"
 begin
 
 (*Define channel names.*)
