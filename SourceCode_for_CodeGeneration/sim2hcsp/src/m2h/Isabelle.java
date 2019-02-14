@@ -578,7 +578,9 @@ public class Isabelle {
 						str = str.substring(maxIndex + 1, str.length());
 					}
 				} else if (str.indexOf(";", 100) > 0) {
-					int index = Math.min(maxIndex, str.indexOf(";", 150));
+					// change the next to the last index of ';' in str
+//					int index = Math.min(maxIndex, str.indexOf(";", 150));
+					int index  = Math.min(maxIndex, str.lastIndexOf(";"));
 					def += str.substring(0, index) + "\"\n";
 					str = str.substring(index + 1, str.length());
 				} else {
@@ -754,7 +756,9 @@ public class Isabelle {
 						//none
 					}
 				} else if (str.indexOf(";", 100) > 0) {
-					int index = Math.min(maxIndex, str.indexOf(";", 150));
+//					change next line with str.lastIndexOf
+//					int index = Math.min(maxIndex, str.indexOf(";", 150));
+					int index = Math.min(maxIndex, str.lastIndexOf(";"));
 					def += dProcessesDef_hcsp_terms(str.substring(0, index)) + "\n";
 					//System.out.println("&&&&&&&&&&&"+def+"$$$$$$$$");
 					str = str.substring(index + 1, str.length());

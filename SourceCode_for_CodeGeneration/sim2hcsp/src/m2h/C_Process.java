@@ -1,11 +1,11 @@
 package m2h;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import model.SL_Block;
 import model.SL_Diagram;
 import model.SL_Line;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class C_Process {
 
@@ -32,6 +32,13 @@ public class C_Process {
 		//System.out.println("*********@@"+thePartition+"@&&&&&&&&&@@");
 		ArrayList<String> states = new ArrayList<String>();
 		for (int i = 0; i < process.get("mode").size(); i++) {
+			/**
+			 * Debug by Jian Wang: 19-2-11
+			 * if the mode is null, assign an empty string to it
+			 */
+			if (process.get("mode").get(i) == null) {
+				process.get("mode").set(i, " ");
+			}
 			String str = "(<<(" + process.get("diff").get(i);
 			if (!process.get("mode").get(i).isEmpty()) {
 				str = str + ") \n\t\t&& (" + process.get("mode").get(i);
