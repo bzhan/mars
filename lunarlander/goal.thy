@@ -1,5 +1,5 @@
 theory goal 
-	imports "processDef"
+  imports processDef invGen
 begin
 
 (*The safety property to prove.*)
@@ -23,16 +23,16 @@ definition cons2 :: fform where
     [&] control_1[=](Con Real 4055/2) [&] t[=](Con Real 0)) [\<longrightarrow>] Inv)"
 (*The core parts: the discrete computation and differential equations garantee the invariants. *)
 definition cons31 :: fform where
-"cons31 == (((t [=](Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv [(Con Real 0), ''plant_t'', R]))"
+"cons31 == (((t [=](Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv \<lbrakk>(Con Real 0), ''plant_t'', R\<rbrakk>))"
 
 definition cons31_aux :: fform where
 "cons31_aux == \<lambda> s. ((t [=]Con Real 16 / 125 [&] Inv) s \<longrightarrow> Inv (\<lambda>(y, i). if y = ''plant_t'' \<and> i = R then evalE (Con Real 0) s else s (y, i)))" 
 
 
 definition cons32 :: fform where
-"cons32 == (Inv [\<longrightarrow>] (Inv [(plant_m1_1 [*]
+"cons32 == (Inv [\<longrightarrow>] (Inv \<lbrakk>(plant_m1_1 [*]
                                    (Con Real 811 / 500 [-] Con Real 1 / 100 [*] (control_1 [**] plant_m1_1 [-] Con Real 811 / 500) [-]
-                                    Con Real 3 / 5 [*] (plant_v1_1 [+] Con Real 2))), ''control_1'', R]))"
+                                    Con Real 3 / 5 [*] (plant_v1_1 [+] Con Real 2))), ''control_1'', R\<rbrakk>))"
  
 
 definition cons32_aux :: fform where
