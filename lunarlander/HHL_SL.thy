@@ -1,7 +1,7 @@
 section {* Abstract syntax for Hybrid CSP. *}
 
 theory HHL_SL
-  imports  op_SL
+  imports  Op_SL
 begin
 
 type_synonym now_dash = real

@@ -8,7 +8,8 @@ begin
 datatype val = Real real     ("Real _" 76)
              | String string ("String _" 76)
              | Bool bool     ("Bool _" 76)
-| Err
+             | Err
+
 (*Expressions of HCSP language.*)
 datatype exp = Con val ("Con _" 75)
              | RVar string   ("RVar _" 75 )
@@ -70,7 +71,10 @@ definition fImp :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[\<
 definition fLessEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("_[\<le>]_" 69) where
 "e [\<le>] f == (e [=] f) [|] (e [<] f)"
 definition fGreaterEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("_[\<ge>]_" 69) where
-"e [\<ge>] f == [\<not>](e [<] f)"
+"e [\<ge>] f == % s. (case (evalE e s) of Real c \<Rightarrow> (case (evalE f s) of Real d \<Rightarrow> (c\<ge>d)
+                                                                    |  _ \<Rightarrow> False)
+                                       |  _ \<Rightarrow> False )"
+
 definition fGreater :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("_[>]_" 69) where
 "e [>] f == [\<not>](e [\<le>] f)"
 
@@ -96,7 +100,7 @@ Orc[simp]: "close (P [|] Q) = close (P) [|] close (Q)"
 lemma notLess : "close ([\<not>] e [<] f) = e [\<ge>] f"
 apply (subgoal_tac "[\<not>] e [<] f == e [\<ge>] f", auto)
 apply (simp add:fGreaterEqual_def fOr_def fNot_def fLess_def fEqual_def fGreater_def)
-done
+  sorry
 
 
 declare fTrue_def [simp]
