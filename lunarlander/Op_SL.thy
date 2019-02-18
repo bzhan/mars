@@ -90,7 +90,7 @@ inductive semP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> (e
                 semP (P*&&Inv) now f (ev, (P'; P*&&Inv), now', f')"
 | repetitionk1: "semP P now f (ev, P', now', f') \<and> P'=Skip \<Longrightarrow>
                   semP (P*&&Inv) now f (ev, P*&&Inv, now',f')"
-| outputC : "semP (Cm (ch!!e)) now f (Out ch (valE e (f now)), Skip, now, f)"
+| outputC : "semP (Cm (ch!!e)) now f (Out ch (evalE e (f now)), Skip, now, f)"
 | outputW : "d\<ge>0 \<Longrightarrow> semP (Cm (ch!!e)) now f
             (Delay d, Cm (ch!!e), now+d, \<lambda>t. if t \<le> now+d \<and> t > now then f now else f t)"
 | inputC : "semP (Cm (ch??x)) now f (In ch c, x := (Con c), now, f)"
@@ -99,12 +99,13 @@ inductive semP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> (e
 
 inductive semPP :: "procP \<Rightarrow> now \<Rightarrow> history \<Rightarrow> history \<Rightarrow> (event * procP * now * history * history) \<Rightarrow> bool" where
   parallel0: "semPP (P||Q) now f g (eve, P'||Q', now', f', g') \<Longrightarrow> semPP (Q||P) now g f (eve, Q'||P', now', g', f')"
-| parallel1: "semP P now f (evp, P', now, f) \<and> semP Q now g (evq, Q', now, g') \<and> compat evp evq \<Longrightarrow>
+| parallel1: "semP P now f (evp, P', now, f') \<and> semP Q now g (evq, Q', now, g') \<and> compat evp evq \<Longrightarrow>
               semPP (P||Q) now f g (handshake evp evq, P'||Q', now, f', g')"
 | parallel2 : "semP P now f (evp, P', now', f')
-             \<and> ((evp = Tau) | (EX ch c. evp = Out ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q))
-             \<or> (\<exists>ch c. evp = In ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q))
-             \<or> (\<exists>ch c. evp = IO ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q))) \<Longrightarrow>
+             \<and> ((evp = Tau) \<or>
+                (\<exists>ch c. evp = Out ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q)) \<or>
+                (\<exists>ch c. evp = In ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q)) \<or>
+                (\<exists>ch c. evp = IO ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q))) \<Longrightarrow>
              semPP (P||Q) now f g (evp, P'||Q, now', f', g)"
 | parallel3 : "semP P now f (Delay d, P', now+d, f')
               \<and> semP Q now g (Delay d, Q', now+d, g') \<Longrightarrow>
