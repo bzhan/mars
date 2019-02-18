@@ -2,10 +2,6 @@ theory basic
   imports HOL.NthRoot HHL_SL
 begin
 
-lemma real_val_simp: "(case Real x of Real c \<Rightarrow> A c | _ \<Rightarrow> X) = A x"
-  by (rule Syntax_SL.val.case(1))
-thm Syntax_SL.val.exhaust
-
 
 definition x :: exp where
   "x == RVar ''parx''"
@@ -42,7 +38,10 @@ proof -
 qed
 
 lemma B02:
-  "{x[\<ge>](Con Real 0)}  (x :=((Con Real 1) [+] x ));(x :=((Con Real 1) [+] x ))*&& x[\<ge>](Con Real 1) {x[\<ge>](Con Real 1);elE 0}"
+  "{x[\<ge>](Con Real 0)}
+    (x :=((Con Real 1) [+] x ));
+    (x :=((Con Real 1) [+] x ))*&& x[\<ge>](Con Real 1)
+   {x[\<ge>](Con Real 1);elE 0}"
 
 apply (cut_tac p="x[\<ge>](Con Real 0)"
            and P="(x :=((Con Real 1) [+] x ))" 
@@ -93,7 +92,11 @@ proof -
 qed
 
 
-lemma B03:"{x[\<ge>](Con Real 0)}(x :=((Con Real 1) [+] x ));(x :=((Con Real 1) [+] x )) [[ (y :=((Con Real 1) [+] y ))  {x[\<ge>](Con Real 1);elE 0}"
+lemma B03:
+  "{x[\<ge>](Con Real 0)}
+    (x :=((Con Real 1) [+] x ));
+    (x :=((Con Real 1) [+] x )) [[ (y :=((Con Real 1) [+] y ))
+   {x[\<ge>](Con Real 1);elE 0}"
 apply (cut_tac p="x[\<ge>](Con Real 0)"
            and P="(x :=((Con Real 1) [+] x ))" 
            and m="x[\<ge>](Con Real 1)"
