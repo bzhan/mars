@@ -191,9 +191,9 @@ axiomatization where
 Rep : "[| {px} (Px) {px; Hx}; |- Hx [^] Hx [-->] Hx|]
            ==>  {px} (Px*) {px; Hx} "
 axiomatization where
-Repetition : "[| {px, py} (Px || Py) {px, py; Hx, Hy};
+Repetition : "[| {px, py} (Px || Py) {qx, qy; Hx, Hy};
                  |- Hx [^] Hx [-->] Hx; |- Hy [^] Hy [-->] Hy|]
-           ==>  {px, py} ((Px*) || (Py*)) {px, py; Hx, Hy} "
+           ==>  {px, py} ((Px*) || (Py*)) {qx, qy; Hx, Hy} "
 
 (*Consequence rule*)
 axiomatization where
