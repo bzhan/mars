@@ -1,48 +1,48 @@
 section {* Abstract syntax for Hybrid CSP. *}
 
 theory HHL_SL
-  imports  Op_SL
+  imports Op_SL
 begin
 
 type_synonym now_dash = real
-type_synonym dform = "history => now \<Rightarrow> now_dash \<Rightarrow> bool"
+type_synonym dform = "history \<Rightarrow> now \<Rightarrow> now_dash \<Rightarrow> bool"
 
-definition semd :: "history \<Rightarrow> now \<Rightarrow> now_dash  \<Rightarrow> dform \<Rightarrow> bool" ("_, [_, _] |= _"  50) where
-"h, [n, m] |= H == (H h n m)"
+definition semd :: "history \<Rightarrow> now \<Rightarrow> now_dash \<Rightarrow> dform \<Rightarrow> bool" ("_, [_, _] |= _" 50) where
+  "h, [n, m] |= H \<equiv> H h n m"
 
-(* One axiom stating that the dform formula is only decided by the interval between now and now_dash*)
+text \<open>One axiom stating that the dform formula is only decided by the interval between now and now_dash\<close>
 axiomatization where
-DC : "now \<le> now' \<Longrightarrow>(\<forall> t. t> now & t< now'\<longrightarrow> h t = h' t) \<Longrightarrow> (df :: dform) h now now' = df h' now now'"
+  DC : "now \<le> now' \<Longrightarrow> (\<forall>t. t > now \<and> t < now' \<longrightarrow> h t = h' t) \<Longrightarrow> (df :: dform) h now now' = df h' now now'"
 
-section
-{*Duration Calculus operators and lemmas proved.*}
-(*Special assertions \<and> lemmas proved*)
+subsection \<open>Duration Calculus operators and lemmas proved\<close>
 
-(*almost P, P holds almost everywhere over the interval.*)
+text \<open>Special assertions \<and> lemmas proved\<close>
+
+text \<open>almost P, P holds almost everywhere over the interval.\<close>
 definition almost :: "fform \<Rightarrow> dform" where
 (*"almost P \<equiv> % h n nd. (nd-n>0) & (\<not>(\<exists> a b.(n\<le>a & a<b & b\<le>nd) & (\<forall> t. t>a & t<b \<longrightarrow> \<not>P(h(t)))))"*)
 (*An alternative definition of almost*)
-"almost P \<equiv> % h n nd. (nd-n>0) &  (\<forall>a\<ge>n. \<forall>b\<le>nd. a < b \<longrightarrow> (\<exists>t. t>a \<and> t<b \<and> P(h(t))))"
-definition chop :: "dform \<Rightarrow> dform \<Rightarrow> dform"  ("_[^]_" 80)
-where
-"chop H M \<equiv> % h n nd. (\<exists> nm. (nm \<ge> n \<and> nm \<le> nd \<and> (H h n nm) \<and> (M h nm nd)))"
+  "almost P \<equiv> \<lambda>h n nd. (nd-n>0) \<and> (\<forall>a\<ge>n. \<forall>b\<le>nd. a < b \<longrightarrow> (\<exists>t. t>a \<and> t<b \<and> P(h(t))))"
 
-(*The length of the interval l is equal to, greater than, less than T.*)
+definition chop :: "dform \<Rightarrow> dform \<Rightarrow> dform"  ("_[^]_" 80) where
+  "chop H M \<equiv> \<lambda>h n nd. \<exists>nm. nm \<ge> n \<and> nm \<le> nd \<and> H h n nm \<and> M h nm nd"
+
+text \<open>The length of the interval l is equal to, greater than, less than T.\<close>
 definition elE :: "real \<Rightarrow> dform" where
-"elE T \<equiv> % h n nd. (nd-n) = T"
+  "elE T \<equiv> \<lambda>h n nd. (nd-n) = T"
 definition elG :: "real \<Rightarrow> dform" where
-"elG T \<equiv> % h n nd. (nd-n) > T"
+  "elG T \<equiv> \<lambda>h n nd. (nd-n) > T"
 definition elL :: "real \<Rightarrow> dform" where
-"elL T \<equiv> % h n nd. (nd-n) < T"
+  "elL T \<equiv> \<lambda>h n nd. (nd-n) < T"
 
-definition dAnd :: "dform \<Rightarrow> dform \<Rightarrow> dform"  (infixl "[[&]]"  79) where
-"P [[&]] Q == % h n m. P h n m \<and> Q h n m"
+definition dAnd :: "dform \<Rightarrow> dform \<Rightarrow> dform"  (infixl "[[&]]" 79) where
+  "P [[&]] Q \<equiv> \<lambda>h n m. P h n m \<and> Q h n m"
 definition dOr :: "dform \<Rightarrow> dform \<Rightarrow> dform"  (infixl "[[|]]" 79) where
-"P [[|]] Q == % h n m. P h n m \<or> Q h n m"
+  "P [[|]] Q \<equiv> \<lambda>h n m. P h n m \<or> Q h n m"
 definition dNot :: "dform \<Rightarrow> dform"  ("[[\<not>]]_" 79) where
-"[[\<not>]]P == % h n m. \<not> P h n m"
+  "[[\<not>]]P \<equiv> \<lambda>h n m. \<not> P h n m"
 definition dImp :: "dform \<Rightarrow> dform \<Rightarrow> dform"  (infixl "[[\<longrightarrow>]]" 79) where
-"P [[\<longrightarrow>]] Q == % h n m. P h n m \<longrightarrow> Q h n m"
+  "P [[\<longrightarrow>]] Q \<equiv> \<lambda>h n m. P h n m \<longrightarrow> Q h n m"
 
 declare almost_def [simp]
 declare chop_def [simp]
@@ -50,46 +50,50 @@ declare elE_def [simp]
 declare elG_def [simp]
 declare elL_def [simp]
 
-(*True holds almost everywhere.*)
-lemma almostf : "\<forall> h n nd. nd-n\<le>0 \<or> almost fTrue h n nd"
-apply (simp)
- by (metis dense le_iff_diff_le_0 not_le) 
+text \<open>True holds almost everywhere\<close>
+lemma almostf:
+  "\<forall>h n nd. nd - n \<le> 0 \<or> almost fTrue h n nd"
+  apply simp
+  by (metis dense not_le)
 
+text \<open>almost P \<Leftrightarrow> chop almost P almost P\<close>
+lemma chopfb:
+  "chop (almost P) (almost P) h n nd \<Longrightarrow> almost P h n nd"
+  unfolding chop_def almost_def
+  apply (rule conjI, auto)
+  by (metis (poly_guards_query) less_eq_real_def less_trans not_less)
 
-(*almost P \<Leftrightarrow> chop almost P almost P*)
-lemma chopfb : "((chop (almost P) (almost P)) h n nd \<Longrightarrow> (almost P) h n nd)"
-apply (simp)
-apply (rule conjI, auto)
-by (metis (poly_guards_query) less_eq_real_def less_trans not_less)
+lemma chopfor:
+  "chop (elE 0 [[|]]almost P) (elE 0 [[|]]almost P) h n nd \<Longrightarrow> (elE 0 [[|]]almost P) h n nd"
+  unfolding dOr_def
+  apply (rule disjCI, auto)
+  by (metis less_eq_real_def less_trans not_less)
 
-lemma chopfor : "((chop (elE 0 [[|]]almost P) (elE 0 [[|]]almost P)) h n nd \<Longrightarrow> (elE 0 [[|]]almost P) h n nd)"
-apply (simp add:dOr_def)
-apply (rule disjCI, auto)
-by (metis dual_order.refl le_cases less_eq_real_def less_imp_not_less less_trans linear neq_iff not_less)
- 
+lemma chopf:
+  "almost P h n nd \<Longrightarrow> chop (almost P) (almost P) h n nd"
+  unfolding almost_def chop_def
+  apply (rule exI[where x = "(n+nd)/2"])
+  by auto
 
-lemma chopf : "((almost P) h n nd \<Longrightarrow> (chop (almost P) (almost P)) h n nd)"
-apply (simp)
-apply (rule_tac x = "(n+nd)/2" in exI, auto)
-done
+lemma chop0L: "chop (almost P) (elE 0) h n nd \<Longrightarrow> almost P h n nd"
+  by auto
 
-lemma chop0L : "chop (almost P) (elE 0) h n nd \<Longrightarrow> almost P h n nd"
-by auto
-lemma chop0R : " almost P h n nd \<longrightarrow> chop (almost P) (elE 0) h n nd"
-by auto
-(*Monotonicity: s \<Rightarrow> t \<Longrightarrow> almost s \<Rightarrow> almost t*)
-lemma almostmono: "(\<forall> s. P s \<longrightarrow> Q s) \<Longrightarrow> (\<forall> h n nd. almost P h n nd \<longrightarrow> almost Q h n nd)"
-apply (auto)
-by (metis (full_types))
+lemma chop0R: "almost P h n nd \<Longrightarrow> chop (almost P) (elE 0) h n nd"
+  by auto
 
-lemma almostint: "now<nowf \<Longrightarrow> \<forall> t. (t>now \<and> t<nowf) \<longrightarrow> P (f t) \<Longrightarrow> almost P f now nowf"
-apply (auto)
-by (metis le_less_trans less_le_trans of_rat_dense)
+text \<open>Monotonicity: s \<Rightarrow> t \<Longrightarrow> almost s \<Rightarrow> almost t\<close>
+lemma almostmono:
+  "\<forall>s. P s \<longrightarrow> Q s \<Longrightarrow> \<forall>h n nd. almost P h n nd \<longrightarrow> almost Q h n nd"
+  apply auto by metis
 
-section{*Inference rules for hybird CSP: Hybrid Hoare Logic rules*}
+lemma almostint:
+  "now < nowf \<Longrightarrow> \<forall>t. (t>now \<and> t<nowf) \<longrightarrow> P (f t) \<Longrightarrow> almost P f now nowf"
+  apply auto
+  by (metis le_less_trans less_le_trans of_rat_dense)
 
+subsection \<open>Inference rules for Hybrid CSP: Hybrid Hoare Logic rules\<close>
 
-(*Specification*)
+text \<open>Specification\<close>
 definition Valid :: "fform => proc => fform \<Rightarrow> dform => bool" ("{_}_{_; _}" 80)
 where "Valid p c q H == (\<forall> now h now' h' . semB c now h now' h' \<longrightarrow> p (h(now)) \<longrightarrow> (q (h'(now'))
 \<and> H h' now now'))"

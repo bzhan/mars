@@ -227,32 +227,28 @@ next
     by (metis (full_types) le_less_trans less_eq_real_def sem1)
 qed auto
 
-
 lemma semB2:
   "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
     (\<forall>t. t < nowp \<or> t > nowp' \<longrightarrow> (fp t = fp' t)) \<and>
     (\<forall>t. t < nowq \<or> t > nowq' \<longrightarrow> (fq t = fq' t))"
-apply (erule semBP.induct)
-apply (metis sem2)
-apply (subgoal_tac "nowp \<le> nowp'\<and> nowq \<le> nowq'\<and> nowp'\<le> nowu'\<and> nowq'\<le> nowv'")
-apply (subgoal_tac "(\<forall>t. t < nowp' \<or> nowu' < t \<longrightarrow> fp' t = fu' t) \<and> (\<forall>t. t < nowq' \<or> nowv' < t \<longrightarrow> fq' t = fv' t)")
-apply simp
-apply (simp add: sem2)
-apply (simp add: sem1 semB1)
-apply (rule conjI)
-apply (metis less_irrefl less_max_iff_disj max_def not_le semB1)
-apply (metis less_irrefl less_max_iff_disj max_def not_le semB1)
-apply (rule conjI)
-apply (metis less_irrefl less_max_iff_disj max_def not_le semB1)
-apply (metis less_irrefl less_max_iff_disj max_def not_le semB1)
-done
-
+proof (induct rule: semBP.induct)
+  case (parallelB1 P nowp fp nowp' fp' Q nowq fq nowq' fq')
+  then show ?case by (auto simp add: sem2)
+next
+  case (parallelB2 P Q nowp fp nowq fq nowp' fp' nowq' fq' U nowu' fu' V nowv' fv')
+  then show ?case by (smt sem1 sem2 semB1)
+next
+  case (parallelB3 P Q nowp fp nowq fq nowp' fp' nowq' fq' ch x e)
+  then show ?case by (smt semB1)
+next
+  case (parallelB4 P Q nowp fp nowq fq nowp' fp' nowq' fq' ch e x)
+  then show ?case by (smt semB1)
+qed
 
 lemma semB3:
   "semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
    chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
    semB P nowp fp nowp' fp' \<and> semB Q nowq fq nowq' fq'"
-  apply (induct rule: semBP.cases)
-  by (simp add: chanset_def)+
+  by (induct rule: semBP.cases; simp add: chanset_def)
 
 end
