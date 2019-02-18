@@ -94,15 +94,15 @@ lemma almostint:
 subsection \<open>Inference rules for Hybrid CSP: Hybrid Hoare Logic rules\<close>
 
 text \<open>Specification\<close>
-definition Valid :: "fform => proc => fform \<Rightarrow> dform => bool" ("{_}_{_; _}" 80)
-where "Valid p c q H == (\<forall> now h now' h' . semB c now h now' h' \<longrightarrow> p (h(now)) \<longrightarrow> (q (h'(now'))
-\<and> H h' now now'))"
-definition ValidP :: "fform \<Rightarrow>fform \<Rightarrow> procP => fform \<Rightarrow> fform \<Rightarrow> dform \<Rightarrow> dform \<Rightarrow> bool"
-("{_, _}_{_, _; _, _}" 80)
-where "ValidP pa pb c qa qb Ha Hb == (\<forall> nowp nowq fp fq nowp' nowq' fp' fq'. 
-semBP c nowp fp nowq fq nowp' fp' nowq' fq'  \<longrightarrow> 
-(pa) (fp(nowp)) \<longrightarrow>pb (fq(nowq)) \<longrightarrow> 
-(qa (fp'(nowp'))\<and> qb (fq'(nowq'))\<and> (Ha fp' nowp nowp') \<and> (Hb fq' nowq nowq')))"
+definition Valid :: "fform \<Rightarrow> proc \<Rightarrow> fform \<Rightarrow> dform \<Rightarrow> bool" ("{_}_{_; _}" 80) where
+  "Valid p c q H \<equiv> \<forall>now h now' h'. semB c now h now' h' \<longrightarrow> p (h now) \<longrightarrow> (q (h' now') \<and> H h' now now')"
+
+definition ValidP :: "fform \<Rightarrow> fform \<Rightarrow> procP \<Rightarrow> fform \<Rightarrow> fform \<Rightarrow> dform \<Rightarrow> dform \<Rightarrow> bool"
+  ("{_, _}_{_, _; _, _}" 80) where
+  "ValidP pa pb c qa qb Ha Hb == (\<forall> nowp nowq fp fq nowp' nowq' fp' fq'.
+    semBP c nowp fp nowq fq nowp' fp' nowq' fq'  \<longrightarrow> 
+    pa (fp(nowp)) \<longrightarrow>pb (fq(nowq)) \<longrightarrow> 
+    (qa (fp'(nowp'))\<and> qb (fq'(nowq'))\<and> (Ha fp' nowp nowp') \<and> (Hb fq' nowq nowq')))"
 
 subsection{*Inference rules proved sound*} 
 
