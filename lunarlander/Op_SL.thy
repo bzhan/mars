@@ -200,39 +200,37 @@ definition exeFlow :: "proc \<Rightarrow> fform \<Rightarrow> fform" where
 
 subsection \<open>Properties related to semantics\<close>
 
-lemma sem1: "semB P now f now' f' \<Longrightarrow> now \<le> now'"
+lemma sem1:
+  "semB P now f now' f' \<Longrightarrow> now \<le> now'"
   by (induct rule: semB.induct, auto)
 
-lemma semB1: "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow> nowp \<le> nowp' \<and> nowq \<le> nowq'"
-  apply (induct rule: semBP.induct)
-  subgoal apply (auto intro: sem1) done
-  subgoal apply (metis order_trans sem1) done
-  by (metis le_max_iff_disj)+
+lemma semB1:
+  "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow> nowp \<le> nowp' \<and> nowq \<le> nowq'"
+proof (induct rule: semBP.induct)
+  case (parallelB1 P nowp fp nowp' fp' Q nowq fq nowq' fq')
+  then show ?case by (auto intro: sem1)
+next
+  case (parallelB2 P Q nowp fp nowq fq nowp' fp' nowq' fq' U nowu' fu' V nowv' fv')
+  then show ?case by (metis order_trans sem1)
+qed (metis le_max_iff_disj)+
 
-lemma sem2 : "semB P now f now' f' \<Longrightarrow> \<forall>t. t < now \<or> t > now' \<longrightarrow> f t = f' t"
-apply (erule semB.induct)
-apply simp+
-apply (subgoal_tac "now \<le> now' \<and> now' \<le> now''")
-apply (metis (poly_guards_query) antisym_conv3 le_less_trans less_not_sym)
-apply (rule conjI)
-apply (cut_tac P = "P" and now = now and  now'=now' and f = "f" and f' = "f'" in sem1, simp)
-apply metis
-apply (cut_tac P = "Q" and now = now' and  now'=now'' and f = "f'" and f' = "f''" in sem1, simp)
-apply metis+
-apply (subgoal_tac "now \<le> now_d \<and> now_d \<le> now_dd")
-apply (metis (poly_guards_query) antisym_conv3 le_less_trans less_not_sym)
-apply (rule conjI)
-apply (cut_tac P = "P" and now = now and  now'=now_d and f = "f" and f' = "f_d" in sem1, simp)
-apply metis
-apply (cut_tac P = "P* NUM (N - 1)" and now = now_d and  now'=now_dd and f = "f_d" and f' = "f_dd" in sem1, simp)
-apply metis
-   apply (metis less_not_sym not_le)
- by auto
+lemma sem2:
+  "semB P now f now' f' \<Longrightarrow> \<forall>t. t < now \<or> t > now' \<longrightarrow> f t = f' t"
+proof (induct rule: semB.induct)
+  case (sequenceB P now f now' f' Q now'' f'')
+  then show ?case
+    by (metis (full_types) le_less_trans not_le sem1)
+next
+  case (repetitionNkB N P now f now_d f_d now_dd f_dd)
+  then show ?case
+    by (metis (full_types) le_less_trans less_eq_real_def sem1)
+qed auto
 
 
-lemma semB2 : "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow> 
-  ( \<forall> t. t< nowp \<or> t> nowp' \<longrightarrow> (fp t = fp' t))
-\<and>  ( \<forall> t. t< nowq \<or> t> nowq' \<longrightarrow> (fq t = fq' t))"
+lemma semB2:
+  "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
+    (\<forall>t. t < nowp \<or> t > nowp' \<longrightarrow> (fp t = fp' t)) \<and>
+    (\<forall>t. t < nowq \<or> t > nowq' \<longrightarrow> (fq t = fq' t))"
 apply (erule semBP.induct)
 apply (metis sem2)
 apply (subgoal_tac "nowp \<le> nowp'\<and> nowq \<le> nowq'\<and> nowp'\<le> nowu'\<and> nowq'\<le> nowv'")
@@ -249,12 +247,11 @@ apply (metis less_irrefl less_max_iff_disj max_def not_le semB1)
 done
 
 
+lemma semB3:
+  "semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
+   chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
+   semB P nowp fp nowp' fp' \<and> semB Q nowq fq nowq' fq'"
+  apply (induct rule: semBP.cases)
+  by (simp add: chanset_def)+
 
-lemma semB3 : " semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' 
-                  \<Longrightarrow> chanset P = {} \<and> chanset Q = {}
-                  \<Longrightarrow> semB P nowp fp nowp' fp' \<and> semB Q nowq fq nowq' fq'"  
-  apply (ind_cases "semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq'", simp)
-  apply (simp add:chanset_def)+
-  done
- 
 end
