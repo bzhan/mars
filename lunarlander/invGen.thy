@@ -1,8 +1,7 @@
 theory invGen
-	imports "processDef"
+	imports processDef
 begin
 
-declare [[ML_print_depth = 50]]
 ML{*
 fun trans_string t =
   let
@@ -182,23 +181,21 @@ fun trans_fform t =
   in Buffer.content (trans t Buffer.empty) 
 end
 
-
-
 fun trans_allCons t = 
   let
     fun trans t =
       (case t of
-        @{term "forall :: fform \<Rightarrow> bool"} $ u  =>
-        Buffer.add " "   #>
-       Buffer.add (trans_fform u) #>
-        Buffer.add " "   
+        @{term "forall :: fform \<Rightarrow> bool"} $ u =>
+        Buffer.add " " #>
+        Buffer.add (trans_fform u) #>
+        Buffer.add " "
       | _ => error "inacceptable term")
-  in Buffer.content (trans t Buffer.empty) 
+  in Buffer.content (trans t Buffer.empty)
 end
 
-fun isTrue x = 
-      if x="True\n" then true
-      else false   
+fun isTrue x =
+  if x = "True\n" then true
+  else false
 
 fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
   |> Isabelle_System.bash_output
@@ -207,23 +204,20 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
 *}
 
 oracle inv_oracle_SOS = {* fn ct =>
-  if decide_SOS (trans_allCons  (Thm.term_of ct))
+  if decide_SOS (trans_allCons (Thm.term_of ct))
   then ct
   else error "Proof failed."*}
 
 ML{*
-
-val inv_oracle_SOS_tac =
+fun inv_oracle_SOS_tac ctxt =
   CSUBGOAL (fn (goal, i) =>
   (case try inv_oracle_SOS goal of
     NONE => no_tac
-  | SOME thm => rtac thm i))
+  | SOME th => resolve_tac ctxt [th] i))
 *}
 
 method_setup inv_oracle_SOS = {*
-  Scan.succeed (K (Method.SIMPLE_METHOD' inv_oracle_SOS_tac))
+  Scan.succeed (fn ctxt => (Method.SIMPLE_METHOD' (inv_oracle_SOS_tac ctxt)))
 *} 
-
-
 
 end
