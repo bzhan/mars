@@ -2,42 +2,15 @@ theory invGen
 	imports processDef
 begin
 
+declare [[ML_print_depth = 50]]
 ML{*
-fun trans_string t =
-  let
-    fun trans t =
-      (case t of
-       Free (n, @{typ string}) =>
-        Buffer.add " " #>
-        Buffer.add n #>
-        Buffer.add " "
-      | _ => error "inacceptable term: trans_string")
-  in Buffer.content (trans t Buffer.empty) 
-end
 
-fun trans_real t =
-  let
-    fun trans t =
-      (case t of
-       Free (n, @{typ real}) =>
-        Buffer.add " " #>
-        Buffer.add n #>
-        Buffer.add " "
-      | _ => error "inacceptable term: trans_real")
-  in Buffer.content (trans t Buffer.empty) 
-end
-
-fun trans_bool t =
-  let
-    fun trans t =
-      (case t of
-       Free (n, @{typ bool}) =>
-        Buffer.add " " #>
-        Buffer.add n #>
-        Buffer.add " "
-      | _ => error "inacceptable term: trans_bool")
-  in Buffer.content (trans t Buffer.empty) 
-end
+fun trans_real t = Syntax.pretty_term @{context} t
+  |> Pretty.string_of
+  |> YXML.parse_body
+  |> XML.content_of;
+fun trans_string t = HOLogic.dest_string t;
+ 
 
 fun trans_val t =
   let
@@ -52,9 +25,11 @@ fun trans_val t =
           Buffer.add (trans_string t) #>
           Buffer.add ")"
         | @{term "Syntax_SL.val.Bool :: bool \<Rightarrow> val"} $ t =>
-          Buffer.add "(" #>
-          Buffer.add (trans_bool t) #>
-          Buffer.add ")"
+          trans t
+        | Free (n, @{typ bool}) =>
+          Buffer.add " " #>
+          Buffer.add n #>
+          Buffer.add " "
         | _ => error "inacceptable term: trans_val")
   in Buffer.content (trans t Buffer.empty) 
 end
@@ -90,14 +65,11 @@ fun trans_exp t =
           Buffer.add " "
 
         | @{term "Syntax_SL.exp.RVar :: string \<Rightarrow> exp"} $ t =>
-          Buffer.add "RVar" #>
           Buffer.add (trans_string t)
         | @{term "Syntax_SL.exp.SVar :: string \<Rightarrow> exp"} $ t =>
-          Buffer.add "SVar" #>
           Buffer.add (trans_string t)
         | @{term "Syntax_SL.exp.BVar :: string \<Rightarrow> exp"} $ t =>
-           Buffer.add "BVar" #>
-           Buffer.add (trans_string t)
+          Buffer.add (trans_string t)
 
         | @{term "Syntax_SL.exp.Con :: val \<Rightarrow> exp"} $ t =>
           Buffer.add "(" #>
@@ -106,6 +78,72 @@ fun trans_exp t =
         | _ => error "inacceptable term: trans_exp")
     in Buffer.content (trans t Buffer.empty) 
 end
+
+fun trans_pair t =
+  let
+    fun trans t =
+      (case t of
+        @{term "Product_Type.Pair :: string \<Rightarrow> typeid  \<Rightarrow> string * typeid"} $ u $ v   =>
+          Buffer.add "{" #>
+          Buffer.add (trans_string u) #>
+          Buffer.add "}"
+
+      | _ => error "inacceptable term (trans_pair)")
+  in Buffer.content (trans t Buffer.empty) 
+end
+
+fun trans_pair_list t =
+  let
+    fun trans t =
+      (case t of
+        @{term "List.list.Cons :: (string * typeid) \<Rightarrow> (string * typeid) list \<Rightarrow> (string * typeid) list"} $ u $ v   =>
+          Buffer.add "{" #>
+          Buffer.add (trans_pair u) #>
+          Buffer.add "," #>
+          Buffer.add (trans_pair_list v) #>
+          Buffer.add "}"
+
+      | @{term "List.list.Nil :: (string * typeid) list"}   =>
+          Buffer.add "Null"
+
+      | _ => error "inacceptable term (trans_pair_list)")
+  in Buffer.content (trans t Buffer.empty) 
+end
+
+fun trans_exp_list t =
+  let
+    fun trans t =
+      (case t of
+        @{term "List.list.Cons :: exp \<Rightarrow> exp list \<Rightarrow> exp list"} $ u $ v   =>
+          Buffer.add "{" #>
+          Buffer.add (trans_exp u) #>
+          Buffer.add "," #>
+          Buffer.add (trans_exp_list v) #>
+          Buffer.add "}"
+
+      | @{term "List.list.Nil :: exp list"}   =>
+          Buffer.add "Null"
+
+      | _ => error "inacceptable term (trans_exp_list)")
+  in Buffer.content (trans t Buffer.empty) 
+end
+
+(*Note: the domain of the continuous evolution is not included here. *)
+fun trans_proc t =
+  let
+    fun trans t =
+      (case t of
+        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u   =>        
+        Buffer.add "{{" #>        
+        Buffer.add (trans_pair_list t) #>
+        Buffer.add "}" #>
+        Buffer.add "," #> 
+        Buffer.add "{" #>
+        Buffer.add (trans_exp_list u) #>
+        Buffer.add "}}"
+      | _ => error "inacceptable proc")
+  in Buffer.content (trans t Buffer.empty) 
+end  
 
 fun trans_fform t =
   let
@@ -161,31 +199,41 @@ fun trans_fform t =
         Buffer.add  " ," #>
         trans u #>
         Buffer.add "}"
-      | @{term "Syntax_SL.fSubForm :: fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform"} $ t $ u $ v $ w =>
-        Buffer.add "(" #>
-        trans t #>
-        Buffer.add "[" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add "," #>
+
+
+      | @{term "Inv :: fform"} =>
+        Buffer.add "Inv" 
+
+      | @{term "Syntax_SL.fSubForm :: fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform"} $ t $ u $ v $ _ =>
+        Buffer.add "{" #>
+        Buffer.add "{" #>
         Buffer.add (trans_string v) #>
-        Buffer.add " " #>
-        Buffer.add ("w") #>
-        Buffer.add "]" #>
-        Buffer.add ")"
+        Buffer.add "," #>
+        Buffer.add (trans_exp u) #>
+        Buffer.add "}" #>
+        Buffer.add "," #>
+        trans t #>
+        Buffer.add "}"
       | @{term "Syntax_SL.close :: fform \<Rightarrow> fform"} $ t  =>
         Buffer.add "close" #>
         Buffer.add "(" #>
         trans t #>
-        Buffer.add ")"     
-           | _ => error "inacceptable term: trans_fform")
+        Buffer.add ")"
+      | @{term "Op_SL.exeFlow:: proc \<Rightarrow> fform \<Rightarrow> fform"} $ u $ v =>
+        Buffer.add "{" #>
+        Buffer.add (trans_proc u) #>
+        Buffer.add "," #>
+        Buffer.add (trans_fform v) #>
+        Buffer.add "}"     
+      | _ => error "inacceptable term: trans_fform")
   in Buffer.content (trans t Buffer.empty) 
 end
 
-fun trans_allCons t = 
+fun trans_goal t = 
   let
     fun trans t =
       (case t of
-        @{term "forall :: fform \<Rightarrow> bool"} $ u =>
+        @{term "forall :: fform \<Rightarrow> prop"} $ u =>
         Buffer.add " " #>
         Buffer.add (trans_fform u) #>
         Buffer.add " "
@@ -204,7 +252,7 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
 *}
 
 oracle inv_oracle_SOS = {* fn ct =>
-  if decide_SOS (trans_allCons (Thm.term_of ct))
+  if decide_SOS (trans_goal (Thm.term_of ct))
   then ct
   else error "Proof failed."*}
 
