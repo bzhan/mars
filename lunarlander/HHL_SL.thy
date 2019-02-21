@@ -108,55 +108,64 @@ subsection{*Inference rules proved sound*}
 
 
 (*Skip rule*)
-lemma SkipRule : "\<forall> s h now now'. (p s \<longrightarrow> q s) \<and> ((elE 0) h now now'\<longrightarrow> H h now now')
+lemma SkipRule : "\<forall> s h now now'. (p s \<longrightarrow> q s) \<and> (elE 0 h now now'\<longrightarrow> H h now now')
          \<Longrightarrow> {p} Skip {q; H}"
 by (auto simp add:Valid_def)
  
 (*Assignment rule*)
-lemma AssignRRule  :" (\<forall> s. p s \<longrightarrow> (q (%(y, i). if (y=x\<and>i=R) then (evalE f s) else s(y, i))))
-                   \<and> (\<forall> h now now'. ((elE 0) h now now'\<longrightarrow> H h now now')) ==>
-       {p} ((RVar x) := f) {q; H}"
+lemma AssignRRule  :" (\<forall> s. p s \<longrightarrow> (q (%(y, i).if (y=x\<and>i=R) then (evalE f s) else s(y, i))))
+                    \<and> (\<forall> h now now'.(elE 0 h now now'\<longrightarrow> H h now now')) \<Longrightarrow>
+                      {p} ((RVar x) := f) {q; H}"
 apply (simp add:Valid_def, auto)
 done
 
 (*Sequential rule*)
 (*The proof is complicated because of the existence of chop operator.*)
-lemma SequentialRule_aux : " {p} P {m; H} \<Longrightarrow> {m} Q {q; G} ==>
-             {p} P;  Q {q; H [^] G}" 
-apply  (simp add:Valid_def, auto)
-apply (subgoal_tac "now \<le> now'a \<and> now'a \<le> now'\<and> H h' now now'a = H f' now now'a")
-apply metis
-apply (rule conjI)
-apply (cut_tac P = "P" and now = now and  now'=now'a and f = "h" and f' = "f'" in sem1, simp)
-apply metis
-apply (rule conjI)
-apply (cut_tac P = "Q" and now = now'a and  now'=now' and f = "f'" and f' = "h'" in sem1, simp)
-apply metis
-apply (rule DC)
-apply (cut_tac P = "P" and now = now and  now'=now'a and f = "h" and f' = "f'" in sem1, simp)
-apply metis
-apply (subgoal_tac "\<forall>t. t < now'a \<or> t>now' \<longrightarrow> f' t = h' t")
-apply metis
-apply (cut_tac P = Q in  sem2, auto)
-done
+lemma SequentialRule_aux:
+  "{p} P {m; H} \<Longrightarrow> {m} Q {q; G} \<Longrightarrow> {p} P; Q {q; H [^] G}" 
+  apply (simp add: Valid_def, auto)
+proof-
+  fix now h now' h' now'a f'
+  assume as1:"\<forall>now h now' h'. semB P now h now' h' \<longrightarrow> p (h now) \<longrightarrow> m (h' now') \<and> H h' now now'"
+     and as2:"\<forall>now h now' h'. semB Q now h now' h' \<longrightarrow> m (h now) \<longrightarrow> q (h' now') \<and> G h' now now'"
+     and fir1:"semB P now h now'a f'"
+     and sec1:"semB Q now'a f' now' h'" 
+     and pre:"p (h now)"
+  have fir2: "now \<le> now'a" 
+    using sem1 fir1 by auto
+  have sec2: "now'a \<le> now'" 
+    using sem1 sec1 by auto
+  have thr1: "\<forall>t. t < now'a \<or> t>now' \<longrightarrow> f' t = h' t" 
+    using sec1 sem2 by auto
+  have thr2: "H h' now now'a = H f' now now'a" 
+    using fir2 DC thr1 by auto
+  have g:"now \<le> now'a \<and> now'a \<le> now'\<and> H h' now now'a = H f' now now'a" 
+    using fir2 sec2 thr2 by auto
+  show "\<exists>nm\<ge>now. nm \<le> now' \<and> H h' now nm \<and> G h' nm now'" 
+    using g as1 as2 fir1 sec1 pre by auto
+qed
 
-lemma SequentialRule : " {p} P {m; H} \<Longrightarrow> {m} Q {q; G} ==> (\<forall> h m n. (H [^] G) h m n \<longrightarrow> M h m n) \<Longrightarrow>
-             {p} P;  Q {q; M}" 
-apply (cut_tac P = P and  Q = Q  and  p = p and  q =q and m = m and H = H  and  G = G in  SequentialRule_aux, auto)
-apply (simp add:Valid_def)
-done
-
+lemma SequentialRule:
+  assumes "{p} P {m; H}" "{m} Q {q; G}"
+   "\<forall>h m n. (H [^] G) h m n \<longrightarrow> M h m n"
+  shows "{p} P; Q {q; M}"
+proof -
+  have 1: "{p} P; Q {q; H [^] G} \<Longrightarrow> {p} P; Q {q; M}"
+    unfolding Valid_def using assms(3) by auto
+  have 2: "{p} P; Q {q; H [^] G}"
+    by (rule SequentialRule_aux[OF assms(1,2)])
+  from 1 2 show ?thesis by auto
+qed
 
 (*Conditional rule*)
-lemma ConditionTRule : " ((\<forall> s. p s \<longrightarrow> ( b s)) \<and> {p} P {q; H})
-             ==> {p} IF b P {q; H}"
-apply (simp add:Valid_def, auto)
-done
+lemma ConditionTRule:
+  "(\<forall>s. p s \<longrightarrow> b s) \<and> {p} P {q; H} \<Longrightarrow> {p} IF b P {q; H}"
+  by (simp add: Valid_def, auto)
 
-lemma ConditionFRule : " ((\<forall> s. p s \<longrightarrow> (q s \<and> (\<not>   b s))) \<and> (\<forall> h now now'. ((elE 0) h now now'\<longrightarrow> H h now now')))
-                          ==> {p} IF b P {q; H}"
-apply (simp add:Valid_def, auto)
-done
+lemma ConditionFRule:
+  "(\<forall>s. p s \<longrightarrow> (q s \<and> \<not>b s)) \<and> (\<forall>h now now'. elE 0 h now now'\<longrightarrow> H h now now') \<Longrightarrow>
+   {p} IF b P {q; H}"
+  by (simp add: Valid_def, auto)
 
 lemma ConditionGRule : " {p [&] b} P {q; H} \<and> {p [&] ([\<not>]b)} Q {q; H}
              ==> {p} IFELSE b P Q{q; H}"
@@ -169,10 +178,10 @@ declare chop_def [simp del]
 (*This proof takes most effort for solving the invariant-related constraints, which will be passed to an 
 external oracle for invariant generation in fact. So don't worry.*)
 lemma ContinuousRule : 
-"\<forall> s u. ( ( \<forall> y i.(y, i) \<noteq> (fst (v), snd (v)) \<longrightarrow> s (y, i) = u (y, i)) \<longrightarrow> (p s) \<longrightarrow> (p u)) \<and>
- ( \<forall> s.  Init s \<longrightarrow>  Inv s)
+"\<forall> s u. ( ( \<forall> y i. (y, i) \<noteq> (fst v, snd v) \<longrightarrow> s (y, i) = u (y, i)) \<longrightarrow> (p s) \<longrightarrow> (p u)) \<and>
+ ( \<forall> s.  Init s \<longrightarrow> Inv s)
  \<and> (\<forall> s.  (p [&] (Inv) [&] ([\<not>]b)) s \<longrightarrow> q s)
- \<and> (\<forall> s. (exeFlow (<[v]:E&&Inv&b>) (Inv)) s \<longrightarrow> Inv s)
+ \<and> (\<forall> s. (exeFlow (<[v]:E&&Inv&b>) Inv) s \<longrightarrow> Inv s)
  \<and>  (\<forall> h now now'. ((elE 0) h now now' \<or> (almost (Inv [&] p  [&] b)) h now now') \<longrightarrow>
                   H h now now')
  ==> {Init [&] (p::fform)} <[v]:E&&Inv&(b)> {q; H}"
@@ -213,7 +222,99 @@ apply (subgoal_tac "\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) 
 apply blast
 apply auto
 done
- 
+
+
+lemma ContinuousRule1 : 
+"\<forall> s u. ( ( \<forall> y i.(y, i) \<noteq> (fst (v), snd (v)) \<longrightarrow> s (y, i) = u (y, i)) \<longrightarrow> (p s) \<longrightarrow> (p u)) \<and>
+ ( \<forall> s.  Init s \<longrightarrow>  Inv s)
+ \<and> (\<forall> s.  (p [&] (Inv) [&] ([\<not>]b)) s \<longrightarrow> q s)
+ \<and> (\<forall> s. (exeFlow (<[v]:E&&Inv&b>) (Inv)) s \<longrightarrow> Inv s)
+ \<and>  (\<forall> h now now'. ((elE 0) h now now' \<or> (almost (Inv [&] p  [&] b)) h now now') \<longrightarrow>
+                  H h now now')
+ ==> {Init [&] (p::fform)} <[v]:E&&Inv&(b)> {q; H}"
+  apply (simp add:Valid_def) 
+  apply clarify
+proof-
+  fix now h now' h'
+  assume as:"\<forall>s u. (\<forall>y i. (y, i) \<noteq> v \<longrightarrow> s (y, i) = u (y, i)) \<longrightarrow> p s \<longrightarrow> p u"
+            "\<forall>s. Init s \<longrightarrow> Inv s"
+            "\<forall>s. (p [&] Inv [&] [\<not>]b) s \<longrightarrow> q s"
+            "\<forall>s. exeFlow (<[v]:E&&Inv&b>) Inv s \<longrightarrow> Inv s"
+            "\<forall>h now now'.
+             (now' = now \<longrightarrow> H h now now) \<and>
+             (almost (Inv [&] p [&] b) h now now' \<longrightarrow> H h now now')"
+            "semB (<[v]:E&&Inv&b>) now h now' h'"
+            "(Init [&] p) (h now)"
+  hence sub1:"\<forall> t. t\<ge>now & t\<le>now' \<longrightarrow> exeFlow (<[v]:E&&Inv&b>) (Inv) (h'(t))" 
+    using exeFlow_def fAnd_def by (metis (no_types, lifting))
+  have sub2:"\<forall>t. now \<le> t \<and> t \<le> now \<longrightarrow> exeFlow (<[v]:E&&Inv&b>) Inv (h t) \<Longrightarrow>
+    h' = h \<Longrightarrow> ([\<not>]b) (h now) \<Longrightarrow> now' = now \<Longrightarrow> q (h now)" using as sub1 fAnd_def by auto
+  have sub3:" \<forall>t. now \<le> t \<and> t \<le> now + d \<longrightarrow>
+             exeFlow (<[v]:E&&Inv&b>) Inv
+              (if now < t
+               then \<lambda>(y, i).
+                       if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (t - now)
+                       else h now (y, i)
+               else h t) \<Longrightarrow>
+         h' =
+         (\<lambda>t. if t \<le> now + d \<and> now < t
+              then \<lambda>(y, i).
+                      if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (t - now)
+                      else h now (y, i)
+              else h t) \<Longrightarrow>
+         0 < d \<Longrightarrow>
+         \<forall>m. m < now + d \<and> now \<le> m \<longrightarrow>
+             b (if now < m
+                then \<lambda>(y, i).
+                        if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (m - now)
+                        else h now (y, i)
+                else h m) \<Longrightarrow>
+         ([\<not>]b)
+          (\<lambda>(y, i).
+              if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now)
+              else h now (y, i)) \<Longrightarrow>
+         now' = now + d \<Longrightarrow>
+         q (\<lambda>(y, i).
+               if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now)
+               else h now (y, i))" for d
+  proof-
+    assume ass:"\<forall>t. now \<le> t \<and> t \<le> now + d \<longrightarrow>
+             exeFlow (<[v]:E&&Inv&b>) Inv
+              (if now < t
+               then \<lambda>(y, i).
+                       if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (t - now)
+                       else h now (y, i)
+               else h t)"
+               "h' =
+         (\<lambda>t. if t \<le> now + d \<and> now < t
+              then \<lambda>(y, i).
+                      if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (t - now)
+                      else h now (y, i)
+              else h t)"
+               "0 < d"
+               "\<forall>m. m < now + d \<and> now \<le> m \<longrightarrow>
+        b (if now < m
+           then \<lambda>(y, i).
+                   if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (m - now)
+                   else h now (y, i)
+           else h m)"
+                "([\<not>]b)
+     (\<lambda>(y, i).
+         if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now)
+         else h now (y, i))"
+                " now' = now + d"
+    have ssub1:"\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) (y, i) = ((\<lambda>(y, i). if y = fst v \<and> i = snd v 
+   then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now) else h now (y, i))) (y, i)"
+      using as ass sub1 by auto
+    have ssub2:"p (\<lambda>(y, i).
+             if y = fst v \<and> i = snd v then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now)
+             else h now (y, i)) "
+      using as ass sub1 ssub1 by (metis (no_types, lifting) fAnd_def)
+    have ssub3:"exeFlow (<[v]:E&&Inv&b>) (Inv)
+                    (\<lambda>(y, i). if y = fst v \<and> i = snd v 
+        then Solution (<[v]:E&&Inv&b>) (h now) (now+d - now) else h now (y, i)) "
+      (* using as ass sub1  spec fAnd_def *)
+      using ass(1)[THEN spec, where x="now + d"] ass(3) by auto
 
 (*We simple extend the above rule to the general case where the continuous are a list of variables not just one.
 The proof can be given in the same way.*)

@@ -1,5 +1,5 @@
 theory basic
-  imports HOL.NthRoot HHL_SL
+  imports HOL.NthRoot HHL_SL invGen
 begin
 
 
