@@ -165,6 +165,12 @@ fun trans_fform t =
         Buffer.add "<" #>
         Buffer.add (trans_exp u) #>
         Buffer.add ")"
+      | @{term "Syntax_SL.fGreater :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
+        Buffer.add "(" #>
+        Buffer.add (trans_exp t) #>
+        Buffer.add ">" #>
+        Buffer.add (trans_exp u) #>
+        Buffer.add ")"
       | @{term "Syntax_SL.fLessEqual :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
         Buffer.add "(" #>
         Buffer.add (trans_exp t) #>
@@ -233,7 +239,7 @@ fun trans_goal t =
   let
     fun trans t =
       (case t of
-        @{term "forall :: fform \<Rightarrow> prop"} $ u =>
+        @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, u) =>
         Buffer.add " " #>
         Buffer.add (trans_fform u) #>
         Buffer.add " "
@@ -250,6 +256,31 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
   |> fst
   |> isTrue;
 *}
+
+ML{*
+val t1 = @{term " ((((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] ((RVar ''plant_t'') [\<le>] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>]
+         (((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20))) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real - (1 / 20)))))"}
+val res1 = trans_fform t1
+*}
+
+ML{*
+val t = @{term "\<forall> s. fTrue s"}
+
+
+ 
+ 
+ 
+
+ 
+
+*}
+
+(*
+val t = @{term "\<forall>s. ((((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] ((RVar ''plant_t'') [\<le>] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>]
+         (((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20))) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real - (1 / 20))))) s"}
+
+val res = trans_goal t
+*)
 
 oracle inv_oracle_SOS = {* fn ct =>
   if decide_SOS (trans_goal (Thm.term_of ct))
