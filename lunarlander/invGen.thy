@@ -3,14 +3,15 @@ theory invGen
 begin
 
 declare [[ML_print_depth = 50]]
-ML{*
+
+ML {*
 
 fun trans_real t = Syntax.pretty_term @{context} t
   |> Pretty.string_of
   |> YXML.parse_body
   |> XML.content_of;
+
 fun trans_string t = HOLogic.dest_string t;
- 
 
 fun trans_val t =
   let
@@ -75,7 +76,12 @@ fun trans_exp t =
           Buffer.add "(" #>
           Buffer.add (trans_val t) #>
           Buffer.add ")"
-        | _ => error "inacceptable term: trans_exp")
+        | _ =>
+        let
+          val _ = Syntax.pretty_term @{context} t |> Pretty.string_of |> writeln
+        in
+          error "inacceptable term: trans_exp"
+        end)
     in Buffer.content (trans t Buffer.empty) 
 end
 
@@ -133,21 +139,21 @@ fun trans_proc t =
   let
     fun trans t =
       (case t of
-        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ v  =>        
-        Buffer.add "{{" #>        
+        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ v =>
+        Buffer.add "{{" #>
         Buffer.add (trans_pair_list t) #>
         Buffer.add "}" #>
-        Buffer.add "," #> 
+        Buffer.add "," #>
         Buffer.add "{" #>
         Buffer.add (trans_exp_list u) #>
         Buffer.add "}" #>
-        Buffer.add "," #> 
+        Buffer.add "," #>
         Buffer.add "{" #>
-        Buffer.add (trans_fform v) #>  
+        Buffer.add (trans_fform v) #>
         Buffer.add "}}"
       | _ => error "inacceptable proc")
-  in Buffer.content (trans t Buffer.empty) 
-end  
+  in Buffer.content (trans t Buffer.empty)
+end
 
 and trans_fform t =
   let
@@ -211,9 +217,11 @@ and trans_fform t =
         Buffer.add "}"
 
 
-      | @{term "Inv :: fform"} =>
-        Buffer.add "Inv" 
-
+      | Const (c, @{typ fform}) =>
+        if String.isSuffix "Inv" c then
+          Buffer.add "Inv"
+        else
+          error ("unexpected constant " ^ c ^ ": trans_fform")
       | @{term "Syntax_SL.fSubForm :: fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform"} $ t $ u $ v $ _ =>
         Buffer.add "{" #>
         Buffer.add "{" #>
@@ -235,7 +243,12 @@ and trans_fform t =
         Buffer.add "," #>
         Buffer.add (trans_fform v) #>
         Buffer.add "}"     
-      | _ => error "inacceptable term: trans_fform")
+      | _ =>
+        let
+          val _ = Syntax.pretty_term @{context} t |> Pretty.string_of |> writeln
+        in
+          error "inacceptable term: trans_fform"
+        end)
   in Buffer.content (trans t Buffer.empty) 
 end
 
@@ -264,13 +277,10 @@ fun trans_goal t =
   let
     fun trans t =
       (case t of
-        @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ b) =>
-        if b aconv Bound 0 then 
+        @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ Bound 0) =>
           Buffer.add "{" #>
           Buffer.add (trans_Cons_fform f) #>
           Buffer.add "Null}"
-        else
-          error "argument is not Bound 0"
       | _ => error "inacceptable term: goal")
   in Buffer.content (trans t Buffer.empty)
 end
@@ -285,16 +295,34 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
   |> isTrue;
 *}
 
+text \<open>Unit tests\<close>
+ML {*
+trans_real @{term "0.128::real"};
+trans_real @{term "3::real"};
+trans_string @{term "''abc''"};
+trans_val @{term "Real 0.123"};
+trans_val @{term "String ''abc''"};
+trans_val @{term "Bool (n::bool)"};
+trans_exp @{term "Con Real 3"};
+trans_exp @{term "Con Real 3 [+] RVar ''x''"};
+trans_pair @{term "(''u'', R)"};
+trans_pair_list @{term "[(''u'', R), (''v'', S)]"};
+trans_exp_list @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
+trans_fform @{term "fTrue"};
+*}
+
 text \<open>Test functions for goal.thy constraints\<close>
 
-ML{*
-val p = @{term "<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
-              (''plant_t'',
-               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
-                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>"}
-
-val res = trans_proc p
+ML {*
+val res = trans_proc @{term "
+  <[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R), (''plant_t'', R)] :
+   [(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)),
+    (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
+    (RVar ''plant_v1_1''),
+    (Con Real 1)] && Inv1 & (RVar ''plant_t'') [<] (Con Real 16 / 125)>
+"};
 *}
+(*
 ML{*
 
 val t1 = @{term " (((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (RVar ''plant_t'' [\<le>] Con Real (16 / 125)) [&] Inv [\<longrightarrow>]
@@ -361,10 +389,8 @@ val t = @{term "\<forall> s.  ((((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (R
 
 val res = trans_goal t
 
-
-
 *}
-
+*)
 
 oracle inv_oracle_SOS = {* fn ct =>
   if decide_SOS (trans_goal (Thm.term_of ct))

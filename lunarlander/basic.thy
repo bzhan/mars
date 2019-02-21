@@ -181,9 +181,11 @@ consts Inv :: fform
 definition cons11:: fform where "cons11 \<equiv>  (x [\<ge>] Con Real 1) [\<longrightarrow>] Inv "
 definition cons12:: fform where "cons12 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 1) "
 definition cons13:: fform where "cons13 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons1:"\<forall> s. ( cons11 [&] cons12 [&] cons13 ) s"
-apply (simp add:cons11_def cons12_def cons13_def)
+  apply (simp only:cons11_def cons12_def cons13_def x_def)
   sorry
+
 lemma ODE1:"{x[\<ge>](Con Real 0)}
     (x :=((Con Real 1) [+] x )); <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>
            {x[\<ge>](Con Real 1); (elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))}"
@@ -214,52 +216,58 @@ apply (simp add:cons11_def cons12_def cons13_def)
   by (metis (no_types, lifting) almostmono)
 
 ML{*
-val t =@{term "((x [\<ge>] Con Real 1 [\<longrightarrow>] Inv) 
-            [&] (Inv [\<longrightarrow>] x [\<ge>] Con Real 1) 
-            [&] (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&\<lambda>s. True>) Inv [\<longrightarrow>] Inv)) 
-       "}
-
+val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
+         (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
+         s"}
 val res = trans_goal t
 *}
+
 definition cons21:: fform where "cons21 \<equiv>  ((x [\<ge>] Con Real 0)[&](y [\<ge>] Con Real 0)[&](z [\<ge>] Con Real 0)) [\<longrightarrow>] Inv "
 definition cons22:: fform where "cons22 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 0) "
 definition cons23:: fform where "cons23 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [y,z] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons2:"\<forall> s. ( cons21 [&] cons22 [&] cons23 ) s"
-apply (simp add:cons21_def cons22_def cons23_def)
+  apply (simp only:cons21_def cons22_def cons23_def x_def y_def z_def)
   sorry
+
 lemma ODE2:"{x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Real 0}
            <[(''x'', R), (''y'', R)]:[y, z]&&Inv&\<lambda>s. True>
             {x [\<ge>] Con Real 0; (elE 0 [[|]] (almost (x[\<ge>](Con Real 0))))}"
   sorry
 
-ML{*
-val t =@{term "((x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Real 0 [\<longrightarrow>] Inv) 
-            [&](Inv [\<longrightarrow>] x [\<ge>] Con Real 0) 
-            [&](exeFlow (<[(''x'', R), (''y'', R)]:[y, z]&&Inv&\<lambda>s. True>) Inv [\<longrightarrow>] Inv)) 
-       "}
-
+ML {*
+val t = @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
+         (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
+         (exeFlow (<[(''x'', R), (''y'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
+         s"}
 val res = trans_goal t
 *}
+
 definition cons31:: fform where "cons31 \<equiv>  (x [\<ge>] Con Real 0) [\<longrightarrow>] Inv "
 definition cons32:: fform where "cons32 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 0) "
 definition cons33:: fform where "cons33 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 5)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 definition cons34:: fform where "cons34 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 definition cons35:: fform where "cons35 \<equiv>  exeFlow(<[(''x'', R)]: [x] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons3:"\<forall> s. ( cons31 [&] cons32 [&] cons33 [&] cons34 [&] cons35) s"
-apply (simp add:cons31_def cons32_def cons33_def cons34_def cons35_def)
+  apply (simp only:cons31_def cons32_def cons33_def cons34_def cons35_def
+          x_def)
   sorry
+
 lemma ODE3:"{x [\<ge>] Con Real 0 }
            <[(''x'', R)]: [(Con Real 5)] && Inv & fTrue>;
            <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>;
            <[(''x'', R)]: [x] && Inv & fTrue>
             {x [\<ge>] Con Real 0; (elE 0 [[|]] (almost (x[\<ge>](Con Real 0))))}"
   sorry
+
 ML{*
-val t =@{term "((x [\<ge>] Con Real 0  [\<longrightarrow>] Inv) 
-            [&](Inv [\<longrightarrow>] x [\<ge>] Con Real 0) 
-            [&](exeFlow (<[(''x'', R)]:[Con Real 5]&&Inv&\<lambda>s. True>) Inv [\<longrightarrow>] Inv) 
-            [&](exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&\<lambda>s. True>) Inv [\<longrightarrow>] Inv) 
-            [&](exeFlow (<[(''x'', R)]:[x]&&Inv&\<lambda>s. True>) Inv [\<longrightarrow>] Inv)) 
-       "}
+val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
+         (exeFlow (<[(''x'', R)]:[Con Real 5]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
+         (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
+         (exeFlow (<[(''x'', R)]:[RVar ''parx'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
+         s"}
+val res = trans_goal t
 *}
+
 end
