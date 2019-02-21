@@ -235,18 +235,39 @@ fun trans_fform t =
   in Buffer.content (trans t Buffer.empty) 
 end
 
+fun trans_each_goal t =
+  let
+    fun trans t =
+      (case t of
+       _ => 
+        Buffer.add (trans_fform t)) #>
+        Buffer.add ","  
+  in Buffer.content (trans t Buffer.empty) 
+end
+
+fun trans_Cons_fform t =
+  let
+    fun trans t =
+      (case t of
+        @{term "Syntax_SL.fAnd ::  fform \<Rightarrow> fform \<Rightarrow> fform"} $ v $ u  =>
+        Buffer.add (trans_Cons_fform v) #>
+        Buffer.add (trans_Cons_fform u)
+      | _ => Buffer.add (trans_each_goal t) )
+  in Buffer.content (trans t Buffer.empty) 
+end
+
 fun trans_goal t = 
   let
     fun trans t =
       (case t of
         @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ b) =>
         if b aconv Bound 0 then 
-          Buffer.add " " #>
-          Buffer.add (trans_fform f) #>
-          Buffer.add " "
+          Buffer.add "{" #>
+          Buffer.add (trans_Cons_fform f) #>
+          Buffer.add "Null}"
         else
           error "argument is not Bound 0"
-      | _ => error "inacceptable term")
+      | _ => error "inacceptable term: goal")
   in Buffer.content (trans t Buffer.empty)
 end
 
@@ -260,7 +281,7 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
   |> isTrue;
 *}
 
-text \<open>Test functions\<close>
+text \<open>Test functions for goal.thy constraints\<close>
 
 ML{*
 val p = @{term "<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
