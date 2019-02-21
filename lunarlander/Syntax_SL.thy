@@ -5,16 +5,16 @@ theory Syntax_SL
 begin
 
 text \<open>Constants\<close>
-datatype val = Real real     ("Real _" 76)
-             | String string ("String _" 76)
-             | Bool bool     ("Bool _" 76)
+datatype val = Real real     ("Real _"   76)
+             | String string ("String _"   76)
+             | Bool bool     ("Bool _"   76)
              | Err
 
 text \<open>Expressions of HCSP language. Rules for division still to be added.\<close>
-datatype exp = Con val ("Con _" 75)
-             | RVar string   ("RVar _" 75 )
-             | SVar string   ("SVar _" 75)
-             | BVar string   ("BVar _" 75)
+datatype exp = Con val ("Con _"  75)
+             | RVar string   ("RVar _"  75 )
+             | SVar string   ("SVar _"   75)
+             | BVar string   ("BVar _"  75)
              | Add exp exp   (infixr "[+]" 70)
              | Sub exp exp   (infixl "[-]" 70)
              | Mul exp exp   (infixr "[*]" 71)
@@ -64,7 +64,7 @@ definition fOr :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[|]"
 definition fNot :: "fform \<Rightarrow> fform"  ("[\<not>]_" 67) where
   "[\<not>]P \<equiv> \<lambda>s. \<not> P s"
 
-definition fImp :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[\<longrightarrow>]" 65) where
+definition fImp :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[\<longrightarrow>]" 63) where
   "P [\<longrightarrow>] Q \<equiv> \<lambda>s. P s \<longrightarrow> Q s"
 
 definition fLessEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[\<le>]" 69) where

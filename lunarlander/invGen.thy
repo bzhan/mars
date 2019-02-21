@@ -1,5 +1,5 @@
 theory invGen
-	imports processDef
+	imports HHL_SL
 begin
 
 declare [[ML_print_depth = 50]]
@@ -84,9 +84,9 @@ fun trans_pair t =
     fun trans t =
       (case t of
         @{term "Product_Type.Pair :: string \<Rightarrow> typeid  \<Rightarrow> string * typeid"} $ u $ v   =>
-          Buffer.add "{" #>
-          Buffer.add (trans_string u) #>
-          Buffer.add "}"
+         (* Buffer.add "{" #>*)
+          Buffer.add (trans_string u) 
+          (*#>Buffer.add "}"*)
 
       | _ => error "inacceptable term (trans_pair)")
   in Buffer.content (trans t Buffer.empty) 
@@ -97,11 +97,11 @@ fun trans_pair_list t =
     fun trans t =
       (case t of
         @{term "List.list.Cons :: (string * typeid) \<Rightarrow> (string * typeid) list \<Rightarrow> (string * typeid) list"} $ u $ v   =>
-          Buffer.add "{" #>
+          (*Buffer.add "{" #>*)
           Buffer.add (trans_pair u) #>
           Buffer.add "," #>
-          Buffer.add (trans_pair_list v) #>
-          Buffer.add "}"
+          Buffer.add (trans_pair_list v) 
+          (*Buffer.add "}"*)
 
       | @{term "List.list.Nil :: (string * typeid) list"}   =>
           Buffer.add "Null"
@@ -115,11 +115,11 @@ fun trans_exp_list t =
     fun trans t =
       (case t of
         @{term "List.list.Cons :: exp \<Rightarrow> exp list \<Rightarrow> exp list"} $ u $ v   =>
-          Buffer.add "{" #>
+          (*Buffer.add "{" #>*)
           Buffer.add (trans_exp u) #>
           Buffer.add "," #>
-          Buffer.add (trans_exp_list v) #>
-          Buffer.add "}"
+          Buffer.add (trans_exp_list v)
+          (* #>Buffer.add "}"*)
 
       | @{term "List.list.Nil :: exp list"}   =>
           Buffer.add "Null"
@@ -133,7 +133,7 @@ fun trans_proc t =
   let
     fun trans t =
       (case t of
-        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u   =>        
+        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ _  =>        
         Buffer.add "{{" #>        
         Buffer.add (trans_pair_list t) #>
         Buffer.add "}" #>
@@ -258,6 +258,86 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
   |> Isabelle_System.bash_output
   |> fst
   |> isTrue;
+*}
+
+text \<open>Test functions\<close>
+
+ML{*
+val p = @{term "<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
+                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>"}
+
+val res = trans_proc p
+*}
+ML{*
+
+val t1 = @{term " (((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (RVar ''plant_t'' [\<le>] Con Real (16 / 125)) [&] Inv [\<longrightarrow>]
+         ((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20)) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real (- (1 / 20))))))"}
+val t2 = @{term "  ((((RVar ''plant_v1_1'') [=] (Con Real (- 2))) [&] ((RVar ''plant_m1_1'') [=] (Con Real 1250)) [&] ((RVar ''control_1'') [=] (Con Real (4055 / 2))) [&]
+           ((RVar ''plant_t'') [=] (Con Real 0))) [\<longrightarrow>] Inv)"}
+val t3 = @{term " (((RVar ''plant_t'') [=] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv\<lbrakk>(Con Real 0),''plant_t'',R\<rbrakk>)"}
+val t4 = @{term "(Inv [\<longrightarrow>]
+          (Inv\<lbrakk>(RVar ''plant_m1_1'') [*]
+              ((Con (Real (811 / 500))) [-] (Con Real (1 / 100)) [*] ((RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500))) [-]
+               (Con Real (3 / 5)) [*] ((RVar ''plant_v1_1'') [+] (Con Real 2))),''control_1'',R\<rbrakk>) )"}
+
+val t5 = @{term "(exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
+                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv)"}
+
+val t6 = @{term "(exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real 811 / 500), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2842),
+                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv2&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv)"}
+
+val tt = @{term "t1 [&] t2 [&] t3 [&] t4 [&] t5 [&] t6"}
+
+val t = @{term "\<forall> s.  ((((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (RVar ''plant_t'' [\<le>] Con Real (16 / 125)) [&] Inv [\<longrightarrow>]
+         ((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20)) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real (- (1 / 20))))) )
+[&]
+          ((((RVar ''plant_v1_1'') [=] (Con Real (- 2))) [&] ((RVar ''plant_m1_1'') [=] (Con Real 1250)) [&] ((RVar ''control_1'') [=] (Con Real (4055 / 2))) [&]
+           ((RVar ''plant_t'') [=] (Con Real 0))) [\<longrightarrow>] Inv)
+
+[&]
+         ((((RVar ''plant_t'') [=] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv\<lbrakk>(Con Real 0),''plant_t'',R\<rbrakk>))
+
+[&]
+         ((Inv [\<longrightarrow>]
+          (Inv\<lbrakk>(RVar ''plant_m1_1'') [*]
+              ((Con (Real (811 / 500))) [-] (Con Real (1 / 100)) [*] ((RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500))) [-]
+               (Con Real (3 / 5)) [*] ((RVar ''plant_v1_1'') [+] (Con Real 2))),''control_1'',R\<rbrakk>) ))
+ [&]
+         (exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
+                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv)
+
+ [&]
+         (exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real 811 / 500), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2842),
+                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv2&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv) 
+
+ ) s "} 
+
+val res = trans_goal t
+
+
+
 *}
 
 
