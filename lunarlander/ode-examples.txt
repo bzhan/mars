@@ -1,0 +1,34 @@
+{
+    {(parx≥((1))) ,Inv},
+    {Inv ,(parx≥((1)))},
+    {
+        {{{x,Null},{((2)),Null},{ True }},Inv},
+        Inv
+    },
+    Null
+}
+
+{
+    {(((parx≥((0)))&&(pary≥((0))))&&(parz≥((0)))) ,Inv},
+    {Inv ,(parx≥((0)))},
+    {
+        {{{x,y,Null},{pary,parz,Null},{ True }},Inv} ,
+        Inv
+    },
+    Null
+}
+
+{
+    {(parx≥((0))) ,Inv},
+    {Inv ,(parx≥((0)))},
+    {
+        {{{x,Null},{((5)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{x,Null},{((2)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{x,Null},{parx,Null},{ True }},Inv} ,Inv
+    },
+    Null
+}

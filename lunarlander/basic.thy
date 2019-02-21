@@ -178,41 +178,25 @@ qed
 
 consts Inv :: fform
 
-definition cons11:: fform where "cons11 \<equiv>  (x [\<ge>] Con Real 1) [\<longrightarrow>] Inv "
-definition cons12:: fform where "cons12 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 1) "
-definition cons13:: fform where "cons13 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons11 :: fform where "cons11 \<equiv> (x [\<ge>] Con Real 1) [\<longrightarrow>] Inv"
+definition cons12 :: fform where "cons12 \<equiv> Inv [\<longrightarrow>] (x [\<ge>] Con Real 1)"
+definition cons13 :: fform where "cons13 \<equiv> exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) Inv [\<longrightarrow>] Inv"
 
-lemma allcons1:"\<forall> s. ( cons11 [&] cons12 [&] cons13 ) s"
-  apply (simp only:cons11_def cons12_def cons13_def x_def)
+lemma allcons1: "\<forall>s. (cons11 [&] cons12 [&] cons13) s"
+  apply (simp only: cons11_def cons12_def cons13_def x_def)
   sorry
 
-lemma ODE1:"{x[\<ge>](Con Real 0)}
-    (x :=((Con Real 1) [+] x )); <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>
-           {x[\<ge>](Con Real 1); (elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))}"
-apply (cut_tac p="x[\<ge>](Con Real 0)"
-           and P="(x :=((Con Real 1) [+] x ))" 
-           and m="x[\<ge>](Con Real 1)"
-           and Q="<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>" 
-           and q="x[\<ge>](Con Real 1)"
-           and H="elE 0"
-           and G="(elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))"
-            in  SequentialRule_aux,auto)
-    apply (cut_tac B01,auto)
-   defer 
-   apply (simp add:chop_def dOr_def Valid_def)
-  apply (cut_tac allcons1)
-apply (simp add:cons11_def cons12_def cons13_def)
-  apply (cut_tac p="x[\<ge>](Con Real 1)"
-             and q="x[\<ge>](Con Real 1)"
-             and b="fTrue"
-             and Inv="Inv"
-             and H="(elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))"
-             in ContinuousRuleGT,auto)
-  apply (simp add: fAnd_def fImp_def)
-     apply (simp add: fAnd_def fImp_def)
-    apply (simp add: fAnd_def fImp_def)
-   apply (simp add:dOr_def)
-  apply (simp add:dOr_def fAnd_def fImp_def)
+lemma ODE1:
+  "{x [\<ge>] (Con Real 0)}  \<comment> \<open>x >= 0\<close>
+    (x := ((Con Real 1) [+] x));  \<comment> \<open>x := 1 + x\<close>
+    <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>  \<comment> \<open>x' = 2 & True\<close>
+   {x[\<ge>](Con Real 1); (elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))}"  \<comment> \<open>x >= 1\<close>
+  apply (rule SequentialRule[where m="x[\<ge>](Con Real 1)" and H="elE 0" and G="elE 0 [[|]] (almost (x[\<ge>](Con Real 1)))"])
+  apply (rule B01)
+  prefer 2 subgoal
+    by (simp add:chop_def dOr_def Valid_def)
+  apply (rule ContinuousRuleGT)
+  using allcons1 apply (auto simp add: cons11_def cons12_def cons13_def fAnd_def fImp_def dOr_def)
   by (metis (no_types, lifting) almostmono)
 
 ML{*
