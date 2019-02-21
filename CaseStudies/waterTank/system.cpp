@@ -56,63 +56,63 @@ void domain_2_proc(void){
 Ch_plant_1_1_w=1;
 wait(SC_ZERO_TIME);
 
-for (int i=0;i<1999.0;i++)
+for (int i=0;i<284.0;i++)
 {
 if (true&&true&&Ch_plant_1_1_w && !Ch_plant_1_1_r)
-{wait(0.008,SC_SEC);
+{wait(0.7,SC_SEC);
 double currentX[1] = {plant_1};
 double arguments[1];
 double phi[1];
 double *k1 = ode1(currentX);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k1[j] / 2 * 0.008;
+arguments[j] = currentX[j] + k1[j] / 2 * 0.7;
 phi[j] = k1[j] / 6;
 }
 double *k2 = ode1(arguments);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k2[j] / 2 * 0.008;
+arguments[j] = currentX[j] + k2[j] / 2 * 0.7;
 phi[j] += k2[j] / 3;
 }
 double *k3 = ode1(arguments);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k3[j] * 0.008;
+arguments[j] = currentX[j] + k3[j] * 0.7;
 phi[j] += k3[j] / 3;
 }
 double *k4 = ode1(arguments);
 for (int j=0; j<1; j++){
 phi[j] += k4[j] / 6;
 }
-plant_1=plant_1+phi[0]*0.008;
+plant_1=plant_1+phi[0]*0.7;
 wait(0,SC_SEC,Ch_plant_1_1_w.posedge_event());
 }
 else 
 break;
 }
 if (true&&true&&Ch_plant_1_1_w && !Ch_plant_1_1_r)
-{wait(0.007999240420758724,SC_SEC);
+{wait(0.20000338554382324,SC_SEC);
 double currentX[1] = {plant_1};
 double arguments[1];
 double phi[1];
 double *k1 = ode1(currentX);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k1[j] / 2 * 0.007999240420758724;
+arguments[j] = currentX[j] + k1[j] / 2 * 0.20000338554382324;
 phi[j] = k1[j] / 6;
 }
 double *k2 = ode1(arguments);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k2[j] / 2 * 0.007999240420758724;
+arguments[j] = currentX[j] + k2[j] / 2 * 0.20000338554382324;
 phi[j] += k2[j] / 3;
 }
 double *k3 = ode1(arguments);
 for (int j=0; j<1; j++){
-arguments[j] = currentX[j] + k3[j] * 0.007999240420758724;
+arguments[j] = currentX[j] + k3[j] * 0.20000338554382324;
 phi[j] += k3[j] / 3;
 }
 double *k4 = ode1(arguments);
 for (int j=0; j<1; j++){
 phi[j] += k4[j] / 6;
 }
-plant_1=plant_1+phi[0]*0.007999240420758724;
+plant_1=plant_1+phi[0]*0.20000338554382324;
 wait(SC_ZERO_TIME);
 }
 if (!(true&&true)&&Ch_plant_1_1_w && !Ch_plant_1_1_r)
@@ -330,7 +330,7 @@ test mytest2("mytest2");
 mytest2.s_in(s[2]);
 test mytest3("mytest3");
 mytest3.s_in(s[3]);
-sc_start(+16.0,SC_SEC);
+sc_start(+199.0,SC_SEC);
 cout<<"plant_1: ["<<mytest0.min<<", "<<mytest0.max<<"]"<<endl;
 cout<<"control_1: ["<<mytest1.min<<", "<<mytest1.max<<"]"<<endl;
 cout<<"plant_1_1: ["<<mytest2.min<<", "<<mytest2.max<<"]"<<endl;

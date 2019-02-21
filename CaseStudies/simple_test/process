@@ -1,0 +1,6 @@
+ control_1 := (Real  1);
+ plant_1 := (Real  1); 
+t:=(Real  0);
+( control_1 := sqrt(abs(plant_1_1-(Real  2)));
+temp:=t;<<diff(t)==(Real  1), diff(plant_1) == sqrt(control_1+(Real  5))
+		 &&  &t[<]temp + (Real  1)>>)*

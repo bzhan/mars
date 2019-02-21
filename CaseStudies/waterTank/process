@@ -1,6 +1,31 @@
- control_1 := (Real  1);
- plant_1 := (Real  5); 
-t:=(Real  0);
-( plant_1_1>=(Real  5.9) -> control_1 := (Real  0) , plant_1_1<=(Real  4.1) -> control_1 := (Real  1) , plant_1_1>(Real  4.1)&&plant_1_1<(Real  5.9)-> control_1 := control_1+0;
-temp:=t;<<diff(t)==(Real  1), diff(plant_1) == (control_1*(Real  0.8))-(Real  0.0314)*(sqrt((Real  19.6)*plant_1))
-		 &&  &t[<]temp + (Real  1)>>)*
+#include"systemc.h"
+
+
+SC_MODULE(null){
+
+SC_CTOR(null){
+}
+};
+SC_MODULE(test) {
+sc_in<double> s_in;
+double min,max;
+SC_CTOR(test){
+SC_THREAD(update);
+dont_initialize();
+sensitive<<s_in;
+}
+void update(){
+min=max=s_in;
+while(1){
+wait();
+if (s_in>max) max=s_in;
+if (s_in<min) min=s_in;
+}
+}
+};
+int sc_main(int argc,char *argv[]){
+sc_signal<double> s[0];
+null myinstance("myinstance");
+sc_start(+0.0,SC_SEC);
+return 0;
+}

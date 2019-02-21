@@ -9,7 +9,7 @@ post :: fform
 H :: fform 
 
 (*Goal for the whole process.*)
-lemma goal : "{pre,pre} P {post,post; H,H}"
+lemma goal : "{pre} P {post; H}"
 sorry
 
 end

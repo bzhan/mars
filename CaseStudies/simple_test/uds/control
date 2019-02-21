@@ -1,0 +1,4 @@
+st: 1
+init: control_1 := (Real 1)
+fun: control_1 := sqrt(abs(plant_1-(Real 2)))
+type: false
