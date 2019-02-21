@@ -8,7 +8,7 @@ begin
 datatype exp = RVar string   ("RVar _" 75 )
              | SVar string   ("SVar _" 75)
              | BVar string   ("BVar _" 75)
-            | List "exp list"   ("List _" 75)
+             | List "exp list"   ("List _" 75)
              | Real real     ("Real _" 75)
              | String string ("String _" 75)
              | Bool bool     ("Bool _" 75)
