@@ -1,0 +1,43 @@
+systemDef P::= PC1||PD1
+
+variableDef ::=plant_1;control_1;plant_1_1;control_1_0
+channelDef ::=Ch_plant_1_1;Ch_control_1_0
+
+processDef PC1_1 ::= plant_1 = 1
+processDef commI1 ::=Ch_control_1_0??control_1_0;Ch_plant_1_1!!plant_1
+
+processDef interrupt_2_proc ::= Ch_control_1_0??control_1_0
+processDef domain_2_proc ::= DOT(plant_1)={sqrt(control_1_0+(5))} DOMAIN(TRUE) INTERRUPT({Ch_plant_1_1!!plant_1 }{interrupt_2_proc})
+processDef PC1_2 ::= if (true) then domain_2_proc else SKIP 
+processDef PC1_init::=PC1_1;commI1
+processDef PC1_rep ::=PC1_2
+processDef PC1 ::=PC1_init;PC1_rep**
+
+processDef PD1_1 ::=control_1=(1)
+
+processDef PD1_2 ::=Ch_control_1_0!!control_1;Ch_plant_1_1??plant_1_1
+
+
+processDef PD1_3 ::=control_1=sqrt(abs(plant_1_1-(2)))
+
+processDef PD1_4 ::=WAIT(1)
+
+processDef PD1_5 ::=Ch_plant_1_1??plant_1_1
+
+
+processDef PD1_6 ::=control_1=sqrt(abs(plant_1_1-(2)))
+
+processDef PD1_7 ::=Ch_control_1_0!!control_1
+
+
+processDef PD1_init1 ::= PD1_1
+processDef PD1_init2 ::= PD1_2
+processDef PD1_init3 ::= PD1_3
+processDef PD1_init ::= PD1_init1; PD1_init2; PD1_init3
+processDef PD1_rep1 ::=  PD1_4
+processDef PD1_rep2 ::= PD1_5
+processDef PD1_rep3 ::= PD1_6
+processDef PD1_rep4 ::= PD1_7
+processDef PD1_rep ::= PD1_rep1; PD1_rep2; PD1_rep3; PD1_rep4
+processDef PD1 ::= PD1_init;PD1_rep**
+

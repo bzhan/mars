@@ -1,0 +1,4 @@
+st: 0
+init: plant_1 := (Real 1)
+0: diff(plant_1) == sqrt(control_1+(Real 5))
+type: false
