@@ -133,19 +133,23 @@ fun trans_proc t =
   let
     fun trans t =
       (case t of
-        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ _  =>        
+        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ v  =>        
         Buffer.add "{{" #>        
         Buffer.add (trans_pair_list t) #>
         Buffer.add "}" #>
         Buffer.add "," #> 
         Buffer.add "{" #>
         Buffer.add (trans_exp_list u) #>
+        Buffer.add "}" #>
+        Buffer.add "," #> 
+        Buffer.add "{" #>
+        Buffer.add (trans_fform v) #>  
         Buffer.add "}}"
       | _ => error "inacceptable proc")
   in Buffer.content (trans t Buffer.empty) 
 end  
 
-fun trans_fform t =
+and trans_fform t =
   let
     fun trans t =
       (case t of
