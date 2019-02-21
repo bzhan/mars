@@ -96,5 +96,9 @@ definition assSF46 :: mid where
 "assSF46 == (WTrue,l[=](Real 0))"
 definition assSF47 :: mid where
 "assSF47 == (WTrue,l[=](Real 0))"
+definition assSF48 :: mid where
+"assSF48 == (WTrue,l[=](Real 0))"
+definition assSF49 :: mid where
+"assSF49 == (WTrue,l[=](Real 0))"
 
 end
