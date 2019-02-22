@@ -362,5 +362,45 @@ val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
 val res = trans_goal t
 *}
 
+definition Inv1 :: fform where
+"Inv1 == Inv"
+definition Inv2 :: fform where
+"Inv2 == Inv"
+
+ML {*
+val t = @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''plant_t'' [\<le>] Con Real (16 / 125) [&] Inv [\<longrightarrow>]
+          RVar ''plant_v1_1'' [+] Con Real 2 [<] Con Real (1 / 20) [&]
+          RVar ''plant_v1_1'' [+] Con Real 2 [>] Con Real - (1 / 20)) [&]
+         (RVar ''plant_v1_1'' [=] Con Real - 2 [&]
+          RVar ''plant_m1_1'' [=] Con Real 1250 [&]
+          RVar ''control_1'' [=] Con Real (4055 / 2) [&] RVar ''plant_t'' [=] Con Real 0 [\<longrightarrow>]
+          Inv) [&]
+         (RVar ''plant_t'' [=] Con Real (16 / 125) [&] Inv [\<longrightarrow>] Inv\<lbrakk>Con Real 0,''plant_t'',R\<rbrakk>) [&]
+         (Inv [\<longrightarrow>]
+          Inv\<lbrakk>RVar ''plant_m1_1'' [*]
+              (Con Real (811 / 500) [-]
+               Con Real (1 / 100) [*]
+               (RVar ''control_1'' [div] RVar ''plant_m1_1'' [-] Con Real (811 / 500)) [-]
+               Con Real (3 / 5) [*] (RVar ''plant_v1_1'' [+] Con Real 2)),''control_1'',R\<rbrakk>) [&]
+         (exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[RVar ''control_1'' [div] RVar ''plant_m1_1'' [-] Con Real (811 / 500),
+                    Con Real 0 [-] RVar ''control_1'' [div] Con Real 2548, RVar ''plant_v1_1'',
+                    Con Real 1]&&Inv1&RVar ''plant_t'' [<] Con Real (16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv) [&]
+         (exeFlow
+           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
+              (''plant_t'',
+               R)]:[RVar ''control_1'' [div] RVar ''plant_m1_1'' [-] Con Real (811 / 500),
+                    Con Real 0 [-] RVar ''control_1'' [div] Con Real 2842, RVar ''plant_v1_1'',
+                    Con Real 1]&&Inv2&RVar ''plant_t'' [<] Con Real (16 / 125)>)
+           Inv [\<longrightarrow>]
+          Inv))
+         s"}
+val res = trans_goal t
+
+*}
 
 end

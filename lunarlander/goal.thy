@@ -20,27 +20,27 @@ definition cons1 :: fform where
 and Computation: the computation guarantees the invariant.*)
 definition cons2 :: fform where 
 "cons2 \<equiv> ((plant_v1_1[=](Con Real -2) [&] plant_m1_1[=](Con Real 1250) 
-    [&] control_1[=](Con Real 4055/2) [&] t[=](Con Real 0)) [\<longrightarrow>] Inv)"
+    [&] control_1[=](Con Real (4055/2)) [&] t[=](Con Real 0)) [\<longrightarrow>] Inv)"
 (*The core parts: the discrete computation and differential equations garantee the invariants. *)
 definition cons31 :: fform where
 "cons31 == (((t [=](Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv \<lbrakk>(Con Real 0), ''plant_t'', R\<rbrakk>))"
 
 definition cons31_aux :: fform where
-"cons31_aux == \<lambda> s. ((t [=]Con Real 16 / 125 [&] Inv) s \<longrightarrow> Inv (\<lambda>(y, i). if y = ''plant_t'' \<and> i = R then evalE (Con Real 0) s else s (y, i)))" 
+"cons31_aux == \<lambda> s. ((t [=]Con Real (16 / 125) [&] Inv) s \<longrightarrow> Inv (\<lambda>(y, i). if y = ''plant_t'' \<and> i = R then evalE (Con Real 0) s else s (y, i)))" 
 
 
 definition cons32 :: fform where
 "cons32 == (Inv [\<longrightarrow>] (Inv \<lbrakk>(plant_m1_1 [*]
-                                   (Con Real 811 / 500 [-] Con Real 1 / 100 [*] (control_1 [**] plant_m1_1 [-] Con Real 811 / 500) [-]
-                                    Con Real 3 / 5 [*] (plant_v1_1 [+] Con Real 2))), ''control_1'', R\<rbrakk>))"
+                                   (Con Real (811 / 500) [-] Con Real (1 / 100) [*] (control_1 [div] plant_m1_1 [-] Con Real (811 / 500)) [-]
+                                    Con Real (3 / 5) [*] (plant_v1_1 [+] Con Real 2))), ''control_1'', R\<rbrakk>))"
  
 
 definition cons32_aux :: fform where
 "cons32_aux == \<lambda> s. (Inv s \<longrightarrow>
                Inv (\<lambda>(y, i). if (y = ''control_1'' \<and> i = R)
                        then (evalE (plant_m1_1 [*]
-                                   (Con Real 811 / 500 [-] Con Real 1 / 100 [*] (control_1 [**] plant_m1_1 [-] Con Real 811 / 500) [-]
-                                    Con Real 3 / 5 [*] (plant_v1_1 [+] Con Real 2)))
+                                   (Con Real (811 / 500) [-] Con Real (1 / 100) [*] (control_1 [div] plant_m1_1 [-] Con Real (811 / 500)) [-]
+                                    Con Real (3 / 5) [*] (plant_v1_1 [+] Con Real 2)))
                              s)
                        else s (y, i)))" 
 definition cons4 :: fform where 
@@ -72,13 +72,13 @@ done
 (**You can uncomment the above lines, if you have  Mathematica, Matlab, Yalmip and SDPT3 installed. "Sorry" will go away.**)
 sorry
 
-lemma constraint11: "\<forall> s. (t [\<ge>] Con Real 0 [&] t [\<le>] Con Real 16 / 125 [&] Inv) s \<longrightarrow> safeProp s"
+lemma constraint11: "\<forall> s. (t [\<ge>] Con Real 0 [&] t [\<le>] Con Real (16 / 125) [&] Inv) s \<longrightarrow> safeProp s"
 apply (cut_tac allCons)
 apply (simp add:cons1_def)
 by (metis fAnd_def fImp_def)
 
 
-lemma constraint1: "\<forall> s. (t [\<le>]Con Real 16 / 125 [&] Inv) s \<longrightarrow> safeProp s"
+lemma constraint1: "\<forall> s. (t [\<le>]Con Real (16 / 125) [&] Inv) s \<longrightarrow> safeProp s"
 apply (cut_tac allCons)
 apply (cut_tac Clock)
 by (metis constraint11 fAnd_def)
@@ -87,22 +87,22 @@ by (metis constraint11 fAnd_def)
 
 
 lemma constraint2: "\<forall> s. (plant_v1_1[=](Con Real -2) [&] plant_m1_1[=](Con Real 1250) 
-    [&] control_1[=](Con Real 4055/2) [&] t[=](Con Real 0)) s \<longrightarrow> Inv s"
+    [&] control_1[=](Con Real (4055/2)) [&] t[=](Con Real 0)) s \<longrightarrow> Inv s"
 apply (cut_tac allCons)
 apply (simp add:cons2_def)
 by (metis fAnd_def fImp_def)
 
 
-lemma constraint31: "\<forall> s. ((t [=]Con Real 16 / 125 [&] Inv) s \<longrightarrow> Inv (\<lambda>(y, i). if y = ''plant_t'' \<and> i = R then evalE (Con Real 0) s else s (y, i)))"
+lemma constraint31: "\<forall> s. ((t [=]Con Real (16 / 125) [&] Inv) s \<longrightarrow> Inv (\<lambda>(y, i). if y = ''plant_t'' \<and> i = R then evalE (Con Real 0) s else s (y, i)))"
 apply (cut_tac allCons)
   apply (simp add:cons31_def) 
 proof -
   { fix vv :: "char list \<times> typeid \<Rightarrow> val"
     have "cons31_aux vv"
       by (metis allCons cons31_fact fAnd_def)
-    then have "\<not> (RVar ''plant_t''[=]Con Real 16 / 125 [&] Inv) vv \<or> Inv (\<lambda>(cs, t). if cs = ''plant_t'' \<and> t = R then evalE (Con Real 0) vv else vv (cs, t))"
+    then have "\<not> (RVar ''plant_t''[=]Con Real (16 / 125) [&] Inv) vv \<or> Inv (\<lambda>(cs, t). if cs = ''plant_t'' \<and> t = R then evalE (Con Real 0) vv else vv (cs, t))"
       by (simp add: cons31_aux_def) }
-  then show "\<forall>f. (RVar ''plant_t''[=]Con Real 16 / 125 [&] Inv) f \<longrightarrow> Inv (\<lambda>(cs, t). if cs = ''plant_t'' \<and> t = R then evalE (Con Real 0) f else f (cs, t))"
+  then show "\<forall>f. (RVar ''plant_t''[=]Con Real (16 / 125) [&] Inv) f \<longrightarrow> Inv (\<lambda>(cs, t). if cs = ''plant_t'' \<and> t = R then evalE (Con Real 0) f else f (cs, t))"
     by meson
 qed
 
@@ -113,8 +113,8 @@ qed
 lemma constraint32: "\<forall> s. (Inv s \<longrightarrow>
                Inv (\<lambda>(y, i). if (y = ''control_1'' \<and> i = R)
                        then (evalE (plant_m1_1 [*]
-                                   (Con Real 811 / 500 [-] Con Real 1 / 100 [*] (control_1 [**] plant_m1_1 [-] Con Real 811 / 500) [-]
-                                    Con Real 3 / 5 [*] (plant_v1_1 [+] Con Real 2)))
+                                   (Con Real (811 / 500) [-] Con Real (1 / 100) [*] (control_1 [div] plant_m1_1 [-] Con Real (811 / 500)) [-]
+                                    Con Real (3 / 5) [*] (plant_v1_1 [+] Con Real 2)))
                              s)
                        else s (y, i)))"
   apply (cut_tac allCons)

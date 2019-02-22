@@ -85,7 +85,7 @@ definition fGreater :: "exp \<Rightarrow> exp \<Rightarrow> fform"   ("(_/ [>] _
 
 
 text \<open>Evaluate on state after assigning value of expression e to (a, b).\<close>
-definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform" ("_\<lbrakk>_,_,_\<rbrakk>" 70) where
+definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform" ("_\<lbrakk>_,_,_\<rbrakk>" [71,71,71] 70) where
   "P \<lbrakk>e, a, b\<rbrakk> \<equiv> (\<lambda>s. P (\<lambda> (x, r). if x = a \<and> r = b then evalE e s else s (x, r)))"
 
 
