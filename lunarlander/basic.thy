@@ -200,10 +200,9 @@ lemma ODE1:
   by (metis (no_types, lifting) almostmono)
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
          (exeFlow (<[(''parx'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition cons21:: fform where "cons21 \<equiv>  ((x [\<ge>] Con Real 0)[&](y [\<ge>] Con Real 0)[&](z [\<ge>] Con Real 0)) [\<longrightarrow>] Inv "
@@ -217,14 +216,16 @@ lemma allcons2:"\<forall> s. ( cons21 [&] cons22 [&] cons23 ) s"
 lemma ODE2:"{x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Real 0}
            <[(''parx'', R), (''pary'', R)]:[y, z]&&Inv&\<lambda>s. True>
             {x [\<ge>] Con Real 0; (elE 0 [[|]] (almost (x[\<ge>](Con Real 0))))}"
-  sorry
+  apply (rule ContinuousRuleGT) 
+  using allcons2 apply (auto simp add:cons21_def cons22_def cons23_def x_def y_def z_def fAnd_def fImp_def dOr_def)
+  by (smt almostmono)
+
 
 ML {*
-val t = @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
+trans_goal @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''parx'', R), (''pary'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition cons31:: fform where "cons31 \<equiv>  (x [\<ge>] Con Real 0) [\<longrightarrow>] Inv "
@@ -235,23 +236,38 @@ definition cons35:: fform where "cons35 \<equiv>  exeFlow(<[(''parx'', R)]: [x] 
 
 lemma allcons3:"\<forall> s. ( cons31 [&] cons32 [&] cons33 [&] cons34 [&] cons35) s"
   apply (simp only:cons31_def cons32_def cons33_def cons34_def cons35_def
-          x_def)
+          x_def )
   sorry
 
 lemma ODE3:"{x [\<ge>] Con Real 0 }
-           <[(''x'', R)]: [(Con Real 5)] && Inv & fTrue>;
-           <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>;
-           <[(''x'', R)]: [x] && Inv & fTrue>
+           <[(''parx'', R)]: [(Con Real 5)] && Inv & fTrue>;
+           <[(''parx'', R)]: [(Con Real 2)] && Inv & fTrue>;
+           <[(''parx'', R)]: [x] && Inv & fTrue>
             {x [\<ge>] Con Real 0; (elE 0 [[|]] (almost (x[\<ge>](Con Real 0))))}"
-  sorry
+  apply (rule SequentialRule[where m="x[\<ge>](Con Real 0)" and H="elE 0 [[|]] (almost (x[\<ge>](Con Real 0)))" and G="elE 0 [[|]] (almost (x[\<ge>](Con Real 0)))"]) 
+  apply (rule ContinuousRuleGT) 
+  using allcons3 apply (simp add:cons31_def cons32_def cons33_def cons34_def cons35_def
+          x_def fAnd_def fImp_def dOr_def )
+    apply (smt almostmono)
+   apply (rule SequentialRule[where m="x[\<ge>](Con Real 0)" and H="elE 0 [[|]] (almost (x[\<ge>](Con Real 0)))" and G="elE 0 [[|]] (almost (x[\<ge>](Con Real 0)))"]) 
+   apply (rule ContinuousRuleGT) 
+  using allcons3 apply (simp add:cons31_def cons32_def cons33_def cons34_def cons35_def
+          x_def fAnd_def fImp_def dOr_def )
+    apply (smt almostmono)
+   apply (rule ContinuousRuleGT) 
+  using allcons3 apply (simp add:cons31_def cons32_def cons33_def cons34_def cons35_def
+          x_def fAnd_def fImp_def dOr_def )
+    apply (smt almostmono)
+  using chopfor apply blast
+  using chopfor apply blast
+  done
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 5]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[RVar ''parx'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition exp41:: exp where
@@ -276,8 +292,16 @@ lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
           x_def y_def)
   sorry
 
+lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
+           <[(''x'', R),(''y'', R)]: [(exp41),(exp42)] && Inv & fTrue>
+            {x [-] Con Real 4 [*] y [<] Con Real 8;elE 0 [[|]] (almost (x [-] Con Real 4 [*] y [<] Con Real 8))}"
+apply (rule ContinuousRuleGT) 
+  using allcons4 apply (simp add:cons41_def cons42_def cons43_def 
+          x_def y_def  fAnd_def fImp_def dOr_def )
+  by (smt almostmono)
+
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [-] Con Real 4 [*] RVar ''pary'' [<] Con Real 8) [&]
          (exeFlow
            (<[(''x'', R),
@@ -290,9 +314,7 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] 
                     (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500]&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 
@@ -310,8 +332,16 @@ lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
           x_def y_def)
   sorry
 
+lemma ODE5:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
+           <[(''x'', R),(''y'', R)]: [((y[-]x)[-]x[**]3),((y[**]2[-]x)[-]y)] && Inv & fTrue>
+            {(x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4);elE 0 [[|]] (almost ((x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4)))}"
+apply (rule ContinuousRuleGT) 
+  using allcons5 apply (simp add:cons51_def cons52_def cons53_def 
+          x_def y_def  fAnd_def fImp_def dOr_def )
+  by (smt almostmono)
+
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
           Inv) [&]
          (Inv [\<longrightarrow>]
           (RVar ''parx'' [-] Con Real 1) [**] 2 [+] (RVar ''pary'' [-] Con Real (3 / 2)) [**] 2 [>]
@@ -323,9 +353,7 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] 
                     RVar ''pary'' [**] 2 [-] RVar ''parx'' [-] RVar ''pary'']&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 
@@ -342,8 +370,18 @@ lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
   apply (simp only:cons61_def cons62_def cons63_def 
           x_def y_def z_def)
   sorry
+
+
+lemma ODE6:"{x[**]2 [=] Con Real 1 [&] y[**]2 [=] Con Real 1 [&] z[**]2 [=] Con Real 1}
+           <[(''x'', R),(''y'', R),(''z'',R)]: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>
+            {([\<not>]x[=]Con Real 0) [&] ([\<not>]y[=]Con Real 0) [&] ([\<not>]z[=]Con Real 0);elE 0 [[|]] (almost (([\<not>]x[=]Con Real 0) [&] ([\<not>]y[=]Con Real 0) [&] ([\<not>]z[=]Con Real 0)))}"
+apply (rule ContinuousRuleGT) 
+  using allcons6 apply (simp add:cons61_def cons62_def cons63_def 
+          x_def y_def  fAnd_def fImp_def dOr_def )
+  by (smt almostmono)
+
 ML{*
-val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
+trans_goal @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
           RVar ''pary'' [**] 2 [=] Con Real 1 [&] RVar ''parz'' [**] 2 [=] Con Real 1 [\<longrightarrow>]
           Inv) [&]
          (Inv [\<longrightarrow>]
@@ -357,9 +395,7 @@ val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
                     RVar ''parz'' [*] RVar ''parx'' [-] RVar ''parz'' [*] RVar ''pary'']&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition Inv1 :: fform where
@@ -368,7 +404,7 @@ definition Inv2 :: fform where
 "Inv2 == Inv"
 
 ML {*
-val t = @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''plant_t'' [\<le>] Con Real (16 / 125) [&] Inv [\<longrightarrow>]
+trans_goal @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''plant_t'' [\<le>] Con Real (16 / 125) [&] Inv [\<longrightarrow>]
           RVar ''plant_v1_1'' [+] Con Real 2 [<] Con Real (1 / 20) [&]
           RVar ''plant_v1_1'' [+] Con Real 2 [>] Con Real - (1 / 20)) [&]
          (RVar ''plant_v1_1'' [=] Con Real - 2 [&]
@@ -398,9 +434,7 @@ val t = @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''pla
                     Con Real 1]&&Inv2&RVar ''plant_t'' [<] Con Real (16 / 125)>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-val res = trans_goal t
-
+         s"} |> writeln
 *}
 
 end
