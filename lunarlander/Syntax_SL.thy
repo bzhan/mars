@@ -5,21 +5,21 @@ theory Syntax_SL
 begin
 
 text \<open>Constants\<close>
-datatype val = Real real     ("Real _"   76)
-             | String string ("String _"   76)
-             | Bool bool     ("Bool _"   76)
+datatype val = Real real     ("Real _" [76] 76)
+             | String string ("String _" [76] 76)
+             | Bool bool     ("Bool _" [76] 76)
              | Err
 
 text \<open>Expressions of HCSP language. Rules for division still to be added.\<close>
-datatype exp = Con val ("Con _"  75)
-             | RVar string   ("RVar _"  75 )
-             | SVar string   ("SVar _"   75)
-             | BVar string   ("BVar _"  75)
+datatype exp = Con val ("Con _" [75] 75)
+             | RVar string   ("RVar _" [75] 75)
+             | SVar string   ("SVar _" [75] 75)
+             | BVar string   ("BVar _" [75] 75)
              | Add exp exp   (infixr "[+]" 70)
              | Sub exp exp   (infixl "[-]" 70)
              | Mul exp exp   (infixr "[*]" 71)
-             | Div exp exp   (infixr "[**]" 71)
-             | Pow exp nat   (infixr "[^]" 72)
+             | Div exp exp   (infixr "[div]" 71)
+             | Pow exp nat   (infixr "[**]" 72)
 
 text \<open>Type declarations to be used in proc\<close>
 datatype typeid = R | S | B
@@ -39,8 +39,11 @@ primrec evalE :: "exp \<Rightarrow> state \<Rightarrow> val" where
    (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x - y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
 | "evalE (e1 [*] e2) f =
    (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x * y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
-| "evalE (e1 [**] e2) f = undefined"
-| "evalE (e1 [^] e2) f = undefined"
+| "evalE (e1 [div] e2) f =
+   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow>
+      if y = 0 then Err else Real (x / y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
+| "evalE (e1 [**] n) f =
+   (case evalE e1 f of Real x \<Rightarrow> Real (x ^ n) | _ \<Rightarrow> Err)"
 
 subsection \<open>FOL operators\<close>
 

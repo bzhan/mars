@@ -253,30 +253,56 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow
          s"}
 val res = trans_goal t
 *}
-definition exp41:: exp where " exp41 \<equiv> ((Con Real 0 [-] x [-] ((Con Real 1117 [*] y) [**] Con Real 500)) [+] ((Con Real 439 [*] y [^] 3) [**] Con Real 200 ))[-]((Con Real 333 [*] y [^] 5)[**]Con Real 500) "
-definition exp42:: exp where " exp42 \<equiv> ((x [+]((Con Real 617 [*] y) [**] Con Real 500)) [-] ((Con Real 439 [*] y [^] 3) [**] Con Real 200 ))[+]((Con Real 333 [*] y [^] 5)[**]Con Real 500)"
-definition cons41:: fform where "cons41 \<equiv>  (x[^]2 [\<le>] Con Real 1/2 [&] y[^]2 [\<le>] Con Real 1/3 ) [\<longrightarrow>] Inv "
-definition cons42:: fform where "cons42 \<equiv>  Inv [\<longrightarrow>] (x [-] Con Real 4 [*] y [<] Con Real 8) "
-definition cons43:: fform where "cons43 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [(exp41),(exp42)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
+definition exp41:: exp where
+  "exp41 \<equiv> ((Con Real 0 [-] x [-] ((Con Real 1117 [*] y) [div] Con Real 500)) [+]
+   ((Con Real 439 [*] y [**] 3) [div] Con Real 200 ))[-]((Con Real 333 [*] y [**] 5) [div] Con Real 500) "
+
+definition exp42:: exp where
+  "exp42 \<equiv> ((x [+]((Con Real 617 [*] y) [div] Con Real 500)) [-]
+   ((Con Real 439 [*] y [**] 3) [div] Con Real 200 ))[+]((Con Real 333 [*] y [**] 5) [div] Con Real 500)"
+
+definition cons41:: fform where
+  "cons41 \<equiv>  (x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)) [\<longrightarrow>] Inv "
+
+definition cons42:: fform where
+  "cons42 \<equiv>  Inv [\<longrightarrow>] (x [-] Con Real 4 [*] y [<] Con Real 8) "
+
+definition cons43:: fform where
+  "cons43 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [(exp41),(exp42)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
   sorry
 
-definition cons51:: fform where "cons51 \<equiv>  (x[^]2 [\<le>] Con Real 1/2 [&] y[^]2 [\<le>] Con Real 1/3 ) [\<longrightarrow>] Inv "
-definition cons52:: fform where "cons52 \<equiv>  Inv [\<longrightarrow>] ((x [-] Con Real 1) [^]2 [+] (y [-] Con Real 3/2) [^]2 [>] Con Real 1/4) "
-definition cons53:: fform where "cons53 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [((y[-]x)[-]x[^]3),((y[^]2[-]x)[-]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons51:: fform where
+  "cons51 \<equiv>  (x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)) [\<longrightarrow>] Inv"
+
+definition cons52:: fform where
+  "cons52 \<equiv>  Inv [\<longrightarrow>] ((x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4)) "
+
+definition cons53:: fform where
+  "cons53 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [((y[-]x)[-]x[**]3),((y[**]2[-]x)[-]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
   apply (simp only:cons51_def cons52_def cons53_def 
           x_def y_def)
   sorry
-definition cons61:: fform where "cons61 \<equiv>  (x[^]2 [=] Con Real 1 [&] y[^]2 [=] Con Real 1 [&] z[^]2 [=] Con Real 1 ) [\<longrightarrow>] Inv "
-definition cons62:: fform where "cons62 \<equiv>  Inv [\<longrightarrow>] (([\<not>]x[=]Con Real 0) [&] ([\<not>]y[=]Con Real 0) [&] ([\<not>]z[=]Con Real 0)) "
-definition cons63:: fform where "cons63 \<equiv>  exeFlow(<[(''x'', R),(''y'', R),(''z'',R)]: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
+definition cons61:: fform where
+  "cons61 \<equiv>  (x[**]2 [=] Con Real 1 [&] y[**]2 [=] Con Real 1 [&] z[**]2 [=] Con Real 1 ) [\<longrightarrow>] Inv "
+
+definition cons62:: fform where
+  "cons62 \<equiv>  Inv [\<longrightarrow>] (([\<not>]x[=]Con Real 0) [&] ([\<not>]y[=]Con Real 0) [&] ([\<not>]z[=]Con Real 0)) "
+
+definition cons63:: fform where
+  "cons63 \<equiv>  exeFlow(<[(''x'', R),(''y'', R),(''z'',R)]: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
 lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
   apply (simp only:cons61_def cons62_def cons63_def 
           x_def y_def z_def)
-
+  sorry
 
 
 end

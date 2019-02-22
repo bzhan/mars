@@ -316,10 +316,10 @@ text \<open>Test functions for goal.thy constraints\<close>
 ML {*
 val res = trans_proc @{term "
   <[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R), (''plant_t'', R)] :
-   [(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)),
-    (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
+   [(RVar ''control_1'') [div] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)),
+    (Con Real 0) [-] (RVar ''control_1'') [div] (Con Real 2548),
     (RVar ''plant_v1_1''),
-    (Con Real 1)] && Inv1 & (RVar ''plant_t'') [<] (Con Real 16 / 125)>
+    (Con Real 1)] && Inv1 & (RVar ''plant_t'') [<] (Con Real (16 / 125))>
 "};
 *}
 (*
