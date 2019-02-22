@@ -200,10 +200,9 @@ lemma ODE1:
   by (metis (no_types, lifting) almostmono)
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
          (exeFlow (<[(''parx'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition cons21:: fform where "cons21 \<equiv>  ((x [\<ge>] Con Real 0)[&](y [\<ge>] Con Real 0)[&](z [\<ge>] Con Real 0)) [\<longrightarrow>] Inv "
@@ -220,11 +219,10 @@ lemma ODE2:"{x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Rea
   sorry
 
 ML {*
-val t = @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
+trans_goal @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''parx'', R), (''pary'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition cons31:: fform where "cons31 \<equiv>  (x [\<ge>] Con Real 0) [\<longrightarrow>] Inv "
@@ -246,12 +244,11 @@ lemma ODE3:"{x [\<ge>] Con Real 0 }
   sorry
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 5]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[RVar ''parx'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
-         s"}
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition exp41:: exp where
@@ -277,7 +274,7 @@ lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   sorry
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [-] Con Real 4 [*] RVar ''pary'' [<] Con Real 8) [&]
          (exeFlow
            (<[(''x'', R),
@@ -290,9 +287,7 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] 
                     (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500]&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 
@@ -311,7 +306,7 @@ lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
   sorry
 
 ML{*
-val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
+trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
           Inv) [&]
          (Inv [\<longrightarrow>]
           (RVar ''parx'' [-] Con Real 1) [**] 2 [+] (RVar ''pary'' [-] Con Real (3 / 2)) [**] 2 [>]
@@ -323,9 +318,7 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] 
                     RVar ''pary'' [**] 2 [-] RVar ''parx'' [-] RVar ''pary'']&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 
@@ -343,7 +336,7 @@ lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
           x_def y_def z_def)
   sorry
 ML{*
-val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
+trans_goal @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
           RVar ''pary'' [**] 2 [=] Con Real 1 [&] RVar ''parz'' [**] 2 [=] Con Real 1 [\<longrightarrow>]
           Inv) [&]
          (Inv [\<longrightarrow>]
@@ -357,9 +350,7 @@ val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
                     RVar ''parz'' [*] RVar ''parx'' [-] RVar ''parz'' [*] RVar ''pary'']&&Inv&fTrue>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-
-val res = trans_goal t
+         s"} |> writeln
 *}
 
 definition Inv1 :: fform where
@@ -368,7 +359,7 @@ definition Inv2 :: fform where
 "Inv2 == Inv"
 
 ML {*
-val t = @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''plant_t'' [\<le>] Con Real (16 / 125) [&] Inv [\<longrightarrow>]
+trans_goal @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''plant_t'' [\<le>] Con Real (16 / 125) [&] Inv [\<longrightarrow>]
           RVar ''plant_v1_1'' [+] Con Real 2 [<] Con Real (1 / 20) [&]
           RVar ''plant_v1_1'' [+] Con Real 2 [>] Con Real - (1 / 20)) [&]
          (RVar ''plant_v1_1'' [=] Con Real - 2 [&]
@@ -398,9 +389,7 @@ val t = @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''pla
                     Con Real 1]&&Inv2&RVar ''plant_t'' [<] Con Real (16 / 125)>)
            Inv [\<longrightarrow>]
           Inv))
-         s"}
-val res = trans_goal t
-
+         s"} |> writeln
 *}
 
 end

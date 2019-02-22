@@ -100,73 +100,22 @@ fun trans_pair t =
   let
     fun trans t =
       (case t of
-        @{term "Product_Type.Pair :: string \<Rightarrow> typeid  \<Rightarrow> string * typeid"} $ u $ v   =>
-         (* Buffer.add "{" #>*)
-          Buffer.add (trans_string u) 
-          (*#>Buffer.add "}"*)
-
+        @{term "Product_Type.Pair :: string \<Rightarrow> typeid \<Rightarrow> string * typeid"} $ u $ _ =>
+          Buffer.add (trans_string u)
       | _ => error "inacceptable term (trans_pair)")
   in Buffer.content (trans t Buffer.empty) 
 end
 
+fun add_quote s =
+  if String.isPrefix "{" s then s else "\"" ^ s ^ "\""
+
 fun trans_pair_list t =
-  let
-    fun trans t =
-      (case t of
-        @{term "List.list.Cons :: (string * typeid) \<Rightarrow> (string * typeid) list \<Rightarrow> (string * typeid) list"} $ u $ v   =>
-          (*Buffer.add "{" #>*)
-          Buffer.add (trans_pair u) #>
-          Buffer.add "," #>
-          Buffer.add (trans_pair_list v) 
-          (*Buffer.add "}"*)
-
-      | @{term "List.list.Nil :: (string * typeid) list"}   =>
-          Buffer.add "Null"
-
-      | _ => error "inacceptable term (trans_pair_list)")
-  in Buffer.content (trans t Buffer.empty) 
-end
+  "[" ^ Library.commas (map (add_quote o trans_pair) (HOLogic.dest_list t)) ^ "]"
 
 fun trans_exp_list t =
-  let
-    fun trans t =
-      (case t of
-        @{term "List.list.Cons :: exp \<Rightarrow> exp list \<Rightarrow> exp list"} $ u $ v   =>
-          (*Buffer.add "{" #>*)
-          Buffer.add (trans_exp u) #>
-          Buffer.add "," #>
-          Buffer.add (trans_exp_list v)
-          (* #>Buffer.add "}"*)
+  "[" ^ Library.commas (map (add_quote o trans_exp) (HOLogic.dest_list t)) ^ "]"
 
-      | @{term "List.list.Nil :: exp list"}   =>
-          Buffer.add "Null"
-
-      | _ => error "inacceptable term (trans_exp_list)")
-  in Buffer.content (trans t Buffer.empty) 
-end
-
-(*Note: the domain of the continuous evolution is not included here. *)
-fun trans_proc t =
-  let
-    fun trans t =
-      (case t of
-        @{term "Syntax_SL.proc.Cont ::(string * typeid) list \<Rightarrow> exp list  => fform \<Rightarrow> fform \<Rightarrow> proc"} $ t $ u $ _ $ v =>
-        Buffer.add "{{" #>
-        Buffer.add (trans_pair_list t) #>
-        Buffer.add "}" #>
-        Buffer.add "," #>
-        Buffer.add "{" #>
-        Buffer.add (trans_exp_list u) #>
-        Buffer.add "}" #>
-        Buffer.add "," #>
-        Buffer.add "{" #>
-        Buffer.add (trans_fform v) #>
-        Buffer.add "}}"
-      | _ => error "inacceptable proc")
-  in Buffer.content (trans t Buffer.empty)
-end
-
-and trans_fform t =
+fun trans_fform t =
   let
     fun trans t =
       (case t of
@@ -222,38 +171,35 @@ and trans_fform t =
         Buffer.add ")"
       | @{term "Syntax_SL.fImp :: fform \<Rightarrow> fform \<Rightarrow> fform"} $ t $ u =>
         Buffer.add "{" #>
-        trans t #>
-        Buffer.add  " ," #>
-        trans u #>
+        Buffer.add "\"ty\":" #> Buffer.add "\"implies\"" #> Buffer.add "," #>
+        Buffer.add "\"from\":" #> Buffer.add (add_quote (trans_fform t)) #> Buffer.add "," #>
+        Buffer.add "\"to\":" #> Buffer.add (add_quote (trans_fform u)) #>
         Buffer.add "}"
-
-
       | Const (c, @{typ fform}) =>
         if String.isSuffix "Inv" c then
           Buffer.add "Inv"
         else
           error ("unexpected constant " ^ c ^ ": trans_fform")
-      | @{term "Syntax_SL.fSubForm :: fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform"} $ t $ u $ v $ _ =>
+      | Const (@{const_name fSubForm}, _) $ t $ u $ v $ _ =>
         Buffer.add "{" #>
-        Buffer.add "{" #>
-        Buffer.add (trans_string v) #>
-        Buffer.add "," #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add "}" #>
-        Buffer.add "," #>
-        trans t #>
+        Buffer.add "\"ty\":" #> Buffer.add "\"subst\"" #> Buffer.add "," #>
+        Buffer.add "\"var\":\"" #> Buffer.add (trans_string v) #> Buffer.add "\"," #>
+        Buffer.add "\"expr\":\"" #> Buffer.add (trans_exp u) #> Buffer.add "\"," #>
+        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform t)) #>
         Buffer.add "}"
-      | @{term "Syntax_SL.close :: fform \<Rightarrow> fform"} $ t  =>
+      | @{term "Syntax_SL.close :: fform \<Rightarrow> fform"} $ t =>
         Buffer.add "close" #>
         Buffer.add "(" #>
         trans t #>
         Buffer.add ")"
-      | @{term "Op_SL.exeFlow:: proc \<Rightarrow> fform \<Rightarrow> fform"} $ u $ v =>
+      | Const (@{const_name exeFlow}, _) $ (Const (@{const_name Cont}, _) $ t $ u $ _ $ v) $ v' =>
         Buffer.add "{" #>
-        Buffer.add (trans_proc u) #>
-        Buffer.add "," #>
-        Buffer.add (trans_fform v) #>
-        Buffer.add "}"     
+        Buffer.add "\"ty\":" #> Buffer.add "\"ode\"" #> Buffer.add "," #>
+        Buffer.add "\"vars\":" #> Buffer.add (trans_pair_list t) #> Buffer.add "," #>
+        Buffer.add "\"diffs\":" #> Buffer.add (trans_exp_list u) #> Buffer.add "," #>
+        Buffer.add "\"domain\":" #> Buffer.add (add_quote (trans_fform v)) #> Buffer.add "," #>
+        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform v')) #>
+        Buffer.add "}"
       | _ =>
         let
           val _ = Syntax.pretty_term @{context} t |> Pretty.string_of |> writeln
@@ -273,28 +219,28 @@ fun trans_each_goal t =
   in Buffer.content (trans t Buffer.empty) 
 end
 
+fun strip_fAnd t =
+  case t of
+    Const (@{const_name fAnd}, _) $ v $ u =>
+      v :: strip_fAnd u
+  | _ => [t]
+
 fun trans_Cons_fform t =
   let
     fun trans t =
       (case t of
-        @{term "Syntax_SL.fAnd ::  fform \<Rightarrow> fform \<Rightarrow> fform"} $ v $ u  =>
+        Const (@{const_name fAnd}, _) $ v $ u =>
         Buffer.add (trans_Cons_fform v) #>
         Buffer.add (trans_Cons_fform u)
       | _ => Buffer.add (trans_each_goal t) )
   in Buffer.content (trans t Buffer.empty) 
 end
 
-fun trans_goal t = 
-  let
-    fun trans t =
-      (case t of
-        @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ Bound 0) =>
-          Buffer.add "{" #>
-          Buffer.add (trans_Cons_fform f) #>
-          Buffer.add "Null}"
-      | _ => error "inacceptable term: goal")
-  in Buffer.content (trans t Buffer.empty)
-end
+fun trans_goal t =
+  case t of
+    @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ Bound 0) =>
+    "[" ^ Library.commas (map trans_fform (strip_fAnd f)) ^ "]"
+  | _ => error "inacceptable term: goal"
 
 fun isTrue x =
   if x = "True\n" then true
@@ -321,87 +267,6 @@ trans_pair_list @{term "[(''u'', R), (''v'', S)]"};
 trans_exp_list @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
 trans_fform @{term "fTrue"};
 *}
-
-text \<open>Test functions for goal.thy constraints\<close>
-
-ML {*
-val res = trans_proc @{term "
-  <[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R), (''plant_t'', R)] :
-   [(RVar ''control_1'') [div] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)),
-    (Con Real 0) [-] (RVar ''control_1'') [div] (Con Real 2548),
-    (RVar ''plant_v1_1''),
-    (Con Real 1)] && Inv1 & (RVar ''plant_t'') [<] (Con Real (16 / 125))>
-"};
-*}
-(*
-ML{*
-
-val t1 = @{term " (((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (RVar ''plant_t'' [\<le>] Con Real (16 / 125)) [&] Inv [\<longrightarrow>]
-         ((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20)) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real (- (1 / 20))))))"}
-val t2 = @{term "  ((((RVar ''plant_v1_1'') [=] (Con Real (- 2))) [&] ((RVar ''plant_m1_1'') [=] (Con Real 1250)) [&] ((RVar ''control_1'') [=] (Con Real (4055 / 2))) [&]
-           ((RVar ''plant_t'') [=] (Con Real 0))) [\<longrightarrow>] Inv)"}
-val t3 = @{term " (((RVar ''plant_t'') [=] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv\<lbrakk>(Con Real 0),''plant_t'',R\<rbrakk>)"}
-val t4 = @{term "(Inv [\<longrightarrow>]
-          (Inv\<lbrakk>(RVar ''plant_m1_1'') [*]
-              ((Con (Real (811 / 500))) [-] (Con Real (1 / 100)) [*] ((RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500))) [-]
-               (Con Real (3 / 5)) [*] ((RVar ''plant_v1_1'') [+] (Con Real 2))),''control_1'',R\<rbrakk>) )"}
-
-val t5 = @{term "(exeFlow
-           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
-              (''plant_t'',
-               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
-                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
-           Inv [\<longrightarrow>]
-          Inv)"}
-
-val t6 = @{term "(exeFlow
-           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
-              (''plant_t'',
-               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real 811 / 500), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2842),
-                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv2&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
-           Inv [\<longrightarrow>]
-          Inv)"}
-
-val tt = @{term "t1 [&] t2 [&] t3 [&] t4 [&] t5 [&] t6"}
-
-val t = @{term "\<forall> s.  ((((RVar ''plant_t'') [\<ge>] (Con Real 0)) [&] (RVar ''plant_t'' [\<le>] Con Real (16 / 125)) [&] Inv [\<longrightarrow>]
-         ((RVar ''plant_v1_1'') [+] (Con Real 2) [<] (Con Real (1 / 20)) [&] ((RVar ''plant_v1_1'') [+] (Con Real 2) [>] (Con Real (- (1 / 20))))) )
-[&]
-          ((((RVar ''plant_v1_1'') [=] (Con Real (- 2))) [&] ((RVar ''plant_m1_1'') [=] (Con Real 1250)) [&] ((RVar ''control_1'') [=] (Con Real (4055 / 2))) [&]
-           ((RVar ''plant_t'') [=] (Con Real 0))) [\<longrightarrow>] Inv)
-
-[&]
-         ((((RVar ''plant_t'') [=] (Con Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv\<lbrakk>(Con Real 0),''plant_t'',R\<rbrakk>))
-
-[&]
-         ((Inv [\<longrightarrow>]
-          (Inv\<lbrakk>(RVar ''plant_m1_1'') [*]
-              ((Con (Real (811 / 500))) [-] (Con Real (1 / 100)) [*] ((RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500))) [-]
-               (Con Real (3 / 5)) [*] ((RVar ''plant_v1_1'') [+] (Con Real 2))),''control_1'',R\<rbrakk>) ))
- [&]
-         (exeFlow
-           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
-              (''plant_t'',
-               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real (811 / 500)), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2548),
-                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv1&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
-           Inv [\<longrightarrow>]
-          Inv)
-
- [&]
-         (exeFlow
-           (<[(''plant_v1_1'', R), (''plant_m1_1'', R), (''plant_r1_1'', R),
-              (''plant_t'',
-               R)]:[(RVar ''control_1'') [**] (RVar ''plant_m1_1'') [-] (Con Real 811 / 500), (Con Real 0) [-] (RVar ''control_1'') [**] (Con Real 2842),
-                    (RVar ''plant_v1_1''), (Con Real 1)]&&Inv2&(RVar ''plant_t'') [<] (Con Real 16 / 125)>)
-           Inv [\<longrightarrow>]
-          Inv) 
-
- ) s "} 
-
-val res = trans_goal t
-
-*}
-*)
 
 oracle inv_oracle_SOS = {* fn ct =>
   if decide_SOS (trans_goal (Thm.term_of ct))
