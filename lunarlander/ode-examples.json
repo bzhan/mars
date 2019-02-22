@@ -1,0 +1,54 @@
+[
+    [
+        {
+            "ty": "implies",
+            "from": "parx≥((1))",
+            "to": "Inv"
+        },
+        {
+            "ty": "implies",
+            "from": "inv",
+            "to": "(parx≥((1)))"
+        },
+        {
+            "ty": "implies",
+            "from": {
+                "ty": "ode",
+                "vars": ["parx"],
+                "diffs": ["((2))"],
+                "domain": "True",
+                "base": "Inv"
+            },
+            "to": "Inv"
+        }
+    ],
+
+    [
+        {
+            "ty": "implies"
+        },
+        {
+            "ty": "implies"
+        },
+        {
+            "ty": "implies",
+            "from": "((plant_t==((16 / 125)))&&Inv)",
+            "to": {
+                "ty": "subst",
+                "var": "plant_t",
+                "expr": "((0))",
+                "base": "Inv"
+            }
+        },
+        {
+            "ty": "implies",
+            "from": "Inv",
+            "to": {
+                "ty": "subst",
+                "var": "control_1",
+                "expr": "",
+                "base": "Inv"
+            }
+        }
+    ]
+]

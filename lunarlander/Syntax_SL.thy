@@ -5,20 +5,21 @@ theory Syntax_SL
 begin
 
 text \<open>Constants\<close>
-datatype val = Real real     ("Real _"   76)
-             | String string ("String _"   76)
-             | Bool bool     ("Bool _"   76)
+datatype val = Real real     ("Real _" [76] 76)
+             | String string ("String _" [76] 76)
+             | Bool bool     ("Bool _" [76] 76)
              | Err
 
 text \<open>Expressions of HCSP language. Rules for division still to be added.\<close>
-datatype exp = Con val ("Con _"  75)
-             | RVar string   ("RVar _"  75 )
-             | SVar string   ("SVar _"   75)
-             | BVar string   ("BVar _"  75)
-             | Add exp exp   (infixr "[+]" 70)
+datatype exp = Con val ("Con _" [75] 75)
+             | RVar string   ("RVar _" [75] 75)
+             | SVar string   ("SVar _" [75] 75)
+             | BVar string   ("BVar _" [75] 75)
+             | Add exp exp   (infixl "[+]" 70)
              | Sub exp exp   (infixl "[-]" 70)
-             | Mul exp exp   (infixr "[*]" 71)
-             | Div exp exp   (infixr "[**]" 71)
+             | Mul exp exp   (infixl "[*]" 71)
+             | Div exp exp   (infixl "[div]" 71)
+             | Pow exp nat   (infixl "[**]" 72)
 
 text \<open>Type declarations to be used in proc\<close>
 datatype typeid = R | S | B
@@ -38,7 +39,11 @@ primrec evalE :: "exp \<Rightarrow> state \<Rightarrow> val" where
    (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x - y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
 | "evalE (e1 [*] e2) f =
    (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x * y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
-| "evalE (e1 [**] e2) f = undefined"
+| "evalE (e1 [div] e2) f =
+   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow>
+      if y = 0 then Err else Real (x / y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
+| "evalE (e1 [**] n) f =
+   (case evalE e1 f of Real x \<Rightarrow> Real (x ^ n) | _ \<Rightarrow> Err)"
 
 subsection \<open>FOL operators\<close>
 
@@ -47,53 +52,53 @@ type_synonym fform = "state \<Rightarrow> bool"
 definition fTrue :: fform where "fTrue \<equiv> \<lambda>s. True"
 definition fFalse :: fform where "fFalse \<equiv> \<lambda>s. False"
 
-definition fEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[=]" 69) where
+definition fEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infixl "[=]" 50) where
   "e [=] f \<equiv> \<lambda>s. evalE e s = evalE f s"
 
-definition fLess :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[<]" 69) where
+definition fLess :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("(_/ [<] _)"  [51, 51] 50) where
   "e [<] f \<equiv> \<lambda>s. (case evalE e s of
       Real c \<Rightarrow> (case evalE f s of Real d \<Rightarrow> (c < d) | _ \<Rightarrow> False)
     | _ \<Rightarrow> False)"
 
-definition fAnd :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[&]" 65) where
+definition fAnd :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixr "[&]" 35) where
   "P [&] Q \<equiv> \<lambda>s. P s \<and> Q s"
 
-definition fOr :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[|]" 65) where
+definition fOr :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixr "[|]" 30) where
   "P [|] Q \<equiv> \<lambda>s. P s \<or> Q s"
 
-definition fNot :: "fform \<Rightarrow> fform"  ("[\<not>]_" 67) where
+definition fNot :: "fform \<Rightarrow> fform"  ("[\<not>]_" [40] 40) where
   "[\<not>]P \<equiv> \<lambda>s. \<not> P s"
 
-definition fImp :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixl "[\<longrightarrow>]" 63) where
+definition fImp :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixr "[\<longrightarrow>]" 25) where
   "P [\<longrightarrow>] Q \<equiv> \<lambda>s. P s \<longrightarrow> Q s"
 
-definition fLessEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[\<le>]" 69) where
+definition fLessEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("(_/ [\<le>] _)"  [51, 51] 50) where
   "e [\<le>] f \<equiv> (e [=] f) [|] (e [<] f)"
 
-definition fGreaterEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[\<ge>]" 69) where
+definition fGreaterEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"   ("(_/ [\<ge>] _)"  [51, 51] 50) where
   "e [\<ge>] f \<equiv> \<lambda>s. (case evalE e s of
       Real c \<Rightarrow> (case (evalE f s) of Real d \<Rightarrow> (c \<ge> d) | _ \<Rightarrow> False)
     | _ \<Rightarrow> False)"
 
-definition fGreater :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infix "[>]" 69) where
+definition fGreater :: "exp \<Rightarrow> exp \<Rightarrow> fform"   ("(_/ [>] _)"  [51, 51] 50) where
   "e [>] f == [\<not>](e [\<le>] f)"
 
 
 text \<open>Evaluate on state after assigning value of expression e to (a, b).\<close>
-definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform" ("_\<lbrakk>_,_,_\<rbrakk>" 70) where
+definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform" ("_\<lbrakk>_,_,_\<rbrakk>" [71,71,71] 70) where
   "P \<lbrakk>e, a, b\<rbrakk> \<equiv> (\<lambda>s. P (\<lambda> (x, r). if x = a \<and> r = b then evalE e s else s (x, r)))"
 
 
 text \<open>The @{term close} operation extends the formula with the boundary,
   used for continuous evolution.\<close>
 axiomatization close :: "fform \<Rightarrow> fform" where
-  Lessc[simp]: "close (e [<] f) = e [\<le>] f" and
-  Greatc[simp]: "close (e [>] f) = e [\<ge>] f" and
-  Equalc[simp]: "close (e [=] f) = e [=] f" and
-  GreatEqual[simp] : "close (e [\<ge>] f) = e [\<ge>] f" and
-  Andc[simp]: "close (P [&] Q) = close (P) [&] close (Q)" and
-  Orc[simp]: "close (P [|] Q) = close (P) [|] close (Q)" and
-  notLessc[simp]: "close ([\<not>] e [<] f) = e [\<ge>] f"
+  Lessc[simp]: "close (e [<] f) = (e [\<le>] f)" and
+  Greatc[simp]: "close (e [>] f) = (e [\<ge>] f)" and
+  Equalc[simp]: "close (e [=] f) = (e [=] f)" and
+  GreatEqual[simp] : "close (e [\<ge>] f) = (e [\<ge>] f)" and
+  Andc[simp]: "close (P [&] Q) = (close (P) [&] close (Q))" and
+  Orc[simp]: "close (P [|] Q) = (close (P) [|] close (Q))" and
+  notLessc[simp]: "close ([\<not>] e [<] f) = (e [\<ge>] f)"
 
 declare fTrue_def [simp]
 declare fFalse_def [simp]
