@@ -115,66 +115,38 @@ fun trans_pair_list t =
 fun trans_exp_list t =
   "[" ^ Library.commas (map (add_quote o trans_exp) (HOLogic.dest_list t)) ^ "]"
 
+fun pair_to_json (k, v) =
+  "\"" ^ k ^ "\":" ^ v
+
+fun dict_to_json lst =
+  "{" ^ commas (map pair_to_json lst) ^ "}"
+
 fun trans_fform t =
   let
     fun trans t =
       (case t of
-        @{term "Syntax_SL.fTrue"}  =>
+        Const (@{const_name fTrue}, _) =>
         Buffer.add " True "
-      | @{term "Syntax_SL.fFalse"}  =>
+      | Const (@{const_name fFalse}, _) =>
         Buffer.add " False "
-      | @{term "Syntax_SL.fEqual :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        Buffer.add (trans_exp t) #>
-        Buffer.add "==" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fLess :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        Buffer.add (trans_exp t) #>
-        Buffer.add "<" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fGreater :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        Buffer.add (trans_exp t) #>
-        Buffer.add ">" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fLessEqual :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        Buffer.add (trans_exp t) #>
-        Buffer.add "\<le>" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fGreaterEqual :: exp \<Rightarrow> exp \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        Buffer.add (trans_exp t) #>
-        Buffer.add "\<ge>" #>
-        Buffer.add (trans_exp u) #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fNot :: fform \<Rightarrow> fform"} $ t  =>
-        Buffer.add "!(" #>
-        trans t #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fAnd :: fform \<Rightarrow> fform \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        trans t #>
-        Buffer.add "&&" #>
-        trans u #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fOr :: fform \<Rightarrow> fform \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "(" #>
-        trans t #>
-        Buffer.add "||" #>
-        trans u #>
-        Buffer.add ")"
-      | @{term "Syntax_SL.fImp :: fform \<Rightarrow> fform \<Rightarrow> fform"} $ t $ u =>
-        Buffer.add "{" #>
-        Buffer.add "\"ty\":" #> Buffer.add "\"implies\"" #> Buffer.add "," #>
-        Buffer.add "\"from\":" #> Buffer.add (add_quote (trans_fform t)) #> Buffer.add "," #>
-        Buffer.add "\"to\":" #> Buffer.add (add_quote (trans_fform u)) #>
-        Buffer.add "}"
+      | Const (@{const_name fEqual}, _) $ t $ u =>
+        Buffer.add (dict_to_json [("ty", "\"eq\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+      | Const (@{const_name fLess}, _) $ t $ u =>
+        Buffer.add (dict_to_json [("ty", "\"lt\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+      | Const (@{const_name fGreater}, _) $ t $ u =>
+        Buffer.add (dict_to_json [("ty", "\"gt\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+      | Const (@{const_name fLessEqual}, _) $ t $ u =>
+        Buffer.add (dict_to_json [("ty", "\"le\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+      | Const (@{const_name fGreaterEqual}, _) $ t $ u =>
+        Buffer.add (dict_to_json [("ty", "\"ge\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+      | Const (@{const_name fNot}, _) $ (Const (@{const_name fEqual}, _) $ t $ u) =>
+        Buffer.add (dict_to_json [("ty", "\"neq\""),
+          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
       | Const (c, @{typ fform}) =>
         if String.isSuffix "Inv" c then
           Buffer.add "Inv"
@@ -209,37 +181,33 @@ fun trans_fform t =
   in Buffer.content (trans t Buffer.empty) 
 end
 
-fun trans_each_goal t =
-  let
-    fun trans t =
-      (case t of
-       _ => 
-        Buffer.add (trans_fform t)) #>
-        Buffer.add ","  
-  in Buffer.content (trans t Buffer.empty) 
-end
-
 fun strip_fAnd t =
   case t of
     Const (@{const_name fAnd}, _) $ v $ u =>
       v :: strip_fAnd u
   | _ => [t]
 
-fun trans_Cons_fform t =
-  let
-    fun trans t =
-      (case t of
-        Const (@{const_name fAnd}, _) $ v $ u =>
-        Buffer.add (trans_Cons_fform v) #>
-        Buffer.add (trans_Cons_fform u)
-      | _ => Buffer.add (trans_each_goal t) )
-  in Buffer.content (trans t Buffer.empty) 
-end
+fun trans_fform_list ts =
+  "[" ^ Library.commas (map (add_quote o trans_fform) ts) ^ "]"
+
+fun trans_single_goal t =
+  case t of
+    Const (@{const_name fImp}, _) $ t $ u =>
+      let
+        val froms = strip_fAnd t
+        val tos = strip_fAnd u
+      in
+        dict_to_json [
+          ("ty", "\"implies\""),
+          ("from", trans_fform_list froms),
+          ("to", trans_fform_list tos)]
+      end
+  | _ => error "inacceptable term: single goal"
 
 fun trans_goal t =
   case t of
     @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ Bound 0) =>
-    "[" ^ Library.commas (map trans_fform (strip_fAnd f)) ^ "]"
+    "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]"
   | _ => error "inacceptable term: goal"
 
 fun isTrue x =
