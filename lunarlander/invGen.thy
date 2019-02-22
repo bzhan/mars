@@ -11,6 +11,11 @@ fun trans_real t = Syntax.pretty_term @{context} t
   |> YXML.parse_body
   |> XML.content_of;
 
+fun trans_nat t = Syntax.pretty_term @{context} t
+  |> Pretty.string_of
+  |> YXML.parse_body
+  |> XML.content_of;
+
 fun trans_string t = HOLogic.dest_string t;
 
 fun trans_val t =
@@ -40,7 +45,7 @@ fun trans_exp t =
   let
     fun trans t =
       (case t of
-        @{term " Add :: exp \<Rightarrow> exp \<Rightarrow> exp"} $ t $ u =>
+        @{term "Add :: exp \<Rightarrow> exp \<Rightarrow> exp"} $ t $ u =>
           Buffer.add "(" #>
           trans t #>
           Buffer.add "+" #>
@@ -63,6 +68,12 @@ fun trans_exp t =
           trans t #>
           Buffer.add "/" #>
           trans u #> 
+          Buffer.add " "
+        | @{term "Pow :: exp \<Rightarrow> nat \<Rightarrow> exp"} $ t $ u =>
+          Buffer.add " " #>
+          trans t #>
+          Buffer.add "^" #>
+          Buffer.add (trans_nat u) #> 
           Buffer.add " "
 
         | @{term "Syntax_SL.exp.RVar :: string \<Rightarrow> exp"} $ t =>

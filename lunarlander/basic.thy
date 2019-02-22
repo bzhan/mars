@@ -276,6 +276,26 @@ lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
           x_def y_def)
   sorry
 
+ML{*
+val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
+         (Inv [\<longrightarrow>] RVar ''parx'' [-] Con Real 4 [*] RVar ''pary'' [<] Con Real 8) [&]
+         (exeFlow
+           (<[(''x'', R),
+              (''y'',
+               R)]:[(Con Real 0 [-] RVar ''parx'' [-] (Con Real 1117 [*] RVar ''pary'') [div] Con Real 500) [+]
+                    (Con Real 439 [*] RVar ''pary'' [**] 3) [div] Con Real 200 [-]
+                    (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500,
+                    (RVar ''parx'' [+] ((Con Real 617 [*] RVar ''pary'') [div] Con Real 500 [-]
+                     (Con Real 439 [*] RVar ''pary'' [**] 3) [div] Con Real 200)) [+]
+                    (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500]&&Inv&fTrue>)
+           Inv [\<longrightarrow>]
+          Inv))
+         s"}
+
+val res = trans_goal t
+*}
+
+
 definition cons51:: fform where
   "cons51 \<equiv>  (x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)) [\<longrightarrow>] Inv"
 
@@ -290,6 +310,25 @@ lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
           x_def y_def)
   sorry
 
+ML{*
+val t = @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
+          Inv) [&]
+         (Inv [\<longrightarrow>]
+          (RVar ''parx'' [-] Con Real 1) [**] 2 [+] (RVar ''pary'' [-] Con Real (3 / 2)) [**] 2 [>]
+          Con Real (1 / 4)) [&]
+         (exeFlow
+           (<[(''x'', R),
+              (''y'',
+               R)]:[RVar ''pary'' [-] RVar ''parx'' [-] RVar ''parx'' [**] 3,
+                    RVar ''pary'' [**] 2 [-] RVar ''parx'' [-] RVar ''pary'']&&Inv&fTrue>)
+           Inv [\<longrightarrow>]
+          Inv))
+         s"}
+
+val res = trans_goal t
+*}
+
+
 definition cons61:: fform where
   "cons61 \<equiv>  (x[**]2 [=] Con Real 1 [&] y[**]2 [=] Con Real 1 [&] z[**]2 [=] Con Real 1 ) [\<longrightarrow>] Inv "
 
@@ -303,6 +342,25 @@ lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
   apply (simp only:cons61_def cons62_def cons63_def 
           x_def y_def z_def)
   sorry
+ML{*
+val t = @{term " \<forall>s. ((RVar ''parx'' [**] 2 [=] Con Real 1 [&]
+          RVar ''pary'' [**] 2 [=] Con Real 1 [&] RVar ''parz'' [**] 2 [=] Con Real 1 [\<longrightarrow>]
+          Inv) [&]
+         (Inv [\<longrightarrow>]
+          [\<not>]RVar ''parx'' [=] Con Real 0 [&]
+          [\<not>]RVar ''pary'' [=] Con Real 0 [&] [\<not>]RVar ''parz'' [=] Con Real 0) [&]
+         (exeFlow
+           (<[(''x'', R), (''y'', R),
+              (''z'',
+               R)]:[RVar ''parx'' [*] RVar ''pary'' [-] RVar ''parx'' [*] RVar ''parz'',
+                    RVar ''pary'' [*] RVar ''parz'' [-] RVar ''pary'' [*] RVar ''parx'',
+                    RVar ''parz'' [*] RVar ''parx'' [-] RVar ''parz'' [*] RVar ''pary'']&&Inv&fTrue>)
+           Inv [\<longrightarrow>]
+          Inv))
+         s"}
+
+val res = trans_goal t
+*}
 
 
 end
