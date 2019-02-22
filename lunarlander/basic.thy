@@ -180,7 +180,7 @@ consts Inv :: fform
 
 definition cons11 :: fform where "cons11 \<equiv> (x [\<ge>] Con Real 1) [\<longrightarrow>] Inv"
 definition cons12 :: fform where "cons12 \<equiv> Inv [\<longrightarrow>] (x [\<ge>] Con Real 1)"
-definition cons13 :: fform where "cons13 \<equiv> exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) Inv [\<longrightarrow>] Inv"
+definition cons13 :: fform where "cons13 \<equiv> exeFlow(<[(''parx'', R)]: [(Con Real 2)] && Inv & fTrue>) Inv [\<longrightarrow>] Inv"
 
 lemma allcons1: "\<forall>s. (cons11 [&] cons12 [&] cons13) s"
   apply (simp only: cons11_def cons12_def cons13_def x_def)
@@ -189,7 +189,7 @@ lemma allcons1: "\<forall>s. (cons11 [&] cons12 [&] cons13) s"
 lemma ODE1:
   "{x [\<ge>] (Con Real 0)}  \<comment> \<open>x >= 0\<close>
     (x := ((Con Real 1) [+] x));  \<comment> \<open>x := 1 + x\<close>
-    <[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>  \<comment> \<open>x' = 2 & True\<close>
+    <[(''parx'', R)]: [(Con Real 2)] && Inv & fTrue>  \<comment> \<open>x' = 2 & True\<close>
    {x[\<ge>](Con Real 1); (elE 0 [[|]] (almost (x[\<ge>](Con Real 1))))}"  \<comment> \<open>x >= 1\<close>
   apply (rule SequentialRule[where m="x[\<ge>](Con Real 1)" and H="elE 0" and G="elE 0 [[|]] (almost (x[\<ge>](Con Real 1)))"])
   apply (rule B01)
@@ -201,37 +201,37 @@ lemma ODE1:
 
 ML{*
 val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
-         (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
+         (exeFlow (<[(''parx'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
          s"}
 val res = trans_goal t
 *}
 
 definition cons21:: fform where "cons21 \<equiv>  ((x [\<ge>] Con Real 0)[&](y [\<ge>] Con Real 0)[&](z [\<ge>] Con Real 0)) [\<longrightarrow>] Inv "
 definition cons22:: fform where "cons22 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 0) "
-definition cons23:: fform where "cons23 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [y,z] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons23:: fform where "cons23 \<equiv>  exeFlow(<[(''parx'', R),(''pary'', R)]: [y,z] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 
 lemma allcons2:"\<forall> s. ( cons21 [&] cons22 [&] cons23 ) s"
   apply (simp only:cons21_def cons22_def cons23_def x_def y_def z_def)
   sorry
 
 lemma ODE2:"{x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Real 0}
-           <[(''x'', R), (''y'', R)]:[y, z]&&Inv&\<lambda>s. True>
+           <[(''parx'', R), (''pary'', R)]:[y, z]&&Inv&\<lambda>s. True>
             {x [\<ge>] Con Real 0; (elE 0 [[|]] (almost (x[\<ge>](Con Real 0))))}"
   sorry
 
 ML {*
 val t = @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
-         (exeFlow (<[(''x'', R), (''y'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
+         (exeFlow (<[(''parx'', R), (''pary'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
          s"}
 val res = trans_goal t
 *}
 
 definition cons31:: fform where "cons31 \<equiv>  (x [\<ge>] Con Real 0) [\<longrightarrow>] Inv "
 definition cons32:: fform where "cons32 \<equiv>  Inv [\<longrightarrow>] (x [\<ge>] Con Real 0) "
-definition cons33:: fform where "cons33 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 5)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
-definition cons34:: fform where "cons34 \<equiv>  exeFlow(<[(''x'', R)]: [(Con Real 2)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
-definition cons35:: fform where "cons35 \<equiv>  exeFlow(<[(''x'', R)]: [x] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons33:: fform where "cons33 \<equiv>  exeFlow(<[(''parx'', R)]: [(Con Real 5)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons34:: fform where "cons34 \<equiv>  exeFlow(<[(''parx'', R)]: [(Con Real 2)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+definition cons35:: fform where "cons35 \<equiv>  exeFlow(<[(''parx'', R)]: [x] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 
 lemma allcons3:"\<forall> s. ( cons31 [&] cons32 [&] cons33 [&] cons34 [&] cons35) s"
   apply (simp only:cons31_def cons32_def cons33_def cons34_def cons35_def
@@ -253,5 +253,30 @@ val t = @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow
          s"}
 val res = trans_goal t
 *}
+definition exp41:: exp where " exp41 \<equiv> ((Con Real 0 [-] x [-] ((Con Real 1117 [*] y) [**] Con Real 500)) [+] ((Con Real 439 [*] y [^] 3) [**] Con Real 200 ))[-]((Con Real 333 [*] y [^] 5)[**]Con Real 500) "
+definition exp42:: exp where " exp42 \<equiv> ((x [+]((Con Real 617 [*] y) [**] Con Real 500)) [-] ((Con Real 439 [*] y [^] 3) [**] Con Real 200 ))[+]((Con Real 333 [*] y [^] 5)[**]Con Real 500)"
+definition cons41:: fform where "cons41 \<equiv>  (x[^]2 [\<le>] Con Real 1/2 [&] y[^]2 [\<le>] Con Real 1/3 ) [\<longrightarrow>] Inv "
+definition cons42:: fform where "cons42 \<equiv>  Inv [\<longrightarrow>] (x [-] Con Real 4 [*] y [<] Con Real 8) "
+definition cons43:: fform where "cons43 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [(exp41),(exp42)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
+  apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
+          x_def y_def)
+  sorry
+
+definition cons51:: fform where "cons51 \<equiv>  (x[^]2 [\<le>] Con Real 1/2 [&] y[^]2 [\<le>] Con Real 1/3 ) [\<longrightarrow>] Inv "
+definition cons52:: fform where "cons52 \<equiv>  Inv [\<longrightarrow>] ((x [-] Con Real 1) [^]2 [+] (y [-] Con Real 3/2) [^]2 [>] Con Real 1/4) "
+definition cons53:: fform where "cons53 \<equiv>  exeFlow(<[(''x'', R),(''y'', R)]: [((y[-]x)[-]x[^]3),((y[^]2[-]x)[-]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
+  apply (simp only:cons51_def cons52_def cons53_def 
+          x_def y_def)
+  sorry
+definition cons61:: fform where "cons61 \<equiv>  (x[^]2 [=] Con Real 1 [&] y[^]2 [=] Con Real 1 [&] z[^]2 [=] Con Real 1 ) [\<longrightarrow>] Inv "
+definition cons62:: fform where "cons62 \<equiv>  Inv [\<longrightarrow>] (([\<not>]x[=]Con Real 0) [&] ([\<not>]y[=]Con Real 0) [&] ([\<not>]z[=]Con Real 0)) "
+definition cons63:: fform where "cons63 \<equiv>  exeFlow(<[(''x'', R),(''y'', R),(''z'',R)]: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
+  apply (simp only:cons61_def cons62_def cons63_def 
+          x_def y_def z_def)
+
+
 
 end

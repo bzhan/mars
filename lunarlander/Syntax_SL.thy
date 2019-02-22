@@ -19,6 +19,7 @@ datatype exp = Con val ("Con _"  75)
              | Sub exp exp   (infixl "[-]" 70)
              | Mul exp exp   (infixr "[*]" 71)
              | Div exp exp   (infixr "[**]" 71)
+             | Pow exp nat   (infixr "[^]" 72)
 
 text \<open>Type declarations to be used in proc\<close>
 datatype typeid = R | S | B
@@ -39,6 +40,7 @@ primrec evalE :: "exp \<Rightarrow> state \<Rightarrow> val" where
 | "evalE (e1 [*] e2) f =
    (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x * y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
 | "evalE (e1 [**] e2) f = undefined"
+| "evalE (e1 [^] e2) f = undefined"
 
 subsection \<open>FOL operators\<close>
 
