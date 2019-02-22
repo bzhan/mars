@@ -204,10 +204,19 @@ fun trans_single_goal t =
       end
   | _ => error "inacceptable term: single goal"
 
+fun get_rvars t =
+  case t of
+    Const (@{const_name RVar}, _) $ n => [trans_string n]
+  | A $ B => Library.union (op =) (get_rvars A) (get_rvars B)
+  | _ => []
+
 fun trans_goal t =
   case t of
-    @{term "HOL.All :: fform \<Rightarrow> bool"} $ Abs (_, _, f $ Bound 0) =>
-    "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]"
+    Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
+    dict_to_json [
+      ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
+      ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
+    ]
   | _ => error "inacceptable term: goal"
 
 fun isTrue x =

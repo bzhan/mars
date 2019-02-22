@@ -1,47 +1,52 @@
-[
-    {
-        "ty": "implies",
-        "from": [
-            {
-                "ty": "ge",
-                "lhs": "parx",
-                "rhs": "((1))"
-            }
-        ],
-        "to": [
-            "Inv"
-        ]
-    },
-    {
-        "ty": "implies",
-        "from": [
-            "Inv"
-        ],
-        "to": [
-            {
-                "ty": "ge",
-                "lhs": "parx",
-                "rhs": "((1))"
-            }
-        ]
-    },
-    {
-        "ty": "implies",
-        "from": [
-            {
-                "ty": "ode",
-                "vars": [
-                    "parx"
-                ],
-                "diffs": [
-                    "((2))"
-                ],
-                "domain": " True ",
-                "base": "Inv"
-            }
-        ],
-        "to": [
-            "Inv"
-        ]
-    }
-]
+{
+    "vars": [
+        "parx"
+    ],
+    "constraints": [
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ge",
+                    "lhs": "parx",
+                    "rhs": "((1))"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "ge",
+                    "lhs": "parx",
+                    "rhs": "((1))"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ode",
+                    "vars": [
+                        "parx"
+                    ],
+                    "diffs": [
+                        "((2))"
+                    ],
+                    "domain": " True ",
+                    "base": "Inv"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        }
+    ]
+}
