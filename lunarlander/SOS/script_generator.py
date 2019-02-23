@@ -11,8 +11,10 @@ def norm_to_ge_zero(cond):
     
     """
     assert isinstance(cond, dict), "norm_to_ge_zero: invalid form of condition."
-    if cond['ty'] == 'ge':
+    if cond['ty'] == 'ge' or cond['ty'] == 'gt':
         return cond['lhs'] + '-' + cond['rhs']
+    elif cond['ty'] == 'le' or cond['ty'] == 'lt':
+        return cond['rhs'] + '-' + cond['lhs']
     else:
         raise NotImplementedError
 
@@ -154,4 +156,4 @@ def process_file(file_name):
 
 
 if __name__ == "__main__":
-    print(process_file("test2"))
+    print(process_file("test4"))
