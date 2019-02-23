@@ -239,11 +239,11 @@ axiomatization where ContinuousRuleGF:
 text \<open>Shallow definition: a variable does not affect the formula \<close>
 definition not_in_fform:: "(string * typeid) \<Rightarrow> fform \<Rightarrow> bool"  where
   "not_in_fform w P = (\<forall> s u. ((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> s (y, i) = u (y, i)))
-  \<longrightarrow> (P s \<longrightarrow> P u \<and> P u \<longrightarrow> P s))"
+  \<longrightarrow> ((P s \<longrightarrow> P u) \<and> (P u \<longrightarrow> P s)))"
 
 definition not_in_dform:: "(string * typeid) \<Rightarrow> dform \<Rightarrow> bool"  where
   "not_in_dform w Q = (\<forall>h l n nd. ((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> (\<forall> t. t \<ge> n \<and> t \<le> nd \<longrightarrow> h(t) (y, i) = l(t) (y, i))))
-  \<longrightarrow> (Q h n nd \<longrightarrow> Q l n nd \<and> Q l n nd \<longrightarrow> Q h n nd))"
+  \<longrightarrow> ((Q h n nd \<longrightarrow> Q l n nd) \<and> (Q l n nd \<longrightarrow> Q h n nd)))"
 
 text \<open>Ghost rule for continuous evolution\<close>
 lemma GhostRule : 
@@ -252,7 +252,7 @@ lemma GhostRule :
     and "not_in_dform w H"
     and "{Init [&] (p::fform)} <[v, w]:[E, F]&&Inv&(b)> {q; H}"
   shows "{Init [&] (p::fform)} <[v]:[E]&&Inv&(b)> {q; H}"
-proof (simp add:Valid_def)
+proof -
   have "\<forall>now h now' h'.
        semB (<[v, w]:[E, F]&&Inv&b>) now h now' h' \<longrightarrow>
        (Init [&] p) (h now) \<longrightarrow> q (h' now') \<and> H h' now now'"
@@ -274,11 +274,22 @@ proof (simp add:Valid_def)
         and hfh: "((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> (\<forall> t. t \<ge> now \<and> t \<le> nowf \<longrightarrow> hf(t) (y, i) = h'(t) (y, i))))"
         and post: "q (hf nowf) \<and> H hf now nowf"
         using assms(4) Init unfolding Valid_def by auto
-      from post have "q (h' now')" using assms(1,2) hfh unfolding not_in_fform_def sledgehammer
-
-      
-        
+      have  "((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> hf(nowf) (y, i) = h'(nowf) (y, i)))"
+      proof -
+        {
+          fix y i assume yi: "(y, i) \<noteq> (fst (w), snd (w))"
+          have "(\<forall> t. t \<ge> now \<and> t \<le> nowf \<longrightarrow> hf(t) (y, i) = h'(t) (y, i))" using hfh yi by auto
+          then have "hf(nowf) (y, i) = h'(nowf) (y, i)" using EF sem1 by auto
+        }
+        then show ?thesis by auto
+      qed
+      then have qf: "q (h' now')" using post assms(2) not_in_fform_def unfolding nowf_def by auto
+      then have Hf: "q (h' now') \<and> H h' now now'" using assms(3) hfh post unfolding not_in_dform_def nowf_def by blast
     }
+    then show ?thesis by auto
+  qed
+  then show ?thesis unfolding Valid_def by auto
+qed 
 
 
 (*There are three rules for parallel  composition, which covers all the cases.*)
