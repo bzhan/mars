@@ -2,8 +2,7 @@
 
 import json
 
-def str_list(strs, sep):
-    return "[" + sep.join(strs) + "]"
+from script_common import *
 
 def norm_to_ge_zero(cond):
     """Normalize the given condition to the form ... >= 0. Return
@@ -17,18 +16,6 @@ def norm_to_ge_zero(cond):
         return cond['rhs'] + '-' + cond['lhs']
     else:
         raise NotImplementedError
-
-def is_ode_constraint(constraint):
-    return len(constraint['from']) == 1 and isinstance(constraint['from'][0], dict) and \
-           constraint['from'][0]['ty'] == 'ode'
-    
-def is_precond_constraint(constraint):
-    return not is_ode_constraint(constraint) and \
-           len(constraint['to']) == 1 and constraint['to'][0] == 'Inv'
-
-def is_postcond_constraint(constraint):
-    return not is_ode_constraint(constraint) and \
-           len(constraint['from']) == 1 and constraint['from'][0] == 'Inv'
 
 def process_data(spdvars, constraints):
     num_constraints = len(constraints)
@@ -156,4 +143,4 @@ def process_file(file_name):
 
 
 if __name__ == "__main__":
-    print(process_file("test4"))
+    print(process_file("test1"))
