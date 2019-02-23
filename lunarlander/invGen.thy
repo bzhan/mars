@@ -256,8 +256,18 @@ fun trans_inv_check t inv =
     ]
   | _ => error "inacceptable term: goal")
 
+fun to_shell_format s =
+  String.translate (fn s => if s = #"\"" then "\\" ^ str(s) else str(s)) s
+
 fun decide_check_inv p =
-  true
+  let
+    val out = "$MARSHOME/SOSInvGenerator/inv_check.sh " ^ "\"" ^ to_shell_format p ^ "\""
+            |> Isabelle_System.bash_output
+            |> fst
+    val _ = writeln out
+  in
+    String.isSuffix "\n\ntrue\n\ntrue\n\ntrue\n" out
+  end
 *}
 
 oracle inv_oracle_SOS = {* fn ct =>

@@ -290,7 +290,7 @@ definition cons43:: fform where
 lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
-  apply (inv_check_oracle "abc")
+  apply (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59")
   done
 
 lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
