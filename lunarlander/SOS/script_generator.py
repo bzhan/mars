@@ -49,14 +49,18 @@ def process_data(spdvars, constraints):
         """Convert constraint of the form precond --> Inv."""
         nonlocal num_sos
 
-        if len(precond['from']) != 1:
-            raise NotImplementedError
+        num_from = len(precond['from'])
 
-        expr = norm_to_ge_zero(precond['from'][0])
-        cur_sos = "s" + str(num_sos+1)
-        num_sos += 1
+        exprs = [norm_to_ge_zero(f) for f in precond['from']]
+        cur_sos_list = ["s" + str(num_sos+1+i) for i in range(num_from)]
+        num_sos += num_from
 
-        sos_eq = "f%d = sos(-inv - %s * (%s) - %s);" % (i, cur_sos, expr, myeps_list[i])
+        def get_minus_term(cur_sos, exp):
+            return "- %s * (%s)" % (cur_sos, exp)
+
+        all_minus_term = "".join(get_minus_term(cur_sos, exp) for cur_sos, exp in zip(cur_sos_list, exprs))
+
+        sos_eq = "f%d = sos(-inv %s - %s);" % (i, all_minus_term, myeps_list[i])
         return ["", sos_eq]
 
     def convert_postcond(i, postcond):
@@ -88,8 +92,8 @@ def process_data(spdvars, constraints):
         cur_flow_name = "flow" + str(num_flow)
         cur_dinv_name = "dinv" + str(num_flow)
         cur_lie_name = "lie" + str(num_flow)
-        cur_flow = "%s = %s;" % (cur_flow_name, str_list(diffs, ';'))
-        cur_dinv = "%s = %s;" % (cur_dinv_name, str_list(["jacobian(inv," + var + ")" for var in vars], ','))
+        cur_flow = "%s = %s;" % (cur_flow_name, str_list(diffs, '; '))
+        cur_dinv = "%s = %s;" % (cur_dinv_name, str_list(["jacobian(inv," + var + ")" for var in vars], ', '))
         cur_lie = "%s = %s * %s;" % (cur_lie_name, cur_dinv_name, cur_flow_name)
         num_flow += 1
 
@@ -133,7 +137,11 @@ def process_data(spdvars, constraints):
     solve_vars = ["c" + str(i) for i in range(num_sos+1)] + myeps_list
     str_solve = "solvesos(FeasibilityConstraints, [], options, [" + ";".join(solve_vars) + "])"
 
-    footer = ["", str_feasibility, "", options, "", str_solve]
+    print1 = "mono_inv=monolist(%s, 6);" % str_list_vars
+    print2 = "pinv=double(c0')*mono_inv;"
+    print3 = "sdisplay(clean(pinv,1e-3))"
+
+    footer = ["", str_feasibility, "", options, "", str_solve, "", print1, print2, print3]
 
     return "\n".join(header + body + footer)
 
@@ -146,4 +154,4 @@ def process_file(file_name):
 
 
 if __name__ == "__main__":
-    print(process_file("test1"))
+    print(process_file("test2"))
