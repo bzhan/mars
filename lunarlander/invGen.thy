@@ -249,23 +249,28 @@ ML {*
 fun trans_inv_check t inv =
   (case HOLogic.dest_Trueprop t of
     Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
-    dict_to_json [
-      ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
-      ("inv", add_quote inv),
-      ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
-    ]
+    let
+      val goals = strip_fAnd f
+    in
+      (dict_to_json [
+        ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
+        ("inv", add_quote inv),
+        ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
+      ], length goals)
+    end
   | _ => error "inacceptable term: goal")
 
 fun to_shell_format s =
   String.translate (fn s => if s = #"\"" then "\\" ^ str(s) else str(s)) s
 
-fun decide_check_inv p =
+fun decide_check_inv p num_goal =
   let
     val sh = if ML_System.platform_is_windows then "inv_check_windows.sh" else "inv_check.sh"
     val out = "$MARSHOME/SOSInvGenerator/" ^ sh ^ " \"" ^ to_shell_format p ^ "\""
             |> Isabelle_System.bash_output
             |> fst
     val out_lines = out |> split_lines |> map trim_line |> filter (fn t => t <> "")
+    val out_lines = drop (length out_lines - num_goal) out_lines
     val _ = map (fn t => writeln t) out_lines
   in
     forall (fn t => t = "true") out_lines
@@ -283,10 +288,10 @@ oracle inv_check_oracle = {* fn ct =>
     val f = Thm.term_of cf
     val inv = Thm.term_of (Thm.dest_arg ct)
     val str_inv = HOLogic.dest_string inv
-    val p = trans_inv_check f str_inv
+    val (p, num_goal) = trans_inv_check f str_inv
     val _ = writeln p
   in
-    if decide_check_inv p
+    if decide_check_inv p num_goal
     then cf
     else error "Proof failed."
   end
