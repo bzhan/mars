@@ -291,7 +291,7 @@ lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
   apply (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59")
-  done
+  sorry
 
 lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [(exp41),(exp42)] && Inv & fTrue>
@@ -316,23 +316,6 @@ trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [
            Inv [\<longrightarrow>]
           Inv))
          s"} |> writeln
-*}
-
-ML{*
-trans_inv_check @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
-     (Inv [\<longrightarrow>] RVar ''parx'' [-] Con Real 4 [*] RVar ''pary'' [<] Con Real 8) [&]
-     (exeFlow
-       (<[(''parx'', R),
-          (''pary'',
-           R)]:[Con Real 0 [-] RVar ''parx'' [-] Con Real 1117 [*] RVar ''pary'' [div] Con Real 500 [+]
-                Con Real 439 [*] RVar ''pary'' [**] 3 [div] Con Real 200 [-]
-                Con Real 333 [*] RVar ''pary'' [**] 5 [div] Con Real 500,
-                RVar ''parx'' [+] Con Real 617 [*] RVar ''pary'' [div] Con Real 500 [-]
-                Con Real 439 [*] RVar ''pary'' [**] 3 [div] Con Real 200 [+]
-                Con Real 333 [*] RVar ''pary'' [**] 5 [div] Con Real 500]&&Inv&fTrue>)
-       Inv [\<longrightarrow>]
-      Inv))
-     s"} "parx^2 + parx*pary + pary^2 - 111/59" |> writeln
 *}
 
 definition cons51:: fform where
