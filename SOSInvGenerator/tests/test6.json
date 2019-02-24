@@ -1,0 +1,78 @@
+{
+    "vars": [
+        "pary",
+        "parz",
+        "parx"
+    ],
+    "constraints": [
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "eq",
+                    "lhs": " parx^2 ",
+                    "rhs": "((1))"
+                },
+                {
+                    "ty": "eq",
+                    "lhs": " pary^2 ",
+                    "rhs": "((1))"
+                },
+                {
+                    "ty": "eq",
+                    "lhs": " parz^2 ",
+                    "rhs": "((1))"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "neq",
+                    "lhs": "parx",
+                    "rhs": "((0))"
+                },
+                {
+                    "ty": "neq",
+                    "lhs": "pary",
+                    "rhs": "((0))"
+                },
+                {
+                    "ty": "neq",
+                    "lhs": "parz",
+                    "rhs": "((0))"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ode",
+                    "vars": [
+                        "x",
+                        "y",
+                        "z"
+                    ],
+                    "diffs": [
+                        "( parx*pary - parx*parz )",
+                        "( pary*parz - pary*parx )",
+                        "( parz*parx - parz*pary )"
+                    ],
+                    "domain": " True ",
+                    "base": "Inv"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        }
+    ]
+}

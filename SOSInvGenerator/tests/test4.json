@@ -1,0 +1,61 @@
+{
+    "vars": [
+        "pary",
+        "parx"
+    ],
+    "inv": "parx^2 + parx*pary + pary^2 - 111/59",
+    "constraints": [
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "le",
+                    "lhs": " parx^2 ",
+                    "rhs": "((1 / 2))"
+                },
+                {
+                    "ty": "le",
+                    "lhs": " pary^2 ",
+                    "rhs": "((1 / 3))"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "lt",
+                    "lhs": "(parx- ((4))*pary )",
+                    "rhs": "((8))"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ode",
+                    "vars": [
+                        "parx",
+                        "pary"
+                    ],
+                    "diffs": [
+                        "((((((0))-parx)-  ((1117))*pary /((500)) )+  ((439))* pary^3  /((200)) )-  ((333))* pary^5  /((500)) )",
+                        "((parx+(  ((617))*pary /((500)) -  ((439))* pary^3  /((200)) ))+  ((333))* pary^5  /((500)) )"
+                    ],
+                    "domain": " True ",
+                    "base": "Inv"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,157 @@
+{
+    "vars": [
+        "plant_m1_1",
+        "control_1",
+        "plant_v1_1",
+        "plant_t"
+    ],
+    "constraints": [
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ge",
+                    "lhs": "plant_t",
+                    "rhs": "((0))"
+                },
+                {
+                    "ty": "le",
+                    "lhs": "plant_t",
+                    "rhs": "((16 / 125))"
+                },
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "lt",
+                    "lhs": "(plant_v1_1+((2)))",
+                    "rhs": "((1 / 20))"
+                },
+                {
+                    "ty": "gt",
+                    "lhs": "(plant_v1_1+((2)))",
+                    "rhs": "((- (1 / 20)))"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "eq",
+                    "lhs": "plant_v1_1",
+                    "rhs": "((- 2))"
+                },
+                {
+                    "ty": "eq",
+                    "lhs": "plant_m1_1",
+                    "rhs": "((1250))"
+                },
+                {
+                    "ty": "eq",
+                    "lhs": "control_1",
+                    "rhs": "((4055 / 2))"
+                },
+                {
+                    "ty": "eq",
+                    "lhs": "plant_t",
+                    "rhs": "((0))"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "eq",
+                    "lhs": "plant_t",
+                    "rhs": "((16 / 125))"
+                },
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "subst",
+                    "var": "plant_t",
+                    "expr": "((0))",
+                    "base": "Inv"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                "Inv"
+            ],
+            "to": [
+                {
+                    "ty": "subst",
+                    "var": "control_1",
+                    "expr": " plant_m1_1*((((811 / 500))- ((1 / 100))*( control_1/plant_m1_1 -((811 / 500))) )- ((3 / 5))*(plant_v1_1+((2))) ) ",
+                    "base": "Inv"
+                }
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ode",
+                    "vars": [
+                        "plant_v1_1",
+                        "plant_m1_1",
+                        "plant_r1_1",
+                        "plant_t"
+                    ],
+                    "diffs": [
+                        "( control_1/plant_m1_1 -((811 / 500)))",
+                        "(((0))- control_1/((2548)) )",
+                        "plant_v1_1",
+                        "((1))"
+                    ],
+                    "domain": {
+                        "ty": "lt",
+                        "lhs": "plant_t",
+                        "rhs": "((16 / 125))"
+                    },
+                    "base": "Inv"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        },
+        {
+            "ty": "implies",
+            "from": [
+                {
+                    "ty": "ode",
+                    "vars": [
+                        "plant_v1_1",
+                        "plant_m1_1",
+                        "plant_r1_1",
+                        "plant_t"
+                    ],
+                    "diffs": [
+                        "( control_1/plant_m1_1 -((811 / 500)))",
+                        "(((0))- control_1/((2842)) )",
+                        "plant_v1_1",
+                        "((1))"
+                    ],
+                    "domain": {
+                        "ty": "lt",
+                        "lhs": "plant_t",
+                        "rhs": "((16 / 125))"
+                    },
+                    "base": "Inv"
+                }
+            ],
+            "to": [
+                "Inv"
+            ]
+        }
+    ]
+}
