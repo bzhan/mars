@@ -273,7 +273,7 @@ fun decide_check_inv p num_goal =
     val out_lines = drop (length out_lines - num_goal) out_lines
     val _ = map (fn t => writeln t) out_lines
   in
-    forall (fn t => t = "true") out_lines
+    length out_lines = num_goal andalso forall (fn t => t = "true") out_lines
   end
 *}
 
