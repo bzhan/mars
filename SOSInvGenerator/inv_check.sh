@@ -9,7 +9,11 @@ echo $args > input.json
 
 python3 redlog_generator.py > input
 
-./reduce input
-cat output
+cd $REDUCEHOME
 
-rm input input.json output
+./reduce $MARSHOME/SOSInvGenerator/input
+cat output
+rm output
+
+cd $MARSHOME/SOSInvGenerator
+rm input input.json
