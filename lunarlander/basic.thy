@@ -291,14 +291,14 @@ lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
   apply (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59")
-  sorry
+  done
 
 lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [(exp41),(exp42)] && Inv & fTrue>
             {x [-] Con Real 4 [*] y [<] Con Real 8;elE 0 [[|]] (almost (x [-] Con Real 4 [*] y [<] Con Real 8))}"
 apply (rule ContinuousRuleGT) 
   using allcons4 apply (simp add:cons41_def cons42_def cons43_def 
-          x_def y_def  fAnd_def fImp_def dOr_def )
+      x_def y_def  fAnd_def fImp_def dOr_def )
   by (smt almostmono)
 
 ML{*

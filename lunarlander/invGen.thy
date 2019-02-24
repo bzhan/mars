@@ -261,12 +261,14 @@ fun to_shell_format s =
 
 fun decide_check_inv p =
   let
-    val out = "$MARSHOME/SOSInvGenerator/inv_check.sh " ^ "\"" ^ to_shell_format p ^ "\""
+    val sh = if ML_System.platform_is_windows then "inv_check_windows.sh" else "inv_check.sh"
+    val out = "$MARSHOME/SOSInvGenerator/" ^ sh ^ " \"" ^ to_shell_format p ^ "\""
             |> Isabelle_System.bash_output
             |> fst
-    val _ = writeln out
+    val out_lines = out |> split_lines |> map trim_line |> filter (fn t => t <> "")
+    val _ = map (fn t => writeln t) out_lines
   in
-    String.isSuffix "\n\ntrue\n\ntrue\n\ntrue\n" out
+    forall (fn t => t = "true") out_lines
   end
 *}
 
