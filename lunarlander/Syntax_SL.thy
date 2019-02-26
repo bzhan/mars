@@ -110,7 +110,9 @@ type_synonym time = real
 text \<open>Communication processes of HCSP\<close>
 datatype comm =
   Send cname exp         ("_!!_" [110,108] 100)
-| Receive cname exp      ("_??_" [110,108] 100)
+  | Receive cname exp      ("_??_" [110,108] 100)
+
+
 
 text \<open>HCSP processes\<close>
 datatype proc =

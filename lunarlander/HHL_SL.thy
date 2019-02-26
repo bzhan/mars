@@ -18,11 +18,14 @@ subsection \<open>Duration Calculus operators and lemmas proved\<close>
 
 text \<open>Special assertions \<and> lemmas proved\<close>
 
-text \<open>almost P, P holds almost everywhere over the interval.\<close>
+text \<open>almost P, P holds everywhere except for the rightmost point, not almost everywhere, over the interval.
+The reason is that, for continuous evolution, it escapes whenever a violation is met.
+A special case is that, if using almost everywhere, the differential cut rule will not hold anymore.\<close>
 definition almost :: "fform \<Rightarrow> dform" where
 (*"almost P \<equiv> % h n nd. (nd-n>0) & (\<not>(\<exists> a b.(n\<le>a & a<b & b\<le>nd) & (\<forall> t. t>a & t<b \<longrightarrow> \<not>P(h(t)))))"*)
 (*An alternative definition of almost*)
-  "almost P \<equiv> \<lambda>h n nd. (nd-n>0) \<and> (\<forall>a\<ge>n. \<forall>b\<le>nd. a < b \<longrightarrow> (\<exists>t. t>a \<and> t<b \<and> P(h(t))))"
+(*"almost P \<equiv> \<lambda>h n nd. (nd-n>0) \<and> (\<forall>a\<ge>n. \<forall>b\<le>nd. a < b \<longrightarrow> (\<exists>t. t>a \<and> t<b \<and> P(h(t))))"*)
+"almost P \<equiv> \<lambda>h n nd. (nd-n>0) \<and> (\<forall>t. t\<ge>n \<and> t < nd \<longrightarrow> P (h (t)))"
 
 definition chop :: "dform \<Rightarrow> dform \<Rightarrow> dform"  ("_[^]_" 80) where
   "chop H M \<equiv> \<lambda>h n nd. \<exists>nm. nm \<ge> n \<and> nm \<le> nd \<and> H h n nm \<and> M h nm nd"
@@ -84,12 +87,13 @@ lemma chop0R: "almost P h n nd \<Longrightarrow> chop (almost P) (elE 0) h n nd"
 text \<open>Monotonicity: s \<Rightarrow> t \<Longrightarrow> almost s \<Rightarrow> almost t\<close>
 lemma almostmono:
   "\<forall>s. P s \<longrightarrow> Q s \<Longrightarrow> \<forall>h n nd. almost P h n nd \<longrightarrow> almost Q h n nd"
-  apply auto by metis
+  apply auto
+  done 
 
 lemma almostint:
-  "now < nowf \<Longrightarrow> \<forall>t. (t>now \<and> t<nowf) \<longrightarrow> P (f t) \<Longrightarrow> almost P f now nowf"
+  "now < nowf \<Longrightarrow> \<forall>t. (t\<ge>now \<and> t<nowf) \<longrightarrow> P (f t) \<Longrightarrow> almost P f now nowf"
   apply auto
-  by (metis le_less_trans less_le_trans of_rat_dense)
+  done  
 
 subsection \<open>Inference rules for Hybrid CSP: Hybrid Hoare Logic rules\<close>
 
@@ -184,36 +188,35 @@ apply (metis fAnd_def)
 apply auto
 apply (metis fAnd_def)
 apply (subgoal_tac "(p [&] Inv) (\<lambda>(y, i). if y = fst v \<and> i = snd v 
- then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now) else h now (y, i))")
+ then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))")
 apply (simp add:fAnd_def)+
 apply (rule conjI, auto)
 apply (subgoal_tac "\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) (y, i) = ((\<lambda>(y, i). if y = fst v \<and> i = snd v 
-   then Solution (<[v]:E&&Inv&b>) (h now) (now + d - now) else h now (y, i))) (y, i)")
+   then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))) (y, i)")
  apply blast
     
 apply auto 
 apply (subgoal_tac "exeFlow (<[v]:E&&Inv&b>) (Inv)
                     (\<lambda>(y, i). if y = fst v \<and> i = snd v 
-        then Solution (<[v]:E&&Inv&b>) (h now) (now+d - now) else h now (y, i))")
+        then Solution (Flow [v] E) (h now) (now+d - now) else h now (y, i))")
 apply (metis (no_types, lifting))
 apply (drule_tac x = "now +d" in spec, auto)
 apply (subgoal_tac "almost (Inv [&] p [&] b) 
 (\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda>(y, i). if y = fst v \<and> i = snd v 
-then Solution (<[v]:E&&Inv&b>) (h now) (t - now) else h now (y, i) else h t) now (now+d)", auto)
+then Solution (Flow [v] E) (h now) (t - now) else h now (y, i) else h t) now (now+d)", auto)
 apply (rule almostint, auto)
 apply (simp add:fAnd_def)
 apply (rule conjI)
 apply (subgoal_tac "exeFlow (<[v]:E&&Inv&b>) (Inv)
                     (\<lambda>(y, i). if y = fst v \<and> i = snd v 
-        then Solution (<[v]:E&&Inv&b>) (h now) (t - now) else h now (y, i))")
+        then Solution (Flow [v] E) (h now) (t - now) else h now (y, i))")
 apply (metis (no_types, lifting)) 
 apply (drule_tac x = "t" in spec, auto)
 apply (subgoal_tac "\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) (y, i) = ((\<lambda>(y, i). if y = fst v \<and> i = snd v 
-   then Solution (<[v]:E&&Inv&b>) (h now) (t - now) else h now (y, i))) (y, i)")
+   then Solution (Flow [v] E) (h now) (t - now) else h now (y, i))) (y, i)")
 apply blast
 apply auto
-done
- 
+by (smt fAnd_def) 
 
 (*We simple extend the above rule to the general case where the continuous are a list of variables not just one.
 The proof can be given in the same way.*)
@@ -289,8 +292,60 @@ proof -
     then show ?thesis by auto
   qed
   then show ?thesis unfolding Valid_def by auto
-qed 
+qed
 
+lemma DiffCutRule : 
+  assumes I: "{p} <[v]:E&&Inv&(b)> {I; almost I [[|]] elE 0}"
+    and C: "{p} <[v]:E&&Inv&(b[&]I)> {q; H}"
+  shows "{p} <[v]:E&&Inv&(b)> {q; H}"
+proof (simp add:Valid_def, clarify)  
+  have "\<forall>now h now' h'. semB (<[v]:E&&Inv&b>) now h now' h' \<longrightarrow> p (h now) 
+    \<longrightarrow> I (h' now') \<and> (almost I [[|]] elE 0) h' now now'"
+    using I unfolding Valid_def by auto
+  have semI: "semB (<[v]:E&&Inv&b>) now h now' h' \<Longrightarrow> p (h now) \<Longrightarrow> semB (<[v]:E&&Inv&b [&] I>) now h now' h'"
+    for now h now' h'
+    apply (ind_cases "semB (<[v]:E&&Inv&b>) now h now' h'")
+    subgoal 
+    proof -
+      assume a: "p (h now)" and b: "now' = now" and c: "h' = h" and d: "([\<not>]b) (h now)"
+      show "semB (<[v]:E&&Inv&b [&] I>) now h now' h'"
+      proof -
+        have "([\<not>] (b [&] I)) (h now)" using d unfolding fNot_def fAnd_def by auto
+        then show ?thesis
+          by (simp add: b c continuousBF)
+      qed
+    qed
+    subgoal for d
+    proof -
+      assume a: "p (h now)" and b: "now' = now + d"  
+        and c: "h' = (\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (t - now) else h now (y, i) else h t)"
+        and d: "0 < d" and e: "\<forall>m. m < now + d \<and> now \<le> m \<longrightarrow>
+          b (if now < m then \<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (m - now) else h now (y, i) else h m)"
+        and f: "([\<not>]b) (\<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))"
+      show "semB (<[v]:E&&Inv&b [&] I>) now h now' h'"
+      proof -
+        have "semB (<[v]:E&&Inv&b>) now h (now + d) h'" 
+          using b c d e f continuousBT[of d now v  E h b Inv] by auto
+        then have "I (h' now') \<and> (almost I [[|]] elE 0) h' now now'" 
+          using a I b unfolding Valid_def by auto
+        then have almostI: "I (h' now') \<and> (almost I) h' now now'" 
+          using b c d unfolding elE_def dOr_def by auto
+        have "([\<not>] (b [&] I))(h' (now + d))"
+          using f d c unfolding fNot_def fAnd_def by auto
+        moreover have "\<forall>m. m < now + d \<and> now \<le> m \<longrightarrow> (b [&] I) (h' (m))"
+          using almostI b e c unfolding almost_def fAnd_def by auto
+        ultimately show ?thesis using b c d continuousBT[of d now v  E h "b[&]I" Inv] unfolding Let_def 
+          by auto
+      qed
+    qed
+    done
+
+  have "semB (<[v]:E&&Inv&b>) now h now' h' \<Longrightarrow> p (h now) \<Longrightarrow> q (h' now') \<and> H h' now now'"
+    for now h now' h'
+    using C semI unfolding Valid_def by meson
+  then show "\<And>now h now' h'. semB (<[v]:E&&Inv&b>) now h now' h' \<Longrightarrow> p (h now) \<Longrightarrow> q (h' now') \<and> H h' now now'"
+    by auto
+qed 
 
 (*There are three rules for parallel  composition, which covers all the cases.*)
 (*Parallel rule for the case without communication*)
@@ -354,7 +409,7 @@ prefer 2 apply (rule disjI1)
 apply (metis less_eq_real_def max.cobounded1)
 apply (rule disjI2)
 apply (rule almostint, simp) 
-apply (metis (no_types, lifting))
+apply simp
 (*to prove Gy, just copy the proof for Gx with a little adaption*)
 apply (subgoal_tac "(Hy[^](elE 0 [[|]] almost qy)) fq' nowq nowq'", simp)
 apply (subgoal_tac "Hy fq' nowq nowq'a",simp)

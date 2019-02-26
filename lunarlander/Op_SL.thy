@@ -10,8 +10,9 @@ type_synonym now = real
 
 text \<open>Continuous evolution\<close>
 
+datatype flow = Flow "(string * typeid) list" "exp list"
 text \<open>Explicit solution\<close>
-consts Solution :: "proc \<Rightarrow> state \<Rightarrow> real \<Rightarrow> val"
+consts Solution :: "flow \<Rightarrow> state \<Rightarrow> real \<Rightarrow> val"
 
 consts evalP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> event * proc * now * history"
 consts evalPP :: "procP \<Rightarrow> now \<Rightarrow> history \<Rightarrow> history \<Rightarrow> event * procP * now * history * history"
@@ -69,13 +70,13 @@ inductive semP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> (e
     semP (<[s]:E&&Inv&b>) now f (Tau, Skip, now, f)"
 | continuousT: "d\<ge>0 \<Longrightarrow>
        let f' = (\<lambda>t. if t \<le> now+d \<and> t > now then
-                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (<[s]:E&&Inv&b>) (f now) (t-now) else f now (y, i))
+                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (Flow [s] E) (f now) (t-now) else f now (y, i))
                      else f t)
        in \<forall>m. m \<le> now+d \<and> m \<ge> now \<longrightarrow> b (f' m) \<Longrightarrow>
     semP (<[s]:E&&Inv&b>) now f
       (Delay d, <[s]:E&&Inv&b>, now+d,
        (\<lambda>t. if t \<le> now+d \<and> t > now then
-              (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (<[s]:E&&Inv&b>) (f now) (t-now) else f now (y, i))
+              (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (Flow [s] E) (f now) (t-now) else f now (y, i))
             else f t))"
 | sequenceL: "semP P now f (ev, P', now', f') \<and> P'\<noteq>Skip \<Longrightarrow>
               semP (P; Q) now f (ev, P';Q, now', f')"
@@ -127,12 +128,12 @@ inductive semB :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> no
 | continuousBF: "([\<not>]b) (f now) \<Longrightarrow> semB (<[s]:E&&Inv&b>) now f now f"
 | continuousBT: "d>0 \<Longrightarrow> 
        let f' = (\<lambda>t. if t \<le> now+d \<and> t > now then
-                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (<[s]:E&&Inv&b>) (f now) (t-now)) else f now (y, i))
+                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (Flow [s] E) (f now) (t-now)) else f now (y, i))
                      else f t)
        in (\<forall>m. m < now+d \<and> m \<ge> now \<longrightarrow> b (f' m)) \<and> ([\<not>]b) (f' (now+d)) \<Longrightarrow>
     semB (<[s]:E&&Inv&b>) now f (now+d)
       (\<lambda>t. if t \<le> now+d \<and> t > now then
-             (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (<[s]:E&&Inv&b>) (f now) (t-now)) else f now (y, i))
+             (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (Flow [s] E) (f now) (t-now)) else f now (y, i))
            else f t)"
 | sequenceB: "semB P now f now' f' \<and> semB Q now' f' now'' f'' \<Longrightarrow> semB (P; Q) now f now'' f''"
 | conditionBT: " b (f now) \<Longrightarrow> semB P now f now_d f_d \<Longrightarrow> semB (IF b P) now f now_d f_d"
