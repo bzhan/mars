@@ -16,10 +16,12 @@ def str_of_cond(cond):
             return "(%s <= %s)" % (cond['lhs'], cond['rhs'])
         elif cond['ty'] == 'lt':
             return "(%s < %s)" % (cond['lhs'], cond['rhs'])
+        elif cond['ty'] == 'eq':
+            return "(%s = %s)" % (cond['lhs'], cond['rhs'])
         else:
             raise NotImplementedError
     elif cond == "Inv":
-        return "(inv <= 0)"
+        return "(inv)"
     else:
         raise NotImplementedError
 
@@ -41,12 +43,12 @@ def process_data(spdvars, str_inv, constraints):
     def convert_precond(precond):
         """Convert constraint of the form precond --> Inv."""
         defs.append("pre := " + str_of_conds(precond['from']) + ";")
-        checks.append("rlqe " + forall_vars("(not pre) or inv <= 0") + ";")
+        checks.append("rlqe " + forall_vars("(not pre) or inv ") + ";")
 
     def convert_postcond(postcond):
         """Convert constraint of the form Inv --> postcond."""
         defs.append("post := " + str_of_conds(postcond['to']) + ";")
-        checks.append("rlqe " + forall_vars("(not (inv <= 0)) or post") + ";")
+        checks.append("rlqe " + forall_vars("(not (inv)) or post") + ";")
 
     def convert_ode(ode):
         """Convert an ODE constraint."""
@@ -60,16 +62,26 @@ def process_data(spdvars, str_inv, constraints):
         domain = constraint['from'][0]['domain'].strip()
 
         str_ds = ["d%s%d := %s;" % (var, num_ode, diff) for var, diff in zip(vars, diffs)]
-        str_lie_expr = " + ".join("df(inv,%s) * d%s%d" % (var, var, num_ode) for var in vars)
+        str_lie_expr = " + ".join("df(invp,%s) * d%s%d" % (var, var, num_ode) for var in vars)
         str_lie = "lie%d := %s" % (num_ode, str_lie_expr) + ";"
         str_check_ode = "rlqe " + forall_vars("(not (inv = 0)) or lie%d < 0" % num_ode) + ";"
+        if str_inv.find(">=") >= 0 :
+            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d > 0)" % num_ode) + ";"
+        elif str_inv.find("<=") >= 0 :
+            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d < 0)" % num_ode) + ";"
+        elif str_inv.find("=") >= 0 :
+            str_check_ode = "rlqe " + forall_vars("not "+domain+" or (lie%d = 0)" % num_ode) + ";"
+        elif str_inv.find("<") >= 0 :
+            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d < 0)" % num_ode) + ";"
+        elif str_inv.find(">") >= 0 :
+            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d > 0)" % num_ode) + ";"
         num_ode += 1
-
-        if domain == "True":
-            defs.extend(str_ds + [str_lie])
-            checks.append(str_check_ode)
-        else:
-            raise NotImplementedError
+        
+        
+        defs.extend(str_ds + [str_lie])
+        checks.append(str_check_ode)
+        
+        
 
     for constraint in constraints:
         if is_precond_constraint(constraint):
@@ -83,11 +95,24 @@ def process_data(spdvars, str_inv, constraints):
 
 
     str_load = "load_package \"qepcad\";"
+    str_invp = ""
+    if str_inv.find(">=") >= 0 :
+        str_invp=str_inv[0:str_inv.find(">=")]
+    elif str_inv.find("<=") >= 0 :
+        str_invp=str_inv[0:str_inv.find("<=")]
+    elif str_inv.find("=") >= 0 :
+        str_invp=str_inv[0:str_inv.find("=")]
+    elif str_inv.find(">") >= 0 :
+        str_invp=str_inv[0:str_inv.find(">")]
+    elif str_inv.find("<") >= 0 :
+        str_invp=str_inv[0:str_inv.find("<")]
+    
     str_inv = "inv := " + str_inv + ";"
+    str_invp = "invp := " + str_invp + ";"
     str_open = "out output;"
     str_close = "shut output;"
 
-    return "\n".join([str_load, str_inv] + defs + [str_open] + checks + [str_close])
+    return "\n".join([str_load, str_inv, str_invp] + defs + [str_open] + checks + [str_close])
 
 def process_file(file_name):
     with open(file_name + ".json", "r", encoding="utf-8") as f:

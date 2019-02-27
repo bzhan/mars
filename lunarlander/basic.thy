@@ -290,7 +290,7 @@ definition cons43:: fform where
 lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
-  by (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59")
+  by (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59 <= 0")
 
 lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [(exp41),(exp42)] && Inv & fTrue>
@@ -310,7 +310,7 @@ definition cons53:: fform where
 
 lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
   apply (simp only: cons51_def cons52_def cons53_def x_def y_def)
-  by (inv_check_oracle "2*(parx^2) + (pary+3/2)^2 - 4")
+  by (inv_check_oracle "2*(parx^2) + (pary+3/2)^2 - 4 <= 0")
 
 lemma ODE5:"{x[**]2 [\<le>] Con Real (1/2) [&] (y [+] Con Real 2) [**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [((y[-]x)[-]x[**]3),((y[**]2[-]x)[-]y)] && Inv & fTrue>
@@ -400,5 +400,20 @@ trans_goal @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''
           Inv))
          s"} |> writeln
 *}
+definition cons71:: fform where
+  "cons71 \<equiv>  (x[=]y) [\<longrightarrow>] Inv"
+
+definition cons72:: fform where
+  "cons72 \<equiv>  Inv  [\<longrightarrow>] (x[=]y) "
+
+definition cons73:: fform where
+  "cons73 \<equiv>  exeFlow(<[(''parx'', R),(''pary'', R)]: [(Con Real 1),(Con Real 1)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
+lemma allcons7:"\<forall> s. ( cons71 [&] cons72 [&] cons73 ) s"
+  apply (simp only: cons71_def cons72_def cons73_def x_def y_def)
+  by (inv_check_oracle "parx - pary = 0") 
+
+
+
 
 end
