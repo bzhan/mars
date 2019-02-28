@@ -401,17 +401,17 @@ trans_goal @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''
          s"} |> writeln
 *}
 definition cons71:: fform where
-  "cons71 \<equiv>  (x[>]Con Real 0 [&] y[>]Con Real 0) [\<longrightarrow>] Inv"
+  "cons71 \<equiv>  (x[>]Con Real 0 ) [\<longrightarrow>] Inv"
 
 definition cons72:: fform where
-  "cons72 \<equiv>  Inv  [\<longrightarrow>] (x[>]Con Real 0 [&] y[>]Con Real 0) "
+  "cons72 \<equiv>  Inv  [\<longrightarrow>] (x[>]Con Real 0) "
 
 definition cons73:: fform where
-  "cons73 \<equiv>  exeFlow(<[(''parx'', R),(''pary'', R)]: [(Con Real 1),(Con Real 1)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+  "cons73 \<equiv>  exeFlow(<[(''parx'', R)]: [(Con Real 0)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 
 lemma allcons7:"\<forall> s. ( cons71 [&] cons72 [&] cons73 ) s"
   apply (simp only: cons71_def cons72_def cons73_def x_def y_def)
-  by (inv_check_oracle "parx > 0 & pary > 0") 
+  by (inv_check_oracle "parx > 0 ") 
 
 
 
