@@ -56,33 +56,53 @@ def process_data(spdvars, str_inv, constraints):
 
         assert constraint['from'][0]['base'] == 'Inv' and constraint['to'] == ['Inv'], \
             "convert_ode: invalid form of ode."
-
+      
         vars = constraint['from'][0]['vars']
         diffs = constraint['from'][0]['diffs']
         domain = constraint['from'][0]['domain'].strip()
-
         str_ds = ["d%s%d := %s;" % (var, num_ode, diff) for var, diff in zip(vars, diffs)]
-        str_lie_expr = " + ".join("df(invp,%s) * d%s%d" % (var, var, num_ode) for var in vars)
-        str_lie = "lie%d := %s" % (num_ode, str_lie_expr) + ";"
-        str_check_ode = "rlqe " + forall_vars("(not (inv = 0)) or lie%d < 0" % num_ode) + ";"
-        if str_inv.find(">=") >= 0 :
-            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d > 0)" % num_ode) + ";"
-        elif str_inv.find("<=") >= 0 :
-            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d < 0)" % num_ode) + ";"
-        elif str_inv.find("=") >= 0 :
-            str_check_ode = "rlqe " + forall_vars("not "+domain+" or (lie%d = 0)" % num_ode) + ";"
-        elif str_inv.find("<") >= 0 :
-            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d < 0)" % num_ode) + ";"
-        elif str_inv.find(">") >= 0 :
-            str_check_ode = "rlqe " + forall_vars("not "+domain+" or ((not (invp = 0)) or lie%d > 0)" % num_ode) + ";"
+        defs.extend(str_ds)
+        stepinv = " "
+        for item in range(str_inv.count("&")+1):
+            subinv = str_inv.split("&")[item]
+            if subinv.find(">=") >= 0 :
+                subinvp=subinv[0:subinv.find(">=")]
+            elif subinv.find("<=") >= 0 :
+                subinvp=subinv[0:subinv.find("<=")]
+            elif subinv.find("=") >= 0 :
+                subinvp=subinv[0:subinv.find("=")]
+            elif subinv.find(">") >= 0 :
+                subinvp=subinv[0:subinv.find(">")]
+            elif subinv.find("<") >= 0 :
+                subinvp=subinv[0:subinv.find("<")]
+            str_subinv = "inv"+str(item) + " := " + subinv + ";" 
+            str_subinvp = "invp"+str(item)+ " := " + subinvp + ";" 
+            defs.extend([str_subinv])
+            defs.extend([str_subinvp])
+            str_lie_expr = " + ".join("df(invp%i,%s) * d%s%d" % (item, var, var, num_ode) for var in vars)
+            str_lie = "lie%d%i := %s" % (num_ode, item, str_lie_expr) + ";"
+            if subinv.find(">=") >= 0 :
+                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0)" % (item, num_ode, item)) + ";"
+            elif subinv.find("<=") >= 0 :
+                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0)" % (item, num_ode, item)) + ";"
+            elif subinv.find("=") >= 0 :
+                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or (lie%d%i = 0)" % (num_ode, item)) + ";"
+            elif subinv.find("<") >= 0 :
+                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0)" % (item, num_ode, item)) + ";"
+            elif subinv.find(">") >= 0 :
+                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0)" % (item, num_ode, item)) + ";"
+            stepinv = stepinv+"and  "+subinv 
+            defs.extend([str_lie])
+            checks.append(str_check_ode)
+        
         num_ode += 1
-        
-        
-        defs.extend(str_ds + [str_lie])
-        checks.append(str_check_ode)
-        
-        
 
+        
+        
+        
+        
+        
+        
     for constraint in constraints:
         if is_precond_constraint(constraint):
             convert_precond(constraint)
@@ -95,24 +115,11 @@ def process_data(spdvars, str_inv, constraints):
 
 
     str_load = "load_package \"qepcad\";"
-    str_invp = ""
-    if str_inv.find(">=") >= 0 :
-        str_invp=str_inv[0:str_inv.find(">=")]
-    elif str_inv.find("<=") >= 0 :
-        str_invp=str_inv[0:str_inv.find("<=")]
-    elif str_inv.find("=") >= 0 :
-        str_invp=str_inv[0:str_inv.find("=")]
-    elif str_inv.find(">") >= 0 :
-        str_invp=str_inv[0:str_inv.find(">")]
-    elif str_inv.find("<") >= 0 :
-        str_invp=str_inv[0:str_inv.find("<")]
-    
     str_inv = "inv := " + str_inv + ";"
-    str_invp = "invp := " + str_invp + ";"
     str_open = "out output;"
     str_close = "shut output;"
 
-    return "\n".join([str_load, str_inv, str_invp] + defs + [str_open] + checks + [str_close])
+    return "\n".join([str_load, str_inv] + defs + [str_open] + checks + [str_close])
 
 def process_file(file_name):
     with open(file_name + ".json", "r", encoding="utf-8") as f:

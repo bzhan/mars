@@ -70,9 +70,9 @@ definition pre1 :: fform where
       [&](v[>]Con Real 0)
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
       [&] (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)
-      [&]((dy[\<le>]Con Real 0 [&] x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0) 
+      [&]((Con Real dy0[\<le>]Con Real 0 [&] x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0) 
         [\<longrightarrow>](v[**]2[\<ge>]Con Real vLo [&] v[**]2[\<le>]Con Real vHi [&] Con Real (dyLo*g)[\<le>] Con Real (-dy0*g)[&]Con Real (-dy0*g)[\<le>]Con Real (dyHi*g)[&] Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)))
-      [&](dy[\<le>]Con Real 0)
+      [&](Con Real dy0[\<le>]Con Real 0)
       [&]((x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>](Con Real dx0[*]v[**]2[>]Con Real (2*dy0*g)[*](Con Real x1[-]x)))
       [&](Con Real x1[>]Con Real x0)
       [&](Con Real (dx0^2+dy0^2)[=]Con Real 1)
@@ -89,8 +89,15 @@ definition Inv1 :: fform where
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
       [&]Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)"
 
-lemma inv1:"\<forall>s.  (exeFlow(<[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv1)  [\<longrightarrow>]  Inv1 )s"
-  sorry
+definition cons11 :: fform where
+"cons11 ==  (exeFlow(<[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
+
+definition cons12 :: fform where
+"cons12 == pre1 [\<longrightarrow>] Inv"
+
+lemma allcons1: "\<forall>s. (cons12 [&] cons11 ) s"
+  apply (simp only: cons11_def cons12_def  x_def y_def v_def pre1_def )
+  by (inv_check_oracle "v > 0")
 lemma linedown:"{pre1}
              <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
               {post1;(elE 0 [[|]] (almost post1))}"
