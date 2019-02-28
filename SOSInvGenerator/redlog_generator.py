@@ -59,7 +59,13 @@ def process_data(spdvars, str_inv, constraints):
       
         vars = constraint['from'][0]['vars']
         diffs = constraint['from'][0]['diffs']
-        domain = constraint['from'][0]['domain'].strip()
+        domain = constraint['from'][0]['domain']
+
+        # Only consider domain of size 1 so far.
+        if len(domain) > 1:
+            raise NotImplementedError
+        domain = domain[0].strip()
+
         str_ds = ["d%s%d := %s;" % (var, num_ode, diff) for var, diff in zip(vars, diffs)]
         defs.extend(str_ds)
         stepinv = " "

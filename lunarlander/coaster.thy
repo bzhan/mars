@@ -76,7 +76,7 @@ definition pre1 :: fform where
       [&]((x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>](Con Real dx0[*]v[**]2[>]Con Real (2*dy0*g)[*](Con Real x1[-]x)))
       [&](Con Real x1[>]Con Real x0)
       [&](Con Real (dx0^2+dy0^2)[=]Con Real 1)
-      [&](Con Real dx0[>]Con Real 0)     "
+      [&](Con Real dx0[>]Con Real 0)"
 
 definition post1 :: fform where
 "post1 == (v[>]Con Real 0)
@@ -98,6 +98,7 @@ definition cons12 :: fform where
 lemma allcons1: "\<forall>s. (cons12 [&] cons11 ) s"
   apply (simp only: cons11_def cons12_def  x_def y_def v_def pre1_def )
   by (inv_check_oracle "v > 0")
+
 lemma linedown:"{pre1}
              <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
               {post1;(elE 0 [[|]] (almost post1))}"
