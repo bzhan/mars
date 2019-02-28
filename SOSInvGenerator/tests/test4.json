@@ -3,6 +3,7 @@
         "pary",
         "parx"
     ],
+    "inv": "parx^2 + parx*pary + pary^2 - 111/59",
     "constraints": [
         {
             "ty": "implies",

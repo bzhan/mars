@@ -245,10 +245,57 @@ trans_exp_list @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
 trans_fform @{term "fTrue"};
 *}
 
+ML {*
+fun trans_inv_check t inv =
+  (case HOLogic.dest_Trueprop t of
+    Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
+    let
+      val goals = strip_fAnd f
+    in
+      (dict_to_json [
+        ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
+        ("inv", add_quote inv),
+        ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
+      ], length goals)
+    end
+  | _ => error "inacceptable term: goal")
+
+fun to_shell_format s =
+  String.translate (fn s => if s = #"\"" then "\\" ^ str(s) else str(s)) s
+
+fun decide_check_inv p num_goal =
+  let
+    val sh = if ML_System.platform_is_windows then "inv_check_windows.sh" else "inv_check.sh"
+    val out = "$MARSHOME/SOSInvGenerator/" ^ sh ^ " \"" ^ to_shell_format p ^ "\""
+            |> Isabelle_System.bash_output
+            |> fst
+    val out_lines = out |> split_lines |> map trim_line |> filter (fn t => t <> "")
+    val out_lines = drop (length out_lines - num_goal) out_lines
+    val _ = map (fn t => writeln t) out_lines
+  in
+    length out_lines = num_goal andalso forall (fn t => t = "true") out_lines
+  end
+*}
+
 oracle inv_oracle_SOS = {* fn ct =>
   if decide_SOS (trans_goal (Thm.term_of ct))
   then ct
-  else error "Proof failed."*}
+  else error "Proof failed." *}
+
+oracle inv_check_oracle = {* fn ct =>
+  let
+    val cf = Thm.dest_arg1 ct
+    val f = Thm.term_of cf
+    val inv = Thm.term_of (Thm.dest_arg ct)
+    val str_inv = HOLogic.dest_string inv
+    val (p, num_goal) = trans_inv_check f str_inv
+    val _ = writeln p
+  in
+    if decide_check_inv p num_goal
+    then cf
+    else error "Proof failed."
+  end
+*}
 
 ML{*
 fun inv_oracle_SOS_tac ctxt =
@@ -259,7 +306,19 @@ fun inv_oracle_SOS_tac ctxt =
 *}
 
 method_setup inv_oracle_SOS = {*
-  Scan.succeed (fn ctxt => (Method.SIMPLE_METHOD' (inv_oracle_SOS_tac ctxt)))
+  Scan.succeed (fn ctxt => (SIMPLE_METHOD' (inv_oracle_SOS_tac ctxt)))
 *} 
+
+ML {*
+fun inv_check_oracle_tac str ctxt =
+  CSUBGOAL (fn (goal, i) =>
+  (case try inv_check_oracle (Thm.cterm_of ctxt (HOLogic.mk_prod (Thm.term_of goal, HOLogic.mk_string str))) of
+    NONE => no_tac
+  | SOME th => resolve_tac ctxt [th] i))
+*}
+
+method_setup inv_check_oracle = {*
+  Scan.lift Parse.string >> (fn str => fn ctxt => SIMPLE_METHOD' (inv_check_oracle_tac str ctxt))
+*}
 
 end

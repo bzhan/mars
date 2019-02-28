@@ -138,22 +138,26 @@ by (metis fAnd_def fImp_def)
 declare elE_def [simp del]
 
 
+lemma factLess: "(RVar x [\<le>] Con Real r) s \<Longrightarrow>
+  (RVar x [\<ge>] Con Real r) s \<Longrightarrow>  (RVar x [=] Con Real r) s"
+  apply (simp add:fLessEqual_def fGreaterEqual_def fLess_def fEqual_def fOr_def)
+  apply (case_tac "s (x, R)", auto)
+  done 
 
 
 (*Goal for the whole process.*)
 lemma goal : "{fTrue} PP {safeProp; (elE 0 [[|]] (almost safeProp))}"
 (*mono*)
-apply (cut_tac px="fTrue" and qx="t [\<le>] Con Real 16 / 125 [&] Inv" and Hx="(elE 0 [[|]] (almost (t [\<le>] Con Real 16 / 125 [&] Inv)))" in ConsequenceRule, auto)
+apply (cut_tac px="fTrue" and qx="t [\<le>] Con Real (16 / 125) [&] Inv" and Hx="(elE 0 [[|]] (almost (t [\<le>] Con Real (16 / 125) [&] Inv)))" in ConsequenceRule, auto)
 prefer 2
 apply (cut_tac constraint1, auto)
 prefer 2
 apply (cut_tac constraint1, auto)
 apply (simp add:dOr_def almost_def, auto)
-apply metis
 apply (simp add:PP_def PC_Init_def PD_Init_def)
 (*separate into intialization and repetitive control*)
 apply (cut_tac m = "((plant_v1_1[=](Con Real -2)) [&] (plant_m1_1[=](Con Real 1250)) [&] (control_1[=](Con Real 2027.5)) [&] (t[=](Con Real 0)))" 
-           and  H = "elE 0"  and  G="(elE 0 [[|]] (almost (t [\<le>] Con Real 16 / 125 [&] Inv)))"  in SequentialRule, auto)
+           and  H = "elE 0"  and  G="(elE 0 [[|]] (almost (t [\<le>] Con Real (16 / 125) [&] Inv)))"  in SequentialRule, auto)
 (*Init*)
 apply (cut_tac m = "((plant_v1_1[=]Con (Real -2)) [&] (plant_m1_1[=]Con (Real 1250)))" 
      and  H = "elE 0"  and  G = "elE 0" in SequentialRule, auto)
@@ -172,7 +176,7 @@ apply (simp add:elE_def chop_def)+
 prefer 2
 apply (simp add:elE_def dOr_def chop_def)
 (*Rep Part*)
-apply (cut_tac px="Inv [&] t[=](Con Real 0) [&] t [\<le>] Con Real 16 / 125" and qx="Inv [&] t[=](Con Real 0) [&] t [\<le>] Con Real 16 / 125" and Hx="(elE 0 [[|]] (almost (t [\<le>] Con Real 16 / 125 [&] Inv)))" in ConsequenceRule,auto)
+apply (cut_tac px="Inv [&] t[=](Con Real 0) [&] t [\<le>] Con Real (16 / 125)" and qx="Inv [&] t[=](Con Real 0) [&] t [\<le>] Con Real (16 / 125)" and Hx="(elE 0 [[|]] (almost (t [\<le>] Con Real (16 / 125) [&] Inv)))" in ConsequenceRule,auto)
 prefer 2
 apply (cut_tac constraint2, auto) apply (simp add:fAnd_def fLessEqual_def fOr_def fLess_def fEqual_def)
 prefer 2
@@ -181,20 +185,20 @@ prefer 2
 apply (simp add:elE_def dOr_def)
 apply (simp add:Inv3_def)
 apply (cut_tac I = "Inv [&] RVar ''plant_t''[=]Con Real 0 [&]
-     RVar ''plant_t''[\<le>]Con Real 16 / 125" and
+     RVar ''plant_t''[\<le>]Con Real (16 / 125)" and
      P = "(PC_Difff; (RVar ''plant_t'') := (Con Real 0); PD_Rep)" and 
-  H = "elE 0 [[|]] almost (RVar ''plant_t''[\<le>]Con Real 16 / 125 [&] Inv)" in RepetitionRule_a, auto)
-apply (cut_tac P = "(RVar ''plant_t''[\<le>]Con Real 16 / 125 [&] Inv)"
+  H = "elE 0 [[|]] almost (RVar ''plant_t''[\<le>]Con Real (16 / 125) [&] Inv)" in RepetitionRule_a, auto)
+apply (cut_tac P = "(RVar ''plant_t''[\<le>]Con Real (16 / 125) [&] Inv)"
       and h = h and n = n and nd = m in chopfor, auto)
 prefer 2
 apply (cut_tac px = "Inv [&] RVar ''plant_t''[=]Con Real 0 [&]
-     RVar ''plant_t''[\<le>]Con Real 16 /125" and 
+     RVar ''plant_t''[\<le>]Con Real (16 /125)" and 
      qx = "Inv [&] RVar ''plant_t''[=]Con Real 0 [&]
-           RVar ''plant_t''[\<le>]Con Real 16 / 125" and 
-     Hx = "elE 0 [[|]] (elE 0 [[|]] almost (RVar ''plant_t''[\<le>]Con Real 16 / 125 [&] Inv))" in ConsequenceRule, auto)
+           RVar ''plant_t''[\<le>]Con Real (16 / 125)" and 
+     Hx = "elE 0 [[|]] (elE 0 [[|]] almost (RVar ''plant_t''[\<le>]Con Real (16 / 125) [&] Inv))" in ConsequenceRule, auto)
 apply (simp add: dOr_def)
-apply (cut_tac m = "t [=] Con Real 16 / 125 [&] Inv" and
-    H = "(elE 0 [[|]] (almost (t [\<le>] Con Real 16 / 125 [&] Inv)))" and  
+apply (cut_tac m = "t [=] Con Real (16 / 125) [&] Inv" and
+    H = "(elE 0 [[|]] (almost (t [\<le>] Con Real (16 / 125) [&] Inv)))" and  
   G= "elE 0" in  SequentialRule, auto)
 prefer 2
 apply (simp add: PD_Rep_def)
@@ -219,29 +223,25 @@ apply (rule ContinuousRuleGT, auto)
 apply (simp add:fLess_def fAnd_def fEqual_def) 
 apply (simp add:fAnd_def)
 apply (simp add:fAnd_def, auto)
-apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real 16 / 125" in Lessc)
-apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real 16 / 125" in notLess, auto)
-apply (simp add:fGreaterEqual_def fLessEqual_def fOr_def fNot_def fAnd_def) 
+apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real (16 / 125)" in Lessc)
+apply (rule factLess, auto) 
 apply (cut_tac constraint4)
 apply (simp add:PC_Diff11_def Inv1_def)
 apply (simp add:elE_def dOr_def)
 apply (simp add:dOr_def)
 apply (simp add:fAnd_def almost_def) 
-apply metis
 apply (simp add:PC_Diff22_def Inv2_def)
 apply (rule ContinuousRuleGT, auto)
 apply (simp add:fLess_def fAnd_def fEqual_def) 
 apply (simp add:fAnd_def)
 apply (simp add:fAnd_def, auto)
-apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real 16 / 125" in Lessc)
-apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real 16 / 125" in notLess, auto)
-apply (simp add:fGreaterEqual_def fLessEqual_def fOr_def fNot_def fAnd_def) 
+apply (cut_tac e = "RVar ''plant_t''" and f = "Con Real (16 / 125)" in Lessc)
+apply (rule factLess, auto) 
 apply (cut_tac constraint5)
 apply (simp add:PC_Diff22_def Inv2_def)
 apply (simp add:elE_def dOr_def)
 apply (simp add:dOr_def)
 apply (simp add:fAnd_def almost_def) 
-apply metis
 done
 
 

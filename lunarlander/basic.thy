@@ -290,36 +290,17 @@ definition cons43:: fform where
 lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
-  sorry
+  by (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59 <= 0")
 
 lemma ODE4:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [(exp41),(exp42)] && Inv & fTrue>
             {x [-] Con Real 4 [*] y [<] Con Real 8;elE 0 [[|]] (almost (x [-] Con Real 4 [*] y [<] Con Real 8))}"
-apply (rule ContinuousRuleGT) 
-  using allcons4 apply (simp add:cons41_def cons42_def cons43_def 
-          x_def y_def  fAnd_def fImp_def dOr_def )
+  apply (rule ContinuousRuleGT) 
+  using allcons4 apply (simp add: cons41_def cons42_def cons43_def x_def y_def fAnd_def fImp_def dOr_def )
   by (smt almostmono)
 
-ML{*
-trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>] Inv) [&]
-         (Inv [\<longrightarrow>] RVar ''parx'' [-] Con Real 4 [*] RVar ''pary'' [<] Con Real 8) [&]
-         (exeFlow
-           (<[(''parx'', R),
-              (''pary'',
-               R)]:[(Con Real 0 [-] RVar ''parx'' [-] (Con Real 1117 [*] RVar ''pary'') [div] Con Real 500) [+]
-                    (Con Real 439 [*] RVar ''pary'' [**] 3) [div] Con Real 200 [-]
-                    (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500,
-                    (RVar ''parx'' [+] ((Con Real 617 [*] RVar ''pary'') [div] Con Real 500 [-]
-                     (Con Real 439 [*] RVar ''pary'' [**] 3) [div] Con Real 200)) [+]
-                    (Con Real 333 [*] RVar ''pary'' [**] 5) [div] Con Real 500]&&Inv&fTrue>)
-           Inv [\<longrightarrow>]
-          Inv))
-         s"} |> writeln
-*}
-
-
 definition cons51:: fform where
-  "cons51 \<equiv>  (x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)) [\<longrightarrow>] Inv"
+  "cons51 \<equiv>  (x[**]2 [\<le>] Con Real (1/2) [&] (y [+] Con Real 2)[**]2 [\<le>] Con Real (1/3)) [\<longrightarrow>] Inv"
 
 definition cons52:: fform where
   "cons52 \<equiv>  Inv [\<longrightarrow>] ((x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4)) "
@@ -328,33 +309,16 @@ definition cons53:: fform where
   "cons53 \<equiv>  exeFlow(<[(''parx'', R),(''pary'', R)]: [((y[-]x)[-]x[**]3),((y[**]2[-]x)[-]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
 
 lemma allcons5:"\<forall> s. ( cons51 [&] cons52 [&] cons53 ) s"
-  apply (simp only:cons51_def cons52_def cons53_def 
-          x_def y_def)
-  sorry
+  apply (simp only: cons51_def cons52_def cons53_def x_def y_def)
+  by (inv_check_oracle "2*(parx^2) + (pary+3/2)^2 - 4 <= 0")
 
-lemma ODE5:"{x[**]2 [\<le>] Con Real (1/2) [&] y[**]2 [\<le>] Con Real (1/3)}
+lemma ODE5:"{x[**]2 [\<le>] Con Real (1/2) [&] (y [+] Con Real 2) [**]2 [\<le>] Con Real (1/3)}
            <[(''parx'', R),(''pary'', R)]: [((y[-]x)[-]x[**]3),((y[**]2[-]x)[-]y)] && Inv & fTrue>
             {(x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4);elE 0 [[|]] (almost ((x [-] Con Real 1) [**]2 [+] (y [-] Con Real (3/2)) [**]2 [>] Con Real (1/4)))}"
 apply (rule ContinuousRuleGT) 
   using allcons5 apply (simp add:cons51_def cons52_def cons53_def 
           x_def y_def  fAnd_def fImp_def dOr_def )
   by (smt almostmono)
-
-ML{*
-trans_goal @{term "\<forall>s. ((RVar ''parx'' [**] 2 [\<le>] Con Real (1 / 2) [&] RVar ''pary'' [**] 2 [\<le>] Con Real (1 / 3) [\<longrightarrow>]
-          Inv) [&]
-         (Inv [\<longrightarrow>]
-          (RVar ''parx'' [-] Con Real 1) [**] 2 [+] (RVar ''pary'' [-] Con Real (3 / 2)) [**] 2 [>]
-          Con Real (1 / 4)) [&]
-         (exeFlow
-           (<[(''x'', R),
-              (''y'',
-               R)]:[RVar ''pary'' [-] RVar ''parx'' [-] RVar ''parx'' [**] 3,
-                    RVar ''pary'' [**] 2 [-] RVar ''parx'' [-] RVar ''pary'']&&Inv&fTrue>)
-           Inv [\<longrightarrow>]
-          Inv))
-         s"} |> writeln
-*}
 
 
 definition cons61:: fform where
@@ -436,5 +400,20 @@ trans_goal @{term "\<forall>s. ((RVar ''plant_t'' [\<ge>] Con Real 0 [&] RVar ''
           Inv))
          s"} |> writeln
 *}
+definition cons71:: fform where
+  "cons71 \<equiv>  (x[>]Con Real 0 ) [\<longrightarrow>] Inv"
+
+definition cons72:: fform where
+  "cons72 \<equiv>  Inv  [\<longrightarrow>] (x[>]Con Real 0) "
+
+definition cons73:: fform where
+  "cons73 \<equiv>  exeFlow(<[(''parx'', R)]: [(Con Real 0)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
+
+lemma allcons7:"\<forall> s. ( cons71 [&] cons72 [&] cons73 ) s"
+  apply (simp only: cons71_def cons72_def cons73_def x_def y_def)
+  by (inv_check_oracle "parx > 0 ") 
+
+
+
 
 end
