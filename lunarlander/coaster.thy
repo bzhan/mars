@@ -156,9 +156,9 @@ definition cons22 :: fform where
 definition cons23 :: fform where
 "cons23 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),(Con Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
 
-lemma allcons2: "\<forall>s. (cons21[&] cons23 ) s"
-  apply (simp add: cons21_def  cons23_def  x_def y_def v_def a_def pre2_def post2_def)
-by (inv_check_oracle "parv*para^2 - 1 = 0")
+lemma allcons2: "\<forall>s. (cons21[&]cons22[&] cons23 ) s"
+  apply (simp add: cons21_def cons22_def cons23_def  x_def y_def v_def a_def pre2_def post2_def)
+by (inv_check_oracle "parv*para^2 - 1 = 0 & v^2 + 2*g*y - 2*g*yG = 0 & v > 0 & dx0*y - dy0*x -dx0*c = 0")
 
 lemma lineup:"{pre2}
              <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>

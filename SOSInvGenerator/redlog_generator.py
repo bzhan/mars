@@ -52,7 +52,7 @@ def process_data(spdvars, str_inv, constraints):
     def convert_postcond(postcond):
         """Convert constraint of the form Inv --> postcond."""
         defs.append("post := " + str_of_conds(postcond['to']) + ";")
-        checks.append("rlqe " + forall_vars("(not (inv)) or post") + ";")
+        checks.append("rlqe " + forall_vars("(not ((inv) and (domain" +str(num_ode)+ ")) or post)") + ";")
 
     def convert_ode(ode):
         """Convert an ODE constraint."""
@@ -68,8 +68,8 @@ def process_data(spdvars, str_inv, constraints):
         # Only consider domain of size 1 so far.
         
         domain = str_of_conds(domain)
-            
-              
+        str_domain = "domain" + str(num_ode) + ":= " + domain + ";"
+        defs.extend([str_domain])
         str_ds = ["d%s%d := %s;" % (var, num_ode, diff) for var, diff in zip(vars, diffs)]
         defs.extend(str_ds)
         stepinv = " "
