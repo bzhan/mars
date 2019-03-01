@@ -253,8 +253,16 @@ lemma GhostRule :
   assumes "(w \<noteq> v)"
     and "not_in_fform w q"
     and "not_in_dform w H"
-    and "{Init [&] (p::fform)} <[v, w]:[E, F]&&Inv&(b)> {q; H}"
+    and "not_in_fform w Init"
+    and "not_in_fform w p"
+    and "{pre} <[v, w]:[E, F]&&Inv&(b)> {post; HF}"
+    and "let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
+           in \<forall> s. (Init [&] p) s \<longleftrightarrow> (\<exists> a. pre sa)"
+    and "let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa (y, i))) else h t)
+           in \<forall>h n nd. H h n nd \<longleftrightarrow> (\<exists> xa. (HF ha n nd))"
   shows "{Init [&] (p::fform)} <[v]:[E]&&Inv&(b)> {q; H}"
+  sorry
+(*
 proof -
   have "\<forall>now h now' h'.
        semB (<[v, w]:[E, F]&&Inv&b>) now h now' h' \<longrightarrow>
@@ -293,6 +301,7 @@ proof -
   qed
   then show ?thesis unfolding Valid_def by auto
 qed
+*)
 
 lemma DiffCutRule : 
   assumes I: "{p} <[v]:E&&Inv&(b)> {I; almost I [[|]] elE 0}"
