@@ -250,16 +250,18 @@ definition not_in_dform:: "(string * typeid) \<Rightarrow> dform \<Rightarrow> b
 
 text \<open>Ghost rule for continuous evolution\<close>
 lemma GhostRule : 
-  assumes "(w \<noteq> v)"
-    and "not_in_fform w q"
-    and "not_in_dform w H"
+  assumes "(w \<notin> set VL)"
     and "not_in_fform w p"
-    and "{pre} <[v, w]:[E, F]&&Inv&(b)> {post; HF}"
+    and "not_in_fform w q"
+    and "not_in_dform w H"    
+    and "{pre} <(VL@[w]):(EL@[F])&&Inv&(b)> {post; HF}"
     and "let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
            in \<forall> s. p s \<longleftrightarrow> (\<exists> a. pre sa)"
+    and "let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
+           in \<forall> s. q s \<longleftrightarrow> (\<exists> a. post sa)"
     and "let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa t (y, i))) else h t)
            in \<forall>h n nd. H h n nd \<longleftrightarrow> (\<exists> xa. (HF ha n nd))"
-  shows "{p} <[v]:[E]&&Inv&(b)> {q; H}"
+  shows "{p} <VL:EL&&Inv&(b)> {q; H}"
   sorry
 (*
 proof -
