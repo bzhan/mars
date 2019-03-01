@@ -49,20 +49,22 @@ consts v0 :: real
 consts c :: real
 
 definition y :: exp where
-"y == RVar ''y''"
+"y == RVar ''pary''"
 
 definition x :: exp where
-"x == RVar ''x''"
+"x == RVar ''parx''"
 
 definition dy :: exp where
-"dy == RVar ''dy''"
+"dy == RVar ''pardy''"
 
 definition dx :: exp where
-"dx == RVar ''dx''"
+"dx == RVar ''pardx''"
 
 definition v :: exp where
-"v == RVar ''v''"
+"v == RVar ''parv''"
 
+definition a :: exp where
+"a == RVar ''para''"
 consts Inv :: fform
 
 definition pre1 :: fform where
@@ -89,42 +91,74 @@ definition Inv1 :: fform where
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
       [&]Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)"
 
+
+
 definition cons11 :: fform where
-"cons11 ==  (exeFlow(<[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
-
+"cons11 == pre1 [\<longrightarrow>] Inv"
 definition cons12 :: fform where
-"cons12 == pre1 [\<longrightarrow>] Inv"
-
-lemma allcons1: "\<forall>s. (cons12 [&] cons11 ) s"
-  apply (simp only: cons11_def cons12_def  x_def y_def v_def pre1_def )
-  by (inv_check_oracle "v > 0")
+"cons12 == Inv[&]close(x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>]post1"
+definition cons13 :: fform where
+"cons13 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
+lemma allcons1: "\<forall>s. (cons11[&]cons12 [&] cons13 ) s"
+  apply (simp add: cons11_def cons12_def cons13_def  x_def y_def v_def pre1_def post1_def)
+  by (inv_check_oracle "g > 0 & dy0 <= 0 & parv > 0 & parv^2 + 2*g*pary - 2*g*yG = 0 & dx0*pary - dy0*parx - dx0*c = 0 ")
 
 lemma linedown:"{pre1}
-             <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv1 & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
+             <[(''parx'', R),(''pary'',R),(''parv'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
               {post1;(elE 0 [[|]] (almost post1))}"
-    apply (rule ContinuousRuleGT )
+  apply (rule ContinuousRuleGT )
+  apply auto
    apply (simp add:fAnd_def )
-  apply (simp add:pre1_def post1_def fAnd_def fImp_def)
+       apply (simp add:pre1_def post1_def fAnd_def fImp_def)
+      apply (cut_tac allcons1)
+      apply (simp add:fAnd_def cons11_def fImp_def)
+       apply (subgoal_tac "\<forall>s. cons12 s")
+      apply (simp add: cons12_def fImp_def)
+      apply (simp add:fAnd_def)
+     apply (cut_tac allcons1)
+     apply (simp add:fAnd_def)
+    apply (cut_tac allcons1)
+    apply (simp add:fAnd_def cons13_def fImp_def )
+   apply (simp add:dOr_def)
+  apply (subgoal_tac "\<forall>s. cons12 s")
+   apply (simp add: cons12_def fImp_def dOr_def)
+   apply (simp add: almost_def)
+apply (cut_tac allcons1)
+     apply (simp add:fAnd_def)
+  done
+
+
+
 definition pre2 :: fform where
 "pre2 == (Con Real g[\<ge>] Con Real 0)
       [&](v[>]Con Real 0)
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
-      [&]((dy[\<ge>]Con Real 0 [&] x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0) 
+      [&] (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)
+      [&]((Con Real dy0[\<ge>]Con Real 0 [&] x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0) 
         [\<longrightarrow>](v[**]2[\<ge>]Con Real vLo [&] v[**]2[\<le>]Con Real vHi [&] Con Real (dyLo*g)[\<le>] Con Real (-dy0*g)[&]Con Real (-dy0*g)[\<le>]Con Real (dyHi*g)[&] Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)))
-      [&](dy[\<ge>]Con Real 0)
+      [&](Con Real dy0[\<ge>]Con Real 0)
       [&]((x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>](Con Real dx0[*]v[**]2[>]Con Real (2*dy0*g)[*](Con Real x1[-]x)))
       [&](Con Real x1[>]Con Real x0)
       [&](Con Real (dx0^2+dy0^2)[=]Con Real 1)
-      [&](Con Real dx0[>]Con Real 0)     "
+      [&](Con Real dx0[>]Con Real 0)
+      [&](v[*](a[**]2)[=]Con Real 1)     "
 
 definition post2 :: fform where
 "post2 == (v[>]Con Real 0)
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
       [&]x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0
-      [&]Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)"
+      [&]Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)
+      [&](v[*](a[**]2)[=]Con Real 1)"
+definition cons21 :: fform where
+"cons21 == pre2 [\<longrightarrow>] Inv"
+definition cons22 :: fform where
+"cons22 == Inv[&]close(x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>]post2"
+definition cons23 :: fform where
+"cons23 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),((Con Real (dy0*g*(1/2))[*]a)[div]v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
 
-definition Inv2 :: fform where
-"Inv2 == Inv"
+lemma allcons2: "\<forall>s. (cons21[&] cons23 ) s"
+  apply (simp add: cons21_def  cons23_def  x_def y_def v_def a_def pre2_def post2_def)
+by (inv_check_oracle "parv*para^2  - 1 = 0")
 
 lemma lineup:"{pre2}
              <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>

@@ -95,6 +95,7 @@ axiomatization close :: "fform \<Rightarrow> fform" where
   Lessc[simp]: "close (e [<] f) = (e [\<le>] f)" and
   Greatc[simp]: "close (e [>] f) = (e [\<ge>] f)" and
   Equalc[simp]: "close (e [=] f) = (e [=] f)" and
+  LessEqual[simp]: "close (e [\<le>] f) = (e [\<le>] f)" and
   GreatEqual[simp] : "close (e [\<ge>] f) = (e [\<ge>] f)" and
   Andc[simp]: "close (P [&] Q) = (close (P) [&] close (Q))" and
   Orc[simp]: "close (P [|] Q) = (close (P) [|] close (Q))" and
