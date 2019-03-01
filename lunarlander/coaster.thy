@@ -154,7 +154,7 @@ definition cons21 :: fform where
 definition cons22 :: fform where
 "cons22 == Inv[&]close(x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>]post2"
 definition cons23 :: fform where
-"cons23 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),((((Con Real (dy0)[*]Con Real g)[div]Con Real 2)[*]a)[div]v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
+"cons23 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),(Con Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
 
 lemma allcons2: "\<forall>s. (cons21[&] cons23 ) s"
   apply (simp add: cons21_def  cons23_def  x_def y_def v_def a_def pre2_def post2_def)

@@ -16,6 +16,8 @@ fun trans_real ctxt t =
     "(-" ^ trans_real ctxt u ^ ")"
   | Const (@{const_name times}, _) $ u $ v =>
     "(" ^ trans_real ctxt u ^ ")*(" ^ trans_real ctxt v ^ ")"
+  | Const (@{const_name divide}, _) $ u $ v =>
+    "(" ^ trans_real ctxt u ^ ")/(" ^ trans_real ctxt v ^ ")"
   | Const (@{const_name power}, _) $ u $ v =>
     "(" ^ trans_real ctxt u ^ ")^(" ^ trans_real ctxt v ^ ")"
   | _ =>
