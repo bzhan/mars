@@ -13,4 +13,4 @@ def is_precond_constraint(constraint):
 
 def is_postcond_constraint(constraint):
     return not is_ode_constraint(constraint) and \
-           len(constraint['from']) == 1 and constraint['from'][0] == 'Inv'
+            constraint['from'][0] == 'Inv'

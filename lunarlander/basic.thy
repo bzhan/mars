@@ -200,7 +200,7 @@ lemma ODE1:
   by (metis (no_types, lifting) almostmono)
 
 ML{*
-trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
+trans_goal @{context} @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 1 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 1) [&]
          (exeFlow (<[(''parx'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
          s"} |> writeln
 *}
@@ -222,7 +222,7 @@ lemma ODE2:"{x [\<ge>] Con Real 0 [&] y [\<ge>] Con Real 0 [&] z [\<ge>] Con Rea
 
 
 ML {*
-trans_goal @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
+trans_goal @{context} @{term " \<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [&] RVar ''pary'' [\<ge>] Con Real 0 [&] RVar ''parz'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&]
          (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''parx'', R), (''pary'', R)]:[RVar ''pary'', RVar ''parz'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))
          s"} |> writeln
@@ -263,7 +263,7 @@ lemma ODE3:"{x [\<ge>] Con Real 0 }
   done
 
 ML{*
-trans_goal @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
+trans_goal @{context} @{term "\<forall>s. ((RVar ''parx'' [\<ge>] Con Real 0 [\<longrightarrow>] Inv) [&] (Inv [\<longrightarrow>] RVar ''parx'' [\<ge>] Con Real 0) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 5]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[Con Real 2]&&Inv&fTrue>) Inv [\<longrightarrow>] Inv) [&]
          (exeFlow (<[(''x'', R)]:[RVar ''parx'']&&Inv&fTrue>) Inv [\<longrightarrow>] Inv))

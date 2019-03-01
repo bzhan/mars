@@ -18,10 +18,14 @@ def str_of_cond(cond):
             return "(%s < %s)" % (cond['lhs'], cond['rhs'])
         elif cond['ty'] == 'eq':
             return "(%s = %s)" % (cond['lhs'], cond['rhs'])
+        elif cond['ty'] == 'implies':
+            return "((not (%s)) or (%s))" % (str_of_conds(cond['from']), str_of_conds(cond['to']))
         else:
             raise NotImplementedError
     elif cond == "Inv":
         return "(inv)"
+    elif cond.strip() == "True":
+        return "(true)"
     else:
         raise NotImplementedError
 
@@ -62,10 +66,10 @@ def process_data(spdvars, str_inv, constraints):
         domain = constraint['from'][0]['domain']
 
         # Only consider domain of size 1 so far.
-        if len(domain) > 1:
-            raise NotImplementedError
-        domain = domain[0].strip()
-
+        
+        domain = str_of_conds(domain)
+            
+              
         str_ds = ["d%s%d := %s;" % (var, num_ode, diff) for var, diff in zip(vars, diffs)]
         defs.extend(str_ds)
         stepinv = " "
