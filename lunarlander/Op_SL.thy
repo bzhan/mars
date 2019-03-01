@@ -5,13 +5,14 @@ theory Op_SL
 begin
 
 text \<open>Five kinds of events for HCSP processes\<close>
-datatype event = Tau | In cname val | Out cname val | IO cname val | Delay time
+datatype event = Tau | In cname real | Out cname real | IO cname real | Delay time
 type_synonym now = real
 
 text \<open>Continuous evolution\<close>
 
+datatype flow = Flow "string list" "exp list"
 text \<open>Explicit solution\<close>
-consts Solution :: "proc \<Rightarrow> state \<Rightarrow> real \<Rightarrow> val"
+consts Solution :: "flow \<Rightarrow> state \<Rightarrow> real \<Rightarrow> real"
 
 consts evalP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> event * proc * now * history"
 consts evalPP :: "procP \<Rightarrow> now \<Rightarrow> history \<Rightarrow> history \<Rightarrow> event * procP * now * history * history"
@@ -23,8 +24,8 @@ text \<open>Auxiliary functions needed to be introduced first.\<close>
 
 primrec compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
   "compat Tau ev = False"
-| "compat (In ch val) ev = (if ev = Out ch val then True else False)"
-| "compat (Out ch val) ev = (if ev = In ch val then True else False)"
+| "compat (In ch val) ev = (if ev = (Out ch val) then True else False)"
+| "compat (Out ch val) ev = (if ev = (In ch val) then True else False)"
 | "compat (IO ch val) ev = False"
 | "compat (Delay d) ev = False"
 
@@ -60,22 +61,18 @@ text \<open>Small step semantics for HCSP.\<close>
 inductive semP :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> (event * proc * now * history) \<Rightarrow> bool" where
   skip: "semP Skip now f (Tau, Skip, now, f)"
 | assignR: "semP ((RVar x) := e) now f
-    (Tau, Skip, now, (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x \<and> i=R then evalE e (f t) else f t (y, i)) else f t))"
-| assignS: "semP ((SVar x) := e) now f
-    (Tau, Skip, now, (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x & i=S then evalE e (f t) else f t (y, i)) else f t))"
-| assignB: "semP ((BVar x) := e) now f
-    (Tau, Skip, now, (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x & i=B then evalE e (f t) else f t (y, i)) else f t))"
+    (Tau, Skip, now, (\<lambda>t. if t = now then (\<lambda>y. if y=x  then evalE e (f t) else f t y) else f t))"
 | continuousF: "([\<not>]b) (f now) \<Longrightarrow>
     semP (<[s]:E&&Inv&b>) now f (Tau, Skip, now, f)"
 | continuousT: "d\<ge>0 \<Longrightarrow>
        let f' = (\<lambda>t. if t \<le> now+d \<and> t > now then
-                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (<[s]:E&&Inv&b>) (f now) (t-now) else f now (y, i))
+                       (\<lambda>y. if y= s  then Solution (Flow [s] E) (f now) (t-now) else f now y)
                      else f t)
        in \<forall>m. m \<le> now+d \<and> m \<ge> now \<longrightarrow> b (f' m) \<Longrightarrow>
     semP (<[s]:E&&Inv&b>) now f
       (Delay d, <[s]:E&&Inv&b>, now+d,
        (\<lambda>t. if t \<le> now+d \<and> t > now then
-              (\<lambda>(y, i). if y=fst s \<and> i=snd s then Solution (<[s]:E&&Inv&b>) (f now) (t-now) else f now (y, i))
+              (\<lambda>y. if y=s  then Solution (Flow [s] E) (f now) (t-now) else f now y)
             else f t))"
 | sequenceL: "semP P now f (ev, P', now', f') \<and> P'\<noteq>Skip \<Longrightarrow>
               semP (P; Q) now f (ev, P';Q, now', f')"
@@ -119,20 +116,16 @@ text \<open>Big-step semantics\<close>
 inductive semB :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> now \<Rightarrow> history \<Rightarrow> bool" where
   skipB: "semB Skip now f now f"
 | assignBR: "semB ((RVar x) := e) now f 
-    now (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x \<and> i=R then evalE e (f t) else f t (y, i)) else f t)"
-| assignBS: "semB ((SVar x) := e) now f
-    now (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x \<and> i=S then evalE e (f t) else f t (y, i)) else f t)"
-| assignBB: "semB ((BVar x) := e) now f
-    now (\<lambda>t. if t = now then (\<lambda>(y, i). if y=x \<and> i=B then evalE e (f t) else f t (y, i)) else f t)"
+    now (\<lambda>t. if t = now then (\<lambda>y. if y=x  then evalE e (f t) else f t y) else f t)"
 | continuousBF: "([\<not>]b) (f now) \<Longrightarrow> semB (<[s]:E&&Inv&b>) now f now f"
 | continuousBT: "d>0 \<Longrightarrow> 
        let f' = (\<lambda>t. if t \<le> now+d \<and> t > now then
-                       (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (<[s]:E&&Inv&b>) (f now) (t-now)) else f now (y, i))
+                       (\<lambda>y. if y= s then (Solution (Flow [s] E) (f now) (t-now)) else f now y)
                      else f t)
        in (\<forall>m. m < now+d \<and> m \<ge> now \<longrightarrow> b (f' m)) \<and> ([\<not>]b) (f' (now+d)) \<Longrightarrow>
     semB (<[s]:E&&Inv&b>) now f (now+d)
       (\<lambda>t. if t \<le> now+d \<and> t > now then
-             (\<lambda>(y, i). if y=fst s \<and> i=snd s then (Solution (<[s]:E&&Inv&b>) (f now) (t-now)) else f now (y, i))
+             (\<lambda>y. if y=s then (Solution (Flow [s] E) (f now) (t-now)) else f now y)
            else f t)"
 | sequenceB: "semB P now f now' f' \<and> semB Q now' f' now'' f'' \<Longrightarrow> semB (P; Q) now f now'' f''"
 | conditionBT: " b (f now) \<Longrightarrow> semB P now f now_d f_d \<Longrightarrow> semB (IF b P) now f now_d f_d"
@@ -148,9 +141,9 @@ inductive semB :: "proc \<Rightarrow> now \<Rightarrow> history \<Rightarrow> no
 | outputBC: "d\<ge>0 \<Longrightarrow> semB (Cm (ch!!e)) now f (now+d) (\<lambda>t. if t \<le> now+d \<and> t > now then f now else f t)"
 | inputBC: "d\<ge>0 \<Longrightarrow> semB (Cm (ch??(RVar x))) now f (now + d)
             (\<lambda>t. if t < now+d \<and> t > now then f now
-                 else if t = now+d then \<lambda>(y, i). if y=x \<and> i=R then c else f now (y, i)
+                 else if t = now+d then \<lambda>y. if y=x \<and> i=R then c else f now y
                  else f t)"
- 
+
 text \<open>There are four cases for semantics of parallel composition.\<close>
 inductive semBP :: "procP \<Rightarrow> now \<Rightarrow> history \<Rightarrow> now \<Rightarrow> history \<Rightarrow> now \<Rightarrow> history \<Rightarrow> now \<Rightarrow> history \<Rightarrow> bool" where
   parallelB1: "semB P nowp fp nowp' fp' \<Longrightarrow> semB Q nowq fq nowq' fq' \<Longrightarrow> chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
@@ -177,8 +170,6 @@ inductive semBP :: "procP \<Rightarrow> now \<Rightarrow> history \<Rightarrow> 
 inductive_cases [elim!]:
   "semB Skip now f now' f'"
   "semB ((RVar x) := e) now f now' f'"
-  "semB ((SVar x) := e) now f now' f'"
-  "semB ((BVar x) := e) now f now' f'"
   "semB (P; Q) now f now' f'"
   "semB (IF be P) now f  now' f'"
   "semB (IFELSE be P Q) now f now' f'"
@@ -250,5 +241,5 @@ lemma semB3:
    chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
    semB P nowp fp nowp' fp' \<and> semB Q nowq fq nowq' fq'"
   by (induct rule: semBP.cases; simp add: chanset_def)
-
+*)
 end
