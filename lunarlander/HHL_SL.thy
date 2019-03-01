@@ -258,7 +258,7 @@ lemma GhostRule :
     and "{pre} <[v, w]:[E, F]&&Inv&(b)> {post; HF}"
     and "let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
            in \<forall> s. (Init [&] p) s \<longleftrightarrow> (\<exists> a. pre sa)"
-    and "let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa (y, i))) else h t)
+    and "let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa t (y, i))) else h t)
            in \<forall>h n nd. H h n nd \<longleftrightarrow> (\<exists> xa. (HF ha n nd))"
   shows "{Init [&] (p::fform)} <[v]:[E]&&Inv&(b)> {q; H}"
   sorry
