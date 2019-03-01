@@ -141,25 +141,38 @@ definition pre2 :: fform where
       [&](Con Real x1[>]Con Real x0)
       [&](Con Real (dx0^2+dy0^2)[=]Con Real 1)
       [&](Con Real dx0[>]Con Real 0)
-      [&](v[*](a[**]2)[=]Con Real 1)     "
+          "
 
 definition post2 :: fform where
 "post2 == (v[>]Con Real 0)
       [&](v[**]2 [+] Con Real (2*g) [*] y [=]Con Real (2*g*yG))
       [&]x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0
       [&]Con Real dx0[*]y [=] Con Real dy0[*]x [+] Con Real (dx0*c)
-      [&](v[*](a[**]2)[=]Con Real 1)"
+      "
 definition cons21 :: fform where
-"cons21 == pre2 [\<longrightarrow>] Inv"
+"cons21 == pre2[&](v[*](a[**]2)[=]Con Real 1) [\<longrightarrow>] Inv"
 definition cons22 :: fform where
-"cons22 == Inv[&]close(x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>]post2"
+"cons22 == Inv[&]close(x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)[\<longrightarrow>]post2[&](v[*](a[**]2)[=]Con Real 1) "
 definition cons23 :: fform where
 "cons23 ==  (exeFlow(<[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),(Con Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>) (Inv)  [\<longrightarrow>]  Inv )"
 
 lemma allcons2: "\<forall>s. (cons21[&]cons22[&] cons23 ) s"
   apply (simp add: cons21_def cons22_def cons23_def  x_def y_def v_def a_def pre2_def post2_def)
 by (inv_check_oracle "parv*para^2 - 1 = 0 & v^2 + 2*g*y - 2*g*yG = 0 & v > 0 & dx0*y - dy0*x -dx0*c = 0")
-
+lemma lineuple:"{pre2[&](v[*](a[**]2)[=]Con Real 1)}
+              <[(''parx'', R),(''pary'',R),(''parv'',R),(''para'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g)),(Con Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
+              {post2[&](v[*](a[**]2)[=]Con Real 1);(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Con Real 1))}"
+  sorry
+lemma lineup:"{pre2}
+              <[(''parx'', R),(''pary'',R),(''parv'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
+              {post2;(elE 0)[[|]]almost post2}"
+  apply (rule GhostRule[where w="(''para'',R)"
+                          and F="(Con Real (dy0 * g/2) [*] a [div] v)"
+                          and pre="pre2[&](v[*](a[**]2)[=]Con Real 1)"
+                          and post="post2[&](v[*](a[**]2)[=]Con Real 1)"
+                          and HF="(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Con Real 1))"])
+         apply auto
+  apply(simp add:pre2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def)
 lemma lineup:"{pre2}
              <[(''x'', R),(''y'',R),(''v'',R)]: [(v[*]Con Real dx0),(v[*]Con Real dy0),(Con Real (-dy0*g))] && Inv & (x[\<le>]Con Real x1 [&] x[\<ge>]Con Real x0 [&] y[\<le>] Con Real y1 [&] y[\<ge>] Con Real y0)>
               {post2;(elE 0 [[|]] (almost post2))}"
