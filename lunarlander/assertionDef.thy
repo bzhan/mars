@@ -13,6 +13,6 @@ definition Inv2 :: fform where
 
 (*The loop invariants can be deduced easily from the goal we need to prove. *)
 definition Inv3 :: fform where
-"Inv3 == Inv [&] RVar ''plant_t''[=]Con Real 0 [&] RVar ''plant_t''[\<le>]Con Real (16 / 125)"
+"Inv3 == Inv [&] RVar ''plant_t''[=] Real 0 [&] RVar ''plant_t''[\<le>] Real (16 / 125)"
 
 end
