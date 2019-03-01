@@ -33,6 +33,7 @@ fun trans_nat ctxt t = Syntax.pretty_term ctxt t
 
 fun trans_string t = HOLogic.dest_string t;
 
+(*
 fun trans_val ctxt t =
   let
     fun trans t =
@@ -54,7 +55,7 @@ fun trans_val ctxt t =
         | _ => error "inacceptable term: trans_val")
   in Buffer.content (trans t Buffer.empty) 
 end
-
+*)
 
 fun trans_exp ctxt t =
   let
@@ -93,14 +94,10 @@ fun trans_exp ctxt t =
 
         | @{term "Syntax_SL.exp.RVar :: string \<Rightarrow> exp"} $ t =>
           Buffer.add (trans_string t)
-        | @{term "Syntax_SL.exp.SVar :: string \<Rightarrow> exp"} $ t =>
-          Buffer.add (trans_string t)
-        | @{term "Syntax_SL.exp.BVar :: string \<Rightarrow> exp"} $ t =>
-          Buffer.add (trans_string t)
-
-        | @{term "Syntax_SL.exp.Con :: val \<Rightarrow> exp"} $ t =>
+       
+        | @{term "Syntax_SL.exp.Real :: real \<Rightarrow> exp"} $ t =>
           Buffer.add "(" #>
-          Buffer.add (trans_val ctxt t) #>
+          Buffer.add (trans_real ctxt t) #>
           Buffer.add ")"
         | _ =>
         let
@@ -112,6 +109,7 @@ fun trans_exp ctxt t =
     in Buffer.content (trans t Buffer.empty) 
 end
 
+(*
 fun trans_pair t =
   let
     fun trans t =
@@ -121,12 +119,13 @@ fun trans_pair t =
       | _ => error "inacceptable term (trans_pair)")
   in Buffer.content (trans t Buffer.empty) 
 end
+*)
 
 fun add_quote s =
   if String.isPrefix "{" s then s else "\"" ^ s ^ "\""
 
-fun trans_pair_list t =
-  "[" ^ Library.commas (map (add_quote o trans_pair) (HOLogic.dest_list t)) ^ "]"
+fun trans_string_list t =
+  "[" ^ Library.commas (map (add_quote o trans_string) (HOLogic.dest_list t)) ^ "]"
 
 fun trans_exp_list ctxt t =
   "[" ^ Library.commas (map (add_quote o trans_exp ctxt) (HOLogic.dest_list t)) ^ "]"
@@ -199,7 +198,7 @@ fun trans_fform ctxt t =
         in
         Buffer.add "{" #>
         Buffer.add "\"ty\":" #> Buffer.add "\"ode\"" #> Buffer.add "," #>
-        Buffer.add "\"vars\":" #> Buffer.add (trans_pair_list t) #> Buffer.add "," #>
+        Buffer.add "\"vars\":" #> Buffer.add (trans_string_list t) #> Buffer.add "," #>
         Buffer.add "\"diffs\":" #> Buffer.add (trans_exp_list ctxt u) #> Buffer.add "," #>
         Buffer.add "\"domain\":" #> Buffer.add (trans_fform_list ctxt (strip_fAnd v)) #> Buffer.add "," #>
         Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform ctxt v')) #>
@@ -263,14 +262,9 @@ val ctxt = @{context};
 trans_real ctxt @{term "0.128::real"};
 trans_real ctxt @{term "3::real"};
 trans_string @{term "''abc''"};
-trans_val ctxt @{term "Real 0.123"};
-trans_val ctxt @{term "String ''abc''"};
-trans_val ctxt @{term "Bool (n::bool)"};
-trans_exp ctxt @{term "Con Real 3"};
-trans_exp ctxt @{term "Con Real 3 [+] RVar ''x''"};
-trans_pair @{term "(''u'', R)"};
-trans_pair_list @{term "[(''u'', R), (''v'', S)]"};
-trans_exp_list ctxt @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
+trans_exp ctxt @{term "Real 3"};
+trans_exp ctxt @{term "Real 3 [+] RVar ''x''"};
+trans_exp_list ctxt @{term "[Real 3, RVar ''x'', Real 3 [+] RVar ''x'']"};
 trans_fform ctxt @{term "fTrue"};
 *}
 

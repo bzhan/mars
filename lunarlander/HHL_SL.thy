@@ -117,7 +117,7 @@ lemma SkipRule : "\<forall> s h now now'. (p s \<longrightarrow> q s) \<and> ((e
 by (auto simp add:Valid_def)
  
 (*Assignment rule*)
-lemma AssignRRule  :" (\<forall> s. p s \<longrightarrow> (q (%(y, i). if (y=x\<and>i=R) then (evalE f s) else s(y, i))))
+lemma AssignRRule  :" (\<forall> s. p s \<longrightarrow> (q (% y. if (y = x) then (evalE f s) else s y)))
                    \<and> (\<forall> h now now'. ((elE 0) h now now'\<longrightarrow> H h now now')) ==>
        {p} ((RVar x) := f) {q; H}"
 apply (simp add:Valid_def, auto)
@@ -136,11 +136,8 @@ apply metis
 apply (rule conjI)
 apply (cut_tac P = "Q" and now = now'a and  now'=now' and f = "f'" and f' = "h'" in sem1, simp)
 apply metis
-apply (rule DC)
 apply (cut_tac P = "P" and now = now and  now'=now'a and f = "h" and f' = "f'" in sem1, simp)
-apply metis
-apply (subgoal_tac "\<forall>t. t < now'a \<or> t>now' \<longrightarrow> f' t = h' t")
-apply metis
+apply (cut_tac df = H and now = now and now' = now'a and h = h' and h' = f' in DC, auto)
 apply (cut_tac P = Q in  sem2, auto)
 done
 
@@ -173,7 +170,7 @@ declare chop_def [simp del]
 (*This proof takes most effort for solving the invariant-related constraints, which will be passed to an 
 external oracle for invariant generation in fact. So don't worry.*)
 lemma ContinuousRule : 
-"\<forall> s u. ( ( \<forall> y i.(y, i) \<noteq> (fst (v), snd (v)) \<longrightarrow> s (y, i) = u (y, i)) \<longrightarrow> (p s) \<longrightarrow> (p u)) \<and>
+"\<forall> s u. ( ( \<forall> y. y \<noteq> v \<longrightarrow> s y = u y) \<longrightarrow> (p s) \<longrightarrow> (p u)) \<and>
  ( \<forall> s.  Init s \<longrightarrow>  Inv s)
  \<and> (\<forall> s.  (p [&] (Inv) [&] ([\<not>]b)) s \<longrightarrow> q s)
  \<and> (\<forall> s. (exeFlow (<[v]:E&&Inv&b>) (Inv)) s \<longrightarrow> Inv s)
@@ -187,40 +184,38 @@ apply (simp add:exeFlow_def)
 apply (metis fAnd_def)
 apply auto
 apply (metis fAnd_def)
-apply (subgoal_tac "(p [&] Inv) (\<lambda>(y, i). if y = fst v \<and> i = snd v 
- then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))")
+apply (subgoal_tac "(p [&] Inv) (\<lambda> y. if y = v then Solution (Flow [v] E) (h now) (now + d - now) else h now y)")
 apply (simp add:fAnd_def)+
 apply (rule conjI, auto)
-apply (subgoal_tac "\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) (y, i) = ((\<lambda>(y, i). if y = fst v \<and> i = snd v 
-   then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))) (y, i)")
- apply blast
-    
+apply (subgoal_tac "\<forall> y.  y \<noteq> v \<longrightarrow> (h(now)) y = ((\<lambda> y. if y = v 
+   then Solution (Flow [v] E) (h now) (now + d - now) else h now y)) y")
+apply smt     
 apply auto 
 apply (subgoal_tac "exeFlow (<[v]:E&&Inv&b>) (Inv)
-                    (\<lambda>(y, i). if y = fst v \<and> i = snd v 
-        then Solution (Flow [v] E) (h now) (now+d - now) else h now (y, i))")
+                    (\<lambda> y. if y =  v 
+        then Solution (Flow [v] E) (h now) (now+d - now) else h now y)")
 apply (metis (no_types, lifting))
 apply (drule_tac x = "now +d" in spec, auto)
 apply (subgoal_tac "almost (Inv [&] p [&] b) 
-(\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda>(y, i). if y = fst v \<and> i = snd v 
-then Solution (Flow [v] E) (h now) (t - now) else h now (y, i) else h t) now (now+d)", auto)
+(\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda> y. if y = v 
+then Solution (Flow [v] E) (h now) (t - now) else h now y else h t) now (now+d)", auto)
 apply (rule almostint, auto)
 apply (simp add:fAnd_def)
 apply (rule conjI)
 apply (subgoal_tac "exeFlow (<[v]:E&&Inv&b>) (Inv)
-                    (\<lambda>(y, i). if y = fst v \<and> i = snd v 
-        then Solution (Flow [v] E) (h now) (t - now) else h now (y, i))")
+                    (\<lambda> y. if y = v 
+        then Solution (Flow [v] E) (h now) (t - now) else h now y)")
 apply (metis (no_types, lifting)) 
 apply (drule_tac x = "t" in spec, auto)
-apply (subgoal_tac "\<forall> y i. (y, i) \<noteq> v \<longrightarrow> (h(now)) (y, i) = ((\<lambda>(y, i). if y = fst v \<and> i = snd v 
-   then Solution (Flow [v] E) (h now) (t - now) else h now (y, i))) (y, i)")
-apply blast
+apply (subgoal_tac "\<forall> y. y \<noteq> v \<longrightarrow> (h(now)) y = ((\<lambda> y. if y = v 
+   then Solution (Flow [v] E) (h now) (t - now) else h now y)) y")
+apply smt
 apply auto
 by (smt fAnd_def) 
 
 (*We simple extend the above rule to the general case where the continuous are a list of variables not just one.
 The proof can be given in the same way.*)
-primrec notcontain :: "(string * typeid) \<Rightarrow> (string * typeid) list \<Rightarrow> bool" 
+primrec notcontain :: "string \<Rightarrow> string list \<Rightarrow> bool" 
 where
 "notcontain a ([]) = True" |
 "notcontain a (e # Elist) = (if a = e then False else (notcontain a Elist))"
@@ -240,12 +235,11 @@ axiomatization where ContinuousRuleGF:
 
 
 text \<open>Shallow definition: a variable does not affect the formula \<close>
-definition not_in_fform:: "(string * typeid) \<Rightarrow> fform \<Rightarrow> bool"  where
-  "not_in_fform w P = (\<forall> s u. ((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> s (y, i) = u (y, i)))
-  \<longrightarrow> ((P s \<longrightarrow> P u) \<and> (P u \<longrightarrow> P s)))"
+definition not_in_fform:: "string \<Rightarrow> fform \<Rightarrow> bool"  where
+  "not_in_fform w P = (\<forall> s u. ((\<forall> y. y \<noteq> w \<longrightarrow> s y = u y)) \<longrightarrow> ((P s \<longrightarrow> P u) \<and> (P u \<longrightarrow> P s)))"
 
-definition not_in_dform:: "(string * typeid) \<Rightarrow> dform \<Rightarrow> bool"  where
-  "not_in_dform w Q = (\<forall>h l n nd. ((\<forall> y i.(y, i) \<noteq> (fst (w), snd (w)) \<longrightarrow> (\<forall> t. t \<ge> n \<and> t \<le> nd \<longrightarrow> h(t) (y, i) = l(t) (y, i))))
+definition not_in_dform:: "string \<Rightarrow> dform \<Rightarrow> bool"  where
+  "not_in_dform w Q = (\<forall>h l n nd. ((\<forall> y. y \<noteq> w \<longrightarrow> (\<forall> t. t \<ge> n \<and> t \<le> nd \<longrightarrow> h(t) y = l(t) y)))
   \<longrightarrow> ((Q h n nd \<longrightarrow> Q l n nd) \<and> (Q l n nd \<longrightarrow> Q h n nd)))"
 
 text \<open>Ghost rule for continuous evolution\<close>
@@ -255,11 +249,9 @@ lemma GhostRule :
     and "not_in_fform w q"
     and "not_in_dform w H"    
     and "{pre} <(VL@[w]):(EL@[F])&&Inv&(b)> {post; HF}"
-    and " \<forall> s. \<exists> a. (let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
-           in p s \<longleftrightarrow>  pre sa)"
-    and "\<forall> s. \<exists> a. (let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
-           in  q s \<longleftrightarrow> post sa)"
-    and "\<forall>h n nd. \<exists> xa. (let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa t (y, i))) else h t)
+    and " \<forall> s. \<exists> a. (let sa = (\<lambda> y. (if y \<noteq> w then s y else a)) in p s \<longleftrightarrow>  pre sa)"
+    and "\<forall> s. \<exists> a. (let sa = (\<lambda> y. (if y \<noteq> w then s y else a)) in  q s \<longleftrightarrow> post sa)"
+    and "\<forall>h n nd. \<exists> xa. (let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda> y. (if y \<noteq> w then h t y else xa t y)) else h t)
            in  H h n nd \<longleftrightarrow> HF ha n nd)"
   shows "{p} <VL:EL&&Inv&(b)> {q; H}"
   sorry
@@ -328,10 +320,10 @@ proof (simp add:Valid_def, clarify)
     subgoal for d
     proof -
       assume a: "p (h now)" and b: "now' = now + d"  
-        and c: "h' = (\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (t - now) else h now (y, i) else h t)"
+        and c: "h' = (\<lambda>t. if t \<le> now + d \<and> now < t then \<lambda> y. if y = v then Solution (Flow [v] E) (h now) (t - now) else h now y else h t)"
         and d: "0 < d" and e: "\<forall>m. m < now + d \<and> now \<le> m \<longrightarrow>
-          b (if now < m then \<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (m - now) else h now (y, i) else h m)"
-        and f: "([\<not>]b) (\<lambda>(y, i). if y = fst v \<and> i = snd v then Solution (Flow [v] E) (h now) (now + d - now) else h now (y, i))"
+          b (if now < m then \<lambda> y. if y = v then Solution (Flow [v] E) (h now) (m - now) else h now y else h m)"
+        and f: "([\<not>]b) (\<lambda> y. if y = v then Solution (Flow [v] E) (h now) (now + d - now) else h now y)"
       show "semB (<[v]:E&&Inv&b [&] I>) now h now' h'"
       proof -
         have "semB (<[v]:E&&Inv&b>) now h (now + d) h'" 
@@ -359,24 +351,10 @@ qed
 
 (*There are three rules for parallel  composition, which covers all the cases.*)
 (*Parallel rule for the case without communication*)
-lemma Parallel_aux : 
-"  semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
-       \<forall>now h now' h'. semB P now h now' h' \<longrightarrow> pp (h now) \<longrightarrow> qp (h' now') \<and> Hp h' now now' \<Longrightarrow>
-       \<forall>now h now' h'. semB Q now h now' h' \<longrightarrow> pq (h now) \<longrightarrow> qq (h' now') \<and> Hq h' now now' \<Longrightarrow>
-       chanset P = {} \<Longrightarrow> chanset Q = {} \<Longrightarrow>
-       pp (fp nowp) \<Longrightarrow> pq (fq nowq) \<Longrightarrow> qp (fp' nowp') \<and> qq (fq' nowq') \<and> Hp fp' nowp nowp' \<and> Hq fq' nowq nowq'"
-apply (ind_cases " semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq'")
-apply metis
-apply (simp add:chanset_def)+
-done
- 
 lemma Parallel1Rule : "chanset P = {} \<and> chanset Q = {} \<Longrightarrow> {pp} P {qp; Hp} \<Longrightarrow> {pq} Q {qq; Hq}
                        \<Longrightarrow> {pp, pq} P||Q {qp, qq; Hp, Hq}"
 apply (clarsimp simp:Valid_def ValidP_def)
-apply (rule Parallel_aux)
-apply simp+
-done
-
+by (meson semB3)
 
 (*Parallel rule for the case with communication at the end.*)
 lemma Communication_aux: 
@@ -384,7 +362,7 @@ lemma Communication_aux:
     \<forall> nowp nowq fp fq nowp' nowq' fp' fq'.
           semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<longrightarrow>
           px (fp nowp) \<longrightarrow> py (fq nowq) \<longrightarrow> qx (fp' nowp') \<and> qy (fq' nowq') \<and> Hx fp' nowp nowp' \<and> Hy fq' nowq nowq' \<Longrightarrow>
-       \<forall>s. qx s \<longrightarrow> rx (\<lambda>(y, i). if y = x \<and> i = R then evalE e s else s (y, i)) \<Longrightarrow>
+       \<forall>s. qx s \<longrightarrow> rx (\<lambda> y. if y = x then evalE e s else s y) \<Longrightarrow>
        \<forall>s. qy s \<longrightarrow> ry s \<Longrightarrow>
        \<forall>h n m. (Hx[^](elE 0 [[|]]almost qx)) h n m \<longrightarrow> Gx h n m \<Longrightarrow>
        \<forall>h n m. (Hy[^](elE 0 [[|]]almost qy)) h n m \<longrightarrow> Gy h n m \<Longrightarrow>      
@@ -396,7 +374,7 @@ apply (subgoal_tac " qx (fp'a nowp'a) \<and> qy (fq'a nowq'a) \<and> Hx fp'a now
 prefer 2
 apply metis
 apply (rule conjI) 
-apply (subgoal_tac "fp' nowp' = (\<lambda>(y, i). if y = x \<and> i = R then evalE e (fp'a nowp'a) else (fp'a nowp'a) (y, i))", simp)
+apply (subgoal_tac "fp' nowp' = (\<lambda> y. if y = x then evalE e (fp'a nowp'a) else (fp'a nowp'a) y)", simp)
 apply (metis less_irrefl)
 apply (rule conjI)
 apply (metis max.cobounded1 max_def_raw not_less)
@@ -406,57 +384,28 @@ apply (subgoal_tac "(Hx[^](elE 0 [[|]] almost qx)) fp' nowp nowp'", simp)
 apply (subgoal_tac "Hx fp' nowp nowp'a",simp)
 prefer 2 
 apply (subgoal_tac "Hx fp'a nowp nowp'a = Hx fp' nowp nowp'a", simp)
-apply (rule DC)
-apply (metis semB1)
-apply (metis less_max_iff_disj less_not_sym)
-apply (simp add:chop_def)
-apply (rule_tac x = "nowp'a" in exI, simp)
-apply (rule conjI)
-apply (metis semB1)
-apply (simp add:dOr_def)
-apply (case_tac "max nowp'a nowq'a > nowp'a")
-prefer 2 apply (rule disjI1) 
-apply (metis less_eq_real_def max.cobounded1)
-apply (rule disjI2)
-apply (rule almostint, simp) 
-apply simp
+apply (smt DC semB1) 
+apply (smt almostint chop_def dOr_def semB1)
 (*to prove Gy, just copy the proof for Gx with a little adaption*)
 apply (subgoal_tac "(Hy[^](elE 0 [[|]] almost qy)) fq' nowq nowq'", simp)
 apply (subgoal_tac "Hy fq' nowq nowq'a",simp)
 prefer 2 
 apply (subgoal_tac "Hy fq'a nowq nowq'a = Hy fq' nowq nowq'a", simp)
-apply (rule DC)
-apply (metis semB1)
-apply (metis less_max_iff_disj less_not_sym)
-apply (simp add:chop_def)
-apply (rule_tac x = "nowq'a" in exI, simp)
-apply (rule conjI)
-apply (metis semB1)
-apply (simp add:dOr_def)
-apply (case_tac "max nowp'a nowq'a > nowq'a")
-prefer 2 
-apply (rule disjI1) 
-apply (metis less_eq_real_def max.cobounded2)
-apply (rule disjI2)
-apply (rule almostint, simp) 
-  apply (subgoal_tac "qy (fq'a nowq'a)")
-  apply auto[1]
-by metis
-
+apply (smt DC semB1)
+by (smt almostint chop_def dOr_def semB1)
 
 lemma CommunicationRule : 
   " ({px, py} (P || Q) {qx, qy; Hx, Hy}) \<Longrightarrow>  
-   (\<forall> s. qx s \<longrightarrow> (rx (%(y, i). if (y=x\<and>i=R) then (evalE e s) else s(y, i))))
+   (\<forall> s. qx s \<longrightarrow> (rx (% y. if (y=x) then (evalE e s) else s y)))
  \<and> (\<forall> s. qy s \<longrightarrow> ry s)
  \<and> (\<forall> h n m. (Hx[^](elE 0 [[|]]almost qx)) h n m \<longrightarrow> Gx h n m) \<and> 
    (\<forall> h n m. (Hy[^](elE 0 [[|]]almost qy)) h n m \<longrightarrow> Gy h n m)
   ==>
 {px, py} (P;Cm (ch??(RVar (x))))||(Q; (Cm (ch!!e))) {rx, ry; Gx, Gy}"
-apply (clarsimp simp:ValidP_def) 
-apply (rule Communication_aux)
-apply simp+ 
-done
-
+  apply (clarsimp simp:ValidP_def) 
+  apply (cut_tac P = P and Q = Q and ch = ch and px = px and py = py and rx = rx and ry = ry and
+    Gx = Gx and Gy = Gy in Communication_aux, auto)
+  done  
 
 (*Parallel rule for the case with non-communication process at the end.*)
 lemma Parallel2_aux : "semBP (P; U || Q; V) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
@@ -488,14 +437,10 @@ apply (unfold chop_def)
 apply (metis sem1 semB1)
 apply (metis sem1 semB1)
 apply (subgoal_tac "Hp fp'a nowp nowp'a = Hp fp' nowp nowp'a", simp)
-apply (rule DC)
-apply (metis semB1)
-apply (metis sem2)
-apply (subgoal_tac " Hq fq'a nowq nowq'a =  Hq fq' nowq nowq'a", simp)
-apply (rule DC)
-apply (metis semB1)
-apply (metis sem2)
-done
+apply (smt DC sem2 semB1) 
+apply (subgoal_tac " Hq fq'a nowq nowq'a =  Hq fq' nowq nowq'a", simp) 
+by (smt DC sem2 semB1)
+
 
 lemma Parallel2Rule : "{pp, pq} P||Q {qp, qq; Hp, Hq}  \<Longrightarrow> chanset P \<noteq> {} \<and> chanset Q \<noteq> {} \<Longrightarrow> 
                           {qp} U {qu; Hu} \<Longrightarrow> {qq} V {qv; Hv} \<Longrightarrow> chanset U = {} \<and> chanset V = {} 
@@ -531,9 +476,10 @@ lemma Repetition_aux: "semB (P* NUM N) now h now' h' \<Longrightarrow>
                      Inv (h now) \<Longrightarrow> Inv (h' now') \<and> (H [[|]] (\<lambda>h n nd. nd = n)) h' now now'"
 apply (simp add:dOr_def)
 apply (induction N arbitrary: now h now' h')
-   apply (rule Repetition_aux_1) apply simp+
-  apply (cut_tac P = P and N = N and now = now and h = h and h' = h' and Inv = Inv in Repetition_aux_2, auto)
-    done
+apply (cut_tac H = H and P = P and now = now and h = h and now' = now' and h' = h' in Repetition_aux_1) 
+apply simp+
+apply (cut_tac P = P and N = N and now = now and h = h and h' = h' and Inv = Inv in Repetition_aux_2, auto)
+done
 
 lemma RepetitionRule: "\<forall>h n m. (H[^]H) h n m \<longrightarrow> H h n m \<Longrightarrow> {I} P {I; H}  
                       ==>  {I} P*&&I {I; (H [[|]] (elE 0))} "

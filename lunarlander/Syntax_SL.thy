@@ -4,46 +4,28 @@ theory Syntax_SL
   imports Main HOL.Real
 begin
 
-text \<open>Constants\<close>
-datatype val = Real real     ("Real _" [76] 76)
-             | String string ("String _" [76] 76)
-             | Bool bool     ("Bool _" [76] 76)
-             | Err
-
-text \<open>Expressions of HCSP language. Rules for division still to be added.\<close>
-datatype exp = Con val ("Con _" [75] 75)
+text \<open>Expressions of HCSP language. \<close>
+datatype exp = Real real ("Real _" [75] 75)
              | RVar string   ("RVar _" [75] 75)
-             | SVar string   ("SVar _" [75] 75)
-             | BVar string   ("BVar _" [75] 75)
              | Add exp exp   (infixl "[+]" 70)
              | Sub exp exp   (infixl "[-]" 70)
              | Mul exp exp   (infixl "[*]" 71)
              | Div exp exp   (infixl "[div]" 71)
              | Pow exp nat   (infixl "[**]" 72)
 
-text \<open>Type declarations to be used in proc\<close>
-datatype typeid = R | S | B
-
+ 
 text \<open>States\<close>
-type_synonym state = "string * typeid \<Rightarrow> val"
+type_synonym state = "string  \<Rightarrow> real"
 
 text \<open>Evaluation of expressions\<close>
-primrec evalE :: "exp \<Rightarrow> state \<Rightarrow> val" where
-  "evalE (Con y) f = y"
-| "evalE (RVar (x)) f = f (x, R)"
-| "evalE (SVar (x)) f = f (x, S)"
-| "evalE (BVar (x)) f = f (x, B)"
-| "evalE (e1 [+] e2) f =
-   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x + y) | _ \<Rightarrow> Err) | _ => Err)"
-| "evalE (e1 [-] e2) f =
-   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x - y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
-| "evalE (e1 [*] e2) f =
-   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow> Real (x * y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
-| "evalE (e1 [div] e2) f =
-   (case evalE e1 f of Real x \<Rightarrow> (case evalE e2 f of Real y \<Rightarrow>
-      if y = 0 then Err else Real (x / y) | _ \<Rightarrow> Err) | _ \<Rightarrow> Err)"
-| "evalE (e1 [**] n) f =
-   (case evalE e1 f of Real x \<Rightarrow> Real (x ^ n) | _ \<Rightarrow> Err)"
+primrec evalE :: "exp \<Rightarrow> state \<Rightarrow> real" where
+  "evalE (Real y) f = y"
+| "evalE (RVar (x)) f = f x"
+| "evalE (e1 [+] e2) f = (evalE e1 f + evalE e2 f)"
+| "evalE (e1 [-] e2) f = (evalE e1 f - evalE e2 f)"
+| "evalE (e1 [*] e2) f = (evalE e1 f * evalE e2 f)"
+| "evalE (e1 [div] e2) f = (evalE e1 f / evalE e2 f)"
+| "evalE (e1 [**] n) f = (evalE e1 f  ^ n)"
 
 subsection \<open>FOL operators\<close>
 
@@ -56,9 +38,7 @@ definition fEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  (infixl "[=]" 
   "e [=] f \<equiv> \<lambda>s. evalE e s = evalE f s"
 
 definition fLess :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("(_/ [<] _)"  [51, 51] 50) where
-  "e [<] f \<equiv> \<lambda>s. (case evalE e s of
-      Real c \<Rightarrow> (case evalE f s of Real d \<Rightarrow> (c < d) | _ \<Rightarrow> False)
-    | _ \<Rightarrow> False)"
+  "e [<] f \<equiv> \<lambda>s. (evalE e s < evalE f s)"
 
 definition fAnd :: "fform \<Rightarrow> fform \<Rightarrow> fform"  (infixr "[&]" 35) where
   "P [&] Q \<equiv> \<lambda>s. P s \<and> Q s"
@@ -76,17 +56,15 @@ definition fLessEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"  ("(_/ [\<l
   "e [\<le>] f \<equiv> (e [=] f) [|] (e [<] f)"
 
 definition fGreaterEqual :: "exp \<Rightarrow> exp \<Rightarrow> fform"   ("(_/ [\<ge>] _)"  [51, 51] 50) where
-  "e [\<ge>] f \<equiv> \<lambda>s. (case evalE e s of
-      Real c \<Rightarrow> (case (evalE f s) of Real d \<Rightarrow> (c \<ge> d) | _ \<Rightarrow> False)
-    | _ \<Rightarrow> False)"
+  "e [\<ge>] f \<equiv> \<lambda>s. ((evalE e s \<ge> evalE f s))"
 
 definition fGreater :: "exp \<Rightarrow> exp \<Rightarrow> fform"   ("(_/ [>] _)"  [51, 51] 50) where
   "e [>] f == [\<not>](e [\<le>] f)"
 
 
 text \<open>Evaluate on state after assigning value of expression e to (a, b).\<close>
-definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> typeid \<Rightarrow> fform" ("_\<lbrakk>_,_,_\<rbrakk>" [71,71,71] 70) where
-  "P \<lbrakk>e, a, b\<rbrakk> \<equiv> (\<lambda>s. P (\<lambda> (x, r). if x = a \<and> r = b then evalE e s else s (x, r)))"
+definition fSubForm :: "fform \<Rightarrow> exp \<Rightarrow> string \<Rightarrow> fform" ("_\<lbrakk>_,_\<rbrakk>" [71,71] 70) where
+  "P \<lbrakk>e, a\<rbrakk> \<equiv> (\<lambda>s. P (\<lambda> x. if x = a then evalE e s else s x))"
 
 
 text \<open>The @{term close} operation extends the formula with the boundary,
@@ -130,7 +108,7 @@ datatype proc =
 | Rep proc fform          ("_*&&_" [91] 90)
 | RepN proc nat           ("_* NUM _" [91, 90] 90)
 \<comment> \<open>Continuous evolution is annotated with invariant.\<close>
-| Cont "(string * typeid) list" "exp list" fform fform  ("<_:_&&_&_>" [95,95,96] 94)
+| Cont "string list" "exp list" fform fform  ("<_:_&&_&_>" [95,95,96] 94)
 | Interp proc proc        ("_[[>_" [95,94] 94)
 
 text \<open>We assume parallel composition only occurs in the topmost level.\<close>
