@@ -255,12 +255,12 @@ lemma GhostRule :
     and "not_in_fform w q"
     and "not_in_dform w H"    
     and "{pre} <(VL@[w]):(EL@[F])&&Inv&(b)> {post; HF}"
-    and " \<forall> s.(let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
-           in p s \<longleftrightarrow> (\<exists> a. pre sa))"
-    and "\<forall> s. (let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
-           in  q s \<longleftrightarrow> (\<exists> a. post sa))"
-    and "\<forall>h n nd. (let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa t (y, i))) else h t)
-           in  H h n nd \<longleftrightarrow> (\<exists> xa. (HF ha n nd)))"
+    and " \<forall> s. \<exists> a. (let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
+           in p s \<longleftrightarrow>  pre sa)"
+    and "\<forall> s. \<exists> a. (let sa = (\<lambda> (y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then s (y, i) else a))
+           in  q s \<longleftrightarrow> post sa)"
+    and "\<forall>h n nd. \<exists> xa. (let ha = (\<lambda>t. if t \<le> nd \<and> n \<le> t then (\<lambda>(y, i). (if (y, i) \<noteq> (fst (w), snd (w)) then h t (y, i) else xa t (y, i))) else h t)
+           in  H h n nd \<longleftrightarrow> HF ha n nd)"
   shows "{p} <VL:EL&&Inv&(b)> {q; H}"
   sorry
 (*
