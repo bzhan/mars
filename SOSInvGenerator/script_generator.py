@@ -76,7 +76,12 @@ def process_data(spdvars, constraints):
 
         vars = constraint['from'][0]['vars']
         diffs = constraint['from'][0]['diffs']
-        domain = constraint['from'][0]['domain'].strip()
+        domain = constraint['from'][0]['domain']
+        
+        # Only consider domain of size 1 so far.
+        if len(domain) > 1:
+            raise NotImplementedError
+        domain = domain[0].strip()
 
         cur_flow_name = "flow" + str(num_flow)
         cur_dinv_name = "dinv" + str(num_flow)

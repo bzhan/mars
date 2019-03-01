@@ -6,25 +6,38 @@ declare [[ML_print_depth = 50]]
 
 ML {*
 
-fun trans_real t = Syntax.pretty_term @{context} t
+fun trans_real ctxt t =
+  case t of
+    Const (@{const_name plus}, _) $ u $ v =>
+    trans_real ctxt u ^ "+" ^ trans_real ctxt v
+  | Const (@{const_name minus}, _) $ u $ v =>
+    trans_real ctxt u ^ "-" ^ trans_real ctxt v
+  | Const (@{const_name uminus}, _) $ u =>
+    "(-" ^ trans_real ctxt u ^ ")"
+  | Const (@{const_name times}, _) $ u $ v =>
+    "(" ^ trans_real ctxt u ^ ")*(" ^ trans_real ctxt v ^ ")"
+  | Const (@{const_name power}, _) $ u $ v =>
+    "(" ^ trans_real ctxt u ^ ")^(" ^ trans_real ctxt v ^ ")"
+  | _ =>
+    Syntax.pretty_term ctxt t
   |> Pretty.string_of
   |> YXML.parse_body
-  |> XML.content_of;
+  |> XML.content_of |> space_explode " " |> split_last |> snd
 
-fun trans_nat t = Syntax.pretty_term @{context} t
+fun trans_nat ctxt t = Syntax.pretty_term ctxt t
   |> Pretty.string_of
-  |> YXML.parse_body
-  |> XML.content_of;
+  |> YXML.parse_body |> split_last |> snd |> single
+  |> XML.content_of |> space_explode " " |> split_last |> snd
 
 fun trans_string t = HOLogic.dest_string t;
 
-fun trans_val t =
+fun trans_val ctxt t =
   let
     fun trans t =
       (case t of
        @{term "Syntax_SL.val.Real :: real \<Rightarrow> val"} $ t =>
           Buffer.add "(" #>
-          Buffer.add (trans_real t) #>
+          Buffer.add (trans_real ctxt t) #>
           Buffer.add ")"
         | @{term "Syntax_SL.val.String :: string \<Rightarrow> val"} $ t =>
           Buffer.add "(" #>
@@ -41,7 +54,7 @@ fun trans_val t =
 end
 
 
-fun trans_exp t =
+fun trans_exp ctxt t =
   let
     fun trans t =
       (case t of
@@ -73,7 +86,7 @@ fun trans_exp t =
           Buffer.add " " #>
           trans t #>
           Buffer.add "^" #>
-          Buffer.add (trans_nat u) #> 
+          Buffer.add (trans_nat ctxt u) #> 
           Buffer.add " "
 
         | @{term "Syntax_SL.exp.RVar :: string \<Rightarrow> exp"} $ t =>
@@ -85,11 +98,12 @@ fun trans_exp t =
 
         | @{term "Syntax_SL.exp.Con :: val \<Rightarrow> exp"} $ t =>
           Buffer.add "(" #>
-          Buffer.add (trans_val t) #>
+          Buffer.add (trans_val ctxt t) #>
           Buffer.add ")"
         | _ =>
         let
-          val _ = Syntax.pretty_term @{context} t |> Pretty.string_of |> writeln
+          val _ = writeln "trans_exp"
+          val _ = Syntax.pretty_term ctxt t |> Pretty.string_of |> writeln
         in
           error "inacceptable term: trans_exp"
         end)
@@ -112,8 +126,8 @@ fun add_quote s =
 fun trans_pair_list t =
   "[" ^ Library.commas (map (add_quote o trans_pair) (HOLogic.dest_list t)) ^ "]"
 
-fun trans_exp_list t =
-  "[" ^ Library.commas (map (add_quote o trans_exp) (HOLogic.dest_list t)) ^ "]"
+fun trans_exp_list ctxt t =
+  "[" ^ Library.commas (map (add_quote o trans_exp ctxt) (HOLogic.dest_list t)) ^ "]"
 
 fun pair_to_json (k, v) =
   "\"" ^ k ^ "\":" ^ v
@@ -121,8 +135,17 @@ fun pair_to_json (k, v) =
 fun dict_to_json lst =
   "{" ^ commas (map pair_to_json lst) ^ "}"
 
-fun trans_fform t =
+fun strip_fAnd t =
+  case t of
+    Const (@{const_name fAnd}, _) $ v $ u =>
+      strip_fAnd v @ strip_fAnd u
+  | _ => [t]
+
+fun trans_fform ctxt t =
   let
+    val _ = writeln "trans_fform input"
+    val _ = Syntax.pretty_term ctxt t |> Pretty.string_of |> writeln
+
     fun trans t =
       (case t of
         Const (@{const_name fTrue}, _) =>
@@ -131,33 +154,35 @@ fun trans_fform t =
         Buffer.add " False "
       | Const (@{const_name fEqual}, _) $ t $ u =>
         Buffer.add (dict_to_json [("ty", "\"eq\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (@{const_name fLess}, _) $ t $ u =>
         Buffer.add (dict_to_json [("ty", "\"lt\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (@{const_name fGreater}, _) $ t $ u =>
         Buffer.add (dict_to_json [("ty", "\"gt\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (@{const_name fLessEqual}, _) $ t $ u =>
         Buffer.add (dict_to_json [("ty", "\"le\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (@{const_name fGreaterEqual}, _) $ t $ u =>
         Buffer.add (dict_to_json [("ty", "\"ge\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (@{const_name fNot}, _) $ (Const (@{const_name fEqual}, _) $ t $ u) =>
         Buffer.add (dict_to_json [("ty", "\"neq\""),
-          ("lhs", add_quote (trans_exp t)), ("rhs", add_quote (trans_exp u))])
+          ("lhs", add_quote (trans_exp ctxt t)), ("rhs", add_quote (trans_exp ctxt u))])
       | Const (c, @{typ fform}) =>
         if String.isSuffix "Inv" c then
           Buffer.add "Inv"
         else
           error ("unexpected constant " ^ c ^ ": trans_fform")
+      | Const (@{const_name fImp}, _) $ _ $ _ =>
+        Buffer.add (trans_single_goal ctxt t)
       | Const (@{const_name fSubForm}, _) $ t $ u $ v $ _ =>
         Buffer.add "{" #>
         Buffer.add "\"ty\":" #> Buffer.add "\"subst\"" #> Buffer.add "," #>
         Buffer.add "\"var\":\"" #> Buffer.add (trans_string v) #> Buffer.add "\"," #>
-        Buffer.add "\"expr\":\"" #> Buffer.add (trans_exp u) #> Buffer.add "\"," #>
-        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform t)) #>
+        Buffer.add "\"expr\":\"" #> Buffer.add (trans_exp ctxt u) #> Buffer.add "\"," #>
+        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform ctxt t)) #>
         Buffer.add "}"
       | @{term "Syntax_SL.close :: fform \<Rightarrow> fform"} $ t =>
         Buffer.add "close" #>
@@ -165,32 +190,33 @@ fun trans_fform t =
         trans t #>
         Buffer.add ")"
       | Const (@{const_name exeFlow}, _) $ (Const (@{const_name Cont}, _) $ t $ u $ _ $ v) $ v' =>
+        let
+          val _ = writeln "v"
+          val _ = Syntax.pretty_term ctxt v |> Pretty.string_of |> writeln
+          val _ = writeln (string_of_int (length (strip_fAnd v)))
+        in
         Buffer.add "{" #>
         Buffer.add "\"ty\":" #> Buffer.add "\"ode\"" #> Buffer.add "," #>
         Buffer.add "\"vars\":" #> Buffer.add (trans_pair_list t) #> Buffer.add "," #>
-        Buffer.add "\"diffs\":" #> Buffer.add (trans_exp_list u) #> Buffer.add "," #>
-        Buffer.add "\"domain\":" #> Buffer.add (add_quote (trans_fform v)) #> Buffer.add "," #>
-        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform v')) #>
+        Buffer.add "\"diffs\":" #> Buffer.add (trans_exp_list ctxt u) #> Buffer.add "," #>
+        Buffer.add "\"domain\":" #> Buffer.add (trans_fform_list ctxt (strip_fAnd v)) #> Buffer.add "," #>
+        Buffer.add "\"base\":" #> Buffer.add (add_quote (trans_fform ctxt v')) #>
         Buffer.add "}"
+        end
       | _ =>
         let
-          val _ = Syntax.pretty_term @{context} t |> Pretty.string_of |> writeln
+          val _ = writeln "trans_fform"
+          val _ = Syntax.pretty_term ctxt t |> Pretty.string_of |> writeln
         in
           error "inacceptable term: trans_fform"
         end)
   in Buffer.content (trans t Buffer.empty) 
 end
 
-fun strip_fAnd t =
-  case t of
-    Const (@{const_name fAnd}, _) $ v $ u =>
-      v :: strip_fAnd u
-  | _ => [t]
+and trans_fform_list ctxt ts =
+  "[" ^ Library.commas (map (add_quote o trans_fform ctxt) ts) ^ "]"
 
-fun trans_fform_list ts =
-  "[" ^ Library.commas (map (add_quote o trans_fform) ts) ^ "]"
-
-fun trans_single_goal t =
+and trans_single_goal ctxt t =
   case t of
     Const (@{const_name fImp}, _) $ t $ u =>
       let
@@ -199,8 +225,8 @@ fun trans_single_goal t =
       in
         dict_to_json [
           ("ty", "\"implies\""),
-          ("from", trans_fform_list froms),
-          ("to", trans_fform_list tos)]
+          ("from", trans_fform_list ctxt froms),
+          ("to", trans_fform_list ctxt tos)]
       end
   | _ => error "inacceptable term: single goal"
 
@@ -210,12 +236,12 @@ fun get_rvars t =
   | A $ B => Library.union (op =) (get_rvars A) (get_rvars B)
   | _ => []
 
-fun trans_goal t =
+fun trans_goal ctxt t =
   case t of
     Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
     dict_to_json [
       ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
-      ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
+      ("constraints", "[" ^ Library.commas (map (trans_single_goal ctxt) (strip_fAnd f)) ^ "]")
     ]
   | _ => error "inacceptable term: goal"
 
@@ -231,22 +257,23 @@ fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
 
 text \<open>Unit tests\<close>
 ML {*
-trans_real @{term "0.128::real"};
-trans_real @{term "3::real"};
+val ctxt = @{context};
+trans_real ctxt @{term "0.128::real"};
+trans_real ctxt @{term "3::real"};
 trans_string @{term "''abc''"};
-trans_val @{term "Real 0.123"};
-trans_val @{term "String ''abc''"};
-trans_val @{term "Bool (n::bool)"};
-trans_exp @{term "Con Real 3"};
-trans_exp @{term "Con Real 3 [+] RVar ''x''"};
+trans_val ctxt @{term "Real 0.123"};
+trans_val ctxt @{term "String ''abc''"};
+trans_val ctxt @{term "Bool (n::bool)"};
+trans_exp ctxt @{term "Con Real 3"};
+trans_exp ctxt @{term "Con Real 3 [+] RVar ''x''"};
 trans_pair @{term "(''u'', R)"};
 trans_pair_list @{term "[(''u'', R), (''v'', S)]"};
-trans_exp_list @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
-trans_fform @{term "fTrue"};
+trans_exp_list ctxt @{term "[Con Real 3, RVar ''x'', Con Real 3 [+] RVar ''x'']"};
+trans_fform ctxt @{term "fTrue"};
 *}
 
 ML {*
-fun trans_inv_check t inv =
+fun trans_inv_check ctxt t inv =
   (case HOLogic.dest_Trueprop t of
     Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
     let
@@ -255,7 +282,7 @@ fun trans_inv_check t inv =
       (dict_to_json [
         ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
         ("inv", add_quote inv),
-        ("constraints", "[" ^ Library.commas (map trans_single_goal (strip_fAnd f)) ^ "]")
+        ("constraints", "[" ^ Library.commas (map (trans_single_goal ctxt) (strip_fAnd f)) ^ "]")
       ], length goals)
     end
   | _ => error "inacceptable term: goal")
@@ -278,17 +305,25 @@ fun decide_check_inv p num_goal =
 *}
 
 oracle inv_oracle_SOS = {* fn ct =>
-  if decide_SOS (trans_goal (Thm.term_of ct))
-  then ct
-  else error "Proof failed." *}
+  let
+    val thy = Thm.theory_of_cterm ct
+    val ctxt = Proof_Context.init_global thy
+  in
+    if decide_SOS (trans_goal ctxt (Thm.term_of ct))
+    then ct
+    else error "Proof failed."
+  end
+*}
 
 oracle inv_check_oracle = {* fn ct =>
   let
+    val thy = Thm.theory_of_cterm ct
+    val ctxt = Proof_Context.init_global thy
     val cf = Thm.dest_arg1 ct
     val f = Thm.term_of cf
     val inv = Thm.term_of (Thm.dest_arg ct)
     val str_inv = HOLogic.dest_string inv
-    val (p, num_goal) = trans_inv_check f str_inv
+    val (p, num_goal) = trans_inv_check ctxt f str_inv
     val _ = writeln p
   in
     if decide_check_inv p num_goal
