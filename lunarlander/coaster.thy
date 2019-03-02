@@ -167,7 +167,26 @@ by (inv_check_oracle "parv*para^2 - 1 = 0 & parv^2 + 2*g*pary - 2*g*yG = 0 & par
 lemma lineuple:"{pre2[&](v[*](a[**]2)[=]Real 1)}
               <[''parx'', ''pary'', ''parv'', ''para'']: [(v[*]Real dx0),(v[*]Real dy0),(Real (-dy0*g)),(Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)>
               {post2[&](v[*](a[**]2)[=]Real 1);(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Real 1))}"
-  sorry
+  apply (rule ContinuousRuleGT )
+  apply auto
+ apply (simp add:fAnd_def )
+       apply (simp add:pre2_def post1_def fAnd_def fImp_def)
+ apply (cut_tac allcons2)
+      apply (simp add:fAnd_def cons21_def fImp_def)
+apply (subgoal_tac "\<forall>s. cons22 s")
+      apply (simp add: cons22_def fImp_def)
+      apply (simp add:fAnd_def)
+     apply (cut_tac allcons2)
+     apply (simp add:fAnd_def)
+apply (cut_tac allcons2)
+    apply (simp add:fAnd_def cons23_def fImp_def)
+  apply (simp add: dOr_def)
+ apply (subgoal_tac "\<forall>s. cons22 s")
+   apply (simp add: cons22_def fImp_def dOr_def)
+   apply (simp add: almost_def)
+apply (cut_tac allcons2)
+  apply (simp add:fAnd_def)
+  done
 lemma lineup:"{pre2}
               <[''parx'', ''pary'', ''parv'']: [(v[*]Real dx0),(v[*]Real dy0),(Real (-dy0*g))] && Inv & (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)>
               {post2;(elE 0)[[|]]almost post2}"
