@@ -172,11 +172,77 @@ lemma lineup:"{pre2}
                           and post="post2[&](v[*](a[**]2)[=]Real 1)"
                           and HF="(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Real 1))"])
          apply auto
-  apply(simp add:pre2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def)
-  sorry
-
-
-
+  apply(simp add:pre2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+   apply(simp add:post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def) 
+  apply(simp add:dOr_def post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_dform_def x_def y_def v_def almost_def)
+  apply(subgoal_tac "{pre2[&](v[*](a[**]2)[=]Real 1)}
+              <[''parx'', ''pary'', ''parv'', ''para'']: [(v[*]Real dx0),(v[*]Real dy0),(Real (-dy0*g)),(Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)>
+              {post2[&](v[*](a[**]2)[=]Real 1);(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Real 1))}")
+  apply(simp add: dOr_def)
+     apply (rule lineuple)
+  subgoal for s
+  proof -
+    have not_a: "not_in_fform ''para'' pre2"
+      by (simp add:pre2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+    have eq: "pre2 (\<lambda>y. if y \<noteq> ''para'' then s y else 1 / sqrt (evalE v s)) \<longleftrightarrow> pre2 s"
+      by (simp add: not_in_fform_update[OF not_a])
+    show ?thesis
+      apply (rule exI[where x="1/sqrt(evalE v s)"])
+      apply (auto simp add: eq fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def  x_def y_def v_def a_def)
+    proof -
+      assume "pre2 s"
+      then have "s ''parv'' > 0"
+        unfolding pre2_def fAnd_def fGreater_def fLessEqual_def fOr_def fEqual_def fLess_def fNot_def
+        v_def evalE.simps by auto
+      then show "s ''parv'' * (1 / sqrt (s ''parv''))\<^sup>2 = 1"
+        by (smt divide_cancel_right nonzero_mult_div_cancel_left one_power2 power_divide
+                real_sqrt_pow2)
+    qed
+  qed
+   subgoal for s
+   proof -
+     have not_a: "not_in_fform ''para'' post2"
+       by(simp add:post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+     have eq: "post2 (\<lambda>y. if y \<noteq> ''para'' then s y else 1 / sqrt (evalE v s)) \<longleftrightarrow> post2 s"
+      by (simp add: not_in_fform_update[OF not_a])
+    show ?thesis
+      apply (rule exI[where x="1/sqrt(evalE v s)"])
+      apply (auto simp add: eq fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def  x_def y_def v_def a_def)
+    proof -
+      assume "post2 s"
+      then have "s ''parv'' > 0"
+        unfolding post2_def fAnd_def fGreater_def fLessEqual_def fOr_def fEqual_def fLess_def fNot_def
+        v_def evalE.simps by auto
+      then show "s ''parv'' * (1 / sqrt (s ''parv''))\<^sup>2 = 1"
+        by (smt divide_cancel_right nonzero_mult_div_cancel_left one_power2 power_divide
+                real_sqrt_pow2)
+    qed
+  qed
+  subgoal for h n d
+    apply(simp add:dOr_def almost_def fAnd_def a_def v_def)
+    apply (case_tac "n=d")
+    apply auto
+    apply (case_tac "n>d")
+     apply auto
+    apply (case_tac "n<d")
+     apply auto
+    apply (rule exI[where x="\<lambda>t y. 1/sqrt(evalE v (h t))"])
+    apply auto
+      apply (subgoal_tac "not_in_fform ''para'' post2")
+       apply(simp add:not_in_fform_def)
+       apply smt
+    apply(simp add:post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+     apply(subgoal_tac"(h t ''parv'') > 0")
+      apply(simp add:fEqual_def v_def)
+    apply (simp add: power_divide)
+     apply(simp add:post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+    apply auto
+    apply (subgoal_tac "not_in_fform ''para'' post2")
+       apply(simp add:not_in_fform_def)
+       apply smt
+    apply(simp add:post2_def fAnd_def fGreaterEqual_def fLessEqual_def fOr_def fImp_def fEqual_def fLess_def fGreater_def fNot_def not_in_fform_def x_def y_def v_def)
+    done
+  done
 definition pre3 :: fform where
 "pre3 == (Real g[\<ge>] Real 0)
       [&](v[>]Real 0)

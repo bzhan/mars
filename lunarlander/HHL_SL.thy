@@ -236,11 +236,20 @@ axiomatization where ContinuousRuleGF:
 
 text \<open>Shallow definition: a variable does not affect the formula \<close>
 definition not_in_fform:: "string \<Rightarrow> fform \<Rightarrow> bool"  where
-  "not_in_fform w P = (\<forall> s u. ((\<forall> y. y \<noteq> w \<longrightarrow> s y = u y)) \<longrightarrow> ((P s \<longrightarrow> P u) \<and> (P u \<longrightarrow> P s)))"
+  "not_in_fform w P = (\<forall> s u. ((\<forall> y. y \<noteq> w \<longrightarrow> s y = u y)) \<longrightarrow> (P s \<longleftrightarrow> P u))"
 
 definition not_in_dform:: "string \<Rightarrow> dform \<Rightarrow> bool"  where
   "not_in_dform w Q = (\<forall>h l n nd. ((\<forall> y. y \<noteq> w \<longrightarrow> (\<forall> t. t \<ge> n \<and> t \<le> nd \<longrightarrow> h(t) y = l(t) y)))
   \<longrightarrow> ((Q h n nd \<longrightarrow> Q l n nd) \<and> (Q l n nd \<longrightarrow> Q h n nd)))"
+
+lemma not_in_fform_update:
+  "not_in_fform w P \<Longrightarrow> P (\<lambda>y. if y \<noteq> w then s y else c) \<longleftrightarrow> P s"
+  by (simp add: not_in_fform_def)
+
+lemma not_in_dform_update:
+  "not_in_dform w Q \<Longrightarrow> Q (\<lambda>t. if t \<le> nd \<and> n \<le> t then \<lambda>y. if y \<noteq> w then h t y else l t y else h t) n nd \<longleftrightarrow> Q h n nd"
+  apply (simp add:not_in_dform_def)
+  by smt
 
 text \<open>Ghost rule for continuous evolution\<close>
 lemma GhostRule : 
