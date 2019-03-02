@@ -68,7 +68,7 @@ definition a :: exp where
 consts Inv :: fform
 
 definition pre1 :: fform where
-"pre1 == (Real g[\<ge>] Real 0)
+"pre1 == (Real g[>] Real 0)
       [&](v[>]Real 0)
       [&](v[**]2 [+] Real (2*g) [*] y [=]Real (2*g*yG))
       [&] (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)
@@ -130,7 +130,7 @@ apply (cut_tac allcons1)
 
 
 definition pre2 :: fform where
-"pre2 == (Real g[\<ge>] Real 0)
+"pre2 == (Real g[>] Real 0)
       [&](v[>]Real 0)
       [&](v[**]2 [+] Real (2*g) [*] y [=]Real (2*g*yG))
       [&] (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)
@@ -158,7 +158,12 @@ definition cons23 :: fform where
 
 lemma allcons2: "\<forall>s. (cons21[&]cons22[&] cons23 ) s"
   apply (simp add: cons21_def cons22_def cons23_def  x_def y_def v_def a_def pre2_def post2_def)
-by (inv_check_oracle "parv*para^2 - 1 = 0 & v^2 + 2*g*y - 2*g*yG = 0 & v > 0 & dx0*y - dy0*x -dx0*c = 0")
+by (inv_check_oracle "parv*para^2 - 1 = 0 & parv^2 + 2*g*pary - 2*g*yG = 0 & parv > 0 & dx0*pary - dy0*parx -dx0*c = 0")
+
+
+
+
+
 lemma lineuple:"{pre2[&](v[*](a[**]2)[=]Real 1)}
               <[''parx'', ''pary'', ''parv'', ''para'']: [(v[*]Real dx0),(v[*]Real dy0),(Real (-dy0*g)),(Real (dy0 * g/2) [*] a [div] v)] && Inv & (x[\<le>]Real x1 [&] x[\<ge>]Real x0 [&] y[\<le>] Real y1 [&] y[\<ge>] Real y0)>
               {post2[&](v[*](a[**]2)[=]Real 1);(elE 0)[[|]]almost (post2[&](v[*](a[**]2)[=]Real 1))}"

@@ -92,19 +92,20 @@ def process_data(spdvars, str_inv, constraints):
             str_lie_expr = " + ".join("df(invp%i,%s) * d%s%d" % (item, var, var, num_ode) for var in vars)
             str_lie = "lie%d%i := %s" % (num_ode, item, str_lie_expr) + ";"
             if subinv.find(">=") >= 0 :
-                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0) or lie%d%i >= 0" % (item, num_ode, item, num_ode, item)) + ";"
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0) or lie%d%i >= 0;" % (item, num_ode, item, num_ode, item)
             elif subinv.find("<=") >= 0 :
-                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0" % (item, num_ode, item, num_ode, item)) + ";"
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0;" % (item, num_ode, item, num_ode, item)
             elif subinv.find("=") >= 0 :
-                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or (lie%d%i = 0)" % (num_ode, item)) + ";"
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or (lie%d%i = 0);" % (num_ode, item)
             elif subinv.find("<") >= 0 :
-                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0" % (item, num_ode, item, num_ode, item)) + ";"
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0;" % (item, num_ode, item, num_ode, item)
             elif subinv.find(">") >= 0 :
-                str_check_ode = "rlqe " + forall_vars("not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0) or lie%d%i >= 0" % (item, num_ode, item, num_ode, item)) + ";"
-            stepinv = stepinv+"and  "+subinv 
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i > 0) or lie%d%i >= 0;" % (item, num_ode, item, num_ode, item)
+            stepinv = stepinv+" and "+subinv 
             defs.extend([str_lie])
-            checks.append(str_check_ode)
-        
+            defs.extend([str_check_ode])
+        Check_ode = " and ".join("invcheck" + str(item) for item in range(str_inv.count("&")+1))
+        checks.append("rlqe " + forall_vars(Check_ode) + ";")
         num_ode += 1
 
         
@@ -125,6 +126,7 @@ def process_data(spdvars, str_inv, constraints):
 
 
     str_load = "load_package \"qepcad\";"
+    str_inv = str_inv.replace("&","and")
     str_inv = "inv := " + str_inv + ";"
     str_open = "out output;"
     str_close = "shut output;"
