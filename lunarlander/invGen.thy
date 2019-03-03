@@ -269,14 +269,14 @@ trans_fform ctxt @{term "fTrue"};
 *}
 
 ML {*
-fun trans_inv_check ctxt t inv =
+fun trans_inv_check ctxt t inv consts =
   (case HOLogic.dest_Trueprop t of
     Const (@{const_name All}, _) $ Abs (_, _, f $ Bound 0) =>
     let
       val goals = strip_fAnd f
     in
       (dict_to_json [
-        ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
+        ("vars", "[" ^ Library.commas (map add_quote (get_rvars f @ consts)) ^ "]"),
         ("inv", add_quote inv),
         ("constraints", "[" ^ Library.commas (map (trans_single_goal ctxt) (strip_fAnd f)) ^ "]")
       ], length goals)
@@ -317,9 +317,11 @@ oracle inv_check_oracle = {* fn ct =>
     val ctxt = Proof_Context.init_global thy
     val cf = Thm.dest_arg1 ct
     val f = Thm.term_of cf
-    val inv = Thm.term_of (Thm.dest_arg ct)
-    val str_inv = HOLogic.dest_string inv
-    val (p, num_goal) = trans_inv_check ctxt f str_inv
+    val args = Thm.term_of (Thm.dest_arg ct)
+    val strs = HOLogic.dest_list args
+    val str_inv = HOLogic.dest_string (hd strs)
+    val str_consts = map HOLogic.dest_string (tl strs)
+    val (p, num_goal) = trans_inv_check ctxt f str_inv str_consts
     val _ = writeln p
   in
     if decide_check_inv p num_goal
@@ -341,15 +343,16 @@ method_setup inv_oracle_SOS = {*
 *} 
 
 ML {*
-fun inv_check_oracle_tac str ctxt =
+fun inv_check_oracle_tac strs ctxt =
   CSUBGOAL (fn (goal, i) =>
-  (case try inv_check_oracle (Thm.cterm_of ctxt (HOLogic.mk_prod (Thm.term_of goal, HOLogic.mk_string str))) of
+  (case try inv_check_oracle (Thm.cterm_of ctxt (HOLogic.mk_prod
+    (Thm.term_of goal, HOLogic.mk_list @{typ string} (map HOLogic.mk_string strs)))) of
     NONE => no_tac
   | SOME th => resolve_tac ctxt [th] i))
 *}
 
 method_setup inv_check_oracle = {*
-  Scan.lift Parse.string >> (fn str => fn ctxt => SIMPLE_METHOD' (inv_check_oracle_tac str ctxt))
+  Scan.repeat (Scan.lift Parse.string) >> (fn strs => fn ctxt => SIMPLE_METHOD' (inv_check_oracle_tac strs ctxt))
 *}
-
+term "''abc''"
 end
