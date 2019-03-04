@@ -45,9 +45,23 @@
   Report for HHL Prover
 \end{abstract}
 
+HHL prover~\cite{WZZ15} is an interactive theorem prover for verifying hybrid systems modelled by Hybrid CSP (HCSP)~\cite{He94,ZWR96}.
+It implements the Hybrid Hoare Logic (HHL)~\cite{LLQZ10}, that is a Hoare style logic for reasoning about HCSP,  in proof assistant Isabelle/HOL~\cite{isabelle}.
+
+HCSP is an extension of CSP, by  introducing continuous variables, differential equations, and interruptions by boundary, timeout and communication.
+Given a HCSP process $P$,  a HHL specification takes the form $\{Pre\}~P~\{Post; HF\}$, where
+$Pre$ and $Post$ in first-order logic are pre-/post-conditions, and $HF$ in duration calculus~\cite{ZH04} is history formula
+specifying the  properties held throughout the whole execution interval. HHL defines a set of axioms and inference rules for deducing HCSP specifications. HHL prover formalizes HCSP and HHL for proving the partial correctness of hybrid systems.
+
+For proving differential equations, 
+
+
 
 \begin{itemize}
 \item Introduction to HHL Prover (shorter than last year).
+
+
+
 \item Ghost rule and cut rule (need to account for the differences
   between dL and HCSP).
 \item Verification of differential invariants using quantifier
