@@ -45,9 +45,11 @@
   Report for HHL Prover
 \end{abstract}
 
-
 \begin{itemize}
 \item Introduction to HHL Prover (shorter than last year).
+
+
+
 \item Ghost rule and cut rule (need to account for the differences
   between dL and HCSP).
 \item Verification of differential invariants using quantifier
@@ -64,6 +66,19 @@
     checking).
   \end{itemize}
 \end{itemize}
+
+HHL prover~\cite{WZZ15} is an interactive theorem prover for verifying hybrid systems modelled by Hybrid CSP (HCSP)~\cite{He94,ZWR96}.
+It implements the Hybrid Hoare Logic (HHL)~\cite{LLQZ10}, that is a Hoare style logic for reasoning about HCSP,  in proof assistant Isabelle/HOL~\cite{isabelle}.
+
+HCSP is an extension of CSP, by  introducing continuous variables, differential equations, and interruptions by domain boundary and communication.
+Given a HCSP process $P$,  a HHL specification takes the form $\{Pre\}~P~\{Post; HF\}$, where
+$Pre$ and $Post$ are pre-/post-conditions in first-order logic, and $HF$  is history formula in duration calculus~\cite{ZH04} to specify the time-related properties held throughout the whole execution interval. HHL defines a set of proof rules for deducing such specifications for HCSP. HHL prover formalizes HCSP and HHL for proving the partial correctness of hybrid systems.
+
+For proving differential equations, HHL includes a proof rule that reduces the specification of the continuous evolution to be proved to the synthesis problem of differential invariants for the corresponding differential equations. HHL prover resorts to an external invariant generator based on quantifier elimination or sum-of-squares (SOS) relaxation, to automatically solve the unproven constraints containing unknown differential invariants. The invariant generator relies on the solvers for quantifier elimination and semi-definite programming for constructing differential invariants. In the newest version of HHL prover, we remove the dependency on Mathematica for the SOS-based invariant generator.
+
+\paragraph{Ghost rule and cut rule.}
+
+For the newest version of HHL prover, we also borrow some idea from~\cite{Platzer18} and add the differential cut and ghost rules in HHL framework. Differential cut rule strengthens the domain of differential equations by an invariant property proved to hold throughout the continuous evolution, while the differential ghost rule adds new continuous variables with new differential equations but meanwhile guarantee not to affect the original differential equations. Using these rules, more differential equations can be proved.  In the current version, HHL prover resorts to the external tool for both invariant verification and generation. The proof rules for reasoning about differential invariants are left open for future work.
 
 \paragraph{Verification of differential invariants.}
 
@@ -107,6 +122,12 @@ not produce any problems. The proof makes use of invariant checking
 using Redlog, as well as the newly added differential ghost rule. The
 entire Isabelle theory (including the model, specification, and proof
 for all ten parts of the example) is 1141 lines long.
+
+\paragraph{Example: lunar lander control program}
+The lunar lander control program is a closed loop system, which is composed of the lander's dynamics and the guidance program for the the slow descent phase. The guidance program is executed periodically with a fixed sampling period. At each sampling point, the current state of the lander is measured by inertial measurement unit or various sensors. Processed measurements are then input into the guidance program, which outputs control commands, e.g. the magnitude and direction of thrust, to be imposed on the lander's dynamics in the following sampling cycle.
+
+The mathematical description of the lander's dynamics as well as the guidance program of the slow descent phase can be found at~\cite{ZYZG14,ZhanWZ16}.  The entire Isabelle theory including the model, specification, and proof for all ten parts of the example is ... lines long.  By applying HHL prover, the unproven subgoals related to differential invariants are transformed to a set of SOS constraints with respect to the user-defined invariant template, and then the SOS-based invariant generator is invoked on these constraints to synthesize a satisfying invariant.
+
 
 
 \bibliographystyle{splncs04}
