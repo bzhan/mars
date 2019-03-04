@@ -32,10 +32,6 @@
 
 \maketitle
 
-\begin{abstract}
-  Report for HHL Prover
-\end{abstract}
-
 \paragraph{Description of the system.}
 
 HHL prover~\cite{WZZ15} is an interactive theorem prover for verifying
@@ -47,13 +43,13 @@ Isabelle/HOL~\cite{isabelle}.
 HCSP extends CSP by introducing continuous variables, differential
 equations, and interruptions by domain boundary and
 communication. Given an HCSP process $P$, an HHL specification takes
-the form $\{Pre\}~P~\{Post; HF\}$, where $Pre$ and $Post$ are
-pre-/post-conditions in first-order logic, and $HF$ is the history
-formula in duration calculus~\cite{ZH04} for specifying time-related
-properties held throughout the whole execution interval. HHL defines a
-set of proof rules for deducing such specifications for HCSP. HHL
-prover formalizes HCSP and HHL for proving partial correctness of
-hybrid systems.
+the form $\{\mathit{Pre}\}~P~\{\mathit{Post}; \mathit{HF}\}$, where
+$\mathit{Pre}$ and $\mathit{Post}$ are pre-/post-conditions in
+first-order logic, and $\mathit{HF}$ is a history formula in duration
+calculus~\cite{ZH04} for specifying time-related properties held
+throughout the whole execution interval. HHL defines a set of proof
+rules for deducing such specifications for HCSP. HHL prover formalizes
+HCSP and HHL for proving partial correctness of hybrid systems.
 
 For reasoning about differential equations, HHL includes a proof rule
 that reduces the specification of the continuous evolution to be
