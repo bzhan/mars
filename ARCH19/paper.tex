@@ -1,0 +1,71 @@
+\documentclass[runningheads,a4paper]{llncs}
+\usepackage{makeidx}
+\usepackage{amssymb}
+\usepackage{amscd, amsfonts}
+\usepackage{verbatim}
+\usepackage{listings}
+\usepackage{commath}
+\usepackage{float}
+\usepackage{tikz}
+\usepackage{stmaryrd}
+\usepackage{isabelle}
+\usepackage{isabellesym}
+
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+\isabellestyle{tt}
+
+\newcommand{\isato}{\isasymrightarrow}
+\newcommand{\isaTo}{\isasymRightarrow}
+\newcommand{\isain}{\isasymin}
+\newcommand{\isaiff}{\isasymlongleftrightarrow}
+\newcommand{\isaand}{\isasymand}
+\newcommand{\tr}{\operatorname{tr}}
+
+\lstset{
+  mathescape,
+  columns=fullflexible,
+  basicstyle=\small\fontfamily{lmvtt}\selectfont
+}
+
+% Allow display breaks
+\allowdisplaybreaks[1]
+
+\begin{document}
+
+\author{}
+\institute{}
+
+\title{ARCH-COMP19 Category Report: Hybrid Systems Theorem Proving}
+
+\maketitle
+
+\begin{abstract}
+  Report for HHL Prover
+\end{abstract}
+
+
+\begin{itemize}
+\item Introduction to HHL Prover (shorter than last year).
+\item Ghost rule and cut rule (need to account for the differences
+  between dL and HCSP).
+\item Verification of differential invariants using quantifier
+  elimination in redlog (as an oracle in Isabelle).
+\item Invariant generation for the lunar lander example (by Mar 24,
+  removed dependency on Mathematica).
+\item Examples:
+  \begin{itemize}
+  \item Design shapes and nonlinear continuous models (translated some
+    examples to HCSP, finish by Mar 24).
+  \item Lunar lander example (case study benchmarks, using invariant
+    generation).
+  \item Rollercoaster example (case study benchmarks, invariant
+    checking).
+  \end{itemize}
+\end{itemize}
+
+\bibliographystyle{splncs04}
+\bibliography{main}
+
+\end{document}

@@ -6,3 +6,5 @@
 .settings
 .DS_Store
 *.pyc
+.aux
+.log
