@@ -139,7 +139,7 @@ fun trans_fform ctxt t =
           error ("unexpected constant " ^ c ^ ": trans_fform")
       | Const (@{const_name fImp}, _) $ _ $ _ =>
         Buffer.add (trans_single_goal ctxt t)
-      | Const (@{const_name fSubForm}, _) $ t $ u $ v $ _ =>
+      | Const (@{const_name fSubForm}, _) $ t $ u $ v =>
         Buffer.add "{" #>
         Buffer.add "\"ty\":" #> Buffer.add "\"subst\"" #> Buffer.add "," #>
         Buffer.add "\"var\":\"" #> Buffer.add (trans_string v) #> Buffer.add "\"," #>

@@ -65,10 +65,9 @@ apply (simp add: cons4_def)
 apply (simp add: cons5_def)
   apply (simp add: safeProp_def)
   apply (simp add:PC_Diff11_def PC_Diff22_def)
-
 apply inv_oracle_SOS
 done
-*)
+
 (**You can uncomment the above lines, if you have  Mathematica, Matlab, Yalmip and SDPT3 installed. "Sorry" will go away.**)
 sorry
 
