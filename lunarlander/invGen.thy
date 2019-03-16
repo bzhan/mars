@@ -108,9 +108,6 @@ fun strip_fAnd t =
 
 fun trans_fform ctxt t =
   let
-    val _ = writeln "trans_fform input"
-    val _ = Syntax.pretty_term ctxt t |> Pretty.string_of |> writeln
-
     fun trans t =
       (case t of
         Const (@{const_name fTrue}, _) =>
