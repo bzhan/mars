@@ -26,7 +26,7 @@ def process_data(spdvars, constraints):
     str_spdvars = "sdpvar " + " ".join(spdvars) + ";"
     str_myeps = "sdpvar " + " ".join(myeps_list) + ";"
     str_lambdas = ["", "lambda1 = .5;", "lambda2 = 1;"]
-    str_tols = [""] + [tol + " = 1e-4;" for tol in tol_list]
+    str_tols = [""] + [tol + " = 1e-6;" for tol in tol_list]
 
     str_list_vars = str_list(spdvars, ' ')
     str_poly_inv = "[inv, c0] = polynomial(%s, 6);" % str_list_vars
@@ -126,26 +126,31 @@ def process_data(spdvars, constraints):
         [myeps_list[i] + ">=" + tol_list[i] for i in range(num_constraints)]
     str_feasibility = "FeasibilityConstraints=[" + ",".join(feasibility_constraints) + "];"
 
-    options = "options=sdpsettings('verbose', 1, 'solver', 'sdpt3');"
+    options = "options=sdpsettings('verbose', 1, 'solver', 'mosek');"
 
     solve_vars = ["c" + str(i) for i in range(num_sos+1)] + myeps_list
-    str_solve = "solvesos(FeasibilityConstraints, [], options, [" + ";".join(solve_vars) + "])"
+    str_solve = "sos_ans = solvesos(FeasibilityConstraints, [], options, [" + ";".join(solve_vars) + "]);"
 
-    print1 = "mono_inv=monolist(%s, 6);" % str_list_vars
-    print2 = "pinv=double(c0')*mono_inv;"
-    print3 = "sdisplay(clean(pinv,1e-3))"
+    print_if = "if sos_ans.problem == 0"
+    print1 = "  mono_inv=monolist(%s, 6);" % str_list_vars
+    print2 = "  pinv=double(c0')*mono_inv;"
+    print3 = "  sdisplay(clean(pinv,1e-6))"
+    print4 = "else"
+    print5 = "  fprintf(\"error\\n\")"
+    print6 = "end"
+    print7 = "quit"
 
-    footer = ["", str_feasibility, "", options, "", str_solve, "", print1, print2, print3]
+    footer = ["", str_feasibility, "", options, "", str_solve, "", print_if, print1, print2, print3, print4, print5, print6, print7]
 
     return "\n".join(header + body + footer)
 
 
 def process_file(file_name):
-    with open("tests/" + file_name + ".json", "r", encoding="utf-8") as f:
+    with open(file_name + ".json", "r", encoding="utf-8") as f:
         f_data = json.load(f)
 
     return process_data(f_data['vars'], f_data['constraints'])
 
 
 if __name__ == "__main__":
-    print(process_file("test1"))
+    print(process_file("input"))

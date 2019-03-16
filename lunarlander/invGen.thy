@@ -214,10 +214,20 @@ fun isTrue x =
   if x = "True\n" then true
   else false
 
-fun decide_SOS p = "~/SOS/inv.sh "^"\""^p^"\""
-  |> Isabelle_System.bash_output
-  |> fst
-  |> isTrue;
+fun to_shell_format s =
+  String.translate (fn s => if s = #"\"" then "\\" ^ str(s) else str(s)) s
+
+fun decide_SOS p =
+  let
+    val sh = if ML_System.platform_is_windows then "inv_windows.sh" else "inv.sh"
+    val out = "$MARSHOME/SOSInvGenerator/" ^ sh ^ " \"" ^ to_shell_format p ^ "\""
+            |> Isabelle_System.bash_output
+            |> fst
+    val res_line = out |> split_lines |> map trim_line |> filter (fn t => t <> "") |> split_last |> snd
+    val _ = writeln res_line
+  in
+    res_line <> "error"
+  end
 *}
 
 text \<open>Unit tests\<close>
@@ -246,9 +256,6 @@ fun trans_inv_check ctxt t inv consts =
       ], length goals)
     end
   | _ => error "inacceptable term: goal")
-
-fun to_shell_format s =
-  String.translate (fn s => if s = #"\"" then "\\" ^ str(s) else str(s)) s
 
 fun decide_check_inv p num_goal =
   let
