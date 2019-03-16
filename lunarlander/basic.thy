@@ -180,7 +180,7 @@ definition cons13 :: fform where "cons13 \<equiv> exeFlow(<[''parx'']: [(Real 2)
 
 lemma allcons1: "\<forall>s. (cons11 [&] cons12 [&] cons13) s"
   apply (simp only: cons11_def cons12_def cons13_def x_def)
-  sorry
+  by (inv_check_oracle "parx-1>=0")
 
 lemma ODE1:
   "{x [\<ge>] (Real 0)}  \<comment> \<open>x >= 0\<close>
@@ -201,7 +201,7 @@ definition cons23:: fform where "cons23 \<equiv>  exeFlow(<[''parx'', ''pary'']:
 
 lemma allcons2:"\<forall> s. ( cons21 [&] cons22 [&] cons23 ) s"
   apply (simp only:cons21_def cons22_def cons23_def x_def y_def z_def)
-  sorry
+  by (inv_check_oracle "parz >= 0 & pary >= 0 & parx >= 0 ")
 
 lemma ODE2:"{x [\<ge>] Real 0 [&] y [\<ge>] Real 0 [&] z [\<ge>] Real 0}
            <[''parx'', ''pary'']:[y, z]&&Inv&\<lambda>s. True>

@@ -38,7 +38,7 @@ f3=sos(lambda2*inv - rst_inv2 - s4*(-0.128 + t) - myeps3);
 
 FeasibilityConstraints=[f0,f1,f2,f3,sos(s1),sos(s2),sos(s3),myeps0>=tol0,myeps1>=tol1,myeps2>=tol2,myeps3>=tol3];
 
-options=sdpsettings('verbose',0,'solver','sdpt3');
+options=sdpsettings('verbose',0,'solver','mosek');
 
 solvesos(FeasibilityConstraints,[ ],options,[c0;c1;c2;c3;c4;myeps0;myeps1;myeps2;myeps3])
 
