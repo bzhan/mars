@@ -33,30 +33,6 @@ fun trans_nat ctxt t = Syntax.pretty_term ctxt t
 
 fun trans_string t = HOLogic.dest_string t;
 
-(*
-fun trans_val ctxt t =
-  let
-    fun trans t =
-      (case t of
-       @{term "Syntax_SL.val.Real :: real \<Rightarrow> val"} $ t =>
-          Buffer.add "(" #>
-          Buffer.add (trans_real ctxt t) #>
-          Buffer.add ")"
-        | @{term "Syntax_SL.val.String :: string \<Rightarrow> val"} $ t =>
-          Buffer.add "(" #>
-          Buffer.add (trans_string t) #>
-          Buffer.add ")"
-        | @{term "Syntax_SL.val.Bool :: bool \<Rightarrow> val"} $ t =>
-          trans t
-        | Free (n, @{typ bool}) =>
-          Buffer.add " " #>
-          Buffer.add n #>
-          Buffer.add " "
-        | _ => error "inacceptable term: trans_val")
-  in Buffer.content (trans t Buffer.empty) 
-end
-*)
-
 fun trans_exp ctxt t =
   let
     fun trans t =
@@ -108,18 +84,6 @@ fun trans_exp ctxt t =
         end)
     in Buffer.content (trans t Buffer.empty) 
 end
-
-(*
-fun trans_pair t =
-  let
-    fun trans t =
-      (case t of
-        @{term "Product_Type.Pair :: string \<Rightarrow> typeid \<Rightarrow> string * typeid"} $ u $ _ =>
-          Buffer.add (trans_string u)
-      | _ => error "inacceptable term (trans_pair)")
-  in Buffer.content (trans t Buffer.empty) 
-end
-*)
 
 fun add_quote s =
   if String.isPrefix "{" s then s else "\"" ^ s ^ "\""
@@ -229,7 +193,7 @@ and trans_single_goal ctxt t =
           ("from", trans_fform_list ctxt froms),
           ("to", trans_fform_list ctxt tos)]
       end
-  | _ => error "inacceptable term: single goal"
+  | _ => let val _ = writeln "trans_single_goal" in error "inacceptable term: single goal" end
 
 fun get_rvars t =
   case t of
@@ -244,7 +208,7 @@ fun trans_goal ctxt t =
       ("vars", "[" ^ Library.commas (map add_quote (get_rvars f)) ^ "]"),
       ("constraints", "[" ^ Library.commas (map (trans_single_goal ctxt) (strip_fAnd f)) ^ "]")
     ]
-  | _ => error "inacceptable term: goal"
+  | _ => let val _ = writeln "trans_goal" in error "inacceptable term: goal" end
 
 fun isTrue x =
   if x = "True\n" then true
@@ -304,8 +268,11 @@ oracle inv_oracle_SOS = {* fn ct =>
   let
     val thy = Thm.theory_of_cterm ct
     val ctxt = Proof_Context.init_global thy
+    val _ = writeln (Syntax.pretty_term ctxt (Thm.term_of ct) |> Pretty.string_of)
+    val goal = trans_goal ctxt (HOLogic.dest_Trueprop (Thm.term_of ct))
+    val _ = writeln goal
   in
-    if decide_SOS (trans_goal ctxt (Thm.term_of ct))
+    if decide_SOS goal
     then ct
     else error "Proof failed."
   end
