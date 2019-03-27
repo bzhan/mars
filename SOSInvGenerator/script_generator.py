@@ -81,7 +81,7 @@ def process_data(spdvars, constraints):
             expr2 = ") * (".join(exprs)
             expr2 = "("+expr2+")"
             cur_sos1 = "s" + str(num_sos+1)
-            cur_sos2 = "s" + str(num_sos+1)
+            cur_sos2 = "s" + str(num_sos+2)
             num_sos += 2
             sos_eq = "f%d = sos(inv - %s * (%s) + %s * (%s)- %s);" % (i, cur_sos2, expr2, cur_sos1, expr1, myeps_list[i])
             return ["", sos_eq]
