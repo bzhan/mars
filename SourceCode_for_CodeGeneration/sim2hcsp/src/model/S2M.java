@@ -70,5 +70,4 @@ public class S2M {
 	public static HashMap<String, Node> getStateflows() {
 		return S2M.stateflows;
 	}
-
 }
