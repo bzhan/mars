@@ -11,6 +11,11 @@ def is_precond_constraint(constraint):
     return not is_ode_constraint(constraint) and \
            len(constraint['to']) == 1 and constraint['to'][0] == 'Inv'
 
+def is_sub_constraint(constraint):
+    return not is_ode_constraint(constraint) and isinstance(constraint['to'][0], dict) and \
+            constraint['to'][0]['ty'] == 'subst'
+
 def is_postcond_constraint(constraint):
-    return not is_ode_constraint(constraint) and \
+    return not is_ode_constraint(constraint) and not is_sub_constraint(constraint) and \
             constraint['from'][0] == 'Inv'
+
