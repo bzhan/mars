@@ -47,12 +47,12 @@ def process_data(spdvars, str_inv, constraints):
     def convert_precond(precond):
         """Convert constraint of the form precond --> Inv."""
         defs.append("pre := " + str_of_conds(precond['from']) + ";")
-        checks.append("rlqe " + forall_vars("(not pre) or inv ") + ";")
+        checks.append("rlqe " + forall_vars(str_of_cond(precond)) + ";")
 
     def convert_postcond(postcond):
         """Convert constraint of the form Inv --> postcond."""
         defs.append("post := " + str_of_conds(postcond['to']) + ";")
-        checks.append("rlqe " + forall_vars("(not ((inv) and (domain" +str(num_ode)+ ")) or post)") + ";")
+        checks.append("rlqe " + forall_vars(str_of_cond(postcond)) + ";")
 
     def convert_ode(ode):
         """Convert an ODE constraint."""
@@ -96,7 +96,7 @@ def process_data(spdvars, str_inv, constraints):
             elif subinv.find("<=") >= 0 :
                 str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0;" % (item, num_ode, item, num_ode, item)
             elif subinv.find("=") >= 0 :
-                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or (lie%d%i = 0);" % (num_ode, item)
+                str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i = 0);" % (item, num_ode, item)
             elif subinv.find("<") >= 0 :
                 str_check_ode = "invcheck"+str(item)+" := not ("+domain+stepinv+") or ((not (invp%i = 0)) or lie%d%i < 0) or lie%d%i <= 0;" % (item, num_ode, item, num_ode, item)
             elif subinv.find(">") >= 0 :
