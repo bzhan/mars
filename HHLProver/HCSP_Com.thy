@@ -23,7 +23,7 @@ datatype proc
 | Ass "exp" "exp"          ("_ := _" [99, 95] 94)   
 | Send "cname" "exp"         ("_!!_" [110,108] 100)      
 | Receive "cname" "exp"    ("_??_" [110,108] 100) 
-| Seq "proc" "mid" " proc"                   ("_; _ ; _"        [91,90 ] 90)
+| Seq "proc" "mid" " proc"                   ("_; _ ; _"        [91,91,90 ] 90)
 | Cond "bexp" "proc"                 ("IF _ _"   [95,94]93)
 | Nondeter "typeid" "string" "bexp" "proc"                 ("NON _ _ : _ _"   [95,94]93)
 | Pref   "proc" "proc"                  ("_\<rightarrow>_"   [95,94]93)           
@@ -37,9 +37,9 @@ datatype proc
 | Cont2  "flow" "Inv" "bexp" "Rg"                ("<_&&_&&_> : _" [95,95,96]94)
 | TimeOut "proc" "time" "proc"    ("_|>_ _" [95,96,94]94)
 | Interp   "proc" "proc" ("_[[>_"[95,94]94)
-| empty "exp" ("empty _" 94)
-| addL "exp" "exp" ("addL _ _" 94)
-| delL "exp" ("delL _" 94)
+| empty "exp" ("empty _" [94] 94)
+| addL "exp" "exp" ("addL _ _" [94,94] 94)
+| delL "exp" ("delL _" [94] 94)
 
 definition isEmpty :: "exp => fform" where
 "isEmpty(e1) == (case e1 of
