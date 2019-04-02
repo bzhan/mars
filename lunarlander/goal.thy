@@ -26,7 +26,8 @@ definition cons31 :: fform where
 "cons31 == (((t [=](Real (16 / 125))) [&] Inv) [\<longrightarrow>] (Inv \<lbrakk>(Real 0), ''plant_t''\<rbrakk>))"
 
 definition cons31_aux :: fform where
-"cons31_aux == \<lambda> s. ((t [=]Real (16 / 125) [&] Inv) s \<longrightarrow> Inv (\<lambda>y. if y = ''plant_t'' then evalE (Real 0) s else s y))" 
+"cons31_aux == \<lambda> s. ((t [=]Real (16 / 125) [&] Inv) s \<longrightarrow>
+  Inv (\<lambda>y. if y = ''plant_t'' then evalE (Real 0) s else s y))" 
 
 
 definition cons32 :: fform where

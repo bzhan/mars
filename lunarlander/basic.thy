@@ -219,7 +219,7 @@ definition cons35:: fform where "cons35 \<equiv>  exeFlow(<[''parx'']: [x] && In
 lemma allcons3:"\<forall> s. ( cons31 [&] cons32 [&] cons33 [&] cons34 [&] cons35) s"
   apply (simp only:cons31_def cons32_def cons33_def cons34_def cons35_def
           x_def )
-  sorry
+  by (inv_check_oracle "parx>=0")
 
 lemma ODE3:"{x [\<ge>] Real 0 }
            <[''parx'']: [(Real 5)] && Inv & fTrue>;
@@ -264,9 +264,10 @@ definition cons43:: fform where
 lemma allcons4:"\<forall> s. ( cons41 [&] cons42 [&] cons43 ) s"
   apply (simp only:cons41_def cons42_def cons43_def exp41_def exp42_def
           x_def y_def)
-  apply (inv_oracle_SOS)
-(*  by (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59 <= 0") *)
-  done
+  (*apply (inv_oracle_SOS)
+ done*)
+by (inv_check_oracle "parx^2 + parx*pary + pary^2 - 111/59 <= 0") 
+
 lemma ODE4:"{x[**]2 [\<le>] Real (1/2) [&] y[**]2 [\<le>] Real (1/3)}
            <[''parx'', ''pary'']: [(exp41),(exp42)] && Inv & fTrue>
             {x [-] Real 4 [*] y [<] Real 8;elE 0 [[|]] (almost (x [-] Real 4 [*] y [<] Real 8))}"
@@ -296,45 +297,7 @@ apply (rule ContinuousRuleGT)
   by (smt almostmono)
 
 
-definition cons61:: fform where
-  "cons61 \<equiv>  (x[**]2 [=] Real 1 [&] y[**]2 [=] Real 1 [&] z[**]2 [=] Real 1 ) [\<longrightarrow>] Inv "
-
-definition cons62:: fform where
-  "cons62 \<equiv>  Inv [\<longrightarrow>] (([\<not>]x[=]Real 0) [&] ([\<not>]y[=]Real 0) [&] ([\<not>]z[=]Real 0)) "
-
-definition cons63:: fform where
-  "cons63 \<equiv>  exeFlow(<[''parx'', ''pary'', ''parz'']: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
-
-lemma allcons6:"\<forall> s. ( cons61 [&] cons62 [&] cons63 ) s"
-  apply (simp only:cons61_def cons62_def cons63_def 
-          x_def y_def z_def)
-  sorry
 
 
-lemma ODE6:"{x[**]2 [=] Real 1 [&] y[**]2 [=] Real 1 [&] z[**]2 [=] Real 1}
-           <[''parx'', ''pary'', ''parz'']: [(x[*]y[-]x[*]z),(y[*]z[-]y[*]x),(z[*]x[-]z[*]y)] && Inv & fTrue>
-            {([\<not>]x[=]Real 0) [&] ([\<not>]y[=]Real 0) [&] ([\<not>]z[=]Real 0);elE 0 [[|]] (almost (([\<not>]x[=]Real 0) [&] ([\<not>]y[=]Real 0) [&] ([\<not>]z[=]Real 0)))}"
-apply (rule ContinuousRuleGT) 
-  using allcons6 apply (simp add:cons61_def cons62_def cons63_def 
-          x_def y_def  fAnd_def fImp_def dOr_def )
-  by (smt almostmono)
-
-definition Inv1 :: fform where
-"Inv1 == Inv"
-definition Inv2 :: fform where
-"Inv2 == Inv"
-
-definition cons71:: fform where
-  "cons71 \<equiv>  (x[>]Real 0 ) [\<longrightarrow>] Inv"
-
-definition cons72:: fform where
-  "cons72 \<equiv>  Inv  [\<longrightarrow>] (x[>]Real 0) "
-
-definition cons73:: fform where
-  "cons73 \<equiv>  exeFlow(<[''parx'']: [(Real 0)] && Inv & fTrue>) (Inv)  [\<longrightarrow>]  Inv"
-
-lemma allcons7:"\<forall> s. ( cons71 [&] cons72 [&] cons73 ) s"
-  apply (simp only: cons71_def cons72_def cons73_def x_def y_def)
-  by (inv_check_oracle "parx > 0")
 
 end
