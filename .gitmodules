@@ -1,0 +1,9 @@
+[submodule "tools/hcsp2sc"]
+	path = tools/hcsp2sc
+	url = git@gitee.com:bhzhan/hcsp2sc.git
+[submodule "tools/hhlprover"]
+	path = tools/hhlprover
+	url = git@gitee.com:bhzhan/hhlprover.git
+[submodule "tools/sim2hcsp"]
+	path = tools/sim2hcsp
+	url = git@gitee.com:bhzhan/sim2hcsp.git
