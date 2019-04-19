@@ -20,8 +20,7 @@ public class Stateflow extends SL_Block {
 		super.setOutTypes(outTypes);
 		processAss = "";
 		
-		String defaultSSID = "D"
-				+ node.getAttributes().getNamedItem("id").getNodeValue();
+		String defaultSSID = "D" + node.getAttributes().getNamedItem("id").getNodeValue();
 		ArrayList<String> path = new ArrayList<String>();
 
 		super.parameters.put("st", "-1");
@@ -36,20 +35,19 @@ public class Stateflow extends SL_Block {
 					&& n.getAttributes().getNamedItem("Name") != null
 					&& n.getAttributes().getNamedItem("Name").getNodeValue()
 							.equals("updateMethod")) {
-				String method = n.getFirstChild().getNodeValue();
+				String method = n.getFirstChild().getNodeValue(); // CONTINUOUS
 				if (method != "DISCRETE") {
 					parameters.put("st", "-1");
 				}
 			} else if (n.getNodeName() != null && n.getNodeName() == "Children") {
-				diagNode = n;
+				diagNode = n; // <chart><Children>
 			}
 		}
 
 		if (diagNode == null)
 			System.out.println("Stateflow Chart " + blockName + " is emplty!");
 		else {
-			this.diagram = new SF_Diagram(diagNode, locations, transitions,
-					defaultSSID, path);
+			this.diagram = new SF_Diagram(diagNode, locations, transitions, defaultSSID, path);
 		}
 
 		for (SF_Transition t : transitions) {

@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="sim2hcsp:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/sim2hcsp_jar</output-path>
+    <root id="archive" name="sim2hcsp.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/META-INF/MANIFEST.MF" />
+      </element>
+      <element id="module-output" name="sim2hcsp" />
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,5 @@
+systemDef P::= PC1||PWriter2_2
+
+variableDef ::=Writer2_2_1
+channelDef ::
+

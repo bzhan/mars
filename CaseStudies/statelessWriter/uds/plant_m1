@@ -1,0 +1,7 @@
+st: 0
+init: plant_m1_1 := (Real 1250)
+0: diff(plant_m1_1) == - (control_1/(Real 2548))
+0b: (control_1 [>] (Real 3000))
+1: diff(plant_m1_1) == - (control_1/(Real 2842))
+1b: (control_1 [<=] (Real 3000))
+type: false

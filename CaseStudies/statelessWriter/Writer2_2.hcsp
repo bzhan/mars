@@ -1,0 +1,35 @@
+theory Writer2_2PDef
+	imports "Writer2_2ADef"
+begin
+
+(*Define the processes for fuctions.*)
+definition min :: "exp => exp => exp" where"min(exp1, exp2) ::= (if formT(exp1<exp2) then exp1 else exp2)"
+(*Define the process.*)
+definition PWriter2_21 :: proc where
+"PWriter2_21 ::= if (num==0) then (<(WTrue) && (WTrue)>:(l==0.01);(num=1;empty(EL);(addL EL SE);empty(NL);(addL NL 1))) else Skip"
+definition PWriter2_22 :: proc where
+"PWriter2_22 ::= VO1!!cansend;VO1!!ACKNACK;VO1!!flag;VO1!!re_changes"
+definition PWriter2_23 :: proc where
+"PWriter2_23 ::= VI1??cansend;VI1??ACKNACK;VI1??flag;VI1??re_changes"
+definition PWriter2_24 :: proc where
+"PWriter2_24 ::= if (num==1) then (BC_1!!SE;PWriter2_22 ; ((BR_1??SE;(addL EL SE);(addL NL 1);num=1) [[ BO_1??vBO1;PWriter2_23);num=(num+1);delL(NL);(addL NL num)) else Skip"
+definition PWriter2_25 :: proc where
+"PWriter2_25 ::= if (num==2) then (delL(EL);delL(NL);if isEmpty(EL) then (num=0;SE=(String '''');Skip) else Skip;if(~isEmpty(EL)) then (SE=readL(EL);num=readL(NL)) else Skip) else Skip"
+definition PWriter2_26 :: proc where
+"PWriter2_26 ::= ((num=0;SE=(String '''');(actrepairing=0);(actwaiting=0);(actmust_repair=0));Skip);(PWriter2_21;PWriter2_22;PWriter2_23)*"
+definition PWriter2_27 :: proc where
+"PWriter2_27 ::= (actrepairing=0);(actwaiting=0);(actmust_repair=0);
+(re_changes=0;Skip;actwaiting=1;Skip);
+(BC_1??E1;VO1??cansend1;VO1??ACKNACK1;VO1??flag1;VO1??re_changes1;if (actrepairing==1) then (if ((done1==0)&&re_changes==0) then (actrepairing=0;actwaiting=1;done1=1) else Skip;
+if ((done1==0)&&cansend==1) then (re_changes =( re_changes - 1);actrepairing=0;actrepairing=1;done1=1) else Skip;
+if (done1==0) then (flag=0) else Skip) else Skip;
+if (actwaiting==1) then (if ((done1==0)&&re_changes>0) then (actwaiting=0;actmust_repair=1;done1=1) else Skip;
+if ((done1==0)&&ACKNACK==1) then (re_changes =( re_changes + 1);actwaiting=0;actwaiting=1;done1=1) else Skip;
+if (done1==0) then (flag=1;Skip) else Skip) else Skip;
+if (actmust_repair==1) then (if ((done1==0)&&E1==(String ''after(ResponseDelay,sec)'')) then (actmust_repair=0;actrepairing=1;done1=1) else Skip;
+if ((done1==0)&&ACKNACK==1) then (re_changes =( re_changes + 1);actmust_repair=0;actmust_repair=1;done1=1) else Skip;
+if (done1==0) then (flag=1;Skip) else Skip) else Skip;
+BO_1!!(String '''');VI1!!cansend1;VI1!!ACKNACK1;VI1!!flag1;VI1!!re_changes1)*"
+definition PWriter2_2 :: proc where
+"PWriter2_2 ::= PWriter2_26||PWriter2_27"
+end

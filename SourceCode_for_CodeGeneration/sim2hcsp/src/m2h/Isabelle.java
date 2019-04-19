@@ -24,7 +24,7 @@ public class Isabelle {
 	private static int rgNum = 0;
 	private static int invNum = 0;
 	private static String invDef = "";
-	public static String HCSPHOME = System.getenv("MARSHOME") + "/HHLProver";
+	public static String HCSPHOME = System.getenv("PWD") + "/../../HHLProver";
 	private static String ISABELLEHOME = System.getenv("ISABELLEHOME");
 	// public static String HCSPHOME = System.getenv("HCSPHOME");
 	public static int commN = 4;
@@ -61,10 +61,11 @@ public class Isabelle {
 			if (!SFProcess.sfName.isEmpty())
 				processStr = Isabelle.head("processDef",
 						SFProcess.sfName.get(SFProcess.sfNum - 1) + "PDef");
-			processStr += Isabelle.cProcessesDef(continuousProcesses);
-			processStr += Isabelle.dProcessesDef(discreteProcesses);
-			processStr += Isabelle.wholeProcess(continuousProcesses.size(),
-					discreteProcesses.size());
+			if (!continuousProcesses.isEmpty())
+				processStr += Isabelle.cProcessesDef(continuousProcesses);
+			if (!discreteProcesses.isEmpty())
+				processStr += Isabelle.dProcessesDef(discreteProcesses);
+			processStr += Isabelle.wholeProcess(continuousProcesses.size(), discreteProcesses.size());
 			processStr += Isabelle.end();
 			isabelleWrite("processDef.thy", processStr);
 			
@@ -83,12 +84,11 @@ public class Isabelle {
 					discreteProcesses.size());
 			isabelleWrite("system.hcsp", wholeProcessStr_hcsp+"\n"+varStr_hcsp+"\n"+processStr_hcsp);
 
-			goal = Isabelle.head("goal", "processDef");
-			goal += Isabelle.goal(discreteProcesses.size()
-					+ continuousProcesses.size());
+			/*goal = Isabelle.head("goal", "processDef");
+			goal += Isabelle.goal(discreteProcesses.size() + continuousProcesses.size());
 			goal += Isabelle.end();
 			if (SL2HCSP.rewriteAll)
-			isabelleWrite("goal.thy", goal);
+			isabelleWrite("goal.thy", goal);*/
 
 			assertionStr = Isabelle.head("assertionDef", "varDef");
 			assertionStr += Isabelle.assertionDefAssistC();
@@ -558,12 +558,12 @@ public class Isabelle {
 
 				// when exactly initial part ends, we need to delete "(" and
 				// ")*" of repeat part
-				if (str.indexOf("temp") < 3 && !repeater) {
+				if (str.contains("temp") && str.indexOf("temp") < 3 && !repeater) {
 					str = str.substring(str.indexOf("temp"), str.length());
 					str = str.replaceAll("\\)\\*", "");
 					repeater = true;
 					initNum = indexNum;
-				} else if (str.indexOf("temp") < 200 && !repeater) {
+				} else if (str.contains("temp") && str.indexOf("temp") < 200 && !repeater) {
 					// initial part, and closed to repeat,
 					// remember the process num in initNum
 					if (str.indexOf("temp") - 3 <= maxIndex) {
@@ -734,12 +734,12 @@ public class Isabelle {
 				//System.out.println("&&&&&&&&&&&"+isComm+"$$$$$$$$");
 				// when exactly initial part ends, we need to delete "(" and
 				// ")*" of repeat part
-				if (str.indexOf("temp") < 3 && !repeater) {
+				if (str.contains("temp") && str.indexOf("temp") < 3 && !repeater) {
 					str = str.substring(str.indexOf("temp"), str.length());
 					str = str.replaceAll("\\)\\*", "");
 					repeater = true;
 					initNum = indexNum;
-				} else if (str.indexOf("temp") < 200 && !repeater) {
+				} else if (str.contains("temp") && str.indexOf("temp") < 200 && !repeater) {
 					// initial part, and closed to repeat,
 					// remember the process num in initNum
 					if (str.indexOf("temp") - 3 <= maxIndex) {

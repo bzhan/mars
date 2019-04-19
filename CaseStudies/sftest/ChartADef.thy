@@ -46,55 +46,5 @@ definition assSF21 :: mid where
 "assSF21 == (WTrue,l[=](Real 0))"
 definition assSF22 :: mid where
 "assSF22 == (WTrue,l[=](Real 0))"
-definition assSF23 :: mid where
-"assSF23 == (WTrue,l[=](Real 0))"
-definition assSF24 :: mid where
-"assSF24 == (WTrue,l[=](Real 0))"
-definition assSF25 :: mid where
-"assSF25 == (WTrue,l[=](Real 0))"
-definition assSF26 :: mid where
-"assSF26 == (WTrue,l[=](Real 0))"
-definition assSF27 :: mid where
-"assSF27 == (WTrue,l[=](Real 0))"
-definition assSF28 :: mid where
-"assSF28 == (WTrue,l[=](Real 0))"
-definition assSF29 :: mid where
-"assSF29 == (WTrue,l[=](Real 0))"
-definition assSF30 :: mid where
-"assSF30 == (WTrue,l[=](Real 0))"
-definition assSF31 :: mid where
-"assSF31 == (WTrue,l[=](Real 0))"
-definition assSF32 :: mid where
-"assSF32 == (WTrue,l[=](Real 0))"
-definition assSF33 :: mid where
-"assSF33 == (WTrue,l[=](Real 0))"
-definition assSF34 :: mid where
-"assSF34 == (WTrue,l[=](Real 0))"
-definition assSF35 :: mid where
-"assSF35 == (WTrue,l[=](Real 0))"
-definition assSF36 :: mid where
-"assSF36 == (WTrue,l[=](Real 0))"
-definition assSF37 :: mid where
-"assSF37 == (WTrue,l[=](Real 0))"
-definition assSF38 :: mid where
-"assSF38 == (WTrue,l[=](Real 0))"
-definition assSF39 :: mid where
-"assSF39 == (WTrue,l[=](Real 0))"
-definition assSF40 :: mid where
-"assSF40 == (WTrue,l[=](Real 0))"
-definition assSF41 :: mid where
-"assSF41 == (WTrue,l[=](Real 0))"
-definition assSF42 :: mid where
-"assSF42 == (WTrue,l[=](Real 0))"
-definition assSF43 :: mid where
-"assSF43 == (WTrue,l[=](Real 0))"
-definition assSF44 :: mid where
-"assSF44 == (WTrue,l[=](Real 0))"
-definition assSF45 :: mid where
-"assSF45 == (WTrue,l[=](Real 0))"
-definition assSF46 :: mid where
-"assSF46 == (WTrue,l[=](Real 0))"
-definition assSF47 :: mid where
-"assSF47 == (WTrue,l[=](Real 0))"
 
 end

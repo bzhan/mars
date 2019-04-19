@@ -65,7 +65,8 @@ public class SF_Junction {
 					|| heap.size() <= 1 && headLoc >= trans.size()) {
 				heap.remove(heap.size() - 1);
 				if (heap.isEmpty()) {
-					process = SFProcess.delTail(process) + ");\n";
+					//process = SFProcess.delTail(process) + ");\n";
+					process += ");\n";
 					break;
 				}
 				searchLoc.remove(searchLoc.size() - 1);
@@ -94,8 +95,7 @@ public class SF_Junction {
 				eNeedCheck = false;
 				if (newEvent.equalsIgnoreCase("")) {
 					newEvent = eList.get(eList.size() - 1);
-				} else if (!newEvent
-						.equalsIgnoreCase(eList.get(eList.size() - 1))) {
+				} else if (!newEvent.equalsIgnoreCase(eList.get(eList.size() - 1))) {
 					// this transition is deleted
 					searchLoc.set(searchLoc.size() - 1, ++headLoc);
 					continue;
@@ -144,7 +144,7 @@ public class SF_Junction {
 				}
 				process += tState.getEntryProcess(locations);
 				process += getNewTAs(tActions, newTA);
-				process = SFProcess.delTail(process);
+				//process = SFProcess.delTail(process);
 				searchLoc.set(searchLoc.size() - 1, ++headLoc);
 				continue;
 			} else if (nextJunction.getOutsideOTrans().isEmpty()) {

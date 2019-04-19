@@ -1,0 +1,14 @@
+systemDef P::= PC1||PD1||PSecond||PFirst
+
+variableDef ::=Second_1;First_1;First_1_0
+channelDef ::=Ch_First_1_0
+
+processDef PD1_1 ::=fbuf(Cbi_First_1_0??bFirst_1,Cbo_First_1_0!!bFirst_1,1,1)
+
+
+processDef PD1_init1 ::
+processDef PD1_init ::= PD1_init1
+processDef PD1_rep1 ::=  PD1_1
+processDef PD1_rep ::= PD1_rep1
+processDef PD1 ::= PD1_init;PD1_rep**
+

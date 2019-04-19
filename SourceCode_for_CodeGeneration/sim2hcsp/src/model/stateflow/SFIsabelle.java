@@ -1,6 +1,8 @@
 package model.stateflow;
 
 import java.util.ArrayList;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import m2h.Isabelle;
 import m2h.SL2HCSP;
@@ -14,9 +16,12 @@ public class SFIsabelle {
 		String varStr = "";
 		if (assNum == 0)
 			varStr = Isabelle.head(sf.getName() + "VarDef", "assertionDef");
-		else
-			varStr = Isabelle.head(sf.getName() + "VarDef",
-					SFProcess.sfName.get(SFProcess.sfNum) + "PDef");
+		else {
+			System.out.println(assNum);
+			System.out.println(SFProcess.sfName);
+			System.out.println(SFProcess.sfNum);
+			varStr = Isabelle.head(sf.getName() + "VarDef", SFProcess.sfName.get(SFProcess.sfNum - 1) + "PDef");
+		}
 		varStr += SFIsabelle.channelDef(sf);
 		varStr += SFIsabelle.eventDefAssist(sf);
 		varStr += SFIsabelle.eventDef(sf);
@@ -32,7 +37,11 @@ public class SFIsabelle {
 		processStr += SFIsabelle.getProcesses(sf);
 		processStr = processStr.replaceAll("\\(\\)", "");
 		processStr += Isabelle.end();
+		processStr = addSKIP(processStr); // patch
 		Isabelle.isabelleWrite(sf.getName() + "PDef.thy", processStr);
+
+		// sf.getName()+PDef.thy -> sf.getName()+.hcsp
+		Isabelle.isabelleWrite(sf.getName()+".hcsp", getHCSP(processStr));
 
 		// assertion definitions
 		String assertionStr = Isabelle.head(sf.getName() + "ADef", sf.getName()
@@ -45,6 +54,96 @@ public class SFIsabelle {
 		if (SL2HCSP.isTextPrint()) {
 			SFProcess.printTProcess(sf);
 		}
+	}
+
+	public static String addSKIP(String processStr){
+		StringBuilder processStr_builder = new StringBuilder(processStr);
+		String pattern = "assSF\\d*;[) ]*;assSF\\d*";
+		Pattern p = Pattern.compile(pattern);
+		Matcher m = p.matcher(processStr);
+		while(m.find()){
+			int start = m.start();
+			int end = m.end();
+			String str = processStr.substring(start, end);
+			if(str.contains(";)"))
+				str = str.replaceAll(";\\)", ";Skip)");
+			else
+				str = str.replaceAll(";;", ";Skip;");
+			processStr_builder.replace(start, end, str);
+			processStr = processStr_builder.toString();
+			m = p.matcher(processStr);
+		}
+		return processStr;
+	}
+
+	public static String getHCSP(String processStr){
+		String hcspStr = "";
+		hcspStr = processStr.replaceAll("assSF\\d+;", "");
+		hcspStr = hcspStr.replaceAll(":=", "=");
+		hcspStr = hcspStr.replaceAll("==", "::=");
+		hcspStr = hcspStr.replaceAll("\\[\\+\\]", "+");
+		hcspStr = hcspStr.replaceAll("\\[-\\]", "-");
+		hcspStr = hcspStr.replaceAll("\\[\\*\\]", "*");
+		hcspStr = hcspStr.replaceAll("\\[/\\]", "/");
+		hcspStr = hcspStr.replaceAll("\\[<\\]", "<");
+		hcspStr = hcspStr.replaceAll("\\[>\\]", ">");
+		hcspStr = hcspStr.replaceAll("\\[<=\\]", "<=");
+		hcspStr = hcspStr.replaceAll("\\[>=\\]", ">=");
+		hcspStr = hcspStr.replaceAll("\\[=\\]", "==");
+		hcspStr = hcspStr.replaceAll("\\[~\\]", "~");
+		hcspStr = hcspStr.replaceAll("\\[&\\]", "&&");
+		// (Real number) -> number
+		StringBuilder hcspStr_builder = new StringBuilder(hcspStr);
+		Pattern p = Pattern.compile("\\(Real[^)]*\\)");
+		Matcher m = p.matcher(hcspStr);
+		while (m.find()){
+			int start = m.start();
+			int end = m.end();
+			String number = hcspStr.substring(start+6, end-1);
+			hcspStr_builder.replace(start, end, number);
+			hcspStr = hcspStr_builder.toString();
+			m = p.matcher(hcspStr);
+		}
+		//IF (Condition) (Actions) -> if (Condition) then Actions else Skip;
+		hcspStr_builder = new StringBuilder(hcspStr);
+		p = Pattern.compile("IF.*?\\(");
+		m = p.matcher(hcspStr);
+		while (m.find()){
+			int start = m.start();
+			int end = m.end();
+			hcspStr_builder.replace(start, start+2, "if"); // IF -> if
+			hcspStr = hcspStr_builder.toString();
+			// Find the condition
+			int left_parenthesis = 1;
+			int index = end;
+			while (left_parenthesis > 0){
+				if (hcspStr.charAt(index) == '(')
+					left_parenthesis++;
+				else if (hcspStr.charAt(index) == ')')
+					left_parenthesis--;
+				index++;
+			}
+			String condition = hcspStr.substring(end-1, index);
+			// Find the action
+			while (hcspStr.charAt(index) != '(')
+				index++;
+			start = index;
+			left_parenthesis = 1;
+			while (left_parenthesis > 0){
+				index++;
+				if (hcspStr.charAt(index) == '(')
+					left_parenthesis++;
+				else if (hcspStr.charAt(index) == ')')
+					left_parenthesis--;
+			}
+			String action = hcspStr.substring(start, index+1);
+			// IF (...) (...) -> if (...) then (...) else Skip
+			hcspStr_builder.replace(end-1, index+1, condition+" then "+action+" else Skip");
+			hcspStr = hcspStr_builder.toString();
+			m = p.matcher(hcspStr);
+		}
+
+		return hcspStr;
 	}
 
 	// define channel names
@@ -90,7 +189,7 @@ public class SFIsabelle {
 			def += "definition done" + i + " :: exp where\n" + "\"done" + i
 					+ " == RVar \'\'done" + i + "\'\'\"\n";
 		}
-		def += "definition E :: exp where\n\"E == SVar \'\'E\'\'\"\n";
+		def += "definition SE :: exp where\n\"SE == SVar \'\'E\'\'\"\n";
 		def += "definition num :: exp where\n\"num == RVar \'\'num\'\'\"\n";
 		def += "definition EL :: exp where\n\"EL == List eL\"\n";
 		def += "definition NL :: exp where\n\"NL == List nL\"\n";

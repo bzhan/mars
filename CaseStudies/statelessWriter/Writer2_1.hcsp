@@ -1,0 +1,32 @@
+theory Writer2_1PDef
+	imports "Writer2_1ADef"
+begin
+
+(*Define the processes for fuctions.*)
+definition min :: "exp => exp => exp" where"min(exp1, exp2) ::= (if formT(exp1<exp2) then exp1 else exp2)"
+(*Define the process.*)
+definition PWriter2_11 :: proc where
+"PWriter2_11 ::= if (num==0) then (<(WTrue) && (WTrue)>:(l==0.01);(num=1;empty(EL);(addL EL SE);empty(NL);(addL NL 1))) else Skip"
+definition PWriter2_12 :: proc where
+"PWriter2_12 ::= VO1!!a;VO1!!cansend;VO1!!flag;VO1!!heartbeat;VO1!!i"
+definition PWriter2_13 :: proc where
+"PWriter2_13 ::= VI1??a;VI1??cansend;VI1??flag;VI1??heartbeat;VI1??i"
+definition PWriter2_14 :: proc where
+"PWriter2_14 ::= if (num==1) then (BC_1!!SE;PWriter2_12 ; ((BR_1??SE;(addL EL SE);(addL NL 1);num=1) [[ BO_1??vBO1;PWriter2_13);num=(num+1);delL(NL);(addL NL num)) else Skip"
+definition PWriter2_15 :: proc where
+"PWriter2_15 ::= if (num==2) then (delL(EL);delL(NL);if isEmpty(EL) then (num=0;SE=(String '''');Skip) else Skip;if(~isEmpty(EL)) then (SE=readL(EL);num=readL(NL)) else Skip) else Skip"
+definition PWriter2_16 :: proc where
+"PWriter2_16 ::= ((num=0;SE=(String '''');(actpushing=0);(actidle=0));Skip);(PWriter2_11;PWriter2_12;PWriter2_13)*"
+definition PWriter2_17 :: proc where
+"PWriter2_17 ::= (actpushing=0);(actidle=0);
+(i=(a);Skip;heartbeat=0;heartbeat=0;Skip;actidle=1;Skip);
+(BC_1??E1;VO1??a1;VO1??cansend1;VO1??flag1;VO1??heartbeat1;VO1??i1;if (actpushing==1) then (if ((done1==0)&&i<=0) then (actpushing=0;heartbeat=0;heartbeat=0;Skip;actidle=1;done1=1) else Skip;
+if ((done1==0)) then (actpushing=0;actpushing=1;done1=1) else Skip;
+if (done1==0) then (flag=0) else Skip) else Skip;
+if (actidle==1) then (if ((done1==0)&&i>0) then (actidle=0;actpushing=1;done1=1) else Skip;
+if ((done1==0)&&E1==(String ''after(heartbeatPeriod,sec)'')) then (heartbeat=1;actidle=0;heartbeat=0;Skip;actidle=1;done1=1) else Skip;
+if (done1==0) then (flag=1;Skip) else Skip) else Skip;
+BO_1!!(String '''');VI1!!a1;VI1!!cansend1;VI1!!flag1;VI1!!heartbeat1;VI1!!i1)*"
+definition PWriter2_1 :: proc where
+"PWriter2_1 ::= PWriter2_16||PWriter2_17"
+end
