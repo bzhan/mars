@@ -1,4 +1,6 @@
-class Bias:
+from ss2hcsp.sl.sl_block import SL_Block
+
+class Bias(SL_Block):
     def __init__(self, name, bias):
         self.name = name
         self.type = "bias"

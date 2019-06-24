@@ -1,4 +1,6 @@
-class Divide:
+from ss2hcsp.sl.sl_block import SL_Block
+
+class Divide(SL_Block):
     """Multiply (or divide) a list of dest lines."""
     def __init__(self, name, dest_spec):
         """dest_spec is a list of either '*' or '/'."""

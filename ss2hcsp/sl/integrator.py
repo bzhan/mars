@@ -1,3 +1,5 @@
+from ss2hcsp.sl.sl_block import SL_Block
+
 class Integrator(SL_Block):
     """Block for integration."""
     def __init__(self, name, init_value):

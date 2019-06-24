@@ -1,3 +1,5 @@
+from ss2hcsp.sl.sl_line import SL_Line
+
 class SL_Diagram:
     """Represents a Simulink diagram."""
     def __init__(self):

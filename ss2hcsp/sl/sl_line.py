@@ -9,7 +9,3 @@ class SL_Line:
         # Port number within source and target block
         self.src_port = src_port
         self.dest_port = dest_port
-
-        # Branch number in a group of line with same source
-        # but different targets
-        self.branch = branch

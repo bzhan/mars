@@ -1,3 +1,5 @@
+from ss2hcsp.sl.sl_block import SL_Block
+
 class Abs(SL_Block):
     """Compute the absolute value of the dest line."""
     def __init__(self, name):

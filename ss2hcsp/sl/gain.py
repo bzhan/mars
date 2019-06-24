@@ -1,3 +1,5 @@
+from ss2hcsp.sl.sl_block import SL_Block
+
 class Gain(SL_Block):
     """Multiply dest line by a factor."""
     def __init__(self, name, factor):

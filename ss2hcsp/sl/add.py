@@ -1,4 +1,6 @@
-class Add:
+from ss2hcsp.sl.sl_block import SL_Block
+
+class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
     def __init__(self, name, dest_spec):
         """dest_spec is a list of either '+' or '-'."""
