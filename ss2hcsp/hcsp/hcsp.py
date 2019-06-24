@@ -2,9 +2,15 @@ class HCSP:
     def __init__(self):
         self.type = ""
 
+    def __repr__(self):
+        return str(self)
+
 class Skip(HCSP):
     def __init__(self):
         self.type = "skip"
+
+    def __eq__(self, other):
+        return self.type == other.type
 
     def __str__(self):
         return "skip"
@@ -16,6 +22,9 @@ class Assign(HCSP):
         self.var_name = var_name
         self.expr = expr
 
+    def __eq__(self, other):
+        return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
+
     def __str__(self):
         return self.var_name + " := " + self.expr
 
@@ -24,6 +33,9 @@ class InputChannel(HCSP):
         self.type = "input_channel"
         self.ch_name = ch_name
         self.var_name = var_name
+
+    def __eq__(self, other):
+        return self.type == other.type and self.ch_name == other.ch_name and self.var_name == other.var_name
 
     def __str__(self):
         return self.ch_name + "?" + self.var_name
@@ -34,6 +46,9 @@ class OutputChannel(HCSP):
         self.ch_name = ch_name
         self.expr = expr
 
+    def __eq__(self, other):
+        return self.type == other.type and self.ch_name == other.ch_name and self.expr == other.expr
+
     def __str__(self):
         return self.ch_name + "!" + self.expr
 
@@ -43,7 +58,12 @@ def is_comm_channel(hp):
 class Sequence(HCSP):
     def __init__(self, *hps):
         """hps is a list of hybrid programs."""
-        self.hps = hps
+        self.type = "sequence"
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        self.hps = list(hps)
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hps == other.hps
 
     def __str__(self):
         return "; ".join(str(hp) for hp in self.hps)
@@ -63,9 +83,14 @@ class ODE(HCSP):
         """
         assert isinstance(eqs, tuple) and len(eqs) == 2
         assert isinstance(out_hp, HCSP)
+        self.type = 'ode'
         self.eqs = eqs
         self.constraint = constraint
         self.out_hp = out_hp
+
+    def __eq__(self, other):
+        return self.type == other.type and self.eqs == other.eqs and \
+               self.constraint == other.constraint and self.out_hp == other.out_hp
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + expr for var_name, expr in self.eqs)
@@ -92,9 +117,14 @@ class ODE_Comm(HCSP):
         assert all(isinstance(p, tuple) and len(p) == 2 and \
                    is_comm_channel(p[0]) and isinstance(p[1], HCSP) \
                    for p in out_comms)
+        self.type = 'ode_comm'
         self.eqs = eqs
         self.constraint = constraint
         self.out_comms = out_comms
+
+    def __eq__(self, other):
+        return self.type == other.type and self.eqs == other.eqs and \
+               self.constraint == other.constraint and self.out_comms == other.out_comms
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + expr for var_name, expr in self.eqs)
@@ -105,7 +135,11 @@ class ODE_Comm(HCSP):
 class Loop(HCSP):
     """Represents an infinite loop of a program."""
     def __init__(self, hp):
+        self.type = 'loop'
         self.hp = hp
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hp == other.hp
 
     def __str__(self):
         return "(" + str(self.hp) + ")*"

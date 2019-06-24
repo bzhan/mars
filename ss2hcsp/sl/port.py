@@ -22,3 +22,9 @@ class Port(SL_Block):
             self.src_lines = []
             self.num_dest = 1
             self.dest_lines = [None]
+
+    def __str__(self):
+        if self.type == 'in_port':
+            return "%s: InPort[out = %s]" % (self.name, str(self.src_lines))
+        else:
+            return "%s: OutPort[in = %s]" % (self.name, str(self.dest_lines))
