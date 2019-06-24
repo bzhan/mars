@@ -1,0 +1,4 @@
+st: 0.128
+init: control_1 := (Real 2027.5)
+fun: control_1 := (plant_m1_1*((Real 1.622) - (Real 0.01)*(control_1/plant_m1_1-(Real 1.622)) - (Real 0.6)*(plant_v1_1+(Real 2))))
+type: false

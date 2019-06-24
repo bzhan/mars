@@ -68,12 +68,12 @@ public class SF_Diagram {
 		return init;
 	}
 
-	public SF_Diagram(Node node, HashMap<String, SF_Junction> locations,
+	public SF_Diagram(Node node, HashMap<String, SF_Junction> locations, // node = <chart><Children>
 			ArrayList<SF_Transition> transitions, String defaultSSID,
 			ArrayList<String> path) {
 		this.path = path;
 		for (Node n = node.getFirstChild(); n != null; n = n.getNextSibling()) {
-			if (n.getNodeName().equals("state")) {
+			if (n.getNodeName().equals("state")) {  // n == <chart><Children><state>
 				this.size++;
 				if (n.getNodeType() == Node.ELEMENT_NODE
 						&& n.getAttributes().getNamedItem("SSID") != null) {
@@ -223,7 +223,7 @@ public class SF_Diagram {
 					&& n.getAttributes().getNamedItem("Name").getNodeValue()
 							.equals("type")) {
 				return n.getFirstChild().getNodeValue()
-						.replaceAll("_STATE", "");
+						.replaceAll("_STATE", ""); // "OR"
 			}
 		return "";
 	}
@@ -267,8 +267,8 @@ public class SF_Diagram {
 				process += "IF ("
 						+ ((SF_State) location).getIsActive()
 						+ "[=](Real 1)) ("
-						+ SFProcess.delTail(((SF_State) location)
-								.getDuringProcess(sf, locations, event)) + ");\n";
+						//+ SFProcess.delTail(((SF_State) location).getDuringProcess(sf, locations, event)) + ");\n";
+						+ ((SF_State) location).getDuringProcess(sf, locations, event) + ");\n";
 			}
 		} else if (this.compositeType.equals("AND")) {
 			HashMap<Integer, String> enProcesses = new HashMap<Integer, String>();

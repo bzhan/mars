@@ -1,0 +1,8 @@
+systemDef P ::= P1||P2
+
+variableDef ::= x;y;z
+
+channelDef ::=c
+
+processDef P1 ::=z=0;c!!x;if (z==0) then (z=z+1;(z=z*2;(z=z/3))) else Skip
+processDef P2 ::=c??y

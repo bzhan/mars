@@ -1,5 +1,6 @@
 package model;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -24,6 +25,9 @@ public class S2M {
 		DocumentBuilder dombuilder;
 		try {
 			dombuilder = domfac.newDocumentBuilder();
+			//File file = new File(xmlLocation);
+			//System.out.println(file.exists());
+			//System.out.println(xmlLocation);
 			InputStream xml = new FileInputStream(xmlLocation);
 			Document doc = dombuilder.parse(xml);
 
@@ -42,15 +46,16 @@ public class S2M {
 					Node node = charts.item(i).getChildNodes().item(j);
 					if (node.getAttributes() != null
 							&& node.getAttributes().getNamedItem("Name") != null
-							&& node.getAttributes().getNamedItem("Name")
-									.getNodeValue().equals("name")) {
+							&& node.getAttributes().getNamedItem("Name").getNodeValue().equals("name")) {
 						name = node.getFirstChild().getNodeValue();
+						// break?
+						break;
 					}
 				}
 				stateflows.put(name, charts.item(i));
 			}
 
-			return new SL_Diagram(root.item(0), "");
+			return new SL_Diagram(root.item(0), ""); // (<System>, "")
 		} catch (ParserConfigurationException e) {
 			// Auto-generated catch block
 			e.printStackTrace();

@@ -1,0 +1,24 @@
+systemDef Statement10 ::= if ((done1==0)&&i>0) then Statement7 else Skip;if ((done1==0)&&E1==0) then Statement8 else Skip;if (done1==0) then Statement9 else Skip
+
+variableDef ::=E1;done1;SE;num;EL;NL;sfTemp1;heartbeatPeriod;i;a;cansend;flag;heartbeat;event;event1;actpushing;actidle;a1;cansend1;flag1;heartbeat1;i1
+channelDef ::=BC_1;BR_1;BO_1;VO1;VI1;vBO1;Ch_Writer2_1_1
+
+processDef PWriter2_1 ::= PWriter2_16||PWriter2_17
+processDef PWriter2_11 ::= if (num==0) then Statement0 else Skip
+processDef PWriter2_12 ::= VO1!!a;VO1!!cansend;VO1!!flag;VO1!!heartbeat;VO1!!i
+processDef PWriter2_13 ::= VI1??a;VI1??cansend;VI1??flag;VI1??heartbeat;VI1??i
+processDef PWriter2_14 ::= if (num==1) then Statement1 else Skip
+processDef PWriter2_15 ::= if (num==2) then Statement2 else Skip
+processDef PWriter2_16 ::= ((num=0;SE=0;(actpushing=0);(actidle=0));Skip);(PWriter2_11;PWriter2_12;PWriter2_13)*
+processDef PWriter2_17 ::= (actpushing=0);(actidle=0);(i=(a);Skip;heartbeat=0;heartbeat=0;Skip;actidle=1;Skip);(BC_1??E1;VO1??a1;VO1??cansend1;VO1??flag1;VO1??heartbeat1;VO1??i1;if (actpushing==1) then Statement6 else Skip;if (actidle==1) then Statement10 else Skip;BO_1!!0;VI1!!a1;VI1!!cansend1;VI1!!flag1;VI1!!heartbeat1;VI1!!i1)*
+processDef Statement0 ::= (num=1)
+processDef Statement1 ::= BC_1!!SE;PWriter2_12 ; ( BO_1??vBO1;PWriter2_13);num=(num+1)
+processDef Statement2 ::= num=0;SE=0
+processDef Statement3 ::= actpushing=0;heartbeat=0;heartbeat=0;Skip;actidle=1;done1=1
+processDef Statement4 ::= actpushing=0;actpushing=1;done1=1
+processDef Statement5 ::= flag=0
+processDef Statement6 ::= if ((done1==0)&&i<=0) then Statement3 else Skip;if ((done1==0)) then Statement4 else Skip;if (done1==0) then Statement5 else Skip
+processDef Statement7 ::= actidle=0;actpushing=1;done1=1
+processDef Statement8 ::= heartbeat=1;actidle=0;heartbeat=0;Skip;actidle=1;done1=1
+processDef Statement9 ::= flag=1;Skip
+processDef Statement10 ::= if ((done1==0)&&i>0) then Statement7 else Skip;if ((done1==0)&&E1==0) then Statement8 else Skip;if (done1==0) then Statement9 else Skip

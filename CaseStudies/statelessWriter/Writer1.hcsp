@@ -1,0 +1,31 @@
+theory Writer1PDef
+	imports "Writer1ADef"
+begin
+
+(*Define the processes for fuctions.*)
+definition min :: "exp => exp => exp" where"min(exp1, exp2) ::= (if formT(exp1<exp2) then exp1 else exp2)"
+(*Define the process.*)
+definition PWriter11 :: proc where
+"PWriter11 ::= if (num==0) then (<(WTrue) && (WTrue)>:(l==0.01);(num=1;empty(EL);(addL EL SE);empty(NL);(addL NL 1))) else Skip"
+definition PWriter12 :: proc where
+"PWriter12 ::= VO1!!a;VO1!!cansend;VO1!!flag;VO1!!unsent"
+definition PWriter13 :: proc where
+"PWriter13 ::= VI1??a;VI1??cansend;VI1??flag;VI1??unsent"
+definition PWriter14 :: proc where
+"PWriter14 ::= if (num==1) then (BC_1!!SE;PWriter12 ; ((BR_1??SE;(addL EL SE);(addL NL 1);num=1) [[ BO_1??vBO1;PWriter13);num=(num+1);delL(NL);(addL NL num)) else Skip"
+definition PWriter15 :: proc where
+"PWriter15 ::= if (num==2) then (delL(EL);delL(NL);if isEmpty(EL) then (num=0;SE=(String '''');Skip) else Skip;if(~isEmpty(EL)) then (SE=readL(EL);num=readL(NL)) else Skip) else Skip"
+definition PWriter16 :: proc where
+"PWriter16 ::= ((num=0;SE=(String '''');(actpushing=0);(actidle=0));Skip);(PWriter11;PWriter12;PWriter13)*"
+definition PWriter17 :: proc where
+"PWriter17 ::= (actpushing=0);(actidle=0);
+(unsent=(a);Skip;actidle=1;Skip);
+(BC_1??E1;VO1??a1;VO1??cansend1;VO1??flag1;VO1??unsent1;if (actpushing==1) then (if ((done1==0)&&unsent<=0) then (actpushing=0;actidle=1;done1=1) else Skip;
+if ((done1==0)&&cansend==1) then (unsent =( unsent - 1);actpushing=0;actpushing=1;done1=1) else Skip;
+if (done1==0) then (flag=0) else Skip) else Skip;
+if (actidle==1) then (if ((done1==0)&&unsent>0) then (actidle=0;actpushing=1;done1=1) else Skip;
+if (done1==0) then (flag=1;Skip) else Skip) else Skip;
+BO_1!!(String '''');VI1!!a1;VI1!!cansend1;VI1!!flag1;VI1!!unsent1)*"
+definition PWriter1 :: proc where
+"PWriter1 ::= PWriter16||PWriter17"
+end

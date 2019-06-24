@@ -1,0 +1,27 @@
+systemDef PWriter1 ::= PWriter16||PWriter17
+
+variableDef ::=E1;done1;SE;num;EL;NL;sfTemp1;unsent;a;cansend;flag;actpushing;actidle;a1;cansend1;flag1;unsent1
+channelDef ::=BC_1;BR_1;BO_1;VO1;VI1;vBO1;Ch_Writer1_1
+
+processDef PWriter11 ::= if (num==0) then Statement1 else Skip
+processDef Statement1 ::= num=1
+
+processDef PWriter12 ::= VO1!!a;VO1!!cansend;VO1!!flag;VO1!!unsent
+processDef PWriter13 ::= VI1??a;VI1??cansend;VI1??flag;VI1??unsent
+
+processDef PWriter14 ::= if (num==1) then Statement2 else Skip
+processDef Statement2 ::= BC_1!!SE;PWriter12;BO_1??vBO1;PWriter13;num=(num+1)
+
+processDef PWriter15 ::= if (num==2) then Statement3 else Skip
+processDef Statement3 ::=num=0;SE=0
+
+processDef PWriter16 ::= num=0;SE=0;(actpushing=0);(actidle=0);(PWriter11;PWriter12;PWriter13)*
+
+processDef PWriter17 ::= (actpushing=0);(actidle=0);(unsent=(a);actidle=1);(BC_1??E1;VO1??a1;VO1??cansend1;VO1??flag1;VO1??unsent1;if (actpushing==1) then Statement4 else Skip;if (actidle==1) then Statement5 else Skip;BO_1!!0;VI1!!a1;VI1!!cansend1;VI1!!flag1;VI1!!unsent1)*
+processDef Statement4 ::= if ((done1==0)&&(unsent<=0)) then Statement41 else Skip;if ((done1==0)&&(cansend==1)) then Statement42 else Skip;if (done1==0) then Statement43 else Skip
+processDef Statement41 ::= actpushing=0;actidle=1;done1=1
+processDef Statement42 ::= unsent =( unsent - 1);actpushing=0;actpushing=1;done1=1
+processDef Statement43 ::= flag=0
+processDef Statement5 ::= if ((done1==0)&&(unsent>0)) then Statement51 else Skip;if (done1==0) then Statement52 else Skip
+processDef Statement51 ::=actidle=0;actpushing=1;done1=1
+processDef Statement52 ::=flag=1

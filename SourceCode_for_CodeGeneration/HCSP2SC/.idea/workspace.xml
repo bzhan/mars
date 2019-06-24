@@ -1,13 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="ArtifactsWorkspaceSettings">
+    <artifacts-to-build>
+      <artifact name="HCSP2SC:jar" />
+    </artifacts-to-build>
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="46cd03d6-bcf8-453f-aed2-d8115bf39d25" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/slprj/_jitprj/srDK6nySiG4C4hz2uPE384.l" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/slprj/_jitprj/srDK6nySiG4C4hz2uPE384.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/slprj/_sfprj/EMLReport/srDK6nySiG4C4hz2uPE384.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/slprj/_sfprj/precompile/MTmzMtRNiR9Za9uEH6qTHD.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/slprj/_sfprj/waterTank/_self/sfun/info/binfo.mat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank2/waterTank.mdl" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/waterTank2/waterTank.mdl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/HCS/assertionDef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/HCS/assertionDef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/HCS/goal.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/HCS/goal.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/HCS/processDef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/HCS/processDef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/HCS/varDef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/HCS/varDef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/sftest/ChartADef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/sftest/ChartADef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/sftest/ChartPDef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/sftest/ChartPDef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/sftest/varDef.thy" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/sftest/varDef.thy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../CaseStudies/waterTank/system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../../CaseStudies/waterTank/system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/testcase.hcsp" beforeDir="false" afterPath="$PROJECT_DIR$/src/testcase.hcsp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/.idea/sim2hcsp.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/m2h/Isabelle.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/m2h/Isabelle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/m2h/Partition.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/m2h/Partition.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/m2h/SL2HCSP.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/m2h/SL2HCSP.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/S2M.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/S2M.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/SL_Diagram.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/SL_Diagram.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SFIsabelle.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SFIsabelle.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SFProcess.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SFProcess.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_Diagram.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_Diagram.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_Junction.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_Junction.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_State.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/SF_State.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/Stateflow.java" beforeDir="false" afterPath="$PROJECT_DIR$/../sim2hcsp/src/model/stateflow/Stateflow.java" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -20,7 +45,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/testcase.hcsp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="175">
+            <state relative-caret-position="105">
               <caret line="7" column="19" selection-start-line="7" selection-start-column="19" selection-end-line="7" selection-end-column="19" />
             </state>
           </provider>
@@ -29,11 +54,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="204">
-              <caret line="20" column="30" selection-start-line="20" selection-start-column="30" selection-end-line="20" selection-end-column="30" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
+            <state relative-caret-position="-2535">
+              <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
             </state>
           </provider>
         </entry>
@@ -41,7 +63,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/testcase.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="325">
+            <state relative-caret-position="195">
               <caret line="13" column="13" selection-start-line="13" selection-start-column="13" selection-end-line="13" selection-end-column="13" />
             </state>
           </provider>
@@ -52,15 +74,15 @@
   <component name="FindInProjectRecents">
     <findStrings>
       <find>&quot;for</find>
+      <find>construc</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="1920" />
-    <option name="width" value="1680" />
-    <option name="height" value="1050" />
+  <component name="ProjectFrameBounds" fullScreen="true">
+    <option name="width" value="1280" />
+    <option name="height" value="800" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
@@ -68,6 +90,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="PackagesPane" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -90,20 +114,18 @@
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1550134812339" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1555052441406" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="project.structure.last.edited" value="Modules" />
-    <property name="project.structure.proportion" value="0.0" />
-    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="project.structure.last.edited" value="Artifacts" />
+    <property name="project.structure.proportion" value="0.15" />
+    <property name="project.structure.side.proportion" value="0.2" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -116,6 +138,17 @@
         </RuleState>
       </list>
     </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="HCSPprocess" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="hcsp2sc.HCSP2SystemC" />
+      <module name="HCSP2SC" />
+      <option name="PROGRAM_PARAMETERS" value="-hcsploc Writer1.hcsp -delta 0 -ep 972.5 -h 0.0002 -vep 0.05 -T 10" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/../../../demo/CaseStudy" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -139,10 +172,10 @@
     <option name="totallyTimeSpent" value="2443000" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1920" y="0" width="1680" height="1050" extended-state="6" />
+    <frame x="0" y="0" width="1280" height="800" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.26289925" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.18093699" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
@@ -151,8 +184,8 @@
       <window_info id="Favorites" order="6" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.32956153" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.39886847" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" />
@@ -161,6 +194,7 @@
       <window_info anchor="bottom" id="Database Changes" order="9" />
       <window_info anchor="bottom" id="Terminal" order="10" />
       <window_info anchor="bottom" id="Event Log" order="11" side_tool="true" />
+      <window_info anchor="bottom" id="Messages" order="12" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -175,28 +209,55 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java</url>
+          <line>41</line>
+          <properties />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java</url>
+          <line>119</line>
+          <properties />
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java</url>
+          <line>154</line>
+          <properties />
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java</url>
+          <line>255</line>
+          <properties />
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/testcase.hcsp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="175">
+        <state relative-caret-position="105">
           <caret line="7" column="19" selection-start-line="7" selection-start-column="19" selection-end-line="7" selection-end-column="19" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/testcase.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="325">
+        <state relative-caret-position="195">
           <caret line="13" column="13" selection-start-line="13" selection-start-column="13" selection-end-line="13" selection-end-column="13" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/hcsp2sc/HCSP2SystemC.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="204">
-          <caret line="20" column="30" selection-start-line="20" selection-start-column="30" selection-end-line="20" selection-end-column="30" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
+        <state relative-caret-position="-2535">
+          <caret line="7" lean-forward="true" selection-start-line="7" selection-end-line="7" />
         </state>
       </provider>
     </entry>
@@ -206,10 +267,12 @@
       <state key="ArtifactsStructureConfigurable.UI">
         <settings>
           <artifact-editor />
+          <last-edited>HCSP2SC:jar</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
                 <option value="0.2" />
+                <option value="0.5" />
               </list>
             </option>
           </splitter-proportions>
@@ -240,7 +303,7 @@
       </state>
       <state key="JdkListConfigurable.UI">
         <settings>
-          <last-edited>1.8.0_171</last-edited>
+          <last-edited>12</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>

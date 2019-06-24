@@ -48,7 +48,7 @@ public class SL_Diagram {
 
 		for (int i = 0; i < fstLayer.getLength(); i++) {
 			Node n = fstLayer.item(i);
-			if (n.getNodeName().equals("Line")) {
+			if (n.getNodeName().equals("Line")) { // n == <System><Line>
 				analyzeLine(n);
 			}
 		}
@@ -63,10 +63,8 @@ public class SL_Diagram {
 			return false;
 		}
 
-		String blocktype = blockattributes.getNamedItem("BlockType")
-				.getNodeValue();
-		String blockname = blockattributes.getNamedItem("Name").getNodeValue()
-				.replaceAll(" |\n", "");
+		String blocktype = blockattributes.getNamedItem("BlockType").getNodeValue();
+		String blockname = blockattributes.getNamedItem("Name").getNodeValue().replaceAll(" |\n", "");
 
 		// handle Stateflow diagrams
 		if (S2M.getStateflows().containsKey(blockname)) {
@@ -79,7 +77,7 @@ public class SL_Diagram {
 			blocktype = "userDefinedBlock";
 		}
 
-		double blockst = -1;
+		double blockst = -1; // block sample time?
 		for (Node n = node.getFirstChild(); n != null; n = n.getNextSibling()) {
 			if (n.getNodeType() == Node.ELEMENT_NODE
 					&& n.getAttributes().getNamedItem("name") != null
@@ -87,16 +85,14 @@ public class SL_Diagram {
 							.equals("SampleTime")) {
 				blockst = Double.valueOf(n.getFirstChild().getNodeValue());
 			}
-		}
+		}  // no sample time
 
 		if (blocktype == null || blockname == null) {
-			System.out
-					.println("A weird block exists, name or type does not exists.");
+			System.out.println("A weird block exists, name or type does not exists.");
 			return false;
 		}
 
-		SL_Block block = newBlock(blocktype, blockname, node, blockst,
-				diagLocation);
+		SL_Block block = newBlock(blocktype, blockname, node, blockst, diagLocation);
 		if (block != null) {
 			this.addBlock(blockname, block);
 			return true;
@@ -107,8 +103,8 @@ public class SL_Diagram {
 		}
 	}
 
-	private static SL_Block newBlock(String blocktype, String blockname,
-			Node node, double st, String diagLocation) {
+	private static SL_Block newBlock(String blocktype, String blockname, Node node, double st, String diagLocation) {
+		// (blocktype = "Stateflow", blockname = "Chart", node = <System><Block>, st = -1, diagLocation = "")
 		if (blocktype.equals("Abs")) {
 			return new Abs(blocktype, blockname, node);
 		} else if (blocktype.equals("Bias")) {
@@ -251,7 +247,7 @@ public class SL_Diagram {
 		}
 	}
 
-	private void analyzeLine(Node node) {
+	private void analyzeLine(Node node) {  // node == <System><Line>
 		SL_Block source = new SL_Block(null, null);
 		int srcPort = 0;
 		ArrayList<SL_Block> targets = new ArrayList<SL_Block>();
@@ -262,37 +258,25 @@ public class SL_Diagram {
 			if (n.getNodeType() == Node.ELEMENT_NODE) {
 				if (n.getNodeName().equals("Branch")) {
 					branches.add(n);
-					continue;
+					// continue;
 				}
-				if (n.getAttributes().getNamedItem("Name").getNodeValue()
-						.equals("SrcBlock")) {
-					String src = n.getFirstChild().getNodeValue()
-							.replaceAll(" |\n", "");
+				else if (n.getAttributes().getNamedItem("Name").getNodeValue().equals("SrcBlock")) {
+					String src = n.getFirstChild().getNodeValue().replaceAll(" |\n", "");
 					source = this.getBlocks().get(src);
 				}
-				if (n.getAttributes().getNamedItem("Name").getNodeValue()
-						.equals("DstBlock")) {
-					String src = n.getFirstChild().getNodeValue()
-							.replaceAll(" |\n", "");
+				else if (n.getAttributes().getNamedItem("Name").getNodeValue().equals("DstBlock")) {
+					String src = n.getFirstChild().getNodeValue().replaceAll(" |\n", "");
 					targets.add(this.getBlocks().get(src));
 				}
-				if (n.getAttributes().getNamedItem("Name").getNodeValue()
-						.equals("SrcPort")) {
-					if (!n.getFirstChild().getNodeValue().equals("trigger")
-							&& !n.getFirstChild().getNodeValue()
-									.equals("enable"))
-						srcPort = Integer.parseInt(n.getFirstChild()
-								.getNodeValue());
+				else if (n.getAttributes().getNamedItem("Name").getNodeValue().equals("SrcPort")) {
+					if (!n.getFirstChild().getNodeValue().equals("trigger") && !n.getFirstChild().getNodeValue().equals("enable"))
+						srcPort = Integer.parseInt(n.getFirstChild().getNodeValue());
 					else
 						srcPort = -1;
 				}
-				if (n.getAttributes().getNamedItem("Name").getNodeValue()
-						.equals("DstPort")) {
-					if (!n.getFirstChild().getNodeValue().equals("trigger")
-							&& !n.getFirstChild().getNodeValue()
-									.equals("enable"))
-						dstPorts.add(Integer.parseInt(n.getFirstChild()
-								.getNodeValue()));
+				else if (n.getAttributes().getNamedItem("Name").getNodeValue().equals("DstPort")) {
+					if (!n.getFirstChild().getNodeValue().equals("trigger") && !n.getFirstChild().getNodeValue().equals("enable"))
+						dstPorts.add(Integer.parseInt(n.getFirstChild().getNodeValue()));
 					else
 						dstPorts.add(-1);
 				}

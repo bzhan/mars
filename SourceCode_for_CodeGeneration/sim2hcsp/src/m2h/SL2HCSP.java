@@ -41,8 +41,7 @@ public class SL2HCSP {
 				isCompact = Boolean.valueOf(args[i + 1]);
 			else if (args[i].replaceAll(" ", "").equals("-xml")) {
 				xmlLocation = args[i + 1];
-				currentLoc = xmlLocation.substring(0,
-						xmlLocation.lastIndexOf("/") + 1);
+				currentLoc = xmlLocation.substring(0, xmlLocation.lastIndexOf("/") + 1);
 			} else if (args[i].replaceAll(" ", "").equals("-uds"))
 				udsLocation = args[i + 1];
 			else if (args[i].replaceAll(" ", "").equals("-open"))//这四个选项是什么意思？
@@ -94,6 +93,7 @@ public class SL2HCSP {
 				Stateflow sf = (Stateflow) diagram.getBlocks().get(
 						aPartition.get(0));
 				SFIsabelle.isabelle(sf);
+				//Isabelle.isabelleWrite("system.hcsp", SFIsabelle.getProcesses(sf));
 				continue;
 			}
 			if (aPartition.size() == 1//trigger subsys size=1
@@ -105,10 +105,8 @@ public class SL2HCSP {
 						aPartition.get(0))).getProcess());
 			} else if (diagram.getBlocks().get(aPartition.get(0))//continuous processes size>1
 					.getParameters().get("st").equals("0")
-					&& !diagram.getBlocks().get(aPartition.get(0))
-							.getParameters().keySet().contains("discrete")) {
-				HashMap<String, ArrayList<String>> process = C_Process
-						.getProcess(diagram, aPartition);
+					&& !diagram.getBlocks().get(aPartition.get(0)).getParameters().keySet().contains("discrete")) {
+				HashMap<String, ArrayList<String>> process = C_Process.getProcess(diagram, aPartition);
 				//System.out.println("@@@@@@@@@"+process+"@@@@@@@@@@");
 				for (int j = 0; j < process.get("state").size(); j++) {
 					//System.out.println("@@@@@@@@@"+process.get("state").get(j)+"@@@@@@@@@@");
@@ -129,6 +127,9 @@ public class SL2HCSP {
 				discreteProcesses.add(aDiscreteProcess);
 			}
 		}
+		// System.out.println("Print continuous processes:");
+		for(int i = 0; i < continuousProcesses.size(); i++)
+			System.out.println(i+"-----"+continuousProcesses.get(i));
         //System.out.println("@@@@@@@@@"+continuousProcesses+"@@@@@@@@@@");
 		String process = C_Process.getProcesses(continuousProcesses);
 		//System.out.println("*********@@"+process+"@&&&&&&&&&@@");
@@ -141,8 +142,14 @@ public class SL2HCSP {
 
 		if (printText)
 			Isabelle.isabelleWrite("textualProcesses", process);
+
+		//if (discreteProcesses.isEmpty() || continuousProcesses.isEmpty()) {
+		//	return;
+		//}
 		Isabelle.isabelle(diagram, discreteProcesses, continuousProcesses);
 		SL2HCSP.textRep += "temp:=t;";
+		if (SL2HCSP.textCState.isEmpty())
+			SL2HCSP.textCState.add("");
 		for (int i = 0; i + 1 < SL2HCSP.textCState.size(); ++i)
 			SL2HCSP.textRep += SL2HCSP.textCState.get(i) + "temp + (Real "
 					+ SL2HCSP.basicClock + ")>>;\n";
@@ -153,7 +160,7 @@ public class SL2HCSP {
 		String text = SL2HCSP.textInit + "t:=(Real 0);\n(" + SL2HCSP.textRep
 				+ ")*";
 		text = text.replaceAll("Real", "Real ");
-		System.out.println(text);
+		// System.out.println(text);
 		Isabelle.isabelleWrite("process", text);
 	}
 

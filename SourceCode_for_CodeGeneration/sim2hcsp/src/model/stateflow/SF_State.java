@@ -101,7 +101,8 @@ public class SF_State extends SF_Junction {
 					event);
 		String sub = "";
 		if (actions.containsKey("du"))
-			sub += this.actions.get("du");
+			//sub += this.actions.get("du");
+			sub += SFProcess.act2Isabelle(this.actions.get("du"));
 		if (this.diagram != null)
 			sub += this.diagram.getDuringProcess(sf, locations, event);
 		if (!sub.equalsIgnoreCase(""))
