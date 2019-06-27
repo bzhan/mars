@@ -1,5 +1,6 @@
 from ss2hcsp.sl.sl_block import SL_Block
 
+
 class Integrator(SL_Block):
     """Block for integration."""
     def __init__(self, name, init_value):
@@ -12,7 +13,9 @@ class Integrator(SL_Block):
         self.dest_lines = [None]
 
         assert isinstance(init_value, str)
-        self.init_value = init_value
+        self.init_value = init_value  # string
+
+        self.st = "0"
 
     def __str__(self):
         return "%s: Integrator[init = %s, in = %s, out = %s]" % \

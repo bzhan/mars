@@ -1,7 +1,8 @@
 from ss2hcsp.sl.sl_block import SL_Block
 
+
 class Bias(SL_Block):
-    def __init__(self, name, bias):
+    def __init__(self, name, bias=0, *, st=-1):
         self.name = name
         self.type = "bias"
         self.is_continuous = False
@@ -10,4 +11,9 @@ class Bias(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = [None]
 
-        self.bias = bias
+        self.bias = str(bias)  # string of a number
+        self.st = str(st)
+
+    def __str__(self):
+        return "%s: Bias[in = %s, out = %s]" % \
+               (self.name, str(self.dest_lines), str(self.src_lines))

@@ -1,5 +1,6 @@
 from ss2hcsp.sl.sl_block import SL_Block
 
+
 class Port(SL_Block):
     """Represents an input/output channel for the overall diagram."""
     def __init__(self, name, port_type):

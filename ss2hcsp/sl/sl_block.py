@@ -18,14 +18,22 @@ class SL_Block:
 
         # Lines originating from the block, maintained as a list
         # of lists of SL_Line objects.
-        self.src_lines = []
+        self.src_lines = [[]]
 
         # Lines ending at the block, maintained as a list of
         # SL_Line objects
         self.dest_lines = []
 
+        # Sample time
+        self.st = "-1"
+
+    def __str__(self):
+        return self.name
+
     def add_src(self, port_id, sl_line):
         assert port_id < self.num_src
+        # sl_line is an object of class SL_Line
+        sl_line.branch = len(self.src_lines[port_id])
         self.src_lines[port_id].append(sl_line)
 
     def add_dest(self, port_id, sl_line):
