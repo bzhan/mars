@@ -74,9 +74,13 @@ class SL_Diagram:
         for block in self.blocks:
             if block.type == "integrator":
                 src_name = block.src_lines[0][0].name
+                init_hps.append(hp.Assign(var_name=src_name, expr=block.init_value))
                 dest_name = block.dest_lines[0].name
-                init_hps.append(hp.Assign(var_name=dest_name, expr=block.init_value))
                 ode_eqs.append((src_name, dest_name))
+            elif block.type == "constant":
+                src_name = block.src_lines[0][0].name
+                init_hps.append(hp.Assign(var_name=src_name, expr=block.value))
+                ode_eqs.append((src_name, "0"))
 
         init_hps.append(hp.Assign(var_name="t", expr="0"))
         ode_eqs.append(("t", "1"))
@@ -101,33 +105,47 @@ class SL_Diagram:
         # Initialization
         init_hp = hp.Assign(var_name="t", expr="0")
 
+        # Get input and output channels
         in_channels = []
         out_channels = []
-        discrete_hps = []
-        # Get discrete processes
         for block in self.blocks:
             if block.type == "in_port":  # get input channels
                 in_channels.append(hp.InputChannel(var_name=block.src_lines[0][0].name))
             elif block.type == "out_port":  # get output channels
                 out_channels.append(hp.OutputChannel(expr=block.dest_lines[0].name))
-            elif block.type in ["gain", "bias"]:
-                cond = "t % " + block.st + " == 0"
-                in_var = block.dest_lines[0].name
-                expr = ""
+
+        # Get discrete processes
+        discrete_hps = []
+        for block in self.blocks:
+            if not hasattr(block, "st"):
+                continue
+            cond = "t%" + block.st + "==0"
+            block_hp = None
+            in_vars = [line.name for line in block.dest_lines]  # keep the order?
+            out_var = block.src_lines[0][0].name
+            if block.type in ["gain", "bias", "abs", "not"]:
+                in_var = in_vars[0]
+                block_hp = None
                 if block.type == "gain":
                     if block.factor.startswith("-"):
                         expr = in_var + "*(" + block.factor + ")"
                     else:
                         expr = in_var + "*" + block.factor
+                    block_hp = hp.Assign(var_name=out_var, expr=expr)
                 elif block.type == "bias":
                     if block.bias.startswith("-"):
                         expr = in_var + block.bias
                     else:
                         expr = in_var + "+" + block.bias
-                discrete_hps.append(hp.Condition(cond=cond, hp=hp.Assign(var_name=block.src_lines[0][0].name, expr=expr)))
-            elif block.type in ["add", "divide"]:  # get Add process
-                cond = "t % " + block.st + " == 0"
-                in_vars = [line.name for line in block.dest_lines]  # keep the order?
+                    block_hp = hp.Assign(var_name=out_var, expr=expr)
+                elif block.type == "abs":
+                    # cond_hp1 = hp.Condition(cond=in_var + ">=0", hp=hp.Assign(var_name=out_var, expr=in_var))
+                    # cond_hp2 = hp.Condition(cond=in_var + "<0", hp=hp.Assign(var_name=out_var, expr="-" + in_var))
+                    # block_hp = hp.Sequence(cond_hp1, cond_hp2)
+                    block_hp = hp.Assign(var_name=out_var, expr="abs(" + in_var + ")")
+                elif block.type == "not":
+                    block_hp = hp.Assign(var_name=out_var, expr="1-" + in_var)
+            elif block.type in ["add", "divide"]:
                 assert len(in_vars) == len(block.dest_spec)
                 # Get the head of the expression
                 expr = in_vars[0]
@@ -137,13 +155,27 @@ class SL_Diagram:
                     expr = "1/" + expr
                 for i in range(1, len(block.dest_spec)):
                     expr = expr + block.dest_spec[i] + in_vars[i]
-                discrete_hps.append(hp.Condition(cond=cond, hp=hp.Assign(var_name=block.src_lines[0][0].name, expr=expr)))
+                block_hp = hp.Assign(var_name=out_var, expr=expr)
+            elif block.type in ["or", "and"]:
+                if block.type == "or":
+                    block_hp = hp.Assign(var_name=out_var, expr="max(" + ", ".join(in_vars) + ")")
+                elif block.type == "and":
+                    block_hp = hp.Assign(var_name=out_var, expr="min(" + ", ".join(in_vars) + ")")
+            elif block.type == "relation":
+                block_hp = hp.Assign(var_name=out_var, expr=block.relation.join(in_vars))
+            elif block.type == "switch":
+                cond0 = in_vars[1] + block.relation + block.threshold
+                cond_hp0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=in_vars[0]))
+                cond2 = in_vars[1] + block.neg_relation + block.threshold
+                cond_hp2 = hp.Condition(cond=cond2, hp=hp.Assign(var_name=out_var, expr=in_vars[2]))
+                block_hp = hp.Sequence(cond_hp0, cond_hp2)
+            discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
         # Get the time process
         # Compute the GCD of sample times of all the discrete blocks
         st_gcd = reduce(gcd, [int(block.st) for block in self.blocks if hasattr(block, "st")])
         temp = hp.Assign(var_name="temp", expr="t")
-        time_ode = hp.ODE(eqs=[("t", "1")], constraint="t < temp+" + str(st_gcd))
+        time_ode = hp.ODE(eqs=[("t", "1")], constraint="t<temp+" + str(st_gcd))
         time_process = hp.Sequence(temp, time_ode)
 
         # Get loop body

@@ -14,6 +14,7 @@ class Divide(SL_Block):
         self.dest_lines = [None] * self.num_dest
 
         assert all(s == '*' or s == '/' for s in dest_spec)
+        assert len(dest_spec) >= 2
         self.dest_spec = dest_spec  # string
         self.st = str(st)
 

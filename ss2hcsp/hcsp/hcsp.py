@@ -175,4 +175,4 @@ class Condition(HCSP):
         return self.type == other.type and self.hp == other.hp
 
     def __str__(self):
-        return self.cond + " -> " + str(self.hp)
+        return self.cond + " -> (" + str(self.hp) + ")"
