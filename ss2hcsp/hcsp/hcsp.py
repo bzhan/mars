@@ -44,14 +44,17 @@ class InputChannel(HCSP):
 
 
 class OutputChannel(HCSP):
-    def __init__(self, expr):
+    def __init__(self, expr, *, var_name=None):
         self.type = "output_channel"
         self.expr = expr  # string
+        self.var_name = var_name
 
     def __eq__(self, other):
-        return self.type == other.type and self.expr == other.expr
+        return self.type == other.type and self.expr == other.expr and self.var_name == other.var_name
 
     def __str__(self):
+        if self.var_name:
+            return "ch_" + self.var_name + "!" + self.expr
         return "ch_" + self.expr + "!" + self.expr
 
 

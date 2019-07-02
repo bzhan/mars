@@ -15,5 +15,5 @@ class Bias(SL_Block):
         self.st = str(st)
 
     def __str__(self):
-        return "%s: Bias[in = %s, out = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines))
+        return "%s: Bias[in = %s, out = %s, st = %s]" % \
+               (self.name, str(self.dest_lines), str(self.src_lines), self.st)
