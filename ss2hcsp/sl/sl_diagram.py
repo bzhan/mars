@@ -30,7 +30,7 @@ class SL_Diagram:
         dest_block.add_dest(line.dest_port, line)
 
     def __str__(self):
-        return "\n".join(str(block) for block in self.blocks)
+        return "\n".join(str(block) for block in self.blocks_dict.values())
 
     def check(self):
         """Checks the diagram is valid. Among the checks are:
@@ -44,7 +44,7 @@ class SL_Diagram:
     def add_line_name(self):
         # Give each group of lines a name
         num_lines = 0
-        for block in self.blocks:
+        for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
             # incoming line (if no name is given already).
             for i, line in enumerate(block.dest_lines):
@@ -71,7 +71,7 @@ class SL_Diagram:
         terminate = False
         while not terminate:
             terminate = True
-            for block in self.blocks:
+            for block in self.blocks_dict.values():
                 if block.st == "-1":
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
@@ -89,7 +89,7 @@ class SL_Diagram:
                         terminate = False
 
         # Define the sample time for each block whose sample time is still unknown
-        for block in self.blocks:
+        for block in self.blocks_dict.values():
             if block.st == "-1":
                 known_in_st = []  # list of known sample times of inputs of the block
                 unknown_in_st = []  # list of unknown sample times of inputs of the block

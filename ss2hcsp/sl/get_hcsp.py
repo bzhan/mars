@@ -1,8 +1,11 @@
 from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.sl.system import System
+from ss2hcsp.sl.sl_line import SL_Line
 
 from functools import reduce
 from math import gcd
 import re
+import operator
 
 
 def cartesian_product(list0, list1):
@@ -219,7 +222,9 @@ def translate_continuous(blocks):
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
 
     # ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
-    return hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
+    process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
+    # process.name = "PC" + str(process_num)
+    return process
 
 
 def translate_discrete(blocks):
@@ -324,7 +329,9 @@ def translate_discrete(blocks):
     loop_hps.append(time_process)
     loop_hps = hp.Sequence(*loop_hps)
 
-    return hp.Sequence(init_hp, hp.Loop(loop_hps))
+    process = hp.Sequence(init_hp, hp.Loop(loop_hps))
+    # process.name = "PD" + str(process_num)
+    return process
 
 
 def seperate_diagram(blocks_dict):
@@ -384,26 +391,91 @@ def seperate_diagram(blocks_dict):
 def get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
-    process_names = []
+    system = System()
     # Compute the discrete processes from discrete subdiagrams
-    discrete_processes = []
+    num = 0
     for scc in discrete_subdiagrams_sorted:
-        discrete_processes.append(translate_discrete(scc))
-    num = 0
-    for process in discrete_processes:
-        process_names.append("PD" + str(num))
-        print("PD" + str(num) + " ::= " + str(process))
+        discrete_process = translate_discrete(scc)
+        discrete_process.name = "PD" + str(num)
+        system.discrete_processes.append(discrete_process)
         num += 1
 
-    continuous_processes = []
+    # Compute the continuous processes from continuous subdiagrams
+    num = 0
     for scc in continuous_subdiagrams:
-        continuous_processes.append(translate_continuous(scc))
-    num = 0
-    for process in continuous_processes:
-        process_names.append("PC" + str(num))
-        print("PC" + str(num) + " ::= " + str(process))
+        continuous_process = translate_continuous(scc)
+        continuous_process.name = "PC" + str(num)
+        system.continuous_processes.append(continuous_process)
         num += 1
 
-    # Concurrency
-    if len(process_names) >= 2:
-        print("P ::= " + "||".join(process_names))
+    return system
+
+
+def delete_subsystems(blocks_dict):
+    subsystems = []
+    blocks_in_subsystems = []
+    for block in blocks_dict.values():
+        if block.type == "subsystem":
+            # Collect all the subsystems to be deleted
+            subsystems.append(block.name)
+            # The subsytem is treated as a diagram
+            subsystem = block.diagram
+            # Delete subsystems recursively
+            delete_subsystems(subsystem.blocks_dict)
+            # Move all the blocks except ports from the subsystem to the parent system
+            for sub_block in subsystem.blocks_dict.values():
+                if sub_block.type not in ["in_port", "out_port"]:
+                    blocks_in_subsystems.append(sub_block)
+            # Sort the input ports in the subsystem by names
+            input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
+            input_ports.sort(key=operator.attrgetter('name'))
+            # Sort the output ports in the subsystem by names
+            output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
+            output_ports.sort(key=operator.attrgetter('name'))
+
+            # Delete old input lines and add new ones
+            for port_id in range(block.num_dest):
+                input_line = block.dest_lines[port_id]
+                src_block = blocks_dict[input_line.src]
+                # Delete the old line (input_line) from src_block
+                src_block.src_lines[input_line.src_port][input_line.branch] = None
+                # Get the corresponding input port in the subsystem
+                port = input_ports[port_id]
+                assert port.name == "in_" + str(port_id)
+                for port_line in port.src_lines[0]:
+                    dest_block = subsystem.blocks_dict[port_line.dest]
+                    # Generate a new input line
+                    new_input_line = SL_Line(src=src_block.name, dest=dest_block.name,
+                                             src_port=input_line.src_port, dest_port=port_line.dest_port)
+                    new_input_line.name = input_line.name
+                    # Delete the old line (port_line) and add a new one
+                    dest_block.add_dest(port_id=port_line.dest_port, sl_line=new_input_line)
+                    # Add a new line for src_block
+                    src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
+
+            # Delete old output lines and add new ones
+            for port_id in range(block.num_src):
+                # Get the corresponding output port in the subsystem
+                port = output_ports[port_id]
+                assert port.name == "out_" + str(port_id)
+                port_line = port.dest_lines[0]
+                src_block = subsystem.blocks_dict[port_line.src]
+                # Delete the old line (port_line) from src_block
+                src_block.src_lines[port_line.src_port][port_line.branch] = None
+                for output_line in block.src_lines[port_id]:
+                    dest_block = blocks_dict[output_line.dest]
+                    # Generate a new output line
+                    new_output_line = SL_Line(src=src_block.name, dest=dest_block.name,
+                                              src_port=port_line.src_port, dest_port=output_line.dest_port)
+                    new_output_line.name = output_line.name
+                    # Delete the old line (output_line) and add a new one
+                    dest_block.add_dest(port_id=output_line.dest_port, sl_line=new_output_line)
+                    # Add a new line for src_block
+                    src_block.add_src(port_id=port_line.src_port, sl_line=new_output_line)
+
+    # Delete all the subsystems
+    for name in subsystems:
+        del blocks_dict[name]
+    # Add new blocks from subsystems to block_dict
+    for block in blocks_in_subsystems:
+        blocks_dict[block.name] = block

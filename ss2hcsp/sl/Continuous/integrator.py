@@ -11,9 +11,7 @@ class Integrator(SL_Block):
         self.num_dest = 1
         self.src_lines = [[]]
         self.dest_lines = [None]
-
-        assert isinstance(init_value, str)
-        self.init_value = init_value  # string
+        self.init_value = str(init_value)
 
         self.st = "0"
 

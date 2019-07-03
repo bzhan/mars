@@ -1,6 +1,7 @@
 class HCSP:
     def __init__(self):
         self.type = ""
+        self.name = ""
 
     def __repr__(self):
         return str(self)

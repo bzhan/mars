@@ -30,12 +30,19 @@ class SL_Block:
     def __str__(self):
         return self.name
 
+    # Add a source line
     def add_src(self, port_id, sl_line):
         assert port_id < self.num_src
         # sl_line is an object of class SL_Line
+        for branch in range(len(self.src_lines[port_id])):
+            if self.src_lines[port_id][branch] is None:
+                sl_line.branch = branch
+                self.src_lines[port_id][branch] = sl_line
+                return
         sl_line.branch = len(self.src_lines[port_id])
         self.src_lines[port_id].append(sl_line)
 
+    # Add a destination line
     def add_dest(self, port_id, sl_line):
         assert port_id < self.num_dest
         self.dest_lines[port_id] = sl_line
