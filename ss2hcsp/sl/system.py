@@ -37,7 +37,7 @@ class System:
         self.discrete_processes.sort(key=operator.attrgetter('name'))
         self.continuous_processes.sort(key=operator.attrgetter('name'))
         processes = self.discrete_processes + self.continuous_processes
-        main_process = "P ::= " + "||".join(process.name for process in processes) + "\n\n"
+        main_process = self.name + " ::= " + "||".join(process.name for process in processes) + "\n\n"
         sub_processes = ""
         for process in processes:
             sub_processes += process.name + " ::= " + str(process) + "\n"

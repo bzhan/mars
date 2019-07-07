@@ -1,19 +1,153 @@
 from ss2hcsp.sl.sl_line import SL_Line
+
+from ss2hcsp.sl.port import Port
+from ss2hcsp.sl.Continuous.integrator import Integrator
+from ss2hcsp.sl.Continuous.constant import Constant
+from ss2hcsp.sl.MathOperations.divide import Divide
+from ss2hcsp.sl.MathOperations.bias import Bias
+from ss2hcsp.sl.MathOperations.gain import Gain
+from ss2hcsp.sl.MathOperations.add import Add
+from ss2hcsp.sl.MathOperations.my_abs import Abs
+from ss2hcsp.sl.LogicOperations.my_and import And
+from ss2hcsp.sl.LogicOperations.my_not import Not
+from ss2hcsp.sl.LogicOperations.my_or import Or
+from ss2hcsp.sl.LogicOperations.relation import Relation
+from ss2hcsp.sl.SignalRouting.switch import Switch
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 # from ss2hcsp.hcsp import hcsp as hp
 
+from xml.dom.minidom import parse
 from functools import reduce
 from math import gcd
 import re
 
 
+def get_attribute_value(block, attribute):
+    for node in block.getElementsByTagName("P"):
+        if node.getAttribute("Name") == attribute:
+            return node.childNodes[0].data
+    return None
+
+
 class SL_Diagram:
     """Represents a Simulink diagram."""
-    def __init__(self):
+    def __init__(self, location=""):
         # List of blocks, in order of insertion.
         self.blocks = list()
 
         # Dictionary of blocks indexed by name
         self.blocks_dict = dict()
+
+        # Parsed model of the XML file
+        self.model = parse(open(location)) if location else None
+
+    def parse_xml(self):
+        system = self.model.getElementsByTagName(name="System")[0]
+        # Add blocks
+        blocks = [child for child in system.childNodes if child.nodeName == "Block"]
+        # The following dictionary is used to replace the port names as formatted ones.
+        # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
+        # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
+        port_name_dict = {}  # in the form {old_name: new_name}
+        for block in blocks:
+            block_type = block.getAttribute("BlockType")
+            block_name = block.getAttribute("Name")
+            if block_type == "Constant":
+                value = get_attribute_value(block=block, attribute="Value")
+                self.add_block(block=Constant(name=block_name, value=value))
+            elif block_type == "Integrator":
+                init_value = get_attribute_value(block=block, attribute="InitialCondition")
+                self.add_block(block=Integrator(name=block_name, init_value=init_value))
+            elif block_type == "Logic":  # AND, OR, NOT
+                operator = get_attribute_value(block=block, attribute="Operator")
+                inputs = get_attribute_value(block=block, attribute="Inputs")
+                num_dest = int(inputs) if inputs else 2
+                if operator == "OR":
+                    self.add_block(block=Or(name=block_name, num_dest=num_dest))
+                elif operator == "NOT":
+                    self.add_block(block=Not(name=block_name))
+                else:  # operator == None, meaning it is an AND block
+                    self.add_block(block=And(name=block_name, num_dest=num_dest))
+            elif block_type == "RelationalOperator":
+                # operator_relation = {"&gt;": ">", "&gt;=": ">=", "&lt;": "<", "&lt;=": "<=", "~=": "!=", "==": "=="}
+                relation = get_attribute_value(block=block, attribute="Operator")
+                if relation == "~=":
+                    relation = "!="
+                self.add_block(block=Relation(name=block_name, relation=relation))
+            elif block_type == "Abs":
+                self.add_block(block=Abs(name=block_name))
+            elif block_type == "Sum":
+                inputs = get_attribute_value(block=block, attribute="Inputs")
+                dest_spec = inputs.replace("|", "") if inputs else "++"
+                self.add_block(block=Add(name=block_name, dest_spec=dest_spec))
+            elif block_type == "Bias":
+                bias = get_attribute_value(block=block, attribute="Bias")
+                self.add_block(block=Bias(name=block_name, bias=bias))
+            elif block_type == "Product":
+                inputs = get_attribute_value(block=block, attribute="Inputs")
+                dest_spec = inputs.replace("|", "") if inputs else "**"
+                self.add_block(block=Divide(name=block_name, dest_spec=dest_spec))
+            elif block_type == "Gain":
+                factor = get_attribute_value(block=block, attribute="Gain")
+                self.add_block(block=Gain(name=block_name, factor=factor))
+            elif block_type == "Switch":
+                criteria = get_attribute_value(block=block, attribute="Criteria")
+                relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
+                print(criteria, "is", relation)
+                threshold = get_attribute_value(block=block, attribute="Threshold")
+                self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
+            elif block_type == "SubSystem":
+                ports = get_attribute_value(block=block, attribute="Ports")
+                num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
+                subsystem = Subsystem(name=block_name, num_src=num_src, num_dest=num_dest)
+                subsystem.diagram = SL_Diagram()
+                # Parse subsystems recursively
+                subsystem.diagram.model = block
+                subsystem.diagram.parse_xml()
+                self.add_block(block=subsystem)
+            elif block_type == "Inport":
+                port_number = get_attribute_value(block=block, attribute="Port")
+                if not port_number:
+                    port_number = "1"
+                assert block_name not in port_name_dict
+                port_name_dict[block_name] = "in_" + str(int(port_number) - 1)
+                self.add_block(block=Port(name=port_name_dict[block_name], port_type="in_port"))
+            elif block_type == "Outport":
+                port_number = get_attribute_value(block=block, attribute="Port")
+                if not port_number:
+                    port_number = "1"
+                assert block_name not in port_name_dict
+                port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
+                self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
+        # Add lines
+        lines = [child for child in system.childNodes if child.nodeName == "Line"]
+        for line in lines:
+            line_name = get_attribute_value(block=line, attribute="Name")
+            if not line_name:
+                line_name = "?"
+            src_block = get_attribute_value(block=line, attribute="SrcBlock")
+            if src_block in port_name_dict:
+                src_block = port_name_dict[src_block]
+            src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
+            branches = [branch for branch in line.getElementsByTagName(name="Branch")
+                        if not branch.getElementsByTagName(name="Branch")]
+            if branches:
+                for branch in branches:
+                    dest_block = get_attribute_value(block=branch, attribute="DstBlock")
+                    if dest_block in port_name_dict:
+                        dest_block = port_name_dict[dest_block]
+                    dest_port = int(get_attribute_value(block=branch, attribute="DstPort")) - 1
+                    if dest_block in self.blocks_dict:
+                        self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
+                                      name=line_name)
+            else:  # No branches
+                dest_block = get_attribute_value(block=line, attribute="DstBlock")
+                if dest_block in port_name_dict:
+                    dest_block = port_name_dict[dest_block]
+                dest_port = int(get_attribute_value(block=line, attribute="DstPort")) - 1
+                if dest_block in self.blocks_dict:
+                    self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
+                                  name=line_name)
 
     def add_block(self, block):
         """Add given block to the diagram."""

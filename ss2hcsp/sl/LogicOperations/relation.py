@@ -12,7 +12,7 @@ class Relation(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = [None] * self.num_dest
 
-        assert relation in ["<", ">", "=", ">=", "<="]
+        assert relation in ["<", ">", "==", "!=", ">=", "<="]
         self.relation = relation
         self.st = str(st)
 

@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.sl.sl_diagram import SL_Diagram
+# from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
 class Subsystem(SL_Block):
@@ -12,7 +12,7 @@ class Subsystem(SL_Block):
         self.num_dest = num_dest
         self.src_lines = [[] for _ in range(self.num_src)]  # [[]] * self.num_src
         self.dest_lines = [None] * self.num_dest
-        self.diagram = SL_Diagram()
+        self.diagram = None
 
     def __str__(self):
         return "%s: Subsystem[in = %s, out = %s, diagram = %s]" % \

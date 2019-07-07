@@ -36,7 +36,7 @@ def variable_subsitution(var_dict, out_var, cond_expr):
                             new_cond = cond_v + "&&" + new_cond
                         elif cond_v != "True":  # new_cond == "True"
                             new_cond = cond_v
-                        new_expr = re.sub(var_name, expr_v, expr)
+                        new_expr = re.sub(var_name, "(" + expr_v + ")", expr)
                         new_cond_expr.append((new_cond, new_expr))
                 else:
                     new_cond_expr.append((cond, expr))
@@ -478,4 +478,5 @@ def delete_subsystems(blocks_dict):
         del blocks_dict[name]
     # Add new blocks from subsystems to block_dict
     for block in blocks_in_subsystems:
+        assert block not in blocks_dict
         blocks_dict[block.name] = block
