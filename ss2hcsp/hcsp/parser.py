@@ -39,6 +39,7 @@ grammar = r"""
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
     ?cmd: "skip" -> skip_cmd
+        | "wait" "(" INT ")" -> wait_cmd
         | CNAME ":=" expr -> assign_cmd
         | cmd ";" cmd -> seq_cmd
         | comm_cmd
@@ -110,6 +111,9 @@ class HPTransformer(Transformer):
 
     def skip_cmd(self):
         return hcsp.Skip()
+
+    def wait_cmd(self, delay):
+        return hcsp.Wait(int(delay))
 
     def assign_cmd(self, var, expr):
         return hcsp.Assign(var, expr)

@@ -26,6 +26,21 @@ class Skip(HCSP):
         return "skip"
 
 
+class Wait(HCSP):
+    def __init__(self, delay):
+        self.type = "wait"
+        self.delay = delay
+
+    def __eq__(self, other):
+        return self.type == other.type and self.delay == other.delay
+
+    def __repr__(self):
+        return "Wait(%s)" % str(self.delay)
+
+    def __str__(self):
+        return "wait(%s)" % str(self.delay)
+
+
 class Assign(HCSP):
     def __init__(self, var_name, expr):
         self.type = "assign"
