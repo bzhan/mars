@@ -1,3 +1,5 @@
+"""Expressions"""
+
 class AExpr:
     def __init__(self):
         pass
@@ -117,6 +119,31 @@ class TimesExpr(AExpr):
 
     def subst(self, inst):
         return TimesExpr(self.signs, [expr.subst(inst) for expr in self.exprs])
+
+class FunExpr(AExpr):
+    def __init__(self, fun_name, exprs):
+        assert fun_name in ['min']
+        self.fun_name = fun_name
+        self.exprs = exprs
+
+    def __repr__(self):
+        return "Fun(%s,%s)" % (self.fun_name, ",".join(repr(expr) for expr in self.exprs))
+
+    def __str__(self):
+        return "%s(%s)" % (self.fun_name, ", ".join(str(expr) for expr in self.exprs))
+
+    def __eq__(self, other):
+        return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
+            self.exprs == other.exprs
+
+    def __hash__(self):
+        return hash(("Fun", self.fun_name, tuple(self.exprs)))
+
+    def get_vars(self):
+        return set().union(*(get_vars(expr) for expr in self.exprs))
+
+    def subst(self, inst):
+        return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 
 class BExpr:
     def __init__(self):

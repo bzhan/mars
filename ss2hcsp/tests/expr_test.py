@@ -4,7 +4,8 @@ import unittest
 
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.expr import true_expr, AVar, AConst, PlusExpr
-from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
+from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
+from ss2hcsp.hcsp import hcsp
 
 
 class ExprTest(unittest.TestCase):
@@ -13,6 +14,7 @@ class ExprTest(unittest.TestCase):
             ("a + 1", "Plus(+Var(a),+Const(1))"),
             ("a * b", "Times(*Var(a),*Var(b))"),
             ("a - b", "Plus(+Var(a),-Var(b))"),
+            ("min(a, b)", "Fun(min,Var(a),Var(b))"),
         ]
         
         for s, res in test_data:
@@ -71,6 +73,21 @@ class ExprTest(unittest.TestCase):
 
         self.assertConditionalInst(test_data, res)
 
+    def testParseHCSP(self):
+        test_data = [
+            ("x1 := 3", "Assign(x1,3)"),
+            ("x1 := 3; x2 := 5", "Seq(Assign(x1,3),Assign(x2,5))"),
+            ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1,3),Assign(x2,5),Skip())"),
+            ("(skip)*", "Loop(Skip())"),
+            ("ch_x1?x1", "InputC(x1)"),
+            ("ch_x1!x2", "OutputC(x1,x2)"),
+            ("<x_dot = x + 1, y_dot = y + 1 & x < 3> |> [] (ch_x?x --> skip, ch_y!y --> skip)",
+             "ODEComm(x,x+1,y,y+1, x<3, ch_x?x,skip,ch_y!y,skip)"),
+        ]
+
+        for s, res in test_data:
+            hp = hp_parser.parse(s)
+            self.assertEqual(repr(hp), res)
 
 
 if __name__ == "__main__":

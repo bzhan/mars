@@ -18,6 +18,7 @@ from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
 import ss2hcsp.sl.get_hcsp as get_hp
+from ss2hcsp.hcsp.parser import hp_parser
 
 
 class SimTest(unittest.TestCase):
@@ -50,18 +51,14 @@ class SimTest(unittest.TestCase):
         diagram.delete_ports()
         # print(diagram.blocks)
 
-        hp_init = hcsp.Sequence(hcsp.Assign("x1", "3"), hcsp.Assign("x2", "7"), hcsp.Assign("t", "0"))
-        out_comms_0 = [(hcsp.InputChannel("x0"), hcsp.Skip()), (hcsp.InputChannel("x4"), hcsp.Skip()),
-                       (hcsp.InputChannel("x5"), hcsp.Skip()), (hcsp.OutputChannel(var_name="x7", expr="x4"), hcsp.Skip())]
-        constraint0 = "min(x2, x2)>=5&&x4<10||min(x2, x2)<5&&x5<10"
-        hp_ode0 = hcsp.ODE_Comm([("x1", "x0"), ("x2", "x1"), ("t", "1")], constraint0, out_comms_0)
-        # continuous_hp0 = hcsp.Sequence(hp_init, hcsp.Loop(hp_ode0))
+        hp_init = hp_parser.parse("x1 := 3; x2 := 7; t := 0")
+        hp_ode0 = hp_parser.parse(r"""
+            <x1_dot = x0, x2_dot = x1, t_dot = 1 & min(x2, x2)>=5&&x4<10||min(x2, x2)<5&&x5<10>
+                |> [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x4 --> skip)""")
 
-        out_comms_1 = [(hcsp.InputChannel("x0"), hcsp.Skip()), (hcsp.InputChannel("x4"), hcsp.Skip()),
-                       (hcsp.InputChannel("x5"), hcsp.Skip()), (hcsp.OutputChannel(var_name="x7", expr="x5"), hcsp.Skip())]
-        constraint1 = "min(x2, x2)>=5&&x4>=10||min(x2, x2)<5&&x5>=10"
-        hp_ode1 = hcsp.ODE_Comm([("x1", "x0"), ("x2", "x1"), ("t", "1")], constraint1, out_comms_1)
-        # continuous_hp1 = hcsp.Sequence(hp_init, hcsp.Loop(hp_ode1))
+        hp_ode1 = hp_parser.parse(r"""
+            <x1_dot = x0, x2_dot = x1, t_dot = 1 & min(x2, x2)>=5&&x4>=10||min(x2, x2)<5&&x5>=10>
+                |> [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x5 --> skip)""")
 
         continuous_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(hp_ode0, hp_ode1)))
         # print("Expected: ", continuous_hp)

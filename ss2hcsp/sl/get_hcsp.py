@@ -1,11 +1,17 @@
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.sl.system import System
 from ss2hcsp.sl.sl_line import SL_Line
+from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp.expr import AVar, AConst
+from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 
 from functools import reduce
 from math import gcd
 import re
 import operator
+
+aexpr_parse = aexpr_parser.parse
+bexpr_parse = bexpr_parser.parse
 
 
 def cartesian_product(list0, list1):
@@ -134,26 +140,18 @@ def translate_continuous(blocks):
     for block in blocks:
         if block.type == "integrator":
             src_name = block.src_lines[0][0].name
-            init_hps.append(hp.Assign(var_name=src_name, expr=block.init_value))
+            init_hps.append(hp.Assign(var_name=src_name, expr=aexpr_parse(block.init_value)))
             dest_name = block.dest_lines[0].name
-            ode_eqs.append((src_name, dest_name))
+            ode_eqs.append((src_name, AVar(dest_name)))
         elif block.type == "constant":
             src_name = block.src_lines[0][0].name
-            init_hps.append(hp.Assign(var_name=src_name, expr=block.value))
-            ode_eqs.append((src_name, "0"))
+            init_hps.append(hp.Assign(var_name=src_name, expr=AConst(int(block.value))))
+            ode_eqs.append((src_name, AConst(0)))
 
-    init_hps.append(hp.Assign(var_name="t", expr="0"))
-    ode_eqs.append(("t", "1"))
+    init_hps.append(hp.Assign(var_name="t", expr=AConst(0)))
+    ode_eqs.append(("t", AConst(1)))
 
     # Add communication for each port
-    # comm_hps = []
-    # for block in blocks:
-    #     if block.type == 'in_port':
-    #         src_name = block.src_lines[0][0].name
-    #         comm_hps.append((hp.InputChannel(var_name=src_name), hp.Skip()))
-    #     elif block.type == 'out_port':
-    #         dest_name = block.dest_lines[0].name
-    #         comm_hps.append((hp.OutputChannel(expr=dest_name), hp.Skip()))
     in_channels = set()
     out_channels = set()
     block_names = [block.name for block in blocks]
@@ -166,6 +164,7 @@ def translate_continuous(blocks):
                 if src_line.dest not in block_names:
                     out_channels.add(src_line.name)
     in_var_ode = set(in_var for _, in_var in ode_eqs)
+
     # Delete useless variables
     delete_vars = [var for var in var_dict.keys() if var not in in_var_ode.union(out_channels)]
     for var in delete_vars:
@@ -174,10 +173,12 @@ def translate_continuous(blocks):
     var_list = [e[0] for e in var_cond_exprs]  # e[0] is a variable name
     cond_exprs_list = [e[1] for e in var_cond_exprs]  # e[1] is the list of (condition, expression) pairs wrt. e[0]
     if len(var_list) == 0:  # Do not need to substitute
-        in_channel_hps = [(hp.InputChannel(var_name=var_name), hp.Skip()) for var_name in sorted(in_channels)]
-        out_channel_hps = [(hp.OutputChannel(expr=var_name), hp.Skip()) for var_name in sorted(out_channels)]
+        in_channel_hps = [(hp.InputChannel(var_name=var_name), hp.Skip())
+                          for var_name in sorted(in_channels)]
+        out_channel_hps = [(hp.OutputChannel(expr=AVar(var_name)), hp.Skip())
+                           for var_name in sorted(out_channels)]
         comm_hps = in_channel_hps + out_channel_hps
-        ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
+        ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint=expr.true_expr, io_comms=comm_hps)
         return hp.Sequence(hp.Sequence(*init_hps), hp.Loop(ode_hp))
     if len(var_list) == 1:  # len(cond_exprs_list) == 1
         compositions = [[e] for e in cond_exprs_list[0]]
@@ -193,7 +194,7 @@ def translate_continuous(blocks):
             if in_var in var_list:
                 cond = composition[var_list.index(in_var)][0]
                 expr = composition[var_list.index(in_var)][1]
-                new_ode_eqs.append((out_var, expr))
+                new_ode_eqs.append((out_var, aexpr_parse(expr)))
                 constraints.add(cond)
             else:
                 new_ode_eqs.append((out_var, in_var))
@@ -203,11 +204,11 @@ def translate_continuous(blocks):
             if out_channel in var_list:
                 cond = composition[var_list.index(out_channel)][0]
                 expr = composition[var_list.index(out_channel)][1]
-                comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=expr), hp.Skip()))
+                comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
                 constraints.add(cond)
                 # print(expr)
             else:
-                comm_hps.append((hp.OutputChannel(expr=out_channel), hp.Skip()))
+                comm_hps.append((hp.OutputChannel(expr=AVar(out_channel)), hp.Skip()))
                 # print(out_channel)
         constraint = "True"
         constraints.remove("True")
@@ -219,7 +220,7 @@ def translate_continuous(blocks):
         # print("constrain = ", constraint)
         # print("comm_hps", comm_hps)
         # print("-" * 50)
-        ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
+        ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=bexpr_parse(constraint), io_comms=comm_hps))
 
     # ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
     process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
