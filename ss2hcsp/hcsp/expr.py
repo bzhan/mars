@@ -156,7 +156,7 @@ false_expr = BConst(False)
 
 class LogicExpr(BExpr):
     def __init__(self, op, expr1, expr2):
-        assert op in ["&", "|", "-->", "<-->"]
+        assert op in ["&&", "||", "-->", "<-->"]
         assert isinstance(expr1, BExpr) and isinstance(expr2, BExpr)
         self.op = op
         self.expr1 = expr1
@@ -188,7 +188,7 @@ def conj(*args):
     elif len(args) == 1:
         return args[0]
     else:
-        return LogicExpr("&", args[0], conj(*args[1:]))
+        return LogicExpr("&&", args[0], conj(*args[1:]))
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -197,7 +197,7 @@ def disj(*args):
     elif len(args) == 1:
         return args[0]
     else:
-        return LogicExpr("|", args[0], disj(*args[1:]))
+        return LogicExpr("||", args[0], disj(*args[1:]))
 
 def imp(b1, b2):
     return LogicExpr("-->", b1, b2)

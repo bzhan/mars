@@ -22,9 +22,9 @@ grammar = r"""
         | "false" -> false_cond
         | "(" cond ")"
     
-    ?conj: atom_cond "&" conj | atom_cond     // Conjunction: priority 35
+    ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
-    ?disj: conj "|" disj | conj   // Disjunction: priority 30
+    ?disj: conj "||" disj | conj   // Disjunction: priority 30
 
     ?imp: disj "-->" imp | disj  // Implies: priority 25
 

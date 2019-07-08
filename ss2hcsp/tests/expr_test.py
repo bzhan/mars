@@ -22,7 +22,7 @@ class ExprTest(unittest.TestCase):
     def testBExprParser(self):
         test_data = [
             ("a < 1", "Rel(<,Var(a),Const(1))"),
-            ("a == 1 & true", "Logic(&,Rel(==,Var(a),Const(1)),BConst(True))")
+            ("a == 1 && true", "Logic(&&,Rel(==,Var(a),Const(1)),BConst(True))")
         ]
 
         for s, res in test_data:
@@ -65,8 +65,8 @@ class ExprTest(unittest.TestCase):
 
         res = [
             ("w", [("in >= 5", "a"), ("in < 5", "b")]),
-            ("z", [("a >= 10 & in >= 5 | b >= 10 & in < 5", "x"),
-                   ("a < 10 & in >= 5 | b < 10 & in < 5", "y")]),
+            ("z", [("a >= 10 && in >= 5 || b >= 10 && in < 5", "x"),
+                   ("a < 10 && in >= 5 || b < 10 && in < 5", "y")]),
         ]
 
         self.assertConditionalInst(test_data, res)
