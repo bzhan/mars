@@ -39,7 +39,11 @@ class SL_Diagram:
         self.blocks_dict = dict()
 
         # Parsed model of the XML file
-        self.model = parse(open(location)) if location else None
+        if location:
+            with open(location) as f:
+                self.model = parse(f)
+        else:
+            self.model = None
 
     def parse_xml(self):
         system = self.model.getElementsByTagName(name="System")[0]

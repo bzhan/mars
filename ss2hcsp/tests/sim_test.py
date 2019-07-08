@@ -48,7 +48,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         # print(diagram)
         diagram.delete_ports()
-        print(diagram.blocks)
+        # print(diagram.blocks)
 
         hp_init = hcsp.Sequence(hcsp.Assign("x1", "3"), hcsp.Assign("x2", "7"), hcsp.Assign("t", "0"))
         out_comms_0 = [(hcsp.InputChannel("x0"), hcsp.Skip()), (hcsp.InputChannel("x4"), hcsp.Skip()),
@@ -264,7 +264,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.comp_inher_st()
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
+        # print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
         # print(diagram)
 
 
