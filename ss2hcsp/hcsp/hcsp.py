@@ -44,18 +44,22 @@ class Assign(HCSP):
 
 
 class InputChannel(HCSP):
-    def __init__(self, var_name):
+    def __init__(self, var_name, *, ch_name=None):
         self.type = "input_channel"
         self.var_name = var_name  # string
+        if ch_name is None:
+            ch_name = self.var_name
+        self.ch_name = ch_name
 
     def __eq__(self, other):
-        return self.type == other.type and self.var_name == other.var_name
+        return self.type == other.type and self.ch_name == other.ch_name and \
+            self.var_name == other.var_name
 
     def __repr__(self):
-        return "InputC(%s)" % self.var_name
+        return "InputC(%s,%s)" % (self.ch_name, self.var_name)
 
     def __str__(self):
-        return "ch_" + self.var_name + "?" + self.var_name
+        return "ch_" + self.ch_name + "?" + self.var_name
 
 
 class OutputChannel(HCSP):

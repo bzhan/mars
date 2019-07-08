@@ -79,7 +79,7 @@ class ExprTest(unittest.TestCase):
             ("x1 := 3; x2 := 5", "Seq(Assign(x1,3),Assign(x2,5))"),
             ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1,3),Assign(x2,5),Skip())"),
             ("(skip)*", "Loop(Skip())"),
-            ("ch_x1?x1", "InputC(x1)"),
+            ("ch_x1?x1", "InputC(x1,x1)"),
             ("ch_x1!x2", "OutputC(x1,x2)"),
             ("<x_dot = x + 1, y_dot = y + 1 & x < 3> |> [] (ch_x?x --> skip, ch_y!y --> skip)",
              "ODEComm(x,x+1,y,y+1, x<3, ch_x?x,skip,ch_y!y,skip)"),
