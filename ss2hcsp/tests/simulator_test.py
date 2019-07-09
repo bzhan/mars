@@ -48,6 +48,74 @@ class SimulatorTest(unittest.TestCase):
             self.assertEqual(simulator.exec_process(cmd, state), (cmd2, reason))
             self.assertEqual(state, state2)
 
+    def testExecInputComm(self):
+        test_data = [
+            ("ch_c?x", {}, "c", 2, "skip", {"x": 2}),
+            ("ch_c?x; x := x + 1", {}, "c", 2, "skip; x := x + 1", {"x": 2}),
+            ("ch_c?x; x := x + 1; y := 2", {}, "c", 2, "skip; x := x + 1; y := 2", {"x": 2}),
+            ("<x_dot = 1 & true> |> [](ch_c?x --> x := x + 1)", {}, "c", 2, "x := x + 1", {"x": 2}),
+            ("<x_dot = 1 & true> |> [](ch_c?x --> skip); x := x + 2", {}, "c", 2, "skip; x := x + 2", {"x": 2})
+        ]
+
+        for cmd, state, ch_name, val, cmd2, state2 in test_data:
+            cmd = parser.hp_parser.parse(cmd)
+            cmd2 = parser.hp_parser.parse(cmd2)
+            self.assertEqual(simulator.exec_input_comm(cmd, state, ch_name, val), cmd2)
+            self.assertEqual(state, state2)
+
+    def testExecOutputComm(self):
+        test_data = [
+            ("ch_c!x", {"x": 2}, "c", "skip", 2, {"x": 2}),
+            ("ch_c!x+1", {"x": 2}, "c", "skip", 3, {"x": 2}),
+            ("ch_c!x+y; x := 3", {"x": 2, "y": 3}, "c", "skip; x := 3", 5, {"x": 2, "y": 3}),
+            ("ch_c!x*y; x := 3; y := 0", {"x": 2, "y": 3}, "c", "skip; x := 3; y := 0", 6, {"x": 2, "y": 3}),
+            ("<x_dot = 1 & true> |> [](ch_c!x --> skip)", {"x": 2}, "c", "skip", 2, {"x": 2}),
+            ("<x_dot = 1 & true> |> [](ch_c!x+1 --> skip); x := x + 1", {"x": 2}, "c", "skip; x := x + 1", 3, {"x": 2}),
+        ]
+
+        for cmd, state, ch_name, cmd2, val, state2 in test_data:
+            cmd = parser.hp_parser.parse(cmd)
+            cmd2 = parser.hp_parser.parse(cmd2)
+            self.assertEqual(simulator.exec_output_comm(cmd, state, ch_name), (cmd2, val))
+            self.assertEqual(state, state2)
+
+    def testDelay(self):
+        test_data = [
+            ("skip", {}, 3, "skip", {}),
+            ("wait(3)", {}, 3, "skip", {}),
+            ("wait(3)", {}, 2, "wait(1)", {}),
+            ("wait(3); x := x + 1", {"x": 2}, 3, "skip; x := x + 1", {"x": 2}),
+            ("wait(3); x := x + 1", {"x": 2}, 2, "wait(1); x := x + 1", {"x": 2}),
+            ("<x_dot = 1 & true> |> [](ch_c!x --> skip)", {"x": 2}, 3,
+             "<x_dot = 1 & true> |> [](ch_c!x --> skip)", {"x": 5}),
+            ("<x_dot = 1 & true> |> [](ch_c!x --> skip); x := x + 1", {"x": 2}, 3,
+             "<x_dot = 1 & true> |> [](ch_c!x --> skip); x := x + 1", {"x": 5}),
+        ]
+
+        for cmd, state, delay, cmd2, state2 in test_data:
+            cmd = parser.hp_parser.parse(cmd)
+            cmd2 = parser.hp_parser.parse(cmd2)
+            self.assertEqual(simulator.exec_delay(cmd, state, delay), cmd2)
+            self.assertEqual(state, state2)
+
+    def testExecParallel1(self):
+        hp1 = parser.hp_parser.parse("(<x_dot = 1 & true> |> [](ch_p2c!x --> skip); ch_c2p?x)*")
+        hp1_init = {"x": 0}
+        hp2 = parser.hp_parser.parse("(wait(2); ch_p2c?x; ch_c2p!x-1)*")
+        hp2_init = {}
+
+        trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
+        self.assertEqual(trace, ["delay 2", "IO p2c 2", "IO c2p 1", "delay 2", "IO p2c 3", "IO c2p 2"])
+
+    def testExecParallel2(self):
+        hp1 = parser.hp_parser.parse("(<x_dot = 1 & true> |> [](ch_p2c!x --> skip); ch_c2p?x)*")
+        hp1_init = {"x": 0}
+        hp2 = parser.hp_parser.parse("wait(2); ch_p2c?x; ch_c2p!x-1")
+        hp2_init = {}
+
+        trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
+        self.assertEqual(trace, ["delay 2", "IO p2c 2", "IO c2p 1", "deadlock"])
+
 
 if __name__ == "__main__":
     unittest.main()

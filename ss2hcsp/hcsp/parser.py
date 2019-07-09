@@ -125,10 +125,13 @@ class HPTransformer(Transformer):
             return hcsp.Sequence(c1, c2)
 
     def input_cmd(self, ch_name, var_name):
+        ch_name = str(ch_name)
+        var_name = str(var_name)
         assert ch_name.startswith("ch_")
         return hcsp.InputChannel(var_name, ch_name=ch_name[3:])
 
     def output_cmd(self, ch_name, expr):
+        ch_name = str(ch_name)
         assert ch_name.startswith("ch_")
         return hcsp.OutputChannel(expr, var_name=ch_name[3:])
 
