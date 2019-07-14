@@ -159,7 +159,7 @@ class ODE_Comm(HCSP):
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + expr for var_name, expr in self.eqs)
         str_io_comms = ", ".join(str(comm_hp) + " --> " + str(out_hp) for comm_hp, out_hp in self.io_comms)
-        return "<" + str_eqs + " & " + self.constraint + "> |> [] (" + str_io_comms + ")"
+        return "<<" + str_eqs + " & " + self.constraint + " >>|> [] (" + str_io_comms + ")"
 
 
 class Loop(HCSP):
@@ -232,3 +232,18 @@ class Wait(HCSP):
 
     def __str__(self):
         return "wait "+self.time
+
+
+class SelectComm(HCSP):
+    def __init__(self, *hps):
+        """hps is a list of hybrid programs."""
+        self.type = "select_comm"
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        #assert all(is_comm_channel(hp) for hp in hps)
+        self.hps = list(hps)  # type(hps) == tuple
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hps == other.hps
+
+    def __str__(self):
+        return " { "+" $ ".join(str(hp) for hp in self.hps) + " } "
