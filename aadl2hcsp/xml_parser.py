@@ -1,29 +1,25 @@
 #coding=utf-8
 
-#通过minidom解析xml文件
+# Use minidom to parse XML files
 import xml.dom.minidom as xmldom
 import os
 import json
 
 dic={}
 categories=['system','process','thread']
-#xmlfilepath = os.path.abspath("iosolette.xml")
-#print("xml文件路径：", xmlfilepath)
-
-#path = './instances/'
-#for file in os.listdir(path):
-#    os.rename(os.path.join(path, file), os.path.join(path, file.split('.')[0]+ ".xml"))
 
 def parseModel(model):
+    """Return instances of the model separated by type."""
     nodes = model.childNodes
     features = [node for node in nodes if node.nodeName == 'featureInstance']
     components = [node for node in nodes if node.nodeName == 'componentInstance']
     connections = [node for node in nodes if node.nodeName == 'connectionInstance']
     opas = [node for node in nodes if node.nodeName == 'ownedPropertyAssociation']
 
-    return features,components,connections,opas
+    return features, components, connections, opas
 
 def getFeatures(features):
+    """Interpret a list of features."""
     Feas=[]
     for feature in features:
         fea={}
@@ -34,6 +30,7 @@ def getFeatures(features):
     return Feas
 
 def getComponents(components):
+    """Interpret a list of components."""
     Coms=[]
     for component in components:
         if component.getAttribute('category') in categories:
@@ -51,6 +48,7 @@ def getComponents(components):
     return Coms
 
 def getConnections(connections):
+    """Interpret a list of connections."""
     Conns=[]
     for connection in connections:
         conn={}
@@ -64,6 +62,7 @@ def getConnections(connections):
 
 
 def getOwnedPropertyAssociation(opas):
+    """Interpret a list of owned property associations."""
     Opas=[]
     for opa in opas:
         opass={}
@@ -71,7 +70,7 @@ def getOwnedPropertyAssociation(opas):
         opass['type'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('xsi:type').split(':')[-1]
         if opass['type'] == 'NamedValue':
-            opass['value']= 'Periodic'    ##解析协议
+            opass['value'] = 'Periodic'    # Parse the protocol
         elif opass['type'] == 'IntegerLiteral':
             opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('value')

@@ -22,7 +22,7 @@ def createStructure(dic):
             else:
                 hp2 = hps[0]
 
-            hp = Defination(hp1, hp2)
+            hp = Definition(hp1, hp2)
             lines.append(hp)
 
             #对于声明名于应用名不一致的情况增加一条定义
@@ -30,7 +30,7 @@ def createStructure(dic):
                 if 'name_impl' in com:
                     hp1 = HCSP(com['name'])
                     hp2 = HCSP(com['name_impl'])
-                    hp = Defination(hp1, hp2)
+                    hp = Definition(hp1, hp2)
                     lines.append(hp)
     return lines
 
@@ -51,7 +51,7 @@ def createConnections(dic):
             else:
                 hp2 = hps[0]
 
-            hp = Defination(hp1, hp2)
+            hp = Definition(hp1, hp2)
             lines.append(hp)
 
     return lines
@@ -82,7 +82,7 @@ class Process:
             hps2 = SelectComm(*hps2)
             hps.append(Loop(hps2))
             hps= Sequence(*hps)
-            hp = Defination(hp1,hps)
+            hp = Definition(hp1,hps)
 
             return hp
 
@@ -135,7 +135,7 @@ class Process:
             hps.append(Condition(con,con_hp))
 
         hps = Sequence(*hps)
-        hp = Defination(hp1, hps)
+        hp = Definition(hp1, hps)
 
         return hp
 
@@ -157,7 +157,7 @@ class Process:
             else:
                 hps = Parallel(*hps)
 
-            hp = Defination(hp1,hps)
+            hp = Definition(hp1,hps)
 
             return hp
 
@@ -208,13 +208,13 @@ class Thread:
         hps = Parallel(*[Loop(HCSP('ACT_'+self.thread_name)),
                          Loop(HCSP('DIS_'+self.thread_name)),
                          Loop(HCSP('COM_'+self.thread_name))])
-        hp = Defination(hp1,hps)
+        hp = Definition(hp1,hps)
         lines.append(hp)
 
         if self.thread_protocal == 'Periodic':
             act_hp1 = HCSP('ACT_'+self.thread_name)
             act_hps = OutputChannel('act_'+self.thread_name)
-            act_hp = Defination(act_hp1,act_hps)
+            act_hp = Definition(act_hp1,act_hps)
             lines.append(act_hp)
 
             dis_hp1 = HCSP('DIS_' + self.thread_name)
@@ -231,7 +231,7 @@ class Thread:
                                     InputChannel('exit_'+self.thread_name)))
 
             dis_hps = Sequence(*dis_hps)
-            dis_hp = Defination(dis_hp1, dis_hps)
+            dis_hp = Definition(dis_hp1, dis_hps)
             lines.append(dis_hp)
 
         com_hp1 = HCSP('COM_' + self.thread_name)
@@ -252,7 +252,7 @@ class Thread:
 
         com_hps.append(Parallel(*[com_ready,com_running,com_await,com_annex]))
         com_hps = Sequence(*com_hps)
-        com_hp = Defination(com_hp1, com_hps)
+        com_hp = Definition(com_hp1, com_hps)
 
         lines.append(com_hp)
 
@@ -279,7 +279,7 @@ class Thread:
         hps.append(Condition(con,con_hp))
 
         hps = Sequence(*hps)
-        hp = Defination(hp1, hps)
+        hp = Definition(hp1, hps)
 
         return hp
 
@@ -298,7 +298,7 @@ class Thread:
         hps.append(Condition(con, con_hp))
 
         hps = Sequence(*hps)
-        hp = Defination(hp1, hps)
+        hp = Definition(hp1, hps)
 
         return hp
 
@@ -334,6 +334,6 @@ class Thread:
         hps.append(Condition(con, con_hp))
 
         hps = Sequence(*hps)
-        hp = Defination(hp1, hps)
+        hp = Definition(hp1, hps)
 
         return hp

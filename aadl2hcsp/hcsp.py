@@ -205,13 +205,14 @@ class Parallel(HCSP):
         return " || ".join(str(hp) for hp in self.hps)
 
 
-class Defination(HCSP):
+class Definition(HCSP):
     """The alternative hp1 ::= hp2 behaves as hp1 defined by hp2;
-         otherwise, it terminates immediately."""
-
+    otherwise, it terminates immediately.
+    
+    """
     def __init__(self, hp1, hp2):
         assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
-        self.type = "defination"
+        self.type = "definition"
         self.hp1 = hp1
         self.hp2 = hp2
 
@@ -231,7 +232,7 @@ class Wait(HCSP):
         return self.type == other.type
 
     def __str__(self):
-        return "wait "+self.time
+        return "wait " + self.time
 
 
 class SelectComm(HCSP):
@@ -246,4 +247,4 @@ class SelectComm(HCSP):
         return self.type == other.type and self.hps == other.hps
 
     def __str__(self):
-        return " { "+" $ ".join(str(hp) for hp in self.hps) + " } "
+        return " { " + " $ ".join(str(hp) for hp in self.hps) + " } "
