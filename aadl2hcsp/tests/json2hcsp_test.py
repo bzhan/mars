@@ -1,11 +1,11 @@
 import unittest
 import json
 
-from aadl2hcsp.AADL2HCSP.json2hcsp import *
+from aadl2hcsp.json2hcsp import *
 
 class Json2HCSPTest(unittest.TestCase):
     def test1(self):
-        file = 'aadl2hcsp/AADL2HCSP/out.json'
+        file = 'aadl2hcsp/tests/out.json'
         out=""
         with open(file, 'r') as f:
             dic = json.load(f)
