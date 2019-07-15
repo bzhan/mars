@@ -11,6 +11,12 @@ def createStructure(dic):
             for com in category['components']:
                 hps.append(HCSP(com['name']))
 
+            if len(category['connections']) >0:
+                hps.append(HCSP('Comms_'+category['name']))
+
+            if len(category['category']) == 'Process':
+                hps.append(HCSP('SCHEDULE_' + category['name']))
+
             if len(hps) > 1:
                 hp2 = Parallel(*hps)
             else:
