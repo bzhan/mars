@@ -4,13 +4,13 @@ import json
 from aadl2hcsp.json2hcsp import *
 
 class Json2HCSPTest(unittest.TestCase):
-    def test1(self):
+    def testJson2HCSP(self):
         file = 'aadl2hcsp/tests/out.json'
-        out=""
+        out = ""
         with open(file, 'r') as f:
             dic = json.load(f)
-        out += "\n".join(str(line) for line in createStructure(dic))+'\n'
-        out += "\n".join(str(line) for line in createConnections(dic))+'\n'
+        out += "\n".join(str(line) for line in createStructure(dic)) + '\n'
+        out += "\n".join(str(line) for line in createConnections(dic)) + '\n'
 
         for category in dic.values():
             if category['category'] == 'process' and len(category['components']) > 0:

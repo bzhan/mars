@@ -1,4 +1,5 @@
-#coding=utf-8
+"""Convert AADL model (in JSON format) to HCSP programs."""
+
 import json
 from aadl2hcsp.hcsp import *
 

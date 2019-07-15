@@ -1,12 +1,12 @@
-#coding=utf-8
+"""Parse an AADL model in XML format, and store important information
+to a dictionary (which can be outputted as a JSON file).
+
+"""
 
 # Use minidom to parse XML files
 import xml.dom.minidom as xmldom
 import os
 import json
-
-dic={}
-categories=['system','process','thread']
 
 def parseModel(model):
     """Return instances of the model separated by type."""
@@ -20,9 +20,9 @@ def parseModel(model):
 
 def getFeatures(features):
     """Interpret a list of features."""
-    Feas=[]
+    Feas = []
     for feature in features:
-        fea={}
+        fea = {}
         fea['name'] = feature.getAttribute('name')
         fea['direction'] = feature.getAttribute('direction')
         fea['type'] = feature.getElementsByTagName('feature')[0].getAttribute('xsi:type').split(':')[-1]
@@ -31,9 +31,9 @@ def getFeatures(features):
 
 def getComponents(components):
     """Interpret a list of components."""
-    Coms=[]
+    Coms = []
     for component in components:
-        if component.getAttribute('category') in categories:
+        if component.getAttribute('category') in ['system', 'process', 'thread']:
             com = {}
             com['category'] = component.getAttribute('category')
             com['name'] = component.getAttribute('name')
@@ -49,9 +49,9 @@ def getComponents(components):
 
 def getConnections(connections):
     """Interpret a list of connections."""
-    Conns=[]
+    Conns = []
     for connection in connections:
-        conn={}
+        conn = {}
         conn['name'] = connection.getAttribute('name')
         conn['source'] = conn['name'].split('->')[0]
         conn['destination'] = conn['name'].split('->')[-1]
@@ -63,9 +63,9 @@ def getConnections(connections):
 
 def getOwnedPropertyAssociation(opas):
     """Interpret a list of owned property associations."""
-    Opas=[]
+    Opas = []
     for opa in opas:
-        opass={}
+        opass = {}
         opass['name'] = opa.getElementsByTagName('property')[0].getAttribute('href').split('#')[-1]
         opass['type'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('xsi:type').split(':')[-1]
@@ -77,32 +77,18 @@ def getOwnedPropertyAssociation(opas):
         Opas.append(opass)
     return Opas
 
-def parser(xmlfile):
+def parser(xmlfile, dic):
+    """Parse the given XML file, add the read info into dic."""
     domobj = xmldom.parse(xmlfile)
     model = domobj.getElementsByTagName('instance:SystemInstance')[0]
-    modelname = model.getAttribute('name')
     category = model.getAttribute('category')
-    dic[modelname] = {'category': category, 'name': modelname.split('_')[0]}
+    modelname = model.getAttribute('name')
     features, components, connections, opas = parseModel(model)
-    dic[modelname]['features'] = getFeatures(features)
-    dic[modelname]['components'] = getComponents(components)
-    dic[modelname]['connections'] = getConnections(connections)
-    dic[modelname]['opas'] = getOwnedPropertyAssociation(opas)
-
-
-if __name__== "__main__":
-    path = './instances/'
-    outfile='out.json'
-    for xmlfile in os.listdir(path):
-        parser(os.path.join(path, xmlfile))
-    print(dic)
-    with open(outfile, "w") as f_obj:
-        json.dump(dic, f_obj)
-
-
-
-
-
-
-
-
+    dic[modelname] = {
+        'category': category,
+        'name': modelname.split('_')[0],
+        'features': getFeatures(features),
+        'components': getComponents(components),
+        'connections': getConnections(connections),
+        'opas': getOwnedPropertyAssociation(opas)
+    }
