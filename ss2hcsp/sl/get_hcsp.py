@@ -189,7 +189,8 @@ def translate_continuous(blocks):
         new_ode_eqs = []
         constraints = set()
         constraints.add("True")
-        comm_hps = [(hp.InputChannel(var_name=var_name), hp.Skip()) for var_name in sorted(in_channels)]
+        comm_hps = [(hp.InputChannel("ch_" + var_name, var_name), hp.Skip())
+                    for var_name in sorted(in_channels)]
         for out_var, in_var in ode_eqs:
             if in_var in var_list:
                 cond = composition[var_list.index(in_var)][0]
@@ -204,7 +205,7 @@ def translate_continuous(blocks):
             if out_channel in var_list:
                 cond = composition[var_list.index(out_channel)][0]
                 expr = composition[var_list.index(out_channel)][1]
-                comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
+                comm_hps.append((hp.OutputChannel("ch_" + out_channel, aexpr_parse(expr)), hp.Skip()))
                 constraints.add(cond)
                 # print(expr)
             else:
