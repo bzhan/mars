@@ -12,8 +12,9 @@ class Or(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = [None] * self.num_dest
 
-        self.st = str(st)
+        assert isinstance(st, int)
+        self.st = st
 
     def __str__(self):
         return "%s: Or[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.st)
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))

@@ -11,10 +11,10 @@ from ss2hcsp.hcsp import hcsp
 class ExprTest(unittest.TestCase):
     def testAExprParser(self):
         test_data = [
-            ("a + 1", "Plus(+Var(a),+Const(1))"),
-            ("a * b", "Times(*Var(a),*Var(b))"),
-            ("a - b", "Plus(+Var(a),-Var(b))"),
-            ("min(a, b)", "Fun(min,Var(a),Var(b))"),
+            ("a + 1", "Plus(+Var(a), +Const(1))"),
+            ("a * b", "Times(*Var(a), *Var(b))"),
+            ("a - b", "Plus(+Var(a), -Var(b))"),
+            ("min(a, b)", "Fun(min, Var(a), Var(b))"),
         ]
         
         for s, res in test_data:
@@ -23,8 +23,8 @@ class ExprTest(unittest.TestCase):
 
     def testBExprParser(self):
         test_data = [
-            ("a < 1", "Rel(<,Var(a),Const(1))"),
-            ("a == 1 && true", "Logic(&&,Rel(==,Var(a),Const(1)),BConst(True))")
+            ("a < 1", "Rel(<, Var(a), Const(1))"),
+            ("a == 1 && true", "Logic(&&, Rel(==, Var(a), Const(1)), BConst(True))")
         ]
 
         for s, res in test_data:
@@ -34,13 +34,13 @@ class ExprTest(unittest.TestCase):
     def assertConditionalInst(self, test_data, res):
         inst = expr.Conditional_Inst()
         for var_name, cond_inst_str in test_data:
-            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst)) \
+            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst))
                          for cond, inst in cond_inst_str]
             inst.add(var_name, cond_inst)
 
         res_inst = dict()
         for var_name, cond_inst_str in res:
-            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst)) \
+            cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst))
                          for cond, inst in cond_inst_str]
             res_inst[var_name] = cond_inst
 
@@ -75,14 +75,14 @@ class ExprTest(unittest.TestCase):
 
     def testParseHCSP(self):
         test_data = [
-            ("x1 := 3", "Assign(x1,3)"),
-            ("x1 := 3; x2 := 5", "Seq(Assign(x1,3),Assign(x2,5))"),
-            ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1,3),Assign(x2,5),Skip())"),
+            ("x1 := 3", "Assign(x1, 3)"),
+            ("x1 := 3; x2 := 5", "Seq(Assign(x1, 3), Assign(x2, 5))"),
+            ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1, 3), Assign(x2, 5), Skip())"),
             ("(skip)*", "Loop(Skip())"),
-            ("ch_x1?x1", "InputC(x1,x1)"),
-            ("ch_x1!x2", "OutputC(x1,x2)"),
-            ("<x_dot = x + 1, y_dot = y + 1 & x < 3> |> [] (ch_x?x --> skip, ch_y!y --> skip)",
-             "ODEComm(x,x+1,y,y+1, x<3, ch_x?x,skip,ch_y!y,skip)"),
+            ("ch_x1?x1", "InputC(x1, x1)"),
+            ("ch_x1!x2", "OutputC(x1, x2)"),
+            ("<x_dot = x+1, y_dot = y+1 & x < 3> |> [] (ch_x?x --> skip, ch_y!y --> skip)",
+             "ODEComm(x, x+1, y, y+1, x < 3, ch_x?x, skip, ch_y!y, skip)"),
         ]
 
         for s, res in test_data:

@@ -12,9 +12,12 @@ class Gain(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = [None]
 
-        self.factor = str(factor)  # string of a number
-        self.st = str(st)
+        assert isinstance(factor, (int, float))
+        self.factor = factor
+
+        assert isinstance(st, int)
+        self.st = st
 
     def __str__(self):
         return "%s: Gain[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.st)
+               (self.name, str(self.dest_lines), str(self.src_lines), int(self.st))

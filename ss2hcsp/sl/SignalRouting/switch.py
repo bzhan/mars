@@ -17,9 +17,13 @@ class Switch(SL_Block):
         assert relation in relation_pair
         self.relation = relation
         self.neg_relation = relation_pair[relation]
-        self.threshold = str(threshold)
-        self.st = str(st)
+
+        assert isinstance(threshold, (int, float))
+        self.threshold = threshold
+
+        assert isinstance(st, int)
+        self.st = st
 
     def __str__(self):
-        return "%s: Switch[in = %s, out = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines))
+        return "%s: Switch[in = %s, out = %s, st = %s]" % \
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))

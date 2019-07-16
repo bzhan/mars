@@ -21,6 +21,8 @@ from functools import reduce
 from math import gcd
 import re
 
+from ss2hcsp.hcsp.expr import AVar, AConst, FunExpr
+
 
 def get_attribute_value(block, attribute):
     for node in block.getElementsByTagName("P"):
@@ -61,7 +63,7 @@ class SL_Diagram:
                 self.add_block(block=Constant(name=block_name, value=value))
             elif block_type == "Integrator":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
-                self.add_block(block=Integrator(name=block_name, init_value=init_value))
+                self.add_block(block=Integrator(name=block_name, init_value=int(init_value)))
             elif block_type == "Logic":  # AND, OR, NOT
                 operator = get_attribute_value(block=block, attribute="Operator")
                 inputs = get_attribute_value(block=block, attribute="Inputs")
@@ -86,18 +88,17 @@ class SL_Diagram:
                 self.add_block(block=Add(name=block_name, dest_spec=dest_spec))
             elif block_type == "Bias":
                 bias = get_attribute_value(block=block, attribute="Bias")
-                self.add_block(block=Bias(name=block_name, bias=bias))
+                self.add_block(block=Bias(name=block_name, bias=float(bias)))
             elif block_type == "Product":
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "**"
                 self.add_block(block=Divide(name=block_name, dest_spec=dest_spec))
             elif block_type == "Gain":
                 factor = get_attribute_value(block=block, attribute="Gain")
-                self.add_block(block=Gain(name=block_name, factor=factor))
+                self.add_block(block=Gain(name=block_name, factor=float(factor)))
             elif block_type == "Switch":
                 criteria = get_attribute_value(block=block, attribute="Criteria")
                 relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
-                print(criteria, "is", relation)
                 threshold = get_attribute_value(block=block, attribute="Threshold")
                 self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
             elif block_type == "SubSystem":
@@ -210,43 +211,44 @@ class SL_Diagram:
         while not terminate:
             terminate = True
             for block in self.blocks_dict.values():
-                if block.st == "-1":
+                if block.st == -1:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
-                        if line.src in self.blocks_dict and self.blocks_dict[line.src].st != "-1":
+                        if line.src in self.blocks_dict and self.blocks_dict[line.src].st != -1:
                             in_block = self.blocks_dict[line.src]
-                            in_st.append(int(in_block.st))
+                            in_st.append(in_block.st)
                         else:
                             in_st = None
                             break
                     if in_st:
-                        st_gcd = reduce(gcd, in_st)
-                        if st_gcd == 0:
+                        block.st = reduce(gcd, in_st) if len(in_st) >= 2 else in_st[0]
+                        if block.st == 0:
                             block.is_continuous = True
-                        block.st = str(st_gcd)
                         terminate = False
 
         # Define the sample time for each block whose sample time is still unknown
         for block in self.blocks_dict.values():
-            if block.st == "-1":
+            if block.st == -1:
                 known_in_st = []  # list of known sample times of inputs of the block
                 unknown_in_st = []  # list of unknown sample times of inputs of the block
                 for line in block.dest_lines:
                     if line.src in self.blocks_dict:
                         in_block = self.blocks_dict[line.src]
-                        if re.match("\\d+", self.blocks_dict[line.src]):
-                            known_in_st.append(int(in_block.st))
+                        # if re.match("\\d+", self.blocks_dict[line.src]):
+                        if re.match("\\d+", str(in_block.st)):
+                            known_in_st.append(in_block.st)
                         else:
-                            unknown_in_st.append(in_block.name)
+                            unknown_in_st.append(AVar(in_block.name))
                     else:  # in_block is a port, which is deleted at the begining
-                        unknown_in_st.append(line.name)
+                        unknown_in_st.append(AVar(line.name))
                 if known_in_st:
-                    st_gcd = reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0]
-                    unknown_in_st.append(str(st_gcd))
-                if len(unknown_in_st) == 1:
-                    block.st = unknown_in_st[0]
-                else:  # len(unknown_in_st) >= 2
-                    block.st = "gcd(" + ", ".join(unknown_in_st) + ")"
+                    known_in_st = [AConst(reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0])]
+                known_in_st.extend(unknown_in_st)
+                if len(known_in_st) == 1:
+                    block.st = known_in_st[0]
+                else:  # len(known_in_st) >= 2
+                    # block.st = "gcd(" + ", ".join(unknown_in_st) + ")"
+                    block.st = FunExpr(fun_name="gcd", exprs=known_in_st)
 
     def delete_ports(self):
         for block in self.blocks:

@@ -16,6 +16,7 @@ from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
+from ss2hcsp.sl.system import System
 from ss2hcsp.hcsp import hcsp
 import ss2hcsp.sl.get_hcsp as get_hp
 from ss2hcsp.hcsp.parser import hp_parser
@@ -24,8 +25,8 @@ from ss2hcsp.hcsp.parser import hp_parser
 class SimTest(unittest.TestCase):
     def testVanDerPol_continuous(self):
         diagram = SL_Diagram()
-        diagram.add_block(Integrator(name="intg1", init_value="3"))
-        diagram.add_block(Integrator(name="intg2", init_value="7"))
+        diagram.add_block(Integrator(name="intg1", init_value=3))
+        diagram.add_block(Integrator(name="intg2", init_value=7))
         # diagram.add_block(Port(name="in1", port_type="in_port"))
         diagram.add_block(And(name="and", num_dest=2))
         diagram.add_block(Switch(name="switch", relation=">=", threshold=5))
@@ -53,16 +54,16 @@ class SimTest(unittest.TestCase):
 
         hp_init = hp_parser.parse("x1 := 3; x2 := 7; t := 0")
         hp_ode0 = hp_parser.parse(r"""
-            <x1_dot = x0, x2_dot = x1, t_dot = 1 & min(x2, x2)>=5&&x4<10||min(x2, x2)<5&&x5<10>
-                |> [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x4 --> skip)""")
+            <x1_dot = x0, x2_dot = x1, t_dot = 1 & x4 < 10 && min(x2, x2) >= 5 || x5 < 10 && min(x2, x2) < 5> |> 
+            [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x4 --> skip)""")
 
         hp_ode1 = hp_parser.parse(r"""
-            <x1_dot = x0, x2_dot = x1, t_dot = 1 & min(x2, x2)>=5&&x4>=10||min(x2, x2)<5&&x5>=10>
-                |> [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x5 --> skip)""")
+            <x1_dot = x0, x2_dot = x1, t_dot = 1 & x4 >= 10 && min(x2, x2) >= 5 || x5 >= 10 && min(x2, x2) < 5> |> 
+            [] (ch_x0?x0 --> skip, ch_x4?x4 --> skip, ch_x5?x5 --> skip, ch_x7!x5 --> skip)""")
 
         continuous_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(hp_ode0, hp_ode1)))
-        # print("Expected: ", continuous_hp)
-        # print("Real: ", get_hp.translate_continuous(diagram.blocks))
+        # print("E: ", continuous_hp)
+        # print("R: ", get_hp.translate_continuous(diagram.blocks))
         # diagram.seperate_diagram()
         self.assertEqual(get_hp.translate_continuous(diagram.blocks), continuous_hp)
         # print("-" * 50)
@@ -73,7 +74,7 @@ class SimTest(unittest.TestCase):
         diagram.add_block(Port(name="in0", port_type="in_port"))
         diagram.add_block(And(name="and", num_dest=2, st=-1))
         diagram.add_block(Not(name="not", st=4))
-        diagram.add_block(Gain(name="gain", factor=-0.1, st=-1))
+        diagram.add_block(Gain(name="gain", factor=0.2, st=-1))
         diagram.add_block(Port(name="in1", port_type="in_port"))
         diagram.add_block(Or(name="or", num_dest=2, st=8))
         diagram.add_block(Relation(name="relation", relation="<=", st=10))
@@ -103,111 +104,126 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.delete_ports()
         diagram.comp_inher_st()
+        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
+        real_system = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        # print(real_system)
 
-        hp_init = hcsp.Assign(var_name="t", expr="0")
-        # input channels
-        hp_inputs = [hcsp.InputChannel(var_name="x0"), hcsp.InputChannel(var_name="x4"),
-                     hcsp.InputChannel(var_name="x7"), hcsp.InputChannel(var_name="x8"),
-                     hcsp.InputChannel(var_name="x9")]
-        # and
-        and_cond = "t%" + diagram.blocks_dict["and"].st + "==0"
-        and_hp = hcsp.Assign(var_name="x1", expr="min(x0, x0)")
-        hp_and = hcsp.Condition(cond=and_cond, hp=and_hp)
-        # not
-        not_cond = "t%" + diagram.blocks_dict["not"].st + "==0"
-        # if diagram.blocks_dict["bias"].bias.startswith("-"):
-        #     expr = "x1" + diagram.blocks_dict["bias"].bias
+        hp0_init = hp_parser.parse("t := 0")
+        hp0 = hp_parser.parse("ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 -> (x8 >= 20 -> (x10 := x7); "
+                              "x8 < 20 -> (x10 := x9)); ch_x10!x10; temp := t; <t_dot = 1 & t < temp+4>")
+        discrete_hp0 = hcsp.Sequence(hp0_init, hcsp.Loop(hp0))
+        hp1_init = hp_parser.parse("t := 0")
+        hp1 = hp_parser.parse("ch_x0?x0; ch_x4?x4; t%gcd(x0, x0) == 0 -> (x1 := min(x0, x0)); "
+                              "t%4 == 0 -> (x2 := 1-x1); t%4 == 0 -> (x3 := x2*0.2); t%8 == 0 -> (x5 := max(x4, x3)); "
+                              "t%10 == 0 -> (x5 <= x0 -> (x6 := 1); x5 > x0 -> (x6 := 0)); ch_x6!x6; "
+                              "temp := t; <t_dot = 1 & t < temp+gcd(2, and)>")
+        discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
+        expected_system = System()
+        expected_system.discrete_processes = [discrete_hp0, discrete_hp1]
+
+        self.assertEqual(real_system, expected_system)
+        # hp_init = hcsp.Assign(var_name="t", expr=0)
+        # # input channels
+        # hp_inputs = [hcsp.InputChannel(var_name="x0"), hcsp.InputChannel(var_name="x4"),
+        #              hcsp.InputChannel(var_name="x7"), hcsp.InputChannel(var_name="x8"),
+        #              hcsp.InputChannel(var_name="x9")]
+        # # and
+        # and_cond = "t%" + diagram.blocks_dict["and"].st + "==0"
+        # and_hp = hcsp.Assign(var_name="x1", expr="min(x0, x0)")
+        # hp_and = hcsp.Condition(cond=and_cond, hp=and_hp)
+        # # not
+        # not_cond = "t%" + diagram.blocks_dict["not"].st + "==0"
+        # # if diagram.blocks_dict["bias"].bias.startswith("-"):
+        # #     expr = "x1" + diagram.blocks_dict["bias"].bias
+        # # else:
+        # #     expr = "x1+" + diagram.blocks_dict["bias"].bias
+        # comp = hcsp.Assign(var_name="x2", expr="1-x1")
+        # hp_not = hcsp.Condition(cond=not_cond, hp=comp)
+        # # gain
+        # gain_cond = "t%" + diagram.blocks_dict["gain"].st + "==0"
+        # if diagram.blocks_dict["gain"].factor.startswith("-"):
+        #     expr = "x2*(" + diagram.blocks_dict["gain"].factor + ")"
         # else:
-        #     expr = "x1+" + diagram.blocks_dict["bias"].bias
-        comp = hcsp.Assign(var_name="x2", expr="1-x1")
-        hp_not = hcsp.Condition(cond=not_cond, hp=comp)
-        # gain
-        gain_cond = "t%" + diagram.blocks_dict["gain"].st + "==0"
-        if diagram.blocks_dict["gain"].factor.startswith("-"):
-            expr = "x2*(" + diagram.blocks_dict["gain"].factor + ")"
-        else:
-            expr = "x2*" + diagram.blocks_dict["gain"].factor
-        comp = hcsp.Assign(var_name="x3", expr=expr)
-        hp_gain = hcsp.Condition(cond=gain_cond, hp=comp)
-        # or
-        or_cond = "t%" + diagram.blocks_dict["or"].st + "==0"
-        or_hp = hcsp.Assign(var_name="x5", expr="max(x4, x3)")
-        hp_or = hcsp.Condition(cond=or_cond, hp=or_hp)
-        # relation
-        relation_cond = "t%" + diagram.blocks_dict["relation"].st + "==0"
-        relation_hp = hcsp.Assign(var_name="x6", expr="x5<=x0")
-        hp_relation = hcsp.Condition(cond=relation_cond, hp=relation_hp)
-        # switch
-        switch_cond = "t%" + diagram.blocks_dict["switch"].st + "==0"
-        cond_hp1 = hcsp.Condition(cond="x8>=20", hp=hcsp.Assign("x10", "x7"))
-        cond_hp2 = hcsp.Condition(cond="x8<20", hp=hcsp.Assign("x10", "x9"))
-        hp_switch = hcsp.Condition(cond=switch_cond, hp=hcsp.Sequence(cond_hp1, cond_hp2))
-        # output channel
-        hp_outputs = [hcsp.OutputChannel(expr="x10"), hcsp.OutputChannel(expr="x6")]
-        # time
-        ode_time = hcsp.ODE(eqs=[("t", "1")], constraint="t<temp+gcd(and, 2)")
-        hp_time = hcsp.Sequence(hcsp.Assign(var_name="temp", expr="t"), ode_time)
-
-        # Get loop body
-        discrete_hps = [hp_and, hp_not, hp_gain, hp_or, hp_relation, hp_switch]
-        loop_hps = hp_inputs + discrete_hps + hp_outputs
-        loop_hps.append(hp_time)
-        discrete_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(*loop_hps)))
+        #     expr = "x2*" + diagram.blocks_dict["gain"].factor
+        # comp = hcsp.Assign(var_name="x3", expr=expr)
+        # hp_gain = hcsp.Condition(cond=gain_cond, hp=comp)
+        # # or
+        # or_cond = "t%" + diagram.blocks_dict["or"].st + "==0"
+        # or_hp = hcsp.Assign(var_name="x5", expr="max(x4, x3)")
+        # hp_or = hcsp.Condition(cond=or_cond, hp=or_hp)
+        # # relation
+        # relation_cond = "t%" + diagram.blocks_dict["relation"].st + "==0"
+        # relation_hp = hcsp.Assign(var_name="x6", expr="x5<=x0")
+        # hp_relation = hcsp.Condition(cond=relation_cond, hp=relation_hp)
+        # # switch
+        # switch_cond = "t%" + diagram.blocks_dict["switch"].st + "==0"
+        # cond_hp1 = hcsp.Condition(cond="x8>=20", hp=hcsp.Assign("x10", "x7"))
+        # cond_hp2 = hcsp.Condition(cond="x8<20", hp=hcsp.Assign("x10", "x9"))
+        # hp_switch = hcsp.Condition(cond=switch_cond, hp=hcsp.Sequence(cond_hp1, cond_hp2))
+        # # output channel
+        # hp_outputs = [hcsp.OutputChannel(expr="x10"), hcsp.OutputChannel(expr="x6")]
+        # # time
+        # ode_time = hcsp.ODE(eqs=[("t", "1")], constraint="t<temp+gcd(and, 2)")
+        # hp_time = hcsp.Sequence(hcsp.Assign(var_name="temp", expr="t"), ode_time)
+        #
+        # # Get loop body
+        # discrete_hps = [hp_and, hp_not, hp_gain, hp_or, hp_relation, hp_switch]
+        # loop_hps = hp_inputs + discrete_hps + hp_outputs
+        # loop_hps.append(hp_time)
+        # discrete_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(*loop_hps)))
         # print(discrete_hp)
         # print(get_hp.translate_discrete(diagram.blocks))
-        self.assertEqual(get_hp.translate_discrete(diagram.blocks), discrete_hp)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        # self.assertEqual(get_hp.translate_discrete(diagram.blocks), discrete_hp)
 
-    def testVanPerPol_hybrid(self):
-        diagram = SL_Diagram()
-
-        # Add continuous blocks
-        diagram.add_block(Integrator(name="intg1", init_value="1"))
-        diagram.add_block(Integrator(name="intg2", init_value="10"))
-        # diagram.add_block(Constant(name="con", value=10))
-        # diagram.add_block(Port(name="out1", port_type="out_port"))
-        # diagram.add_block(Port("out2", "out_port"))
-
-        # Add discrete blocks
-        # diagram.add_block(Port(name="in0", port_type="in_port"))
-        diagram.add_block(And(name="and", num_dest=2, st=-1))
-        diagram.add_block(Not(name="not", st=4))
-        diagram.add_block(Gain(name="gain", factor=-0.1, st=-1))
-        # diagram.add_block(Port(name="in1", port_type="in_port"))
-        diagram.add_block(Or(name="or", num_dest=2, st=8))
-        diagram.add_block(Relation(name="relation", relation="<=", st=10))
-        # diagram.add_block(Port(name="out", port_type="out_port"))
-
-        # Add lines
-        diagram.add_line(src="relation", dest="intg1", src_port=0, dest_port=0)
-        diagram.add_line(src="intg1", dest="or", src_port=0, dest_port=0)
-        diagram.add_line(src="intg1", dest="intg2", src_port=0, dest_port=0)
-        diagram.add_line(src="intg2", dest="and", src_port=0, dest_port=0)
-        diagram.add_line(src="intg2", dest="and", src_port=0, dest_port=1)
-        diagram.add_line(src="intg2", dest="relation", src_port=0, dest_port=1)
-        # diagram.add_line(src="in0", dest="and", src_port=0, dest_port=0)
-        # diagram.add_line(src="in0", dest="and", src_port=0, dest_port=1)
-        # diagram.add_line(src="in0", dest="relation", src_port=0, dest_port=1)
-        diagram.add_line(src="and", dest="not", src_port=0, dest_port=0)
-        diagram.add_line(src="not", dest="gain", src_port=0, dest_port=0)
-        # diagram.add_line(src="in1", dest="or", src_port=0, dest_port=0)
-        diagram.add_line(src="gain", dest="or", src_port=0, dest_port=1)
-        diagram.add_line(src="or", dest="relation", src_port=0, dest_port=0)
-        # diagram.add_line(src="relation", dest="out", src_port=0, dest_port=0)
-
-        diagram.add_line_name()
-        diagram.comp_inher_st()
-        # print(diagram)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        # print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
-
+    # def testVanPerPol_hybrid(self):
+    #     diagram = SL_Diagram()
+    #
+    #     # Add continuous blocks
+    #     diagram.add_block(Integrator(name="intg1", init_value=1))
+    #     diagram.add_block(Integrator(name="intg2", init_value=10))
+    #     # diagram.add_block(Constant(name="con", value=10))
+    #     # diagram.add_block(Port(name="out1", port_type="out_port"))
+    #     # diagram.add_block(Port("out2", "out_port"))
+    #
+    #     # Add discrete blocks
+    #     # diagram.add_block(Port(name="in0", port_type="in_port"))
+    #     diagram.add_block(And(name="and", num_dest=2, st=-1))
+    #     diagram.add_block(Not(name="not", st=4))
+    #     diagram.add_block(Gain(name="gain", factor=-0.1, st=-1))
+    #     # diagram.add_block(Port(name="in1", port_type="in_port"))
+    #     diagram.add_block(Or(name="or", num_dest=2, st=8))
+    #     diagram.add_block(Relation(name="relation", relation="<=", st=10))
+    #     # diagram.add_block(Port(name="out", port_type="out_port"))
+    #
+    #     # Add lines
+    #     diagram.add_line(src="relation", dest="intg1", src_port=0, dest_port=0)
+    #     diagram.add_line(src="intg1", dest="or", src_port=0, dest_port=0)
+    #     diagram.add_line(src="intg1", dest="intg2", src_port=0, dest_port=0)
+    #     diagram.add_line(src="intg2", dest="and", src_port=0, dest_port=0)
+    #     diagram.add_line(src="intg2", dest="and", src_port=0, dest_port=1)
+    #     diagram.add_line(src="intg2", dest="relation", src_port=0, dest_port=1)
+    #     # diagram.add_line(src="in0", dest="and", src_port=0, dest_port=0)
+    #     # diagram.add_line(src="in0", dest="and", src_port=0, dest_port=1)
+    #     # diagram.add_line(src="in0", dest="relation", src_port=0, dest_port=1)
+    #     diagram.add_line(src="and", dest="not", src_port=0, dest_port=0)
+    #     diagram.add_line(src="not", dest="gain", src_port=0, dest_port=0)
+    #     # diagram.add_line(src="in1", dest="or", src_port=0, dest_port=0)
+    #     diagram.add_line(src="gain", dest="or", src_port=0, dest_port=1)
+    #     diagram.add_line(src="or", dest="relation", src_port=0, dest_port=0)
+    #     # diagram.add_line(src="relation", dest="out", src_port=0, dest_port=0)
+    #
+    #     diagram.add_line_name()
+    #     diagram.comp_inher_st()
+    #     # print(diagram)
+    #     discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
+    #     # print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
+    #
     def testVanPerPol_subsystem(self):
         diagram = SL_Diagram()
         # Add blocks
         diagram.add_block(Integrator(name="intg", init_value=2))
         diagram.add_block(Relation(name="relation", relation="<=", st=10))
-        diagram.add_block(Or(name="or", num_dest=2, st=8))
+        diagram.add_block(Or(name="or", num_dest=2, st=6))
         diagram.add_block(Gain(name="gain", factor=-0.1, st=-1))
         # Add a subsystem
         subsystem = Subsystem(name="subsystem", num_src=2, num_dest=1)
@@ -251,17 +267,19 @@ class SimTest(unittest.TestCase):
         diagram.comp_inher_st()
         # print(diagram)
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        # print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
+        real_system = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        # print(real_system)
 
     def test_xml_parser(self):
-        location = "./ss2hcsp/case_studies/Van_der_Pol_subsystem.xml"
+        location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/Van_der_Pol_subsystem.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
         get_hp.delete_subsystems(diagram.blocks_dict)
         diagram.add_line_name()
         diagram.comp_inher_st()
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        # print(get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams))
+        real_system = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        # print(real_system)
         # print(diagram)
 
 

@@ -15,8 +15,10 @@ class Add(SL_Block):
 
         assert all(s == '+' or s == '-' for s in dest_spec)
         self.dest_spec = dest_spec  # string
-        self.st = str(st)
+
+        assert isinstance(st, int)
+        self.st = st
 
     def __str__(self):
         return "%s: Add[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.st)
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))

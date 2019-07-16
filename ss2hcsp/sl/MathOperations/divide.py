@@ -16,8 +16,10 @@ class Divide(SL_Block):
         assert all(s == '*' or s == '/' for s in dest_spec)
         assert len(dest_spec) >= 2
         self.dest_spec = dest_spec  # string
-        self.st = str(st)
+
+        assert isinstance(st, int)
+        self.st = st
 
     def __str__(self):
         return "%s: Divide[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.st)
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))

@@ -11,10 +11,11 @@ class Integrator(SL_Block):
         self.num_dest = 1
         self.src_lines = [[]]
         self.dest_lines = [None]
-        self.init_value = str(init_value)
 
-        self.st = "0"
+        assert isinstance(init_value, (int, float))
+        self.init_value = init_value
+        self.st = 0
 
     def __str__(self):
         return "%s: Integrator[init = %s, in = %s, out = %s]" % \
-               (self.name, self.init_value, str(self.dest_lines), str(self.src_lines))
+               (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines))

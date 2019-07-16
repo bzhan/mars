@@ -12,9 +12,10 @@ class Constant(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = []
 
-        self.value = str(value)  # string
+        assert isinstance(value, (int, float))
+        self.value = value
 
-        self.st = "0"
+        self.st = 0
 
     def __str__(self):
-        return "%s: Constant[value = %s, out = %s]" % (self.name, self.value, str(self.src_lines))
+        return "%s: Constant[value = %s, out = %s]" % (self.name, str(self.value), str(self.src_lines))

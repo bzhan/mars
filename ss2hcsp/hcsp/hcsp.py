@@ -1,7 +1,8 @@
 """Hybrid programs"""
 
-from ss2hcsp.hcsp import expr
+# from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.expr import AExpr, BExpr
+
 
 class HCSP:
     def __init__(self):
@@ -52,7 +53,7 @@ class Assign(HCSP):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        return "Assign(%s,%s)" % (self.var_name, str(self.expr))
+        return "Assign(%s, %s)" % (self.var_name, str(self.expr))
 
     def __str__(self):
         return self.var_name + " := " + str(self.expr)
@@ -71,7 +72,7 @@ class InputChannel(HCSP):
             self.var_name == other.var_name
 
     def __repr__(self):
-        return "InputC(%s,%s)" % (self.ch_name, self.var_name)
+        return "InputC(%s, %s)" % (self.ch_name, self.var_name)
 
     def __str__(self):
         return "ch_" + self.ch_name + "?" + self.var_name
@@ -80,20 +81,20 @@ class InputChannel(HCSP):
 class OutputChannel(HCSP):
     def __init__(self, expr, *, var_name=None):
         self.type = "output_channel"
-        assert isinstance(var_name, str) and isinstance(expr, AExpr)
+        assert isinstance(expr, AExpr)
         self.expr = expr  # AExpr
-        self.var_name = var_name  # string
+        self.var_name = var_name if var_name else str(expr)
 
     def __eq__(self, other):
         return self.type == other.type and self.expr == other.expr and self.var_name == other.var_name
 
     def __repr__(self):
-        return "OutputC(%s,%s)" % (str(self.var_name), str(self.expr))
+        return "OutputC(%s, %s)" % (str(self.var_name), str(self.expr))
 
     def __str__(self):
-        if self.var_name:
-            return "ch_" + self.var_name + "!" + str(self.expr)
-        return "ch_" + self.expr + "!" + str(self.expr)
+        # if self.var_name:
+        return "ch_" + self.var_name + "!" + str(self.expr)
+        # return "ch_" + repr(self.expr) + "!" + str(self.expr)
 
 
 def is_comm_channel(hp):
@@ -111,7 +112,7 @@ class Sequence(HCSP):
         return self.type == other.type and self.hps == other.hps
 
     def __repr__(self):
-        return "Seq(%s)" % ",".join(repr(hp) for hp in self.hps)
+        return "Seq(%s)" % ", ".join(repr(hp) for hp in self.hps)
 
     def __str__(self):
         return "; ".join(str(hp) for hp in self.hps)
@@ -138,8 +139,8 @@ class ODE(HCSP):
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
-        self.eqs = eqs  # list of tuples (string, string)
-        self.constraint = constraint  # string
+        self.eqs = eqs  # list of tuples (string, AExpr)
+        self.constraint = constraint  # BExpr
         self.out_hp = out_hp  # None or hcsp
 
     def __eq__(self, other):
@@ -147,10 +148,10 @@ class ODE(HCSP):
                self.constraint == other.constraint and self.out_hp == other.out_hp
 
     def __str__(self):
-        str_eqs = ", ".join(var_name + "_dot = " + expr for var_name, expr in self.eqs)
+        str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
         # str_out_hp = " |> " + str(self.out_hp) if self.out_hp else ""
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
-        return "<" + str_eqs + " & " + self.constraint + ">" + str_out_hp
+        return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
 
 
 class ODE_Comm(HCSP):
@@ -180,7 +181,7 @@ class ODE_Comm(HCSP):
 
         self.type = "ode_comm"
         self.eqs = eqs  # list
-        self.constraint = constraint  # string
+        self.constraint = constraint  # BExpr
         self.io_comms = io_comms  # list
 
     def __eq__(self, other):
@@ -193,8 +194,8 @@ class ODE_Comm(HCSP):
         return "<" + str_eqs + " & " + str(self.constraint) + "> |> [] (" + str_io_comms + ")"
 
     def __repr__(self):
-        str_eqs = ",".join(var_name + "," + str(expr) for var_name, expr in self.eqs)
-        str_io_comms = ",".join(str(comm_hp) + "," + str(out_hp) for comm_hp, out_hp in self.io_comms)
+        str_eqs = ", ".join(var_name + ", " + str(expr) for var_name, expr in self.eqs)
+        str_io_comms = ", ".join(str(comm_hp) + ", " + str(out_hp) for comm_hp, out_hp in self.io_comms)
         return "ODEComm(%s, %s, %s)" % (str_eqs, str(self.constraint), str_io_comms)
 
 
@@ -221,11 +222,14 @@ class Condition(HCSP):
     def __init__(self, cond, hp):
         assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
-        self.cond = cond
-        self.hp = hp
+        self.cond = cond  # BExpr
+        self.hp = hp  # HCSP
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp == other.hp
+        return self.type == other.type and self.cond == other.cond and self.hp == other.hp
+
+    def __repr__(self):
+        return "Condition(%s, %s)" % (str(self.cond), repr(self.hp))
 
     def __str__(self):
-        return self.cond + " -> (" + str(self.hp) + ")"
+        return str(self.cond) + " -> (" + str(self.hp) + ")"

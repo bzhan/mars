@@ -1,6 +1,7 @@
 """Expressions"""
 
-class AExpr:
+
+class AExpr:  # Arithmetic expression
     def __init__(self):
         pass
 
@@ -11,6 +12,7 @@ class AExpr:
     def subst(self, inst):
         """inst is a dictionary mapping variable names to expressions."""
         raise NotImplementedError
+
 
 class AVar(AExpr):
     def __init__(self, name):
@@ -37,9 +39,10 @@ class AVar(AExpr):
         else:
             return self
 
+
 class AConst(AExpr):
     def __init__(self, value):
-        assert isinstance(value, int)
+        assert isinstance(value, (int, float))
         self.value = value
 
     def __repr__(self):
@@ -60,13 +63,14 @@ class AConst(AExpr):
     def subst(self, inst):
         return self
 
+
 class PlusExpr(AExpr):
     def __init__(self, signs, exprs):
         self.signs = signs
         self.exprs = exprs
 
     def __repr__(self):
-        val = ",".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
+        val = ", ".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
         return "Plus(%s)" % val
 
     def __str__(self):
@@ -90,20 +94,21 @@ class PlusExpr(AExpr):
     def subst(self, inst):
         return PlusExpr(self.signs, [expr.subst(inst) for expr in self.exprs])
 
+
 class TimesExpr(AExpr):
     def __init__(self, signs, exprs):
         self.signs = signs
         self.exprs = exprs
 
     def __repr__(self):
-        val = ",".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
+        val = ", ".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
         return "Times(%s)" % val
 
     def __str__(self):
         if self.signs[0] == '*':
             res = str(self.exprs[0])
         else:
-            res = '/' + str(self.exprs[0])
+            res = '1/' + str(self.exprs[0])
         for sign, expr in zip(self.signs[1:], self.exprs[1:]):
             res += sign + str(expr)
         return res
@@ -115,19 +120,20 @@ class TimesExpr(AExpr):
         return hash(("Times", tuple(self.signs), tuple(self.exprs)))
 
     def get_vars(self):
-        return set().union(*(get_vars(expr) for expr in self.exprs))
+        return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
         return TimesExpr(self.signs, [expr.subst(inst) for expr in self.exprs])
 
+
 class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
-        assert fun_name in ['min']
+        assert fun_name in ["min", "max", "abs", "gcd"]
         self.fun_name = fun_name
         self.exprs = exprs
 
     def __repr__(self):
-        return "Fun(%s,%s)" % (self.fun_name, ",".join(repr(expr) for expr in self.exprs))
+        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
         return "%s(%s)" % (self.fun_name, ", ".join(str(expr) for expr in self.exprs))
@@ -140,10 +146,36 @@ class FunExpr(AExpr):
         return hash(("Fun", self.fun_name, tuple(self.exprs)))
 
     def get_vars(self):
-        return set().union(*(get_vars(expr) for expr in self.exprs))
+        return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
+
+
+class ModExpr(AExpr):
+    def __init__(self, expr1, expr2):
+        assert isinstance(expr1, AVar) and isinstance(expr2, AExpr)
+        self.expr1 = expr1
+        self.expr2 = expr2
+
+    def __repr__(self):
+        return "Mod(%s, %s)" % (str(self.expr1), str(self.expr2))
+
+    def __str__(self):
+        return "%s%%%s" % (str(self.expr1), str(self.expr2))
+
+    def __eq__(self, other):
+        return isinstance(other, ModExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
+
+    def __hash__(self):
+        return hash(("Mod", self.expr1, self.expr2))
+
+    def get_vars(self):
+        return self.expr1.get_vars().union(self.expr2.get_vars())
+
+    def subst(self, inst):
+        return ModExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
+
 
 class BExpr:
     def __init__(self):
@@ -155,7 +187,8 @@ class BExpr:
     def subst(self, inst):
         raise NotImplementedError
 
-class BConst(BExpr):
+
+class BConst(BExpr):  # Boolean expression
     def __init__(self, value):
         assert isinstance(value, bool)
         self.value = value
@@ -178,8 +211,10 @@ class BConst(BExpr):
     def subst(self, inst):
         return self
 
+
 true_expr = BConst(True)
 false_expr = BConst(False)
+
 
 class LogicExpr(BExpr):
     def __init__(self, op, expr1, expr2):
@@ -190,7 +225,7 @@ class LogicExpr(BExpr):
         self.expr2 = expr2
 
     def __repr__(self):
-        return "Logic(%s,%s,%s)" % (self.op, repr(self.expr1), repr(self.expr2))
+        return "Logic(%s, %s, %s)" % (self.op, repr(self.expr1), repr(self.expr2))
 
     def __str__(self):
         return str(self.expr1) + " " + self.op + " " + str(self.expr2)
@@ -208,6 +243,7 @@ class LogicExpr(BExpr):
     def subst(self, inst):
         return LogicExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
+
 def conj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if len(args) == 0:
@@ -216,6 +252,7 @@ def conj(*args):
         return args[0]
     else:
         return LogicExpr("&&", args[0], conj(*args[1:]))
+
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -226,10 +263,14 @@ def disj(*args):
     else:
         return LogicExpr("||", args[0], disj(*args[1:]))
 
+
 def imp(b1, b2):
     return LogicExpr("-->", b1, b2)
 
+
 class RelExpr(BExpr):
+    neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
+
     def __init__(self, op, expr1, expr2):
         assert op in ["<", ">", "==", "!=", ">=", "<="]
         assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
@@ -237,13 +278,11 @@ class RelExpr(BExpr):
         self.expr1 = expr1
         self.expr2 = expr2
 
-    neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
-    
     def __repr__(self):
-        return "Rel(%s,%s,%s)" % (self.op, repr(self.expr1), repr(self.expr2))
+        return "Rel(%s, %s, %s)" % (self.op, repr(self.expr1), repr(self.expr2))
 
     def __str__(self):
-        return str(self.expr1) + self.op + str(self.expr2)
+        return str(self.expr1) + " " + self.op + " " + str(self.expr2)
 
     def __eq__(self, other):
         return isinstance(other, RelExpr) and self.op == other.op and \
@@ -253,13 +292,14 @@ class RelExpr(BExpr):
         return hash(("Rel", self.op, self.expr1, self.expr2))
 
     def neg(self):
-        return RelExpr(neg_table[self.op], self.expr1, self.expr2)
+        return RelExpr(RelExpr.neg_table[self.op], self.expr1, self.expr2)
 
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
+
 
 class Conditional_Inst:
     """A mapping from variables to lists of conditional substitutions.
