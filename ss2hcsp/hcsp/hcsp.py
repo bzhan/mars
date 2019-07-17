@@ -62,9 +62,10 @@ class Assign(HCSP):
 
 
 class InputChannel(HCSP):
-    def __init__(self, ch_name, var_name):
+    def __init__(self, ch_name, var_name=None):
         self.type = "input_channel"
-        assert isinstance(ch_name, str) and isinstance(var_name, str)
+        #assert isinstance(ch_name, str) and isinstance(var_name, str)
+        assert isinstance(ch_name, str)
         self.ch_name = ch_name  # string
         self.var_name = var_name  # string
 
@@ -73,27 +74,42 @@ class InputChannel(HCSP):
             self.var_name == other.var_name
 
     def __repr__(self):
-        return "InputC(%s,%s)" % (self.ch_name, self.var_name)
+        if self.var_name:
+            return "InputC(%s,%s)" % (self.ch_name, self.var_name)
+        else:
+            return "InputC(%s)" % (self.ch_name)
 
     def __str__(self):
-        return self.ch_name + "?" + self.var_name
+        if self.var_name:
+            return self.ch_name + "?" + str(self.var_name)
+        else:
+            return self.ch_name + "?"
 
 
 class OutputChannel(HCSP):
-    def __init__(self, ch_name, expr):
+    def __init__(self, ch_name, expr = None):
         self.type = "output_channel"
-        assert isinstance(ch_name, str) and isinstance(expr, AExpr)
+        #assert isinstance(ch_name, str) and isinstance(expr, AExpr)
+        assert isinstance(ch_name, str)
         self.ch_name = ch_name  # string
         self.expr = expr  # AExpr
 
     def __eq__(self, other):
         return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
 
+
     def __repr__(self):
-        return "OutputC(%s,%s)" % (str(self.ch_name), str(self.expr))
+        if self.expr==AExpr():
+            return "OutputC(%s,%s)" % (self.ch_name, self.expr)
+        else:
+            return "OutputC(%s)" % (self.ch_name)
+
 
     def __str__(self):
-        return self.ch_name + "!" + str(self.expr)
+        if self.expr:
+            return self.ch_name + "!" + str(self.expr)
+        else:
+            return self.ch_name + "!"
 
 
 def is_comm_channel(hp):

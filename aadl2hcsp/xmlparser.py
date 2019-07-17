@@ -61,7 +61,7 @@ def getConnections(connections):
     return Conns
 
 
-def getOwnedPropertyAssociation(opas):
+def getOwnedPropertyAssociation(opas, category, name):
     """Interpret a list of owned property associations."""
     Opas = []
     for opa in opas:
@@ -70,7 +70,36 @@ def getOwnedPropertyAssociation(opas):
         opass['type'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('xsi:type').split(':')[-1]
         if opass['type'] == 'NamedValue':
-            opass['value'] = 'Periodic'    # Parse the protocol
+            print('AAA')
+            if category == 'process':
+                while 1:
+                    print("Please input the Scheduling Protocal apply to Process '%s'\n (0:HPF \t 1:FIFO \t 2:SJF)\n" %(name))
+                    s = input("Enter your input: ")
+                    if s == '0':
+                        opass['value'] = 'HPF'
+                        break
+                    elif s == '1':
+                        opass['value'] = 'FIFO'
+                        break
+                    elif s == '2':
+                        opass['value'] = 'SJF'
+                        break
+                    else:
+                        print('Error input ! \n Please input again ...\n')
+
+            elif category == 'thread':
+                while 1:
+                    print("Please input the Dispatch Protocal apply to Thread '%s'\n (0:Periodic \t 1:Sporadic )\n" %(name))
+                    s = input("Enter your input: ")
+                    if s == '0':
+                        opass['value'] = 'Periodic'
+                        break
+                    elif s == '1':
+                        opass['value'] = 'Sporadic'
+                        break
+                    else:
+                        print('Error input ! \n Please input again ...\n')
+                #opass['value'] = 'Periodic'    # Parse the protocol
         elif opass['type'] == 'IntegerLiteral':
             opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('value')
@@ -90,5 +119,5 @@ def parser(xmlfile, dic):
         'features': getFeatures(features),
         'components': getComponents(components),
         'connections': getConnections(connections),
-        'opas': getOwnedPropertyAssociation(opas)
+        'opas': getOwnedPropertyAssociation(opas, category, modelname.split('_')[0])
     }
