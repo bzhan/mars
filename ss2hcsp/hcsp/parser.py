@@ -10,7 +10,10 @@ grammar = r"""
         | expr "+" expr -> plus_expr
         | expr "-" expr -> minus_expr
         | expr "*" expr -> times_expr
+        | expr "%" expr -> mod_expr
         | "min" "(" expr "," expr ")" -> min_expr
+        | "max" "(" expr "," expr ")" -> max_expr
+        | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
         | "(" expr ")"
 
     ?atom_cond: expr "==" expr -> eq_cond
@@ -44,7 +47,9 @@ grammar = r"""
         | cmd ";" cmd -> seq_cmd
         | comm_cmd
         | "(" cmd ")*" -> repeat_cmd
+        | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
+        | cond "->" "(" cmd ")" -> cond_cmd
 
     %import common.CNAME
     %import common.WS
@@ -75,6 +80,15 @@ class HPTransformer(Transformer):
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])
+
+    def max_expr(self, e1, e2):
+        return expr.FunExpr("max", [e1, e2])
+
+    def mod_expr(self, e1, e2):
+        return expr.ModExpr(e1, e2)
+
+    def gcd_expr(self, *exprs):
+        return expr.FunExpr(fun_name="gcd", exprs=exprs)
 
     def eq_cond(self, e1, e2):
         return expr.RelExpr("==", e1, e2)
@@ -127,13 +141,11 @@ class HPTransformer(Transformer):
     def input_cmd(self, ch_name, var_name):
         ch_name = str(ch_name)
         var_name = str(var_name)
-        assert ch_name.startswith("ch_")
-        return hcsp.InputChannel(var_name, ch_name=ch_name[3:])
+        return hcsp.InputChannel(ch_name, var_name)
 
     def output_cmd(self, ch_name, expr):
         ch_name = str(ch_name)
-        assert ch_name.startswith("ch_")
-        return hcsp.OutputChannel(expr, var_name=ch_name[3:])
+        return hcsp.OutputChannel(ch_name, expr)
 
     def repeat_cmd(self, cmd):
         return hcsp.Loop(cmd)
@@ -151,8 +163,14 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
+    def ode(self, eqs, constraint):
+        return hcsp.ODE(eqs, constraint)
+
     def ode_comm(self, eqs, constraint, io_comms):
         return hcsp.ODE_Comm(eqs, constraint, io_comms)
+
+    def cond_cmd(self, cond, cmd):
+        return hcsp.Condition(cond=cond, hp=cmd)
 
 
 aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())

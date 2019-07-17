@@ -220,7 +220,8 @@ def translate_continuous(blocks):
         new_ode_eqs = []
         constraints = set()
         # constraints.add("True")
-        comm_hps = [(hp.InputChannel(var_name=var_name), hp.Skip()) for var_name in sorted(in_channels)]
+        comm_hps = [(hp.InputChannel(ch_name="ch_" + var_name, var_name=var_name), hp.Skip())
+                    for var_name in sorted(in_channels)]
         for out_var, in_var in ode_eqs:  # isinstance(out_var, str) and isinstance(in_var, AVar)
             if hasattr(in_var, "name") and in_var.name in var_list:
                 cond = composition[var_list.index(in_var.name)][0]
@@ -231,18 +232,17 @@ def translate_continuous(blocks):
             else:
                 new_ode_eqs.append((out_var, in_var))
         # print("new_ode_eqs = ", new_ode_eqs)
-        for out_channel in out_channels:
+        for out_channel in sorted(out_channels):
             # print("ch_" + out_channel + "!")
             if out_channel in var_list:
                 cond = composition[var_list.index(out_channel)][0]
                 _expr = composition[var_list.index(out_channel)][1]
-                comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=_expr), hp.Skip()))
+                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel, expr=_expr), hp.Skip()))
                 # comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
                 constraints.add(cond)
                 # print(expr)
             else:
-                comm_hps.append((hp.OutputChannel(expr=AVar(out_channel)), hp.Skip()))
-                # print(out_channel)
+                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel, expr=AVar(out_channel)), hp.Skip()))
         # Get evolution domain (contraints) for each ODE
         # constraint = "True"
         # constraints.remove("True")
@@ -260,7 +260,10 @@ def translate_continuous(blocks):
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
 
     # ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
-    process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
+    if len(ode_hps) == 1:
+        process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(ode_hps[0]))
+    else:  # len(ode_hps) >= 2
+        process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
     # process.name = "PC" + str(process_num)
     return process
 
@@ -282,8 +285,8 @@ def translate_discrete(blocks):
             for src_line in src_lines:
                 if src_line.dest not in block_names:
                     out_ports.add(src_line.name)
-    in_channels = [hp.InputChannel(var_name=var_name) for var_name in sorted(in_ports)]
-    out_channels = [hp.OutputChannel(expr=AVar(expr)) for expr in sorted(out_ports)]
+    in_channels = [hp.InputChannel(ch_name="ch_" + var_name, var_name=var_name) for var_name in sorted(in_ports)]
+    out_channels = [hp.OutputChannel(ch_name="ch_" + expr, expr=AVar(expr)) for expr in sorted(out_ports)]
 
     # Get discrete processes
     discrete_hps = []
@@ -301,40 +304,16 @@ def translate_discrete(blocks):
         if block.type in ["gain", "bias", "abs", "not"]:
             in_var = in_vars[0]
             if block.type == "gain":
-                # if block.factor.startswith("-"):
-                #     expr = in_var + "*(" + block.factor + ")"
-                # else:
-                #     expr = in_var + "*" + block.factor
                 res_expr = TimesExpr(signs="**", exprs=[AVar(in_var), AConst(block.factor)])
-                # block_hp = hp.Assign(var_name=out_var, expr=expr)
             elif block.type == "bias":
-                # if block.bias.startswith("-"):
-                #     expr = in_var + block.bias
-                # else:
-                #     expr = in_var + "+" + block.bias
-                # block_hp = hp.Assign(var_name=out_var, expr=expr)
                 res_expr = PlusExpr(signs="++", exprs=[AVar(in_var), AConst(block.bias)])
             elif block.type == "abs":
-                # cond_hp1 = hp.Condition(cond=in_var + ">=0", hp=hp.Assign(var_name=out_var, expr=in_var))
-                # cond_hp2 = hp.Condition(cond=in_var + "<0", hp=hp.Assign(var_name=out_var, expr="-" + in_var))
-                # block_hp = hp.Sequence(cond_hp1, cond_hp2)
-                # block_hp = hp.Assign(var_name=out_var, expr="abs(" + in_var + ")")
                 res_expr = FunExpr(fun_name="abs", exprs=[AVar(in_var)])
             elif block.type == "not":
-                # block_hp = hp.Assign(var_name=out_var, expr="1-" + in_var)
                 res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
         elif block.type in ["add", "divide"]:
             assert len(in_vars) == len(block.dest_spec)
-            # Get the head of the expression
-            # expr = in_vars[0]
-            # if block.dest_spec[0] == "-":
-            #     expr = "-" + expr
-            # elif block.dest_spec[0] == "/":
-            #     expr = "1/" + expr
-            # for i in range(1, len(block.dest_spec)):
-            #     expr = expr + block.dest_spec[i] + in_vars[i]
-            # block_hp = hp.Assign(var_name=out_var, expr=expr)
             exprs = [AVar(var) for var in in_vars]
             if block.type == "add":
                 res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
@@ -343,14 +322,11 @@ def translate_discrete(blocks):
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
         elif block.type in ["or", "and"]:
             if block.type == "or":
-                # block_hp = hp.Assign(var_name=out_var, expr="max(" + ", ".join(in_vars) + ")")
                 res_expr = FunExpr(fun_name="max", exprs=[AVar(var) for var in in_vars])
             elif block.type == "and":
-                # block_hp = hp.Assign(var_name=out_var, expr="min(" + ", ".join(in_vars) + ")")
                 res_expr = FunExpr(fun_name="min", exprs=[AVar(var) for var in in_vars])
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
         elif block.type == "relation":
-            # block_hp = hp.Assign(var_name=out_var, expr=block.relation.join(in_vars))
             cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[0]), expr2=AVar(in_vars[1]))
             hp0 = hp.Assign(var_name=out_var, expr=AConst(1))
             cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
@@ -359,11 +335,6 @@ def translate_discrete(blocks):
             cond_hp_1 = hp.Condition(cond=cond1, hp=hp1)
             block_hp = hp.Sequence(cond_hp_0, cond_hp_1)
         elif block.type == "switch":
-            # cond0 = in_vars[1] + block.relation + block.threshold
-            # cond_hp0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=in_vars[0]))
-            # cond2 = in_vars[1] + block.neg_relation + block.threshold
-            # cond_hp2 = hp.Condition(cond=cond2, hp=hp.Assign(var_name=out_var, expr=in_vars[2]))
-            # block_hp = hp.Sequence(cond_hp0, cond_hp2)
             cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[1]), expr2=AConst(block.threshold))
             hp0 = hp.Assign(var_name=out_var, expr=AVar(in_vars[0]))
             cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
@@ -390,15 +361,15 @@ def translate_discrete(blocks):
     time_ode = hp.ODE(eqs=[("t", AConst(1))],
                       constraint=RelExpr(op="<", expr1=AVar("t"),
                                          expr2=PlusExpr(signs="++", exprs=[AVar("temp"), st_gcd])))
-    time_process = hp.Sequence(temp, time_ode)
-
+    time_processes = [temp, time_ode]
     # Get loop body
-    loop_hps = in_channels + discrete_hps + out_channels
-    loop_hps.append(time_process)
+    loop_hps = in_channels + discrete_hps + out_channels + time_processes
+    # loop_body = loop_hps[0]
+    # for i in range(1, len(loop_hps)):
+    #     loop_body = hp.Sequence(loop_body, loop_hps[i])
+    # process = hp.Sequence(init_hp, hp.Loop(loop_body))
     loop_hps = hp.Sequence(*loop_hps)
-
     process = hp.Sequence(init_hp, hp.Loop(loop_hps))
-    # process.name = "PD" + str(process_num)
     return process
 
 

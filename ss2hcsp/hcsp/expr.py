@@ -16,6 +16,7 @@ class AExpr:  # Arithmetic expression
 
 class AVar(AExpr):
     def __init__(self, name):
+        assert isinstance(name, str)
         self.name = name
 
     def __repr__(self):
@@ -83,7 +84,8 @@ class PlusExpr(AExpr):
         return res
 
     def __eq__(self, other):
-        return isinstance(other, PlusExpr) and self.signs == other.signs and self.exprs == other.exprs
+        return isinstance(other, PlusExpr) and "".join(self.signs) == "".join(other.signs) and \
+               list(self.exprs) == list(other.exprs)
 
     def __hash__(self):
         return hash(("Plus", tuple(self.signs), tuple(self.exprs)))
@@ -114,7 +116,8 @@ class TimesExpr(AExpr):
         return res
 
     def __eq__(self, other):
-        return isinstance(other, TimesExpr) and self.signs == other.signs and self.exprs == other.exprs
+        return isinstance(other, TimesExpr) and "".join(self.signs) == "".join(other.signs) and \
+               list(self.exprs) == list(other.exprs)
 
     def __hash__(self):
         return hash(("Times", tuple(self.signs), tuple(self.exprs)))
@@ -140,7 +143,7 @@ class FunExpr(AExpr):
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
-            self.exprs == other.exprs
+            list(self.exprs) == list(other.exprs)
 
     def __hash__(self):
         return hash(("Fun", self.fun_name, tuple(self.exprs)))

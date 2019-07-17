@@ -5,12 +5,15 @@ from ss2hcsp.hcsp.expr import AExpr, BExpr
 
 
 class HCSP:
-    def __init__(self):
+    def __init__(self, name=""):
         self.type = ""
-        self.name = ""
+        self.name = name
 
     def __repr__(self):
         return str(self)
+
+    def __str__(self):
+        return self.name
 
 
 class Skip(HCSP):
@@ -60,12 +63,11 @@ class Assign(HCSP):
 
 
 class InputChannel(HCSP):
-    def __init__(self, var_name, *, ch_name=None):
+    def __init__(self, ch_name, var_name):
         self.type = "input_channel"
+        assert isinstance(ch_name, str) and isinstance(var_name, str)
+        self.ch_name = ch_name  # string
         self.var_name = var_name  # string
-        if ch_name is None:
-            ch_name = self.var_name
-        self.ch_name = ch_name
 
     def __eq__(self, other):
         return self.type == other.type and self.ch_name == other.ch_name and \
@@ -75,26 +77,24 @@ class InputChannel(HCSP):
         return "InputC(%s, %s)" % (self.ch_name, self.var_name)
 
     def __str__(self):
-        return "ch_" + self.ch_name + "?" + self.var_name
+        return self.ch_name + "?" + self.var_name
 
 
 class OutputChannel(HCSP):
-    def __init__(self, expr, *, var_name=None):
+    def __init__(self, ch_name, expr):
         self.type = "output_channel"
-        assert isinstance(expr, AExpr)
+        assert isinstance(ch_name, str) and isinstance(expr, AExpr)
+        self.ch_name = ch_name  # string
         self.expr = expr  # AExpr
-        self.var_name = var_name if var_name else str(expr)
 
     def __eq__(self, other):
-        return self.type == other.type and self.expr == other.expr and self.var_name == other.var_name
+        return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
 
     def __repr__(self):
-        return "OutputC(%s, %s)" % (str(self.var_name), str(self.expr))
+        return "OutputC(%s, %s)" % (self.ch_name, str(self.expr))
 
     def __str__(self):
-        # if self.var_name:
-        return "ch_" + self.var_name + "!" + str(self.expr)
-        # return "ch_" + repr(self.expr) + "!" + str(self.expr)
+        return self.ch_name + "!" + str(self.expr)
 
 
 def is_comm_channel(hp):
@@ -233,3 +233,50 @@ class Condition(HCSP):
 
     def __str__(self):
         return str(self.cond) + " -> (" + str(self.hp) + ")"
+
+
+class Parallel(HCSP):
+    def __init__(self, *hps):
+        """hps is a list of hybrid programs."""
+        self.type = "parallel"
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        self.hps = list(hps)  # type(hps) == tuple
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hps == other.hps
+
+    def __str__(self):
+        return " || ".join(str(hp) for hp in self.hps)
+
+
+class Definition(HCSP):
+    """The alternative hp1 ::= hp2 behaves as hp1 defined by hp2;
+    otherwise, it terminates immediately.
+    
+    """
+    def __init__(self, hp1, hp2):
+        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        self.type = "definition"
+        self.hp1 = hp1
+        self.hp2 = hp2
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hp1 == other.hp1
+
+    def __str__(self):
+        return str(self.hp1) + " ::= ( " + str(self.hp2) + " ) "
+
+
+class SelectComm(HCSP):
+    def __init__(self, *hps):
+        """hps is a list of hybrid programs."""
+        self.type = "select_comm"
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        # assert all(is_comm_channel(hp) for hp in hps)
+        self.hps = list(hps)  # type(hps) == tuple
+
+    def __eq__(self, other):
+        return self.type == other.type and self.hps == other.hps
+
+    def __str__(self):
+        return " { " + " $ ".join(str(hp) for hp in self.hps) + " } "

@@ -10,13 +10,15 @@ class System:
         self.continuous_processes = []
 
     def __eq__(self, other):
-        if len(self.discrete_processes) != len(other.discrete_process) or \
-                len(self.discrete_processes) != len(other.discrete_process):
+        if self.type != other.type or self.name != other.name:
+            return False
+        if len(self.discrete_processes) != len(other.discrete_processes) or \
+                len(self.continuous_processes) != len(other.continuous_processes):
             return False
         # Check the discrete processes
         for process in self.discrete_processes:
             matched = False
-            for other_process in other.discrete_process:
+            for other_process in other.discrete_processes:
                 if process == other_process:
                     matched = True
                     break
@@ -25,7 +27,7 @@ class System:
         # Check the continuous processes
         for process in self.continuous_processes:
             matched = False
-            for other_process in other.continuous_process:
+            for other_process in other.continuous_processes:
                 if process == other_process:
                     matched = True
                     break
