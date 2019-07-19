@@ -21,7 +21,7 @@ class Switch(SL_Block):
         assert isinstance(threshold, (int, float))
         self.threshold = threshold
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

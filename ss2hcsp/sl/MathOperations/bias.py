@@ -14,7 +14,7 @@ class Bias(SL_Block):
         assert isinstance(bias, (int, float))
         self.bias = bias
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

@@ -11,63 +11,6 @@ import re
 import operator
 from itertools import product
 
-# aexpr_parse = aexpr_parser.parse
-# bexpr_parse = bexpr_parser.parse
-
-
-# def cartesian_product(list0, list1):
-#     assert len(list0) >= 1 and len(list1) >= 1
-#     # Lift
-#     if not isinstance(list0[0], list):
-#         list0 = [[e] for e in list0]
-#     if not isinstance(list1[0], list):
-#         list1 = [[e] for e in list1]
-#     return [e0 + e1 for e0 in list0 for e1 in list1]
-#
-#
-# def variable_subsitution(var_dict, out_var, cond_expr):
-#     """out_var is the variable expressed by cond_expr, a list of (condition, expression) pairs.
-#     Before putting out_var: con_expr into the dictionary var_dict, the variable substituion
-#     should be performed."""
-#     """For the facility of substituting variables, all the variables
-#     are surrounded by square brackets, such as [x]."""
-#     assert out_var not in var_dict
-#     if var_dict:
-#         for var_name in var_dict.keys():
-#             new_cond_expr = []  # the updated cond_expr
-#             for (cond, expr) in cond_expr:
-#                 if cond.find(var_name) != -1 or expr.find(var_name) != -1:
-#                     for (cond_v, expr_v) in var_dict[var_name]:
-#                         new_cond = re.sub(var_name, expr_v, cond)
-#                         if cond_v != "True" and new_cond != "True":
-#                             new_cond = cond_v + "&&" + new_cond
-#                         elif cond_v != "True":  # new_cond == "True"
-#                             new_cond = cond_v
-#                         new_expr = re.sub(var_name, "(" + expr_v + ")", expr)
-#                         new_cond_expr.append((new_cond, new_expr))
-#                 else:
-#                     new_cond_expr.append((cond, expr))
-#             cond_expr = new_cond_expr
-#
-#         # Merge the (condition, expression) pairs in new_cond_expr with the same expression
-#         expr_conds = {}
-#         for (cond, expr) in cond_expr:
-#             if expr not in expr_conds:
-#                 expr_conds[expr] = [cond]
-#             else:
-#                 expr_conds[expr].append(cond)
-#         cond_expr = []
-#         for expr, conds in expr_conds.items():
-#             if len(conds) == 1:
-#                 cond_expr.append((conds[0], expr))
-#             else:  # len(conds) >= 2
-#                 cond_expr.append(("||".join(conds), expr))
-#     var_dict[out_var] = cond_expr
-#     # print(var_dict)
-#     # if len(var_dict) >= 2:
-#     #     print(var_dict.keys())
-#     #     print(reduce(cartesian_product, var_dict.values()))
-
 
 def translate_continuous(blocks):
     """Translate the given diagram to an HCSP program."""
@@ -77,7 +20,6 @@ def translate_continuous(blocks):
     the corresponding variables."""
     # Get non-continuous blocks from blocks_dict
     non_con_blocks = {block.name: block for block in blocks if block.type not in ("integrator", "constant")}
-    # var_dict = {}  # dictionary for varianble substituting
     cond_inst = Conditional_Inst()  # an object for variable substitution
     while non_con_blocks:
         delete_block = []
@@ -88,73 +30,54 @@ def translate_continuous(blocks):
             if src_set.isdisjoint(set(non_con_blocks.keys())):
                 in_vars = [line.name for line in block.dest_lines]
                 out_var = block.src_lines[0][0].name  # Assumed that there is only one output of each block
-                # expr = None
                 res_expr = None
-                if block.type in ["gain", "bias", "abs", "not"]:  # One input and one output
+                if block.type in ["gain", "bias", "abs", "not"]:  # One input, one output
                     in_var = in_vars[0]
                     if block.type == "gain":
-                        # if block.factor.startswith("-"):
-                        #     expr = in_var + "*(" + block.factor + ")"
-                        # else:
-                        #     expr = in_var + "*" + block.factor
                         res_expr = TimesExpr(signs="**", exprs=[AVar(in_var), AConst(block.factor)])
                     elif block.type == "bias":
-                        # if block.bias.startswith("-"):
-                        #     expr = in_var + block.bias
-                        # else:
-                        #     expr = in_var + "+" + block.bias
                         res_expr = PlusExpr(signs="++", exprs=[AVar(in_var), AConst(block.bias)])
                     elif block.type == "abs":
-                        # expr = "abs(" + in_var + ")"
                         res_expr = FunExpr(fun_name="abs", exprs=[AVar(in_var)])
                     elif block.type == "not":
-                        # expr = "1-" + in_var
                         res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
-                    # variable_subsitution(var_dict, out_var, [("True", expr)])
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-                elif block.type in ["add", "divide"]:  # Multiple inputs and one output
+                elif block.type in ["add", "divide", "min_max"]:  # Multiple inputs, one output
                     assert len(in_vars) == len(block.dest_spec)
-                    # # Get the head of the expression
-                    # expr = in_vars[0]
-                    # if block.dest_spec[0] == "-":
-                    #     expr = "-" + expr
-                    # elif block.dest_spec[0] == "/":
-                    #     expr = "1/" + expr
-                    # for i in range(1, len(block.dest_spec)):
-                    #     expr = expr + block.dest_spec[i] + in_vars[i]
                     exprs = [AVar(var) for var in in_vars]
                     if block.type == "add":
                         res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
                     elif block.type == "divide":
                         res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
-                    # variable_subsitution(var_dict, out_var, [("True", expr)])
+                    elif block.type == "min_max":
+                        res_expr = FunExpr(fun_name=block.fun_name, exprs=exprs)
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
                 elif block.type in ["or", "and"]:  # Logic expressions
                     if block.type == "or":
-                        # expr = "max(" + ", ".join(in_vars) + ")"
                         res_expr = FunExpr(fun_name="max", exprs=[AVar(var) for var in in_vars])
                     elif block.type == "and":
-                        # expr = "min(" + ", ".join(in_vars) + ")"
                         res_expr = FunExpr(fun_name="min", exprs=[AVar(var) for var in in_vars])
-                    # variable_subsitution(var_dict, out_var, [("True", expr)])
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
                 elif block.type == "relation":
-                    # expr = block.relation.join(in_vars)
                     cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[0]), expr2=AVar(in_vars[1]))
                     cond1 = cond0.neg()
-                    # variable_subsitution(var_dict, out_var, [("True", expr)])
                     cond_inst.add(var_name=out_var, cond_inst=[(cond0, AConst(1)), (cond1, AConst(0))])
                 elif block.type == "switch":
-                    # cond0 = in_vars[1] + block.relation + block.threshold
                     cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[1]), expr2=AConst(block.threshold))
-                    # cond2 = in_vars[1] + block.neg_relation + block.threshold
                     cond2 = cond0.neg()
-                    # variable_subsitution(var_dict, out_var, [(cond0, in_vars[0]), (cond2, in_vars[2])])
                     cond_inst.add(var_name=out_var, cond_inst=[(cond0, AVar(in_vars[0])), (cond2, AVar(in_vars[2]))])
+                elif block.type == "saturation":
+                    in_var = in_vars[0]
+                    cond0 = RelExpr(op=">", expr1=AVar(in_var), expr2=AConst(block.up_lim))
+                    cond1 = RelExpr(op="<", expr1=AVar(in_var), expr2=AConst(block.low_lim))
+                    cond2 = LogicExpr(op="&&", expr1=RelExpr(op="<=", expr1=AVar(in_var), expr2=AConst(block.up_lim)),
+                                      expr2=RelExpr(op=">=", expr1=AVar(in_var), expr2=AConst(block.low_lim)))
+                    cond_inst.add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
+                                                               (cond1, AConst(block.low_lim)),
+                                                               (cond2, AVar(in_var))])
                 delete_block.append(block.name)
         for name in delete_block:
             del non_con_blocks[name]
-    # return var_dict
 
     """Get differential equations"""
     # Initial values for variables
@@ -298,10 +221,10 @@ def translate_discrete(blocks):
                                               expr2=AConst(block.st) if isinstance(block.st, int) else block.st),
                        expr2=AConst(0))
         block_hp = None
-        in_vars = [line.name for line in block.dest_lines]  # keep the order?
+        in_vars = [line.name for line in block.dest_lines]
         out_var = block.src_lines[0][0].name
         res_expr = None
-        if block.type in ["gain", "bias", "abs", "not"]:
+        if block.type in ["gain", "bias", "abs", "not", "unit_delay"]:  # one input, one output
             in_var = in_vars[0]
             if block.type == "gain":
                 res_expr = TimesExpr(signs="**", exprs=[AVar(in_var), AConst(block.factor)])
@@ -311,14 +234,18 @@ def translate_discrete(blocks):
                 res_expr = FunExpr(fun_name="abs", exprs=[AVar(in_var)])
             elif block.type == "not":
                 res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
+            elif block.type == "unit_delay":
+                res_expr = FunExpr(fun_name="delay", exprs=[AVar(in_var), AConst(block.st)])
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
-        elif block.type in ["add", "divide"]:
+        elif block.type in ["add", "divide", "min_max"]:  # multiple inputs, one output
             assert len(in_vars) == len(block.dest_spec)
             exprs = [AVar(var) for var in in_vars]
             if block.type == "add":
                 res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
             elif block.type == "divide":
                 res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
+            elif block.type == "min_max":
+                res_expr = FunExpr(fun_name=block.fun_name, exprs=exprs)
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
         elif block.type in ["or", "and"]:
             if block.type == "or":
@@ -342,6 +269,14 @@ def translate_discrete(blocks):
             hp2 = hp.Assign(var_name=out_var, expr=AVar(in_vars[2]))
             cond_hp_2 = hp.Condition(cond=cond2, hp=hp2)
             block_hp = hp.Sequence(cond_hp_0, cond_hp_2)
+        elif block.type == "saturation":
+            in_var = in_vars[0]
+            cond0 = RelExpr(op=">", expr1=AVar(in_var), expr2=AConst(block.up_lim))
+            cond_hp_0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=AConst(block.up_lim)))
+            cond1 = RelExpr(op="<", expr1=AVar(in_var), expr2=AConst(block.low_lim))
+            cond_hp_1 = hp.Condition(cond=cond1, hp=hp.Assign(var_name=out_var, expr=AConst(block.low_lim)))
+            block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=AVar(in_var)), cond_hp_0, cond_hp_1)
+
         discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
     # Get the time process

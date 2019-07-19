@@ -14,6 +14,9 @@ from ss2hcsp.sl.LogicOperations.my_or import Or
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem
+from ss2hcsp.sl.Discontinuities.saturation import Saturation
+from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
+from ss2hcsp.sl.MathOperations.min_max import MinMax
 # from ss2hcsp.hcsp import hcsp as hp
 
 from xml.dom.minidom import parse
@@ -60,7 +63,7 @@ class SL_Diagram:
             block_name = block.getAttribute("Name")
             if block_type == "Constant":
                 value = get_attribute_value(block=block, attribute="Value")
-                self.add_block(block=Constant(name=block_name, value=value))
+                self.add_block(block=Constant(name=block_name, value=float(value)))
             elif block_type == "Integrator":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
                 self.add_block(block=Integrator(name=block_name, init_value=int(init_value)))
@@ -96,11 +99,29 @@ class SL_Diagram:
             elif block_type == "Gain":
                 factor = get_attribute_value(block=block, attribute="Gain")
                 self.add_block(block=Gain(name=block_name, factor=float(factor)))
+            elif block_type == "Saturate":
+                upper_limit = get_attribute_value(block=block, attribute="UpperLimit")
+                upper_limit = float(upper_limit) if upper_limit else 0.5
+                lower_limit = get_attribute_value(block=block, attribute="Lower")
+                lower_limit = float(lower_limit) if lower_limit else -0.5
+                self.add_block(block=Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit))
+            elif block_type == "UnitDelay":
+                init_value = get_attribute_value(block=block, attribute="InitialCondition")
+                init_value = float(init_value) if init_value else 0
+                sample_time = get_attribute_value(block=block, attribute="SampleTime")
+                sample_time = float(sample_time) if sample_time else -1
+                self.add_block(block=UnitDelay(name=block_name, init_value=init_value, st=sample_time))
+            elif block_type == "MinMax":
+                fun_name = get_attribute_value(block=block, attribute="Function")
+                fun_name = fun_name if fun_name else "min"
+                input_num = get_attribute_value(block=block, attribute="Inputs")
+                input_num = int(input_num) if input_num else 1
+                self.add_block(block=MinMax(name=block_name, num_dest=input_num, fun_name=fun_name))
             elif block_type == "Switch":
                 criteria = get_attribute_value(block=block, attribute="Criteria")
                 relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
                 threshold = get_attribute_value(block=block, attribute="Threshold")
-                self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
+                self.add_block(block=Switch(name=block_name, relation=relation, threshold=float(threshold)))
             elif block_type == "SubSystem":
                 ports = get_attribute_value(block=block, attribute="Ports")
                 num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]

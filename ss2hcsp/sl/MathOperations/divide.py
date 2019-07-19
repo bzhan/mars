@@ -17,7 +17,7 @@ class Divide(SL_Block):
         assert len(dest_spec) >= 2
         self.dest_spec = dest_spec  # string
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

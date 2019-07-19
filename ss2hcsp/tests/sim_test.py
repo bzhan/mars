@@ -264,6 +264,14 @@ class SimTest(unittest.TestCase):
 
         self.assertEqual(real_hp, expected_hp)
 
+    def testHCS(self):
+        location = "./CaseStudies/HCS/hcs.xml"
+        # location = "/Users/BEAR/Desktop/saturation.xml"
+        diagram = SL_Diagram(location=location)
+        diagram.parse_xml()
+        # get_hp.delete_subsystems(diagram.blocks_dict)
+        print(diagram)
+
     # def test_xml_parser(self):
     #     location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/Van_der_Pol_subsystem.xml"
     #     diagram = SL_Diagram(location=location)

@@ -15,7 +15,7 @@ class Relation(SL_Block):
         assert relation in ["<", ">", "==", "!=", ">=", "<="]
         self.relation = relation
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

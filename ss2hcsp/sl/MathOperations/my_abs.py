@@ -12,7 +12,7 @@ class Abs(SL_Block):
         self.src_lines = [[]]
         self.dest_lines = [None]
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

@@ -16,7 +16,7 @@ class Add(SL_Block):
         assert all(s == '+' or s == '-' for s in dest_spec)
         self.dest_spec = dest_spec  # string
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

@@ -15,7 +15,7 @@ class Gain(SL_Block):
         assert isinstance(factor, (int, float))
         self.factor = factor
 
-        assert isinstance(st, int)
+        assert isinstance(st, (int, float))
         self.st = st
 
     def __str__(self):

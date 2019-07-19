@@ -131,7 +131,7 @@ class TimesExpr(AExpr):
 
 class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
-        assert fun_name in ["min", "max", "abs", "gcd"]
+        assert fun_name in ["min", "max", "abs", "gcd", "delay"]
         self.fun_name = fun_name
         self.exprs = exprs
 
