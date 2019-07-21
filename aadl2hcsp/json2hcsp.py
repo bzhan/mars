@@ -27,7 +27,7 @@ def createStructure(dic):
             hp = Definition(hp1, hp2)
             lines.append(hp)
 
-            #对于声明名于应用名不一致的情况增加一条定义
+            #对于声明名与应用名不一致的情况增加一条定义
             for com in category['components']:
                 if 'name_impl' in com:
                     hp1 = HCSP(com['name'])
@@ -337,6 +337,7 @@ class Thread:
         self.lines.append(self._createReady())
         self.lines.append(self._createAwait())
         self.lines.append(self._createRunning())
+        self.lines.append(self._createAnnex())
 
 
     def _createThread(self):
@@ -361,9 +362,10 @@ class Thread:
                        OutputChannel('dis_' + self.thread_name)]  # insert output
 
             for feature in self.thread_featureIn:
-                dis_hps.append(HCSP('GetData('+feature+')'))
+                dis_hps.append(InputChannel(self.thread_name+'_'+feature, feature))
 
-            dis_hps.append(OutputChannel('input_'+self.thread_name, AConst(0)))  # insert output, was AVar(self.thread_featureIn)
+            if len(self.thread_featureIn) > 0:
+                dis_hps.append(OutputChannel('input_'+self.thread_name, AVar(str(self.thread_featureIn)))) # insert output, was AVar(self.thread_featureIn)
 
             dis_hps.append(SelectComm(InputChannel('complete_'+self.thread_name),  # insert variable
                                       InputChannel('exit_'+self.thread_name)))  # insert variable
@@ -405,7 +407,7 @@ class Thread:
 
         hps2 = SelectComm(*hps2)
         hps.append(hps2)
-        hps.append(OutputChannel('tran_'+self.thread_name, AVar('properties')))
+        hps.append(OutputChannel('tran_'+self.thread_name, AVar('prior')))
 
         eqs = [('t', AConst(1))]
         constraint = RelExpr('<', AVar('t'), AVar(self.thread_deadline))
@@ -442,8 +444,9 @@ class Thread:
 
     def _createRunning(self):
         hp1 = HCSP('Running_' + self.thread_name)
-        hps = [InputChannel('resume_' + self.thread_name, 't'),
-               OutputChannel('run_Annex_'+self.thread_name)]  # insert output
+        hps = [InputChannel('resume_' + self.thread_name, 't')]
+        hps.append(SelectComm(OutputChannel('start_Annex_'+self.thread_name),
+                              OutputChannel('restart_Annex_'+self.thread_name)))# insert output
 
         eqs = [('t', AConst(1)), ('c', AConst(1))]
         constraint = RelExpr('<', AVar('t'), AVar(self.thread_deadline))
@@ -457,12 +460,9 @@ class Thread:
 
         in3 = InputChannel('complete_Annex_' + self.thread_name)  # insert variable
         out3 = []
-        for feature in self.thread_featureOut:
-            out3.append('SetData('+feature+')')
         out3.append(OutputChannel('free'))  # insert output
-        out3.append(OutputChannel('complete'+self.thread_name))  # insert output
+        out3.append(OutputChannel('complete_'+self.thread_name))  # insert output
         out3 = Sequence(*out3)
-
 
         io_comms = [(in1, out1), (in2, out2), (in3, out3)]
 
@@ -476,3 +476,25 @@ class Thread:
         hp = Definition(hp1, hps)
 
         return hp
+
+    def _createAnnex(self):
+        hp1 = HCSP('Annex_' + self.thread_name)
+        hps = []
+        hps.append(InputChannel('start_Annex_' + self.thread_name))
+        if len(self.thread_featureIn) > 0:
+            hps.append(InputChannel('input_' + self.thread_name, AVar(str(self.thread_featureIn))))
+
+        hps.append(Wait('5'))
+        hps.append(OutputChannel('need_Resource_' + self.thread_name))
+        hps.append(InputChannel('restart_Annex_' + self.thread_name))
+        hps.append(Wait('5'))
+
+        for feature in self.thread_featureOut:
+            hps.append(OutputChannel(self.thread_name + '_' + feature, feature))
+
+        hps.append(OutputChannel('complete_Annex_' + self.thread_name))
+        hps = Sequence(*hps)
+        hp = Definition(hp1, hps)
+
+        return hp
+
