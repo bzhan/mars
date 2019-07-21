@@ -12,14 +12,15 @@ import operator
 from itertools import product
 
 
-def translate_continuous(blocks):
+def translate_continuous(diag):
     """Translate the given diagram to an HCSP program."""
 
     """Some stateless blocks, such as add and gain, are treated as
     continuous here, so we have to delete these blocks and subsititue
     the corresponding variables."""
+    blocks = diag["diag"]
     # Get non-continuous blocks from blocks_dict
-    non_con_blocks = {block.name: block for block in blocks if block.type not in ("integrator", "constant")}
+    non_con_blocks = {block.name: block for block in blocks if block.type != "integrator"}
     cond_inst = Conditional_Inst()  # an object for variable substitution
     while non_con_blocks:
         delete_block = []
@@ -31,7 +32,10 @@ def translate_continuous(blocks):
                 in_vars = [line.name for line in block.dest_lines]
                 out_var = block.src_lines[0][0].name  # Assumed that there is only one output of each block
                 res_expr = None
-                if block.type in ["gain", "bias", "abs", "not"]:  # One input, one output
+                if block.type == "constant":
+                    assert in_vars == []
+                    cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), AConst(block.value))])
+                elif block.type in ["gain", "bias", "abs", "not"]:  # One input, one output
                     in_var = in_vars[0]
                     if block.type == "gain":
                         res_expr = TimesExpr(signs="**", exprs=[AVar(in_var), AConst(block.factor)])
@@ -42,21 +46,23 @@ def translate_continuous(blocks):
                     elif block.type == "not":
                         res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-                elif block.type in ["add", "divide", "min_max"]:  # Multiple inputs, one output
+                elif block.type in ["add", "divide"]:  # Multiple inputs, one output
                     assert len(in_vars) == len(block.dest_spec)
                     exprs = [AVar(var) for var in in_vars]
                     if block.type == "add":
                         res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
                     elif block.type == "divide":
                         res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
-                    elif block.type == "min_max":
-                        res_expr = FunExpr(fun_name=block.fun_name, exprs=exprs)
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
                 elif block.type in ["or", "and"]:  # Logic expressions
+                    assert len(in_vars) == block.num_dest
+                    exprs = [AVar(var) for var in in_vars]
                     if block.type == "or":
-                        res_expr = FunExpr(fun_name="max", exprs=[AVar(var) for var in in_vars])
+                        res_expr = FunExpr(fun_name="max", exprs=exprs)
                     elif block.type == "and":
-                        res_expr = FunExpr(fun_name="min", exprs=[AVar(var) for var in in_vars])
+                        res_expr = FunExpr(fun_name="min", exprs=exprs)
+                    elif block.type == "min_max":
+                        res_expr = FunExpr(fun_name=block.fun_name, exprs=exprs)
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
                 elif block.type == "relation":
                     cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[0]), expr2=AVar(in_vars[1]))
@@ -70,11 +76,18 @@ def translate_continuous(blocks):
                     in_var = in_vars[0]
                     cond0 = RelExpr(op=">", expr1=AVar(in_var), expr2=AConst(block.up_lim))
                     cond1 = RelExpr(op="<", expr1=AVar(in_var), expr2=AConst(block.low_lim))
-                    cond2 = LogicExpr(op="&&", expr1=RelExpr(op="<=", expr1=AVar(in_var), expr2=AConst(block.up_lim)),
-                                      expr2=RelExpr(op=">=", expr1=AVar(in_var), expr2=AConst(block.low_lim)))
+                    cond2 = LogicExpr(op="&&", expr1=cond0.neg(), expr2=cond1.neg())
                     cond_inst.add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
                                                                (cond1, AConst(block.low_lim)),
                                                                (cond2, AVar(in_var))])
+                elif block.type == "unit_delay":
+                    in_var = in_vars[0]
+                    cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
+                    cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
+                    cond_inst.add(var_name=out_var,
+                                  cond_inst=[(cond0, AConst(block.init_value)),
+                                             (cond1, FunExpr(fun_name="delay",
+                                                             exprs=[AVar(in_var), block.delay]))])
                 delete_block.append(block.name)
         for name in delete_block:
             del non_con_blocks[name]
@@ -90,35 +103,23 @@ def translate_continuous(blocks):
             init_hps.append(hp.Assign(var_name=src_name, expr=AConst(block.init_value)))
             dest_name = block.dest_lines[0].name
             ode_eqs.append((src_name, AVar(dest_name)))
-        elif block.type == "constant":
-            src_name = block.src_lines[0][0].name
-            init_hps.append(hp.Assign(var_name=src_name, expr=AConst(block.value)))
-            ode_eqs.append((src_name, AConst(0)))
+        elif block.type == "unit_delay":
+            dest_name = block.dest_lines[0].name
+            init_hps.append(hp.Assign(var_name=dest_name, expr=AConst(block.init_value)))
+            ode_eqs.append((dest_name, AConst(0)))
 
     init_hps.append(hp.Assign(var_name="t", expr=AConst(0)))
     ode_eqs.append(("t", AConst(1)))
 
     # Add communication for each port
-    in_channels = set()
-    out_channels = set()
-    block_names = [block.name for block in blocks]
-    for block in blocks:
-        for dest_line in block.dest_lines:
-            if dest_line.src not in block_names:
-                in_channels.add(dest_line.name)
-        for src_lines in block.src_lines:
-            for src_line in src_lines:
-                if src_line.dest not in block_names:
-                    out_channels.add(src_line.name)
+    in_channels = diag["in"]
+    out_channels = diag["out"]
 
     # Delete useless variables in cond_inst.data
     in_var_ode = set(in_var.name for _, in_var in ode_eqs if hasattr(in_var, "name"))  # isinstance(in_var, AVar)
-    delete_vars = [var for var in cond_inst.data.keys() if var not in in_var_ode.union(out_channels)]
+    delete_vars = [var for var in cond_inst.data.keys() if var not in in_var_ode.union(set(ch for ch, _ in out_channels))]
     for var in delete_vars:
         del cond_inst.data[var]
-    # delete_vars = [var for var in var_dict.keys() if var not in in_var_ode.union(out_channels)]
-    # for var in delete_vars:
-    #     del var_dict[var]
 
     """Substitute variables in the ODEs by cond_inst.data"""
     # var_cond_exprs = [(var, cond_exprs) for var, cond_exprs in var_dict.items()]
@@ -126,25 +127,22 @@ def translate_continuous(blocks):
     var_list = [e[0] for e in var_cond_exprs]  # e[0] is a variable name
     cond_exprs_list = [e[1] for e in var_cond_exprs]  # e[1] is the list of (condition, expression) pairs wrt. e[0]
     if len(var_list) == 0:  # Do not need to substitute
-        in_channel_hps = [(hp.InputChannel(var_name=var_name), hp.Skip())
-                          for var_name in sorted(in_channels)]
-        out_channel_hps = [(hp.OutputChannel(expr=AVar(var_name)), hp.Skip())
-                           for var_name in sorted(out_channels)]
+        in_channel_hps = [(hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name), hp.Skip())
+                          for var_name, bran_num in sorted(in_channels)]
+        out_channel_hps = [(hp.OutputChannel(ch_name="ch_" + var_name + bran_num, expr=AVar(var_name)), hp.Skip())
+                           for var_name, bran_num in sorted(out_channels)]
         comm_hps = in_channel_hps + out_channel_hps
         ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint=BConst(True), io_comms=comm_hps)
         return hp.Sequence(hp.Sequence(*init_hps), hp.Loop(ode_hp))
-    # if len(var_list) == 1:  # len(cond_exprs_list) == 1
-    #     compositions = [[e] for e in cond_exprs_list[0]]
     else:  # len(var_list) >= 2
-        # compositions = reduce(cartesian_product, cond_exprs_list)
         compositions = product(*cond_exprs_list)
     ode_hps = []
     for composition in compositions:
         new_ode_eqs = []
         constraints = set()
         # constraints.add("True")
-        comm_hps = [(hp.InputChannel(ch_name="ch_" + var_name, var_name=var_name), hp.Skip())
-                    for var_name in sorted(in_channels)]
+        comm_hps = [(hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name), hp.Skip())
+                    for var_name, bran_num in sorted(in_channels)]
         for out_var, in_var in ode_eqs:  # isinstance(out_var, str) and isinstance(in_var, AVar)
             if hasattr(in_var, "name") and in_var.name in var_list:
                 cond = composition[var_list.index(in_var.name)][0]
@@ -155,106 +153,98 @@ def translate_continuous(blocks):
             else:
                 new_ode_eqs.append((out_var, in_var))
         # print("new_ode_eqs = ", new_ode_eqs)
-        for out_channel in sorted(out_channels):
+        for out_channel, bran_num in sorted(out_channels):
             # print("ch_" + out_channel + "!")
             if out_channel in var_list:
                 cond = composition[var_list.index(out_channel)][0]
                 _expr = composition[var_list.index(out_channel)][1]
-                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel, expr=_expr), hp.Skip()))
+                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=_expr), hp.Skip()))
                 # comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
                 constraints.add(cond)
-                # print(expr)
             else:
-                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel, expr=AVar(out_channel)), hp.Skip()))
+                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=AVar(out_channel)), hp.Skip()))
         # Get evolution domain (contraints) for each ODE
-        # constraint = "True"
-        # constraints.remove("True")
-        # print("constrains = ", constraints)
         if len(constraints) == 0:
-            # constraint = constraints.pop()
             constraint = BConst(True)
         else:  # len(constraints) >= 1:
-            # constraint = "&&".join(constraints)
             constraint = conj(*constraints)
-        # print("constrain = ", constraint)
-        # print("comm_hps", comm_hps)
-        # print("-" * 50)
         # ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=bexpr_parse(constraint), io_comms=comm_hps))
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
 
     # ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
+    process = None
     if len(ode_hps) == 1:
         process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(ode_hps[0]))
-    else:  # len(ode_hps) >= 2
+    elif len(ode_hps) >= 2:
         process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
     # process.name = "PC" + str(process_num)
     return process
 
 
-def translate_discrete(blocks):
+def translate_discrete(diag):
     """Translate the given diagram to an HCSP program."""
+    blocks = diag["diag"]
+    blocks_dict = {block.name: block for block in blocks}
+
     # Initialization
     init_hp = hp.Assign(var_name="t", expr=AConst(0))
 
     # Get input and output channels
-    in_ports = set()
-    out_ports = set()
-    block_names = [block.name for block in blocks]
-    for block in blocks:
-        for dest_line in block.dest_lines:
-            if dest_line.src not in block_names:
-                in_ports.add(dest_line.name)
-        for src_lines in block.src_lines:
-            for src_line in src_lines:
-                if src_line.dest not in block_names:
-                    out_ports.add(src_line.name)
-    in_channels = [hp.InputChannel(ch_name="ch_" + var_name, var_name=var_name) for var_name in sorted(in_ports)]
-    out_channels = [hp.OutputChannel(ch_name="ch_" + expr, expr=AVar(expr)) for expr in sorted(out_ports)]
+    in_ports = diag["in"]
+    out_ports = diag["out"]
+    in_channels = [hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name)
+                   for var_name, bran_num in sorted(in_ports)]
+    out_channels = [hp.OutputChannel(ch_name="ch_" + expr + bran_num, expr=AVar(expr))
+                    for expr, bran_num in sorted(out_ports)]
 
     # Get discrete processes
     discrete_hps = []
     for block in blocks:
-        if not hasattr(block, "st"):
+        if not hasattr(block, "st") or block.type == "constant":
             continue
-        # cond = "t%" + block.st + "==0"
         cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"),
-                                              expr2=AConst(block.st) if isinstance(block.st, int) else block.st),
-                       expr2=AConst(0))
+                                              expr2=AConst(block.st)
+                                              if isinstance(block.st, (int, float)) else block.st), expr2=AConst(0))
         block_hp = None
-        in_vars = [line.name for line in block.dest_lines]
+        # in_vars = [line.name for line in block.dest_lines]
+        in_vars = []
+        for line in block.dest_lines:
+            if line.src in blocks_dict:
+                src_block = blocks_dict[line.src]
+                if src_block.type == "constant":
+                    in_vars.append(AConst(src_block.value))
+                    continue
+            in_vars.append(AVar(line.name))
         out_var = block.src_lines[0][0].name
         res_expr = None
-        if block.type in ["gain", "bias", "abs", "not", "unit_delay"]:  # one input, one output
-            in_var = in_vars[0]
+        if block.type in ["gain", "bias", "abs", "not"]:  # one input, one output
             if block.type == "gain":
-                res_expr = TimesExpr(signs="**", exprs=[AVar(in_var), AConst(block.factor)])
+                res_expr = TimesExpr(signs="**", exprs=[in_vars[0], AConst(block.factor)])
             elif block.type == "bias":
-                res_expr = PlusExpr(signs="++", exprs=[AVar(in_var), AConst(block.bias)])
+                res_expr = PlusExpr(signs="++", exprs=[in_vars[0], AConst(block.bias)])
             elif block.type == "abs":
-                res_expr = FunExpr(fun_name="abs", exprs=[AVar(in_var)])
+                res_expr = FunExpr(fun_name="abs", exprs=[in_vars[0]])
             elif block.type == "not":
-                res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
-            elif block.type == "unit_delay":
-                res_expr = FunExpr(fun_name="delay", exprs=[AVar(in_var), AConst(block.st)])
+                res_expr = PlusExpr(signs="+-", exprs=[AConst(1), in_vars[0]])
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
-        elif block.type in ["add", "divide", "min_max"]:  # multiple inputs, one output
+        elif block.type in ["add", "divide"]:  # multiple inputs, one output
             assert len(in_vars) == len(block.dest_spec)
-            exprs = [AVar(var) for var in in_vars]
             if block.type == "add":
-                res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
+                res_expr = PlusExpr(signs=block.dest_spec, exprs=in_vars)
             elif block.type == "divide":
-                res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
-            elif block.type == "min_max":
-                res_expr = FunExpr(fun_name=block.fun_name, exprs=exprs)
+                res_expr = TimesExpr(signs=block.dest_spec, exprs=in_vars)
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
-        elif block.type in ["or", "and"]:
+        elif block.type in ["or", "and", "min_max"]:  # multiple inputs, one output
+            assert len(in_vars) == block.num_dest
             if block.type == "or":
-                res_expr = FunExpr(fun_name="max", exprs=[AVar(var) for var in in_vars])
+                res_expr = FunExpr(fun_name="max", exprs=in_vars)
             elif block.type == "and":
-                res_expr = FunExpr(fun_name="min", exprs=[AVar(var) for var in in_vars])
+                res_expr = FunExpr(fun_name="min", exprs=in_vars)
+            elif block.type == "min_max":
+                res_expr = FunExpr(fun_name=block.fun_name, exprs=in_vars)
             block_hp = hp.Assign(var_name=out_var, expr=res_expr)
         elif block.type == "relation":
-            cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[0]), expr2=AVar(in_vars[1]))
+            cond0 = RelExpr(op=block.relation, expr1=in_vars[0], expr2=in_vars[1])
             hp0 = hp.Assign(var_name=out_var, expr=AConst(1))
             cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond1 = cond0.neg()
@@ -262,20 +252,19 @@ def translate_discrete(blocks):
             cond_hp_1 = hp.Condition(cond=cond1, hp=hp1)
             block_hp = hp.Sequence(cond_hp_0, cond_hp_1)
         elif block.type == "switch":
-            cond0 = RelExpr(op=block.relation, expr1=AVar(in_vars[1]), expr2=AConst(block.threshold))
-            hp0 = hp.Assign(var_name=out_var, expr=AVar(in_vars[0]))
+            cond0 = RelExpr(op=block.relation, expr1=in_vars[1], expr2=AConst(block.threshold))
+            hp0 = hp.Assign(var_name=out_var, expr=in_vars[0])
             cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond2 = cond0.neg()
-            hp2 = hp.Assign(var_name=out_var, expr=AVar(in_vars[2]))
+            hp2 = hp.Assign(var_name=out_var, expr=in_vars[2])
             cond_hp_2 = hp.Condition(cond=cond2, hp=hp2)
             block_hp = hp.Sequence(cond_hp_0, cond_hp_2)
         elif block.type == "saturation":
-            in_var = in_vars[0]
-            cond0 = RelExpr(op=">", expr1=AVar(in_var), expr2=AConst(block.up_lim))
+            cond0 = RelExpr(op=">", expr1=in_vars[0], expr2=AConst(block.up_lim))
             cond_hp_0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=AConst(block.up_lim)))
-            cond1 = RelExpr(op="<", expr1=AVar(in_var), expr2=AConst(block.low_lim))
+            cond1 = RelExpr(op="<", expr1=in_vars[0], expr2=AConst(block.low_lim))
             cond_hp_1 = hp.Condition(cond=cond1, hp=hp.Assign(var_name=out_var, expr=AConst(block.low_lim)))
-            block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=AVar(in_var)), cond_hp_0, cond_hp_1)
+            block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=in_vars[0]), cond_hp_0, cond_hp_1)
 
         discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
@@ -358,26 +347,77 @@ def seperate_diagram(blocks_dict):
             for block_name in delete_blocks:
                 del scc_dict[block_name]
         discrete_subdiagrams_sorted.append(sorted_scc)
-    # print("sorted = ", discrete_subdiagrams_sorted)
-    return discrete_subdiagrams_sorted, continuous_subdiagrams
+
+    # Get input and output channels
+    continuous_groups = [[block.name for block in scc] for scc in continuous_subdiagrams]
+
+    dis_subdiag_with_chs = []
+    for sorted_scc in discrete_subdiagrams_sorted:
+        in_channels = set()
+        out_channels = set()
+        block_names = [block.name for block in sorted_scc]
+        for block in sorted_scc:
+            for dest_line in block.dest_lines:
+                if dest_line.src not in block_names:  # an input channel
+                    in_channels.add((dest_line.name, ""))  # (var_name, branch_num)
+            for src_lines in block.src_lines:  # Each group represents a variable
+                channel_groups = {}
+                for src_line in src_lines:
+                    if src_line.dest not in block_names:  # an output channel
+                        is_outport = True  # if src_line.dest is an outport
+                        for i in range(len(continuous_groups)):
+                            if src_line.dest in continuous_groups[i]:
+                                is_outport = False
+                                if i not in channel_groups:
+                                    channel_groups[i] = []
+                                channel_groups[i].append(src_line.branch)
+                                break
+                        if is_outport:
+                            out_channels.add((src_line.name, "_" + str(src_line.branch)))
+                for channels in channel_groups.values():
+                    out_channels.add((src_lines[0].name, "_" + str(min(channels))))
+        dis_subdiag_with_chs.append({"in": in_channels, "diag": sorted_scc, "out": out_channels})
+
+    con_subdiag_with_chs = []
+    for scc in continuous_subdiagrams:
+        in_channels = set()
+        out_channels = set()
+        block_names = [block.name for block in scc]
+        channel_groups = {}
+        for block in scc:
+            for dest_line in block.dest_lines:
+                if dest_line.src not in block_names:  # an input channel
+                    if dest_line.name not in channel_groups:
+                        channel_groups[dest_line.name] = []
+                    channel_groups[dest_line.name].append(dest_line.branch)
+            for src_lines in block.src_lines:
+                for src_line in src_lines:
+                    if src_line.dest not in block_names:  # an output channel
+                        out_channels.add((src_line.name, ""))
+        for channel, branches in channel_groups.items():
+            in_channels.add((channel, "_" + str(min(branches))))
+        con_subdiag_with_chs.append({"in": in_channels, "diag": scc, "out": out_channels})
+
+    # return discrete_subdiagrams_sorted, continuous_subdiagrams
+    return dis_subdiag_with_chs, con_subdiag_with_chs
 
 
-def get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams):
+def get_processes(dis_subdiag_with_chs, con_subdiag_with_chs):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
     system = System()
     # Compute the discrete processes from discrete subdiagrams
     num = 0
-    for scc in discrete_subdiagrams_sorted:
-        discrete_process = translate_discrete(scc)
+    for diag in dis_subdiag_with_chs:
+        discrete_process = translate_discrete(diag)
         discrete_process.name = "PD" + str(num)
         system.discrete_processes.append(discrete_process)
         num += 1
 
     # Compute the continuous processes from continuous subdiagrams
     num = 0
-    for scc in continuous_subdiagrams:
-        continuous_process = translate_continuous(scc)
+    for diag in con_subdiag_with_chs:
+        continuous_process = translate_continuous(diag)
         continuous_process.name = "PC" + str(num)
         system.continuous_processes.append(continuous_process)
         num += 1

@@ -10,29 +10,19 @@ class System:
         self.continuous_processes = []
 
     def __eq__(self, other):
-        if self.type != other.type or self.name != other.name:
-            return False
-        if len(self.discrete_processes) != len(other.discrete_processes) or \
+        if self.type != other.type or len(self.discrete_processes) != len(other.discrete_processes) or \
                 len(self.continuous_processes) != len(other.continuous_processes):
             return False
-        # Check the discrete processes
-        for process in self.discrete_processes:
-            matched = False
-            for other_process in other.discrete_processes:
-                if process == other_process:
-                    matched = True
-                    break
-            if not matched:
-                return False
-        # Check the continuous processes
-        for process in self.continuous_processes:
-            matched = False
-            for other_process in other.continuous_processes:
-                if process == other_process:
-                    matched = True
-                    break
-            if not matched:
-                return False
+        # Sort the discrete processes
+        discrete_processes = sorted(self.discrete_processes, key=lambda x: str(x))
+        other_processes = sorted(other.discrete_processes, key=lambda x: str(x))
+        if discrete_processes != other_processes:
+            return False
+        # Sort the continuous processes
+        continuous_processes = sorted(self.continuous_processes, key=lambda x: str(x))
+        other_processes = sorted(other.continuous_processes, key=lambda x: str(x))
+        if continuous_processes != other_processes:
+            return False
         return True
 
     def __str__(self):

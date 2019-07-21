@@ -24,7 +24,7 @@ from functools import reduce
 from math import gcd
 import re
 
-from ss2hcsp.hcsp.expr import AVar, AConst, FunExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
 
 
 def get_attribute_value(block, attribute):
@@ -102,7 +102,7 @@ class SL_Diagram:
             elif block_type == "Saturate":
                 upper_limit = get_attribute_value(block=block, attribute="UpperLimit")
                 upper_limit = float(upper_limit) if upper_limit else 0.5
-                lower_limit = get_attribute_value(block=block, attribute="Lower")
+                lower_limit = get_attribute_value(block=block, attribute="LowerLimit")
                 lower_limit = float(lower_limit) if lower_limit else -0.5
                 self.add_block(block=Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit))
             elif block_type == "UnitDelay":
@@ -110,7 +110,7 @@ class SL_Diagram:
                 init_value = float(init_value) if init_value else 0
                 sample_time = get_attribute_value(block=block, attribute="SampleTime")
                 sample_time = float(sample_time) if sample_time else -1
-                self.add_block(block=UnitDelay(name=block_name, init_value=init_value, st=sample_time))
+                self.add_block(block=UnitDelay(name=block_name, init_value=init_value, delay=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block=block, attribute="Function")
                 fun_name = fun_name if fun_name else "min"
@@ -260,7 +260,7 @@ class SL_Diagram:
                             known_in_st.append(in_block.st)
                         else:
                             unknown_in_st.append(AVar(in_block.name))
-                    else:  # in_block is a port, which is deleted at the begining
+                    else:  # in_block is a port, deleted at the begining
                         unknown_in_st.append(AVar(line.name))
                 if known_in_st:
                     known_in_st = [AConst(reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0])]
@@ -270,6 +270,18 @@ class SL_Diagram:
                 else:  # len(known_in_st) >= 2
                     # block.st = "gcd(" + ", ".join(unknown_in_st) + ")"
                     block.st = FunExpr(fun_name="gcd", exprs=known_in_st)
+        # Deal with unit_delay and constant blocks
+        for block in self.blocks_dict.values():
+            if block.type == "unit_delay":
+                if block.delay == -1:  # the delay is unknow
+                    src_block = self.blocks_dict[block.dest_lines[0].src]
+                    assert isinstance(src_block.st, AExpr)
+                    block.delay = src_block.st
+                else:
+                    block.delay = AConst(block.delay)
+            elif block.type == "constant":
+                dest_block = self.blocks_dict[block.src_lines[0][0].dest]
+                block.is_continuous = dest_block.is_continuous
 
     def delete_ports(self):
         for block in self.blocks:

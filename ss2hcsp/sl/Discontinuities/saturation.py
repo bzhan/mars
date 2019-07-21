@@ -6,7 +6,7 @@ class Saturation(SL_Block):
     def __init__(self, name, up_lim, low_lim, *, st=-1):
         self.name = name
         self.type = "saturation"
-        self.is_continuous = False
+        self.is_continuous = (st == 0)
         self.num_src = 1
         self.num_dest = 1
         self.src_lines = [[]]

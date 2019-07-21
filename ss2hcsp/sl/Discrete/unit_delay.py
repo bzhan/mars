@@ -3,7 +3,7 @@ from ss2hcsp.sl.sl_block import SL_Block
 
 class UnitDelay(SL_Block):
     """Block for unit delay."""
-    def __init__(self, name, init_value, st=-1):
+    def __init__(self, name, init_value, delay):
         self.name = name
         self.type = "unit_delay"
         self.is_continuous = True
@@ -14,9 +14,11 @@ class UnitDelay(SL_Block):
 
         assert isinstance(init_value, (int, float))
         self.init_value = init_value
-        assert isinstance(st, (int, float))
-        self.st = 0.2 if st == -1 else st  # in conformity with MATLAB_R2018a
+        assert isinstance(delay, (int, float))
+        self.delay = delay
+
+        self.st = 0
 
     def __str__(self):
-        return "%s: UnitDelay[init = %s, in = %s, out = %s]" % \
-               (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines))
+        return "%s: UnitDelay[init = %s, in = %s, out = %s, delay = %s]" % \
+               (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines), str(self.delay))

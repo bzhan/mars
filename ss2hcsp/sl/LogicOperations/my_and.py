@@ -6,7 +6,7 @@ class And(SL_Block):
     def __init__(self, name, num_dest, *, st=-1):
         self.name = name
         self.type = "and"
-        self.is_continuous = False
+        self.is_continuous = (st == 0)
         self.num_src = 1
         self.num_dest = num_dest
         self.src_lines = [[]]

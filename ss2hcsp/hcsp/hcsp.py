@@ -88,7 +88,7 @@ class InputChannel(HCSP):
 
 
 class OutputChannel(HCSP):
-    def __init__(self, ch_name, expr = None):
+    def __init__(self, ch_name, expr=None):
         self.type = "output_channel"
         # assert isinstance(ch_name, str) and isinstance(expr, AExpr)
         assert isinstance(ch_name, str)
@@ -234,6 +234,8 @@ class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;
      otherwise, it terminates immediately."""
     def __init__(self, cond, hp):
+        if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
+            print(hp, type(hp))
         assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr

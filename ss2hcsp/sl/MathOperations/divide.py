@@ -7,7 +7,7 @@ class Divide(SL_Block):
         """dest_spec is a list of either '*' or '/'."""
         self.name = name
         self.type = "divide"
-        self.is_continuous = False
+        self.is_continuous = (st == 0)
         self.num_src = 1
         self.num_dest = len(dest_spec)
         self.src_lines = [[]]
