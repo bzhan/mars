@@ -20,4 +20,4 @@ class Gain(SL_Block):
 
     def __str__(self):
         return "%s: Gain[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), int(self.st))
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
