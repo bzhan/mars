@@ -315,6 +315,7 @@ class Conditional_Inst:
     """
     def __init__(self):
         self.data = dict()
+        self.mu_ex_cons = list()  # list of sets of mutually exclusive constraints
 
     def __repr__(self):
         def repr_pair(cond, inst):
@@ -340,7 +341,13 @@ class Conditional_Inst:
                         elif cond2 == true_expr:
                             new_cond = cond.subst({var: expr2})
                         else:
-                            new_cond = conj(cond.subst({var: expr2}), cond2)
+                            if cond.subst({var: expr2}) == cond2:
+                                new_cond = cond2
+                            elif sum({cond.subst({var: expr2}), cond2}.issubset(mu_ex_cons)
+                                     for mu_ex_cons in self.mu_ex_cons) >= 1:
+                                continue  # because cond.subst({var: expr2}) && cond2 is False
+                            else:
+                                new_cond = conj(cond.subst({var: expr2}), cond2)
                         new_expr = expr.subst({var: expr2})
                         new_cond_inst.append((new_cond, new_expr))
                 else:
@@ -359,3 +366,9 @@ class Conditional_Inst:
             cond_inst.append((disj(*conds), expr))
 
         self.data[var_name] = cond_inst
+
+        # Extract mutually exclusive constraints
+        if len(cond_inst) >= 2:
+            mu_ex_cons = set(cond for cond, _ in cond_inst)
+            if mu_ex_cons not in self.mu_ex_cons:
+                self.mu_ex_cons.append(mu_ex_cons)

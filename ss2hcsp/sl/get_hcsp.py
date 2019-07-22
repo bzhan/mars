@@ -20,7 +20,7 @@ def translate_continuous(diag):
     the corresponding variables."""
     blocks = diag["diag"]
     # Get non-continuous blocks from blocks_dict
-    non_con_blocks = {block.name: block for block in blocks if block.type != "integrator"}
+    non_con_blocks = {block.name: block for block in blocks if block.type not in ["integrator", "unit_delay"]}
     cond_inst = Conditional_Inst()  # an object for variable substitution
     while non_con_blocks:
         delete_block = []
@@ -54,7 +54,7 @@ def translate_continuous(diag):
                     elif block.type == "divide":
                         res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-                elif block.type in ["or", "and"]:  # Logic expressions
+                elif block.type in ["or", "and", "min_max"]:
                     assert len(in_vars) == block.num_dest
                     exprs = [AVar(var) for var in in_vars]
                     if block.type == "or":
@@ -80,15 +80,16 @@ def translate_continuous(diag):
                     cond_inst.add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
                                                                (cond1, AConst(block.low_lim)),
                                                                (cond2, AVar(in_var))])
-                elif block.type == "unit_delay":
-                    in_var = in_vars[0]
-                    cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
-                    cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
-                    cond_inst.add(var_name=out_var,
-                                  cond_inst=[(cond0, AConst(block.init_value)),
-                                             (cond1, FunExpr(fun_name="delay",
-                                                             exprs=[AVar(in_var), block.delay]))])
+                # elif block.type == "unit_delay":
+                #     in_var = in_vars[0]
+                #     cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
+                #     cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
+                #     cond_inst.add(var_name=out_var,
+                #                   cond_inst=[(cond0, AConst(block.init_value)),
+                #                              (cond1, FunExpr(fun_name="delay",
+                #                                              exprs=[AVar(in_var), block.delay]))])
                 delete_block.append(block.name)
+        assert delete_block
         for name in delete_block:
             del non_con_blocks[name]
 
@@ -450,7 +451,16 @@ def delete_subsystems(blocks_dict):
             # Delete old input lines and add new ones
             for port_id in range(block.num_dest):
                 input_line = block.dest_lines[port_id]
-                src_block = blocks_dict[input_line.src]
+
+                # src_block = blocks_dict[input_line.src]
+                if input_line.src in blocks_dict:
+                    src_block = blocks_dict[input_line.src]
+                else:
+                    for subsys in subsystems:
+                        if input_line.src in blocks_dict[subsys].diagram.blocks_dict:
+                            src_block = blocks_dict[subsys].diagram.blocks_dict[input_line.src]
+                            break
+
                 # Delete the old line (input_line) from src_block
                 src_block.src_lines[input_line.src_port][input_line.branch] = None
                 # Get the corresponding input port in the subsystem
@@ -477,7 +487,16 @@ def delete_subsystems(blocks_dict):
                 # Delete the old line (port_line) from src_block
                 src_block.src_lines[port_line.src_port][port_line.branch] = None
                 for output_line in block.src_lines[port_id]:
-                    dest_block = blocks_dict[output_line.dest]
+
+                    # dest_block = blocks_dict[output_line.dest]
+                    if output_line.dest in blocks_dict:
+                        dest_block = blocks_dict[output_line.dest]
+                    else:
+                        for subsys in subsystems:
+                            if output_line.dest in blocks_dict[subsys].diagram.blocks_dict:
+                                dest_block = blocks_dict[subsys].diagram.blocks_dict[output_line.dest]
+                                break
+
                     # Generate a new output line
                     new_output_line = SL_Line(src=src_block.name, dest=dest_block.name,
                                               src_port=port_line.src_port, dest_port=output_line.dest_port)
@@ -492,5 +511,5 @@ def delete_subsystems(blocks_dict):
         del blocks_dict[name]
     # Add new blocks from subsystems to block_dict
     for block in blocks_in_subsystems:
-        assert block not in blocks_dict
+        assert block.name not in blocks_dict
         blocks_dict[block.name] = block

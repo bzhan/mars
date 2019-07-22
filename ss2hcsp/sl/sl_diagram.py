@@ -275,8 +275,8 @@ class SL_Diagram:
             if block.type == "unit_delay":
                 if block.delay == -1:  # the delay is unknow
                     src_block = self.blocks_dict[block.dest_lines[0].src]
-                    assert isinstance(src_block.st, AExpr)
-                    block.delay = src_block.st
+                    # assert isinstance(src_block.st, AExpr)
+                    block.delay = src_block.st if isinstance(src_block.st, AExpr) else AConst(src_block.st)
                 else:
                     block.delay = AConst(block.delay)
             elif block.type == "constant":

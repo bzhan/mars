@@ -17,7 +17,8 @@ class SL_Line:
         # if self.name == "":
         #     return "?"
         # else:
-            return self.name
+        return self.name
+        # return "{" + self.src + "->" + self.dest + "}"
 
     def __repr__(self):
         return str(self)
