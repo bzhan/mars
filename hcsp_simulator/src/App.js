@@ -8,6 +8,8 @@ import { faPlayCircle, faStopCircle, faStepForward, faStepBackward, faPlus } fro
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 
+import { FlowChartWithState } from "@mrblenny/react-flow-chart";
+
 class App extends Component {
   render(){
     return (
@@ -23,24 +25,20 @@ class App extends Component {
                 </Nav>
             </Navbar>
 
-            <Container>
-                <Row>
-                    <Col md={{ span: 4, offset: 8 }}>
-                        <ButtonToolbar>
-                            <Button variant="primary" title={"add hcsp process"}><FontAwesomeIcon icon={faPlus} size="lg"/></Button>
-                            <Button variant="success" title={"run"}><FontAwesomeIcon icon={faPlayCircle} size="lg"/></Button>
-                            <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle} size="lg"/></Button>
-                            <Button variant="secondary" title={"step forward"}>
-                                <FontAwesomeIcon icon={faStepForward} size="lg"/>
-                            </Button>
-                            <Button variant="secondary" title={"step backward"}>
-                                <FontAwesomeIcon icon={faStepBackward} size="lg"/>
-                            </Button>
-                        </ButtonToolbar>
-                    </Col>
-                </Row>
-
-            </Container>
+            <div>
+                <ButtonToolbar>
+                    <Button variant="primary" title={"add hcsp process"}><FontAwesomeIcon icon={faPlus} size="lg"/></Button>
+                    <Button variant="success" title={"run"}><FontAwesomeIcon icon={faPlayCircle} size="lg"/></Button>
+                    <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle} size="lg"/></Button>
+                    <Button variant="secondary" title={"step forward"}>
+                        <FontAwesomeIcon icon={faStepForward} size="lg"/>
+                    </Button>
+                    <Button variant="secondary" title={"step backward"}>
+                        <FontAwesomeIcon icon={faStepBackward} size="lg"/>
+                    </Button>
+                </ButtonToolbar>
+            </div>
+            <FlowChartWithState />
         </div>
 
 
