@@ -63,7 +63,8 @@ class SL_Diagram:
             block_name = block.getAttribute("Name")
             if block_type == "Constant":
                 value = get_attribute_value(block=block, attribute="Value")
-                self.add_block(block=Constant(name=block_name, value=float(value)))
+                value = float(value) if value else 1
+                self.add_block(block=Constant(name=block_name, value=value))
             elif block_type == "Integrator":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
                 self.add_block(block=Integrator(name=block_name, init_value=int(init_value)))
@@ -121,7 +122,8 @@ class SL_Diagram:
                 criteria = get_attribute_value(block=block, attribute="Criteria")
                 relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
                 threshold = get_attribute_value(block=block, attribute="Threshold")
-                self.add_block(block=Switch(name=block_name, relation=relation, threshold=float(threshold)))
+                threshold = float(threshold) if threshold else 0
+                self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
             elif block_type == "SubSystem":
                 ports = get_attribute_value(block=block, attribute="Ports")
                 num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
@@ -242,6 +244,7 @@ class SL_Diagram:
                             in_st = None
                             break
                     if in_st:
+                        in_st = [int(st) for st in in_st]
                         block.st = reduce(gcd, in_st) if len(in_st) >= 2 else in_st[0]
                         if block.st == 0:
                             block.is_continuous = True
