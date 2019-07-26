@@ -20,7 +20,7 @@ def translate_continuous(diag):
     the corresponding variables."""
     blocks = diag["diag"]
     # Get non-continuous blocks from blocks_dict
-    non_con_blocks = {block.name: block for block in blocks if block.type not in ["integrator", "unit_delay"]}
+    non_con_blocks = {block.name: block for block in blocks if block.type not in ["integrator"]}
     cond_inst = Conditional_Inst()  # an object for variable substitution
     while non_con_blocks:
         delete_block = []
@@ -80,14 +80,15 @@ def translate_continuous(diag):
                     cond_inst.add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
                                                                (cond1, AConst(block.low_lim)),
                                                                (cond2, AVar(in_var))])
-                # elif block.type == "unit_delay":
-                #     in_var = in_vars[0]
-                #     cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
-                #     cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
-                #     cond_inst.add(var_name=out_var,
-                #                   cond_inst=[(cond0, AConst(block.init_value)),
-                #                              (cond1, FunExpr(fun_name="delay",
-                #                                              exprs=[AVar(in_var), block.delay]))])
+                elif block.type == "unit_delay":
+                    in_var = in_vars[0]
+                    assert isinstance(block.delay, AExpr)
+                    cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
+                    cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
+                    cond_inst.add(var_name=out_var,
+                                  cond_inst=[(cond0, AConst(block.init_value)),
+                                             (cond1, FunExpr(fun_name="delay",
+                                                             exprs=[AVar(in_var), block.delay]))])
                 delete_block.append(block.name)
         assert delete_block
         for name in delete_block:
@@ -159,15 +160,22 @@ def translate_continuous(diag):
             if out_channel in var_list:
                 cond = composition[var_list.index(out_channel)][0]
                 _expr = composition[var_list.index(out_channel)][1]
-                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=_expr), hp.Skip()))
+                comm_hps.append(
+                    (hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=_expr), hp.Skip()))
                 # comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
                 constraints.add(cond)
             else:
-                comm_hps.append((hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=AVar(out_channel)), hp.Skip()))
+                comm_hps.append(
+                    (hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=AVar(out_channel)), hp.Skip()))
         # Get evolution domain (contraints) for each ODE
         if len(constraints) == 0:
             constraint = BConst(True)
         else:  # len(constraints) >= 1:
+            # Check whether conj(*constraints) is satisfiable
+            # by mutually exclusive constraint set of cond_inst
+            if sum(set(con_pair).issubset(mu_ex_cons) for mu_ex_cons in cond_inst.mu_ex_cons
+                   for con_pair in product(constraints, constraints) if len(set(con_pair)) == 2) >= 1:
+                continue  # because cons_pairs contains exclusive constrains
             constraint = conj(*constraints)
         # ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=bexpr_parse(constraint), io_comms=comm_hps))
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
@@ -199,15 +207,20 @@ def translate_discrete(diag):
                     for expr, bran_num in sorted(out_ports)]
 
     # Get discrete processes
-    discrete_hps = []
+    st_cond_inst_dict = dict()  # used for merging the discrete processes with the same sample time
+    # discrete_hps = []  # the list of discrete processes
     for block in blocks:
         if not hasattr(block, "st") or block.type == "constant":
             continue
-        cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"),
-                                              expr2=AConst(block.st)
-                                              if isinstance(block.st, (int, float)) else block.st), expr2=AConst(0))
-        block_hp = None
-        # in_vars = [line.name for line in block.dest_lines]
+
+        st_cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"),
+                                                 expr2=AConst(block.st)
+                                                 if isinstance(block.st, (int, float)) else block.st),
+                          expr2=AConst(0))
+        if st_cond not in st_cond_inst_dict:
+            st_cond_inst_dict[st_cond] = Conditional_Inst()
+
+        # block_hp = None
         in_vars = []
         for line in block.dest_lines:
             if line.src in blocks_dict:
@@ -227,14 +240,16 @@ def translate_discrete(diag):
                 res_expr = FunExpr(fun_name="abs", exprs=[in_vars[0]])
             elif block.type == "not":
                 res_expr = PlusExpr(signs="+-", exprs=[AConst(1), in_vars[0]])
-            block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type in ["add", "divide"]:  # multiple inputs, one output
             assert len(in_vars) == len(block.dest_spec)
             if block.type == "add":
                 res_expr = PlusExpr(signs=block.dest_spec, exprs=in_vars)
             elif block.type == "divide":
                 res_expr = TimesExpr(signs=block.dest_spec, exprs=in_vars)
-            block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type in ["or", "and", "min_max"]:  # multiple inputs, one output
             assert len(in_vars) == block.num_dest
             if block.type == "or":
@@ -243,31 +258,63 @@ def translate_discrete(diag):
                 res_expr = FunExpr(fun_name="min", exprs=in_vars)
             elif block.type == "min_max":
                 res_expr = FunExpr(fun_name=block.fun_name, exprs=in_vars)
-            block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type == "relation":
             cond0 = RelExpr(op=block.relation, expr1=in_vars[0], expr2=in_vars[1])
-            hp0 = hp.Assign(var_name=out_var, expr=AConst(1))
-            cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
+            # hp0 = hp.Assign(var_name=out_var, expr=AConst(1))
+            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond1 = cond0.neg()
-            hp1 = hp.Assign(var_name=out_var, expr=AConst(0))
-            cond_hp_1 = hp.Condition(cond=cond1, hp=hp1)
-            block_hp = hp.Sequence(cond_hp_0, cond_hp_1)
+            # hp1 = hp.Assign(var_name=out_var, expr=AConst(0))
+            # cond_hp_1 = hp.Condition(cond=cond1, hp=hp1)
+            # block_hp = hp.Sequence(cond_hp_0, cond_hp_1)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(1)), (cond1, AConst(0))])
         elif block.type == "switch":
             cond0 = RelExpr(op=block.relation, expr1=in_vars[1], expr2=AConst(block.threshold))
-            hp0 = hp.Assign(var_name=out_var, expr=in_vars[0])
-            cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
+            # hp0 = hp.Assign(var_name=out_var, expr=in_vars[0])
+            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond2 = cond0.neg()
-            hp2 = hp.Assign(var_name=out_var, expr=in_vars[2])
-            cond_hp_2 = hp.Condition(cond=cond2, hp=hp2)
-            block_hp = hp.Sequence(cond_hp_0, cond_hp_2)
+            # hp2 = hp.Assign(var_name=out_var, expr=in_vars[2])
+            # cond_hp_2 = hp.Condition(cond=cond2, hp=hp2)
+            # block_hp = hp.Sequence(cond_hp_0, cond_hp_2)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, in_vars[0]), (cond2, in_vars[2])])
         elif block.type == "saturation":
-            cond0 = RelExpr(op=">", expr1=in_vars[0], expr2=AConst(block.up_lim))
-            cond_hp_0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=AConst(block.up_lim)))
-            cond1 = RelExpr(op="<", expr1=in_vars[0], expr2=AConst(block.low_lim))
-            cond_hp_1 = hp.Condition(cond=cond1, hp=hp.Assign(var_name=out_var, expr=AConst(block.low_lim)))
-            block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=in_vars[0]), cond_hp_0, cond_hp_1)
+            in_var = in_vars[0]
+            cond0 = RelExpr(op=">", expr1=in_var, expr2=AConst(block.up_lim))
+            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=AConst(block.up_lim)))
+            cond1 = RelExpr(op="<", expr1=in_var, expr2=AConst(block.low_lim))
+            # cond_hp_1 = hp.Condition(cond=cond1, hp=hp.Assign(var_name=out_var, expr=AConst(block.low_lim)))
+            cond2 = LogicExpr(op="&&", expr1=cond0.neg(), expr2=cond1.neg())
+            # block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=in_var), cond_hp_0, cond_hp_1)
+            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
+                                                                        (cond1, AConst(block.low_lim)),
+                                                                        (cond2, AVar(in_var))])
+        # discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
-        discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
+    # Delete useless (intermidiate) variables in st_cond_inst_dict[st_cond] for each st_cond
+    for st_cond, cond_inst in st_cond_inst_dict.items():
+        outport_vars = set(expr for expr, _ in out_ports)
+        in_var_others = set()  # the set of input variables of other groups of processes
+        for other_cond, other_inst in st_cond_inst_dict.items():
+            if st_cond != other_cond:
+                for cond_expr_list in other_inst.data.values():
+                    for cond, expr in cond_expr_list:
+                        in_var_others = in_var_others.union(cond.get_vars(), expr.get_vars())
+        useful_vars = outport_vars.union(set(cond_inst.data.keys()).intersection(in_var_others))
+        useless_vars = set(cond_inst.data.keys()) - useful_vars
+        for var in useless_vars:
+            del cond_inst.data[var]
+    # Get discrete processes
+    discrete_hps = []
+    for st_cond, cond_inst in st_cond_inst_dict.items():
+        processes = []
+        for var, cond_expr_list in cond_inst.data.items():
+            if len(cond_expr_list) == 1:
+                processes.append(hp.Assign(var_name=var, expr=cond_expr_list[0][1]))
+            else:  # len(cond_expr_list) >= 2:
+                for cond, expr in cond_expr_list:
+                    processes.append(hp.Condition(cond=cond, hp=hp.Assign(var_name=var, expr=expr)))
+        discrete_hps.append(hp.Condition(cond=st_cond, hp=hp.Sequence(*processes)))
 
     # Get the time process
     # Compute the GCD of sample times of all the discrete blocks

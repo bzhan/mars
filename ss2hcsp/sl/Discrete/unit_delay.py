@@ -16,8 +16,7 @@ class UnitDelay(SL_Block):
         self.init_value = init_value
         assert isinstance(delay, (int, float))
         self.delay = delay
-
-        self.st = 0
+        self.st = delay
 
     def __str__(self):
         return "%s: UnitDelay[init = %s, in = %s, out = %s, delay = %s]" % \
