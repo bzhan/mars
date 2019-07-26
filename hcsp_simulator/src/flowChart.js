@@ -12,6 +12,13 @@ class FlowChart extends Component {
                 id: 'node1',
                 x: 100,
                 y: 200,
+                label: "测试测试测试",
+                labelCfg: {
+                    position: 'top',
+                    style: {
+                        fill: '#666'
+                    }
+                }
             }, {
                 id: 'node2',
                 x: 300,
@@ -20,7 +27,6 @@ class FlowChart extends Component {
             edges: [{
                 target: 'node2',
                 source: 'node1',
-                endArrow: true
             }]
         };
         this.state = {data: default_graph, g: undefined};
@@ -29,17 +35,18 @@ class FlowChart extends Component {
     componentDidMount(): void {
         const graph = new G6.Graph({
             container: 'mountNode',
-            width: 500,
-            height: 500,
+            width: window.innerWidth,
+            height: 800,
+            defaultNode:{
+                shape: 'rect',
+            },
             nodeStyle: {
                 default: {
                     fill: '#40a9ff',
-                    stroke: '#096dd9',
                 }
             },
             edgeStyle: {
                 default: {
-                    stroke: '#A3B1BF',
                     endArrow: true
                 }
             }
@@ -73,6 +80,7 @@ class FlowChart extends Component {
             <div>
                 <Button variant="primary" title={"add hcsp process"} onClick={this.changeChart}>test</Button>
                 <div id={"mountNode"}/>
+
             </div>
 
         )
