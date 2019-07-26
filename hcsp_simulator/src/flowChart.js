@@ -64,11 +64,13 @@ class FlowChart extends Component {
             nodes: [{
                 id: 'node1',
                 x: 100,
-                y: 200
+                y: 200,
+                label: "测试测dfdfd试测试",
             }, {
                 id: 'node2',
                 x: 300,
-                y: 200
+                y: 200,
+
             }],
             edges: []
         };
