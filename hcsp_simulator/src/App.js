@@ -2,26 +2,24 @@ import './App.css';
 
 import React, {Component} from "react";
 
-
 import {Nav, Navbar, ButtonToolbar, Button} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faStopCircle, faStepForward, faStepBackward, faPlus} from '@fortawesome/free-solid-svg-icons'
-import {chart} from "./flowChart";
+import FlowChart from "./flowChart"
+
 
 class App extends Component {
     constructor(props) {
         super(props);
         this.changeChart = this.changeChart.bind(this);
-
     }
 
     changeChart() {
     }
 
 
+
     render() {
-        let engine = this.state;
-        console.log(engine);
         return (
             <div>
                 <Navbar bg="dark" variant="dark">
@@ -37,7 +35,8 @@ class App extends Component {
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="primary" title={"add hcsp process"} onClick={this.changeChart}><FontAwesomeIcon icon={faPlus} size="lg"/></Button>
+                        <Button variant="primary" title={"add hcsp process"} onClick={this.changeChart}><FontAwesomeIcon
+                            icon={faPlus} size="lg"/></Button>
                         <Button variant="success" title={"run"}><FontAwesomeIcon icon={faPlayCircle}
                                                                                  size="lg"/></Button>
                         <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
@@ -50,9 +49,8 @@ class App extends Component {
                         </Button>
                     </ButtonToolbar>
                 </div>
+                <FlowChart/>
             </div>
-
-
         );
     }
 }
