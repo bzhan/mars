@@ -2,31 +2,37 @@ import './App.css';
 
 import React, {Component} from "react";
 
-import {Nav, Navbar, ButtonToolbar, Button} from "react-bootstrap"
+import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col, Alert} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faStopCircle, faStepForward, faStepBackward, faPlus} from '@fortawesome/free-solid-svg-icons'
+import {faPlayCircle, faStopCircle, faStepForward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
+import MonacoEditor from 'react-monaco-editor';
 
 
 class App extends Component {
     constructor(props) {
         super(props);
-        this.changeChart = this.changeChart.bind(this);
+        this.state = {
+            hcspFileName: undefined,
+            hcspCode: "default code..."
+        }
     }
 
-    changeChart() {
-    }
+    readHCSPFile = () => {
 
+    };
 
 
     render() {
         return (
             <div>
-                <Navbar bg="dark" variant="dark">
+                <Navbar bg="light" variant="light">
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
-                        <Button variant={"primary"}>Read HCSP File</Button>
+                        <Button variant={"primary"} onClick={this.readHCSPFile}>Read HCSP File</Button>
+                        {}
                     </Nav>
+
                     <Nav>
                         <Nav.Link href="#features">Readme</Nav.Link>
                         <Nav.Link href="#deets">Contact</Nav.Link>
@@ -35,8 +41,6 @@ class App extends Component {
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="primary" title={"add hcsp process"} onClick={this.changeChart}><FontAwesomeIcon
-                            icon={faPlus} size="lg"/></Button>
                         <Button variant="success" title={"run"}><FontAwesomeIcon icon={faPlayCircle}
                                                                                  size="lg"/></Button>
                         <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
@@ -47,9 +51,32 @@ class App extends Component {
                         <Button variant="secondary" title={"step backward"}>
                             <FontAwesomeIcon icon={faStepBackward} size="lg"/>
                         </Button>
+                        
                     </ButtonToolbar>
                 </div>
-                <FlowChart/>
+                <hr/>
+                <Container style={{"max-width": window.innerWidth}}>
+                    <Row>
+                        <Col>
+                            <MonacoEditor
+                                width={window.innerWidth / 2.2}
+                                height={750}
+                                language="javascript"
+                                theme="vs"
+                                value={this.state.hcspCode}
+                                options={{
+                                    selectOnLineNumbers: true,
+                                    minimap: {
+                                        enabled: false,
+                                    },
+                                }}
+                            />
+                        </Col>
+                        <div className="vl"/>
+                        <Col><FlowChart/></Col>
+                    </Row>
+                </Container>
+
             </div>
         );
     }
