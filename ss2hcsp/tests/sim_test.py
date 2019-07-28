@@ -270,8 +270,7 @@ class SimTest(unittest.TestCase):
         # self.assertEqual(real_hp, expected_hp)
 
     def testHCS(self):
-        # location = "./CaseStudies/HCS/hcs.xml"
-        location = "/Users/BEAR/Desktop/hcs_test.xml"
+        location = "./ss2hcsp/case_studies/hcs_test.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
         # print(diagram)
