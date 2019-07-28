@@ -68,6 +68,11 @@ class FlowChart extends Component {
             label: "test another"}
         );
         this.setState({data: new_graph});
+        this.drawGraph();
+    };
+
+    drawGraph = () => {
+        console.log(this.props.hcspStates);
     };
 
     render() {

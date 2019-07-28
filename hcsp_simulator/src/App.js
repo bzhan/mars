@@ -14,13 +14,38 @@ class App extends Component {
         super(props);
         this.state = {
             hcspFileName: undefined,
-            hcspCode: "default code..."
-        }
+            hcspCode: "default code...",
+            hcspStates: undefined
+        };
+        this.reader = new FileReader();
     }
 
-    readHCSPFile = () => {
-
+    handleFiles = () => {
+        console.log(this.fileSelector.files);
+        this.reader.onloadend = () => {
+            let text = this.reader.result;
+            this.setState({hcspCode: text});
+        };
+        this.reader.readAsText(this.fileSelector.files[0]);
     };
+
+
+    buildFileSelector = () => {
+        const fileSelector = document.createElement('input');
+        fileSelector.type = "file";
+        fileSelector.onchange = this.handleFiles;
+        return fileSelector;
+    };
+
+    componentDidMount(): void {
+        this.fileSelector = this.buildFileSelector();
+    }
+
+    handleFileSelect = (e) => {
+        e.preventDefault();
+        this.fileSelector.click();
+    };
+
 
 
     render() {
@@ -29,7 +54,7 @@ class App extends Component {
                 <Navbar bg="light" variant="light">
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
-                        <Button variant={"primary"} onClick={this.readHCSPFile}>Read HCSP File</Button>
+                        <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         {}
                     </Nav>
 
@@ -51,11 +76,11 @@ class App extends Component {
                         <Button variant="secondary" title={"step backward"}>
                             <FontAwesomeIcon icon={faStepBackward} size="lg"/>
                         </Button>
-                        
+
                     </ButtonToolbar>
                 </div>
                 <hr/>
-                <Container style={{"max-width": window.innerWidth}}>
+                <Container style={{"maxWidth": window.innerWidth}}>
                     <Row>
                         <Col>
                             <MonacoEditor
@@ -73,7 +98,7 @@ class App extends Component {
                             />
                         </Col>
                         <div className="vl"/>
-                        <Col><FlowChart/></Col>
+                        <Col><FlowChart hcspState={this.state.hcspStates}/></Col>
                     </Row>
                 </Container>
 
