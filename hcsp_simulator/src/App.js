@@ -61,6 +61,13 @@ class App extends Component {
         this.fileSelector.click();
     };
 
+    nextStep = (e) => {
+        e.preventDefault();
+        this.editor.deltaDecorations([this.decorations],
+            [{range: new monaco.Range(1, 4, 1, 8), options: {inlineClassName: 'myInlineDecoration'}},
+        ])
+    };
+
 
     render() {
         return (
@@ -84,7 +91,7 @@ class App extends Component {
                                                                                  size="lg"/></Button>
                         <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
                                                                                  size="lg"/></Button>
-                        <Button variant="secondary" title={"step forward"}>
+                        <Button variant="secondary" title={"step forward"} onClick={this.nextStep}>
                             <FontAwesomeIcon icon={faStepForward} size="lg"/>
                         </Button>
                         <Button variant="secondary" title={"step backward"}>
