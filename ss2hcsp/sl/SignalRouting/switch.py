@@ -11,12 +11,7 @@ class Switch(SL_Block):
         self.num_dest = 3
         self.src_lines = [[]]
         self.dest_lines = [None] * self.num_dest
-
-        # Pairs of inverse relations
-        relation_pair = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
-        assert relation in relation_pair
         self.relation = relation
-        self.neg_relation = relation_pair[relation]
 
         assert isinstance(threshold, (int, float))
         self.threshold = threshold

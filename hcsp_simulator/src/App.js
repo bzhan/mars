@@ -2,11 +2,11 @@ import './App.css';
 
 import React, {Component} from "react";
 
-import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col, Alert} from "react-bootstrap"
+import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faStopCircle, faStepForward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
-import MonacoEditor from 'react-monaco-editor';
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.main.js'
 
 
 class App extends Component {
@@ -39,6 +39,21 @@ class App extends Component {
 
     componentDidMount(): void {
         this.fileSelector = this.buildFileSelector();
+        this.editor = monaco.editor.create(document.getElementById("monaco-editor"), {
+            // width: window.innerWidth / 2.2,
+            // height: 750,
+            theme: "vs",
+            value: this.state.hcspCode,
+
+            selectOnLineNumbers: true,
+            minimap: {
+                enabled: false,
+            },
+
+        });
+        this.decorations = this.editor.deltaDecorations([], [
+            {range: new monaco.Range(1, 1, 1, 4), options: {inlineClassName: 'myInlineDecoration'}},
+        ])
     }
 
     handleFileSelect = (e) => {
@@ -46,6 +61,12 @@ class App extends Component {
         this.fileSelector.click();
     };
 
+    nextStep = (e) => {
+        e.preventDefault();
+        this.editor.deltaDecorations([this.decorations],
+            [{range: new monaco.Range(1, 4, 1, 8), options: {inlineClassName: 'myInlineDecoration'}},
+        ])
+    };
 
 
     render() {
@@ -70,7 +91,7 @@ class App extends Component {
                                                                                  size="lg"/></Button>
                         <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
                                                                                  size="lg"/></Button>
-                        <Button variant="secondary" title={"step forward"}>
+                        <Button variant="secondary" title={"step forward"} onClick={this.nextStep}>
                             <FontAwesomeIcon icon={faStepForward} size="lg"/>
                         </Button>
                         <Button variant="secondary" title={"step backward"}>
@@ -83,19 +104,7 @@ class App extends Component {
                 <Container style={{"maxWidth": window.innerWidth}}>
                     <Row>
                         <Col>
-                            <MonacoEditor
-                                width={window.innerWidth / 2.2}
-                                height={750}
-                                language="javascript"
-                                theme="vs"
-                                value={this.state.hcspCode}
-                                options={{
-                                    selectOnLineNumbers: true,
-                                    minimap: {
-                                        enabled: false,
-                                    },
-                                }}
-                            />
+                            <div id="monaco-editor" style={{width: window.innerWidth / 2.2, height: 750}}/>
                         </Col>
                         <div className="vl"/>
                         <Col><FlowChart hcspState={this.state.hcspStates}/></Col>
