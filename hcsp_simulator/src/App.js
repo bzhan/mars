@@ -56,6 +56,10 @@ class App extends Component {
         ])
     }
 
+    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
+        this.editor.setValue(this.state.hcspCode);
+    }
+
     handleFileSelect = (e) => {
         e.preventDefault();
         this.fileSelector.click();
