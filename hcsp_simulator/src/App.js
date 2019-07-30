@@ -7,6 +7,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faStopCircle, faStepForward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.main.js'
+import axios from "axios"
 
 
 class App extends Component {
@@ -15,6 +16,7 @@ class App extends Component {
         this.state = {
             hcspFileName: undefined,
             hcspCode: "default code...",
+            // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
             hcspStates: undefined
         };
         this.reader = new FileReader();
@@ -44,8 +46,8 @@ class App extends Component {
             // height: 750,
             theme: "vs",
             value: this.state.hcspCode,
-
             selectOnLineNumbers: true,
+
             minimap: {
                 enabled: false,
             },
@@ -72,6 +74,26 @@ class App extends Component {
         ])
     };
 
+    lastStep = (e) => {
+        e.preventDefault();
+    };
+
+    run = async (e) => {
+        e.preventDefault();
+        await this.setHCSPCodeAsync({hcspCode: this.editor.getValue()});
+        this.setState({hcspCode: this.editor.getValue()});
+        const hcspCode = this.state.hcspCode;
+        const tempCode = hcspCode["code"];
+        const state = hcspCode["state"];
+        const response = await axios.post()
+    };
+
+    setHCSPCodeAsync = (state) => {
+        return new Promise((resolve) => {
+            this.setState(state, resolve)
+        });
+    };
+
 
     render() {
         return (
@@ -91,14 +113,14 @@ class App extends Component {
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="success" title={"run"}><FontAwesomeIcon icon={faPlayCircle}
+                        <Button variant="success" title={"run"} onClick={this.run}><FontAwesomeIcon icon={faPlayCircle}
                                                                                  size="lg"/></Button>
                         <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
                                                                                  size="lg"/></Button>
                         <Button variant="secondary" title={"step forward"} onClick={this.nextStep}>
                             <FontAwesomeIcon icon={faStepForward} size="lg"/>
                         </Button>
-                        <Button variant="secondary" title={"step backward"}>
+                        <Button variant="secondary" title={"step backward"} onClick={this.lastStep}>
                             <FontAwesomeIcon icon={faStepBackward} size="lg"/>
                         </Button>
 
