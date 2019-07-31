@@ -4,7 +4,7 @@ import React, {Component} from "react";
 
 import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faStopCircle, faStepForward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
+import {faPlayCircle, faStopCircle, faStepForward, faStepBackward, faForward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.main.js'
 import axios from "axios"
@@ -15,9 +15,15 @@ class App extends Component {
         super(props);
         this.state = {
             hcspFileName: undefined,
-            hcspCode: "default code...",
+            hcspCode: "{\n" +
+                "    \"code\": \"x := x + 1\",\n" +
+                "    \"input\": {\n" +
+                "        \"x\" : 2\n" +
+                "    }\n" +
+                "}",
             // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
-            hcspStates: undefined
+            hcspStates: [],
+            started: false
         };
         this.reader = new FileReader();
     }
@@ -47,15 +53,12 @@ class App extends Component {
             theme: "vs",
             value: this.state.hcspCode,
             selectOnLineNumbers: true,
-
             minimap: {
                 enabled: false,
             },
 
         });
-        this.decorations = this.editor.deltaDecorations([], [
-            {range: new monaco.Range(1, 1, 1, 4), options: {inlineClassName: 'myInlineDecoration'}},
-        ])
+        this.decorations = this.editor.deltaDecorations([], [])
     }
 
     componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
@@ -78,18 +81,48 @@ class App extends Component {
         e.preventDefault();
     };
 
-    run = async (e) => {
+    run = (e) => {
         e.preventDefault();
-        await this.setHCSPCodeAsync({hcspCode: this.editor.getValue()});
         this.setState({hcspCode: this.editor.getValue()});
-        const hcspCode = this.state.hcspCode;
-        const tempCode = hcspCode["code"];
-        const input = hcspCode["input"];
-        const response = await axios.post("/process", {"code": "x := x + 1", "input": {"x": 2}});
-        console.log(response);
+        try {
+            const hcspCode = JSON.parse(this.state.hcspCode);
+            const tempCode = hcspCode["code"];
+            const input = hcspCode["input"];
+            this.state.hcspStates.push({"code": tempCode, "state": input});
+            this.setState({hcspStates: this.state.hcspStates});
+        }catch (e) {
+            window.alert(e)
+        }
+        this.setState({started: true})
     };
 
-    setHCSPCodeAsync = (state) => {
+    forward = async (e) => {
+        e.preventDefault();
+        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
+        const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
+        const response = await axios.post("/process", {"code": tempCode, "input": input});
+        let response_data = response.data;
+        const new_code = response_data['new_code'];
+        const new_state = response_data['new_state'];
+        const reason = response_data['reason'];
+        this.state.hcspStates.push(
+            {
+                "code": new_code,
+                "state": new_state,
+                "reason": reason
+            }
+        );
+        this.setState({hcspStates: this.state.hcspStates});
+        console.log(this.state.hcspStates);
+    };
+
+    stop = (e) => {
+        e.preventDefault();
+        this.setState({hcspStates: []});
+        this.setState({started: false});
+    };
+
+    setStateAsync = (state) => {
         return new Promise((resolve) => {
             this.setState(state, resolve)
         });
@@ -114,10 +147,13 @@ class App extends Component {
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="success" title={"run"} onClick={this.run}><FontAwesomeIcon icon={faPlayCircle}
+                        <Button variant="success" title={"run"} onClick={this.run} disabled={this.state.started}><FontAwesomeIcon icon={faPlayCircle}
                                                                                  size="lg"/></Button>
-                        <Button variant="danger" title={"stop"}><FontAwesomeIcon icon={faStopCircle}
+
+                        <Button variant="danger" title={"stop"} onClick={this.stop} disabled={!this.state.started}><FontAwesomeIcon icon={faStopCircle}
                                                                                  size="lg"/></Button>
+                        <Button variant="secondary" title={"forward"} onClick={this.forward}><FontAwesomeIcon icon={faForward}
+                                                                                                            size="lg"/></Button>
                         <Button variant="secondary" title={"step forward"} onClick={this.nextStep}>
                             <FontAwesomeIcon icon={faStepForward} size="lg"/>
                         </Button>
@@ -134,7 +170,7 @@ class App extends Component {
                             <div id="monaco-editor" style={{width: window.innerWidth / 2.2, height: 750}}/>
                         </Col>
                         <div className="vl"/>
-                        <Col><FlowChart hcspState={this.state.hcspStates}/></Col>
+                        <Col><FlowChart hcspStates={this.state.hcspStates}/></Col>
                     </Row>
                 </Container>
 

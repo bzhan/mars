@@ -1,6 +1,5 @@
 import React, {Component} from "react";
 import G6 from "@antv/g6"
-import Button from "react-bootstrap/Button";
 
 class FlowChart extends Component {
 
@@ -56,32 +55,32 @@ class FlowChart extends Component {
     }
 
     componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
-        this.state.g.changeData(this.state.data)
+        this.convertStatesToChart();
     }
 
-    changeChart = () => {
-        let new_graph = this.state.data;
-        new_graph.nodes.push(
-            {id: "node3",
-            x:400,
-            y:200,
-            label: "test another"}
-        );
-        this.setState({data: new_graph});
-        this.drawGraph();
+    convertStatesToChart = () => {
+        const states = this.props.hcspStates;
+        let graph = {
+            nodes: [],
+            edges: []
+        };
+        for(let i = 0; i < states.length; i++) {
+            let temp_state = states[i];
+            const id = i.toString();
+            const y = 200;
+            const x = 100 + i * 200;
+            const label = temp_state;
+            graph.nodes.push({id: id, x: x, y: y, label: label})
+        }
+        // this.setState({data: graph});
+        // this.state.g.changeData(this.state.data);
+        this.state.g.changeData(graph);
     };
 
-    drawGraph = () => {
-        console.log(this.props.hcspStates);
-    };
 
     render() {
         return (
-            <div>
-                <Button variant="primary" title={"add hcsp process"} onClick={this.changeChart}>test</Button>
                 <div id={"mountNode"}/>
-
-            </div>
 
         )
     }

@@ -15,7 +15,10 @@ def postprocess(new_code, hcsp_state, reason):
 
     for key in hcsp_state.keys():
         val = hcsp_state[key]
-        new_state[key.value] = val
+        if type(key) != str:
+            new_state[key.value] = val
+        else:
+            new_state[key] = val
 
     return new_code, new_state, reason
 
