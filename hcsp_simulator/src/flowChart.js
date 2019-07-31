@@ -1,5 +1,6 @@
 import React, {Component} from "react";
 import G6 from "@antv/g6"
+import './flowChart.css'
 
 class FlowChart extends Component {
 
@@ -28,27 +29,46 @@ class FlowChart extends Component {
     componentDidMount(): void {
         const graph = new G6.Graph({
             container: 'mountNode',
-            width: window.innerWidth / 2,
-            height: 750,
+            width: window.innerWidth/1.05,
+            // fitView: 'autoZoom',
+            height: 550,
             defaultNode:{
-                shape: 'rect',
                 labelCfg: {
                     position: 'top',
                     style: {
+                        fontSize: 20,
                         fill: '#666'
                     }
                 }
             },
             nodeStyle: {
                 default: {
-                    fill: '#40a9ff',
+                    shape: "circle"
                 }
             },
             edgeStyle: {
                 default: {
                     endArrow: true
                 }
-            }
+            },
+            modes: {
+                default: ['drag-canvas', {
+                    type: 'tooltip',
+                    formatText: function formatText(model) {
+                        const code = model.info.code;
+                        const state = model.info.state;
+                        let result = "Code: " + code + "<br/>" +
+                            "State: " + JSON.stringify(state);
+                        if (model.info.reason !== undefined){
+                            const reason = model.info.reason;
+                            result = "Code: " + code + "<br/>" +
+                                "State: " + JSON.stringify(state) + "<br/>" +
+                                "Reason: " + reason;
+                        }
+                        return result
+                    }
+                }]
+            },
         });
         graph.read(this.state.data);
         this.setState({g: graph});
@@ -67,11 +87,21 @@ class FlowChart extends Component {
         for(let i = 0; i < states.length; i++) {
             let temp_state = states[i];
             const id = i.toString();
-            const y = 200;
+            const y = 100;
             const x = 100 + i * 200;
-            const label = temp_state;
-            graph.nodes.push({id: id, x: x, y: y, label: label})
+            const label = JSON.stringify(temp_state["state"]);
+            let color = "white";
+            if (temp_state["reason"] !== undefined
+                && temp_state["reason"] === "('end', None)") {
+                if (states[i - 1]["reason"] === "('end', None)"){
+                    continue;
+                }else{
+                    color = "red";
+                }
+            }
+            graph.nodes.push({id: id, x: x, y: y, label: label, style: {fill: color}, info: temp_state})
         }
+        
         // this.setState({data: graph});
         // this.state.g.changeData(this.state.data);
         this.state.g.changeData(graph);

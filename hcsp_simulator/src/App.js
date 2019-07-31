@@ -152,26 +152,31 @@ class App extends Component {
 
                         <Button variant="danger" title={"stop"} onClick={this.stop} disabled={!this.state.started}><FontAwesomeIcon icon={faStopCircle}
                                                                                  size="lg"/></Button>
-                        <Button variant="secondary" title={"forward"} onClick={this.forward}><FontAwesomeIcon icon={faForward}
+                        <Button variant="secondary" title={"forward"} onClick={this.forward} disabled={!this.state.started}><FontAwesomeIcon icon={faForward}
                                                                                                             size="lg"/></Button>
-                        <Button variant="secondary" title={"step forward"} onClick={this.nextStep}>
+                        <Button variant="secondary" title={"step forward"} onClick={this.nextStep} disabled={!this.state.started}>
                             <FontAwesomeIcon icon={faStepForward} size="lg"/>
                         </Button>
-                        <Button variant="secondary" title={"step backward"} onClick={this.lastStep}>
+                        <Button variant="secondary" title={"step backward"} onClick={this.lastStep} disabled={!this.state.started}>
                             <FontAwesomeIcon icon={faStepBackward} size="lg"/>
                         </Button>
 
                     </ButtonToolbar>
                 </div>
                 <hr/>
+                {/*<Container style={{"maxWidth": window.innerWidth}}>*/}
+                {/*    <Row>*/}
+                {/*        <Col>*/}
+                {/*            <div id="monaco-editor" style={{width: window.innerWidth / 2.2, height: 750}}/>*/}
+                {/*        </Col>*/}
+                {/*        <div className="vl"/>*/}
+                {/*        <Col><FlowChart hcspStates={this.state.hcspStates}/></Col>*/}
+                {/*    </Row>*/}
+                {/*</Container>*/}
                 <Container style={{"maxWidth": window.innerWidth}}>
-                    <Row>
-                        <Col>
-                            <div id="monaco-editor" style={{width: window.innerWidth / 2.2, height: 750}}/>
-                        </Col>
-                        <div className="vl"/>
-                        <Col><FlowChart hcspStates={this.state.hcspStates}/></Col>
-                    </Row>
+                    <div id="monaco-editor" style={{height: 250}}/>
+                    <hr/>
+                    <FlowChart style={{"maxWidth": window.innerWidth}} hcspStates={this.state.hcspStates}/>
                 </Container>
 
             </div>
