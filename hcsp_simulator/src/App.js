@@ -84,8 +84,9 @@ class App extends Component {
         this.setState({hcspCode: this.editor.getValue()});
         const hcspCode = this.state.hcspCode;
         const tempCode = hcspCode["code"];
-        const state = hcspCode["state"];
-        const response = await axios.post()
+        const input = hcspCode["input"];
+        const response = await axios.post("/process", {"code": "x := x + 1", "input": {"x": 2}});
+        console.log(response);
     };
 
     setHCSPCodeAsync = (state) => {
