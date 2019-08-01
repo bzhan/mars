@@ -101,7 +101,7 @@ class FlowChart extends Component {
             }
             graph.nodes.push({id: id, x: x, y: y, label: label, style: {fill: color}, info: temp_state})
         }
-        
+
         // this.setState({data: graph});
         // this.state.g.changeData(this.state.data);
         this.state.g.changeData(graph);

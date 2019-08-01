@@ -81,9 +81,9 @@ class App extends Component {
         e.preventDefault();
     };
 
-    run = (e) => {
+    run = async (e) => {
         e.preventDefault();
-        this.setState({hcspCode: this.editor.getValue()});
+        await this.setStateAsync({hcspCode: this.editor.getValue()});
         try {
             const hcspCode = JSON.parse(this.state.hcspCode);
             const tempCode = hcspCode["code"];
@@ -98,6 +98,7 @@ class App extends Component {
 
     forward = async (e) => {
         e.preventDefault();
+        console.log(this.state.hcspCode);
         const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
         const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
         const response = await axios.post("/process", {"code": tempCode, "input": input});
@@ -119,6 +120,7 @@ class App extends Component {
     stop = (e) => {
         e.preventDefault();
         this.setState({hcspStates: []});
+        this.setState({hcspCode: this.editor.getValue()});
         this.setState({started: false});
     };
 

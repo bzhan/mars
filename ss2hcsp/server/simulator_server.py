@@ -31,6 +31,7 @@ def hello_world():
 @app.route('/process', methods=['POST'])
 def process():
     data = json.loads(request.get_data(as_text=True))
+    print(data)
     hcsp_code = data['code']
     hcsp_input = data['input']
 
