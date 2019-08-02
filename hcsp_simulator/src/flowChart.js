@@ -41,6 +41,15 @@ class FlowChart extends Component {
                     }
                 }
             },
+            defaultEdge:{
+                labelCfg: {
+                    refY: 10,
+                    style: {
+                        fontSize: 16,
+                        fill: '#666'
+                    }
+                }
+            },
             nodeStyle: {
                 default: {
                     shape: "circle"
@@ -101,9 +110,21 @@ class FlowChart extends Component {
             }
             graph.nodes.push({id: id, x: x, y: y, label: label, style: {fill: color}, info: temp_state})
         }
-
-        // this.setState({data: graph});
-        // this.state.g.changeData(this.state.data);
+        for(let i = 0; i < graph.nodes.length - 1; i++) {
+            let source_state = graph.nodes[i];
+            let target_state = graph.nodes[i + 1];
+            const source_id = source_state.id;
+            const target_id = target_state.id;
+            let label = null;
+            if (target_state.info.hasOwnProperty("reason")){
+                if (target_state.info["reason"].hasOwnProperty("process_delay")){
+                    label = "Delay: " + target_state.info["reason"]["process_delay"];
+                }else if (target_state.info["reason"].hasOwnProperty("delay")){
+                    label = "Wait for Delay"
+                }
+            }
+            graph.edges.push({source: source_id, target: target_id, label: label});
+        }
         this.state.g.changeData(graph);
     };
 

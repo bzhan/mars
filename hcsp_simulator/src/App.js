@@ -2,7 +2,7 @@ import './App.css';
 
 import React, {Component} from "react";
 
-import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col} from "react-bootstrap"
+import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faStopCircle, faStepForward, faStepBackward, faForward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
@@ -16,7 +16,7 @@ class App extends Component {
         this.state = {
             hcspFileName: undefined,
             hcspCode: "{\n" +
-                "    \"code\": \"x := x + 1\",\n" +
+                "    \"code\": \"wait(3); x := x + 1\",\n" +
                 "    \"input\": {\n" +
                 "        \"x\" : 2\n" +
                 "    }\n" +
@@ -29,7 +29,6 @@ class App extends Component {
     }
 
     handleFiles = () => {
-        console.log(this.fileSelector.files);
         this.reader.onloadend = () => {
             let text = this.reader.result;
             this.setState({hcspCode: text});
@@ -98,7 +97,6 @@ class App extends Component {
 
     forward = async (e) => {
         e.preventDefault();
-        console.log(this.state.hcspCode);
         const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
         const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
         const reason = this.state.hcspStates[this.state.hcspStates.length - 1]['reason'];
@@ -115,7 +113,6 @@ class App extends Component {
             }
         );
         this.setState({hcspStates: this.state.hcspStates});
-        console.log(this.state.hcspStates);
     };
 
     stop = (e) => {
