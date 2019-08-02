@@ -135,7 +135,6 @@ class FlowChart extends Component {
     render() {
         return (
                 <div id={"mountNode"}/>
-
         )
     }
 }
