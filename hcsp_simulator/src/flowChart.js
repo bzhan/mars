@@ -100,12 +100,15 @@ class FlowChart extends Component {
             const x = 100 + i * 200;
             const label = JSON.stringify(temp_state["state"]);
             let color = "white";
-            if (temp_state.hasOwnProperty("reason")
-                && temp_state["reason"].hasOwnProperty("end")) {
-                if (states[i-1].hasOwnProperty("reason") && states[i - 1]["reason"].hasOwnProperty("end")){
-                    continue;
-                }else{
-                    color = "red";
+            if (temp_state.hasOwnProperty("reason") ) {
+                if (temp_state["reason"].hasOwnProperty("end")){
+                    if (states[i-1].hasOwnProperty("reason") && states[i - 1]["reason"].hasOwnProperty("end")){
+                        continue;
+                    }else{
+                        color = "red";
+                    }
+                }else if (temp_state["reason"].hasOwnProperty("delay")) {
+                    color = "yellow";
                 }
             }
             graph.nodes.push({id: id, x: x, y: y, label: label, style: {fill: color}, info: temp_state})
