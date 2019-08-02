@@ -31,3 +31,18 @@
     transform: rotate(360deg);
   }
 }
+.vl {
+  border-left: 1px solid lightgray;
+  height: 780px;
+  position: absolute;
+  left: 47.5%;
+  margin-left: 0px;
+  top: 111px;
+}
+.myInlineDecoration {
+  color: red !important;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: bold;
+  font-style: oblique;
+}
