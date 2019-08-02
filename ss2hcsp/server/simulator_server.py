@@ -9,7 +9,8 @@ app = Flask(__name__)
 
 
 def postprocess(new_code, hcsp_state, reason):
-    new_code, reason = str(new_code), str(reason)
+    new_code = str(new_code)
+    new_reason = {reason[0]: reason[1]}
 
     new_state = {}
 
@@ -20,7 +21,7 @@ def postprocess(new_code, hcsp_state, reason):
         else:
             new_state[key] = val
 
-    return new_code, new_state, reason
+    return new_code, new_state, new_reason
 
 
 @app.route('/')
@@ -31,20 +32,29 @@ def hello_world():
 @app.route('/process', methods=['POST'])
 def process():
     data = json.loads(request.get_data(as_text=True))
+
     print(data)
     hcsp_code = data['code']
     hcsp_input = data['input']
+    hcsp_reason = data['reason'] if 'reason' in data.keys() else None
 
     cmd = parser.hp_parser.parse(hcsp_code)
 
-    new_cmd, reason = simulator.exec_process(cmd, hcsp_input)
+    if hcsp_reason is None:
+        new_cmd, new_reason = simulator.exec_process(cmd, hcsp_input)
+    elif 'delay' in hcsp_reason:
+        delay_time = hcsp_reason['delay']
+        new_cmd = simulator.exec_delay(cmd, hcsp_input, delay_time)
+        new_reason = ("process_delay", 3)
+    else:
+        new_cmd, new_reason = simulator.exec_process(cmd, hcsp_input)
+    new_code, new_state, new_reason = postprocess(new_cmd, hcsp_input, new_reason)
 
-    new_code, new_state, reason = postprocess(new_cmd, hcsp_input, reason)
-
-    result = {'new_code': new_code, 'new_state': new_state, 'reason': reason}
+    result = {'new_code': new_code, 'new_state': new_state, 'reason': new_reason}
 
     result = json.dumps(result)
     return result
+
 
 @app.route('/step', methods=['POST'])
 def step():

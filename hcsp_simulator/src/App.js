@@ -101,16 +101,17 @@ class App extends Component {
         console.log(this.state.hcspCode);
         const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
         const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
-        const response = await axios.post("/process", {"code": tempCode, "input": input});
+        const reason = this.state.hcspStates[this.state.hcspStates.length - 1]['reason'];
+        const response = await axios.post("/process", {"code": tempCode, "input": input, "reason": reason});
         let response_data = response.data;
         const new_code = response_data['new_code'];
         const new_state = response_data['new_state'];
-        const reason = response_data['reason'];
+        const new_reason = response_data['reason'];
         this.state.hcspStates.push(
             {
                 "code": new_code,
                 "state": new_state,
-                "reason": reason
+                "reason": new_reason
             }
         );
         this.setState({hcspStates: this.state.hcspStates});

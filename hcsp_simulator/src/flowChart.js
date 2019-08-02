@@ -63,7 +63,7 @@ class FlowChart extends Component {
                             const reason = model.info.reason;
                             result = "Code: " + code + "<br/>" +
                                 "State: " + JSON.stringify(state) + "<br/>" +
-                                "Reason: " + reason;
+                                "Reason: " + JSON.stringify(reason);
                         }
                         return result
                     }
@@ -91,9 +91,9 @@ class FlowChart extends Component {
             const x = 100 + i * 200;
             const label = JSON.stringify(temp_state["state"]);
             let color = "white";
-            if (temp_state["reason"] !== undefined
-                && temp_state["reason"] === "('end', None)") {
-                if (states[i - 1]["reason"] === "('end', None)"){
+            if (temp_state.hasOwnProperty("reason")
+                && temp_state["reason"].hasOwnProperty("end")) {
+                if (states[i-1].hasOwnProperty("reason") && states[i - 1]["reason"].hasOwnProperty("end")){
                     continue;
                 }else{
                     color = "red";
