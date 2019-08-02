@@ -75,12 +75,17 @@ class PlusExpr(AExpr):
         return "Plus(%s)" % val
 
     def __str__(self):
-        if self.signs[0] == '+':
-            res = str(self.exprs[0])
-        else:
-            res = '-' + str(self.exprs[0])
+        res = str(self.exprs[0])
+        if self.signs[0] == "-":
+            if str(self.exprs[0]).startswith("-") or isinstance(self.exprs[0], PlusExpr):
+                res = "-(" + res + ")"
+            else:
+                res = "-" + res
         for sign, expr in zip(self.signs[1:], self.exprs[1:]):
-            res += sign + str(expr)
+            if str(expr).startswith("-") or (sign == "-" and isinstance(expr, PlusExpr)):
+                res += sign + "(" + str(expr) + ")"
+            else:
+                res += sign + str(expr)
         return res
 
     def __eq__(self, other):
@@ -107,12 +112,17 @@ class TimesExpr(AExpr):
         return "Times(%s)" % val
 
     def __str__(self):
-        if self.signs[0] == '*':
-            res = str(self.exprs[0])
-        else:
-            res = '1/' + str(self.exprs[0])
+        res = str(self.exprs[0])
+        if isinstance(self.exprs[0], PlusExpr) or (self.signs[0] == "/" and isinstance(self.exprs[0], TimesExpr)):
+            res = "(" + res + ")"
+        if self.signs[0] == "/":
+            res = "1/" + res
         for sign, expr in zip(self.signs[1:], self.exprs[1:]):
-            res += sign + str(expr)
+            if isinstance(expr, PlusExpr) or (sign == "/" and isinstance(expr, TimesExpr)) \
+                    or (sign == "*" and str(expr).startswith("-")):
+                res += sign + "(" + str(expr) + ")"
+            else:
+                res += sign + str(expr)
         return res
 
     def __eq__(self, other):
@@ -231,7 +241,21 @@ class LogicExpr(BExpr):
         return "Logic(%s, %s, %s)" % (self.op, repr(self.expr1), repr(self.expr2))
 
     def __str__(self):
-        return str(self.expr1) + " " + self.op + " " + str(self.expr2)
+        expr1 = str(self.expr1)
+        expr2 = str(self.expr2)
+        if self.op in ["-->", "<-->"] and isinstance(self.expr2, LogicExpr) and self.expr2.op in ["-->", "<-->"]:
+            expr2 = "(" + expr2 + ")"
+        elif self.op == "&&":
+            if isinstance(self.expr1, LogicExpr) and self.expr1.op != self.op:
+                expr1 = "(" + expr1 + ")"
+            if isinstance(self.expr2, LogicExpr) and self.expr2.op != self.op:
+                expr2 = "(" + expr2 + ")"
+        elif self.op == "||":
+            if isinstance(self.expr1, LogicExpr) and self.expr1.op in ["-->", "<-->"]:
+                expr1 = "(" + expr1 + ")"
+            if isinstance(self.expr2, LogicExpr) and self.expr2.op in ["-->", "<-->"]:
+                expr2 = "(" + expr2 + ")"
+        return expr1 + " " + self.op + " " + expr2
 
     def __eq__(self, other):
         return isinstance(other, LogicExpr) and self.op == other.op and \

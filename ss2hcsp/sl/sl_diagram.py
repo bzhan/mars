@@ -21,7 +21,7 @@ from ss2hcsp.sl.MathOperations.min_max import MinMax
 
 from xml.dom.minidom import parse
 from functools import reduce
-from math import gcd
+from math import gcd, pow
 import re
 
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
@@ -32,6 +32,30 @@ def get_attribute_value(block, attribute):
         if node.getAttribute("Name") == attribute:
             return node.childNodes[0].data
     return None
+
+
+def get_gcd(sample_times):
+    assert isinstance(sample_times, list) and len(sample_times) >= 1
+    for st in sample_times:
+        assert isinstance(st, (int, float))
+
+    if len(sample_times) == 1:
+        return sample_times[0]
+
+    scaling_positions = []
+    for st in sample_times:
+        if isinstance(st, int):
+            scaling_positions.append(0)
+        else:  # isinstance(st, float)
+            scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
+
+    scale = pow(10, max(scaling_positions))
+    scaling_sample_times = [int(st * scale) for st in sample_times]
+    result_gcd = reduce(gcd, scaling_sample_times)
+    if result_gcd % scale == 0:
+        return result_gcd // int(scale)
+    else:
+        return result_gcd / scale
 
 
 class SL_Diagram:
@@ -63,11 +87,12 @@ class SL_Diagram:
             block_name = block.getAttribute("Name")
             if block_type == "Constant":
                 value = get_attribute_value(block=block, attribute="Value")
-                value = float(value) if value else 1
+                value = eval(value) if value else 1
                 self.add_block(block=Constant(name=block_name, value=value))
             elif block_type == "Integrator":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
-                self.add_block(block=Integrator(name=block_name, init_value=int(init_value)))
+                # init_value = eval(init_value) if init_value else 0
+                self.add_block(block=Integrator(name=block_name, init_value=eval(init_value)))
             elif block_type == "Logic":  # AND, OR, NOT
                 operator = get_attribute_value(block=block, attribute="Operator")
                 inputs = get_attribute_value(block=block, attribute="Inputs")
@@ -92,25 +117,25 @@ class SL_Diagram:
                 self.add_block(block=Add(name=block_name, dest_spec=dest_spec))
             elif block_type == "Bias":
                 bias = get_attribute_value(block=block, attribute="Bias")
-                self.add_block(block=Bias(name=block_name, bias=float(bias)))
+                self.add_block(block=Bias(name=block_name, bias=eval(bias)))
             elif block_type == "Product":
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "**"
                 self.add_block(block=Divide(name=block_name, dest_spec=dest_spec))
             elif block_type == "Gain":
                 factor = get_attribute_value(block=block, attribute="Gain")
-                self.add_block(block=Gain(name=block_name, factor=float(factor)))
+                self.add_block(block=Gain(name=block_name, factor=eval(factor)))
             elif block_type == "Saturate":
                 upper_limit = get_attribute_value(block=block, attribute="UpperLimit")
-                upper_limit = float(upper_limit) if upper_limit else 0.5
+                upper_limit = eval(upper_limit) if upper_limit else 0.5
                 lower_limit = get_attribute_value(block=block, attribute="LowerLimit")
-                lower_limit = float(lower_limit) if lower_limit else -0.5
+                lower_limit = eval(lower_limit) if lower_limit else -0.5
                 self.add_block(block=Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit))
             elif block_type == "UnitDelay":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
-                init_value = float(init_value) if init_value else 0
+                init_value = eval(init_value) if init_value else 0
                 sample_time = get_attribute_value(block=block, attribute="SampleTime")
-                sample_time = float(sample_time) if sample_time else -1
+                sample_time = eval(sample_time) if sample_time else -1
                 self.add_block(block=UnitDelay(name=block_name, init_value=init_value, delay=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block=block, attribute="Function")
@@ -122,7 +147,7 @@ class SL_Diagram:
                 criteria = get_attribute_value(block=block, attribute="Criteria")
                 relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
                 threshold = get_attribute_value(block=block, attribute="Threshold")
-                threshold = float(threshold) if threshold else 0
+                threshold = eval(threshold) if threshold else 0
                 self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
             elif block_type == "SubSystem":
                 ports = get_attribute_value(block=block, attribute="Ports")
@@ -244,8 +269,9 @@ class SL_Diagram:
                             in_st = None
                             break
                     if in_st:
-                        in_st = [int(st) for st in in_st]
-                        block.st = reduce(gcd, in_st) if len(in_st) >= 2 else in_st[0]
+                        # in_st = [int(st) for st in in_st]
+                        # block.st = reduce(gcd, in_st) if len(in_st) >= 2 else in_st[0]
+                        block.st = get_gcd(sample_times=in_st)
                         if block.st == 0:
                             block.is_continuous = True
                         terminate = False
@@ -266,7 +292,8 @@ class SL_Diagram:
                     else:  # in_block is a port, deleted at the begining
                         unknown_in_st.append(AVar(line.name))
                 if known_in_st:
-                    known_in_st = [AConst(reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0])]
+                    known_in_st = [AConst(get_gcd(sample_times=known_in_st))]
+                    # known_in_st = [AConst(reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0])]
                 known_in_st.extend(unknown_in_st)
                 if len(known_in_st) == 1:
                     block.st = known_in_st[0]
