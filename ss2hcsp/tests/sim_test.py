@@ -112,7 +112,7 @@ class SimTest(unittest.TestCase):
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
         # print(discrete_subdiagrams_sorted, continuous_subdiagrams)
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
-        print("R: ", real_hp)
+        # print("R: ", real_hp)
 
         hp0_init = hp_parser.parse("t := 0")
         hp0 = hp_parser.parse(r"""ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 ->
@@ -122,7 +122,7 @@ class SimTest(unittest.TestCase):
 
         hp1_init = hp_parser.parse("t := 0")
         hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(x0, x0) == 0 ->
-        (x1 := min(x0, x0)); t%4 == 0 -> (x2 := 1-x1); t%4 == 0 -> (x3 := x2*2); t%8 == 0 -> (x5 := max(x4, x3));
+        (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
         t%10 == 0 -> (x5 <= x0 -> (x6 := 1); x5 > x0 -> (x6 := 0)); ch_x6_0!x6;
         temp := t; <t_dot = 1 & t < temp+gcd(2, and)>""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
@@ -131,8 +131,8 @@ class SimTest(unittest.TestCase):
         expected_hp = System()
         expected_hp.discrete_processes = [discrete_hp0, discrete_hp1]
         expected_hp.continuous_processes = []
-        print("E: ", expected_hp)
-        # self.assertEqual(real_hp, expected_hp)
+        # print("E: ", expected_hp)
+        self.assertEqual(real_hp, expected_hp)
 
     def testVanPerPol_hybrid(self):
         diagram = SL_Diagram()
@@ -148,7 +148,7 @@ class SimTest(unittest.TestCase):
         # diagram.add_block(Port(name="in0", port_type="in_port"))
         diagram.add_block(And(name="and", num_dest=2, st=-1))
         diagram.add_block(Not(name="not", st=4))
-        diagram.add_block(Gain(name="gain", factor=2, st=-1))
+        diagram.add_block(Gain(name="gain", factor=-2.2, st=-1))
         # diagram.add_block(Port(name="in1", port_type="in_port"))
         diagram.add_block(Or(name="or", num_dest=2, st=8))
         diagram.add_block(Relation(name="relation", relation="<=", st=10))
@@ -176,10 +176,10 @@ class SimTest(unittest.TestCase):
         # print(diagram)
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
-        print("R: ", real_hp)
+        # print("R: ", real_hp)
 
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> (x4 := 1-x3); t%4 == 0 -> (x5 := x4*2);
+        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> (x5 := (1-x3)*(-2.2));
         t%8 == 0 -> (x6 := max(x1, x5)); t%10 == 0 -> (x6 <= x2 -> (x0 := 1); x6 > x2 -> (x0 := 0)); ch_x0_0!x0;
         temp := t; <t_dot = 1 & t < temp+2>""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
@@ -194,8 +194,8 @@ class SimTest(unittest.TestCase):
         expected_hp = System()
         expected_hp.discrete_processes = [discrete_hp]
         expected_hp.continuous_processes = [continuous_hp]
-        print("E: ", expected_hp)
-        # self.assertEqual(real_hp, expected_hp)
+        # print("E: ", expected_hp)
+        self.assertEqual(real_hp, expected_hp)
 
     def testVanPerPol_subsystem(self):
         diagram = SL_Diagram()
@@ -247,12 +247,12 @@ class SimTest(unittest.TestCase):
         # print(diagram)
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
-        print("R: ", real_hp)
+        # print("R: ", real_hp)
 
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x5 := 1-x6);
-        t%4 == 0 -> (x4 := x5*2); t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 <= x3 -> (x0 := 1);
-        x2 > x3 -> (x0 := 0)); ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>""")
+        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2); 
+        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 <= x3 -> (x0 := 1); x2 > x3 -> (x0 := 0)); 
+        ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         discrete_hp.name = "PD0"
 
@@ -265,9 +265,9 @@ class SimTest(unittest.TestCase):
         expected_hp = System()
         expected_hp.discrete_processes = [discrete_hp]
         expected_hp.continuous_processes = [continuous_hp]
-        print("E: ", expected_hp)
+        # print("E: ", expected_hp)
 
-        # self.assertEqual(real_hp, expected_hp)
+        self.assertEqual(real_hp, expected_hp)
 
     def testHCS(self):
         location = "./ss2hcsp/case_studies/hcs_test.xml"
@@ -287,7 +287,7 @@ class SimTest(unittest.TestCase):
         # print(get_hp.translate_discrete(dis_subdiag_with_chs[0]))
         # print(diagram)
         real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-        print(real_hp)
+        # print(real_hp)
 
     # def test_xml_parser(self):
     #     location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/Van_der_Pol_subsystem.xml"

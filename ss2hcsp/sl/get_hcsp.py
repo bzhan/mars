@@ -288,7 +288,7 @@ def translate_discrete(diag):
             # block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=in_var), cond_hp_0, cond_hp_1)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
                                                                         (cond1, AConst(block.low_lim)),
-                                                                        (cond2, AVar(in_var))])
+                                                                        (cond2, in_var)])
         # discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
     # Delete useless (intermidiate) variables in st_cond_inst_dict[st_cond] for each st_cond
@@ -314,7 +314,10 @@ def translate_discrete(diag):
             else:  # len(cond_expr_list) >= 2:
                 for cond, expr in cond_expr_list:
                     processes.append(hp.Condition(cond=cond, hp=hp.Assign(var_name=var, expr=expr)))
-        discrete_hps.append(hp.Condition(cond=st_cond, hp=hp.Sequence(*processes)))
+        if len(processes) == 1:
+            discrete_hps.append(hp.Condition(cond=st_cond, hp=processes[0]))
+        else:
+            discrete_hps.append(hp.Condition(cond=st_cond, hp=hp.Sequence(*processes)))
 
     # Get the time process
     # Compute the GCD of sample times of all the discrete blocks

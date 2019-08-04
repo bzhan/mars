@@ -6,7 +6,7 @@ from ss2hcsp.hcsp import hcsp
 
 grammar = r"""
     ?expr: CNAME -> var_expr
-        | INT -> num_expr
+        | SIGNED_NUMBER -> num_expr
         | expr "+" expr -> plus_expr
         | expr "-" expr -> minus_expr
         | expr "*" expr -> times_expr
@@ -46,7 +46,7 @@ grammar = r"""
         | CNAME ":=" expr -> assign_cmd
         | cmd ";" cmd -> seq_cmd
         | comm_cmd
-        | "(" cmd ")*" -> repeat_cmd
+        | "(" cmd ")**" -> repeat_cmd
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | cond "->" "(" cmd ")" -> cond_cmd
@@ -54,6 +54,9 @@ grammar = r"""
     %import common.CNAME
     %import common.WS
     %import common.INT
+    %import common.DECIMAL
+    %import common.NUMBER
+    %import common.SIGNED_NUMBER
 
     %ignore WS
 """
@@ -67,7 +70,7 @@ class HPTransformer(Transformer):
         return expr.AVar(str(s))
 
     def num_expr(self, v):
-        return expr.AConst(int(v))
+        return expr.AConst(eval(v))
 
     def plus_expr(self, e1, e2):
         return expr.PlusExpr(["+", "+"], [e1, e2])
