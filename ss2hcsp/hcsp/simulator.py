@@ -103,7 +103,7 @@ def exec_step(hp, state):
 
     elif hp.type == "output_channel":
         # Waiting for someone to receive output
-        return "comm", [(hp.var_name, "!")]
+        return "comm", [(hp.ch_name, "!")]
 
     elif hp.type == "wait":
         # Waiting for some number of seconds
@@ -116,7 +116,7 @@ def exec_step(hp, state):
             if io_comm.type == "input_channel":
                 comms.append((io_comm.ch_name, "?"))
             else:
-                comms.append((io_comm.var_name, "!"))
+                comms.append((io_comm.ch_name, "!"))
         return "comm", comms
 
     else:
@@ -175,7 +175,7 @@ def exec_output_comm(hp, state, ch_name):
 
     """
     if hp.type == "output_channel":
-        assert hp.var_name == ch_name
+        assert hp.ch_name == ch_name
         return hcsp.Skip(), eval_expr(hp.expr, state)
 
     elif hp.type == "sequence":
@@ -184,7 +184,7 @@ def exec_output_comm(hp, state, ch_name):
 
     elif hp.type == "ode_comm":
         for comm_hp, out_hp in hp.io_comms:
-            if comm_hp.type == "output_channel" and comm_hp.var_name == ch_name:
+            if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
                 val = eval_expr(comm_hp.expr, state)
                 return out_hp, val
         # Communication must be found among the interrupts
