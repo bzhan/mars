@@ -16,7 +16,7 @@ class App extends Component {
         this.state = {
             hcspFileName: undefined,
             hcspCode: "{\n" +
-                "    \"code\": \"wait(3); x := x + 1\",\n" +
+                "    \"code\": \"<x_dot = 1 & true> |> [](c!x --> skip)\",\n" +
                 "    \"input\": {\n" +
                 "        \"x\" : 2\n" +
                 "    }\n" +
@@ -92,6 +92,7 @@ class App extends Component {
         const reason = this.state.hcspStates[this.state.hcspStates.length - 1]['reason'];
         const response = await axios.post("/process", {"code": tempCode, "input": input, "reason": reason});
         let response_data = response.data;
+        console.log("response data:" + JSON.stringify(response_data));
         const new_code = response_data['new_code'];
         const new_state = response_data['new_state'];
         const new_reason = response_data['reason'];

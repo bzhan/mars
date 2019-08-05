@@ -1,6 +1,7 @@
 import React, {Component} from "react";
 import G6 from "@antv/g6"
 import './flowChart.css'
+import HTMLEncode from "./utils"
 
 class FlowChart extends Component {
 
@@ -70,7 +71,7 @@ class FlowChart extends Component {
                             "State: " + JSON.stringify(state);
                         if (model.info.reason !== undefined){
                             const reason = model.info.reason;
-                            result = "Code: " + code + "<br/>" +
+                            result = "Code: " + HTMLEncode(code) + "<br/>" +
                                 "State: " + JSON.stringify(state) + "<br/>" +
                                 "Reason: " + JSON.stringify(reason);
                         }
@@ -89,6 +90,7 @@ class FlowChart extends Component {
 
     convertStatesToChart = () => {
         const states = this.props.hcspStates;
+        console.log(states);
         let graph = {
             nodes: [],
             edges: []
