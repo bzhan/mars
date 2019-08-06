@@ -227,7 +227,7 @@ class Loop(HCSP):
         return "Loop(%s)" % repr(self.hp)
 
     def __str__(self):
-        return "(" + str(self.hp) + ")*"
+        return "(" + str(self.hp) + ")**"
 
 
 class Condition(HCSP):

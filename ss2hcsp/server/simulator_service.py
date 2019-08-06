@@ -14,6 +14,14 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
     reasons = {}
     result_hcsp_programs = {}
 
+    # parse hcsp program
+
+    for program_id in hcsp_programs.keys():
+        code, state = hcsp_programs[program_id]['code'], hcsp_programs[program_id]['state']
+        code = parser.hp_parser.parse(code)
+        hcsp_programs[program_id]['code'] = code
+        hcsp_programs[program_id]['state'] = state
+
     for program_id in hcsp_programs.keys():
         old_code, old_state = hcsp_programs[program_id]['code'], hcsp_programs[program_id]['state']
         new_code, reason = simulator.exec_process(old_code, old_state)
@@ -46,7 +54,7 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
         # If no delay is possible, the system is in a deadlock
         if min_delay is None:
             for program_id in result_hcsp_programs:
-                result_hcsp_programs[program_id]["reason"] = "deadlock"
+                result_hcsp_programs[program_id]["reason"] = ("deadlock", None)
             return result_hcsp_programs
 
         # Otherwise, execute the delay.
@@ -77,5 +85,11 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
                                         "reason": ("comm out", val)}
         if debug:
             print("... %s transfered, with result")
+
+    # convert to json serializable format
+    for program_id in result_hcsp_programs:
+        result_hcsp_programs[program_id]["reason"] = {result_hcsp_programs[program_id]["reason"][0]:
+                                                      result_hcsp_programs[program_id]["reason"][1]}
+        result_hcsp_programs[program_id]["new_code"] = str(result_hcsp_programs[program_id]["new_code"])
 
     return result_hcsp_programs

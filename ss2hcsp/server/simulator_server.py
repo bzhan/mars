@@ -4,7 +4,7 @@ import json
 
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
-from ss2hcsp.server.simulator_service import process_multi
+from ss2hcsp.server.simulator_service import process_multi as process_multi_service
 
 app = Flask(__name__)
 
@@ -57,14 +57,13 @@ def process():
     return result
 
 
-@app.route('/process_multi', method=['POST'])
+@app.route('/process_multi', methods=['POST'])
 def process_multi():
     hcsp_programs = json.loads(request.get_data(as_text=True))
-    try:
-        result = process_multi(hcsp_programs)
-    except:
-        return "Service Error"
-    return result
+
+    result = process_multi_service(hcsp_programs)
+
+    return json.dumps(result)
 
 
 @app.route('/step', methods=['POST'])

@@ -210,7 +210,7 @@ class BConst(BExpr):  # Boolean expression
         return "BConst(%s)" % str(self.value)
 
     def __str__(self):
-        return str(self.value)
+        return "true" if self.value else "false"
 
     def __eq__(self, other):
         return isinstance(other, BConst) and self.value == other.value
