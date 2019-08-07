@@ -4,7 +4,7 @@ import React, {Component} from "react";
 
 import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faStopCircle, faStepForward, faForward, faBackward} from '@fortawesome/free-solid-svg-icons'
+import {faPlayCircle, faStopCircle, faStepForward, faForward, faBackward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
 import FlowChart from "./flowChart"
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.main.js'
 import axios from "axios"
@@ -16,10 +16,14 @@ class App extends Component {
         this.state = {
             hcspFileName: undefined,
             hcspCode: "{\n" +
-                "    \"code\": \"<x_dot = 1 & true> |> [](c!x --> skip)\",\n" +
-                "    \"input\": {\n" +
-                "        \"x\" : 2\n" +
-                "    }\n" +
+                "\t\"1\": {\n" +
+                "\t\t\"code\": \"(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**\",\n" +
+                "\t\t\"state\": {\"x\": 0}\n" +
+                "\t},\n" +
+                "\t\"2\": {\n" +
+                "\t\t\"code\": \"(wait(2); p2c?x; c2p!x-1)**\",\n" +
+                "\t\t\"state\": {}\n" +
+                "\t}\n" +
                 "}",
             // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
             hcspStates: [],
@@ -50,6 +54,7 @@ class App extends Component {
         this.editor = monaco.editor.create(document.getElementById("monaco-editor"), {
             // width: window.innerWidth / 2.2,
             // height: 750,
+            language: "javascript",
             theme: "vs",
             value: this.state.hcspCode,
             selectOnLineNumbers: true,
@@ -75,9 +80,7 @@ class App extends Component {
         await this.setStateAsync({hcspCode: this.editor.getValue()});
         try {
             const hcspCode = JSON.parse(this.state.hcspCode);
-            const tempCode = hcspCode["code"];
-            const input = hcspCode["input"];
-            this.state.hcspStates.push({"code": tempCode, "state": input});
+            this.state.hcspStates.push(hcspCode);
             this.setState({hcspStates: this.state.hcspStates});
         }catch (e) {
             window.alert(e)
@@ -87,23 +90,16 @@ class App extends Component {
 
     forward = async (e) => {
         e.preventDefault();
-        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
-        const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
-        const reason = this.state.hcspStates[this.state.hcspStates.length - 1]['reason'];
-        const response = await axios.post("/process", {"code": tempCode, "input": input, "reason": reason});
+        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1];
+        const response = await axios.post("/process_multi", tempCode);
         let response_data = response.data;
         console.log("response data:" + JSON.stringify(response_data));
-        const new_code = response_data['new_code'];
-        const new_state = response_data['new_state'];
-        const new_reason = response_data['reason'];
-        this.state.hcspStates.push(
-            {
-                "code": new_code,
-                "state": new_state,
-                "reason": new_reason
-            }
-        );
+        this.state.hcspStates.push(response_data);
         this.setState({hcspStates: this.state.hcspStates});
+    };
+
+    backward = (e) => {
+        e.preventDefault();
     };
 
     stop = (e) => {
@@ -176,6 +172,8 @@ class App extends Component {
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
                         <Button variant="secondary" title={"forward"} onClick={this.forward} disabled={!this.state.started}><FontAwesomeIcon icon={faStepForward}
+                                                                                                                                             size="lg"/></Button>
+                        <Button variant="secondary" title={"backward"} onClick={this.backward} disabled={!this.state.started}><FontAwesomeIcon icon={faStepBackward}
                                                                                                                                              size="lg"/></Button>
                     </ButtonToolbar>
                 </div>

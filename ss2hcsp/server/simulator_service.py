@@ -27,7 +27,7 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
         new_code, reason = simulator.exec_process(old_code, old_state)
         new_state = old_state
         reasons[program_id] = reason
-        result_hcsp_programs[program_id] = {"new_code": new_code, "new_state": new_state, "reason": reason}
+        result_hcsp_programs[program_id] = {"code": new_code, "state": new_state, "reason": reason}
 
     # Find matching communication
     id_in, id_out, ch_name = None, None, None
@@ -62,27 +62,27 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
             print("\nDelay for %s seconds" % str(min_delay))
         # trace.append("delay %s" % str(min_delay))
         for program_id in result_hcsp_programs.keys():
-            new_code = simulator.exec_delay(result_hcsp_programs[program_id]['new_code'],
-                                            result_hcsp_programs[program_id]['new_state'],
+            new_code = simulator.exec_delay(result_hcsp_programs[program_id]['code'],
+                                            result_hcsp_programs[program_id]['state'],
                                             min_delay)
-            result_hcsp_programs[program_id] = {"new_code": new_code,
-                                                "new_state": result_hcsp_programs[program_id]['new_state'],
+            result_hcsp_programs[program_id] = {"code": new_code,
+                                                "state": result_hcsp_programs[program_id]['state'],
                                                 "reason": ("execute_delay", min_delay)}
     else:
         # If there is a matching communication, perform the
         # communication.
         if debug:
             print("\nCommunication from %d to %d on %s" % (id_out, id_in, ch_name))
-        code_in, state_in = result_hcsp_programs[id_in]['new_code'], result_hcsp_programs[id_in]['new_state']
-        code_out, state_out = result_hcsp_programs[id_out]['new_code'], result_hcsp_programs[id_out]['new_state']
+        code_in, state_in = result_hcsp_programs[id_in]['code'], result_hcsp_programs[id_in]['state']
+        code_out, state_out = result_hcsp_programs[id_out]['code'], result_hcsp_programs[id_out]['state']
         new_code_out, val = simulator.exec_output_comm(code_out, state_out, ch_name)
         new_code_in = simulator.exec_input_comm(code_in, state_in, ch_name, val)
-        result_hcsp_programs[id_in] = {"new_code": new_code_in,
-                                       "new_state": result_hcsp_programs[id_in]['new_state'],
-                                       "reason": ("comm in", val)}
-        result_hcsp_programs[id_out] = {"new_code": new_code_out,
-                                        "new_state": result_hcsp_programs[id_out]['new_state'],
-                                        "reason": ("comm out", val)}
+        result_hcsp_programs[id_in] = {"code": new_code_in,
+                                       "state": result_hcsp_programs[id_in]['state'],
+                                       "reason": ("comm_in", {"ch_name": ch_name, "value": val})}
+        result_hcsp_programs[id_out] = {"code": new_code_out,
+                                        "state": result_hcsp_programs[id_out]['state'],
+                                        "reason": ("comm_out", {"ch_name": ch_name, "value": val})}
         if debug:
             print("... %s transfered, with result")
 
@@ -90,6 +90,6 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
     for program_id in result_hcsp_programs:
         result_hcsp_programs[program_id]["reason"] = {result_hcsp_programs[program_id]["reason"][0]:
                                                       result_hcsp_programs[program_id]["reason"][1]}
-        result_hcsp_programs[program_id]["new_code"] = str(result_hcsp_programs[program_id]["new_code"])
+        result_hcsp_programs[program_id]["code"] = str(result_hcsp_programs[program_id]["code"])
 
     return result_hcsp_programs

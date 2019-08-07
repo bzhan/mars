@@ -30,19 +30,19 @@ class FlowChart extends Component {
     componentDidMount(): void {
         const graph = new G6.Graph({
             container: 'mountNode',
-            width: window.innerWidth/1.05,
+            width: window.innerWidth / 1.05,
             // fitView: 'autoZoom',
             height: 550,
-            defaultNode:{
+            defaultNode: {
                 labelCfg: {
-                    position: 'top',
+                    // position: 'top',
                     style: {
-                        fontSize: 20,
+                        fontSize: 15,
                         fill: '#666'
                     }
                 }
             },
-            defaultEdge:{
+            defaultEdge: {
                 labelCfg: {
                     refY: 10,
                     style: {
@@ -53,7 +53,8 @@ class FlowChart extends Component {
             },
             nodeStyle: {
                 default: {
-                    shape: "circle"
+                    shape: "ellipse",
+                    size: [60, 40]
                 }
             },
             edgeStyle: {
@@ -69,7 +70,7 @@ class FlowChart extends Component {
                         const state = model.info.state;
                         let result = "Code: " + code + "<br/>" +
                             "State: " + JSON.stringify(state);
-                        if (model.info.reason !== undefined){
+                        if (model.info.reason !== undefined) {
                             const reason = model.info.reason;
                             result = "Code: " + HTMLEncode(code) + "<br/>" +
                                 "State: " + JSON.stringify(state) + "<br/>" +
@@ -95,48 +96,116 @@ class FlowChart extends Component {
             nodes: [],
             edges: []
         };
-        for(let i = 0; i < states.length; i++) {
-            let temp_state = states[i];
-            const id = i.toString();
-            const y = 100;
-            const x = 100 + i * 200;
-            const label = JSON.stringify(temp_state["state"]);
-            let color = "white";
-            if (temp_state.hasOwnProperty("reason") ) {
-                if (temp_state["reason"].hasOwnProperty("end")){
-                    if (states[i-1].hasOwnProperty("reason") && states[i - 1]["reason"].hasOwnProperty("end")){
+        let graph_node_ids = {};
+        let program_available = {};
+        for (let process_id in states[0]) {
+            graph_node_ids[process_id] = [];
+            program_available[process_id] = true;
+        }
+        for (let i = 0; i < states.length; i++) {
+            let process_no = 0;
+            for (let process_id in states[i]) {
+                let temp_state = states[i][process_id];
+                const id = process_id + "_" + i.toString();
+                const y = 100 + process_no * 150;
+                const x = 100 + i * 225;
+                let label = undefined;
+                if (i < 1) {
+                    label = "ID: " + process_id + "\nState:" + JSON.stringify(temp_state["state"]);
+                } else {
+                    label = JSON.stringify(temp_state["state"]);
+                }
+
+                let color = "white";
+                if (temp_state.hasOwnProperty("reason")) {
+                    if (program_available[process_id] === false) {
                         continue;
-                    }else{
-                        color = "red";
                     }
-                }else if (temp_state["reason"].hasOwnProperty("delay")) {
-                    color = "yellow";
+                    if (temp_state["reason"].hasOwnProperty("end")) {
+                        if (states[i - 1][process_id].hasOwnProperty("reason")
+                            && states[i - 1][process_id]["reason"].hasOwnProperty("end")) {
+                            program_available[process_id] = false;
+                            continue;
+                        } else {
+                            color = "red";
+                        }
+                    }
+                }
+                graph.nodes.push({
+                    id: id,
+                    x: x,
+                    y: y,
+                    label: label,
+                    shape: "ellipse",
+                    size: [120, 60],
+                    style: {fill: color},
+                    info: temp_state
+                });
+                process_no++;
+                graph_node_ids[process_id].push(graph.nodes.length - 1);
+            }
+        }
+        for (let process_id in graph_node_ids) {
+            let node_list = graph_node_ids[process_id];
+            for (let i = 0; i < node_list.length - 1; i++) {
+                let source_state = graph.nodes[node_list[i]];
+                let target_state = graph.nodes[node_list[i + 1]];
+                const source_id = source_state.id;
+                const target_id = target_state.id;
+                let label = null;
+                if (target_state.info.hasOwnProperty("reason")) {
+                    if (target_state.info["reason"].hasOwnProperty("execute_delay")) {
+                        label = "Delay: " + target_state.info["reason"]["execute_delay"];
+                    } else if (target_state.info["reason"].hasOwnProperty("delay")) {
+                        label = "Wait for Delay"
+                    }
+                }
+                graph.edges.push({source: source_id, target: target_id, label: label});
+            }
+        }
+
+        // connect the communication source node and target node
+        for (let c = 0; c < 2; c++) {
+            for (let i = 0; i < graph.nodes.length - 1; i++) {
+                let j = i + 1;
+
+                let source_state = graph.nodes[i];
+                let target_state = graph.nodes[j];
+                if (c === 1){
+                    let temp_state = source_state;
+                    source_state = target_state;
+                    target_state = temp_state;
+                }
+                const source_id = source_state.id;
+                const target_id = target_state.id;
+                if (target_state.info.hasOwnProperty("reason") && source_state.info.hasOwnProperty("reason")) {
+                    if (target_state.info["reason"].hasOwnProperty("comm_out") &&
+                        source_state.info["reason"].hasOwnProperty("comm_in") &&
+                        source_state.info["reason"]["comm_in"]["ch_name"] === target_state.info["reason"]["comm_out"]["ch_name"]) {
+                        const label = "Comm channel: " + source_state.info["reason"]["comm_in"]["ch_name"] +
+                            "\nvalue: " + source_state.info["reason"]["comm_in"]["value"];
+                        graph.edges.push({
+                            source: source_id, target: target_id, label: label,
+                            labelCfg: {
+                                refY: 0, refX: 0, style: {
+                                    fontSize: 16,
+                                    fill: '#666'
+                                }
+                            }
+                        });
+                    }
                 }
             }
-            graph.nodes.push({id: id, x: x, y: y, label: label, style: {fill: color}, info: temp_state})
         }
-        for(let i = 0; i < graph.nodes.length - 1; i++) {
-            let source_state = graph.nodes[i];
-            let target_state = graph.nodes[i + 1];
-            const source_id = source_state.id;
-            const target_id = target_state.id;
-            let label = null;
-            if (target_state.info.hasOwnProperty("reason")){
-                if (target_state.info["reason"].hasOwnProperty("process_delay")){
-                    label = "Delay: " + target_state.info["reason"]["process_delay"];
-                }else if (target_state.info["reason"].hasOwnProperty("delay")){
-                    label = "Wait for Delay"
-                }
-            }
-            graph.edges.push({source: source_id, target: target_id, label: label});
-        }
+
+
         this.state.g.changeData(graph);
     };
 
 
     render() {
         return (
-                <div id={"mountNode"}/>
+            <div id={"mountNode"}/>
         )
     }
 }
