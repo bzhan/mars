@@ -103,6 +103,10 @@ class App extends Component {
 
     backward = (e) => {
         e.preventDefault();
+        if (this.state.hcspStates.length > 1){
+            this.setState({hcspState: this.state.hcspStates.pop()});
+        }
+        console.log(this.state.hcspStates);
     };
 
     stop = (e) => {
