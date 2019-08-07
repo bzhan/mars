@@ -111,7 +111,7 @@ class FlowChart extends Component {
                 const x = 100 + i * 225;
                 let label = undefined;
                 if (i < 1) {
-                    label = "ID: " + process_id + "\nState:" + JSON.stringify(temp_state["state"]);
+                    label = "ID: " + process_id + "\n" + JSON.stringify(temp_state["state"]);
                 } else {
                     label = JSON.stringify(temp_state["state"]);
                 }

@@ -23,6 +23,10 @@ class App extends Component {
                 "\t\"2\": {\n" +
                 "\t\t\"code\": \"(wait(2); p2c?x; c2p!x-1)**\",\n" +
                 "\t\t\"state\": {}\n" +
+                "\t},\n" +
+                "\t\"3\":{\n" +
+                "\t\t\"code\": \"x := x + y; y:= y * x\",\n" +
+                "\t\t\"state\": {\"x\":0, \"y\": 1}\n" +
                 "\t}\n" +
                 "}",
             // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
@@ -54,7 +58,6 @@ class App extends Component {
         this.editor = monaco.editor.create(document.getElementById("monaco-editor"), {
             // width: window.innerWidth / 2.2,
             // height: 750,
-            language: "javascript",
             theme: "vs",
             value: this.state.hcspCode,
             selectOnLineNumbers: true,
