@@ -280,6 +280,8 @@ def exec_parallel(num_steps, hp_states, *, debug=False):
                         min_delay = rest
 
             # If no delay is possible, the system is in a deadlock
+            # todo: this deadlock detection does not work well, it will report "deadlock" for ended processes.
+            # todo: see testExecParallel3 in simulator_test
             if min_delay is None:
                 if debug:
                     print("Deadlock")
