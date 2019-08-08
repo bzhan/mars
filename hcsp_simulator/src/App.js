@@ -66,7 +66,10 @@ class App extends Component {
             },
 
         });
-        this.decorations = this.editor.deltaDecorations([], [])
+        // this.decorations = this.editor.deltaDecorations([], [{
+        //     range: new monaco.Range(7, 1, 7, 24),
+        //     options: { inlineClassName: "myInlineDecoration" }
+        // }])
     }
 
     componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
@@ -91,6 +94,7 @@ class App extends Component {
         this.setState({started: true})
     };
 
+
     forward = async (e) => {
         e.preventDefault();
         const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1];
@@ -114,6 +118,7 @@ class App extends Component {
         this.setState({hcspStates: []});
         this.setState({hcspCode: this.editor.getValue()});
         this.setState({started: false});
+        this.editor.deltaDecorations(this.decorations, []);
     };
 
 

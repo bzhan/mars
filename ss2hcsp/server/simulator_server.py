@@ -5,6 +5,7 @@ import json
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.server.simulator_service import process_multi as process_multi_service
+from ss2hcsp.server.simulator_service import step_multi as step_multi_service
 
 app = Flask(__name__)
 
@@ -61,9 +62,15 @@ def process():
 def process_multi():
     hcsp_programs = json.loads(request.get_data(as_text=True))
 
-    result = process_multi_service(hcsp_programs)
+    result_hcsp_programs = process_multi_service(hcsp_programs)
 
-    return json.dumps(result)
+    # convert to json serializable format
+    for program_id in result_hcsp_programs:
+        result_hcsp_programs[program_id]["reason"] = {result_hcsp_programs[program_id]["reason"][0]:
+                                                          result_hcsp_programs[program_id]["reason"][1]}
+        result_hcsp_programs[program_id]["code"] = str(result_hcsp_programs[program_id]["code"])
+
+    return json.dumps(result_hcsp_programs)
 
 
 @app.route('/step', methods=['POST'])
@@ -83,10 +90,17 @@ def step():
 
 @app.route('/step_multi', methods=['POST'])
 def step_multi():
-    data = json.loads(request.get_data(as_text=True))
-    hcsp_programs = data['programs']
+    hcsp_programs = json.loads(request.get_data(as_text=True))
 
-    pass
+    result_hcsp_programs = step_multi_service(hcsp_programs)
+
+    # convert to json serializable format
+    for program_id in result_hcsp_programs:
+        result_hcsp_programs[program_id]["reason"] = {result_hcsp_programs[program_id]["reason"][0]:
+                                                          result_hcsp_programs[program_id]["reason"][1]}
+        result_hcsp_programs[program_id]["code"] = str(result_hcsp_programs[program_id]["code"])
+
+    return json.dumps(result_hcsp_programs)
 
 
 if __name__ == '__main__':

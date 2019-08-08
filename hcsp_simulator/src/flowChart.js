@@ -121,14 +121,9 @@ class FlowChart extends Component {
                     if (program_available[process_id] === false) {
                         continue;
                     }
-                    if (temp_state["reason"].hasOwnProperty("end")) {
-                        if (states[i - 1][process_id].hasOwnProperty("reason")
-                            && states[i - 1][process_id]["reason"].hasOwnProperty("end")) {
-                            program_available[process_id] = false;
-                            continue;
-                        } else {
-                            color = "red";
-                        }
+                    if (temp_state["reason"].hasOwnProperty("end") || temp_state["reason"].hasOwnProperty("deadlock")) {
+                        program_available[process_id] = false;
+                        color = "red";
                     }
                 }
                 graph.nodes.push({
