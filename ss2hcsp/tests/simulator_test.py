@@ -116,6 +116,14 @@ class SimulatorTest(unittest.TestCase):
         trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
         self.assertEqual(trace, ["delay 2", "IO p2c 2", "IO c2p 1", "deadlock"])
 
+    def testExecParallel3(self):
+        hp1 = parser.hp_parser.parse("x := x + 1")
+        hp1_init = {"x": 0}
+        hp2 = parser.hp_parser.parse("y := 2")
+        hp2_init = {}
+
+        trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
+        print(trace)
 
 if __name__ == "__main__":
     unittest.main()

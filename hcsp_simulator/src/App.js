@@ -118,32 +118,26 @@ class App extends Component {
         this.setState({hcspStates: []});
         this.setState({hcspCode: this.editor.getValue()});
         this.setState({started: false});
-        this.editor.deltaDecorations(this.decorations, []);
+        // this.editor.deltaDecorations(this.decorations, []);
     };
 
 
     nextStep = async (e) => {
         e.preventDefault();
-        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1]['code'];
-        const input = this.state.hcspStates[this.state.hcspStates.length - 1]['state'];
-        const reason = this.state.hcspStates[this.state.hcspStates.length - 1]['reason'];
-        const response = await axios.post("/step", {"code": tempCode, "input": input, "reason": reason});
+        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1];
+        const response = await axios.post("/step_multi", tempCode);
         let response_data = response.data;
-        const new_code = response_data['new_code'];
-        const new_state = response_data['new_state'];
-        const new_reason = response_data['reason'];
-        this.state.hcspStates.push(
-            {
-                "code": new_code,
-                "state": new_state,
-                "reason": new_reason
-            }
-        );
+        console.log("response data:" + JSON.stringify(response_data));
+        this.state.hcspStates.push(response_data);
         this.setState({hcspStates: this.state.hcspStates});
     };
 
     lastStep = (e) => {
         e.preventDefault();
+        if (this.state.hcspStates.length > 1){
+            this.setState({hcspState: this.state.hcspStates.pop()});
+        }
+        console.log(this.state.hcspStates);
     };
 
 

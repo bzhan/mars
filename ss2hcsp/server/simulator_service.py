@@ -1,5 +1,6 @@
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import hcsp
 
 
 def process_multi(hcsp_programs: dict, debug: bool = False):
@@ -52,9 +53,10 @@ def process_multi(hcsp_programs: dict, debug: bool = False):
                     min_delay = rest
 
         # If no delay is possible, the system is in a deadlock
+        # todo: deadlock detection
         if min_delay is None:
             for program_id in result_hcsp_programs:
-                result_hcsp_programs[program_id]["reason"] = ("deadlock", None)
+                result_hcsp_programs[program_id]["reason"] = ("end", None)
             return result_hcsp_programs
 
         # Otherwise, execute the delay.
@@ -116,6 +118,14 @@ def step_multi(hcsp_programs: dict, debug: bool = False):
         if reason == "step":
             # do step
             new_code = rest
+            # execute "skip" automatically
+            if new_code.type == "skip":
+                reason = "end"
+            elif new_code.type == "sequence" and new_code.hps[0].type == "skip":
+                if len(new_code.hps) == 2:
+                    new_code = new_code.hps[1]
+                else:
+                    new_code = hcsp.Sequence(*new_code.hps[1:])
             reason = (reason, None)
         else:
             # no step, delay, comm, etc
@@ -155,9 +165,10 @@ def step_multi(hcsp_programs: dict, debug: bool = False):
                         min_delay = rest
 
             # If no delay is possible, the system is in a deadlock
+            # todo: deadlock detection
             if min_delay is None:
                 for program_id in result_hcsp_programs:
-                    result_hcsp_programs[program_id]["reason"] = ("deadlock", None)
+                    result_hcsp_programs[program_id]["reason"] = ("end", None)
                 return result_hcsp_programs
 
             # Otherwise, execute the delay.
