@@ -123,7 +123,7 @@ class FlowChart extends Component {
                     }
                     if (temp_state["reason"].hasOwnProperty("end") || temp_state["reason"].hasOwnProperty("deadlock")) {
                         program_available[process_id] = false;
-                        color = "red";
+                        color = "yellow";
                     }
                 }
                 graph.nodes.push({
