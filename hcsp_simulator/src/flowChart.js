@@ -174,11 +174,11 @@ class FlowChart extends Component {
                 const source_id = source_state.id;
                 const target_id = target_state.id;
                 if (target_state.info.hasOwnProperty("reason") && source_state.info.hasOwnProperty("reason")) {
-                    if (target_state.info["reason"].hasOwnProperty("comm_out") &&
-                        source_state.info["reason"].hasOwnProperty("comm_in") &&
-                        source_state.info["reason"]["comm_in"]["ch_name"] === target_state.info["reason"]["comm_out"]["ch_name"]) {
-                        const label = "Comm channel: " + source_state.info["reason"]["comm_in"]["ch_name"] +
-                            "\nvalue: " + source_state.info["reason"]["comm_in"]["value"];
+                    if (target_state.info["reason"].hasOwnProperty("comm_in") &&
+                        source_state.info["reason"].hasOwnProperty("comm_out") &&
+                        source_state.info["reason"]["comm_out"]["ch_name"] === target_state.info["reason"]["comm_in"]["ch_name"]) {
+                        const label = "Comm channel: " + source_state.info["reason"]["comm_out"]["ch_name"] +
+                            "\nvalue: " + source_state.info["reason"]["comm_out"]["value"];
                         graph.edges.push({
                             source: source_id, target: target_id, label: label,
                             labelCfg: {

@@ -125,5 +125,14 @@ class SimulatorTest(unittest.TestCase):
         trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
         print(trace)
 
+    def testExecParallel4(self):
+        hp1 = parser.hp_parser.parse("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**")
+        hp1_init = {"x": 0}
+        hp2 = parser.hp_parser.parse("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**")
+        hp2_init = {"x": 0}
+
+        trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
+        print(trace)
+
 if __name__ == "__main__":
     unittest.main()
