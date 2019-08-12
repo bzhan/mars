@@ -1,0 +1,17 @@
+-------------------------
+ CLOSED LOOP CONTROLLER
+-------------------------
+This model simulates a closed loop air conditioner.
+It is implemented by three threads:
+- The "regulator" control software reads the set point (desiredTemp) 
+and the feedback (measuredTemp) and computes the command for the 
+heater/cooler actuator.
+- The "heatercooler" emulates by software the effect of the actual 
+device by increasing or decreasing the value of the temperature 
+according to the received command.
+- The "sensor" introduces a measurement error by adding a random 
+to the measured temperature before sending it back to the regulator.
+
+A simulation scenario initializes the desired temperature to 20°C 
+and opens a probe on the measured temperature.
+

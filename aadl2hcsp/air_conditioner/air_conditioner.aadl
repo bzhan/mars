@@ -1,0 +1,158 @@
+----------------------------------------
+-- Air Conditioner
+-- AADL Inspector
+-- (c) Ellidiss Technologies
+-- Updated: January 2017
+----------------------------------------
+
+PACKAGE AirConditioner_Pkg
+PUBLIC
+WITH Ellidiss::Math::Int;
+RENAMES Ellidiss::Math::Int::ALL;
+WITH Ellidiss::Gui;
+RENAMES Ellidiss::Gui::ALL;
+WITH AI;
+
+SYSTEM AirConditioner
+END AirConditioner;
+
+SYSTEM IMPLEMENTATION AirConditioner.others
+SUBCOMPONENTS
+  Settings : DEVICE IntSelector;
+  Temperature : DEVICE IntDisplay;
+  HeaterStatus : DEVICE Light;
+  HeatRegulator : SYSTEM HeatRegulator.others;
+CONNECTIONS
+  cnx_0 : PORT Settings.value -> HeatRegulator.desiredTemp;
+  cnx_1 : PORT HeatRegulator.currentTemp -> Temperature.value;
+  cnx_2 : PORT HeatRegulator.heating -> HeaterStatus.red;
+  cnx_3 : PORT HeatRegulator.cooling -> HeaterStatus.green;
+PROPERTIES
+-- required by Ocarina
+  AI::root_system => "SELECTED";
+END AirConditioner.others;
+
+SYSTEM HeatRegulator
+FEATURES
+  desiredTemp : IN DATA PORT int;
+  heating : OUT EVENT PORT;
+  cooling : OUT EVENT PORT;
+  currentTemp : OUT DATA PORT int;
+END HeatRegulator;
+
+SYSTEM IMPLEMENTATION HeatRegulator.others
+SUBCOMPONENTS
+  HeaterSW : PROCESS HeaterSW.others;
+  HeaterCPU : PROCESSOR HeaterCPU;
+  HeaterRAM : MEMORY HeaterRAM;
+CONNECTIONS
+  cnx_0 : PORT desiredTemp -> HeaterSW.desiredTemp;
+  cnx_1 : PORT HeaterSW.heating -> heating;
+  cnx_2 : PORT HeaterSW.cooling -> cooling;
+  cnx_3 : PORT HeaterSW.measuredTemp -> currentTemp;
+PROPERTIES
+  Actual_Processor_Binding => ( reference(HeaterCPU) ) applies to HeaterSW;
+  Actual_Memory_Binding => ( reference(HeaterRAM) ) applies to HeaterSW;
+END HeatRegulator.others;
+
+PROCESS HeaterSW
+FEATURES
+  desiredTemp : IN DATA PORT int;
+  heating : OUT EVENT PORT;
+  cooling : OUT EVENT PORT;
+  measuredTemp : OUT DATA PORT int;
+END HeaterSW;
+
+PROCESS IMPLEMENTATION HeaterSW.others
+SUBCOMPONENTS
+  Regulator : THREAD Regulator.others;
+  HeaterCooler : THREAD HeaterCooler.others;
+  Sensor : THREAD Sensor.others;
+CONNECTIONS
+  cnx_0 : PORT desiredTemp -> Regulator.desiredTemp;
+  cnx_1 : PORT HeaterCooler.heating -> heating;
+  cnx_2 : PORT HeaterCooler.cooling -> cooling;
+  cnx_3 : PORT Sensor.measuredTemp -> measuredTemp;
+  cnx_4 : PORT Regulator.heaterCommand -> HeaterCooler.command;
+  cnx_5 : PORT HeaterCooler.temperature -> Sensor.heaterTemp;
+  cnx_6 : PORT Sensor.measuredTemp -> Regulator.measuredTemp;
+END HeaterSW.others;
+
+THREAD Regulator
+FEATURES
+  desiredTemp : IN DATA PORT int;
+  measuredTemp : IN DATA PORT int;
+  heaterCommand : OUT DATA PORT int;
+END Regulator;
+
+THREAD IMPLEMENTATION Regulator.others
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 8;
+  Deadline => 20ms;
+  Period => 20ms;
+ANNEX Behavior_Specification {**
+VARIABLES diff, gain : int;
+STATES s : INITIAL COMPLETE FINAL STATE;
+TRANSITIONS t : s -[ON DISPATCH]-> s 
+  { gain := 2;
+    diff :=  desiredTemp - measuredTemp; 
+    heaterCommand := diff * gain };
+**};
+END Regulator.others;
+
+THREAD HeaterCooler
+FEATURES
+  command : IN DATA PORT int;
+  temperature : OUT DATA PORT int;
+  heating : OUT EVENT PORT;
+  cooling : OUT EVENT PORT;
+END HeaterCooler;
+
+THREAD IMPLEMENTATION HeaterCooler.others
+SUBCOMPONENTS
+  Temp : DATA int;
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 6;
+  Deadline => 20ms;
+  Period => 20ms;
+ANNEX Behavior_Specification {**
+STATES s : INITIAL COMPLETE FINAL STATE;
+TRANSITIONS t : s -[ON DISPATCH]-> s 
+  { if (command >= 0) heating!; Temp := Temp + 1 end if; 
+    if (command < 0) cooling!; Temp := Temp - 1 end if;
+    temperature := Temp };
+**};
+END HeaterCooler.others;
+
+THREAD Sensor
+FEATURES
+  heaterTemp : IN DATA PORT int;
+  measuredTemp : OUT DATA PORT int;
+END Sensor;
+
+THREAD IMPLEMENTATION Sensor.others
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 10;
+  Deadline => 20ms;
+  Period => 20ms;
+ANNEX Behavior_Specification {**
+VARIABLES e : int;
+STATES s : INITIAL COMPLETE FINAL STATE;
+TRANSITIONS t : s -[ON DISPATCH]-> s 
+  { e:= 1 ; measuredTemp := heaterTemp + e };
+**};
+END Sensor.others;
+
+PROCESSOR HeaterCPU
+PROPERTIES
+  Scheduling_Protocol => (HPF);
+END HeaterCPU;
+
+MEMORY HeaterRAM
+END HeaterRAM;
+
+END AirConditioner_Pkg;
+
