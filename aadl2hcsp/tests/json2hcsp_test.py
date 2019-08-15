@@ -7,7 +7,7 @@ from aadl2hcsp.json2hcsp import *
 class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP(self):
         file = 'aadl2hcsp/tests/out.json'
-        annex_file = 'air_conditioner/air_conditioner.aadl'
+        annex_file = 'aadl2hcsp/air_conditioner/air_conditioner.aadl'
         out = ""
 
         AP = AnnexParser()
@@ -32,6 +32,7 @@ class Json2HCSPTest(unittest.TestCase):
 
             elif category['category'] == 'thread':
                 if category['name'] in Annex_HP.keys():
+                    print('AAAA')
                     out += "\n".join(str(line) for line in Thread(category, Annex_HP[category['name']]).lines) + '\n'
                 else:
                     out += "\n".join(str(line) for line in Thread(category).lines) + '\n'
