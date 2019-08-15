@@ -171,7 +171,6 @@ class Process:
 
         return hps
 
-
     def _createBusy(self):
         hp1 = HCSP('BUSY_' + self.process_name)
 
@@ -300,7 +299,7 @@ class Process:
 
 
 class Thread:
-    def __init__(self,thread):
+    def __init__(self,thread, annex=None):
         self.lines = []
         self.thread_name = thread['name']
         ### 默认参数###
@@ -310,6 +309,7 @@ class Thread:
         self.thread_period = '10'
         self.thread_featureIn = []
         self.thread_featureOut = []
+        self.thread_annex=annex
 
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
