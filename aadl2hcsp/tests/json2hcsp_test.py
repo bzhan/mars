@@ -32,7 +32,6 @@ class Json2HCSPTest(unittest.TestCase):
 
             elif category['category'] == 'thread':
                 if category['name'] in Annex_HP.keys():
-                    print('AAAA')
                     out += "\n".join(str(line) for line in Thread(category, Annex_HP[category['name']]).lines) + '\n'
                 else:
                     out += "\n".join(str(line) for line in Thread(category).lines) + '\n'
