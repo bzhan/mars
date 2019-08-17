@@ -17,7 +17,10 @@ from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.MathOperations.min_max import MinMax
+from ss2hcsp.sl.parse_xml import get_attribute_value, get_children_info
 # from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.sf.sf_state import AND_State
+from ss2hcsp.sf.sf_chart import SF_Chart
 
 from xml.dom.minidom import parse
 from functools import reduce
@@ -25,13 +28,6 @@ from math import gcd, pow
 import re
 
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
-
-
-def get_attribute_value(block, attribute):
-    for node in block.getElementsByTagName("P"):
-        if node.getAttribute("Name") == attribute:
-            return node.childNodes[0].data
-    return None
 
 
 def get_gcd(sample_times):
@@ -67,6 +63,9 @@ class SL_Diagram:
         # Dictionary of blocks indexed by name
         self.blocks_dict = dict()
 
+        # Dictionary of STATEFLOW charts indexed by name
+        self.charts = dict()
+
         # Parsed model of the XML file
         if location:
             with open(location) as f:
@@ -74,7 +73,20 @@ class SL_Diagram:
         else:
             self.model = None
 
+    def parse_stateflow_xml(self):
+        charts = self.model.getElementsByTagName(name="chart")
+        for chart in charts:
+            chart_id = chart.getAttribute("id")
+            chart_name = get_attribute_value(block=chart, attribute="name")
+            chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is encapsulated as an AND-state
+            states, transitions, junctions = get_children_info(block=chart)
+            chart_state.add_children(states=states, transitions=transitions, junctions=junctions)
+            sf_chart = SF_Chart(name=chart_name, state=chart_state)
+            self.charts[chart_name] = sf_chart
+
     def parse_xml(self):
+        self.parse_stateflow_xml()
+
         system = self.model.getElementsByTagName(name="System")[0]
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
@@ -149,7 +161,7 @@ class SL_Diagram:
                 threshold = get_attribute_value(block=block, attribute="Threshold")
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
-            elif block_type == "SubSystem":
+            elif block_type == "SubSystem" and block_name not in self.charts:
                 ports = get_attribute_value(block=block, attribute="Ports")
                 num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
                 subsystem = Subsystem(name=block_name, num_src=num_src, num_dest=num_dest)

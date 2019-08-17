@@ -301,6 +301,13 @@ class SimTest(unittest.TestCase):
     #     print(real_hp)
     #     # print(diagram)
 
+    def testStateflow(self):
+        location = "./ss2hcsp/case_studies/sf_example.xml"
+        diagram = SL_Diagram(location=location)
+        diagram.parse_stateflow_xml()
+        for chart in diagram.charts.values():
+            print(chart)
+
 
 if __name__ == "__main__":
     unittest.main()

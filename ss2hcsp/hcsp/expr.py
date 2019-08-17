@@ -43,11 +43,7 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-<<<<<<< HEAD
         assert isinstance(value, (int, float))
-=======
-        assert isinstance(value, int) or isinstance(value, float)
->>>>>>> lqq
         self.value = value
 
     def __repr__(self):
@@ -395,16 +391,16 @@ class Conditional_Inst:
 
         self.data[var_name] = cond_inst
 
-<<<<<<< HEAD
         # Extract mutually exclusive constraints
         if len(cond_inst) >= 2:
             mu_ex_cons = set(cond for cond, _ in cond_inst)
             if mu_ex_cons not in self.mu_ex_cons:
                 self.mu_ex_cons.append(mu_ex_cons)
-=======
+
+
 #add by lqq
 class NegExpr(AExpr):
-    def __init__(self,  expr ):
+    def __init__(self,  expr):
         assert isinstance(expr, AExpr)
         self.op = '~'
         self.expr = expr
@@ -417,6 +413,7 @@ class NegExpr(AExpr):
 
     def __eq__(self, other):
         return isinstance(other, NegExpr) and self.op == other.op and self.expr == other.expr
+
     def __hash__(self):
         return hash(("Logic", self.op, self.expr))
 
@@ -424,5 +421,5 @@ class NegExpr(AExpr):
         return self.expr.get_vars()
 
     def subst(self, inst):
-        return NegExpr(self.op, self.expr.subst(inst))
->>>>>>> lqq
+        # return NegExpr(self.op, self.expr.subst(inst))
+        return NegExpr(self.expr.subst(inst))  # Probably?
