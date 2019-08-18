@@ -43,20 +43,21 @@ class AnnexParser(object):
             return
         code = ' '.join(codelist)[:-1]
         var, state, trans = self._createParser(code)
-        hcsp=''
+        hcsp=[]
         for s in state.keys():
             if 'INITIAL' in state[s]:
                 now_state=s
                 next_state=trans[s]['distination']
-                hcsp += trans[s]['content']
+                hcsp.append(trans[s]['content'])
                 break
 
         while 'FINAL' not in state[now_state]:
             now_state = next_state
             next_state = trans[s]['distination']
-            hcsp += trans[s]['content']
+            hcsp.append(trans[s]['content'])
 
-        return hcsp
+
+        return Sequence(*hcsp)
 
 
 
@@ -251,7 +252,8 @@ class AnnexParser(object):
 
         def p_define_transtion(p):
             """statement : TRANSITIONS NAME ':' NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA """
-            trans[p[4]]={'distination':p[9],'content':str(p[11])}
+            trans[p[4]]={'distination':p[9],'content':p[11]}
+
 
         def p_if_statement(p):
             """ statement : IF '(' expression ')' statement  END IF  """
@@ -279,7 +281,7 @@ if __name__=='__main__':
     Annexs=AP.getAnnex(file)
     HP={}
     for th in Annexs.keys():
-        HP[th]=AP.createHCSP(Annexs[th][1:-1])
+        HP[th]=str(AP.createHCSP(Annexs[th][1:-1]))
     print(HP)
 
 

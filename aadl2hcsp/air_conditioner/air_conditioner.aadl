@@ -65,27 +65,27 @@ END HeaterSW;
 
 PROCESS IMPLEMENTATION HeaterSW.others
 SUBCOMPONENTS
-  Regulator : THREAD Regulator.others;
-  HeaterCooler : THREAD HeaterCooler.others;
-  Sensor : THREAD Sensor.others;
+  regulator : THREAD regulator.others;
+  HeatCooler : THREAD HeatCooler.others;
+  sensor : THREAD sensor.others;
 CONNECTIONS
-  cnx_0 : PORT desiredTemp -> Regulator.desiredTemp;
-  cnx_1 : PORT HeaterCooler.heating -> heating;
-  cnx_2 : PORT HeaterCooler.cooling -> cooling;
-  cnx_3 : PORT Sensor.measuredTemp -> measuredTemp;
-  cnx_4 : PORT Regulator.heaterCommand -> HeaterCooler.command;
-  cnx_5 : PORT HeaterCooler.temperature -> Sensor.heaterTemp;
-  cnx_6 : PORT Sensor.measuredTemp -> Regulator.measuredTemp;
+  cnx_0 : PORT desiredTemp -> regulator.desiredTemp;
+  cnx_1 : PORT HeatCooler.heating -> heating;
+  cnx_2 : PORT HeatCooler.cooling -> cooling;
+  cnx_3 : PORT sensor.measuredTemp -> measuredTemp;
+  cnx_4 : PORT regulator.heaterCommand -> HeatCooler.command;
+  cnx_5 : PORT HeatCooler.temperature -> sensor.heaterTemp;
+  cnx_6 : PORT sensor.measuredTemp -> regulator.measuredTemp;
 END HeaterSW.others;
 
-THREAD Regulator
+THREAD regulator
 FEATURES
   desiredTemp : IN DATA PORT int;
   measuredTemp : IN DATA PORT int;
   heaterCommand : OUT DATA PORT int;
-END Regulator;
+END regulator;
 
-THREAD IMPLEMENTATION Regulator.others
+THREAD IMPLEMENTATION regulator.others
 PROPERTIES
   Dispatch_Protocol => Periodic;
   Priority => 8;
@@ -99,17 +99,17 @@ TRANSITIONS t : s -[ON DISPATCH]-> s
     diff :=  desiredTemp - measuredTemp; 
     heaterCommand := diff * gain };
 **};
-END Regulator.others;
+END regulator.others;
 
-THREAD HeaterCooler
+THREAD HeatCooler
 FEATURES
   command : IN DATA PORT int;
   temperature : OUT DATA PORT int;
   heating : OUT EVENT PORT;
   cooling : OUT EVENT PORT;
-END HeaterCooler;
+END HeatCooler;
 
-THREAD IMPLEMENTATION HeaterCooler.others
+THREAD IMPLEMENTATION HeatCooler.others
 SUBCOMPONENTS
   Temp : DATA int;
 PROPERTIES
@@ -124,15 +124,15 @@ TRANSITIONS t : s -[ON DISPATCH]-> s
     if (command < 0) cooling!; Temp := Temp - 1 end if;
     temperature := Temp };
 **};
-END HeaterCooler.others;
+END HeatCooler.others;
 
-THREAD Sensor
+THREAD sensor
 FEATURES
   heaterTemp : IN DATA PORT int;
   measuredTemp : OUT DATA PORT int;
-END Sensor;
+END sensor;
 
-THREAD IMPLEMENTATION Sensor.others
+THREAD IMPLEMENTATION sensor.others
 PROPERTIES
   Dispatch_Protocol => Periodic;
   Priority => 10;
@@ -144,7 +144,7 @@ STATES s : INITIAL COMPLETE FINAL STATE;
 TRANSITIONS t : s -[ON DISPATCH]-> s 
   { e:= 1 ; measuredTemp := heaterTemp + e };
 **};
-END Sensor.others;
+END sensor.others;
 
 PROCESSOR HeaterCPU
 PROPERTIES
