@@ -261,6 +261,9 @@ class Parallel(HCSP):
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
 
+    def __repr__(self):
+        return "Parallel(%s)" % (",".join(repr(hp) for hp in self.hps))
+
     def __str__(self):
         return " || ".join(str(hp) for hp in self.hps)
 
@@ -277,7 +280,10 @@ class Definition(HCSP):
         self.hp2 = hp2
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp1 == other.hp1
+        return self.type == other.type and self.hp1 == other.hp1 and self.hp2 == other.hp2
+
+    def __repr__(self):
+        return "Definition(%s,%s)" % (repr(self.hp1), repr(self.hp2))
 
     def __str__(self):
         return str(self.hp1) + " ::= ( " + str(self.hp2) + " ) "
@@ -293,6 +299,9 @@ class SelectComm(HCSP):
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
+
+    def __repr__(self):
+        return "SelectComm(%s)" % (",".join(repr(hp) for hp in self.hps))
 
     def __str__(self):
         return " { " + " $ ".join(str(hp) for hp in self.hps) + " } "

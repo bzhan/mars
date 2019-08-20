@@ -123,7 +123,7 @@ class SimulatorTest(unittest.TestCase):
         hp2_init = {}
 
         trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
-        print(trace)
+        self.assertEqual(trace, ["deadlock"])
 
     def testExecParallel4(self):
         hp1 = parser.hp_parser.parse("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**")
@@ -132,7 +132,26 @@ class SimulatorTest(unittest.TestCase):
         hp2_init = {"x": 0}
 
         trace = simulator.exec_parallel(6, [(hp1, hp1_init), (hp2, hp2_init)])
-        print(trace)
+        self.assertEqual(trace, ["deadlock"])
+
+    def testExecParallel5(self):
+        hp1 = parser.hp_parser.parse("{x?x $ z!z $ y?y}")
+        hp1_init = {"z": 1}
+        hp2 = parser.hp_parser.parse("y!y")
+        hp2_init = {"y": 2}
+
+        trace = simulator.exec_parallel(3, [(hp1, hp1_init), (hp2, hp2_init)])
+        self.assertEqual(trace, ["IO y 2", "deadlock"])
+
+    def testExecParallel6(self):
+        hp1 = parser.hp_parser.parse("{x?x $ z!z $ y?y}")
+        hp1_init = {"z": 1}
+        hp2 = parser.hp_parser.parse("z?z")
+        hp2_init = {}
+
+        trace = simulator.exec_parallel(3, [(hp1, hp1_init), (hp2, hp2_init)])
+        self.assertEqual(trace, ["IO z 1", "deadlock"])
+
 
 if __name__ == "__main__":
     unittest.main()
