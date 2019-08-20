@@ -54,7 +54,7 @@ class ExprTest(unittest.TestCase):
 
         res = [
             ("x", [("true", "a + 1")]),
-            ("y", [("a >= 1", "a + 1"), ("a < 1", "(a + 1) - 1")])
+            ("y", [("a < 1", "(a + 1) - 1"), ("a >= 1", "a + 1")])
         ]
 
         self.assertConditionalInst(test_data, res)
