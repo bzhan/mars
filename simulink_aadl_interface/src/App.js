@@ -14,24 +14,6 @@ class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            hcspFileName: undefined,
-            hcspCode: "{\n" +
-                "\t\"1\": {\n" +
-                "\t\t\"code\": \"(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**\",\n" +
-                "\t\t\"state\": {\"x\": 0}\n" +
-                "\t},\n" +
-                "\t\"2\": {\n" +
-                "\t\t\"code\": \"(wait(2); p2c?x; c2p!x-1)**\",\n" +
-                "\t\t\"state\": {}\n" +
-                "\t},\n" +
-                "\t\"3\":{\n" +
-                "\t\t\"code\": \"x := x + y; y:= y * x\",\n" +
-                "\t\t\"state\": {\"x\":0, \"y\": 1}\n" +
-                "\t}\n" +
-                "}",
-            // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
-            hcspStates: [],
-            hcspComm: [],
             started: false
         };
         this.reader = new FileReader();
@@ -71,7 +53,7 @@ class App extends Component {
         return (
             <div>
                 <Navbar bg="light" variant="light">
-                    <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
+                    <Navbar.Brand href="#">Simulink AADL Interface</Navbar.Brand>
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         {}
