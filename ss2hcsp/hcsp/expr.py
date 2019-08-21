@@ -386,7 +386,7 @@ class Conditional_Inst:
             expr_dict[expr].append(cond)
 
         cond_inst = []
-        for expr, conds in expr_dict.items():
+        for expr, conds in sorted(expr_dict.items(), key=str):
             cond_inst.append((disj(*conds), expr))
 
         self.data[var_name] = cond_inst
@@ -396,3 +396,30 @@ class Conditional_Inst:
             mu_ex_cons = set(cond for cond, _ in cond_inst)
             if mu_ex_cons not in self.mu_ex_cons:
                 self.mu_ex_cons.append(mu_ex_cons)
+
+
+#add by lqq
+class NegExpr(AExpr):
+    def __init__(self,  expr):
+        assert isinstance(expr, AExpr)
+        self.op = '~'
+        self.expr = expr
+
+    def __repr__(self):
+        return "Logic(%s,%s)" % (self.op, repr(self.expr))
+
+    def __str__(self):
+        return str( self.op + str(self.expr))
+
+    def __eq__(self, other):
+        return isinstance(other, NegExpr) and self.op == other.op and self.expr == other.expr
+
+    def __hash__(self):
+        return hash(("Logic", self.op, self.expr))
+
+    def get_vars(self):
+        return self.expr.get_vars()
+
+    def subst(self, inst):
+        # return NegExpr(self.op, self.expr.subst(inst))
+        return NegExpr(self.expr.subst(inst))  # Probably?

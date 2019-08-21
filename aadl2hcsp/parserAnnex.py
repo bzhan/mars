@@ -1,8 +1,9 @@
 """Parse an AADL model with Behaviour Annex
 """
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
+from ss2hcsp.hcsp.expr import *
 from ss2hcsp.hcsp.hcsp import *
 import re
+import json
 import ply.lex as lex
 import ply.yacc as yacc
 import warnings
@@ -36,10 +37,34 @@ class AnnexParser(object):
             i+=1
         return self.Annexs
 
-    def createHCSP(self, code):
-        self.var=[]
-        self.state={}
-        self.trans={}
+
+    def createHCSP(self, codelist):
+        if not isinstance(codelist,list):
+            return
+        code = ' '.join(codelist)[:-1]
+        var, state, trans = self._createParser(code)
+        hcsp=[]
+        for s in state.keys():
+            if 'INITIAL' in state[s]:
+                now_state=s
+                next_state=trans[s]['distination']
+                hcsp.append(trans[s]['content'])
+                break
+
+        while 'FINAL' not in state[now_state]:
+            now_state = next_state
+            next_state = trans[s]['distination']
+            hcsp.append(trans[s]['content'])
+
+
+        return Sequence(*hcsp)
+
+
+
+    def _createParser(self, code):
+        var=[]
+        state={}
+        trans={}
 
         reserved = {
             'TRANSITIONS': 'TRANSITIONS',
@@ -115,15 +140,23 @@ class AnnexParser(object):
         # Parsing rules
         def p_statement_list(p):
             """ statement : statement ';' statement  """
-            p[0]=str(p[1])+str(p[3])
+            if isinstance(p[1], HCSP) and isinstance(p[3],HCSP):
+                p[0] = Sequence(*[p[1], p[3]])
+            elif isinstance(p[1], HCSP):
+                p[0] = p[1]
+            elif isinstance(p[3], HCSP):
+                p[0] = p[3]
+            else:
+                p[0] = ''
+
 
         def p_statement_assign(p):
             'statement : NAME ATTACHED expression '
-            p[0]=[str(p[1])+str(p[2])+str(p[3])]
+            p[0]=Assign(str(p[1]),p[3])
 
         def p_statement_expr(p):
             """statement : expression  """
-            p[0]=[str(p[1])]
+            p[0]=HCSP(p[1])
 
         def p_expression_binop(p):
             '''expression : expression PLUS expression
@@ -135,12 +168,35 @@ class AnnexParser(object):
                           | expression LEFT_ANGLE_BRA expression
                           | expression RIGHT_ANGLE_BRA expression
                           | expression COMP_OP expression '''
-            p[0]=str(p[1])+str(p[2])+str(p[3])
+            if p[2] == '+':
+                p[0] = PlusExpr(['+', '+'], [p[1], p[3]])
+            elif p[2] == '-':
+                p[0] = PlusExpr(['+', '-'], [p[1], p[3]])
+            elif p[2] == '*':
+                p[0] = TimesExpr(['*', '*'], [p[1], p[3]])
+            elif p[2] == '\\':
+                p[0] = TimesExpr(['*', '\\'], [p[1], p[3]])
+            elif p[2]=='%':
+                p[0] = TimesExpr(['*', '%'], [p[1], p[3]])
+            elif p[2]=='=':
+                p[0] = RelExpr('=', p[1], p[3])
+            elif p[2] == '>':
+                p[0] = RelExpr('>', p[1], p[3])
+            elif p[2] == '<':
+                p[0] = RelExpr('<', p[1], p[3])
+            elif p[2]=='==':
+                p[0] = RelExpr('==', p[1], p[3])
+            elif p[2] == '!=':
+                p[0] = RelExpr('!=', p[1], p[3])
+            elif p[2]=='>=':
+                p[0] = RelExpr('>=', p[1], p[3])
+            elif p[2]=='<=':
+                p[0] = RelExpr('<=', p[1], p[3])
+
 
         def p_expression_uminus(p):
-            """expression : '-' expression
-                         | expression '!' """
-            p[0] = str(p[1])+str(p[2])
+            """statement : expression '!' """
+            p[0] = Assign(str(p[1]), NegExpr(p[1]))
 
         def p_expression_group(p):
             "expression : '(' expression ')'"
@@ -148,14 +204,23 @@ class AnnexParser(object):
 
         def p_expression_number(p):
             "expression : NUMBER"
-            p[0] = str(p[1])
+            p[0] = AConst(float(p[1]))
         def p_expression_name(p):
             "expression : NAME"
-            p[0] = [p[1]]
+            p[0] = AVar(p[1])
 
         def p_expression_namelist(p):
             "expression : expression ',' expression"
-            p[0] = p[1]+p[3]
+            p[0]=[]
+            if isinstance(p[1],AVar):
+                p[0].append(str(p[1]))
+            elif isinstance(p[1],list):
+                p[0].append(v for v in p[1])
+
+            if isinstance(p[3],AVar):
+                p[0].append(str(p[3]))
+            elif isinstance(p[3],list):
+                p[0].append(v for v in p[3])
 
         def p_type_data(p):
             """type : INT
@@ -165,8 +230,11 @@ class AnnexParser(object):
             """statement : VARIABLES expression ':' type
                           | VARIABLES expression
                        """
-            print(p[2])
-            self.var.append(p[2])
+            if isinstance(p[2],AVar):
+                var.append(str(p[2]))
+            elif isinstance(p[2],list):
+                for v in p[2]:
+                    var.append(v)
 
         def p_state_list(p):
             """ state : state state
@@ -180,19 +248,20 @@ class AnnexParser(object):
 
         def p_define_state(p):
             """statement : STATES NAME ':' state STATE  """
-            print(p[2])
-            self.state[p[2]]=p[4]
+            state[p[2]]=p[4]
 
         def p_define_transtion(p):
             """statement : TRANSITIONS NAME ':' NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA """
-            self.trans[p[4]]={'distination':p[9],'content':p[11]}
+            trans[p[4]]={'distination':p[9],'content':p[11]}
+
 
         def p_if_statement(p):
             """ statement : IF '(' expression ')' statement  END IF  """
-            
+            p[0] = Condition(p[3], p[5])
 
         def p_while_statement(p):
             """ statement :  WHILE '(' expression ')' statement  END WHILE """
+            p[0] = Loop(Condition(p[3], p[5]))
 
         def p_error(p):
             if p:
@@ -202,7 +271,8 @@ class AnnexParser(object):
 
         yacc.yacc()
         yacc.parse(code)
-        print(self.state)
+
+        return var, state, trans
 
 
 if __name__=='__main__':
@@ -211,8 +281,8 @@ if __name__=='__main__':
     Annexs=AP.getAnnex(file)
     HP={}
     for th in Annexs.keys():
-        HP[th]=AP.createHCSP(' '.join(Annexs[th][1:-1]).strip()[:-1])
-    #print(HP)
+        HP[th]=str(AP.createHCSP(Annexs[th][1:-1]))
+    print(HP)
 
 
 

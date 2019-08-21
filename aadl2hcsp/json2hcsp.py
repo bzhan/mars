@@ -300,7 +300,7 @@ class Process:
 
 
 class Thread:
-    def __init__(self,thread):
+    def __init__(self,thread, annex=None):
         self.lines = []
         self.thread_name = thread['name']
         ### 默认参数###
@@ -310,6 +310,7 @@ class Thread:
         self.thread_period = '10'
         self.thread_featureIn = []
         self.thread_featureOut = []
+        self.annex=annex
 
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
@@ -483,6 +484,9 @@ class Thread:
         hps.append(InputChannel('start_Annex_' + self.thread_name))
         if len(self.thread_featureIn) > 0:
             hps.append(InputChannel('input_' + self.thread_name, AVar(str(self.thread_featureIn))))
+
+        if self.annex:
+            hps.append(self.annex)
 
         hps.append(Wait('5'))
         hps.append(OutputChannel('need_Resource_' + self.thread_name))
