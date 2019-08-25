@@ -49,6 +49,7 @@ grammar = r"""
         | "(" cmd ")**" -> repeat_cmd
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
+        | "{" comm_cmd ("$" comm_cmd)* "}" -> select_comm
         | cond "->" "(" cmd ")" -> cond_cmd
 
     %import common.CNAME
@@ -174,6 +175,9 @@ class HPTransformer(Transformer):
 
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
+
+    def select_comm(self, *comms):
+        return hcsp.SelectComm(*comms)
 
 
 aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())

@@ -386,7 +386,7 @@ class Conditional_Inst:
             expr_dict[expr].append(cond)
 
         cond_inst = []
-        for expr, conds in expr_dict.items():
+        for expr, conds in sorted(expr_dict.items(), key=str):
             cond_inst.append((disj(*conds), expr))
 
         self.data[var_name] = cond_inst

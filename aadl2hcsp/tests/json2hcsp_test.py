@@ -7,7 +7,7 @@ from aadl2hcsp.json2hcsp import *
 class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP(self):
         file = 'aadl2hcsp/tests/out.json'
-        annex_file = 'air_conditioner/air_conditioner.aadl'
+        annex_file = 'aadl2hcsp/air_conditioner/air_conditioner.aadl'
         out = ""
 
         AP = AnnexParser()

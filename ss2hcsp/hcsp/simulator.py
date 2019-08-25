@@ -119,6 +119,18 @@ def exec_step(hp, state):
                 comms.append((io_comm.ch_name, "!"))
         return "comm", comms
 
+    elif hp.type == "select_comm":
+        # Waiting for one of the input/outputs
+        comms = []
+        for comm in hp.hps:
+            if comm.type == "input_channel":
+                comms.append((comm.ch_name, "?"))
+            elif comm.type == "output_channel":
+                comms.append((comm.ch_name, "!"))
+            else:
+                raise NotImplementedError
+        return "comm", comms
+
     else:
         raise NotImplementedError
 
@@ -163,6 +175,14 @@ def exec_input_comm(hp, state, ch_name, x):
         # Communication must be found among the interrupts
         assert False
 
+    elif hp.type == "select_comm":
+        for comm in hp.hps:
+            if comm.type == "input_channel" and comm.ch_name == ch_name:
+                state[comm.var_name] = x
+                return hcsp.Skip()
+        # Communication must be found among the choices
+        assert False
+
     else:
         assert False
 
@@ -190,6 +210,13 @@ def exec_output_comm(hp, state, ch_name):
         # Communication must be found among the interrupts
         assert False
 
+    elif hp.type == "select_comm":
+        for comm in hp.hps:
+            if comm.type == "output_channel" and comm.ch_name == ch_name:
+                return hcsp.Skip(), eval_expr(comm.expr, state)
+        # Communication must be found among the choices
+        assert False
+
     else:
         assert False
 
@@ -199,7 +226,7 @@ def exec_delay(hp, state, delay):
     Return the new hybrid program.
     
     """
-    if hp.type in ["skip", "input_channel", "output_channel"]:
+    if hp.type in ["skip", "input_channel", "output_channel", "select_comm"]:
         return hp
 
     elif hp.type == "sequence":
