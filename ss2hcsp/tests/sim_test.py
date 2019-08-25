@@ -270,7 +270,7 @@ class SimTest(unittest.TestCase):
         self.assertEqual(real_hp, expected_hp)
 
     def testHCS(self):
-        location = "./ss2hcsp/case_studies/hcs_test.xml"
+        location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/hcs_test.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
         # print(diagram)
@@ -302,11 +302,23 @@ class SimTest(unittest.TestCase):
     #     # print(diagram)
 
     def testStateflow(self):
-        location = "./ss2hcsp/case_studies/sf_example.xml"
+        location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/loop.xml"
+        # location = "/Users/BEAR/Desktop/Simulink Cases/sf_example.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_stateflow_xml()
-        for chart in diagram.charts.values():
-            print(chart)
+        chart = list(diagram.charts.values())[0]
+        # print(chart)
+        # print(chart.all_states)
+        # state = chart.all_states["1"]
+        # print(state)
+        # print(chart.execute_event(state=state))
+        # for process in chart.get_monitor_process():
+        #     print(process)
+        print(chart.get_process())
+        # for chart in diagram.charts.values():
+        #     # print(chart)
+        #     # print(chart.state.activate())
+        #     print(chart.state.all_descendant_exit())
 
 
 if __name__ == "__main__":
