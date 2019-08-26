@@ -46,3 +46,8 @@
   font-weight: bold;
   font-style: oblique;
 }
+
+.srd-diagram {
+  height: 100vh;
+  background-color: #282c34;
+}
