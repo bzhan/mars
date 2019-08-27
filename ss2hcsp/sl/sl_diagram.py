@@ -18,7 +18,7 @@ from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.MathOperations.min_max import MinMax
 # from ss2hcsp.sl.parse_xml import get_attribute_value, get_children_info
-# from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
@@ -30,6 +30,7 @@ import re
 import operator
 
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
+from ss2hcsp.hcsp.parser import hp_parser
 
 
 def get_gcd(sample_times):
@@ -131,14 +132,16 @@ class SL_Diagram:
                             act = ""
                     en, du, ex = None, None, None
                     for act in acts:
-                        # hcsp = (lambda x: hp_parser.parse(x[x.index(":") + 1:].strip()))(act)
-                        state_act = (lambda x: x[x.index(":") + 1:].strip("; "))(act)
+                        assert "==" not in act
+                        act = re.sub(pattern="=", repl=":=", string=act)
+                        hcsp = (lambda x: hp_parser.parse(x[x.index(":") + 1:].strip("; ")))(act)
+                        # state_act = (lambda x: x[x.index(":") + 1:].strip("; "))(act)
                         if act.startswith("en"):
-                            en = state_act
+                            en = hcsp
                         elif act.startswith("du"):
-                            du = state_act
+                            du = hcsp
                         elif act.startswith("ex"):
-                            ex = state_act
+                            ex = hcsp
                         else:
                             raise RuntimeError("Error in state actions!")
 
