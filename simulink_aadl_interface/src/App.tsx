@@ -1,49 +1,108 @@
 import './App.css';
-import createEngine, { DiagramModel, DefaultNodeModel, DiagramEngine, DefaultLinkModel } from '@projectstorm/react-diagrams';
-import * as _ from "lodash";
+import createEngine, {
+    DiagramModel,
+    DefaultNodeModel,
+    DiagramEngine,
+    DefaultLinkModel
+} from '@projectstorm/react-diagrams';
 import * as React from 'react';
-import { CanvasWidget } from '@projectstorm/react-canvas-core';
+import {CanvasWidget} from '@projectstorm/react-canvas-core';
 
-import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
+import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import axios from "axios"
 
 class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramEngine }, any> {
-    addPorts = () => {
-        const nodes: DefaultNodeModel[] = _.values(this.props.model.getNodes()) as DefaultNodeModel[];
-        for (let node of nodes) {
-            if (node.getOptions().name === 'Node 2') {
-                node.addInPort(`in-${node.getInPorts().length + 1}`, false);
-            } else {
-                node.addOutPort(`out-${node.getOutPorts().length + 1}`, false);
-            }
-        }
-        this.props.engine.repaintCanvas();
-    };
+    private reader = new FileReader();
+    private fileSelector: any = null;
 
     addNodes = () => {
         const new_node = new DefaultNodeModel("new node", 'rgb(0,192,255)');
-        new_node.addInPort("in");
+        new_node.addInPort("indddddddddddddddddddddddddddd");
         new_node.addOutPort("out");
+        new_node.addOutPort("out2");
         this.props.model.addNode(new_node);
         this.props.engine.repaintCanvas();
     };
 
+    handleFiles = () => {
+        this.reader.onloadend = () => {
+            let text = this.reader.result as string;
+        };
+        this.reader.readAsText(this.fileSelector.files[0]);
+    };
+
+
+    buildFileSelector = () => {
+        const fileSelector = document.createElement('input');
+        fileSelector.type = "file";
+        fileSelector.onchange = this.handleFiles;
+        return fileSelector;
+    };
+
+    selectSimulinkFile = (e: any) => {
+        this.fileSelector.click();
+    };
+
+    selectAADLFile = (e: any) => {
+        this.fileSelector.click();
+    };
+
+    save = (e: any) => {
+        const links = this.props.model.getLinks() as DefaultLinkModel[];
+        let result: any = {};
+        for (let i = 0; i < links.length; i++) {
+            const link = links[i];
+            const sourcePort = link.getSourcePort();
+            const targetPort = link.getTargetPort();
+            if (sourcePort == null || targetPort == null) {
+                continue;
+            }
+            const sourceNode = sourcePort.getParent() as DefaultNodeModel;
+            const targetNode = targetPort.getParent() as DefaultNodeModel;
+
+            const link_id = link.getID().toString();
+            result[link_id] = {
+                "source": {
+                    "port": sourcePort.getOptions().name,
+                    "node": sourceNode.getOptions().name
+                },
+                "target": {
+                    "port": targetNode.getOptions().name,
+                    "node": targetNode.getOptions().name
+                }
+            }
+        }
+        console.log(result);
+
+        let pom = document.createElement('a');
+        pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(result)));
+        pom.setAttribute('download', "");
+        pom.click();
+    };
+
+    componentDidMount(): void {
+        this.fileSelector = this.buildFileSelector();
+    }
+
     render() {
-        const { engine } = this.props;
+        const {engine} = this.props;
         return (
             <div>
-                <Navbar bg="light" variant="light">
+                <Navbar bg="dark" variant="dark">
                     <Navbar.Brand href="#">Simulink AADL Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
-                        <Button variant={"primary"} onClick={this.addNodes}>Add Nodes</Button>
-                        {}
+                        <Button style={{marginRight: 10}} variant={"primary"} onClick={this.selectSimulinkFile}>Add
+                            Simulink</Button>
+                        <Button style={{marginRight: 10}} variant={"primary"} onClick={this.addNodes}>Add AADL</Button>
+                        <Button style={{marginRight: 10}} variant={"primary"} onClick={this.save}>Save</Button>
                     </Nav>
 
                     <Nav>
                         <Nav.Link href="#features">Readme</Nav.Link>
                         <Nav.Link href="#deets">Contact</Nav.Link>
                     </Nav>
+
                 </Navbar>
                 <CanvasWidget className="srd-diagram" engine={engine}/>
             </div>
@@ -63,6 +122,7 @@ export default () => {
     var node1 = new DefaultNodeModel('Node 1', 'rgb(0,192,255)');
     node1.setPosition(100, 100);
     let port1 = node1.addOutPort('Int Outdfdafdafadfadfadf');
+
 
     //3-B) create another default node
     var node2 = new DefaultNodeModel('Node 2', 'rgb(192,255,0)');
