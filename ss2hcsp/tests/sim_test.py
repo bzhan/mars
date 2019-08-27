@@ -123,7 +123,7 @@ class SimTest(unittest.TestCase):
         hp1_init = hp_parser.parse("t := 0")
         hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(x0, x0) == 0 ->
         (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
-        t%10 == 0 -> (x5 <= x0 -> (x6 := 1); x5 > x0 -> (x6 := 0)); ch_x6_0!x6;
+        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6;
         temp := t; <t_dot = 1 & t < temp+gcd(2, and)>""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
         discrete_hp1.name = "PD1"
@@ -180,7 +180,7 @@ class SimTest(unittest.TestCase):
 
         dis_init = hp_parser.parse("t := 0")
         dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> (x5 := (1-x3)*(-2.2));
-        t%8 == 0 -> (x6 := max(x1, x5)); t%10 == 0 -> (x6 <= x2 -> (x0 := 1); x6 > x2 -> (x0 := 0)); ch_x0_0!x0;
+        t%8 == 0 -> (x6 := max(x1, x5)); t%10 == 0 -> (x6 > x2 -> (x0 := 0); x6 <= x2 -> (x0 := 1)); ch_x0_0!x0;
         temp := t; <t_dot = 1 & t < temp+2>""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         discrete_hp.name = "PD0"
@@ -251,7 +251,7 @@ class SimTest(unittest.TestCase):
 
         dis_init = hp_parser.parse("t := 0")
         dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2); 
-        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 <= x3 -> (x0 := 1); x2 > x3 -> (x0 := 0)); 
+        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 > x3 -> (x0 := 0); x2 <= x3 -> (x0 := 1)); 
         ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         discrete_hp.name = "PD0"
@@ -270,7 +270,7 @@ class SimTest(unittest.TestCase):
         self.assertEqual(real_hp, expected_hp)
 
     def testHCS(self):
-        location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/hcs_test.xml"
+        location = "./ss2hcsp/case_studies/hcs_test.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
         # print(diagram)
@@ -302,19 +302,24 @@ class SimTest(unittest.TestCase):
     #     # print(diagram)
 
     def testStateflow(self):
-        location = "/Users/BEAR/Projects/mars/ss2hcsp/case_studies/loop.xml"
+        location = "./ss2hcsp/case_studies/sf_example.xml"
         # location = "/Users/BEAR/Desktop/Simulink Cases/sf_example.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_stateflow_xml()
         chart = list(diagram.charts.values())[0]
+        # print(chart.get_process())
+        for process in chart.get_process():
+            print(process.name + " ::= " + str(process))
         # print(chart)
         # print(chart.all_states)
         # state = chart.all_states["1"]
         # print(state)
-        # print(chart.execute_event(state=state))
+        # from ss2hcsp.sf.sf_chart import get_hps
+        # print(get_hps(chart.execute_event(state=state)))
+        # print(chart.all_states["4"].process)
         # for process in chart.get_monitor_process():
         #     print(process)
-        print(chart.get_process())
+        # print(chart.get_process())
         # for chart in diagram.charts.values():
         #     # print(chart)
         #     # print(chart.state.activate())

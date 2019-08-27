@@ -120,6 +120,7 @@ class Sequence(HCSP):
         """hps is a list of hybrid programs."""
         self.type = "sequence"
         assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 2
         self.hps = list(hps)  # type(hps) == tuple
 
     def __eq__(self, other):
@@ -256,6 +257,7 @@ class Parallel(HCSP):
         """hps is a list of hybrid programs."""
         self.type = "parallel"
         assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 2
         self.hps = list(hps)  # type(hps) == tuple
 
     def __eq__(self, other):
@@ -295,6 +297,7 @@ class SelectComm(HCSP):
         self.type = "select_comm"
         assert all(isinstance(hp, HCSP) for hp in hps)
         # assert all(is_comm_channel(hp) for hp in hps)
+        assert len(hps) >= 2
         self.hps = list(hps)  # type(hps) == tuple
 
     def __eq__(self, other):

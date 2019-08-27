@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.15</P>
+      <P Name="ComputedModelVersion">1.19</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -56,10 +56,10 @@
         <Object PropName="EditorsInfo" ObjectID="5" ClassName="Simulink.EditorInfo">
           <P Name="IsActive" Class="logical">1</P>
           <P Name="ViewObjType" Class="char">StateflowChart</P>
-          <P Name="LoadSaveID" Class="char">17</P>
+          <P Name="LoadSaveID" Class="char">1</P>
           <P Name="Extents" Class="double">[983.0, 533.0]</P>
-          <P Name="ZoomFactor" Class="double">1.0</P>
-          <P Name="Offset" Class="double">[48.430861532688141, 0.0]</P>
+          <P Name="ZoomFactor" Class="double">1.0101010101010102</P>
+          <P Name="Offset" Class="double">[-27.338999999999942, -92.362]</P>
         </Object>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*2">
           <Object ObjectID="6">
@@ -96,9 +96,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Aug 16 11:18:24 2019</P>
-      <P Name="RTWModifiedTimeStamp">487853954</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:15&gt;</P>
+      <P Name="LastModifiedDate">Tue Aug 27 14:33:44 2019</P>
+      <P Name="RTWModifiedTimeStamp">488817174</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:19&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1074,6 +1074,7 @@
         <P Name="SFBlockType">Chart</P>
         <System>
           <P Name="Location">[0, 23, 1280, 732]</P>
+          <P Name="Open">on</P>
           <P Name="SetDomainSpec">off</P>
           <P Name="DomainSpecType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1170,7 +1171,6 @@
         <P Name="ContentPreviewEnabled">on</P>
         <System>
           <P Name="Location">[0, 23, 1280, 732]</P>
-          <P Name="Open">on</P>
           <P Name="SetDomainSpec">off</P>
           <P Name="DomainSpecType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1260,7 +1260,7 @@
       <P Name="isLibrary">0</P>
       <P Name="sfVersion">80000014</P>
       <Children>
-        <target id="78" name="sfun">
+        <target id="81" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
         <chart id="42">
@@ -1271,7 +1271,7 @@
           <P Name="viewObj">42</P>
           <P Name="visible">1</P>
           <subviewS/>
-          <P Name="ssIdHighWaterMark">21</P>
+          <P Name="ssIdHighWaterMark">24</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">1</P>
           <P Name="allowGlobalAccessToExportedFunctions">0</P>
@@ -1369,7 +1369,7 @@ ex: x = 14</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <Children>
                 <state SSID="12">
-                  <P Name="labelString">In
+                  <P Name="labelString">Or
 en: x = 16
 du: x = 17
 ex: x = 18</P>
@@ -1419,6 +1419,33 @@ ex: x = 18</P>
                   </slide>
                   <P Name="executionOrder">1</P>
                 </transition>
+                <transition SSID="24">
+                  <P Name="labelString"/>
+                  <P Name="labelPosition">[748.405 285.69 0 0]</P>
+                  <P Name="fontSize">13</P>
+                  <src>
+                    <P Name="SSID">22</P>
+                    <P Name="intersection">[1 0 -1 0 738.4309 314 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">12</P>
+                    <P Name="intersection">[4 -1 0 0.3446 774 301 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[748.4054 303.6899]</P>
+                  <P Name="dataLimits">[738.431 774 298.6 314]</P>
+                  <P Name="subviewer">42</P>
+                  <P Name="drawStyle">SMART</P>
+                  <slide>
+                    <P Name="mode">MIRROR_SLIDE</P>
+                    <P Name="sticky">BOTH_STICK</P>
+                  </slide>
+                  <P Name="executionOrder">1</P>
+                </transition>
+                <junction SSID="22">
+                  <P Name="position">[738.4309 321 7]</P>
+                  <P Name="subviewer">42</P>
+                  <P Name="type">CONNECTIVE_JUNCTION</P>
+                </junction>
               </Children>
             </state>
             <data SSID="11" name="x">
@@ -1462,8 +1489,8 @@ ex: x = 18</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="16">
-              <P Name="labelString">[x&gt;=3]{x=19}</P>
-              <P Name="labelPosition">[347.733 143 75.531 15]</P>
+              <P Name="labelString">[x&gt;=3]{x=19}/{x=25}</P>
+              <P Name="labelPosition">[347.733 143 116.312 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">1</P>
@@ -1546,6 +1573,27 @@ ex: x = 18</P>
               </slide>
               <P Name="executionOrder">1</P>
             </transition>
+            <transition SSID="23">
+              <P Name="labelString">[x == 1]</P>
+              <P Name="labelPosition">[477.559 302.481 45.312 15]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="SSID">6</P>
+                <P Name="intersection">[2 1 0 0.867 277 319.961 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">22</P>
+                <P Name="intersection">[4 -1 0 0 731.4309 321 0 0]</P>
+              </dst>
+              <P Name="midPoint">[500.2154 320.4805]</P>
+              <P Name="dataLimits">[277 731.431 318.6 323.4]</P>
+              <P Name="subviewer">42</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
             <junction SSID="15">
               <P Name="position">[476 166 7]</P>
               <P Name="subviewer">42</P>
@@ -1553,17 +1601,19 @@ ex: x = 18</P>
             </junction>
           </Children>
         </chart>
-        <chart id="61">
+        <chart id="64">
           <P Name="name">my_sf</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-27.339 945.602 -92.362 435.183]</P>
+          <P Name="viewLimits">[-27.339 1202.241 -92.362 435.308]</P>
           <P Name="zoomFactor">0.99</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
-          <P Name="viewObj">61</P>
+          <P Name="viewObj">64</P>
+          <P Name="visible">1</P>
+          <subviewS/>
           <P Name="ssIdHighWaterMark">40</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -1578,7 +1628,7 @@ ex: x = 18</P>
 during:flag=0</P>
               <P Name="position">[261.7482 115.499 90 60]</P>
               <P Name="fontSize">12</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
             </state>
@@ -1587,7 +1637,7 @@ during:flag=0</P>
 during:flag=1;</P>
               <P Name="position">[571.7982 115.499 90 60]</P>
               <P Name="fontSize">12</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
             </state>
@@ -1596,7 +1646,7 @@ during:flag=1;</P>
 during:flag=1;</P>
               <P Name="position">[412 276.5 143 73.5]</P>
               <P Name="fontSize">12</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
             </state>
@@ -1697,8 +1747,8 @@ during:flag=1;</P>
               <P Name="dataType">double</P>
             </data>
             <transition SSID="18">
-              <P Name="labelString">[cansend]/{re_changes = re_changes - 1}</P>
-              <P Name="labelPosition">[255.498 75.999 221.688 16]</P>
+              <P Name="labelString">[cansend==1]/{re_changes = re_changes - 1}</P>
+              <P Name="labelPosition">[255.498 75.999 242.594 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">1</P>
@@ -1710,7 +1760,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[255.4982 93.999]</P>
               <P Name="dataLimits">[242.811 313.498 88.895 155.399]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="mode">MIRROR_SLIDE</P>
@@ -1719,8 +1769,8 @@ during:flag=1;</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="32">
-              <P Name="labelString">after(ResponseDelay,sec)</P>
-              <P Name="labelPosition">[421.36 106.658 139.625 16]</P>
+              <P Name="labelString">delay</P>
+              <P Name="labelPosition">[421.36 106.658 30.672 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">31</P>
@@ -1732,7 +1782,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[465.7732 130.6578]</P>
               <P Name="dataLimits">[351.748 571.798 128.258 133.058]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="sticky">BOTH_STICK</P>
@@ -1740,8 +1790,8 @@ during:flag=1;</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="34">
-              <P Name="labelString">[ACKNACK]/{re_changes = re_changes + 1}</P>
-              <P Name="labelPosition">[695.798 155.158 237.312 16]</P>
+              <P Name="labelString">[ACKNACK==1]/{re_changes = re_changes + 1}</P>
+              <P Name="labelPosition">[695.798 155.158 258.219 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">31</P>
@@ -1753,7 +1803,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[670.5482 181.0784]</P>
               <P Name="dataLimits">[631.298 679.619 136.258 186.788]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="mode">MIRROR_SLIDE</P>
@@ -1775,7 +1825,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[330.5749 269.4027]</P>
               <P Name="dataLimits">[301.298 412 175.499 321.558]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="mode">MIRROR_SLIDE</P>
@@ -1797,7 +1847,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[585.0483 258.7276]</P>
               <P Name="dataLimits">[555 588.115 175.499 303.158]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="mode">MIRROR_SLIDE</P>
@@ -1818,7 +1868,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[480.2982 242.5789]</P>
               <P Name="dataLimits">[477.898 482.698 216.658 276.5]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="sticky">BOTH_STICK</P>
@@ -1826,8 +1876,8 @@ during:flag=1;</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="24">
-              <P Name="labelString">[ACKNACK]/{re_changes = re_changes + 1}</P>
-              <P Name="labelPosition">[468.998 379 237.312 16]</P>
+              <P Name="labelString">[ACKNACK==1]/{re_changes = re_changes + 1}</P>
+              <P Name="labelPosition">[468.998 379 258.219 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">6</P>
@@ -1839,7 +1889,7 @@ during:flag=1;</P>
               </dst>
               <P Name="midPoint">[452.4982 398]</P>
               <P Name="dataLimits">[429.498 477.898 350 398.117]</P>
-              <P Name="subviewer">61</P>
+              <P Name="subviewer">64</P>
               <P Name="drawStyle">SMART</P>
               <slide>
                 <P Name="mode">MIRROR_SLIDE</P>
@@ -1851,15 +1901,15 @@ during:flag=1;</P>
         </chart>
       </Children>
     </machine>
-    <instance id="60">
+    <instance id="63">
       <P Name="machine">41</P>
       <P Name="name">other_sf</P>
       <P Name="chart">42</P>
     </instance>
-    <instance id="77">
+    <instance id="80">
       <P Name="machine">41</P>
       <P Name="name">my_sf</P>
-      <P Name="chart">61</P>
+      <P Name="chart">64</P>
     </instance>
   </Stateflow>
 </ModelInformation>
