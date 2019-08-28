@@ -9,25 +9,34 @@ import * as React from 'react';
 import {CanvasWidget} from '@projectstorm/react-canvas-core';
 
 import {Nav, Navbar, ButtonToolbar, Button, Container, Row, Col} from "react-bootstrap"
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import axios from "axios"
+import getRandomColor from "./color";
 
 class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramEngine }, any> {
     private reader = new FileReader();
     private fileSelector: any = null;
 
-    addNodes = () => {
-        const new_node = new DefaultNodeModel("new node", 'rgb(0,192,255)');
-        new_node.addInPort("indddddddddddddddddddddddddddd");
-        new_node.addOutPort("out");
-        new_node.addOutPort("out2");
+    addNodes = (port_info: any) => {
+        const node_name = port_info["name"];
+        const new_node = new DefaultNodeModel(node_name, getRandomColor());
+        for (let i = 0; i < port_info["in_port"].length; i++) {
+            new_node.addInPort("In name:" + port_info["in_port"][i]["name"] + " type: "+
+            port_info["in_port"][i]["type"])
+        }
+        for (let i = 0; i < port_info["out_port"].length; i++) {
+            new_node.addOutPort("Out name:" + port_info["out_port"][i]["name"] + " type: "+
+                port_info["out_port"][i]["type"])
+        }
         this.props.model.addNode(new_node);
         this.props.engine.repaintCanvas();
     };
 
     handleFiles = () => {
-        this.reader.onloadend = () => {
+        this.reader.onloadend = async () => {
             let text = this.reader.result as string;
+            const response = await axios.post("/get_simulink_port", text);
+            let port_info = response.data;
+            this.addNodes(port_info);
         };
         this.reader.readAsText(this.fileSelector.files[0]);
     };
@@ -44,7 +53,7 @@ class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramE
         this.fileSelector.click();
     };
 
-    selectAADLFile = (e: any) => {
+    selectAADLFile = async (e: any) => {
         this.fileSelector.click();
     };
 
@@ -94,7 +103,7 @@ class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramE
                     <Nav className="mr-auto">
                         <Button style={{marginRight: 10}} variant={"primary"} onClick={this.selectSimulinkFile}>Add
                             Simulink</Button>
-                        <Button style={{marginRight: 10}} variant={"primary"} onClick={this.addNodes}>Add AADL</Button>
+                        <Button style={{marginRight: 10}} variant={"primary"} onClick={this.selectAADLFile}>Add AADL</Button>
                         <Button style={{marginRight: 10}} variant={"primary"} onClick={this.save}>Save</Button>
                     </Nav>
 
@@ -118,25 +127,25 @@ export default () => {
     //2) setup the diagram model
     var model = new DiagramModel();
 
-    //3-A) create a default node
-    var node1 = new DefaultNodeModel('Node 1', 'rgb(0,192,255)');
-    node1.setPosition(100, 100);
-    let port1 = node1.addOutPort('Int Outdfdafdafadfadfadf');
-
-
-    //3-B) create another default node
-    var node2 = new DefaultNodeModel('Node 2', 'rgb(192,255,0)');
-    node2.setPosition(400, 100);
-    let port2 = node2.addInPort('In');
-
-    // link the ports
-
-    let link1 = port1.link<DefaultLinkModel>(port2);
-    link1.getOptions().testName = 'Test';
-    link1.addLabel('Hello World!');
-
-    //4) add the models to the root graph
-    model.addAll(node1, node2, link1);
+    // //3-A) create a default node
+    // var node1 = new DefaultNodeModel('Node 1', 'rgb(0,192,255)');
+    // node1.setPosition(100, 100);
+    // let port1 = node1.addOutPort('Int Outdfdafdafadfadfadf');
+    //
+    //
+    // //3-B) create another default node
+    // var node2 = new DefaultNodeModel('Node 2', 'rgb(192,255,0)');
+    // node2.setPosition(400, 100);
+    // let port2 = node2.addInPort('In');
+    //
+    // // link the ports
+    //
+    // let link1 = port1.link<DefaultLinkModel>(port2);
+    // link1.getOptions().testName = 'Test';
+    // link1.addLabel('Hello World!');
+    //
+    // //4) add the models to the root graph
+    // model.addAll(node1, node2, link1);
 
     //5) load model into engine
     engine.setModel(model);

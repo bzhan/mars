@@ -6,6 +6,7 @@ from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.server.simulator_service import process_multi as process_multi_service
 from ss2hcsp.server.simulator_service import step_multi as step_multi_service
+from ss2hcsp.server.get_port_service import get_port_service
 
 app = Flask(__name__)
 
@@ -101,6 +102,21 @@ def step_multi():
         result_hcsp_programs[program_id]["code"] = str(result_hcsp_programs[program_id]["code"])
 
     return json.dumps(result_hcsp_programs)
+
+@app.route('/get_simulink_port', methods=['POST'])
+def get_simulink_port():
+    simulink_code = request.get_data(as_text=True)
+    ports = get_port_service(simulink_code)
+    return json.dumps(ports)
+
+
+@app.route('/get_AADL_port', methods=['POST'])
+def get_AADL_port():
+    aadl_code = request.get_data(as_text=True)
+    ports = get_port_service(aadl_code)
+    return json.dumps(ports)
+
+
 
 
 if __name__ == '__main__':
