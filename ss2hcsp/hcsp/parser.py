@@ -14,6 +14,7 @@ grammar = r"""
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
+        | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
     ?atom_cond: expr "==" expr -> eq_cond
@@ -49,7 +50,7 @@ grammar = r"""
         | "(" cmd ")**" -> repeat_cmd
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
-        | "{" comm_cmd ("$" comm_cmd)* "}" -> select_comm
+        | "{" cmd ("$" cmd)* "}" -> select_comm
         | cond "->" "(" cmd ")" -> cond_cmd
 
     %import common.CNAME
@@ -93,6 +94,9 @@ class HPTransformer(Transformer):
 
     def gcd_expr(self, *exprs):
         return expr.FunExpr(fun_name="gcd", exprs=exprs)
+
+    def fun_expr(self, fun_name, *exprs):
+        return expr.FunExpr(fun_name, exprs)
 
     def eq_cond(self, e1, e2):
         return expr.RelExpr("==", e1, e2)

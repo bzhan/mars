@@ -35,8 +35,7 @@ from ss2hcsp.hcsp.parser import hp_parser
 
 def get_gcd(sample_times):
     assert isinstance(sample_times, list) and len(sample_times) >= 1
-    for st in sample_times:
-        assert isinstance(st, (int, float))
+    assert all(isinstance(st, (int, float)) for st in sample_times)
 
     if len(sample_times) == 1:
         return sample_times[0]
@@ -134,14 +133,14 @@ class SL_Diagram:
                     for act in acts:
                         assert "==" not in act
                         act = re.sub(pattern="=", repl=":=", string=act)
-                        hcsp = (lambda x: hp_parser.parse(x[x.index(":") + 1:].strip("; ")))(act)
-                        # state_act = (lambda x: x[x.index(":") + 1:].strip("; "))(act)
+                        # hcsp = (lambda x: hp_parser.parse(x[x.index(":") + 1:].strip("; ")))(act)
+                        state_acts = (lambda x: x[x.index(":") + 1:].strip("; ").split(";"))(act)
                         if act.startswith("en"):
-                            en = hcsp
+                            en = state_acts
                         elif act.startswith("du"):
-                            du = hcsp
+                            du = state_acts
                         elif act.startswith("ex"):
-                            ex = hcsp
+                            ex = state_acts
                         else:
                             raise RuntimeError("Error in state actions!")
 
