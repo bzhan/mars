@@ -1,11 +1,13 @@
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.hcsp.expr import AConst, AVar, RelExpr, FunExpr, PlusExpr, BExpr, conj
+from ss2hcsp.hcsp.expr import AConst, BExpr, conj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+import re
 
 
 def get_common_ancestor(state0, state1):
     if state0 == state1:
+        assert state0.father == state1.father
         return state0.father
 
     state_to_root = []
@@ -26,20 +28,50 @@ def get_hps(hps):  # get the process from a list of hps
         return hp.Skip()
 
     _hps = []
-    for _hp in hps:
-        assert _hp
-        if isinstance(_hp, hp.HCSP):
-            _hps.append(_hp)
-        elif isinstance(_hp, tuple):
-            assert len(_hp) == 2
-            cond = _hp[0]
+    for i in range(len(hps)):
+        assert hps[i]
+        if isinstance(hps[i], hp.HCSP):
+            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):
+                # For example, hps[i].expr.name = E_S1
+                state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
+                hps[i].expr.name = (lambda x: x[:x.index("_")])(hps[i].expr.name)  # E
+                assert hps[i + 1] == hp.HCSP(name="X")
+                _hps.extend(hps[i:i + 2])
+                if len(hps) - 1 >= i + 2:
+                    _hps.append(hp.Condition(cond=bexpr_parser.parse("a_" + state_name + " == 1"),
+                                             hp=get_hps(hps[i + 2:])))
+                break
+            else:
+                _hps.append(hps[i])
+        elif isinstance(hps[i], tuple):
+            assert len(hps[i]) == 2
+            cond = hps[i][0]
             assert isinstance(cond, BExpr)
-            _hps.append(hp.Condition(cond=cond, hp=get_hps(_hp[1])))
+            _hps.append(hp.Condition(cond=cond, hp=get_hps(hps[i][1])))
 
     if len(_hps) == 1:
         return _hps[0]
     else:
         return hp.Sequence(*_hps)
+
+
+def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simulink into a hcsp list
+    assert isinstance(acts, list)
+    assert all(isinstance(act, str) for act in acts)
+    assert isinstance(root, AND_State) and isinstance(location, (AND_State, OR_State))
+    hps = list()
+    # acts = action.split(";")
+    for act in acts:
+        if re.match(pattern="\\w+ *:=.+", string=act):  # an assigment
+            hps.append(hp_parser.parse(act))
+        elif re.match(pattern="\\w+", string=act):  # an event
+            event = act + "_" + location.name
+            root_num = re.findall(pattern="\\d+", string=root.name)
+            assert len(root_num) == 1
+            root_num = root_num[0]
+            hps.append(hp_parser.parse("BR" + root_num + "!" + event))
+            hps.append(hp.HCSP(name="X"))
+    return hps
 
 
 class SF_Chart:
@@ -51,6 +83,9 @@ class SF_Chart:
         assert self.state.ssid not in self.all_states
         self.all_states[self.state.ssid] = self.state
         self.add_names()
+        self.find_root_for_states()
+        self.find_root_and_loc_for_trans()
+        self.parse_acts_on_states_and_trans()
 
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.state))
@@ -80,29 +115,81 @@ class SF_Chart:
                 else:
                     raise RuntimeError("Error State!")
 
+    def find_root_for_states(self):  # get the root of each state in chart
+        def find_root_recursively(_state):
+            if isinstance(_state, (AND_State, OR_State)) and _state.father:
+                _state.root = _state.father.root
+                for _child in _state.children:
+                    find_root_recursively(_child)
+
+        if self.state.name == "S0":
+            for child in self.state.children:
+                assert isinstance(child, AND_State)
+                child.root = child
+                for grandchild in child.children:
+                    find_root_recursively(grandchild)
+        elif self.state.name == "S1":
+            for state in self.all_states.values():
+                state.root = self.state
+        else:
+            raise RuntimeError("add_names() should be executed in advance!")
+
+    def find_root_and_loc_for_trans(self):  # get root and location for each transition in chart
+        for state in self.all_states.values():
+            if hasattr(state, "default_tran") and state.default_tran:
+                state.default_tran.root = state.root
+                state.default_tran.location = state.father
+            if hasattr(state, "out_trans") and state.out_trans:
+                for tran in state.out_trans:
+                    tran.root = state.root
+                    src_state = self.all_states[tran.src]
+                    dst_state = self.all_states[tran.dst]
+                    tran.location = get_common_ancestor(src_state, dst_state)
+
+    def parse_acts_on_states_and_trans(self):
+        for state in self.all_states.values():
+            if isinstance(state, (AND_State, OR_State)):
+                if state.en:
+                    state.en = parse_act_into_hp(acts=state.en, root=state.root, location=state)
+                if state.du:
+                    state.du = parse_act_into_hp(acts=state.du, root=state.root, location=state)
+                if state.ex:
+                    state.ex = parse_act_into_hp(acts=state.ex, root=state.root, location=state)
+                if hasattr(state, "default_tran") and state.default_tran:
+                    assert not state.default_tran.tran_acts
+                    acts = state.default_tran.cond_acts
+                    root = state.default_tran.root
+                    location = state.default_tran.location
+                    state.default_tran.cond_acts = parse_act_into_hp(acts, root, location)
+                if hasattr(state, "out_trans") and state.out_trans:
+                    for tran in state.out_trans:
+                        tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
+                        tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
+
     def get_state_by_name(self, name):
         for state in self.all_states.values():
             if state.name == name:
                 return state
 
+    # State transition
     def execute_event(self, state, event_var="E"):
         hps = list()
         if isinstance(state, (OR_State, Junction)):
             for out_tran in state.out_trans:
-                event, condition, cond_act, tran_act = out_tran.parse()
-                conds = []
-                if event:
-                    conds.append(bexpr_parser.parse(event_var + " == " + event))
-                if condition:
-                    conds.append(condition)
+                # event, condition, cond_act, tran_act = out_tran.parse()
+                conds = list()
+                if out_tran.event:
+                    conds.append(bexpr_parser.parse(event_var + " == " + out_tran.event))
+                if out_tran.condition:
+                    conds.append(out_tran.condition)
                 conds.append(bexpr_parser.parse("done == 0"))
                 cond = conj(*conds) if len(conds) >= 2 else conds[0]
-                cond_act = [cond_act] if cond_act else []  # delete None
-                tran_act = [tran_act] if tran_act else []  # delete None
+                # cond_act = [cond_act] if cond_act else []  # delete None
+                # tran_act = [tran_act] if tran_act else []  # delete None
 
                 dst_state = self.all_states[out_tran.dst]
                 assert not isinstance(dst_state, AND_State)
-                dst_state.tran_acts = state.tran_acts + tran_act
+                dst_state.tran_acts = state.tran_acts + out_tran.tran_acts
                 common_ancestor = get_common_ancestor(state, dst_state)
                 assert common_ancestor == get_common_ancestor(dst_state, state)
                 descendant_exit = state.all_descendant_exit() if isinstance(state, OR_State) else []
@@ -111,33 +198,23 @@ class SF_Chart:
 
                 processes = list()
                 if isinstance(dst_state, OR_State):
-                    processes = cond_act + descendant_exit + exit_to_ancestor + dst_state.tran_acts + enter_into_dst \
-                                + [hp_parser.parse("done := 1")]
+                    processes = out_tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                                + enter_into_dst + [hp_parser.parse("done := 1")]
                 elif isinstance(dst_state, Junction):
                     if not dst_state.visited:  # hasn't been visited before
                         dst_state.visited = True
                         assert dst_state.process is None
                         dst_state.process = descendant_exit + exit_to_ancestor + enter_into_dst \
                                             + self.execute_event(state=dst_state, event_var=event_var)
-                        processes = cond_act + dst_state.process
+                        processes = out_tran.cond_acts + dst_state.process
                         dst_state.process = get_hps(dst_state.process)
                     else:  # visited before
-                        processes = cond_act + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                        processes = out_tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
                                     + enter_into_dst + [hp.HCSP(name=dst_state.name)]
                 if cond:
                     hps.append((cond, processes))
                 else:
                     hps.extend(processes)
-        # else:  # isinstance(state, AND_State)
-        #     if state.du:
-        #         hps.append(state.du)
-        #     for child in state.children:
-        #         if isinstance(child, AND_State):
-        #             hps.extend(self.execute_event(state=child, event_var=event_var))
-        #         elif isinstance(child, OR_State):
-        #             # activated = "a_" + child.ssid + "==1"
-        #             activated = child.activated()
-        #             hps.append((activated, self.execute_event(state=child, event_var=event_var)))
         return hps
 
     def get_monitor_process(self):
@@ -150,58 +227,19 @@ class SF_Chart:
         hp_M.name = "M"
 
         # Get M_main process
-        hp_M_main = hp.Condition(cond=RelExpr(op="==", expr1=AVar("num"), expr2=AConst(0)),
-                                 hp=hp.Sequence(hp.InputChannel(ch_name="tri", var_name=AVar("E")),
-                                                hp.Assign(var_name="EL", expr=AVar("[]")),
-                                                hp.Assign(var_name="NL", expr=AVar("[]")),
-                                                hp.Assign(var_name="EL", expr=FunExpr(fun_name="push",
-                                                                                      exprs=[AVar("EL"), AVar("E")])),
-                                                hp.Assign(var_name="NL", expr=FunExpr(fun_name="push",
-                                                                                      exprs=[AVar("NL"), AConst(1)])),
-                                                hp.Assign(var_name="num", expr=AConst(1))))
-        for num in range(1, state_num + 1):
+        hp_M_main = hp_parser.parse("num == 0 -> (tri?E; EL := E; NL := 1; num := 1)")
+        for i in range(1, state_num + 1):
+            i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp.Condition(cond=RelExpr(op="==", expr1=AVar("num"), expr2=AConst(num)),
-                                                 hp=hp.SelectComm(hp.OutputChannel(ch_name="BC" + str(num),
-                                                                                   expr=AVar("E")),
-                                                                  hp.Sequence(hp.InputChannel(ch_name="BR" + str(num),
-                                                                                              var_name=AVar("E")),
-                                                                              hp.Assign(var_name="EL",
-                                                                                        expr=FunExpr(fun_name="push",
-                                                                                                     exprs=[AVar("EL"), AVar("E")])),
-                                                                              hp.Assign(var_name="NL",
-                                                                                        expr=FunExpr(fun_name="push",
-                                                                                                     exprs=[AVar("NL"), AConst(1)])),
-                                                                              hp.Assign(var_name="num", expr=AConst(1))),
-                                                                  hp.Sequence(hp.InputChannel(ch_name="BO" + str(num)),
-                                                                              hp.Assign(var_name="num",
-                                                                                        expr=PlusExpr(signs="++",
-                                                                                                      exprs=[AVar("num"), AConst(1)])),
-                                                                              hp.Assign(var_name="NL",
-                                                                                        expr=FunExpr(fun_name="pop",
-                                                                                                     exprs=[AVar("NL")])),
-                                                                              hp.Assign(var_name="NL",
-                                                                                        expr=FunExpr(fun_name="push",
-                                                                                                     exprs=[AVar("NL"), AConst(num)])))
-                                                                  )))
+                                    hp_parser.parse("num == " + i + " -> ({BC" + i + "!E $ BR" + i
+                                                    + "?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
+                                                    + "?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)})"))
         hp_M_main = hp.Sequence(hp_M_main,
-                                hp.Condition(cond=RelExpr(op="==", expr1=AVar("num"), expr2=AConst(state_num + 1)),
-                                             hp=hp.Sequence(hp.Assign(var_name="EL", expr=FunExpr(fun_name="pop",
-                                                                                                  exprs=[AVar("EL")])),
-                                                            hp.Assign(var_name="NL", expr=FunExpr(fun_name="pop",
-                                                                                                  exprs=[AVar("NL")])),
-                                                            hp.Condition(cond=RelExpr(op="==", expr1=AVar("EL"), expr2=AVar("[]")),
-                                                                         hp=hp.Assign(var_name="num", expr=AConst(0))),
-                                                            hp.Condition(cond=RelExpr(op="!=", expr1=AVar("EL"), expr2=AVar("[]")),
-                                                                         hp=hp.Sequence(hp.Assign(var_name="E",
-                                                                                                  expr=FunExpr(fun_name="top",
-                                                                                                               exprs=[AVar("EL")])),
-                                                                                        hp.Assign(var_name="num",
-                                                                                                  expr=FunExpr(fun_name="top",
-                                                                                                               exprs=[AVar("NL")])))))))
+                                hp_parser.parse("num == " + str(state_num + 1) +
+                                                " -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0);"
+                                                " EL != NULL -> (E := top(EL); num := top(NL)))"))
         hp_M_main.name = "M_main"
         return hp_M, hp_M_main, state_num
-        # print("M_main = ", hp_M_main)
 
     def get_process(self, event_var="E"):
         def get_S_du_and_P_diag(_state, _hps):
@@ -210,7 +248,7 @@ class SF_Chart:
             _p_diag_name = "Diag_" + _state.name
 
             if _state.du:  # add dur
-                _s_du.append(_state.du)
+                _s_du.extend(_state.du)
             if _state.children:
                 _s_du.append(hp.HCSP(name=_p_diag_name))  # P_diag
 
@@ -271,15 +309,12 @@ class SF_Chart:
             assert s_i.name == "S" + str(i)
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_event(state=s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
-            assert p_diag == [] or all(isinstance(s, hp.HCSP) for s in p_diag)
+            assert all(isinstance(s, hp.HCSP) for s in p_diag)
 
-            # S_i = s_i_proc
-            s_i_proc = hp.Sequence(get_hps(s_i.activate()),
-                                   hp.Loop(hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var),
-                                                       s_du,  # S_du
-                                                       hp.OutputChannel(ch_name="BO" + str(i)))))
-            s_i_proc.name = s_i.name
-            processes.append(s_i_proc)
+            # Body of process S_i
+            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var),
+                                   s_du,  # S_du
+                                   hp.OutputChannel(ch_name="BO" + str(i)))
 
             # P_diag = p_diag_proc
             if p_diag:
@@ -289,7 +324,20 @@ class SF_Chart:
                 processes.append(p_diag_proc)
                 analyse_P_diag(p_diag)  # analyse P_diag recursively
 
-            i += 1
+            # Check if there is an X in the processes
+            # If so, then there is an event triggered inner the states,
+            # which means process S_i is recursive.
+            has_X = False
+            for process in processes:
+                if hp.HCSP(name="X") in hp.decompose(process):
+                    has_X = True
+                    s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Recursion(s_i_proc))
+                    break
+            if not has_X:
+                s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Loop(s_i_proc))
+            s_i_proc.name = s_i.name
+            # The output order is after D, M and M_main
+            processes.insert(3, s_i_proc)
 
-        assert all((hasattr(process, "name")) for process in processes)
+            i += 1
         return processes

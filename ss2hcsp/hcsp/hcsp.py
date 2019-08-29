@@ -9,6 +9,9 @@ class HCSP:
         self.type = ""
         self.name = name
 
+    def __eq__(self, other):
+        return self.type == other.type and self.name == other.name
+
     def __repr__(self):
         return str(self)
 
@@ -17,7 +20,8 @@ class HCSP:
 
 
 class Skip(HCSP):
-    def __init__(self):
+    def __init__(self, name=""):
+        super(Skip, self).__init__(name)
         self.type = "skip"
 
     def __eq__(self, other):
@@ -31,7 +35,8 @@ class Skip(HCSP):
 
 
 class Wait(HCSP):
-    def __init__(self, delay):
+    def __init__(self, delay, name=""):
+        super(Wait, self).__init__(name)
         self.type = "wait"
         self.delay = delay
 
@@ -46,7 +51,8 @@ class Wait(HCSP):
 
 
 class Assign(HCSP):
-    def __init__(self, var_name, expr):
+    def __init__(self, var_name, expr, name=""):
+        super(Assign, self).__init__(name)
         self.type = "assign"
         assert isinstance(var_name, str) and isinstance(expr, AExpr)
         self.var_name = var_name  # string
@@ -63,7 +69,8 @@ class Assign(HCSP):
 
 
 class InputChannel(HCSP):
-    def __init__(self, ch_name, var_name=None):
+    def __init__(self, ch_name, var_name=None, name=""):
+        super(InputChannel, self).__init__(name)
         self.type = "input_channel"
         # assert isinstance(ch_name, str) and isinstance(var_name, str)
         assert isinstance(ch_name, str)
@@ -88,7 +95,8 @@ class InputChannel(HCSP):
 
 
 class OutputChannel(HCSP):
-    def __init__(self, ch_name, expr=None):
+    def __init__(self, ch_name, expr=None, name=""):
+        super(OutputChannel, self).__init__(name)
         self.type = "output_channel"
         # assert isinstance(ch_name, str) and isinstance(expr, AExpr)
         assert isinstance(ch_name, str)
@@ -100,7 +108,7 @@ class OutputChannel(HCSP):
 
     def __repr__(self):
         if self.expr == AExpr():
-            return "OutputC(%s,%s)" % (self.ch_name, self.expr)
+            return "OutputC(%s, %s)" % (self.ch_name, self.expr)
         else:
             return "OutputC(%s)" % self.ch_name
 
@@ -116,7 +124,8 @@ def is_comm_channel(hp):
 
 
 class Sequence(HCSP):
-    def __init__(self, *hps):
+    def __init__(self, *hps, name=""):
+        super(Sequence, self).__init__(name)
         """hps is a list of hybrid programs."""
         self.type = "sequence"
         assert all(isinstance(hp, HCSP) for hp in hps)
@@ -139,7 +148,8 @@ class ODE(HCSP):
     <F(s',s) = 0 & B> |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip()):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), name=""):
+        super(ODE, self).__init__(name)
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -176,7 +186,8 @@ class ODE_Comm(HCSP):
     <F(s',s) = 0 & B> |> [] (io_i --> Q_i)
 
     """
-    def __init__(self, eqs, constraint, io_comms):
+    def __init__(self, eqs, constraint, io_comms, name=""):
+        super(ODE_Comm, self).__init__(name)
         """Each equation is of the form (var_name, expr). Each element
         of io_comms is of the form (comm_hp, out_hp), where comm_hp
         is a communication process (either InputChannel or OutputChannel).
@@ -216,7 +227,8 @@ class ODE_Comm(HCSP):
 
 class Loop(HCSP):
     """Represents an infinite loop of a program."""
-    def __init__(self, hp):
+    def __init__(self, hp, name=""):
+        super(Loop, self).__init__(name)
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp  # hcsp
@@ -234,7 +246,8 @@ class Loop(HCSP):
 class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;
      otherwise, it terminates immediately."""
-    def __init__(self, cond, hp):
+    def __init__(self, cond, hp, name=""):
+        super(Condition, self).__init__(name)
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
         assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
@@ -253,7 +266,8 @@ class Condition(HCSP):
 
 
 class Parallel(HCSP):
-    def __init__(self, *hps):
+    def __init__(self, *hps, name=""):
+        super(Parallel, self).__init__(name)
         """hps is a list of hybrid programs."""
         self.type = "parallel"
         assert all(isinstance(hp, HCSP) for hp in hps)
@@ -275,7 +289,8 @@ class Definition(HCSP):
     otherwise, it terminates immediately.
     
     """
-    def __init__(self, hp1, hp2):
+    def __init__(self, hp1, hp2, name=""):
+        super(Definition, self).__init__(name)
         assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
         self.type = "definition"
         self.hp1 = hp1
@@ -292,7 +307,8 @@ class Definition(HCSP):
 
 
 class SelectComm(HCSP):
-    def __init__(self, *hps):
+    def __init__(self, *hps, name=""):
+        super(SelectComm, self).__init__(name)
         """hps is a list of hybrid programs."""
         self.type = "select_comm"
         assert all(isinstance(hp, HCSP) for hp in hps)
@@ -308,3 +324,42 @@ class SelectComm(HCSP):
 
     def __str__(self):
         return " { " + " $ ".join(str(hp) for hp in self.hps) + " } "
+
+
+class Recursion(HCSP):
+    def __init__(self, hp, entry="X", name=""):
+        super(Recursion, self).__init__(name)
+        assert isinstance(entry, str) and isinstance(hp, HCSP)
+        # assert HCSP(name=entry) in decompose(hp)
+        self.type = "recursion"
+        self.entry = entry
+        self.hp = hp
+
+    def __eq__(self, other):
+        return self.type == other.type and self.entry == other.entry and self.hp == other.hp
+
+    def __repr__(self):
+        return "Recrusion(%s, %s)" % (self.entry, repr(self.hp))
+
+    def __str__(self):
+        return "rec " + self.entry + ".(" + str(self.hp) + ")"
+
+
+def decompose(hcsp):  # decompose a hcsp into a list of atomic hcsps
+    atomic_hps = list()
+    if isinstance(hcsp, (Sequence, Parallel, SelectComm)):
+        for sub_hp in hcsp.hps:
+            atomic_hps.extend(decompose(sub_hp))
+    elif isinstance(hcsp, (Loop, Condition, Recursion)):
+        atomic_hps.extend(decompose(hcsp.hp))
+    elif isinstance(hcsp, ODE):
+        atomic_hps.extend(decompose(hcsp.out_hp))
+    elif isinstance(hcsp, ODE_Comm):
+        for io_comm in hcsp.io_comms:
+            atomic_hps.extend(io_comm[1])
+    else:
+        atomic_hps.append(hcsp)
+
+    assert all(isinstance(hcsp, (Skip, Assign, InputChannel, OutputChannel))
+               or hcsp.__class__ == HCSP for hcsp in atomic_hps)
+    return atomic_hps

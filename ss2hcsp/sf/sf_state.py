@@ -1,4 +1,3 @@
-from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 
 
@@ -10,7 +9,8 @@ class SF_State:
         self.du = du  # during
         self.ex = ex  # exit
         self.father = None
-        self.children = []
+        self.children = list()
+        self.root = None
 
     def __eq__(self, other):
         return self.ssid == other.ssid
@@ -53,19 +53,20 @@ class SF_State:
 
     def activate(self):  # return a list of hps
         hps = list()
-        if isinstance(self, OR_State):
-            hps.append(self._activate())  # turn on
+        # if isinstance(self, OR_State):
+        hps.append(self._activate())  # turn on
         if self.en:
-            hps.append(self.en)
+            hps.extend(self.en)
         # Activate children
         for child in self.children:
             if isinstance(child, (AND_State, Junction)):
+                # hps.append(child._activate())
                 hps.extend(child.activate())
             elif isinstance(child, OR_State) and child.default_tran:
                 # Activate the state with default transition
-                _, _, cond_act, _ = child.default_tran.parse()
-                if cond_act:
-                    hps.append(cond_act)
+                # _, _, cond_act, _ = child.default_tran.parse()
+                if child.default_tran.cond_acts:
+                    hps.extend(child.default_tran.cond_acts)
                 hps.extend(child.activate())
                 break
         hps = [_hp for _hp in hps if _hp]  # delete Nones
@@ -77,11 +78,12 @@ class SF_State:
             if isinstance(child, AND_State):
                 hps.extend(child.all_descendant_exit())
                 if child.ex:
-                    hps.append(child.ex)
+                    hps.extend(child.ex)
+                hps.append(child._exit())
             elif isinstance(child, OR_State):
                 child_exit_hps = child.all_descendant_exit()
                 if child.ex:
-                    child_exit_hps.append(child.ex)
+                    child_exit_hps.extend(child.ex)
                 child_exit_hps.append(child._exit())  # turn off
                 hps.append((child.activated(), child_exit_hps))
         return hps
@@ -91,7 +93,7 @@ class SF_State:
         assert isinstance(ancestor, (AND_State, OR_State))
         hps = list()
         if self.ex:
-            hps.append(self.ex)
+            hps.extend(self.ex)
         hps.append(self._exit())  # turn off
         if self.father != ancestor:
             hps.extend(self.father.exit_to(ancestor))
@@ -101,7 +103,6 @@ class SF_State:
         assert isinstance(self, (AND_State, OR_State))
         assert isinstance(descendant, (OR_State, Junction))
         # assert self.is_ancestor_of(descendant)
-        # assert self.activated
         ancestor_chain = []  # from descendant to self
         cursor = descendant
         while cursor != self:
@@ -115,7 +116,7 @@ class SF_State:
             assert isinstance(state, OR_State)
             hps.append(self._activate())  # turn on
             if state.en:
-                hps.append(state.en)
+                hps.extend(state.en)
         if isinstance(descendant, OR_State):
             hps.extend(descendant.activate())
         return hps
@@ -128,8 +129,7 @@ class SF_State:
             descendants[child.ssid] = child
             if isinstance(child, (AND_State, OR_State)):
                 child_descendants = child.get_all_descendants()
-                for ssid in child_descendants.keys():
-                    assert ssid not in descendants
+                assert all(ssid not in descendants for ssid in child_descendants.keys())
                 descendants.update(child_descendants)
         return descendants
 
@@ -190,14 +190,6 @@ class Junction:
         for tran in self.out_trans:
             result += str(tran) + "(" + tran.dst + ")\n"
         return result
-
-    # def activate(self):
-    #     # assert not self.actatived
-    #     self.actatived = True
-    #
-    # def exit(self):
-    #     # assert self.actatived
-    #     self.actatived = False
 
     def exit_to(self, ancestor):  # return a list of hps
         assert isinstance(ancestor, (AND_State, OR_State))

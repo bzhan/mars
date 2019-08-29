@@ -302,8 +302,8 @@ class SimTest(unittest.TestCase):
     #     # print(diagram)
 
     def testStateflow(self):
-        location = "./ss2hcsp/case_studies/sf_example.xml"
-        # location = "/Users/BEAR/Desktop/Simulink Cases/sf_example.xml"
+        location = "./ss2hcsp/case_studies/early_exit.xml"
+        # location = "/Users/BEAR/Desktop/Simulink Cases/infinite.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_stateflow_xml()
         chart = list(diagram.charts.values())[0]
