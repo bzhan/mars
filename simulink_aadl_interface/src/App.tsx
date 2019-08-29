@@ -15,17 +15,16 @@ import getRandomColor from "./color";
 class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramEngine }, any> {
     private reader = new FileReader();
     private fileSelector: any = null;
+    private fileType: string = "simulink";
 
     addNodes = (port_info: any) => {
-        const node_name = port_info["name"];
+        const node_name = port_info["model_name"];
         const new_node = new DefaultNodeModel(node_name, getRandomColor());
-        for (let i = 0; i < port_info["in_port"].length; i++) {
-            new_node.addInPort("In name:" + port_info["in_port"][i]["name"] + " type: "+
-            port_info["in_port"][i]["type"])
+        for (let i = 0; i < port_info["Inport"].length; i++) {
+            new_node.addInPort("In name:" + port_info["Inport"][i])
         }
-        for (let i = 0; i < port_info["out_port"].length; i++) {
-            new_node.addOutPort("Out name:" + port_info["out_port"][i]["name"] + " type: "+
-                port_info["out_port"][i]["type"])
+        for (let i = 0; i < port_info["Outport"].length; i++) {
+            new_node.addOutPort("Out name:" + port_info["Outport"][i])
         }
         this.props.model.addNode(new_node);
         this.props.engine.repaintCanvas();
@@ -34,7 +33,12 @@ class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramE
     handleFiles = () => {
         this.reader.onloadend = async () => {
             let text = this.reader.result as string;
-            const response = await axios.post("/get_simulink_port", text);
+            let response:any = null;
+            if (this.fileType === 'simulink') {
+                response = await axios.post("/get_simulink_port", text);
+            }else{
+                response = await axios.post("/get_AADL_port", text);
+            }
             let port_info = response.data;
             this.addNodes(port_info);
         };
@@ -50,10 +54,12 @@ class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramE
     };
 
     selectSimulinkFile = (e: any) => {
+        this.fileType = "simulink";
         this.fileSelector.click();
     };
 
     selectAADLFile = async (e: any) => {
+        this.fileType = "aadl";
         this.fileSelector.click();
     };
 
