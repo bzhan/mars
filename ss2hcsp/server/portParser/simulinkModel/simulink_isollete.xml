@@ -930,18 +930,18 @@
         <P Name="ZOrder">28</P>
         <P Name="IconDisplay">Port number</P>
       </Block>
-      <Block BlockType="Constant" Name="Constant" SID="29">
-        <P Name="Position">[195, 215, 225, 245]</P>
-        <P Name="ZOrder">25</P>
-        <P Name="Value">97</P>
-      </Block>
-      <Block BlockType="Constant" Name="Constant1" SID="30">
-        <P Name="Position">[195, 270, 225, 300]</P>
-        <P Name="ZOrder">26</P>
-        <P Name="Value">100</P>
-      </Block>
+      <!--<Block BlockType="Constant" Name="Constant" SID="29">-->
+        <!--<P Name="Position">[195, 215, 225, 245]</P>-->
+        <!--<P Name="ZOrder">25</P>-->
+        <!--<P Name="Value">97</P>-->
+      <!--</Block>-->
+      <!--<Block BlockType="Constant" Name="Constant1" SID="30">-->
+        <!--<P Name="Position">[195, 270, 225, 300]</P>-->
+        <!--<P Name="ZOrder">26</P>-->
+        <!--<P Name="Value">100</P>-->
+      <!--</Block>-->
       <Block BlockType="SubSystem" Name="Subsystem" SID="13">
-        <P Name="Ports">[3, 1]</P>
+        <P Name="Ports">[1, 1]</P>
         <P Name="Position">[300, 195, 340, 255]</P>
         <P Name="ZOrder">-21</P>
         <P Name="RequestExecContextInheritance">off</P>
@@ -958,18 +958,18 @@
             <P Name="ZOrder">12</P>
             <P Name="IconDisplay">Port number</P>
           </Block>
-          <Block BlockType="Inport" Name="In2" SID="17">
-            <P Name="Position">[210, 158, 240, 172]</P>
-            <P Name="ZOrder">14</P>
-            <P Name="Port">2</P>
-            <P Name="IconDisplay">Port number</P>
-          </Block>
-          <Block BlockType="Inport" Name="In3" SID="18">
-            <P Name="Position">[450, 153, 480, 167]</P>
-            <P Name="ZOrder">15</P>
-            <P Name="Port">3</P>
-            <P Name="IconDisplay">Port number</P>
-          </Block>
+          <!--<Block BlockType="Inport" Name="In2" SID="17">-->
+            <!--<P Name="Position">[210, 158, 240, 172]</P>-->
+            <!--<P Name="ZOrder">14</P>-->
+            <!--<P Name="Port">2</P>-->
+            <!--<P Name="IconDisplay">Port number</P>-->
+          <!--</Block>-->
+          <!--<Block BlockType="Inport" Name="In3" SID="18">-->
+            <!--<P Name="Position">[450, 153, 480, 167]</P>-->
+            <!--<P Name="ZOrder">15</P>-->
+            <!--<P Name="Port">3</P>-->
+            <!--<P Name="IconDisplay">Port number</P>-->
+          <!--</Block>-->
           <Block BlockType="Constant" Name="Constant" SID="5">
             <P Name="Position">[145, 20, 175, 50]</P>
             <P Name="ZOrder">5</P>
@@ -1096,22 +1096,22 @@
               <P Name="DstPort">2</P>
             </Branch>
           </Line>
-          <Line>
-            <P Name="ZOrder">16</P>
-            <P Name="SrcBlock">In2</P>
-            <P Name="SrcPort">1</P>
-            <P Name="Points">[31, 0; 0, -80]</P>
-            <P Name="DstBlock">Integrator</P>
-            <P Name="DstPort">2</P>
-          </Line>
-          <Line>
-            <P Name="ZOrder">17</P>
-            <P Name="SrcBlock">In3</P>
-            <P Name="SrcPort">1</P>
-            <P Name="Points">[30, 0; 0, -75]</P>
-            <P Name="DstBlock">Integrator1</P>
-            <P Name="DstPort">2</P>
-          </Line>
+          <!--<Line>-->
+            <!--<P Name="ZOrder">16</P>-->
+            <!--<P Name="SrcBlock">In2</P>-->
+            <!--<P Name="SrcPort">1</P>-->
+            <!--<P Name="Points">[31, 0; 0, -80]</P>-->
+            <!--<P Name="DstBlock">Integrator</P>-->
+            <!--<P Name="DstPort">2</P>-->
+          <!--</Line>-->
+          <!--<Line>-->
+            <!--<P Name="ZOrder">17</P>-->
+            <!--<P Name="SrcBlock">In3</P>-->
+            <!--<P Name="SrcPort">1</P>-->
+            <!--<P Name="Points">[30, 0; 0, -75]</P>-->
+            <!--<P Name="DstBlock">Integrator1</P>-->
+            <!--<P Name="DstPort">2</P>-->
+          <!--</Line>-->
         </System>
       </Block>
       <Block BlockType="Outport" Name="Out1" SID="28">
@@ -1126,22 +1126,22 @@
         <P Name="DstBlock">Out1</P>
         <P Name="DstPort">1</P>
       </Line>
-      <Line>
-        <P Name="ZOrder">28</P>
-        <P Name="SrcBlock">Constant</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[33, 0; 0, -5]</P>
-        <P Name="DstBlock">Subsystem</P>
-        <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">29</P>
-        <P Name="SrcBlock">Constant1</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[33, 0; 0, -40]</P>
-        <P Name="DstBlock">Subsystem</P>
-        <P Name="DstPort">3</P>
-      </Line>
+      <!--<Line>-->
+        <!--<P Name="ZOrder">28</P>-->
+        <!--<P Name="SrcBlock">Constant</P>-->
+        <!--<P Name="SrcPort">1</P>-->
+        <!--<P Name="Points">[33, 0; 0, -5]</P>-->
+        <!--<P Name="DstBlock">Subsystem</P>-->
+        <!--<P Name="DstPort">2</P>-->
+      <!--</Line>-->
+      <!--<Line>-->
+        <!--<P Name="ZOrder">29</P>-->
+        <!--<P Name="SrcBlock">Constant1</P>-->
+        <!--<P Name="SrcPort">1</P>-->
+        <!--<P Name="Points">[33, 0; 0, -40]</P>-->
+        <!--<P Name="DstBlock">Subsystem</P>-->
+        <!--<P Name="DstPort">3</P>-->
+      <!--</Line>-->
       <Line>
         <P Name="ZOrder">30</P>
         <P Name="SrcBlock">In1</P>
