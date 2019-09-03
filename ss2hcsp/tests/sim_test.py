@@ -301,6 +301,16 @@ class SimTest(unittest.TestCase):
     #     print(real_hp)
     #     # print(diagram)
 
+    def testIsollete(self):
+        location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
+        diagram = SL_Diagram(location=location)
+        diagram.parse_xml()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
+        real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+        print(real_hp)
+
     def testStateflow(self):
         location = "./ss2hcsp/case_studies/early_exit.xml"
         # location = "/Users/BEAR/Desktop/Simulink Cases/infinite.xml"
