@@ -83,13 +83,13 @@ class MainCanvas extends React.Component<{ model: DiagramModel; engine: DiagramE
                     "node": sourceNode.getOptions().name
                 },
                 "target": {
-                    "port": targetNode.getOptions().name,
+                    "port": targetPort.getOptions().name,
                     "node": targetNode.getOptions().name
                 }
             }
         }
         console.log(result);
-
+        //save to file
         let pom = document.createElement('a');
         pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(result)));
         pom.setAttribute('download', "");
