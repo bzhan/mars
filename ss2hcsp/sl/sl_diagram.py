@@ -17,8 +17,6 @@ from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-# from ss2hcsp.sl.parse_xml import get_attribute_value, get_children_info
-from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
@@ -30,7 +28,6 @@ import re
 import operator
 
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
-from ss2hcsp.hcsp.parser import hp_parser
 
 
 def get_gcd(sample_times):
@@ -234,14 +231,14 @@ class SL_Diagram:
                 # init_value = eval(init_value) if init_value else 0
                 self.add_block(block=Integrator(name=block_name, init_value=eval(init_value)))
             elif block_type == "Logic":  # AND, OR, NOT
-                operator = get_attribute_value(block=block, attribute="Operator")
+                _operator = get_attribute_value(block=block, attribute="Operator")
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 num_dest = int(inputs) if inputs else 2
-                if operator == "OR":
+                if _operator == "OR":
                     self.add_block(block=Or(name=block_name, num_dest=num_dest))
-                elif operator == "NOT":
+                elif _operator == "NOT":
                     self.add_block(block=Not(name=block_name))
-                else:  # operator == None, meaning it is an AND block
+                else:  # _operator == None, meaning it is an AND block
                     self.add_block(block=And(name=block_name, num_dest=num_dest))
             elif block_type == "RelationalOperator":
                 # operator_relation = {"&gt;": ">", "&gt;=": ">=", "&lt;": "<", "&lt;=": "<=", "~=": "!=", "==": "=="}
@@ -402,15 +399,13 @@ class SL_Diagram:
                 if block.st == -1:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
-                        if line.src in self.blocks_dict and self.blocks_dict[line.src].st != -1:
-                            in_block = self.blocks_dict[line.src]
+                        in_block = self.blocks_dict[line.src]
+                        if isinstance(in_block.st, (int, float)) and in_block.st >= 0:
                             in_st.append(in_block.st)
                         else:
                             in_st = None
                             break
                     if in_st:
-                        # in_st = [int(st) for st in in_st]
-                        # block.st = reduce(gcd, in_st) if len(in_st) >= 2 else in_st[0]
                         block.st = get_gcd(sample_times=in_st)
                         if block.st == 0:
                             block.is_continuous = True
@@ -422,23 +417,17 @@ class SL_Diagram:
                 known_in_st = []  # list of known sample times of inputs of the block
                 unknown_in_st = []  # list of unknown sample times of inputs of the block
                 for line in block.dest_lines:
-                    if line.src in self.blocks_dict:
-                        in_block = self.blocks_dict[line.src]
-                        # if re.match("\\d+", self.blocks_dict[line.src]):
-                        if re.match("\\d+", str(in_block.st)):
-                            known_in_st.append(in_block.st)
-                        else:
-                            unknown_in_st.append(AVar(in_block.name))
-                    else:  # in_block is a port, deleted at the begining
-                        unknown_in_st.append(AVar(line.name))
+                    in_block = self.blocks_dict[line.src]
+                    if isinstance(in_block.st, (int, float)) and in_block.st >= 0:
+                        known_in_st.append(in_block.st)
+                    else:
+                        unknown_in_st.append(AVar(in_block.name))
                 if known_in_st:
                     known_in_st = [AConst(get_gcd(sample_times=known_in_st))]
-                    # known_in_st = [AConst(reduce(gcd, known_in_st) if len(known_in_st) >= 2 else known_in_st[0])]
                 known_in_st.extend(unknown_in_st)
                 if len(known_in_st) == 1:
                     block.st = known_in_st[0]
                 else:  # len(known_in_st) >= 2
-                    # block.st = "gcd(" + ", ".join(unknown_in_st) + ")"
                     block.st = FunExpr(fun_name="gcd", exprs=known_in_st)
         # Deal with unit_delay and constant blocks
         for block in self.blocks_dict.values():
@@ -452,9 +441,3 @@ class SL_Diagram:
             elif block.type == "constant":
                 dest_block = self.blocks_dict[block.src_lines[0][0].dest]
                 block.is_continuous = dest_block.is_continuous
-
-    def delete_ports(self):
-        for block in self.blocks:
-            if block.type == "in_port" or block.type == "out_port":
-                del self.blocks_dict[block.name]
-        self.blocks = self.blocks_dict.values()

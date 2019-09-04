@@ -350,7 +350,8 @@ def translate_discrete(diag):
 
 def seperate_diagram(blocks_dict):
     """Seperate a diagram into discrete and continous subdiagrams."""
-    blocks_dict = blocks_dict.copy()
+    # delete in and out-ports
+    blocks_dict = {name: block for name, block in blocks_dict.items() if block.type not in ['in_port', 'out_port']}
 
     # Seperating: search SCC by BFS
     discrete_subdiagrams = []

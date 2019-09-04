@@ -49,7 +49,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line("switch1", "out0", 0, 0)
         diagram.add_line_name()
         # print(diagram)
-        diagram.delete_ports()
+        # diagram.delete_ports()
         diagram.comp_inher_st()
         # print(diagram)
         dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
@@ -70,8 +70,6 @@ class SimTest(unittest.TestCase):
         expected_hp.continuous_processes = [continuous_hp]
         # print("E: ", expected_hp)
         self.assertEqual(real_hp, expected_hp)
-        # print("-" * 50)
-        # get_hp.seperate_diagram(diagram.blocks_dict)
 
     def testVanPerPol_discrete(self):
         diagram = SL_Diagram()
@@ -104,13 +102,9 @@ class SimTest(unittest.TestCase):
         diagram.add_line(src="in4", dest="switch", src_port=0, dest_port=2)
         diagram.add_line(src="switch", dest="out1", src_port=0, dest_port=0)
 
-        # print(diagram)
         diagram.add_line_name()
-        diagram.delete_ports()
         diagram.comp_inher_st()
-        # print(diagram)
         discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
-        # print(discrete_subdiagrams_sorted, continuous_subdiagrams)
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
         # print("R: ", real_hp)
 
@@ -121,7 +115,7 @@ class SimTest(unittest.TestCase):
         discrete_hp0.name = "PD0"
 
         hp1_init = hp_parser.parse("t := 0")
-        hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(x0, x0) == 0 ->
+        hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(in0, in0) == 0 ->
         (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
         t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6;
         temp := t; <t_dot = 1 & t < temp+gcd(2, and)>""")
@@ -278,7 +272,7 @@ class SimTest(unittest.TestCase):
         # print(diagram)
         diagram.add_line_name()
         # print(diagram)
-        diagram.delete_ports()
+        # diagram.delete_ports()
         diagram.comp_inher_st()
         # print(diagram)
         dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
@@ -302,9 +296,10 @@ class SimTest(unittest.TestCase):
     #     # print(diagram)
 
     def testIsollete(self):
-        location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
+        location = "/Users/BEAR/Projects/mars/ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
+        get_hp.delete_subsystems(diagram.blocks_dict)
         diagram.add_line_name()
         diagram.comp_inher_st()
         dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
@@ -318,8 +313,8 @@ class SimTest(unittest.TestCase):
         diagram.parse_stateflow_xml()
         chart = list(diagram.charts.values())[0]
         # print(chart.get_process())
-        for process in chart.get_process():
-            print(process.name + " ::= " + str(process))
+        # for process in chart.get_process():
+        #     print(process.name + " ::= " + str(process))
         # print(chart)
         # print(chart.all_states)
         # state = chart.all_states["1"]
