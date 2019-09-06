@@ -2,44 +2,64 @@ from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 
 
 class SF_State:
+    """Represents a state in a Stateflow diagram.
+
+    Each state has an ID and a name.
+
+    Each state records events (represented by its name) that
+    happens when:
+
+    - entry: when first entering the state.
+    - during: when none of the outgoing edges can be executed.
+    - exit: when exiting the state.
+
+    """
     def __init__(self, ssid, name="", en=None, du=None, ex=None):
-        self.ssid = ssid
-        self.name = name
-        self.en = en  # entry
-        self.du = du  # during
-        self.ex = ex  # exit
-        self.father = None
-        self.children = list()
-        self.root = None
+        self.ssid = ssid  # ID of the state
+        self.name = name  # Name of the state
+        self.en = en  # entry event
+        self.du = du  # during event
+        self.ex = ex  # exit event
+        self.father = None  # parent state
+        self.children = list()  # list of children states
+        self.root = None  # root of the tree of containment relation
 
     def __eq__(self, other):
         return self.ssid == other.ssid
 
     def __str__(self):
-        result = ""
-        if hasattr(self, "default_tran") and self.default_tran:
-            assert isinstance(self, OR_State)
-            # Display the default transition
-            result += str(self.default_tran)
+        # Header: ID and name
         if isinstance(self, OR_State):
-            result += "OR"
+            result = "OR"
         elif isinstance(self, AND_State):
-            result += "AND"
-        result += "(" + self.ssid + ") " + self.name + "\n"
+            result = "AND"
+        result += "{id=" + self.ssid + ", name=" + self.name + "}\n"
+
+        # Display the default transition
+        if isinstance(self, OR_State) and self.default_tran:
+            result += "  Default: " + str(self.default_tran) + "\n"
+
+        # Events
         if self.en:
-            result += "en: [" + str(self.en) + "]\n"
+            result += "  en: [" + str(self.en) + "]\n"
         if self.du:
-            result += "du: [" + str(self.du) + "]\n"
+            result += "  du: [" + str(self.du) + "]\n"
         if self.ex:
-            result += "ex: [" + str(self.ex) + "]\n"
+            result += "  ex: [" + str(self.ex) + "]\n"
+
         # Display output transitions
-        if isinstance(self, OR_State):
+        if isinstance(self, OR_State) and self.out_trans:
+            result += "  Transitions:\n"
             for tran in self.out_trans:
-                result += str(tran) + "(" + tran.dst + ")\n"
+                result += "    " + str(tran) + "\n"
+
         # Display children
-        result += "contains states:\n"
-        for child in self.children:
-            result += "{" + str(child) + "}\n"
+        if self.children:
+            result += "  Children:\n"
+            for child in self.children:
+                child_lines = str(child).splitlines()
+                result += "\n".join("    " + line for line in child_lines) + "\n"
+
         return result
 
     def _activate(self):  # turn on

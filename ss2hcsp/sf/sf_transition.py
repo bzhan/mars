@@ -20,7 +20,10 @@ class Transition:
         self.parse()
 
     def __str__(self):
-        return "Tran(%s)--%s-->" % (self.ssid, self.label)
+        if self.label:
+            return "(%s)--%s-->(%s)" % (self.src, self.label, self.dst)
+        else:
+            return "(%s)--->(%s)" % (self.src, self.dst)
 
     def __repr__(self):
         return "Transition(%s, %s, %s, %s, %s)" % \

@@ -307,28 +307,30 @@ class SimTest(unittest.TestCase):
         print(real_hp)
 
     def testStateflow(self):
-        location = "./ss2hcsp/case_studies/early_exit.xml"
-        # location = "/Users/BEAR/Desktop/Simulink Cases/infinite.xml"
+        location = "./Examples/Stateflow/early_exit/early_exit.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_stateflow_xml()
         chart = list(diagram.charts.values())[0]
-        # print(chart.get_process())
-        # for process in chart.get_process():
-        #     print(process.name + " ::= " + str(process))
-        # print(chart)
-        # print(chart.all_states)
-        # state = chart.all_states["1"]
-        # print(state)
-        # from ss2hcsp.sf.sf_chart import get_hps
-        # print(get_hps(chart.execute_event(state=state)))
-        # print(chart.all_states["4"].process)
-        # for process in chart.get_monitor_process():
-        #     print(process)
-        # print(chart.get_process())
-        # for chart in diagram.charts.values():
-        #     # print(chart)
-        #     # print(chart.state.activate())
-        #     print(chart.state.all_descendant_exit())
+
+        res = [
+            ("M", "num := 0; (@M_main)**"),
+            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> ( { BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1) } ); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
+            ("D", "@M || @S1"),
+            ("S1", "a_S1 := 1; a_A := 1; a_A1 := 1; rec X.(BC1?E; @Diag_S1; BO1!)"),
+            ("Diag_S1", "a_A == 1 -> (@A); a_B == 1 -> (@B)"),
+            ("A", "done := 0; E == e && done == 0 -> (a_A2 == 1 -> (a_A2 := 0); a_A1 == 1 -> (a_A1 := 0); a_A := 0; a_B := 1; done := 1); done == 0 -> (@Diag_A)"),
+            ("Diag_A", "a_A1 == 1 -> (@A1); a_A2 == 1 -> (@A2)"),
+            ("A1", "done := 0; done == 0 -> (BR1!e; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> (skip)"),
+            ("A2", "skip"),
+            ("B", "skip"),
+        ]
+
+        process = chart.get_process()
+        expected_process = hcsp.HCSPProcess()
+        for name, hp in res:
+            expected_process.add(name, hp_parser.parse(hp))
+
+        self.assertEqual(process, expected_process)
 
 
 if __name__ == "__main__":

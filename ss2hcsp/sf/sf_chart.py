@@ -35,7 +35,7 @@ def get_hps(hps):  # get the process from a list of hps
                 # For example, hps[i].expr.name = E_S1
                 state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
                 hps[i].expr.name = (lambda x: x[:x.index("_")])(hps[i].expr.name)  # E
-                assert hps[i + 1] == hp.HCSP(name="X")
+                assert hps[i + 1] == hp.Var("X")
                 _hps.extend(hps[i:i + 2])
                 if len(hps) - 1 >= i + 2:
                     _hps.append(hp.Condition(cond=bexpr_parser.parse("a_" + state_name + " == 1"),
@@ -70,7 +70,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             assert len(root_num) == 1
             root_num = root_num[0]
             hps.append(hp_parser.parse("BR" + root_num + "!" + event))
-            hps.append(hp.HCSP(name="X"))
+            hps.append(hp.Var("X"))
     return hps
 
 
@@ -210,7 +210,7 @@ class SF_Chart:
                         dst_state.process = get_hps(dst_state.process)
                     else:  # visited before
                         processes = out_tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
-                                    + enter_into_dst + [hp.HCSP(name=dst_state.name)]
+                                    + enter_into_dst + [hp.Var(dst_state.name)]
                 if cond:
                     hps.append((cond, processes))
                 else:
@@ -223,8 +223,7 @@ class SF_Chart:
         state_num = len(self.state.children) if isinstance(self.state.children[0], AND_State) else 1
 
         # Get M process
-        hp_M = hp.Sequence(hp.Assign(var_name="num", expr=AConst(0)), hp.Loop(hp.HCSP(name="M_main")))
-        hp_M.name = "M"
+        hp_M = hp.Sequence(hp.Assign(var_name="num", expr=AConst(0)), hp.Loop(hp.Var("M_main")))
 
         # Get M_main process
         hp_M_main = hp_parser.parse("num == 0 -> (tri?E; EL := E; NL := 1; num := 1)")
@@ -238,10 +237,12 @@ class SF_Chart:
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0);"
                                                 " EL != NULL -> (E := top(EL); num := top(NL)))"))
-        hp_M_main.name = "M_main"
         return hp_M, hp_M_main, state_num
 
     def get_process(self, event_var="E"):
+        # List of HCSP processes
+        processes = hp.HCSPProcess()
+
         def get_S_du_and_P_diag(_state, _hps):
             _s_du = list()
             _p_diag = list()
@@ -250,12 +251,12 @@ class SF_Chart:
             if _state.du:  # add dur
                 _s_du.extend(_state.du)
             if _state.children:
-                _s_du.append(hp.HCSP(name=_p_diag_name))  # P_diag
+                _s_du.append(hp.Var(_p_diag_name))  # P_diag
 
                 if isinstance(_state.children[0], AND_State):
-                    _p_diag = [hp.HCSP(name=_child.name) for _child in _state.children]
+                    _p_diag = [hp.Var(_child.name) for _child in _state.children]
                 else:
-                    _p_diag = [hp.Condition(cond=_child.activated(), hp=hp.HCSP(name=_child.name))
+                    _p_diag = [hp.Condition(cond=_child.activated(), hp=hp.Var(_child.name))
                                for _child in _state.children if isinstance(_child, OR_State)]
 
             if len(_s_du) == 0:
@@ -283,23 +284,23 @@ class SF_Chart:
                 _state = self.get_state_by_name(name=_state_name)
                 _s_du, new_p_diag, new_p_diag_name = get_S_du_and_P_diag(_state=_state,
                                                                          _hps=self.execute_event(_state))
-                _s_du.name = _state_name
-                processes.append(_s_du)
+                processes.add(_state_name, _s_du)
                 if new_p_diag:
                     new_p_diag_proc = hp.Sequence(*new_p_diag) if len(new_p_diag) >= 2 else new_p_diag[0]
                     assert new_p_diag_name
-                    new_p_diag_proc.name = new_p_diag_name
-                    processes.append(new_p_diag_proc)
+                    processes.add(new_p_diag_name, new_p_diag_proc)
                     analyse_P_diag(new_p_diag)
 
+        # M and M_main
         hp_M, hp_M_main, state_num = self.get_monitor_process()
-        processes = [hp_M, hp_M_main]
+        processes.add("M", hp_M)
+        processes.add("M_main", hp_M_main)
+
         # Get D process (system process)
-        process = hp.HCSP(name="M")
+        process = hp.Var("M")
         for num in range(state_num):
-            process = hp.Parallel(process, hp.HCSP(name="S" + str(num + 1)))
-        process.name = "D"
-        processes.append(process)
+            process = hp.Parallel(process, hp.Var("S" + str(num + 1)))
+        processes.add("D", process)
 
         # Get each S_i process
         parallel_states = self.state.children if self.state.name == "S0" else [self.state]
@@ -320,24 +321,23 @@ class SF_Chart:
             if p_diag:
                 p_diag_proc = hp.Sequence(*p_diag) if len(p_diag) >= 2 else p_diag[0]
                 assert p_diag_name
-                p_diag_proc.name = p_diag_name
-                processes.append(p_diag_proc)
+                processes.add(p_diag_name, p_diag_proc)
                 analyse_P_diag(p_diag)  # analyse P_diag recursively
 
             # Check if there is an X in the processes
             # If so, then there is an event triggered inner the states,
             # which means process S_i is recursive.
             has_X = False
-            for process in processes:
-                if hp.HCSP(name="X") in hp.decompose(process):
+            for _, process in processes.hps:
+                if hp.Var("X") in hp.decompose(process):
                     has_X = True
                     s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Recursion(s_i_proc))
                     break
             if not has_X:
                 s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Loop(s_i_proc))
-            s_i_proc.name = s_i.name
+
             # The output order is after D, M and M_main
-            processes.insert(3, s_i_proc)
+            processes.insert(3, s_i.name, s_i_proc)
 
             i += 1
         return processes

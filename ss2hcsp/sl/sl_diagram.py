@@ -73,16 +73,26 @@ class SL_Diagram:
         # Dictionary of STATEFLOW charts indexed by name
         self.charts = dict()
 
+        # XML data structure
+        self.model = None
+
         # Parsed model of the XML file
         if location:
             with open(location) as f:
                 self.model = parse(f)
-        else:
-            self.model = None
 
     def parse_stateflow_xml(self):
-        # Get a transition dictionary in form of {(src_ssid, dst_ssid): Transition(...), ...}
+        """Parse stateflow charts from XML."""
+
         def get_transitions(block):
+            """Get a transition dictionary of the form
+
+            {(src_ssid, dst_ssid): Transition(...), ...}
+
+            mapping from pairs of IDs for states or junctions to a transition
+            between them.
+            
+            """
             tran_dict = dict()
             for transition in block.getElementsByTagName(name="transition"):
                 tran_ssid = transition.getAttribute("SSID")
@@ -102,8 +112,16 @@ class SL_Diagram:
                                                              src=src_ssid, dst=dst_ssid)
             return tran_dict
 
-        # Get lists of children states and junctions of current block
         def get_children(block, tran_dict):
+            """Get lists of children states and junctions of the current
+            block.
+
+            Returned value is:
+
+            _states: list of SF_State objects.
+            _junction: list of Junction objects.
+            
+            """
             _states, _junctions = list(), list()
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
@@ -194,6 +212,7 @@ class SL_Diagram:
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans))
             return _states, _junctions
 
+        # Create charts
         charts = self.model.getElementsByTagName(name="chart")
         for chart in charts:
             chart_id = chart.getAttribute("id")
@@ -354,7 +373,15 @@ class SL_Diagram:
         dest_block.add_dest(line.dest_port, line)
 
     def __str__(self):
-        return "\n".join(str(block) for block in self.blocks_dict.values())
+        blocks = "\n".join(str(block) for block in self.blocks_dict.values())
+        charts = "\n".join(str(chart) for chart in self.charts.values())
+
+        result = ""
+        if self.blocks_dict:
+            result += "Blocks:\n" + blocks
+        if self.charts:
+            result += "Charts:\n" + charts
+        return result
 
     def check(self):
         """Checks the diagram is valid. Among the checks are:
