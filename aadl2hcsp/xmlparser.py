@@ -73,7 +73,7 @@ def getOwnedPropertyAssociation(opas, category, name):
             print('AAA')
             if category == 'process':
                 while 1:
-                    print("Please input the Scheduling Protocal apply to Process '%s'\n (0:HPF \t 1:FIFO \t 2:SJF)\n" %(name))
+                    print("Please input the Scheduling Protocol apply to Process '%s'\n (0:HPF \t 1:FIFO \t 2:SJF)\n" %(name))
                     s = input("Enter your input: ")
                     if s == '0':
                         opass['value'] = 'HPF'
@@ -89,7 +89,7 @@ def getOwnedPropertyAssociation(opas, category, name):
 
             elif category == 'thread':
                 while 1:
-                    print("Please input the Dispatch Protocal apply to Thread '%s'\n (0:Periodic \t 1:Sporadic )\n" %(name))
+                    print("Please input the Dispatch Protocol apply to Thread '%s'\n (0:Periodic \t 1:Sporadic )\n" %(name))
                     s = input("Enter your input: ")
                     if s == '0':
                         opass['value'] = 'Periodic'

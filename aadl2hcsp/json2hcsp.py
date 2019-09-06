@@ -5,42 +5,40 @@ from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
 from ss2hcsp.hcsp.hcsp import *
 
 def createStructure(dic):
-    lines=[]
+    process = HCSPProcess()
+
     for category in dic.values():
         if len(category['components']) > 0:
-            hp1 = HCSP(category['name'])
             hps = []
             for com in category['components']:
-                hps.append(HCSP(com['name']))
+                hps.append(Var(com['name']))
 
             if len(category['connections']) >0:
-                hps.append(HCSP('Comms_'+category['name']))
+                hps.append(Var('Comms_'+category['name']))
 
             if len(category['category']) == 'Process':
-                hps.append(HCSP('SCHEDULE_' + category['name']))
+                hps.append(Var('SCHEDULE_' + category['name']))
 
             if len(hps) > 1:
                 hp2 = Parallel(*hps)
             else:
                 hp2 = hps[0]
 
-            hp = Definition(hp1, hp2)
-            lines.append(hp)
+            process.add(category['name'], hp2)
 
-            #对于声明名与应用名不一致的情况增加一条定义
+            # If name and name_impl does not agree, add new definition
             for com in category['components']:
                 if 'name_impl' in com:
-                    hp1 = HCSP(com['name'])
-                    hp2 = HCSP(com['name_impl'])
-                    hp = Definition(hp1, hp2)
-                    lines.append(hp)
-    return lines
+                    hp2 = Var(com['name_impl'])
+                    process.add(com['name'], hp2)
+
+    return process
 
 def createConnections(dic):
-    lines = []
+    process = HCSPProcess()
+
     for category in dic.values():
         if len(category['connections']) > 0:
-            hp1 = HCSP(category['name']+"_Conns")
             hps = []
             for com in category['connections']:
                 hp_in = InputChannel(com['source'].strip().replace('.','_'), 'x')
@@ -53,25 +51,22 @@ def createConnections(dic):
             else:
                 hp2 = hps[0]
 
-            hp = Definition(hp1, hp2)
-            lines.append(hp)
+            process.add(category['name']+'_Conns', hp2)
 
-    return lines
+    return process
 
 class Process:
-    def __init__(self, process , threadlines ,protocal='FIFO'):
+    def __init__(self, process, threadlines, protocol='FIFO'):
         self.threadlines= threadlines
-        self.lines=[]
-        self.protocal = protocal
+        self.protocol = protocol
         self.process_name = process['name']
 
-        self.lines.append(self._createSchedule())
-        self.lines.append(self._createQueue())
-
+        self.lines = HCSPProcess()
+        self._createSchedule()
+        self._createQueue()
 
     def _createSchedule(self):
-        hp1 = HCSP('SCHEDULE_' + self.process_name)
-        if self.protocal == 'HPF':   ##
+        if self.protocol == 'HPF':
             hps = [Assign('run_now', AConst(0)),
                    Assign('run_prior', AConst(0)),
                    Assign('ready_num', AConst(0))]
@@ -81,10 +76,10 @@ class Process:
                 hps2.append(self._preemptPriority(thread))
             hps2.append(self._freeActionPriority())
 
-            self.lines.append(self._createRun())
-            self.lines.append(self._createBusy())
+            self._createRun()
+            self._createBusy()
 
-        elif self.protocal == 'FIFO':
+        elif self.protocol == 'FIFO':
             hps = [Assign('run_now', AConst(0)),
                    Assign('ready_num', AConst(0))]
 
@@ -93,21 +88,19 @@ class Process:
                 hps2.append(self._noPreemptSequence(thread))
             hps2.append(self._freeActionSequence())
 
-            self.lines.append(self._createRun())
+            self._createRun()
 
         hps2 = SelectComm(*hps2)
         hps.append(Loop(hps2))
-        hps= Sequence(*hps)
-        hp = Definition(hp1,hps)
-
-        return hp
+        hps = Sequence(*hps)
+        self.lines.add('SCHEDULE_' + self.process_name, hps)
 
     def _preemptPriority(self, thread):
-        hps=[]
+        hps = []
         hps.append(InputChannel('tran_'+str(thread), AVar('prior')))  # insert variable
         con1= RelExpr('<', AVar('run_prior'), AVar('prior'))
         con2= RelExpr('>', AVar('run_prior'), AVar('prior'))
-        con_hp1 = Sequence(HCSP('BUSY_' + self.process_name),
+        con_hp1 = Sequence(Var('BUSY_' + self.process_name),
                            Assign('run_now', AVar(thread)),
                            Assign('run_prior', AVar('prior')),
                            OutputChannel('run_' + str(thread)))  # insert output
@@ -118,28 +111,24 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        hps = Sequence(*hps)
-
-        return hps
+        return Sequence(*hps)
 
     def _noPreemptSequence(self, thread):
-        hps = [ InputChannel('tran_'+str(thread)), # insert variable
-                OutputChannel('insert_' + str(thread)),
-                Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)]))
-                ]
-        hps = Sequence(*hps)
+        hps = [InputChannel('tran_' + str(thread)), # insert variable
+               OutputChannel('insert_' + str(thread)),
+               Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)]))]
 
-        return hps
+        return Sequence(*hps)
 
     def _freeActionPriority(self):
         hps = []
         hps.append(InputChannel('free'))  # insert variable
         con1 = RelExpr('>', AVar('ready_num'), AConst(0))
         con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_'+self.process_name),
+        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
                            InputChannel('ch_run_' + self.process_name, AVar('run_now')),
                            InputChannel('ch_prior_' + self.process_name, AVar('run_prior')),
-                           HCSP('RUN_'+self.process_name),
+                           Var('RUN_' + self.process_name),
                            Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
 
         con_hp2 = Sequence(Assign('run_now', AConst(0)),
@@ -148,18 +137,16 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        hps = Sequence(*hps)
-
-        return hps
+        return Sequence(*hps)
 
     def _freeActionSequence(self):
         hps = []
         hps.append(InputChannel('free'))  # insert variable
         con1 = RelExpr('>', AVar('ready_num'), AConst(0))
         con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_'+self.process_name),
-                           InputChannel('ch_run_' + self.process_name, AVar('run_now')),
-                           HCSP('RUN_'+self.process_name),
+        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
+                           InputChannel('ch_run_' + self.process_name, 'run_now'),
+                           Var('RUN_' + self.process_name),
                            Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
 
         con_hp2 = Assign('run_now', AConst(0))
@@ -167,44 +154,36 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        hps = Sequence(*hps)
-
-        return hps
+        return Sequence(*hps)
 
 
     def _createBusy(self):
-        hp1 = HCSP('BUSY_' + self.process_name)
-
         hps = []
         for thread in self.threadlines:
             con = RelExpr('==', AVar('run_now'), AVar(thread))
             con_hp = OutputChannel('busy_'+str(thread))  # insert output
             hps.append(Condition(con, con_hp))
 
-        hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
-
-        return hp
+        self.lines.add('BUSY_' + self.process_name, hps)
 
     def _createRun(self):
-        hp1 = HCSP('RUN_' + self.process_name)
-
         hps = []
         for thread in self.threadlines:
             con = RelExpr('==', AVar('run_now'), AVar(thread))
             con_hp = OutputChannel('run_'+str(thread))  # insert output
             hps.append(Condition(con,con_hp))
 
-        hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
+        if len(hps) >= 2:
+            hps = Sequence(*hps)
+        else:
+            hps = hps[0]
 
-        return hp
+        self.lines.add('RUN_' + self.process_name, hps)
 
     def _createQueue(self):
-        hp1 = HCSP('QUEUE_' + self.process_name)
         self.thread_num = len(self.threadlines)
-        if self.protocal == 'HPF':  ##
-            hps=[]
+        if self.protocol == 'HPF':
+            hps = []
             for i in range(self.thread_num):
                 hps.append(Assign('q_'+str(i), AConst(0)))
                 hps.append(Assign('p_' + str(i), AConst(0)))
@@ -213,7 +192,7 @@ class Process:
                 hps2.append(self._insertPriority(thread))
             hps2.append(self._changeActionPriority())
 
-        elif self.protocal == 'FIFO':
+        elif self.protocol == 'FIFO':
             hps = []
             for i in range(self.thread_num):
                 hps.append(Assign('q_' + str(i), AConst(0)))
@@ -224,10 +203,9 @@ class Process:
 
         hps2 = SelectComm(*hps2)
         hps.append(Loop(hps2))
-        hps= Sequence(*hps)
-        hp = Definition(hp1,hps)
+        hps = Sequence(*hps)
 
-        return hp
+        self.lines.add('QUEUE_' + self.process_name, hps)
 
     def _insertPriority(self, thread):
         hps = []
@@ -247,9 +225,8 @@ class Process:
             con_tmp = Sequence(Condition(con1, con_hp1),
                                 Condition(con2, con_hp2))
         hps.append(con_tmp)
-        hps = Sequence(*hps)
 
-        return hps
+        return Sequence(*hps)
 
     def _insertTail(self, thread):
         hps = []
@@ -264,9 +241,8 @@ class Process:
             con_tmp = Sequence(Condition(con1, con_hp1),
                                Condition(con2, con_hp2))
         hps.append(con_tmp)
-        hps = Sequence(*hps)
 
-        return hps
+        return Sequence(*hps)
 
 
     def _changeActionPriority(self):
@@ -281,9 +257,8 @@ class Process:
 
         hps.append(Assign('q_' + str(self.thread_num-1), AVar('0')))
         hps.append(Assign('p_' + str(self.thread_num-1), AVar('0')))
-        hps = Sequence(*hps)
 
-        return hps
+        return Sequence(*hps)
 
     def _changeActionHead(self):
         hps = []
@@ -294,29 +269,28 @@ class Process:
             hps.append(Assign('q_' + str(i), AVar('q_' + str(i + 1))))
 
         hps.append(Assign('q_' + str(self.thread_num - 1), AVar('0')))
-        hps = Sequence(*hps)
 
-        return hps
+        return Sequence(*hps)
 
 
 class Thread:
-    def __init__(self,thread, annex=None):
-        self.lines = []
+    def __init__(self, thread, annex=None):
         self.thread_name = thread['name']
-        ### 默认参数###
-        self.thread_protocal = 'Periodic'
+
+        # Default parameters
+        self.thread_protocol = 'Periodic'
         self.thread_priority = '1'
         self.thread_deadline = '10'
         self.thread_period = '10'
         self.thread_featureIn = []
         self.thread_featureOut = []
-        self.annex=annex
+        self.annex = annex
 
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
                 if opa['name'] == 'Thread_Properties.Dispatch_Protocol':
                     if opa['value'] == 'Periodic':
-                        self.thread_protocal = 'Periodic'
+                        self.thread_protocol = 'Periodic'
 
                 elif opa['name'] == 'Thread_Properties.Priority':
                     self.thread_priority = opa['value']
@@ -334,73 +308,62 @@ class Thread:
                 else:
                     self.thread_featureIn.append(feature['name'])
 
-        self.lines.extend(self._createThread())
-        self.lines.append(self._createReady())
-        self.lines.append(self._createAwait())
-        self.lines.append(self._createRunning())
-        self.lines.append(self._createAnnex())
+        # Create the process
+        self.lines = HCSPProcess()
+        self._createThread()
+        self._createReady()
+        self._createAwait()
+        self._createRunning()
+        self._createAnnex()
 
 
     def _createThread(self):
-        lines=[]
+        hps = Parallel(Loop(Var('ACT_' + self.thread_name)),
+                       Loop(Var('DIS_' + self.thread_name)),
+                       Loop(Var('COM_' + self.thread_name)))
+        self.lines.add(self.thread_name, hps)
 
-        hp1 = HCSP(self.thread_name)
-        hps = Parallel(*[Loop(HCSP('ACT_'+self.thread_name)),
-                         Loop(HCSP('DIS_'+self.thread_name)),
-                         Loop(HCSP('COM_'+self.thread_name))])
-        hp = Definition(hp1,hps)
-        lines.append(hp)
+        if self.thread_protocol == 'Periodic':
+            act_hps = OutputChannel('act_' + self.thread_name)  # insert output
+            self.lines.add('ACT_' + self.thread_name, act_hps)
 
-        if self.thread_protocal == 'Periodic':
-            act_hp1 = HCSP('ACT_'+self.thread_name)
-            act_hps = OutputChannel('act_'+self.thread_name)  # insert output
-            act_hp = Definition(act_hp1,act_hps)
-            lines.append(act_hp)
-
-            dis_hp1 = HCSP('DIS_' + self.thread_name)
             dis_hps = [InputChannel('act_' + self.thread_name),  # insert variable
                        Wait(self.thread_period),
                        OutputChannel('dis_' + self.thread_name)]  # insert output
 
             for feature in self.thread_featureIn:
-                dis_hps.append(InputChannel(self.thread_name+'_'+feature, feature))
+                dis_hps.append(InputChannel(self.thread_name + '_' + feature, feature))
 
             if len(self.thread_featureIn) > 0:
                 dis_hps.append(OutputChannel('input_'+self.thread_name, AVar(str(self.thread_featureIn)))) # insert output, was AVar(self.thread_featureIn)
 
-            dis_hps.append(SelectComm(InputChannel('complete_'+self.thread_name),  # insert variable
-                                      InputChannel('exit_'+self.thread_name)))  # insert variable
+            dis_hps.append(SelectComm(InputChannel('complete_' + self.thread_name),  # insert variable
+                                      InputChannel('exit_' + self.thread_name)))  # insert variable
 
             dis_hps = Sequence(*dis_hps)
-            dis_hp = Definition(dis_hp1, dis_hps)
-            lines.append(dis_hp)
+            self.lines.add('DIS_' + self.thread_name, dis_hps)
 
-        com_hp1 = HCSP('COM_' + self.thread_name)
-        com_hps = [InputChannel('dis_'+self.thread_name),  # insert variable
+        com_hps = [InputChannel('dis_' + self.thread_name),  # insert variable
                    Assign('t', AConst(0)),
-                   OutputChannel('init_'+self.thread_name, AVar('t'))]
+                   OutputChannel('init_' + self.thread_name, AVar('t'))]
 
-        com_ready = Loop(HCSP('Ready_'+self.thread_name))
+        com_ready = Loop(Var('Ready_' + self.thread_name))
 
         com_running = []
         com_running.append(Assign('c', AConst(0)))
-        com_running.append(Loop(HCSP('Running_' + self.thread_name)))
+        com_running.append(Loop(Var('Running_' + self.thread_name)))
         com_running = Sequence(*com_running)
 
-        com_await = Loop(HCSP('Await_' + self.thread_name))
+        com_await = Loop(Var('Await_' + self.thread_name))
 
-        com_annex = HCSP('Annex_' + self.thread_name)
+        com_annex = Var('Annex_' + self.thread_name)
 
-        com_hps.append(Parallel(*[com_ready,com_running,com_await,com_annex]))
+        com_hps.append(Parallel(*[com_ready, com_running, com_await, com_annex]))
         com_hps = Sequence(*com_hps)
-        com_hp = Definition(com_hp1, com_hps)
 
-        lines.append(com_hp)
-
-        return lines
+        self.lines.add('COM_' + self.thread_name, com_hps)
 
     def _createReady(self):
-        hp1 = HCSP('Ready_' + self.thread_name)
         hps = []
         hps2 = [InputChannel('init_'+self.thread_name, 't'),
                 InputChannel('preempt_'+self.thread_name, 't'),
@@ -420,12 +383,9 @@ class Thread:
         hps.append(Condition(con, con_hp))
 
         hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
-
-        return hp
+        self.lines.add('Ready_' + self.thread_name, hps)
 
     def _createAwait(self):
-        hp1 = HCSP('Await_' + self.thread_name)
         hps = [InputChannel('block_' + self.thread_name, 't')]
 
         eqs = [('t', AConst(1))]
@@ -439,12 +399,9 @@ class Thread:
         hps.append(Condition(con, con_hp))
 
         hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
-
-        return hp
+        self.lines.add('Await_' + self.thread_name, hps)
 
     def _createRunning(self):
-        hp1 = HCSP('Running_' + self.thread_name)
         hps = [InputChannel('resume_' + self.thread_name, 't')]
         hps.append(SelectComm(OutputChannel('start_Annex_'+self.thread_name),
                               OutputChannel('restart_Annex_'+self.thread_name)))# insert output
@@ -474,19 +431,16 @@ class Thread:
         hps.append(Condition(con, con_hp))
 
         hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
-
-        return hp
+        self.lines.add('Running_' + self.thread_name, hps)
 
     def _createAnnex(self):
-        hp1 = HCSP('Annex_' + self.thread_name)
         hps = []
         hps.append(InputChannel('start_Annex_' + self.thread_name))
         if len(self.thread_featureIn) > 0:
-            hps.append(InputChannel('input_' + self.thread_name, AVar(str(self.thread_featureIn))))
+            hps.append(InputChannel('input_' + self.thread_name, str(self.thread_featureIn)))
 
         if self.annex:
-            hps.append(self.annex)
+            hps.extend(self.annex)
 
         hps.append(Wait('5'))
         hps.append(OutputChannel('need_Resource_' + self.thread_name))
@@ -498,7 +452,4 @@ class Thread:
 
         hps.append(OutputChannel('complete_Annex_' + self.thread_name))
         hps = Sequence(*hps)
-        hp = Definition(hp1, hps)
-
-        return hp
-
+        self.lines.add('Annex_' + self.thread_name, hps)
