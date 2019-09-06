@@ -56,8 +56,10 @@ class AnnexParser(object):
             next_state = trans[s]['distination']
             hcsp.append(trans[s]['content'])
 
-
-        return Sequence(*hcsp)
+        if len(hcsp)>=2:
+            return Sequence(*hcsp)
+        else:
+            return hcsp
 
 
 
