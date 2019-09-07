@@ -198,7 +198,7 @@ class AnnexParser(object):
 
         def p_expression_uminus(p):
             """statement : expression '!' """
-            p[0] = Assign(str(p[1]), NegExpr(p[1]))
+            p[0] = Assign(str(p[1]), AVar(str(p[1])))
 
         def p_expression_group(p):
             "expression : '(' expression ')'"
