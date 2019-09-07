@@ -44,22 +44,26 @@ grammar = r"""
 
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
-    ?cmd: "@" CNAME -> var_cmd
+    ?atom_cmd: "@" CNAME -> var_cmd
         | "skip" -> skip_cmd
         | "wait" "(" INT ")" -> wait_cmd
         | CNAME ":=" expr -> assign_cmd
-        | cmd ";" cmd -> seq_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
-        | "{" cmd ("$" cmd)* "}" -> select_comm
-        | cond "->" "(" cmd ")" -> cond_cmd
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
         | "(" cmd ")" -> paren_cmd
 
-    ?parallel_cmd: cmd
-        | cmd "||" parallel_cmd
+    ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
+
+    ?seq_cmd: cond_cmd (";" cond_cmd)*  // Priority: 70
+
+    ?select_cmd: seq_cmd ("$" seq_cmd)*  // Priority 50
+
+    ?cmd: select_cmd
+
+    ?parallel_cmd: cmd ("||" cmd)*   // Priority 30, outermost level only
 
     %import common.CNAME
     %import common.WS
@@ -151,8 +155,11 @@ class HPTransformer(Transformer):
     def assign_cmd(self, var, expr):
         return hcsp.Assign(var, expr)
 
-    def seq_cmd(self, c1, c2):
-        return hcsp.Sequence(c1, c2)
+    def seq_cmd(self, *args):
+        if len(args) == 1:
+            return args[0]
+        else:
+            return hcsp.Sequence(*args)
 
     def input_cmd(self, ch_name, var_name):
         return hcsp.InputChannel(str(ch_name), str(var_name))
@@ -191,7 +198,7 @@ class HPTransformer(Transformer):
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
 
-    def select_comm(self, *comms):
+    def select_cmd(self, *comms):
         return hcsp.SelectComm(*comms)
 
     def rec_cmd(self, var_name, c):
@@ -200,11 +207,11 @@ class HPTransformer(Transformer):
     def paren_cmd(self, c):
         return c
 
-    def parallel_cmd(self, c1, c2):
-        if c2.type == "parallel":
-            return hcsp.Parallel(*([c1] + c2.hps))
+    def parallel_cmd(self, *args):
+        if len(args) == 1:
+            return args[0]
         else:
-            return hcsp.Parallel(c1, c2)
+            return hcsp.Parallel(*args)
 
 
 aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())

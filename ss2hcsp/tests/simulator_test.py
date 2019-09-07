@@ -135,7 +135,7 @@ class SimulatorTest(unittest.TestCase):
         self.assertEqual(trace, ["deadlock"])
 
     def testExecParallel5(self):
-        hp1 = parser.hp_parser.parse("{x?x $ z!z $ y?y}")
+        hp1 = parser.hp_parser.parse("x?x $ z!z $ y?y")
         hp1_init = {"z": 1}
         hp2 = parser.hp_parser.parse("y!y")
         hp2_init = {"y": 2}
@@ -144,7 +144,7 @@ class SimulatorTest(unittest.TestCase):
         self.assertEqual(trace, ["IO y 2", "deadlock"])
 
     def testExecParallel6(self):
-        hp1 = parser.hp_parser.parse("{x?x $ z!z $ y?y}")
+        hp1 = parser.hp_parser.parse("x?x $ z!z $ y?y")
         hp1_init = {"z": 1}
         hp2 = parser.hp_parser.parse("z?z")
         hp2_init = {}

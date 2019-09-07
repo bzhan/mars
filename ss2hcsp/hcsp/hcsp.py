@@ -6,14 +6,14 @@ from ss2hcsp.hcsp.expr import AExpr, BExpr
 
 class HCSP:
     def priority(self):
-        if self.type == "sequence":
-            return 70
-        elif self.type == "condition":
-            return 90
-        elif self.type == "parallel":
+        if self.type == "parallel":
             return 30
         elif self.type == "select_comm":
             return 50
+        elif self.type == "sequence":
+            return 70
+        elif self.type == "condition":
+            return 90
         else:
             return 100
 
@@ -273,7 +273,8 @@ class Condition(HCSP):
         return "Condition(%s, %s)" % (str(self.cond), repr(self.hp))
 
     def __str__(self):
-        return str(self.cond) + " -> (" + str(self.hp) + ")"
+        return str(self.cond) + " -> " + \
+            (str(self.hp) if self.hp.priority() > self.priority() else "(" + str(self.hp) + ")")
 
 
 class Parallel(HCSP):
@@ -312,9 +313,9 @@ class SelectComm(HCSP):
         return "SelectComm(%s)" % (",".join(repr(hp) for hp in self.hps))
 
     def __str__(self):
-        return " { " + " $ ".join(
+        return " $ ".join(
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
-            for hp in self.hps) + " } "
+            for hp in self.hps)
 
 
 class Recursion(HCSP):

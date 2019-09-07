@@ -296,7 +296,7 @@ class SimTest(unittest.TestCase):
     #     # print(diagram)
 
     def testIsollete(self):
-        location = "/Users/BEAR/Projects/mars/ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
+        location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
         diagram = SL_Diagram(location=location)
         diagram.parse_xml()
         get_hp.delete_subsystems(diagram.blocks_dict)
@@ -314,7 +314,7 @@ class SimTest(unittest.TestCase):
 
         res = [
             ("M", "num := 0; (@M_main)**"),
-            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> ( { BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1) } ); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
+            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
             ("D", "@M || @S1"),
             ("S1", "a_S1 := 1; a_A := 1; a_A1 := 1; rec X.(BC1?E; @Diag_S1; BO1!)"),
             ("Diag_S1", "a_A == 1 -> (@A); a_B == 1 -> (@B)"),

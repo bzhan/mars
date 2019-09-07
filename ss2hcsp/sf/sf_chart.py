@@ -230,9 +230,9 @@ class SF_Chart:
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> ({BC" + i + "!E $ BR" + i
+                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E $ BR" + i
                                                     + "?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)})"))
+                                                    + "?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0);"
