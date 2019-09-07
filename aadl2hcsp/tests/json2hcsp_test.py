@@ -16,10 +16,7 @@ class Json2HCSPTest(unittest.TestCase):
 
         for _, hp in out.hps:
             hp_str = str(hp)
-            print(hp_str)
             hp2 = parser.hp_parser.parse(hp_str)
-            print(repr(hp))
-            print(repr(hp2))
             self.assertEqual(hp, hp2)
 
         with open(out_file, 'w', encoding='utf-8') as f:

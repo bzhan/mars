@@ -337,8 +337,8 @@ class Thread:
             for feature in self.thread_featureIn:
                 dis_hps.append(InputChannel(self.thread_name + '_' + feature, feature))
 
-            if len(self.thread_featureIn) > 0:
-                dis_hps.append(OutputChannel('input_'+self.thread_name, AVar(str(self.thread_featureIn)))) # insert output, was AVar(self.thread_featureIn)
+            for feature in self.thread_featureIn:
+                dis_hps.append(OutputChannel('input_' + self.thread_name + '_' + feature, AVar(feature))) # insert output, was AVar(self.thread_featureIn)
 
             dis_hps.append(SelectComm(InputChannel('complete_' + self.thread_name),  # insert variable
                                       InputChannel('exit_' + self.thread_name)))  # insert variable
@@ -346,9 +346,9 @@ class Thread:
             dis_hps = Sequence(*dis_hps)
             self.lines.add('DIS_' + self.thread_name, dis_hps)
 
-        com_hps = Sequence(*[InputChannel('dis_' + self.thread_name),  # insert variable
-                   Assign('t', AConst(0)),
-                   OutputChannel('init_' + self.thread_name, AVar('t'))])
+        com_hps = Sequence(InputChannel('dis_' + self.thread_name),  # insert variable
+                           Assign('t', AConst(0)),
+                           OutputChannel('init_' + self.thread_name, AVar('t')))
 
         com_ready = Loop(Var('Ready_' + self.thread_name))
 
@@ -439,8 +439,8 @@ class Thread:
     def _createAnnex(self):
         hps = []
         hps.append(InputChannel('start_Annex_' + self.thread_name))
-        if len(self.thread_featureIn) > 0:
-            hps.append(InputChannel('input_' + self.thread_name, str(self.thread_featureIn)))
+        for feature in self.thread_featureIn:
+            hps.append(InputChannel('input_' + self.thread_name + '_' + feature, str(feature)))
 
         if self.annex:
             hps.extend(self.annex)
