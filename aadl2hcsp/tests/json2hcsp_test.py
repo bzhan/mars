@@ -1,9 +1,10 @@
 import unittest
 import json
 
-from aadl2hcsp.parserAnnex import *
-from aadl2hcsp.json2hcsp import *
+from aadl2hcsp.parserAnnex import AnnexParser
+from aadl2hcsp import json2hcsp
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp.hcsp import HCSPProcess
 
 class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP(self):
@@ -24,8 +25,8 @@ class Json2HCSPTest(unittest.TestCase):
         with open(json_file, 'r') as f:
             dic = json.load(f)
 
-        out.extend(createStructure(dic))
-        out.extend(createConnections(dic))
+        out.extend(json2hcsp.createStructure(dic))
+        out.extend(json2hcsp.createConnections(dic))
 
         for category in dic.values():
             if category['category'] == 'process' and len(category['components']) > 0:
@@ -33,13 +34,13 @@ class Json2HCSPTest(unittest.TestCase):
                 for com in category['components']:
                     if com['category'] == 'thread':
                         threadlines.append(com['name'])
-                out.extend(Process(category,threadlines).lines)
+                out.extend(json2hcsp.Process(category,threadlines).lines)
 
             elif category['category'] == 'thread':
                 if category['name'] in Annex_HP.keys():
-                    out.extend(Thread(category, Annex_HP[category['name']]).lines)
+                    out.extend(json2hcsp.Thread(category, Annex_HP[category['name']]).lines)
                 else:
-                    out.extend(Thread(category).lines)
+                    out.extend(json2hcsp.Thread(category).lines)
 
         for _, hp in out.hps:
             hp_str = str(hp)

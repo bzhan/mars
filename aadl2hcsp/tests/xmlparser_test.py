@@ -1,6 +1,8 @@
 import unittest
+import os, json
 
-from aadl2hcsp.xmlparser import *
+from aadl2hcsp.xmlparser import parser
+
 
 class XMLParserTest(unittest.TestCase):
     def testXMLParser(self):

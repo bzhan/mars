@@ -1,25 +1,27 @@
-"""Parse an AADL model with Behaviour Annex
-"""
-from ss2hcsp.hcsp.expr import *
-from ss2hcsp.hcsp.hcsp import *
+"""Parse an AADL model with Behaviour Annex."""
+
 import re
 import json
 import ply.lex as lex
 import ply.yacc as yacc
 import warnings
+
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, RelExpr, NegExpr
+from ss2hcsp.hcsp.hcsp import HCSP, Assign, Sequence, Condition
+
 warnings.filterwarnings("ignore")
 
 class AnnexParser(object):
     def __init__(self):
-        self.Annexs={}
-        self.HCSP=""
+        self.Annexs = {}
+        self.HCSP = ""
 
     def getAnnex(self, doc):
         with open(doc, 'r') as f:
             data = f.readlines()
-        flag=0
-        i=0
-        while i<len(data):
+        flag = 0
+        i = 0
+        while i < len(data):
             line=data[i].strip()
             if 'THREAD' in line.split() and 'IMPLEMENTATION' in line.split() and flag==0:
                 thread_name=line.split()[-1].split('.')[0]
@@ -60,7 +62,6 @@ class AnnexParser(object):
             return Sequence(*hcsp)
         else:
             return hcsp
-
 
 
     def _createParser(self, code):

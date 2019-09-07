@@ -9,6 +9,7 @@ class code:
         self.code_dic={}
         self.para_process={}
         self.rename={}
+
     def process_split(self, code):
         #code=code.strip().split('\n')
         for line in code:
@@ -74,9 +75,3 @@ for category in dic.values():
 c.process_split(hcsp)
 code=json.dumps(c.code_dic)
 print(code)
-
-
-
-
-    #def generator(self):
-    #    if

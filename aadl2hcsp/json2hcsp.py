@@ -2,7 +2,8 @@
 
 import json
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
-from ss2hcsp.hcsp.hcsp import *
+from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
+    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess
 
 def createStructure(dic):
     process = HCSPProcess()
@@ -14,7 +15,7 @@ def createStructure(dic):
                 hps.append(Var(com['name']))
 
             if len(category['connections']) >0:
-                hps.append(Var('Comms_'+category['name']))
+                hps.append(Var('Comms_' + category['name']))
 
             if len(category['category']) == 'Process':
                 hps.append(Var('SCHEDULE_' + category['name']))
@@ -57,7 +58,7 @@ def createConnections(dic):
 
 class Process:
     def __init__(self, process, threadlines, protocol='FIFO'):
-        self.threadlines= threadlines
+        self.threadlines = threadlines
         self.protocol = protocol
         self.process_name = process['name']
 
