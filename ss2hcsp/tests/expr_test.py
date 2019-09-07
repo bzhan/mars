@@ -84,11 +84,22 @@ class ExprTest(unittest.TestCase):
             ("<x_dot = x+1, y_dot = y+1 & x < 3> |> [] (x?x --> skip, y!y --> skip)",
              "ODEComm(x, x+1, y, y+1, x < 3, x?x, skip, y!y, skip)"),
             ("{x?x $ y!y}", "SelectComm(InputC(x,x),OutputC(y))"),
+            ("@P1; @P2 || @P3", "Parallel(Seq(Var(P1), Var(P2)), Var(P3))"),
         ]
 
         for s, res in test_data:
             hp = hp_parser.parse(s)
             self.assertEqual(repr(hp), res)
+
+    def testParsePrint(self):
+        test_data = [
+            hcsp.Sequence(hcsp.Var("C"), hcsp.SelectComm(hcsp.InputChannel("A"), hcsp.Var("B"))),
+        ]
+
+        for hp in test_data:
+            hp_str = str(hp)
+            hp2 = hp_parser.parse(hp_str)
+            self.assertEqual(hp, hp2)
 
 
 if __name__ == "__main__":

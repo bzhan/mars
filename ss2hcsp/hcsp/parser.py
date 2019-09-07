@@ -56,7 +56,10 @@ grammar = r"""
         | "{" cmd ("$" cmd)* "}" -> select_comm
         | cond "->" "(" cmd ")" -> cond_cmd
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
-        | cmd "||" cmd -> parallel_cmd
+        | "(" cmd ")" -> paren_cmd
+
+    ?parallel_cmd: cmd
+        | cmd "||" parallel_cmd
 
     %import common.CNAME
     %import common.WS
@@ -194,6 +197,9 @@ class HPTransformer(Transformer):
     def rec_cmd(self, var_name, c):
         return hcsp.Recursion(c, entry=var_name)
 
+    def paren_cmd(self, c):
+        return c
+
     def parallel_cmd(self, c1, c2):
         if c2.type == "parallel":
             return hcsp.Parallel(*([c1] + c2.hps))
@@ -203,4 +209,4 @@ class HPTransformer(Transformer):
 
 aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())
 bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=HPTransformer())
-hp_parser = Lark(grammar, start="cmd", parser="lalr", transformer=HPTransformer())
+hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=HPTransformer())

@@ -1,0 +1,277 @@
+{
+    "HeatCooler_impl_Instance": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "name": "HeatCooler",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            }
+        ]
+    },
+    "HeatSW_impl_Instance": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "heatTemp",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "measureTemp",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "sensor"
+            },
+            {
+                "category": "thread",
+                "features": [],
+                "name": "HeatCooler"
+            },
+            {
+                "category": "thread",
+                "features": [],
+                "name": "Regulator",
+                "name_impl": "regulator"
+            }
+        ],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "desiredTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "currrentTemp",
+                "type": "DataPort"
+            }
+        ],
+        "name": "HeatSW",
+        "opas": []
+    },
+    "boxThread_impl_Instance": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "simIn",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "simOut",
+                "type": "DataPort"
+            }
+        ],
+        "name": "boxThread",
+        "opas": []
+    },
+    "box_impl_Instance": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "simIn",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "simOut",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "boxThread"
+            }
+        ],
+        "connections": [
+            {
+                "destination": "boxThread.simIn",
+                "name": "boxIn -> boxThread.simIn",
+                "source": "boxIn"
+            },
+            {
+                "destination": "boxOut",
+                "name": "boxThread.simOut -> boxOut",
+                "source": "boxThread.simOut"
+            }
+        ],
+        "features": [
+            {
+                "direction": "out",
+                "name": "boxOut",
+                "type": "DataPort"
+            },
+            {
+                "direction": "",
+                "name": "boxIn",
+                "type": "DataPort"
+            }
+        ],
+        "name": "box",
+        "opas": []
+    },
+    "conditioner_impl_Instance": {
+        "category": "system",
+        "components": [
+            {
+                "category": "process",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "desiredTemp",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "currrentTemp",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "HeatSW"
+            },
+            {
+                "category": "process",
+                "features": [
+                    {
+                        "direction": "out",
+                        "name": "boxOut",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "",
+                        "name": "boxIn",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "sim_model",
+                "name_impl": "box"
+            }
+        ],
+        "connections": [
+            {
+                "destination": "sim_model.boxIn",
+                "name": "HeatSW.currrentTemp -> sim_model.boxIn",
+                "source": "HeatSW.currrentTemp"
+            },
+            {
+                "destination": "HeatSW.desiredTemp",
+                "name": "sim_model.boxOut -> HeatSW.desiredTemp",
+                "source": "sim_model.boxOut"
+            }
+        ],
+        "features": [
+            {
+                "direction": "",
+                "name": "desiredTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "currentTemp",
+                "type": "DataPort"
+            }
+        ],
+        "name": "conditioner",
+        "opas": []
+    },
+    "regulator_impl_Instance": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "name": "regulator",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            }
+        ]
+    },
+    "sensor_impl_Instance": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "heatTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "measureTemp",
+                "type": "DataPort"
+            }
+        ],
+        "name": "sensor",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            }
+        ]
+    }
+}

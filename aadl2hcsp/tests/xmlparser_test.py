@@ -4,14 +4,21 @@ from aadl2hcsp.xmlparser import *
 
 class XMLParserTest(unittest.TestCase):
     def testXMLParser(self):
-        path = 'aadl2hcsp/instances/'
-        outfile = 'out.json'
+        path = './Examples/AADL/air_conditioner/instances'
+        out_file = './Examples/AADL/air_conditioner/out.json'
+        ref_file = './Examples/AADL/air_conditioner/out_ref.json'
+
         dic = {}
         for xmlfile in os.listdir(path):
-            parser(os.path.join(path, xmlfile), dic)
-        print(dic)
-        with open(outfile, "w") as f_obj:
-            json.dump(dic, f_obj)
+            parser(os.path.join(path, xmlfile), dic, protocol="Periodic")
+
+        with open(ref_file, 'r', encoding='utf-8') as ref:
+            dic_ref = json.load(ref)
+
+        with open(out_file, "w+", encoding='utf-8') as f_obj:
+            json.dump(dic, f_obj, indent=4, sort_keys=True)
+
+        self.assertEqual(dic, dic_ref)
 
 
 if __name__ == "__main__":

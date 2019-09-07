@@ -49,6 +49,7 @@ class Skip(HCSP):
 
 class Wait(HCSP):
     def __init__(self, delay):
+        assert isinstance(delay, int)
         self.type = "wait"
         self.delay = delay
 
@@ -287,7 +288,7 @@ class Parallel(HCSP):
         return self.type == other.type and self.hps == other.hps
 
     def __repr__(self):
-        return "Parallel(%s)" % (",".join(repr(hp) for hp in self.hps))
+        return "Parallel(%s)" % (", ".join(repr(hp) for hp in self.hps))
 
     def __str__(self):
         return " || ".join(
@@ -337,6 +338,8 @@ class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""
     def __init__(self, hps=None):
         """Initialize with an optional list of definitions."""
+
+        # List of (name, HCSP) pairs.
         self.hps = []
         if hps:
             for name, hp in hps:
@@ -345,6 +348,13 @@ class HCSPProcess:
     def add(self, name, hp):
         """Insert (name, hp) at the end."""
         self.hps.append((name, hp))
+
+    def extend(self, lst):
+        """Insert list of (name, hp) at the end."""
+        if isinstance(lst, HCSPProcess):
+            self.hps.extend(lst.hps)
+        else:
+            self.hps.extend(lst)
 
     def insert(self, n, name, hp):
         """Insert (name, hp) at position n."""

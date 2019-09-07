@@ -328,7 +328,7 @@ class Thread:
             self.lines.add('ACT_' + self.thread_name, act_hps)
 
             dis_hps = [InputChannel('act_' + self.thread_name),  # insert variable
-                       Wait(self.thread_period),
+                       Wait(int(self.thread_period)),
                        OutputChannel('dis_' + self.thread_name)]  # insert output
 
             for feature in self.thread_featureIn:
@@ -442,10 +442,10 @@ class Thread:
         if self.annex:
             hps.extend(self.annex)
 
-        hps.append(Wait('5'))
+        hps.append(Wait(5))
         hps.append(OutputChannel('need_Resource_' + self.thread_name))
         hps.append(InputChannel('restart_Annex_' + self.thread_name))
-        hps.append(Wait('5'))
+        hps.append(Wait(5))
 
         for feature in self.thread_featureOut:
             hps.append(OutputChannel(self.thread_name + '_' + feature, feature))
