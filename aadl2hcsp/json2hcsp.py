@@ -1,6 +1,8 @@
 """Convert AADL model (in JSON format) to HCSP programs."""
 
 import json
+
+from aadl2hcsp.parserAnnex import AnnexParser
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess
@@ -454,3 +456,36 @@ class Thread:
         hps.append(OutputChannel('complete_Annex_' + self.thread_name))
         hps = Sequence(*hps)
         self.lines.add('Annex_' + self.thread_name, hps)
+
+
+def convert_AADL(json_file, annex_file):
+    out = HCSPProcess()
+
+    AP = AnnexParser()
+    Annexs = AP.getAnnex(annex_file)
+    Annex_HP = {}
+    for th in Annexs.keys():
+        Annex_HP[th] = AP.createHCSP(Annexs[th][1:-1])
+
+
+    with open(json_file, 'r') as f:
+        dic = json.load(f)
+
+    out.extend(createStructure(dic))
+    out.extend(createConnections(dic))
+
+    for category in dic.values():
+        if category['category'] == 'process' and len(category['components']) > 0:
+            threadlines = []
+            for com in category['components']:
+                if com['category'] == 'thread':
+                    threadlines.append(com['name'])
+            out.extend(Process(category,threadlines).lines)
+
+        elif category['category'] == 'thread':
+            if category['name'] in Annex_HP.keys():
+                out.extend(Thread(category, Annex_HP[category['name']]).lines)
+            else:
+                out.extend(Thread(category).lines)
+
+    return out
