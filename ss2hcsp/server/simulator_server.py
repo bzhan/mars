@@ -4,6 +4,7 @@ import json
 
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import pprint
 from ss2hcsp.server.simulator_service import process_multi as process_multi_service
 from ss2hcsp.server.simulator_service import step_multi as step_multi_service
 from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
@@ -30,6 +31,22 @@ def postprocess(new_code, hcsp_state, reason):
 @app.route('/')
 def hello_world():
     return "Hello, World!"
+
+@app.route('/run_hcsp', methods=['POST'])
+def run_hcsp():
+    data = json.loads(request.get_data())
+    
+    hcspCode = data['hcspCode']
+
+    info = [simulator.HCSPInfo(hp) for hp in hcspCode]
+    print_info = [pprint.pprint_lines(parser.hp_parser.parse(hp), record_pos=True) for hp in hcspCode]
+    history, events = simulator.exec_parallel(info, 10, log_state=True)
+
+    return json.dumps({
+        'print_info': print_info,
+        'history': history,
+        'events': events
+    })
 
 
 @app.route('/process', methods=['POST'])

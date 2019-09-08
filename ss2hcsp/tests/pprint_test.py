@@ -9,7 +9,8 @@ from ss2hcsp.hcsp.pprint import pprint_lines
 class PPrintTest(unittest.TestCase):
     def run_test(self, s, res_list, *, max_line=None):
         hp = parser.hp_parser.parse(s)
-        self.assertEqual(pprint_lines(hp, max_line=max_line), res_list)
+        lines, mapping = pprint_lines(hp, max_line=max_line, record_pos=True)
+        self.assertEqual(lines, res_list)
 
     def test1(self):
         self.run_test("x := 1; y := 2; z := 3", [
@@ -59,8 +60,7 @@ class PPrintTest(unittest.TestCase):
 
     def test7(self):
         self.run_test("@A || @B", [
-            "@A ||",
-            "@B"
+            "@A || @B",
         ])
 
     def test8(self):
@@ -96,6 +96,27 @@ class PPrintTest(unittest.TestCase):
             '  EL != NULL -> (E := top(EL); num := top(NL))',
             ')'
         ], max_line=50)
+
+    def test10(self):
+        self.run_test("x := 0; (<x_dot = 1 & true> |> [] (p2c!x --> skip); c2p?x)**", [
+            'x := 0;',
+            '(',
+            '  <x_dot = 1 & true> |> [] (',
+            '    p2c!x -->',
+            '      skip',
+            '  );',
+            '  c2p?x',
+            ')**'
+        ])
+
+    def test11(self):
+        self.run_test("(wait(2); p2c?x; c2p!x-1)**", [
+            '(',
+            '  wait(2);',
+            '  p2c?x;',
+            '  c2p!x-1',
+            ')**'
+        ])
 
 
 if __name__ == "__main__":

@@ -46,3 +46,29 @@
   font-weight: bold;
   font-style: oblique;
 }
+
+.program-text {
+  margin: 10px;
+  font-family: 'Consolas', Courier, monospace;
+  width: 50%;
+}
+
+.program-text-hl {
+  background-color: yellow;
+}
+
+.program-text pre {
+  margin: 0px;
+}
+
+.program-state {
+  display: inline-block;
+}
+
+.event-list pre {
+  margin: 0px;
+}
+
+.event-list-hl {
+  background-color: yellow;
+}

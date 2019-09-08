@@ -1,46 +1,115 @@
 import './App.css';
 
-import React, {Component} from "react";
+import React from "react";
 
 import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faStopCircle, faStepForward, faForward, faBackward, faStepBackward} from '@fortawesome/free-solid-svg-icons'
-import FlowChart from "./flowChart"
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.main.js'
+import {faPlayCircle, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
 import axios from "axios"
 
 
-class App extends Component {
+class Process extends React.Component {
+    render() {
+        const sl = this.props.start[0];
+        const sc = this.props.start[1];
+        const el = this.props.end[0];
+        const ec = this.props.end[1];
+        return (
+            <div>
+            <div className="program-text">
+                {this.props.lines.map((str, line_no) => {
+                    var bg_start, bg_end;
+                    if (line_no === sl) {
+                        bg_start = sc;
+                    } else if (line_no > sl) {
+                        bg_start = 0;
+                    } else {
+                        bg_start = str.length;
+                    }
+                    if (line_no === el) {
+                        bg_end = ec;
+                    } else if (line_no < el) {
+                        bg_end = str.length;
+                    } else {
+                        bg_end = 0;
+                    }
+                    if (bg_start < bg_end) {
+                        return (
+                            <pre key={line_no}>
+                                <span>{str.slice(0,bg_start)}</span>
+                                <span className="program-text-hl">{str.slice(bg_start,bg_end)}</span>
+                                <span>{str.slice(bg_end,str.length)}</span>
+                            </pre>)
+                    }
+                    return <pre key={line_no}>{str}</pre>
+                })}
+            </div>
+            <div className="program-state">
+                {this.props.state.map((pair, index) => {
+                    const var_name = pair[0];
+                    const val = pair[1];
+                    return <pre key={index}>{var_name}: {val}</pre>
+                })}
+            </div>
+            </div>
+        );
+    }
+}
+
+class Events extends React.Component {
+    render() {
+        return (
+            <div className="event-list">
+                {this.props.events.map((event, index) => {
+                    if (index === this.props.current_index) {
+                        return <pre key={index}><span className="event-list-hl">{event}</span></pre>
+                    } else {
+                        return <pre key={index}>{event}</pre>
+                    }
+                })}
+            </div>
+        )
+    }
+}
+
+class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            // Name of the currently open file
             hcspFileName: undefined,
-            hcspCode: "{\n" +
-                "\t\"1\": {\n" +
-                "\t\t\"code\": \"(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**\",\n" +
-                "\t\t\"state\": {\"x\": 0}\n" +
-                "\t},\n" +
-                "\t\"2\": {\n" +
-                "\t\t\"code\": \"(wait(2); p2c?x; c2p!x-1)**\",\n" +
-                "\t\t\"state\": {}\n" +
-                "\t},\n" +
-                "\t\"3\":{\n" +
-                "\t\t\"code\": \"x := x + y; y:= y * x\",\n" +
-                "\t\t\"state\": {\"x\":0, \"y\": 1}\n" +
-                "\t}\n" +
-                "}",
-            // hcspStates定义：一个数组序列，每一个元素包含当前代码以及当前状态
-            hcspStates: [],
-            hcspComm: [],
+
+            // Code for the HCSP program, one entry for each process 
+            hcspCode: [],
+
+            // Pretty-printed form of the HCSP program
+            print_info: [],
+
+            // Currently computed history. Each entry represents one
+            // state in the execution. The first entry is the starting
+            // state. All other entries are waiting for some event.
+            // Each entry contains the position and state of the program
+            // at each step.
+            history: [],
+
+            // List of events. The events[i] carries history[i+1] to
+            // history[i+2].
+            events: [],
+
+            // Current position
+            history_pos: 0,
+
+            // Whether there is a file loaded.
             started: false
         };
         this.reader = new FileReader();
+        this.fileSelector = undefined;
     }
 
     handleFiles = () => {
         this.reader.onloadend = () => {
             let text = this.reader.result;
-            this.setState({hcspCode: text});
+            this.setState({hcspCode: text.trim().split('\n'), started: true});
         };
         this.reader.readAsText(this.fileSelector.files[0]);
     };
@@ -53,27 +122,8 @@ class App extends Component {
         return fileSelector;
     };
 
-    componentDidMount(): void {
+    componentDidMount() {
         this.fileSelector = this.buildFileSelector();
-        this.editor = monaco.editor.create(document.getElementById("monaco-editor"), {
-            // width: window.innerWidth / 2.2,
-            // height: 750,
-            theme: "vs",
-            value: this.state.hcspCode,
-            selectOnLineNumbers: true,
-            minimap: {
-                enabled: false,
-            },
-
-        });
-        // this.decorations = this.editor.deltaDecorations([], [{
-        //     range: new monaco.Range(7, 1, 7, 24),
-        //     options: { inlineClassName: "myInlineDecoration" }
-        // }])
-    }
-
-    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
-        this.editor.setValue(this.state.hcspCode);
     }
 
     handleFileSelect = (e) => {
@@ -83,63 +133,34 @@ class App extends Component {
 
     run = async (e) => {
         e.preventDefault();
-        await this.setStateAsync({hcspCode: this.editor.getValue()});
-        try {
-            const hcspCode = JSON.parse(this.state.hcspCode);
-            this.state.hcspStates.push(hcspCode);
-            this.setState({hcspStates: this.state.hcspStates});
-        }catch (e) {
-            window.alert(e)
-        }
-        this.setState({started: true})
+        const response = await axios.post("/run_hcsp", {
+            hcspCode: this.state.hcspCode,
+            num_steps: 100,
+        })
+        this.setState({
+            history: response.data.history,
+            events: response.data.events,
+            print_info: response.data.print_info,
+        })
     };
 
-
-    forward = async (e) => {
-        e.preventDefault();
-        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1];
-        const response = await axios.post("/process_multi", tempCode);
-        let response_data = response.data;
-        console.log("response data:" + JSON.stringify(response_data));
-        this.state.hcspStates.push(response_data);
-        this.setState({hcspStates: this.state.hcspStates});
+    nextEvent = (e) => {
+        this.setState((state) => ({
+            history_pos: state.history_pos + 1
+        }))
     };
 
-    backward = (e) => {
-        e.preventDefault();
-        if (this.state.hcspStates.length > 1){
-            this.setState({hcspState: this.state.hcspStates.pop()});
-        }
-        console.log(this.state.hcspStates);
+    prevEvent = (e) => {
+        this.setState((state) => ({
+            history_pos: state.history_pos - 1
+        }))
     };
 
-    stop = (e) => {
-        e.preventDefault();
-        this.setState({hcspStates: []});
-        this.setState({hcspCode: this.editor.getValue()});
-        this.setState({started: false});
-        // this.editor.deltaDecorations(this.decorations, []);
+    nextStep = (e) => {
     };
 
-
-    nextStep = async (e) => {
-        e.preventDefault();
-        const tempCode = this.state.hcspStates[this.state.hcspStates.length - 1];
-        const response = await axios.post("/step_multi", tempCode);
-        let response_data = response.data;
-        console.log("response data:" + JSON.stringify(response_data));
-        this.state.hcspStates.push(response_data);
-        this.setState({hcspStates: this.state.hcspStates});
+    prevStep = (e) => {
     };
-
-    lastStep = (e) => {
-        e.preventDefault();
-        if (this.state.hcspStates.length > 1){
-            this.setState({hcspState: this.state.hcspStates.pop()});
-        }
-        console.log(this.state.hcspStates);
-    };
-
 
     setStateAsync = (state) => {
         return new Promise((resolve) => {
@@ -157,37 +178,50 @@ class App extends Component {
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         {}
                     </Nav>
-
-                    <Nav>
-                        <Nav.Link href="#features">Readme</Nav.Link>
-                        <Nav.Link href="#deets">Contact</Nav.Link>
-                    </Nav>
                 </Navbar>
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="success" title={"run"} onClick={this.run} disabled={this.state.started}><FontAwesomeIcon icon={faPlayCircle}
-                                                                                 size="lg"/></Button>
+                        <Button variant="success" title={"run"} onClick={this.run} disabled={!this.state.started}>
+                            <FontAwesomeIcon icon={faPlayCircle} size="lg"/>
+                        </Button>
 
-                        <Button variant="danger" title={"stop"} onClick={this.stop} disabled={!this.state.started}><FontAwesomeIcon icon={faStopCircle}
-                                                                                 size="lg"/></Button>
-                        <Button variant="secondary" title={"step forward"} onClick={this.nextStep} disabled={!this.state.started}>
+                        <Button variant="secondary" title={"step forward"} onClick={this.nextEvent}
+                            disabled={!this.state.started || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faForward} size="lg"/>
                         </Button>
-                        <Button variant="secondary" title={"step backward"} onClick={this.lastStep} disabled={!this.state.started}>
+
+                        <Button variant="secondary" title={"step backward"} onClick={this.prevEvent}
+                            disabled={!this.state.started || this.state.history_pos === 0}>
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
-                        <Button variant="secondary" title={"forward"} onClick={this.forward} disabled={!this.state.started}><FontAwesomeIcon icon={faStepForward}
-                                                                                                                                             size="lg"/></Button>
-                        <Button variant="secondary" title={"backward"} onClick={this.backward} disabled={!this.state.started}><FontAwesomeIcon icon={faStepBackward}
-                                                                                                                                             size="lg"/></Button>
+
+                        <Button variant="secondary" title={"forward"} onClick={this.nextStep} disabled={!this.state.started}>
+                            <FontAwesomeIcon icon={faCaretRight} size="lg"/>
+                        </Button>
+
+                        <Button variant="secondary" title={"backward"} onClick={this.prevStep} disabled={!this.state.started}>
+                            <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
+                        </Button>
                     </ButtonToolbar>
                 </div>
+
                 <hr/>
                 <Container style={{"maxWidth": window.innerWidth}}>
-                    <div id="monaco-editor" style={{height: 250}}/>
-                    <hr/>
-                    <FlowChart style={{"maxWidth": window.innerWidth}} hcspStates={this.state.hcspStates}/>
+                    {this.state.print_info.map((info, index) => {
+                        const lines = info[0];
+                        const mapping = info[1];
+                        const hpos = this.state.history_pos;
+                        const pos = this.state.history[hpos][index].pos;
+                        const start = this.state.print_info[index][1][pos][0];
+                        const end = this.state.print_info[index][1][pos][1];
+                        const state = this.state.history[hpos][index].state;
+                        return <Process key={index}
+                            lines={lines} mapping={mapping} start={start} end={end} state={state}/>
+                    })}
+                </Container>
+                <Container style={{"maxWidth": window.innerWidth}}>
+                    <Events events={this.state.events} current_index={this.state.history_pos}/>
                 </Container>
             </div>
         );

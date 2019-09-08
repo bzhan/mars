@@ -124,46 +124,45 @@ class SimulatorTest(unittest.TestCase):
 
     def run_test(self, infos, num_steps, trace):
         for i in range(len(infos)):
-            hp, state = infos[i]
-            infos[i] = simulator.HCSPInfo(hp, state=state)
+            infos[i] = simulator.HCSPInfo(infos[i])
 
         res = simulator.exec_parallel(infos, num_steps)
         self.assertEqual(res, trace)
 
     def testExecParallel1(self):
         self.run_test([
-            ("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**", {'x': 0}),
-            ("(wait(2); p2c?x; c2p!x-1)**", {}),
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
         ], 6, ["delay 2", "IO p2c 2", "IO c2p 1", "delay 2", "IO p2c 3", "IO c2p 2"])
 
     def testExecParallel2(self):
         self.run_test([
-            ("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**", {'x': 0}),
-            ("wait(2); p2c?x; c2p!x-1", {}),
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "wait(2); p2c?x; c2p!x-1",
         ], 6, ["delay 2", "IO p2c 2", "IO c2p 1", "deadlock"])
 
     def testExecParallel3(self):
         self.run_test([
-            ("x := x + 1", {'x': 0}),
-            ("y := 2", {}),
+            "x := 0; x := x + 1",
+            "y := 2",
         ], 6, ['deadlock'])
 
     def testExecParallel4(self):
         self.run_test([
-            ("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**", {'x': 0}),
-            ("(<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**", {'x': 0}),
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
         ], 6, ['deadlock'])
 
     def testExecParallel5(self):
         self.run_test([
-            ("x?x $ z!z $ y?y", {'z': 1}),
-            ("y!y", {'y': 2}),
+            "z := 1; (x?x $ z!z $ y?y)",
+            "y := 2; y!y",
         ], 3, ["IO y 2", "deadlock"])
 
     def testExecParallel6(self):
         self.run_test([
-            ("x?x $ z!z $ y?y", {'z': 1}),
-            ("z?z", {}),
+            "z := 1; (x?x $ z!z $ y?y)",
+            "z?z",
         ], 3, ["IO z 1", "deadlock"])
 
 

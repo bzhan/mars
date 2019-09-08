@@ -4,6 +4,7 @@ The state is given by a dictionary from variable names to numbers.
 
 """
 
+from copy import copy
 import itertools
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, true_expr
@@ -317,7 +318,7 @@ class HCSPInfo:
         else:
             assert False
 
-def exec_parallel(infos, num_steps, *, debug=False):
+def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -328,6 +329,18 @@ def exec_parallel(infos, num_steps, *, debug=False):
 
     # Stores the list of events
     trace = []
+
+    # Stores list of states
+    if log_state:
+        state_log = []
+
+    def log_info():
+        if log_state:
+            state_log.append([{
+                'pos': 'p' + '.'.join(str(p) for p in info.pos) \
+                    if get_pos(info.hp, info.pos).type != 'wait' \
+                    else 'p' + '.'.join(str(p) for p in info.pos[:-1]),
+                'state': sorted([(k, v) for k, v in info.state.items()])} for info in infos])
 
     if debug:
         print("\nInitial status:")
@@ -342,6 +355,9 @@ def exec_parallel(infos, num_steps, *, debug=False):
         for info in infos:
             reason = info.exec_process()
             reasons.append(reason)
+
+        # Record state after exec_process
+        log_info()
 
         if debug:
             print("\nAfter exec_process:")
@@ -368,13 +384,13 @@ def exec_parallel(infos, num_steps, *, debug=False):
                         min_delay = reason[1]
 
             # If no delay is possible, the system is in a deadlock
-            # todo: this deadlock detection does not work well, it will report "deadlock" for ended processes.
+            # todo: this deadlock detection does not work well, it will report
+            # "deadlock" for ended processes.
             # todo: see testExecParallel3 in simulator_test
             if min_delay is None:
                 if debug:
                     print("Deadlock")
-                trace.append("deadlock")
-                return trace
+                trace.append("deadlock")                
 
             # Otherwise, execute the delay.
             if debug:
@@ -398,4 +414,13 @@ def exec_parallel(infos, num_steps, *, debug=False):
                 print("... %s transfered, with result")
                 print_status()
 
-    return trace
+        if trace[-1] == 'deadlock':
+            break
+
+    # Log info at the end
+    log_info()
+
+    if log_state:
+        return state_log, trace
+    else:
+        return trace

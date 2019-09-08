@@ -27,7 +27,7 @@ class FlowChart extends Component {
         this.state = {data: default_graph, g: undefined};
     }
 
-    componentDidMount(): void {
+    componentDidMount() {
         const graph = new G6.Graph({
             container: 'mountNode',
             width: window.innerWidth / 1.05,
@@ -85,7 +85,7 @@ class FlowChart extends Component {
         this.setState({g: graph});
     }
 
-    componentDidUpdate(prevProps: Readonly<P>, prevState: Readonly<S>, snapshot: SS): void {
+    componentDidUpdate(prevProps, prevState, snapshot) {
         this.convertStatesToChart();
     }
 
