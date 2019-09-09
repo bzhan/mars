@@ -4,21 +4,24 @@ import React from "react";
 
 import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
+import {faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
 import axios from "axios"
 
 
 class Process extends React.Component {
     render() {
-        const sl = this.props.start[0];
-        const sc = this.props.start[1];
-        const el = this.props.end[0];
-        const ec = this.props.end[1];
         return (
             <div>
             <div className="program-text">
                 {this.props.lines.map((str, line_no) => {
+                    if (this.props.start === undefined) {
+                        return <pre key={line_no}>{str}</pre>
+                    }
                     var bg_start, bg_end;
+                    const sl = this.props.start[0];
+                    const sc = this.props.start[1];
+                    const el = this.props.end[0];
+                    const ec = this.props.end[1];
                     if (line_no === sl) {
                         bg_start = sc;
                     } else if (line_no > sl) {
@@ -44,13 +47,14 @@ class Process extends React.Component {
                     return <pre key={line_no}>{str}</pre>
                 })}
             </div>
-            <div className="program-state">
+            <pre className="program-state">
+                <span>&nbsp;</span>
                 {this.props.state.map((pair, index) => {
                     const var_name = pair[0];
                     const val = pair[1];
-                    return <pre key={index}>{var_name}: {val}</pre>
+                    return <span key={index} style={{marginLeft: "10px"}}>{var_name}: {val}</span>
                 })}
-            </div>
+            </pre>
             </div>
         );
     }
@@ -77,7 +81,7 @@ class App extends React.Component {
         super(props);
         this.state = {
             // Name of the currently open file
-            hcspFileName: undefined,
+            hcspFileName: "",
 
             // Code for the HCSP program, one entry for each process 
             hcspCode: [],
@@ -100,16 +104,29 @@ class App extends React.Component {
             history_pos: 0,
 
             // Whether there is a file loaded.
-            started: false
+            file_loaded: false
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
     }
 
     handleFiles = () => {
-        this.reader.onloadend = () => {
+        this.reader.onloadend = async () => {
             let text = this.reader.result;
-            this.setState({hcspCode: text.trim().split('\n'), started: true});
+            let hcspCode = text.trim().split('\n');
+            const response = await axios.post("/parse_hcsp", {
+                hcspCode: hcspCode,
+            })
+            console.log(response);
+            this.setState({
+                hcspCode: hcspCode,
+                print_info: response.data.print_info,
+                hcspFileName: this.fileSelector.files[0].name,
+                file_loaded: true,
+                history: [],
+                events: [],
+                history_pos: 0,
+            });
         };
         this.reader.readAsText(this.fileSelector.files[0]);
     };
@@ -128,6 +145,7 @@ class App extends React.Component {
 
     handleFileSelect = (e) => {
         e.preventDefault();
+        this.fileSelector.value = "";
         this.fileSelector.click();
     };
 
@@ -140,7 +158,6 @@ class App extends React.Component {
         this.setState({
             history: response.data.history,
             events: response.data.events,
-            print_info: response.data.print_info,
         })
     };
 
@@ -176,23 +193,27 @@ class App extends React.Component {
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
-                        {}
+                        <span style={{marginLeft: '20px', fontSize: 'x-large'}}>{this.state.hcspFileName}</span>
                     </Nav>
                 </Navbar>
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="success" title={"run"} onClick={this.run} disabled={!this.state.started}>
+                        <Button variant="success" title={"run"} onClick={this.run} disabled={!this.state.file_loaded}>
                             <FontAwesomeIcon icon={faPlayCircle} size="lg"/>
                         </Button>
 
+                        <Button variant="secondary" title={"refresh"} onClick={this.handleFiles} disabled={!this.state.file_loaded}>
+                            <FontAwesomeIcon icon={faSync} size="lg"/>
+                        </Button>
+
                         <Button variant="secondary" title={"step forward"} onClick={this.nextEvent}
-                            disabled={!this.state.started || this.state.history_pos === this.state.history.length-1}>
+                            disabled={this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faForward} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"step backward"} onClick={this.prevEvent}
-                            disabled={!this.state.started || this.state.history_pos === 0}>
+                            disabled={this.state.history.length === 0 || this.state.history_pos === 0}>
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
 
@@ -207,20 +228,25 @@ class App extends React.Component {
                 </div>
 
                 <hr/>
-                <Container style={{"maxWidth": window.innerWidth}}>
+                <Container className="left">
                     {this.state.print_info.map((info, index) => {
                         const lines = info[0];
                         const mapping = info[1];
-                        const hpos = this.state.history_pos;
-                        const pos = this.state.history[hpos][index].pos;
-                        const start = this.state.print_info[index][1][pos][0];
-                        const end = this.state.print_info[index][1][pos][1];
-                        const state = this.state.history[hpos][index].state;
-                        return <Process key={index}
-                            lines={lines} mapping={mapping} start={start} end={end} state={state}/>
+                        if (this.state.history.length === 0) {
+                            return <Process key={index}
+                                lines={lines} start={undefined} end={undefined} state={[]}/>
+                        } else {
+                            const hpos = this.state.history_pos;
+                            const pos = this.state.history[hpos][index].pos;
+                            const start = mapping[pos][0];
+                            const end = mapping[pos][1];
+                            const state = this.state.history[hpos][index].state;
+                            return <Process key={index}
+                                lines={lines} start={start} end={end} state={state}/>    
+                        }
                     })}
                 </Container>
-                <Container style={{"maxWidth": window.innerWidth}}>
+                <Container className="right">
                     <Events events={this.state.events} current_index={this.state.history_pos}/>
                 </Container>
             </div>

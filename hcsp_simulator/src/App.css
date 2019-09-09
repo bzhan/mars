@@ -48,7 +48,7 @@
 }
 
 .program-text {
-  margin: 10px;
+  margin-top: 10px;
   font-family: 'Consolas', Courier, monospace;
   width: 50%;
 }
@@ -61,8 +61,8 @@
   margin: 0px;
 }
 
-.program-state {
-  display: inline-block;
+.event-list {
+  margin-top: 10px;
 }
 
 .event-list pre {
@@ -71,4 +71,19 @@
 
 .event-list-hl {
   background-color: yellow;
+}
+
+.left {
+  display: inline-block;
+  max-width: 70%;
+}
+
+.right {
+  display: inline-block;
+  max-width: 30%;
+  vertical-align: top;
+  position: absolute;
+  top: 127px;
+  bottom: 0px;
+  overflow-y: scroll;
 }

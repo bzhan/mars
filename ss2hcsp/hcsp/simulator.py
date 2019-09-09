@@ -342,6 +342,9 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
                     else 'p' + '.'.join(str(p) for p in info.pos[:-1]),
                 'state': sorted([(k, v) for k, v in info.state.items()])} for info in infos])
 
+    # Record state at the beginning
+    log_info()
+
     if debug:
         print("\nInitial status:")
         print_status()

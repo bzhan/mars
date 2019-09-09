@@ -32,20 +32,28 @@ def postprocess(new_code, hcsp_state, reason):
 def hello_world():
     return "Hello, World!"
 
-@app.route('/run_hcsp', methods=['POST'])
-def run_hcsp():
+@app.route('/parse_hcsp', methods=['POST'])
+def parse_hcsp():
     data = json.loads(request.get_data())
-    
     hcspCode = data['hcspCode']
-
-    info = [simulator.HCSPInfo(hp) for hp in hcspCode]
     print_info = [pprint.pprint_lines(parser.hp_parser.parse(hp), record_pos=True) for hp in hcspCode]
-    history, events = simulator.exec_parallel(info, 10, log_state=True)
 
     return json.dumps({
         'print_info': print_info,
+    })
+
+@app.route('/run_hcsp', methods=['POST'])
+def run_hcsp():
+    data = json.loads(request.get_data())
+    hcspCode = data['hcspCode']
+    num_steps = data['num_steps']
+
+    info = [simulator.HCSPInfo(hp) for hp in hcspCode]
+    history, events = simulator.exec_parallel(info, num_steps, log_state=True)
+
+    return json.dumps({
         'history': history,
-        'events': events
+        'events': ['start'] + events + ['end']
     })
 
 
