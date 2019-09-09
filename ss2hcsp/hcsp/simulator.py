@@ -6,8 +6,10 @@ The state is given by a dictionary from variable names to numbers.
 
 from copy import copy
 import itertools
+import math
 
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, true_expr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
+    BConst, LogicExpr, RelExpr, true_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -45,9 +47,65 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, FunExpr):
         # Special functions
+        args = [eval_expr(e, state) for e in expr.exprs]
         if expr.fun_name == "min":
-            a, b = expr.exprs
-            return min(eval_expr(a, state), eval_expr(b, state))
+            return min(*args)
+        elif expr.fun_name == "max":
+            return max(*args)
+        elif expr.fun_name == "abs":
+            return abs(*args)
+        elif expr.fun_name == "gcd":
+            return math.gcd(*args)
+        elif expr.fun_name == "push":
+            a, b = args
+            assert isinstance(a, tuple)
+            return a + (b,)
+        elif expr.fun_name == "pop":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            return a[:-1]
+        elif expr.fun_name == "top":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            return a[-1]
+        else:
+            raise NotImplementedError
+
+    elif isinstance(expr, ModExpr):
+        return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
+
+    elif isinstance(expr, BConst):
+        return self.value
+
+    elif isinstance(expr, LogicExpr):
+        a = eval_expr(expr.expr1, state)
+        b = eval_expr(expr.expr2, state)
+        if expr.op == "&&":
+            return a and b
+        elif expr.op == "||":
+            return a or b
+        elif expr.op == "-->":
+            return (not a) or b
+        elif expr.op == "<-->":
+            return a == b
+        else:
+            raise NotImplementedError
+
+    elif isinstance(expr, RelExpr):
+        a = eval_expr(expr.expr1, state)
+        b = eval_expr(expr.expr2, state)
+        if expr.op == "<":
+            return a < b
+        elif expr.op == ">":
+            return a > b
+        elif expr.op == "==":
+            return a == b
+        elif expr.op == "!=":
+            return a != b
+        elif expr.op == ">=":
+            return a >= b
+        elif expr.op == "<=":
+            return a <= b
         else:
             raise NotImplementedError
 
@@ -124,16 +182,19 @@ class HCSPInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, hp, *, pos=None, state=None):
+    def __init__(self, hp, *, pos="start", state=None):
         """Initializes with starting position as the execution position."""
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
 
-        if pos is None:
+        if pos == "start":
             pos = start_pos(self.hp)
-        assert isinstance(pos, tuple)
+        elif pos == "end":
+            pos = None
+        else:
+            assert isinstance(pos, tuple)
         self.pos = pos
 
         if state is None:
@@ -163,6 +224,14 @@ class HCSPInfo:
             # Perform assignment
             self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
             self.pos = step_pos(self.hp, self.pos)
+            return "step"
+
+        elif cur_hp.type == "condition":
+            # Evaluate the condition, either go inside or step to next
+            if eval_expr(cur_hp.cond, self.state):
+                self.pos = self.pos + (0,)
+            else:
+                self.pos = step_pos(self.hp, self.pos)
             return "step"
 
         elif cur_hp.type == "input_channel":

@@ -8,6 +8,30 @@ from ss2hcsp.hcsp import parser
 
 
 class SimulatorTest(unittest.TestCase):
+    def testEvalAExpr(self):
+        test_data = [
+            ("x + 2", {"x": 1}, 3),
+            ("t % 3", {"t": 7}, 1),
+        ]
+
+        for expr, state, res in test_data:
+            expr = parser.aexpr_parser.parse(expr)
+            self.assertEqual(simulator.eval_expr(expr, state), res)
+
+    def testEvalBExpr(self):
+        test_data = [
+            ("x >= y", {"x": 3, "y": 2}, True),
+            ("x >= y", {"x": 2, "y": 3}, False),
+            ("x > y || x < y", {"x": 2, "y": 2}, False),
+            ("x == 2 --> y == 3", {"x": 2, "y": 3}, True),
+            ("x == 2 --> y == 3", {"x": 2, "y": 4}, False),
+            ("x == 2 --> y == 3", {"x": 3, "y": 4}, True),
+        ]
+
+        for expr, state, res in test_data:
+            expr = parser.bexpr_parser.parse(expr)
+            self.assertEqual(simulator.eval_expr(expr, state), res)
+
     def testExecStep(self):
         test_data = [
             ("skip", (), {}, None, {}),
@@ -19,6 +43,10 @@ class SimulatorTest(unittest.TestCase):
             ("(x := 2; x := x + 1)**", (0,), {"x": 1}, (1,), {"x": 2}),
             ("(x := 2; x := x + 1)**", (1,), {"x": 2}, (0,), {"x": 3}),
             ("(<x_dot = 1 & true> |> [] (p2c!x --> skip); c2p?x)**", (0, 0), {}, (1,), {}),
+            ("x == 0 -> x := 2; x := 3", (0,), {"x": 0}, (0, 0), {"x": 0}),
+            ("x == 0 -> x := 2; x := 3", (0,), {"x": 1}, (1,), {"x": 1}),
+            ("x == 0 -> x := 2", (), {"x": 0}, (0,), {"x": 0}),
+            ("x == 0 -> x := 2", (), {"x": 1}, None, {"x": 1}),
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
@@ -113,6 +141,7 @@ class SimulatorTest(unittest.TestCase):
             ("wait(3); x := x + 1", (0, 1), {"x": 2}, 2, (1,), {"x": 2}),
             ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, 3, (), {"x": 5}),
             ("<x_dot = 1 & true> |> [](c!x --> skip); x := x + 1", (0,), {"x": 2}, 3, (0,), {"x": 5}),
+            ("wait(3)", "end", {}, 3, None, {}),
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:

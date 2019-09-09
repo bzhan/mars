@@ -118,6 +118,80 @@ class PPrintTest(unittest.TestCase):
             ')**'
         ])
 
+    def testVanPerPol_continuous1(self):
+        self.run_test("t := 0; (ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> x5 := (1-x3)*(-2.2); t%8 == 0 -> x6 := max(x1, x5); t%10 == 0 -> (x6 > x2 -> x0 := 0; x6 <= x2 -> x0 := 1); ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>)**", [
+            't := 0;',
+            '(',
+            '  ch_x1?x1;',
+            '  ch_x2?x2;',
+            '  ch_x3?x3;',
+            '  t%4 == 0 -> x5 := (1-x3)*(-2.2);',
+            '  t%8 == 0 -> x6 := max(x1, x5);',
+            '  t%10 == 0 -> (',
+            '    x6 > x2 -> x0 := 0;',
+            '    x6 <= x2 -> x0 := 1',
+            '  );',
+            '  ch_x0_0!x0;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+2>',
+            ')**'
+        ])
+
+    def testVanPerPol_continuous2(self):
+        self.run_test("x2 := 10; x1 := 1; t := 0; (<x2_dot = x1, x1_dot = x0, t_dot = 1 & true> |> [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x2!x2 --> skip, ch_x3!min(x2, x2) --> skip))**", [
+            'x2 := 10;',
+            'x1 := 1;',
+            't := 0;',
+            '(',
+            '  <x2_dot = x1, x1_dot = x0, t_dot = 1 & true> |> [] (',
+            '    ch_x0_0?x0 -->',
+            '      skip',
+            '    ch_x1!x1 -->',
+            '      skip',
+            '    ch_x2!x2 -->',
+            '      skip',
+            '    ch_x3!min(x2, x2) -->',
+            '      skip',
+            '  )',
+            ')**'            
+        ])
+
+    def testVanPerPol_discrete1(self):
+        self.run_test("t := 0; (ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 -> (x8 >= 20 -> x10 := x7; x8 < 20 -> x10 := x9); ch_x10_0!x10; temp := t; <t_dot = 1 & t < temp+4>)**", [
+            't := 0;',
+            '(',
+            '  ch_x7?x7;',
+            '  ch_x8?x8;',
+            '  ch_x9?x9;',
+            '  t%4 == 0 -> (',
+            '    x8 >= 20 -> x10 := x7;',
+            '    x8 < 20 -> x10 := x9',
+            '  );',
+            '  ch_x10_0!x10;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+4>',
+            ')**'
+        ])
+
+    def testVanPerPol_discrete2(self):
+        self.run_test("t := 0; (ch_x0?x0; ch_x4?x4; t%gcd(in0, in0) == 0 -> x1 := min(x0, x0); t%4 == 0 -> x3 := (1-x1)*2; t%8 == 0 -> x5 := max(x4, x3); t%10 == 0 -> (x5 > x0 -> x6 := 0; x5 <= x0 -> x6 := 1); ch_x6_0!x6; temp := t; <t_dot = 1 & t < temp+gcd(2, and)>)**", [
+            't := 0;',
+            '(',
+            '  ch_x0?x0;',
+            '  ch_x4?x4;',
+            '  t%gcd(in0, in0) == 0 -> x1 := min(x0, x0);',
+            '  t%4 == 0 -> x3 := (1-x1)*2;',
+            '  t%8 == 0 -> x5 := max(x4, x3);',
+            '  t%10 == 0 -> (',
+            '    x5 > x0 -> x6 := 0;',
+            '    x5 <= x0 -> x6 := 1',
+            '  );',
+            '  ch_x6_0!x6;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+gcd(2, and)>',
+            ')**'
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()
