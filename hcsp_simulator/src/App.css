@@ -67,6 +67,7 @@
 
 .event-list pre {
   margin: 0px;
+  cursor: pointer;
 }
 
 .event-list-hl {

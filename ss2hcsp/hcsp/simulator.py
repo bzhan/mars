@@ -336,11 +336,17 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
 
     def log_info():
         if log_state:
-            state_log.append([{
-                'pos': 'p' + '.'.join(str(p) for p in info.pos) \
-                    if get_pos(info.hp, info.pos).type != 'wait' \
-                    else 'p' + '.'.join(str(p) for p in info.pos[:-1]),
-                'state': sorted([(k, v) for k, v in info.state.items()])} for info in infos])
+            cur_info = []
+            for info in infos:
+                if info.pos is None:
+                    info_pos = 'end'
+                elif get_pos(info.hp, info.pos).type != 'wait':
+                    info_pos = 'p' + '.'.join(str(p) for p in info.pos)
+                else:
+                    info_pos = 'p' + '.'.join(str(p) for p in info.pos[:-1])
+                info_state = sorted([(k, v) for k, v in info.state.items()])
+                cur_info.append({'pos': info_pos, 'state': info_state})
+            state_log.append(cur_info)
 
     # Record state at the beginning
     log_info()
@@ -393,7 +399,8 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
             if min_delay is None:
                 if debug:
                     print("Deadlock")
-                trace.append("deadlock")                
+                trace.append("deadlock")
+                break
 
             # Otherwise, execute the delay.
             if debug:
@@ -417,11 +424,9 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
                 print("... %s transfered, with result")
                 print_status()
 
-        if trace[-1] == 'deadlock':
-            break
-
     # Log info at the end
-    log_info()
+    if trace[-1] != 'deadlock':
+        log_info()
 
     if log_state:
         return state_log, trace

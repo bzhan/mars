@@ -68,7 +68,7 @@ class Events extends React.Component {
                     if (index === this.props.current_index) {
                         return <pre key={index}><span className="event-list-hl">{event}</span></pre>
                     } else {
-                        return <pre key={index}>{event}</pre>
+                        return <pre key={index} onClick={(e) => this.props.onClick(e, index)}>{event}</pre>
                     }
                 })}
             </div>
@@ -117,7 +117,6 @@ class App extends React.Component {
             const response = await axios.post("/parse_hcsp", {
                 hcspCode: hcspCode,
             })
-            console.log(response);
             this.setState({
                 hcspCode: hcspCode,
                 print_info: response.data.print_info,
@@ -173,6 +172,10 @@ class App extends React.Component {
         }))
     };
 
+    eventOnClick = (e, i) => {
+        this.setState({history_pos: i})
+    }
+
     nextStep = (e) => {
     };
 
@@ -185,6 +188,28 @@ class App extends React.Component {
         });
     };
 
+    eventLine = () => {
+        if (this.state.history.length === 0) {
+            return "No data"
+        } else {
+            const events = this.state.events;
+            var res;
+            if (events[events.length - 1] === 'deadlock') {
+                res = String(events.length-2) + " events."
+            } else {
+                res = String(events.length-2) + "+ events."
+            }
+            res += " Current event: "
+            if (this.state.history_pos === 0) {
+                res += "start."
+            } else if (this.state.history_pos == events.length - 1) {
+                res += "end."
+            } else {
+                res += String(this.state.history_pos)
+            }
+            return res
+        }
+    }
 
     render() {
         return (
@@ -193,7 +218,7 @@ class App extends React.Component {
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
-                        <span style={{marginLeft: '20px', fontSize: 'x-large'}}>{this.state.hcspFileName}</span>
+                        <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
                     </Nav>
                 </Navbar>
 
@@ -224,6 +249,10 @@ class App extends React.Component {
                         <Button variant="secondary" title={"backward"} onClick={this.prevStep} disabled={!this.state.started}>
                             <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
                         </Button>
+
+                        <span style={{marginLeft:'20px',fontSize:'large',marginTop:"auto",marginBottom:"auto"}}>
+                            {this.eventLine()}
+                        </span>
                     </ButtonToolbar>
                 </div>
 
@@ -233,21 +262,27 @@ class App extends React.Component {
                         const lines = info[0];
                         const mapping = info[1];
                         if (this.state.history.length === 0) {
-                            return <Process key={index}
-                                lines={lines} start={undefined} end={undefined} state={[]}/>
+                            return <Process key={index} lines={lines}
+                                            start={undefined} end={undefined} state={[]}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const pos = this.state.history[hpos][index].pos;
-                            const start = mapping[pos][0];
-                            const end = mapping[pos][1];
-                            const state = this.state.history[hpos][index].state;
-                            return <Process key={index}
-                                lines={lines} start={start} end={end} state={state}/>    
+                            if (pos === 'end') {
+                                return <Process key={index} lines={lines}
+                                                start={undefined} end={undefined} state={[]}/>
+                            } else {
+                                const start = mapping[pos][0];
+                                const end = mapping[pos][1];
+                                const state = this.state.history[hpos][index].state;
+                                return <Process key={index} lines={lines}
+                                                start={start} end={end} state={state}/>
+                            }
                         }
                     })}
                 </Container>
                 <Container className="right">
-                    <Events events={this.state.events} current_index={this.state.history_pos}/>
+                    <Events events={this.state.events} current_index={this.state.history_pos}
+                            onClick={this.eventOnClick}/>
                 </Container>
             </div>
         );
