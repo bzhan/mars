@@ -268,8 +268,9 @@ class App extends React.Component {
                             const hpos = this.state.history_pos;
                             const pos = this.state.history[hpos][index].pos;
                             if (pos === 'end') {
+                                const state = this.state.history[hpos][index].state;
                                 return <Process key={index} lines={lines}
-                                                start={undefined} end={undefined} state={[]}/>
+                                                start={undefined} end={undefined} state={state}/>
                             } else {
                                 const start = mapping[pos][0];
                                 const end = mapping[pos][1];

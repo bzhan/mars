@@ -293,6 +293,8 @@ class HCSPInfo:
 
     def exec_delay(self, delay):
         """Perform delay on the hybrid program of the given length."""
+        if self.pos is None:
+            return
 
         cur_hp = get_pos(self.hp, self.pos)
 

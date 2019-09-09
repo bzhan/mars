@@ -165,6 +165,12 @@ class SimulatorTest(unittest.TestCase):
             "z?z",
         ], 3, ["IO z 1", "deadlock"])
 
+    def testExecParallel7(self):
+        self.run_test([
+            "x := 1; y := 2; z := 3; wait(3); w := 4",
+            "x := 11; y := 12; wait(2); z := 3"
+        ], 6, ["delay 2", "delay 1", "deadlock"])
+
 
 if __name__ == "__main__":
     unittest.main()
