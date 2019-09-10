@@ -85,6 +85,9 @@ class SimulatorTest(unittest.TestCase):
             ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, ("comm", [("c", "!")])),
             ("wait(3)", (0,), {}, (0,), {}, ("delay", 3)),
             ("(x := x + 1; wait(3))**", (0,), {"x": 2}, (1, 0), {"x": 3}, ("delay", 3)),
+            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 0}, None, {"x": 0}, "end"),
+            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 2}, None, {"x": 1}, "end"),
+            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": -2}, None, {"x": -1}, "end"),
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:

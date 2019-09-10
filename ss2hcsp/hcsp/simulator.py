@@ -140,6 +140,12 @@ def get_pos(hp, pos):
         else:
             _, out_hp = hp.io_comms[pos[0]]
             return get_pos(out_hp, pos[1:])
+    elif hp.type == 'condition':
+        if len(pos) == 0:
+            return hp
+        else:
+            assert pos[0] == 0
+            return get_pos(hp.hp, pos[1:])
     else:
         assert len(pos) == 0
         return hp
