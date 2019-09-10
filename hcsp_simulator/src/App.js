@@ -56,7 +56,9 @@ class Process extends React.Component {
                     return <span key={index} style={{marginLeft: "10px"}}>{var_name}: {val}</span>
                 })}
             </pre>
-            <canvas id={'chart'+String(this.props.index)} width="400" height="100"></canvas>
+            {this.props.time_series !== undefined ?
+                <canvas id={'chart'+String(this.props.index)} width="400" height="100"/> : null
+            }
             </div>
         );
     }
@@ -76,12 +78,14 @@ class Process extends React.Component {
             }
         }
         var datasets = [];
+        var colors = ['blue', 'red', 'green', 'yellow'];
         for (let k in series) {
+            let color = colors[datasets.length];
             datasets.push({
                 label: k,
                 lineTension: 0,
-                backgroundColor: 'blue',
-                borderColor: 'blue',
+                backgroundColor: color,
+                borderColor: color,
                 borderWidth: 1,
                 fill: false,
                 pointRadius: 0,
