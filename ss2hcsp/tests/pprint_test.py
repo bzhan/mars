@@ -7,9 +7,12 @@ from ss2hcsp.hcsp.pprint import pprint_lines
 
 
 class PPrintTest(unittest.TestCase):
-    def run_test(self, s, res_list, *, max_line=None, print_mapping=False):
+    def run_test(self, s, res_list, *, max_line=None, print_lines=False, print_mapping=False):
         hp = parser.hp_parser.parse(s)
         lines, mapping = pprint_lines(hp, max_line=max_line, record_pos=True)
+        if print_lines:
+            for line in lines:
+                print(line)
         if print_mapping:
             print(mapping)
         self.assertEqual(lines, res_list)
@@ -47,16 +50,18 @@ class PPrintTest(unittest.TestCase):
         ])
 
     def test5(self):
-        self.run_test("x? $ y?", [
-            "x? $",
-            "y?"
+        self.run_test("x? --> skip $ y? --> skip", [
+            "x? -->",
+            "  skip $",
+            "y? -->",
+            "  skip"
         ])
 
     def test6(self):
-        self.run_test("x?; y? $ x!; y!", [
-            "x?;",
+        self.run_test("x? --> y? $ x! --> y!", [
+            "x? -->",
             "  y? $",
-            "x!;",
+            "x! -->",
             "  y!"
         ])
 
@@ -78,18 +83,15 @@ class PPrintTest(unittest.TestCase):
         ], max_line=21)
 
     def test9(self):
-        self.run_test("num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))", [
+        self.run_test("num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))", [
             'num == 0 -> (tri?E; EL := E; NL := 1; num := 1);',
             'num == 1 -> (',
-            '  BC1!E $',
-            '  BR1?E;',
-            '    EL := push(EL, E);',
-            '    NL := push(NL, 1);',
-            '    num := 1 $',
-            '  BO1?NULL;',
-            '    num := num+1;',
-            '    NL := pop(NL);',
-            '    NL := push(NL, 1)',
+            '  BC1!E -->',
+            '    skip $',
+            '  BR1?E -->',
+            '    EL := push(EL, E); NL := push(NL, 1); num := 1 $',
+            '  BO1?NULL -->',
+            '    num := num+1; NL := pop(NL); NL := push(NL, 1)',
             ');',
             'num == 2 -> (',
             '  EL := pop(EL);',
@@ -118,6 +120,15 @@ class PPrintTest(unittest.TestCase):
             '  p2c?x;',
             '  c2p!x-1',
             ')**'
+        ])
+
+    def test12(self):
+        self.run_test("(x?x --> x!x+1 $ y?y --> skip); x!x+2", [
+            'x?x -->',
+            '  x!x+1 $',
+            'y?y -->',
+            '  skip;',
+            'x!x+2'
         ])
 
     def testVanPerPol_continuous1(self):

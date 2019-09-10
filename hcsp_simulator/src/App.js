@@ -301,7 +301,7 @@ class App extends React.Component {
             const response = await axios.post('/run_hcsp_steps', data);
             this.setState({querying: false})
             const history = response.data.history;
-            if (history.length === 1) {
+            if (history.length <= 1) {
                 // Directly go to the next event
                 this.setState((state) => ({
                     history_pos: state.history_pos + 1,
@@ -351,7 +351,7 @@ class App extends React.Component {
             }
             const response = await axios.post('/run_hcsp_steps', data);
             const history = response.data.history;
-            if (history.length === 1) {
+            if (history.length <= 1) {
                 // Directly go to the previous event
                 this.setState((state) => ({
                     history_pos: state.history_pos - 1,

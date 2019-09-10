@@ -75,39 +75,27 @@ class ExprTest(unittest.TestCase):
 
     def testParseHCSP(self):
         test_data = [
-            ("x1 := 3", "Assign(x1, 3)"),
-            ("x1 := 3; x2 := 5", "Seq(Assign(x1, 3), Assign(x2, 5))"),
-            ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1, 3), Assign(x2, 5), Skip())"),
+            ("x1 := 3", "Assign(x1,3)"),
+            ("x1 := 3; x2 := 5", "Seq(Assign(x1,3), Assign(x2,5))"),
+            ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1,3), Assign(x2,5), Skip())"),
             ("(skip)**", "Loop(Skip())"),
             ("x1?x1", "InputC(x1,x1)"),
             ("x1!x2", "OutputC(x1)"),
             ("<x_dot = x+1, y_dot = y+1 & x < 3> |> [] (x?x --> skip, y!y --> skip)",
              "ODEComm(x, x+1, y, y+1, x < 3, x?x, skip, y!y, skip)"),
-            ("x?x $ y!y", "SelectComm(InputC(x,x),OutputC(y))"),
+            ("x?x --> skip $ y!y --> x := 2", "SelectComm(InputC(x,x),Skip(),OutputC(y),Assign(x,2))"),
             ("@A; @B || @C", "Parallel(Seq(Var(A), Var(B)), Var(C))"),
             ("@A; @B || @C; @D", "Parallel(Seq(Var(A), Var(B)), Seq(Var(C), Var(D)))"),
             ("x == 0 -> @A", "Condition(x == 0, Var(A))"),
             ("x == 0 -> @A; @B", "Seq(Condition(x == 0, Var(A)), Var(B))"),
             ("x == 0 -> (@A; @B)", "Condition(x == 0, Seq(Var(A), Var(B)))"),
-            ("x?; y? $ z?", "SelectComm(Seq(InputC(x), InputC(y)),InputC(z))"),
-            ("x?; (y? $ z?)", "Seq(InputC(x), SelectComm(InputC(y),InputC(z)))"),
-            ("x? $ y? || z?", "Parallel(SelectComm(InputC(x),InputC(y)), InputC(z))"),
+            ("x?; y? || z?", "Parallel(Seq(InputC(x), InputC(y)), InputC(z))"),
         ]
 
         for s, res in test_data:
             hp = hp_parser.parse(s)
             self.assertEqual(repr(hp), res)
             self.assertEqual(str(hp), s)
-
-    def testParsePrint(self):
-        test_data = [
-            hcsp.Sequence(hcsp.Var("C"), hcsp.SelectComm(hcsp.InputChannel("A"), hcsp.Var("B"))),
-        ]
-
-        for hp in test_data:
-            hp_str = str(hp)
-            hp2 = hp_parser.parse(hp_str)
-            self.assertEqual(hp, hp2)
 
 
 if __name__ == "__main__":

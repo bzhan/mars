@@ -146,6 +146,12 @@ def get_pos(hp, pos):
         else:
             assert pos[0] == 0
             return get_pos(hp.hp, pos[1:])
+    elif hp.type == 'select_comm':
+        if len(pos) == 0:
+            return hp
+        else:
+            _, out_hp = hp.io_comms[pos[0]]
+            return get_pos(out_hp, pos[1:])
     else:
         assert len(pos) == 0
         return hp
@@ -291,11 +297,11 @@ class HCSPInfo:
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
             comms = []
-            for comm in cur_hp.hps:
-                if comm.type == "input_channel":
-                    comms.append((comm.ch_name, "?"))
-                elif comm.type == "output_channel":
-                    comms.append((comm.ch_name, "!"))
+            for comm_hp, out_hp in cur_hp.io_comms:
+                if comm_hp.type == "input_channel":
+                    comms.append((comm_hp.ch_name, "?"))
+                elif comm_hp.type == "output_channel":
+                    comms.append((comm_hp.ch_name, "!"))
                 else:
                     raise NotImplementedError
             return "comm", comms
@@ -343,10 +349,10 @@ class HCSPInfo:
             assert False
 
         elif cur_hp.type == "select_comm":
-            for i, comm in enumerate(cur_hp.hps):
-                if comm.type == "input_channel" and comm.ch_name == ch_name:
-                    self.state[comm.var_name] = x
-                    self.pos = step_pos(self.hp, self.pos)
+            for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
+                if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
+                    self.state[comm_hp.var_name] = x
+                    self.pos += (i,) + start_pos(out_hp)
                     return
 
             # Communication must be found among the choices
@@ -381,10 +387,10 @@ class HCSPInfo:
             assert False
 
         elif cur_hp.type == "select_comm":
-            for i, comm in enumerate(cur_hp.hps):
-                if comm.type == "output_channel" and comm.ch_name == ch_name:
-                    self.pos = step_pos(self.hp, self.pos)
-                    return eval_expr(comm.expr, self.state)
+            for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
+                if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
+                    self.pos = (i,) + start_pos(out_hp)
+                    return eval_expr(comm_hp.expr, self.state)
 
             # Communication must be found among the choices
             assert False

@@ -194,13 +194,13 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel5(self):
         self.run_test([
-            "z := 1; (x?x $ z!z $ y?y)",
+            "z := 1; (x?x --> skip $ z!z --> skip $ y?y --> skip)",
             "y := 2; y!y",
         ], 3, ["IO y 2", "deadlock"])
 
     def testExecParallel6(self):
         self.run_test([
-            "z := 1; (x?x $ z!z $ y?y)",
+            "z := 1; (x?x --> skip $ z!z --> skip $ y?y --> skip)",
             "z?z",
         ], 3, ["IO z 1", "deadlock"])
 
@@ -209,6 +209,12 @@ class SimulatorTest(unittest.TestCase):
             "x := 1; y := 2; z := 3; wait(3); w := 4",
             "x := 11; y := 12; wait(2); z := 3"
         ], 6, ["delay 2", "delay 1", "deadlock"])
+
+    def testExecParallel8(self):
+        self.run_test([
+            "(x?x --> x!x+1 $ y?y --> skip); x!x+2",
+            "x!3; x?x; x?x"
+        ], 3, ["IO x 3", "IO x 4", "IO x 5"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([
