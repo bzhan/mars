@@ -113,7 +113,7 @@ class App extends React.Component {
             file_loaded: false,
 
             // Whether a query is in process
-            query_in_process: false
+            querying: false
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -227,9 +227,9 @@ class App extends React.Component {
                 infos: infos,
                 start_event: (hpos !== 0),
             }
-            console.log(data);
+            this.setState({querying: true})
             const response = await axios.post('/run_hcsp_steps', data);
-            console.log(response);
+            this.setState({querying: false})
             const history = response.data.history;
             if (history.length === 1) {
                 // Directly go to the next event
@@ -248,7 +248,55 @@ class App extends React.Component {
         }
     };
 
-    prevStep = (e) => {
+    prevStep = async (e) => {
+        if (this.state.history_step !== undefined) {
+            // Already exploring steps
+            if (this.state.history_step === 0) {
+                // At the first step of the current event, return to exploring events
+                this.setState({
+                    steps: [],
+                    history_step: undefined,
+                });
+            } else {
+                // Otherwise, go to previous step in the current event
+                this.setState((state) => ({
+                    history_step: state.history_step - 1,
+                }))
+            }
+        } else {
+            // Not exploring steps: query the server for steps of the previous
+            // event, then go to the last step of that event.
+            const hpos = this.state.history_pos;
+            const infos = []
+            for (let i = 0; i < this.state.hcspCode.length; i++) {
+                infos.push({
+                    'hp': this.state.hcspCode[i],
+                    'pos': this.state.history[hpos-1][i].pos,
+                    'state': this.state.history[hpos-1][i].state,
+                });
+            }
+            const data = {
+                infos: infos,
+                start_event: (hpos-1 !== 0),
+            }
+            const response = await axios.post('/run_hcsp_steps', data);
+            const history = response.data.history;
+            if (history.length === 1) {
+                // Directly go to the previous event
+                this.setState((state) => ({
+                    history_pos: state.history_pos - 1,
+                    steps: [],
+                    history_step: undefined,
+                }))
+            } else {
+                // Otherwise, traverse the steps starting at the end
+                this.setState((state) => ({
+                    history_pos: state.history_pos - 1,
+                    steps: response.data.history,
+                    history_step: response.data.history.length - 2,
+                }))
+            }    
+        }
     };
 
     setStateAsync = (state) => {
@@ -274,7 +322,11 @@ class App extends React.Component {
             } else if (this.state.history_pos === events.length - 1) {
                 res += "end."
             } else {
-                res += String(this.state.history_pos)
+                res += String(this.state.history_pos) + "."
+            }
+            if (this.state.history_step !== undefined) {
+                res += " Current step: " + String(this.state.history_step+1) + "/" +
+                       String(this.state.steps.length-1)
             }
             return res
         }
@@ -312,11 +364,13 @@ class App extends React.Component {
                         </Button>
 
                         <Button variant="secondary" title={"forward"} onClick={this.nextStep}
-                            disabled={this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faCaretRight} size="lg"/>
                         </Button>
 
-                        <Button variant="secondary" title={"backward"} onClick={this.prevStep} disabled={!this.state.started}>
+                        <Button variant="secondary" title={"backward"} onClick={this.prevStep}
+                            disabled={this.state.querying || this.state.history.length === 0 ||
+                                (this.state.history_pos === 0 && this.state.history_step === undefined)}>
                             <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
                         </Button>
 
@@ -349,7 +403,6 @@ class App extends React.Component {
                                 return <Process key={index} lines={lines}
                                                 start={undefined} end={undefined} state={state}/>
                             } else {
-                                console.log(pos);
                                 // Process out the 'w{n}' in the end if necessary
                                 const sep = pos.lastIndexOf('.');
                                 if (sep !== -1 && pos[sep+1] === 'w') {
