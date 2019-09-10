@@ -220,7 +220,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test_steps([
             "wait(1); x := 1; y := 2; z := 3; wait(3); w := 4",
             "wait(2); z := 3"
-        ], 3, start_event=True)
+        ], 4, start_event=True)
 
 
 if __name__ == "__main__":

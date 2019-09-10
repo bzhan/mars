@@ -5,6 +5,7 @@ import React from "react";
 import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
+import {Chart} from 'chart.js'
 import axios from "axios"
 
 
@@ -55,8 +56,68 @@ class Process extends React.Component {
                     return <span key={index} style={{marginLeft: "10px"}}>{var_name}: {val}</span>
                 })}
             </pre>
+            <canvas id={'chart'+String(this.props.index)} width="400" height="100"></canvas>
             </div>
         );
+    }
+
+    componentDidUpdate() {
+        const ts = this.props.time_series;
+        if (ts === undefined) {
+            return;
+        }
+        var series = {};
+        for (let i = 0; i < ts.length; i++) {
+            for (let k in ts[i].state) {
+                if (!(k in series)) {
+                    series[k] = [];
+                }
+                series[k].push({x: ts[i].time, y: ts[i].state[k]});
+            }
+        }
+        var datasets = [];
+        for (let k in series) {
+            datasets.push({
+                label: k,
+                lineTension: 0,
+                backgroundColor: 'blue',
+                borderColor: 'blue',
+                borderWidth: 1,
+                fill: false,
+                pointRadius: 0,
+                data: series[k]
+            })
+        }
+
+        var ctx = document.getElementById('chart'+String(this.props.index))
+        this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: datasets
+            },
+            options: {
+                animation: {
+                    duration: 0
+                },
+                hover: {
+                    animationDuration: 0
+                },
+                responsiveAnimationDuration: 0,
+                scales: {
+                    xAxes: [{
+                        type: "linear",
+                        display: true,
+                        ticks: {
+                            suggestedMin: 0,
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                    }]
+                },
+            }
+        })
+        this.chart.update();
     }
 }
 
@@ -100,6 +161,9 @@ class App extends React.Component {
             // history[i+2].
             events: [],
 
+            // Time series information
+            time_series: [],
+
             // Current position
             history_pos: 0,
 
@@ -133,6 +197,7 @@ class App extends React.Component {
                 file_loaded: true,
                 history: [],
                 events: [],
+                time_series: [],
                 history_pos: 0,
                 steps: [],
                 history_step: undefined
@@ -168,6 +233,7 @@ class App extends React.Component {
         this.setState({
             history: response.data.history,
             events: response.data.events,
+            time_series: response.data.time_series,
         })
     };
 
@@ -386,8 +452,10 @@ class App extends React.Component {
                         const lines = info[0];
                         const mapping = info[1];
                         if (this.state.history.length === 0) {
-                            return <Process key={index} lines={lines}
-                                            start={undefined} end={undefined} state={[]}/>
+                            // No data is available
+                            return <Process key={index} index={index} lines={lines}
+                                            start={undefined} end={undefined} state={[]}
+                                            time_series={undefined}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const hstep = this.state.history_step;
@@ -399,9 +467,18 @@ class App extends React.Component {
                                 pos = this.state.steps[hstep][index].pos;
                                 state = this.state.steps[hstep][index].state;
                             }
+                            var time_series = []
+                            for (let i = 0; i < this.state.time_series.length; i++) {
+                                time_series.push({
+                                    time: this.state.time_series[i].time,
+                                    state: this.state.time_series[i].states[index]
+                                });
+                            }
                             if (pos === 'end') {
-                                return <Process key={index} lines={lines}
-                                                start={undefined} end={undefined} state={state}/>
+                                // End of data set
+                                return <Process key={index} index={index} lines={lines}
+                                                start={undefined} end={undefined} state={state}
+                                                time_series={time_series}/>
                             } else {
                                 // Process out the 'w{n}' in the end if necessary
                                 const sep = pos.lastIndexOf('.');
@@ -411,8 +488,9 @@ class App extends React.Component {
                                 // Find start and end position in the output
                                 const start = mapping[pos][0];
                                 const end = mapping[pos][1];
-                                return <Process key={index} lines={lines}
-                                                start={start} end={end} state={state}/>
+                                return <Process key={index} index={index} lines={lines}
+                                                start={start} end={end} state={state}
+                                                time_series={time_series}/>
                             }
                         }
                     })}

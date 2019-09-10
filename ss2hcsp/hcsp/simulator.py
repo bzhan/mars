@@ -461,24 +461,35 @@ def get_log_info(infos):
         cur_info.append({'pos': info_pos, 'state': info_state})
     return cur_info
 
-def exec_parallel(infos, num_steps, *, log_state=False):
+def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
+
+    If state_log is given (as a list), append the log of states.
 
     """
     # Stores the list of events
     trace = []
 
-    # Stores list of states
-    if log_state:
-        state_log = []
+    # Current time
+    time = 0
 
     def log_info():
-        if log_state:
+        if state_log is not None:
             state_log.append(get_log_info(infos))
 
-    # Record state at the beginning
+    def log_time_series():
+        if time_series is not None:
+            new_entry = {
+                "time": time,
+                "states": [copy(info.state) for info in infos]
+            }
+            if len(time_series) == 0 or new_entry != time_series[-1]:
+                time_series.append(new_entry)
+
+    # Record state and time series at the beginning
     log_info()
+    log_time_series()
 
     for iteration in range(num_steps):
         # List of stopping reasons for each process
@@ -500,22 +511,23 @@ def exec_parallel(infos, num_steps, *, log_state=False):
         elif event[0] == "delay":
             _, min_delay = event
             trace.append("delay %s" % str(min_delay))
+            log_time_series()
             for info in infos:
                 info.exec_delay(min_delay)
+            time += min_delay
+            log_time_series()
         else:
             _, id_out, id_in, ch_name = event
             val = infos[id_out].exec_output_comm(ch_name)
             infos[id_in].exec_input_comm(ch_name, val)
             trace.append("IO %s %s" % (ch_name, str(val)))
 
-    # Log info at the end
+    # Log info and time series at the end
     if trace[-1] != 'deadlock':
         log_info()
+    log_time_series()
 
-    if log_state:
-        return state_log, trace
-    else:
-        return trace
+    return trace
 
 def exec_parallel_steps(infos, *, start_event):
     """Execute the programs in infos, until the next event.
