@@ -161,6 +161,13 @@ class SimulatorTest(unittest.TestCase):
         res = simulator.exec_parallel(infos, num_steps)
         self.assertEqual(res, trace)
 
+    def run_test_steps(self, infos, res_len, *, start_event):
+        for i in range(len(infos)):
+            infos[i] = simulator.HCSPInfo(infos[i])
+
+        res = simulator.exec_parallel_steps(infos, start_event=start_event)
+        self.assertEqual(len(res), res_len)
+
     def testExecParallel1(self):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
@@ -202,6 +209,18 @@ class SimulatorTest(unittest.TestCase):
             "x := 1; y := 2; z := 3; wait(3); w := 4",
             "x := 11; y := 12; wait(2); z := 3"
         ], 6, ["delay 2", "delay 1", "deadlock"])
+
+    def testExecParallelSteps1(self):
+        self.run_test_steps([
+            "x := 1; y := 2; z := 3; wait(3); w := 4",
+            "x := 11; y := 12; wait(2); z := 3"
+        ], 5, start_event=False)
+
+    def testExecParallelSteps2(self):
+        self.run_test_steps([
+            "wait(1); x := 1; y := 2; z := 3; wait(3); w := 4",
+            "wait(2); z := 3"
+        ], 3, start_event=True)
 
 
 if __name__ == "__main__":

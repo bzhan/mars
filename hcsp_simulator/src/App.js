@@ -103,8 +103,17 @@ class App extends React.Component {
             // Current position
             history_pos: 0,
 
+            // Step history for the current event.
+            steps: [],
+
+            // Current step position
+            history_step: undefined,
+
             // Whether there is a file loaded.
-            file_loaded: false
+            file_loaded: false,
+
+            // Whether a query is in process
+            query_in_process: false
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -125,6 +134,8 @@ class App extends React.Component {
                 history: [],
                 events: [],
                 history_pos: 0,
+                steps: [],
+                history_step: undefined
             });
         };
         this.reader.readAsText(this.fileSelector.files[0]);
@@ -162,21 +173,79 @@ class App extends React.Component {
 
     nextEvent = (e) => {
         this.setState((state) => ({
-            history_pos: state.history_pos + 1
+            history_pos: state.history_pos + 1,
+            steps: [],
+            history_step: undefined,
         }))
     };
 
     prevEvent = (e) => {
         this.setState((state) => ({
-            history_pos: state.history_pos - 1
+            history_pos: state.history_pos - 1,
+            steps: [],
+            history_step: undefined,
         }))
     };
 
     eventOnClick = (e, i) => {
-        this.setState({history_pos: i})
+        this.setState({
+            history_pos: i,
+            steps: [],
+            history_step: undefined
+        })
     }
 
-    nextStep = (e) => {
+    nextStep = async (e) => {
+        if (this.state.history_step !== undefined) {
+            // Already exploring steps
+            if (this.state.history_step === this.state.steps.length - 2) {
+                // At the last step of the current event, return to exploring events
+                this.setState((state) => ({
+                    history_pos: state.history_pos + 1,
+                    steps: [],
+                    history_step: undefined,
+                }));
+            } else {
+                // Otherwise, continue to next step in the current event
+                this.setState((state) => ({
+                    history_step: state.history_step + 1,
+                }))
+            }
+        } else {
+            // Not exploring steps: query the server for steps of the current
+            // event
+            const hpos = this.state.history_pos;
+            const infos = []
+            for (let i = 0; i < this.state.hcspCode.length; i++) {
+                infos.push({
+                    'hp': this.state.hcspCode[i],
+                    'pos': this.state.history[hpos][i].pos,
+                    'state': this.state.history[hpos][i].state,
+                });
+            }
+            const data = {
+                infos: infos,
+                start_event: (hpos !== 0),
+            }
+            console.log(data);
+            const response = await axios.post('/run_hcsp_steps', data);
+            console.log(response);
+            const history = response.data.history;
+            if (history.length === 1) {
+                // Directly go to the next event
+                this.setState((state) => ({
+                    history_pos: state.history_pos + 1,
+                    steps: [],
+                    history_step: undefined,
+                }))
+            } else {
+                // Otherwise, start traversing the steps
+                this.setState((state) => ({
+                    steps: response.data.history,
+                    history_step: 0,                    
+                }))
+            }    
+        }
     };
 
     prevStep = (e) => {
@@ -202,7 +271,7 @@ class App extends React.Component {
             res += " Current event: "
             if (this.state.history_pos === 0) {
                 res += "start."
-            } else if (this.state.history_pos == events.length - 1) {
+            } else if (this.state.history_pos === events.length - 1) {
                 res += "end."
             } else {
                 res += String(this.state.history_pos)
@@ -242,7 +311,8 @@ class App extends React.Component {
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
 
-                        <Button variant="secondary" title={"forward"} onClick={this.nextStep} disabled={!this.state.started}>
+                        <Button variant="secondary" title={"forward"} onClick={this.nextStep}
+                            disabled={this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faCaretRight} size="lg"/>
                         </Button>
 
@@ -266,15 +336,28 @@ class App extends React.Component {
                                             start={undefined} end={undefined} state={[]}/>
                         } else {
                             const hpos = this.state.history_pos;
-                            const pos = this.state.history[hpos][index].pos;
+                            const hstep = this.state.history_step;
+                            var pos, state;
+                            if (hstep === undefined) {
+                                pos = this.state.history[hpos][index].pos;
+                                state = this.state.history[hpos][index].state;    
+                            } else {
+                                pos = this.state.steps[hstep][index].pos;
+                                state = this.state.steps[hstep][index].state;
+                            }
                             if (pos === 'end') {
-                                const state = this.state.history[hpos][index].state;
                                 return <Process key={index} lines={lines}
                                                 start={undefined} end={undefined} state={state}/>
                             } else {
+                                console.log(pos);
+                                // Process out the 'w{n}' in the end if necessary
+                                const sep = pos.lastIndexOf('.');
+                                if (sep !== -1 && pos[sep+1] === 'w') {
+                                    pos = pos.slice(0, sep)
+                                }
+                                // Find start and end position in the output
                                 const start = mapping[pos][0];
                                 const end = mapping[pos][1];
-                                const state = this.state.history[hpos][index].state;
                                 return <Process key={index} lines={lines}
                                                 start={start} end={end} state={state}/>
                             }

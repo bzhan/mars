@@ -178,6 +178,31 @@ def step_pos(hp, pos):
     else:
         return None
 
+def parse_pos(hp, pos):
+    """Convert pos in string form to internal representation."""
+    if pos == 'end':
+        return None
+    elif pos == 'start':
+        return start_pos(hp)
+    
+    assert len(pos) > 0 and pos[0] == 'p'
+    pos = pos[1:].split('.')
+    if len(pos) > 0 and pos[-1].startswith('w'):
+        pos = tuple([int(p) for p in pos[:-1]] + [int(pos[-1][1:])])
+        assert get_pos(hp, pos).type == 'wait'
+    else:
+        pos = tuple(int(p) for p in pos)
+
+    return pos
+
+def string_of_pos(hp, pos):
+    """Convert pos in internal representation to string form."""
+    if pos is None:
+        return 'end'
+    elif get_pos(hp, pos).type != 'wait':
+        return 'p' + '.'.join(str(p) for p in pos)
+    else:
+        return 'p' + '.'.join(str(p) for p in pos[:-1]) + '.w' + str(pos[-1])
 
 class HCSPInfo:
     """Represents a (non-parallel) HCSP program together with
@@ -195,17 +220,18 @@ class HCSPInfo:
         else:
             self.hp = hp
 
-        if pos == "start":
-            pos = start_pos(self.hp)
-        elif pos == "end":
-            pos = None
+        if isinstance(pos, str):
+            pos = parse_pos(self.hp, pos)
         else:
             assert isinstance(pos, tuple)
         self.pos = pos
 
         if state is None:
             state = dict()
-        assert isinstance(state, dict)
+        elif isinstance(state, (tuple, list)):
+            state = dict({k: v for k, v in state})
+        else:
+            assert isinstance(state, dict)
         self.state = state
 
     def exec_step(self):
@@ -395,15 +421,51 @@ class HCSPInfo:
         else:
             assert False
 
-def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
+def extract_event(reasons):
+    """From a list of reasons, extract the next event. The returned
+    value is one of:
+
+    "deadlock" -> the program has deadlocked.
+    ("delay", n) -> delay for n seconds.
+    ("comm", id_out, id_in, ch_name) -> communication.
+
+    """
+    # First, attempt to find communication
+    for i, reason1 in enumerate(reasons):
+        for j, reason2 in enumerate(reasons):
+            if reason1 != 'end' and reason2 != 'end' and \
+                reason1[0] == 'comm' and reason2[0] == 'comm':
+                for ch_name1, dir1 in reason1[1]:
+                    for ch_name2, dir2 in reason2[1]:
+                        if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
+                            return ("comm", i, j, ch_name1)
+
+    # If there is no communication, find minimum delay
+    min_delay = None
+    for reason in reasons:
+        if reason != 'end' and reason[0] == "delay":
+            if min_delay is None or min_delay > reason[1]:
+                min_delay = reason[1]
+
+    if min_delay is not None:
+        return ("delay", min_delay)
+    else:
+        return "deadlock"
+
+def get_log_info(infos):
+    """Obtain the logged info."""
+    cur_info = []
+    for info in infos:
+        info_pos = string_of_pos(info.hp, info.pos)
+        info_state = sorted([(k, v) for k, v in info.state.items()])
+        cur_info.append({'pos': info_pos, 'state': info_state})
+    return cur_info
+
+def exec_parallel(infos, num_steps, *, log_state=False):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
     """
-    def print_status():
-        for info in infos:
-            print(info.hp, info.pos, info.state)
-
     # Stores the list of events
     trace = []
 
@@ -413,24 +475,10 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
 
     def log_info():
         if log_state:
-            cur_info = []
-            for info in infos:
-                if info.pos is None:
-                    info_pos = 'end'
-                elif get_pos(info.hp, info.pos).type != 'wait':
-                    info_pos = 'p' + '.'.join(str(p) for p in info.pos)
-                else:
-                    info_pos = 'p' + '.'.join(str(p) for p in info.pos[:-1])
-                info_state = sorted([(k, v) for k, v in info.state.items()])
-                cur_info.append({'pos': info_pos, 'state': info_state})
-            state_log.append(cur_info)
+            state_log.append(get_log_info(infos))
 
     # Record state at the beginning
     log_info()
-
-    if debug:
-        print("\nInitial status:")
-        print_status()
 
     for iteration in range(num_steps):
         # List of stopping reasons for each process
@@ -445,61 +493,20 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
         # Record state after exec_process
         log_info()
 
-        if debug:
-            print("\nAfter exec_process:")
-            print_status()
-
-        # Find matching communication
-        id_in, id_out, ch_name = None, None, None
-        for i, reason1 in enumerate(reasons):
-            for j, reason2 in enumerate(reasons):
-                if reason1 != 'end' and reason2 != 'end' and \
-                    reason1[0] == 'comm' and reason2[0] == 'comm':
-                    for ch_name1, dir1 in reason1[1]:
-                        for ch_name2, dir2 in reason2[1]:
-                            if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
-                                id_out, id_in, ch_name = i, j, ch_name1
-
-        if id_in is None:
-            # No matching communication. Find minimum delay among
-            # the processes.
-            min_delay = None
-            for reason in reasons:
-                if reason != 'end' and reason[0] == "delay":
-                    if min_delay is None or min_delay > reason[1]:
-                        min_delay = reason[1]
-
-            # If no delay is possible, the system is in a deadlock
-            # todo: this deadlock detection does not work well, it will report
-            # "deadlock" for ended processes.
-            # todo: see testExecParallel3 in simulator_test
-            if min_delay is None:
-                if debug:
-                    print("Deadlock")
-                trace.append("deadlock")
-                break
-
-            # Otherwise, execute the delay.
-            if debug:
-                print("\nDelay for %s seconds" % str(min_delay))
+        event = extract_event(reasons)
+        if event == "deadlock":
+            trace.append("deadlock")
+            break
+        elif event[0] == "delay":
+            _, min_delay = event
             trace.append("delay %s" % str(min_delay))
             for info in infos:
                 info.exec_delay(min_delay)
-            if debug:
-                print("... with result")
-                print_status()
-
         else:
-            # If there is a matching communication, perform the
-            # communication.
-            if debug:
-                print("\nCommunication from %d to %d on %s" % (id_out, id_in, ch_name))
+            _, id_out, id_in, ch_name = event
             val = infos[id_out].exec_output_comm(ch_name)
             infos[id_in].exec_input_comm(ch_name, val)
             trace.append("IO %s %s" % (ch_name, str(val)))
-            if debug:
-                print("... %s transfered, with result")
-                print_status()
 
     # Log info at the end
     if trace[-1] != 'deadlock':
@@ -509,3 +516,53 @@ def exec_parallel(infos, num_steps, *, log_state=False, debug=False):
         return state_log, trace
     else:
         return trace
+
+def exec_parallel_steps(infos, *, start_event):
+    """Execute the programs in infos, until the next event.
+    If start_event is True, the infos start at an event, and
+    execution continues until the next event. Otherwise, the infos
+    start at the beginning.
+
+    Returns the list of states encountered.
+
+    """
+    state_log = []
+    reasons = []
+
+    if start_event:
+        # Find the current event
+        for info in infos:
+            if info.pos is None:
+                reasons.append("end")
+            else:
+                res = info.exec_step()
+                assert res != "step"
+                reasons.append(res)
+        event = extract_event(reasons)
+
+        # Execute the current event
+        if event == "deadlock":
+            return []
+        elif event[0] == "delay":
+            _, min_delay = event
+            for info in infos:
+                info.exec_delay(min_delay)
+        else:
+            _, id_out, id_in, ch_name = event
+            val = infos[id_out].exec_output_comm(ch_name)
+            infos[id_in].exec_input_comm(ch_name, val)
+
+        # Store state immediately after event
+        state_log.append(get_log_info(infos))
+
+    for info in infos:
+        while True:
+            if info.pos is None:
+                break
+            res = info.exec_step()
+            if res == "step":
+                state_log.append(get_log_info(infos))
+            else:
+                break
+
+    return state_log

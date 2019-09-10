@@ -7,9 +7,11 @@ from ss2hcsp.hcsp.pprint import pprint_lines
 
 
 class PPrintTest(unittest.TestCase):
-    def run_test(self, s, res_list, *, max_line=None):
+    def run_test(self, s, res_list, *, max_line=None, print_mapping=False):
         hp = parser.hp_parser.parse(s)
         lines, mapping = pprint_lines(hp, max_line=max_line, record_pos=True)
+        if print_mapping:
+            print(mapping)
         self.assertEqual(lines, res_list)
 
     def test1(self):
