@@ -7,9 +7,11 @@ The state is given by a dictionary from variable names to numbers.
 from copy import copy
 import itertools
 import math
+from scipy.integrate import solve_ivp
+from decimal import Decimal
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    BConst, LogicExpr, RelExpr, true_expr
+    BConst, LogicExpr, RelExpr, true_expr, get_num
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -417,12 +419,28 @@ class HCSPInfo:
                 self.pos = self.pos[:-1] + (self.pos[-1] + delay,)
 
         elif cur_hp.type == "ode_comm":
-            # Currently, we only consider constant derivatives and
-            # no constraints
             assert cur_hp.constraint == true_expr
-            for var_name, deriv in cur_hp.eqs:
-                assert isinstance(deriv, AConst)
-                self.state[var_name] += delay * deriv.value
+
+            if all(isinstance(deriv, AConst) for var_name, deriv in cur_hp.eqs):
+                for var_name, deriv in cur_hp.eqs:
+                    self.state[var_name] += delay * deriv.value
+            else:
+                def ode_fun(t, y):
+                    res = []
+                    state2 = copy(self.state)
+                    for (var_name, _), yval in zip(cur_hp.eqs, y):
+                        state2[var_name] = yval
+                    for var_name, expr in cur_hp.eqs:
+                        res.append(eval_expr(expr, state2))
+                    return res
+                
+                y0 = []
+                for var_name, _ in cur_hp.eqs:
+                    y0.append(self.state[var_name])
+
+                sol = solve_ivp(ode_fun, [0, delay], y0)
+                for i, (var_name, _) in enumerate(cur_hp.eqs):
+                    self.state[var_name] = get_num(sol.y[i][-1])
 
         else:
             assert False

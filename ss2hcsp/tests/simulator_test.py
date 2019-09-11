@@ -1,7 +1,10 @@
 """Unittest for simulation of HCSP."""
 
 import unittest
+from decimal import Decimal
+import math
 
+from ss2hcsp.hcsp.expr import get_num
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
@@ -50,7 +53,6 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos, state=state)
             res = info.exec_step()
             self.assertEqual(res, 'step')
@@ -70,7 +72,6 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, reason, arg in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos)
             res = info.exec_step()
             self.assertEqual(res, (reason, arg))
@@ -91,7 +92,6 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos, state=state)
             res = info.exec_process()
             self.assertEqual(res, reason)
@@ -108,7 +108,6 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos, state=state)
             info.exec_input_comm(ch_name, val)
             self.assertEqual(info.pos, pos2)
@@ -125,7 +124,6 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos, state=state)
             res = info.exec_output_comm(ch_name)
             self.assertEqual(res, val)
@@ -148,10 +146,32 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
-            cmd = parser.hp_parser.parse(cmd)
             info = simulator.HCSPInfo(cmd, pos=pos, state=state)
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
+            self.assertEqual(info.state, state2)
+
+    def testODEComm(self):
+        test_data = [
+            # Acceleration
+            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
+             {"a": 1, "v": 0, "x": 0}, 3, {"a": 1, "v": 3, "x": 4.5}),
+
+            # Acceleration with floating point numbers
+            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
+             {"a": 1.1, "v": 0, "x": 0}, 3, {"a": 1.1, "v": Decimal("3.3"), "x": Decimal("4.95")}),
+
+            # Exponential growth
+            ("<x_dot = x & true> |> [](c!x --> skip)", {"x": 1}, 3, {"x": get_num(math.exp(3))}),
+
+            # Circular motion
+            ("<x_dot = -1 * y, y_dot = x & true> |> [](c!x --> skip)",
+             {"x": 1, "y": 0}, 3, {"x": get_num(math.cos(3)), "y": get_num(math.sin(3))}),
+        ]
+
+        for cmd, state, delay, state2 in test_data:
+            info = simulator.HCSPInfo(cmd, state=state)
+            info.exec_delay(delay)
             self.assertEqual(info.state, state2)
 
     def run_test(self, infos, num_steps, trace):
@@ -215,6 +235,12 @@ class SimulatorTest(unittest.TestCase):
             "(x?x --> x!x+1 $ y?y --> skip); x!x+2",
             "x!3; x?x; x?x"
         ], 3, ["IO x 3", "IO x 4", "IO x 5"])
+
+    def testExecParallel9(self):
+        self.run_test([
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
+            "wait(3); c?x"
+        ], 3, ["delay 3", "IO c 4.5", "deadlock"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([
