@@ -110,15 +110,14 @@ class SimTest(unittest.TestCase):
 
         hp0_init = hp_parser.parse("t := 0")
         hp0 = hp_parser.parse(r"""ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 ->
-        (x8 >= 20 -> (x10 := x7); x8 < 20 -> (x10 := x9)); ch_x10_0!x10; temp := t; <t_dot = 1 & t < temp+4>""")
+        (x8 >= 20 -> (x10 := x7); x8 < 20 -> (x10 := x9)); ch_x10_0!x10; wait(4)""")
         discrete_hp0 = hcsp.Sequence(hp0_init, hcsp.Loop(hp0))
         discrete_hp0.name = "PD0"
 
         hp1_init = hp_parser.parse("t := 0")
         hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(in0, in0) == 0 ->
         (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
-        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6;
-        temp := t; <t_dot = 1 & t < temp+gcd(2, and)>""")
+        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6; wait(gcd(2, and))""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
         discrete_hp1.name = "PD1"
 
@@ -175,7 +174,7 @@ class SimTest(unittest.TestCase):
         dis_init = hp_parser.parse("t := 0")
         dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> (x5 := (1-x3)*(-2.2));
         t%8 == 0 -> (x6 := max(x1, x5)); t%10 == 0 -> (x6 > x2 -> (x0 := 0); x6 <= x2 -> (x0 := 1)); ch_x0_0!x0;
-        temp := t; <t_dot = 1 & t < temp+2>""")
+        wait(2)""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         discrete_hp.name = "PD0"
 
@@ -246,7 +245,7 @@ class SimTest(unittest.TestCase):
         dis_init = hp_parser.parse("t := 0")
         dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2); 
         t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 > x3 -> (x0 := 0); x2 <= x3 -> (x0 := 1)); 
-        ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>""")
+        ch_x0_0!x0; wait(2)""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         discrete_hp.name = "PD0"
 
@@ -280,7 +279,7 @@ class SimTest(unittest.TestCase):
         # print("C_Processes: ", con_subdiag_with_chs)
         # print(get_hp.translate_discrete(dis_subdiag_with_chs[0]))
         # print(diagram)
-        real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+        # real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
         # print(real_hp)
 
     # def test_xml_parser(self):
@@ -304,7 +303,7 @@ class SimTest(unittest.TestCase):
         diagram.comp_inher_st()
         dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
         real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-        print(real_hp)
+        # print(real_hp)
 
     def testStateflow(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"

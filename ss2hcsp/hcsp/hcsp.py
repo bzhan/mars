@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 # from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AExpr, BExpr
+from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr
 
 
 class HCSP:
@@ -49,7 +49,7 @@ class Skip(HCSP):
 
 class Wait(HCSP):
     def __init__(self, delay):
-        assert isinstance(delay, int)
+        assert isinstance(delay, (AConst, AVar, FunExpr))
         self.type = "wait"
         self.delay = delay
 
