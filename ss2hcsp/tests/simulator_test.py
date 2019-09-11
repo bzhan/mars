@@ -174,6 +174,32 @@ class SimulatorTest(unittest.TestCase):
             info.exec_delay(delay)
             self.assertEqual(info.state, state2)
 
+    def testODEDelay(self):
+        test_data = [
+            # Acceleration
+            ("<x_dot = v, v_dot = a, t_dot = 1 & t < 3>", {"t": 0, "a": 1, "v": 0, "x": 0}, 3),
+
+            # Acceleration, upon x reaching a certain value
+            ("<x_dot = v, v_dot = a, t_dot = 1 & x < 3>",
+             {"t": 0, "a": 1, "v": 0, "x": 0}, get_num(math.sqrt(6))),
+
+            # Exponential growth
+            ("<x_dot = x, t_dot = 1 & x < 3>", {"t": 0, "x": 1}, get_num(math.log(3))),
+
+            # Circular motion
+            ("<x_dot = -1 * y, y_dot = x & x > 0>", {"x": 1, "y": 0}, get_num(math.pi/2)),
+
+            # Some examples of large or infinite delay
+            ("<t_dot = 0.1 & t < 6>", {"t": 0}, 60),
+            ("<t_dot = 0.01 & t < 60>", {"t": 0}, 100),  # maximum is 100
+            ("<x_dot = -1 * y, y_dot = x & x > -2>", {"x": 1, "y": 0}, 100),
+        ]
+
+        for cmd, state, delay in test_data:
+            hp = parser.hp_parser.parse(cmd)
+            res = get_num(simulator.get_ode_delay(hp, state))
+            self.assertEqual(res, delay)
+
     def run_test(self, infos, num_steps, trace):
         for i in range(len(infos)):
             infos[i] = simulator.HCSPInfo(infos[i])
@@ -241,6 +267,19 @@ class SimulatorTest(unittest.TestCase):
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
             "wait(3); c?x"
         ], 3, ["delay 3", "IO c 4.5", "deadlock"])
+
+    def testExecParallel10(self):
+        self.run_test([
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
+            "c?x"
+        ], 3, ["delay 2.449", "IO c 3", "deadlock"])
+
+    def testExecParallel11(self):
+        self.run_test([
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 5>; c!x",
+            "c?x; c?x"
+        ], 5, ["delay 2.449", "IO c 3", "delay 0.713", "IO c 5", "deadlock"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([

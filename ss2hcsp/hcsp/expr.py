@@ -10,8 +10,8 @@ def get_num(x):
     if isinstance(x, int):
         return x
     else:
-        return Decimal(x).quantize(Decimal("1.000")).normalize()
-
+        d = Decimal(x).quantize(Decimal("1.000")).normalize()
+        return int(d) if d == int(d) else d
 
 class AExpr:  # Arithmetic expression
     def __init__(self):

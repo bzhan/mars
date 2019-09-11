@@ -114,6 +114,57 @@ def eval_expr(expr, state):
     else:
         raise NotImplementedError
 
+def get_ode_delay(hp, state):
+    """Obtain the delay needed for the given ODE, starting at the
+    given state.
+    
+    """
+    assert hp.type == 'ode'
+
+    def ode_fun(t, y):
+        res = []
+        state2 = copy(state)
+        for (var_name, _), yval in zip(hp.eqs, y):
+            state2[var_name] = yval
+        for var_name, expr in hp.eqs:
+            res.append(eval_expr(expr, state2))
+        return res
+
+    def event(t, y):
+        state2 = copy(state)
+        for (var_name, _), yval in zip(hp.eqs, y):
+            state2[var_name] = yval
+
+        c = hp.constraint
+        if isinstance(c, RelExpr):
+            if c.op in ('<', '<='):
+                return eval_expr(c.expr1, state2) - eval_expr(c.expr2, state2)
+            elif hp.constraint.op in ('>', '>='):
+                return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
+            else:
+                raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+    event.terminal = True  # Terminate execution when result is 0
+    event.direction = 1    # Crossing from negative to positive
+
+    y0 = []
+    for var_name, _ in hp.eqs:
+        y0.append(state[var_name])
+
+    # Test the differential equation on longer and longer time ranges,
+    # return the delay if the ODE solver detects event before the end
+    # of the time range.
+    delays = [1, 2, 5, 10, 20, 50, 100]
+    for delay in delays:
+        sol = solve_ivp(ode_fun, [0, delay], y0, events=[event])
+        if sol.t[-1] < delay:
+            return sol.t[-1]
+
+    # Otherwise, return the maximum 100.
+    return 100
+
 def start_pos(hp):
     """Returns the starting position for a given program."""
     if hp.type == 'sequence':
@@ -286,6 +337,10 @@ class HCSPInfo:
             # Waiting for some number of seconds
             return "delay", cur_hp.delay - self.pos[-1]
 
+        elif cur_hp.type == "ode":
+            # Find delay of ODE
+            return "delay", get_ode_delay(cur_hp, self.state)
+
         elif cur_hp.type == "ode_comm":
             # Run ODE until one of the communication events
             comms = []
@@ -418,8 +473,16 @@ class HCSPInfo:
             else:
                 self.pos = self.pos[:-1] + (self.pos[-1] + delay,)
 
-        elif cur_hp.type == "ode_comm":
-            assert cur_hp.constraint == true_expr
+        elif cur_hp.type == "ode_comm" or cur_hp.type == "ode":
+            finish_ode = False
+            if cur_hp.type == "ode_comm":
+                assert cur_hp.constraint == true_expr
+            else:
+                # Test whether this finishes the ODE.
+                ode_delay = get_ode_delay(cur_hp, self.state)
+                assert delay <= ode_delay
+                if delay == ode_delay:
+                    finish_ode = True
 
             if all(isinstance(deriv, AConst) for var_name, deriv in cur_hp.eqs):
                 for var_name, deriv in cur_hp.eqs:
@@ -441,6 +504,9 @@ class HCSPInfo:
                 sol = solve_ivp(ode_fun, [0, delay], y0)
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
                     self.state[var_name] = get_num(sol.y[i][-1])
+
+            if finish_ode:
+                self.pos = step_pos(self.hp, self.pos)
 
         else:
             assert False
@@ -534,7 +600,7 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
             break
         elif event[0] == "delay":
             _, min_delay = event
-            trace.append("delay %s" % str(min_delay))
+            trace.append("delay %s" % str(get_num(min_delay)))
             log_time_series()
             for info in infos:
                 info.exec_delay(min_delay)
