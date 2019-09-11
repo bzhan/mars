@@ -59,7 +59,7 @@ grammar = r"""
 
     ?seq_cmd: cond_cmd (";" cond_cmd)*  // Priority: 70
 
-    ?select_cmd: seq_cmd ("$" seq_cmd)*  // Priority 50
+    ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
     ?cmd: select_cmd
 
@@ -185,7 +185,7 @@ class HPTransformer(Transformer):
 
     def interrupt(self, *args):
         res = []
-        for i in range(0,len(args),2):
+        for i in range(0, len(args), 2):
             res.append((args[i], args[i+1]))
         return res
 
@@ -198,8 +198,11 @@ class HPTransformer(Transformer):
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
 
-    def select_cmd(self, *comms):
-        return hcsp.SelectComm(*comms)
+    def select_cmd(self, *args):
+        io_comms = []
+        for i in range(0, len(args), 2):
+            io_comms.append((args[i], args[i+1]))
+        return hcsp.SelectComm(*io_comms)
 
     def rec_cmd(self, var_name, c):
         return hcsp.Recursion(c, entry=var_name)

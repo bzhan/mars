@@ -24,13 +24,13 @@ text \<open>A pair of states for recording variables and differential variables\
 type_synonym 'a pair_state = "'a state \<times> 'a state"
 
 definition Vagree :: "('a :: finite) pair_state \<Rightarrow> 'a pair_state \<Rightarrow> 'a set \<Rightarrow> bool"
-  where "Vagree u v V == 
-     (\<forall> i.  i \<in> V \<longrightarrow> fst u  $ i = fst v $ i \<and> snd u  $ i = snd v $ i)"
+  where "Vagree u v V ==
+     (\<forall> i. i \<in> V \<longrightarrow> fst u $ i = fst v $ i \<and> snd u $ i = snd v $ i)"
 
-lemma Vagree_eq:"Vagree \<nu> \<omega> UNIV \<Longrightarrow> \<nu> = \<omega>"
+lemma Vagree_eq: "Vagree \<nu> \<omega> UNIV \<Longrightarrow> \<nu> = \<omega>"
   unfolding Vagree_def 
   by (simp add: vec_eq_iff prod.expand)
- 
+
 text \<open>Differential-free expressions\<close>
 primrec DE_free :: "('a :: finite) exp \<Rightarrow> bool" 
   where
@@ -116,6 +116,7 @@ definition fGreater :: "'a :: finite exp \<Rightarrow> 'a exp \<Rightarrow> 'a f
 text \<open>Evaluate on state after assigning value of expression e to RVar a.\<close>
 definition fSubForm :: "'a :: finite fform \<Rightarrow> 'a exp \<Rightarrow> 'a \<Rightarrow> 'a fform" ("_\<lbrakk>_,_\<rbrakk>" [71,71] 70) where
   "P \<lbrakk>e, a\<rbrakk> \<equiv> (\<lambda>s. P (\<chi> x. if x = a then evalE e s else (fst s) $ x, snd s))"
+
 text \<open>Evaluate on state after assigning value of expression e to DVar a.\<close>
 definition fSubFormD :: "'a :: finite fform \<Rightarrow> 'a exp \<Rightarrow> 'a \<Rightarrow> 'a fform" ("_\<lbrakk>_,_\<rbrakk>\<^sub>D" [71,71] 70) where
   "P \<lbrakk>e, a\<rbrakk>\<^sub>D \<equiv> (\<lambda>s. P (fst s, \<chi> x. if x = a then evalE e s else (snd s) $ x))"
@@ -143,20 +144,18 @@ type_synonym var = string
 
 text \<open>Communication processes of HCSP\<close>
 datatype 'a comm =
-  Send cname "'a exp"         ("_[!]_" [110,108] 100)
-  | Receive cname 'a      ("_[?]_" [110,108] 100)
+  Send cname "'a exp"   ("_[!]_" [110,108] 100)
+| Receive cname 'a      ("_[?]_" [110,108] 100)
 
 datatype 'a ODE =
   ODEOne 'a "'a exp"  ("odeone _ _" [110,108] 100)
-  | ODEPar "'a ODE" "'a ODE"  ("odes _, _" [100,100] 90)
+| ODEPar "'a ODE" "'a ODE"  ("odes _, _" [100,100] 90)
 
-fun ODE_vars :: "'a ODE \<Rightarrow> 'a set"
-  where
+fun ODE_vars :: "'a ODE \<Rightarrow> 'a set" where
   "ODE_vars (odeone x e) = { x }"
 | "ODE_vars (odes ode1, ode2) = ODE_vars ode1 \<union> ODE_vars ode2"
  
-fun wf_ODE :: "'a ODE \<Rightarrow> bool" 
-  where
+fun wf_ODE :: "'a ODE \<Rightarrow> bool" where
   "wf_ODE (odeone x e) = True"
 | "wf_ODE (odes ode1, ode2) = (ODE_vars ode1 \<inter> ODE_vars ode2 = {})"
   
@@ -179,6 +178,6 @@ datatype 'a proc =
 | Interr "'a proc" "'a comm" "'a proc"       ("_[]_\<rightarrow>_" [95,94,94] 94)
 
 text \<open>We assume parallel composition only occurs in the topmost level.\<close>
-datatype 'a procP = Par "'a proc"  "'a proc"  (infixr "||" 89)
+datatype 'a procP = Par "'a proc" "'a proc"  (infixr "||" 89)
 
 end

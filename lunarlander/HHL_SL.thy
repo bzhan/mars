@@ -1,4 +1,4 @@
-section {* Abstract syntax for Hybrid CSP. *}
+section \<open>Abstract syntax for Hybrid CSP.\<close>
 
 theory HHL_SL
   imports Op_SL

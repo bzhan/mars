@@ -7,24 +7,17 @@ begin
 type_synonym now = real
 type_synonym 'a history = "time \<Rightarrow> 'a pair_state"
 
-definition semf :: "'a pair_state \<Rightarrow> 'a fform \<Rightarrow> bool" ("_ |= _" 50) where
-  "semf s f \<equiv> f s"
+subsection \<open>Five kinds of events for HCSP processes\<close>
+datatype event =
+  Tau
+| In cname real
+| Out cname real 
+| IO cname real 
+| Delay time
 
-text \<open>Five kinds of events for HCSP processes\<close>
-datatype event = Tau | In cname real | Out cname real | IO cname real | Delay time
- 
- 
-text \<open>Continuous evolution\<close>
-  
+subsection \<open>Auxiliary functions needed to be introduced first.\<close>
 
-consts evalP :: "'a proc \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> event * 'a proc * now * 'a history"
-consts evalPP :: "'a procP \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> 'a history \<Rightarrow> event * 'a procP * now * 'a history * 'a history"
-
- 
-text \<open>Parallel composition\<close>
-
-text \<open>Auxiliary functions needed to be introduced first.\<close>
-
+text \<open>Two events are compatible if they are In-Out pairs.\<close>
 primrec compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
   "compat Tau ev = False"
 | "compat (In ch val) ev = (if ev = Out ch val then True else False)"
@@ -32,6 +25,7 @@ primrec compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
 | "compat (IO ch val) ev = False"
 | "compat (Delay d) ev = False"
 
+text \<open>handshake between an In-Out pair is an IO event.\<close>
 primrec handshake :: "event \<Rightarrow> event \<Rightarrow> event" where
   "handshake Tau ev = Tau"
 | "handshake (In ch val) ev = (if ev = Out ch val then IO ch val else Tau)"
@@ -43,7 +37,7 @@ text \<open>Set of channels of a procedure\<close>
 primrec chansetC :: "'a comm => string set" where 
   "chansetC (ch[!]e) = {ch}"
 | "chansetC (ch[?]e) = {ch}"
-                            
+
 primrec chanset :: "'a proc \<Rightarrow> string set" where
   "chanset (Cm r) = chansetC r"
 | "chanset Skip = {}"
@@ -55,63 +49,68 @@ primrec chanset :: "'a proc \<Rightarrow> string set" where
 | "chanset (P *&& Inv) = chanset P"
 | "chanset (P * NUM n) = chanset P"
 | "chanset (<ODEs && Inv & b>) = {}"
-| "chanset (P []c \<rightarrow> Q) = chanset P \<union> chanset Q \<union> chansetC c"
+| "chanset (P [] c \<rightarrow> Q) = chanset P \<union> chanset Q \<union> chansetC c"
 
-text \<open>Definitions for ODEs\<close>
+subsection \<open>Definitions for ODEs\<close>
  
 text \<open>The semantics of an ODE is the value of the vector field.\<close>
-fun ODE_sem :: "'a :: finite ODE \<Rightarrow> 'a state \<Rightarrow> 'a state" 
-  where
-  "ODE_sem (odeone x e) = (\<lambda> s. (\<chi> i. if i = x then (evalE_df e s) else 0))"
-| "ODE_sem (odes ode1, ode2)  = (\<lambda> s. ((ODE_sem ode1 s) + (ODE_sem ode2 s)))"
-  
-definition ODE_pair_state :: "'a :: finite ODE \<Rightarrow> 'a state \<Rightarrow> 'a pair_state"
-  where "ODE_pair_state ode u = (u, ODE_sem ode u)"
- 
-definition execute_ODE :: "'a :: finite ODE \<Rightarrow> 'a pair_state \<Rightarrow> 'a state \<Rightarrow> 'a pair_state"
-  where "execute_ODE ode \<nu> u = 
-     (THE \<omega>. Vagree  \<omega> \<nu> (- ODE_vars ode) \<and> (Vagree \<omega> (ODE_pair_state ode u) (ODE_vars ode)))"
+fun ODE_sem :: "'a::finite ODE \<Rightarrow> 'a state \<Rightarrow> 'a state" where
+  "ODE_sem (odeone x e) = (\<lambda> s. (\<chi> i. if i = x then evalE_df e s else 0))"
+| "ODE_sem (odes ode1, ode2) = (\<lambda> s. ODE_sem ode1 s + ODE_sem ode2 s)"
+
+definition ODE_pair_state :: "'a::finite ODE \<Rightarrow> 'a state \<Rightarrow> 'a pair_state" where
+  "ODE_pair_state ode u = (u, ODE_sem ode u)"
+
+text \<open>From a pair-state \<nu> and a state u, obtain a new state \<omega> by replacing
+the part of \<nu> specified by the differential equation with the differential
+equation evaluated on u.\<close>
+definition execute_ODE :: "'a::finite ODE \<Rightarrow> 'a pair_state \<Rightarrow> 'a state \<Rightarrow> 'a pair_state" where
+  "execute_ODE ode \<nu> u = 
+    (THE \<omega>. Vagree \<omega> \<nu> (- ODE_vars ode) \<and> Vagree \<omega> (ODE_pair_state ode u) (ODE_vars ode))"
 
 text \<open>Construct a concrete solution for the ODE.\<close>
-definition concrete_sol :: "'a :: finite ODE \<Rightarrow> 'a pair_state \<Rightarrow> 'a state \<Rightarrow> 'a pair_state"
-  where "concrete_sol ode \<nu> u = 
- ((\<chi> i. (if i \<in> ODE_vars ode then u else (fst \<nu>)) $ i), 
-  (\<chi> i. (if i \<in> ODE_vars ode then ODE_sem ode u else (snd \<nu>)) $ i))"
+definition concrete_sol :: "'a::finite ODE \<Rightarrow> 'a pair_state \<Rightarrow> 'a state \<Rightarrow> 'a pair_state" where
+  "concrete_sol ode \<nu> u = 
+     (\<chi> i. (if i \<in> ODE_vars ode then u else fst \<nu>) $ i,
+      \<chi> i. (if i \<in> ODE_vars ode then ODE_sem ode u else snd \<nu>) $ i)"
 
 lemma execute_ODE_exists: 
   "\<exists> \<omega>. Vagree  \<omega> \<nu> (- ODE_vars ode) \<and> (Vagree \<omega> (ODE_pair_state ode u) (ODE_vars ode))"
- by(rule exI[where x="(concrete_sol ode \<nu> u)"], auto simp add: concrete_sol_def ODE_pair_state_def Vagree_def)
- 
-lemma execute_ODE_agree: "Vagree (execute_ODE ode \<nu> u) \<nu> (- ODE_vars ode)
-   \<and> Vagree (execute_ODE ode \<nu> u) (ODE_pair_state ode u) (ODE_vars ode)"
-   unfolding execute_ODE_def Let_def
-   apply (rule theI[where a = "concrete_sol ode \<nu> u"], auto)
-   apply (simp add:concrete_sol_def ODE_pair_state_def Vagree_def Let_def)+
-   using exE[OF execute_ODE_exists, of \<nu>  ode u]
-   by (auto simp add: concrete_sol_def ODE_pair_state_def Vagree_def vec_eq_iff)
- 
-lemma execute_ODE_concrete: "execute_ODE ode \<nu> u = concrete_sol ode \<nu> u"
+  by(rule exI[where x="(concrete_sol ode \<nu> u)"],
+     auto simp add: concrete_sol_def ODE_pair_state_def Vagree_def)
+
+lemma execute_ODE_agree:
+  "Vagree (execute_ODE ode \<nu> u) \<nu> (- ODE_vars ode) \<and>
+   Vagree (execute_ODE ode \<nu> u) (ODE_pair_state ode u) (ODE_vars ode)"
+  unfolding execute_ODE_def Let_def
+  apply (rule theI[where a = "concrete_sol ode \<nu> u"], auto)
+  apply (simp add:concrete_sol_def ODE_pair_state_def Vagree_def Let_def)+
+  using exE[OF execute_ODE_exists, of \<nu> ode u]
+  by (auto simp add: concrete_sol_def ODE_pair_state_def Vagree_def vec_eq_iff)
+
+lemma execute_ODE_concrete:
+  "execute_ODE ode \<nu> u = concrete_sol ode \<nu> u"
   apply (simp add:concrete_sol_def)
-  apply(rule Vagree_eq)
+  apply (rule Vagree_eq)
   using execute_ODE_agree[of ode \<nu> u]
   unfolding Vagree_def ODE_pair_state_def by auto
 
-text \<open>The solution of ode at time interval {0..t} with respect to initial state \<nu>\<close>
-definition ODE_solution :: "'a :: finite ODE \<Rightarrow> real => 'a pair_state \<Rightarrow> (real \<Rightarrow> 'a state) \<Rightarrow> bool"
-  where "ODE_solution ode t \<nu> v = ((v has_vderiv_on (\<lambda>t. ODE_sem ode (v t))) {0..t} \<and> v 0 = fst \<nu>)" 
 
-definition ODE_solution_in_dom :: "'a :: finite ODE \<Rightarrow> real => 'a pair_state \<Rightarrow> 'a fform \<Rightarrow> (real \<Rightarrow> 'a state) \<Rightarrow> bool"
-  where "ODE_solution_in_dom ode t \<nu> b v  = ((v solves_ode (\<lambda>_. ODE_sem ode)) {0..t} {x. b (execute_ODE ode \<nu> x)} \<and> v 0 = fst \<nu>)"
+text \<open>The solution of ode at time interval {0..t} with respect to initial state \<nu>\<close>
+definition ODE_solution :: "'a::finite ODE \<Rightarrow> real \<Rightarrow> 'a pair_state \<Rightarrow> (real \<Rightarrow> 'a state) \<Rightarrow> bool" where
+  "ODE_solution ode t \<nu> v \<longleftrightarrow>
+    (v has_vderiv_on (\<lambda>t. ODE_sem ode (v t))) {0..t} \<and> v 0 = fst \<nu>" 
+
+definition ODE_solution_in_dom :: "'a::finite ODE \<Rightarrow> real \<Rightarrow> 'a pair_state \<Rightarrow> 'a fform \<Rightarrow> (real \<Rightarrow> 'a state) \<Rightarrow> bool" where
+  "ODE_solution_in_dom ode t \<nu> b v \<longleftrightarrow>
+    (v solves_ode (\<lambda>_. ODE_sem ode)) {0..t} {x. b (execute_ODE ode \<nu> x)} \<and> v 0 = fst \<nu>"
 
 text \<open>\<nu> is the initial state, b is the domain, and i is the invariant\<close>
-definition ODE_inv_in_dom :: "'a :: finite ODE \<Rightarrow>'a pair_state \<Rightarrow> 'a fform \<Rightarrow> 'a fform \<Rightarrow> bool"
-  where "ODE_inv_in_dom ode \<nu> b i = (\<forall> d \<ge> 0. \<forall> sol. (ODE_solution ode d \<nu> sol --> 
-    ((\<forall> t. t \<ge> 0 \<and> t < d \<longrightarrow> b (execute_ODE ode \<nu> (sol t))) \<longrightarrow>
-    (\<forall> t. t \<ge> 0 \<and> t \<le> d \<longrightarrow> i (execute_ODE ode \<nu> (sol t))))))"
-(*  where "ODE_inv_in_dom ode d \<nu> b inv = (let sol = ODE_solution ode d \<nu> in 
-      (\<forall> t. t \<ge> 0 \<and> t < d \<longrightarrow> b (execute_ODE ode \<nu> (sol t))) \<longrightarrow> 
-      (\<forall> t. t \<ge> 0 \<and> t < d \<longrightarrow> inv (execute_ODE ode \<nu> (sol t))))"
-*)
+definition ODE_inv_in_dom :: "'a :: finite ODE \<Rightarrow>'a pair_state \<Rightarrow> 'a fform \<Rightarrow> 'a fform \<Rightarrow> bool" where
+  "ODE_inv_in_dom ode \<nu> b i \<longleftrightarrow> (\<forall> d \<ge> 0. \<forall> sol.
+    ODE_solution ode d \<nu> sol \<longrightarrow>
+    (\<forall> t. t \<ge> 0 \<and> t < d \<longrightarrow> b (execute_ODE ode \<nu> (sol t))) \<longrightarrow>
+    (\<forall> t. t \<ge> 0 \<and> t \<le> d \<longrightarrow> i (execute_ODE ode \<nu> (sol t))))"
 
 (*
 text \<open>With a change of differential variables in the second state\<close>
@@ -119,29 +118,36 @@ definition the_first_state :: "'a :: finite ODE \<Rightarrow>'a pair_state \<Rig
   where "the_first_state ode \<nu> = execute_ODE ode \<nu> (ODE_solution ode 0 \<nu> 0)"
 *)
 
-fun update_fst :: "'a :: finite pair_state \<Rightarrow> 'a \<Rightarrow> real \<Rightarrow> 'a pair_state" 
-  where "update_fst u a r = ((\<chi> i. if i = a then r else fst u $ i), snd u)"
+fun update_fst :: "'a::finite pair_state \<Rightarrow> 'a \<Rightarrow> real \<Rightarrow> 'a pair_state" where
+  "update_fst u a r = ((\<chi> i. if i = a then r else fst u $ i), snd u)"
 
-fun update_snd :: "'a :: finite pair_state \<Rightarrow> 'a \<Rightarrow> real \<Rightarrow> 'a pair_state" 
-  where "update_snd u a r = (fst u, (\<chi> i. if i = a then r else snd u $ i))"
+fun update_snd :: "'a::finite pair_state \<Rightarrow> 'a \<Rightarrow> real \<Rightarrow> 'a pair_state" where
+  "update_snd u a r = (fst u, (\<chi> i. if i = a then r else snd u $ i))"
 
-fun extend_history :: "'a :: finite history \<Rightarrow> real \<Rightarrow> real \<Rightarrow> 'a history"
-  where "extend_history f a d = (\<lambda> t. if t > a \<and> t \<le> a + d then f a else f t)"
+text \<open>Update the value of f between a and a+d to f a.\<close>
+fun extend_history :: "'a::finite history \<Rightarrow> real \<Rightarrow> real \<Rightarrow> 'a history" where
+  "extend_history f a d = (\<lambda> t. if t > a \<and> t \<le> a + d then f a else f t)"
 
 
-text \<open>Small step semantics for HCSP.\<close>
-inductive semP :: "'a :: finite proc \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> (event * 'a proc * now * 'a history) \<Rightarrow> bool" where
+subsection \<open>Small step semantics for HCSP\<close>
+
+text \<open>semP P t h (e, P2, t2, h2) means a single step starting at program P changes
+the program to P2, changes time t to t2, and history h to h2, while outputting event e.\<close>
+inductive semP :: "'a::finite proc \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> (event \<times> 'a proc \<times> now \<times> 'a history) \<Rightarrow> bool" where
   skip: "semP Skip now f (Tau, Skip, now, f)"
 | assign: "semP (x := e) now f
-    (Tau, Skip, now, (\<lambda>t. if t = now then (update_fst (f t) x (evalE e (f t))) else f t))"
+    (Tau, Skip, now, (\<lambda>t. if t = now then update_fst (f t) x (evalE e (f t)) else f t))"
 | Dassign: "semP (DAss x e) now f 
-    (Tau, Skip, now, (\<lambda>t. if t = now then (update_snd (f t) x (evalE e (f t)))  else f t))"
+    (Tau, Skip, now, (\<lambda>t. if t = now then update_snd (f t) x (evalE e (f t)) else f t))"
+\<comment> \<open>Finish execution of an ODE\<close>
 | continuousF: "([\<not>]b) (execute_ODE ode (f now) (fst (f now))) \<Longrightarrow>
-    semP (<ode && Inv&b>) now f (Tau, Skip, now, (\<lambda>t. if t = now then (execute_ODE ode (f now) (fst (f now))) else f t))"
+    semP (<ode && Inv&b>) now f (Tau, Skip, now, (\<lambda>t. if t = now then execute_ODE ode (f now) (fst (f now)) else f t))"
+\<comment> \<open>Partial execution of an ODE\<close>
 | continuousT: "d > 0 \<Longrightarrow> ODE_solution_in_dom ode d (f now) b sol \<Longrightarrow>
     semP (<ode && Inv&b>) now f (Delay d, <ode && Inv&b>, now+d,
        (\<lambda>t. if t \<le> now+d \<and> t > now then
-              (execute_ODE ode (f now) (sol (t-now)))  else f t))"
+              execute_ODE ode (f now) (sol (t-now))
+            else f t))"
 | sequenceL: "semP P now f (ev, P', now', f') \<and> P' \<noteq> Skip \<Longrightarrow>
               semP (P; Q) now f (ev, P'; Q, now', f')"
 | sequenceR: "semP P now f (ev, P', now', f') \<and> P' = Skip \<Longrightarrow>
@@ -158,38 +164,46 @@ inductive semP :: "'a :: finite proc \<Rightarrow> now \<Rightarrow> 'a history 
 | repetitionk: "semP P now f (ev, P', now', f') \<and> P' \<noteq> Skip \<Longrightarrow>
                 semP (P *&& Inv) now f (ev, (P'; P *&& Inv), now', f')"
 | repetitionk1: "semP P now f (ev, P', now', f') \<and> P' = Skip \<Longrightarrow>
-                  semP (P *&& Inv) now f (ev, P *&& Inv, now',f')"
+                 semP (P *&& Inv) now f (ev, P *&& Inv, now',f')"
 | outputC : "semP (Cm (ch[!]e)) now f (Out ch (evalE e (f now)), Skip, now, f)"
 | outputW : "d\<ge>0 \<Longrightarrow> semP (Cm (ch[!]e)) now f
             (Delay d, Cm (ch[!]e), now + d, extend_history f now d)"
 | inputC : "semP (Cm (ch[?]x)) now f (In ch c, x := (Real c), now, f)"
 | inputW : "d\<ge>0 \<Longrightarrow> semP (Cm (ch[?]x)) now f
             (Delay d, Cm (ch[?]x), now + d, extend_history f now d)"
- 
 
-inductive semPP :: "'a :: finite procP \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> 'a history \<Rightarrow> (event * 'a procP * now * 'a history * 'a history) \<Rightarrow> bool" where
+
+inductive semPP :: "'a::finite procP \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> 'a history \<Rightarrow>
+                    (event \<times> 'a procP \<times> now \<times> 'a history \<times> 'a history) \<Rightarrow> bool" where
+\<comment> \<open>Swap\<close>
   parallel0: "semPP (P||Q) now f g (eve, P'||Q', now', f', g') \<Longrightarrow> semPP (Q||P) now g f (eve, Q'||P', now', g', f')"
+\<comment> \<open>Handshake on the two sides\<close>
 | parallel1: "semP P now f (evp, P', now, f') \<and> semP Q now g (evq, Q', now, g') \<and> compat evp evq \<Longrightarrow>
               semPP (P||Q) now f g (handshake evp evq, P'||Q', now, f', g')"
+\<comment> \<open>Execution on P only\<close>
 | parallel2 : "semP P now f (evp, P', now', f')
              \<and> ((evp = Tau) \<or>
                 (\<exists>ch c. evp = Out ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q)) \<or>
                 (\<exists>ch c. evp = In ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q)) \<or>
                 (\<exists>ch c. evp = IO ch c \<and> \<not>(ch \<in> chanset P \<inter> chanset Q))) \<Longrightarrow>
              semPP (P||Q) now f g (evp, P'||Q, now', f', g)"
+\<comment> \<open>Delay on both sides\<close>
 | parallel3 : "semP P now f (Delay d, P', now + d, f')
               \<and> semP Q now g (Delay d, Q', now + d, g') \<Longrightarrow>
              semPP (P||Q) now f g (Delay d, P'||Q', now + d, (\<lambda>t. if t \<le> now + d \<and> t \<ge> now then f' t else f t),
                 (\<lambda>t. if t \<le> now + d \<and> t \<ge> now then g' t else g t))"
 
-text \<open>Big-step semantics\<close>
-text \<open>Continuous evolution domain: assume b is an open formula, otherwise the escaping point cannot be found.\<close>
+subsection \<open>Big-step semantics\<close>
+
+text \<open>Continuous evolution domain: assume b is an open formula, otherwise
+the escaping point cannot be found.\<close>
+
 inductive semB :: "'a :: finite proc \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> bool" where
   skipB: "semB Skip now f now f"
 | assignB: "semB (x := e) now f 
-    now (\<lambda>t. if t = now then (update_fst (f t) x (evalE e (f t))) else f t)"
+    now (\<lambda>t. if t = now then update_fst (f t) x (evalE e (f t)) else f t)"
 | DassignB: "semB (DAss x e) now f 
-    now (\<lambda>t. if t = now then (update_snd (f t) x (evalE e (f t))) else f t)"
+    now (\<lambda>t. if t = now then update_snd (f t) x (evalE e (f t)) else f t)"
 (*| continuousBF: "let sol = ODE_solution ode 0 (f now) in
       ([\<not>]b) (execute_ODE ode (f now) (sol 0)) \<Longrightarrow> semB (<ode && Inv&b>) now f 
     now (\<lambda>t. if t = now then (execute_ODE ode (f now) ((ODE_solution ode 0 (f now)) 0))  else f t)"
@@ -198,7 +212,8 @@ inductive semB :: "'a :: finite proc \<Rightarrow> now \<Rightarrow> 'a history 
     (\<forall> t. t \<ge> 0 \<and> t < d \<longrightarrow> b (execute_ODE ode (f now) (sol t))) \<Longrightarrow> \<not> b (execute_ODE ode (f now) (sol d)) \<Longrightarrow>
     semB (<ode && Inv&b>) now f 
       (now + d) (\<lambda>t. if t \<le> now + d \<and> t \<ge> now then
-              (execute_ODE ode (f now) (sol (t-now)))  else f t)"
+                       execute_ODE ode (f now) (sol (t-now))
+                     else f t)"
 | sequenceB: "semB P now f now' f' \<and> semB Q now' f' now'' f'' \<Longrightarrow> semB (P; Q) now f now'' f''"
 | conditionBT: " b (f now) \<Longrightarrow> semB P now f now_d f_d \<Longrightarrow> semB (IF b P) now f now_d f_d"
 | conditionBF: "\<not>b (f now) \<Longrightarrow> semB (IF b P) now f now f"
@@ -218,10 +233,10 @@ inductive semB :: "'a :: finite proc \<Rightarrow> now \<Rightarrow> 'a history 
                  else if t = now + d then update_fst (f now) x c
                  else f t)"
 (*Notice: no real meaning of c in the inputBC. It will not be used actually without a synchronized output.*)
- 
+
  
 text \<open>There are four cases for semantics of parallel composition.\<close>
-inductive semBP :: "'a ::finite procP \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> bool" where
+inductive semBP :: "'a::finite procP \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> now \<Rightarrow> 'a history \<Rightarrow> bool" where
   parallelB1: "semB P nowp fp nowp' fp' \<Longrightarrow> semB Q nowq fq nowq' fq' \<Longrightarrow> chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
                semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq'"
 | parallelB2: "semBP (P||Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
@@ -229,18 +244,22 @@ inductive semBP :: "'a ::finite procP \<Rightarrow> now \<Rightarrow> 'a history
                chanset U = {} \<and> chanset V = {} \<Longrightarrow>
                semBP ((P; U) || (Q; V)) nowp fp nowq fq  nowu' fu' nowv' fv'"
 | parallelB3: "semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
-    semBP (P; Cm (ch[?]x) || Q; Cm (ch[!]e)) nowp fp nowq fq (max nowp' nowq')
-     (\<lambda>t. if nowp' < t \<and> t < max nowp' nowq' then fp' nowp'
-         else if t = max nowp' nowq' then (update_fst (fp' nowp') x (evalE e (fp' nowp'))) 
-              else fp' t)
-     (max nowp' nowq') (\<lambda>t. if nowq' < t \<and> t \<le> max nowp' nowq' then fq' nowq' else fq' t)"
+               semBP (P; Cm (ch[?]x) || Q; Cm (ch[!]e)) nowp fp nowq fq
+               (max nowp' nowq')
+               (\<lambda>t. if nowp' < t \<and> t < max nowp' nowq' then fp' nowp'
+                    else if t = max nowp' nowq' then update_fst (fp' nowp') x (evalE e (fp' nowp')) 
+                    else fp' t)
+               (max nowp' nowq')
+               (\<lambda>t. if nowq' < t \<and> t \<le> max nowp' nowq' then fq' nowq' else fq' t)"
 | parallelB4: "semBP (P || Q) nowp fp nowq fq nowp' fp' nowq' fq' \<Longrightarrow>
-  semBP (P; Cm (ch[!]e) || Q; Cm (ch[?]x)) nowp fp nowq fq (max nowp' nowq')
-   (\<lambda>t. if nowp' < t \<and> t \<le> max nowp' nowq' then fp' nowp' else fp' t) (max nowp' nowq')
-   (\<lambda>t. if nowq' < t \<and> t < max nowp' nowq' then fq' nowq'
-         else if t = max nowp' nowq' then update_fst (fq' nowq') x (evalE e (fq' nowq'))
-              else fq' t)"
- 
+               semBP (P; Cm (ch[!]e) || Q; Cm (ch[?]x)) nowp fp nowq fq
+               (max nowp' nowq')
+               (\<lambda>t. if nowp' < t \<and> t \<le> max nowp' nowq' then fp' nowp' else fp' t)
+               (max nowp' nowq')
+               (\<lambda>t. if nowq' < t \<and> t < max nowp' nowq' then fq' nowq'
+                    else if t = max nowp' nowq' then update_fst (fq' nowq') x (evalE e (fq' nowq'))
+                    else fq' t)"
+
 inductive_cases [elim!]:
   "semB Skip now f now' f'"
   "semB (DAss x e) now f now' f'"
@@ -319,7 +338,5 @@ lemma semB3:
    chanset P = {} \<and> chanset Q = {} \<Longrightarrow>
    semB P nowp fp nowp' fp' \<and> semB Q nowq fq nowq' fq'"
   by (induct rule: semBP.cases; simp add: chanset_def)
-
- 
  
 end

@@ -7,9 +7,14 @@ from ss2hcsp.hcsp.pprint import pprint_lines
 
 
 class PPrintTest(unittest.TestCase):
-    def run_test(self, s, res_list, *, max_line=None):
+    def run_test(self, s, res_list, *, max_line=None, print_lines=False, print_mapping=False):
         hp = parser.hp_parser.parse(s)
         lines, mapping = pprint_lines(hp, max_line=max_line, record_pos=True)
+        if print_lines:
+            for line in lines:
+                print(line)
+        if print_mapping:
+            print(mapping)
         self.assertEqual(lines, res_list)
 
     def test1(self):
@@ -45,16 +50,18 @@ class PPrintTest(unittest.TestCase):
         ])
 
     def test5(self):
-        self.run_test("x? $ y?", [
-            "x? $",
-            "y?"
+        self.run_test("x? --> skip $ y? --> skip", [
+            "x? -->",
+            "  skip $",
+            "y? -->",
+            "  skip"
         ])
 
     def test6(self):
-        self.run_test("x?; y? $ x!; y!", [
-            "x?;",
+        self.run_test("x? --> y? $ x! --> y!", [
+            "x? -->",
             "  y? $",
-            "x!;",
+            "x! -->",
             "  y!"
         ])
 
@@ -76,18 +83,15 @@ class PPrintTest(unittest.TestCase):
         ], max_line=21)
 
     def test9(self):
-        self.run_test("num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))", [
+        self.run_test("num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))", [
             'num == 0 -> (tri?E; EL := E; NL := 1; num := 1);',
             'num == 1 -> (',
-            '  BC1!E $',
-            '  BR1?E;',
-            '    EL := push(EL, E);',
-            '    NL := push(NL, 1);',
-            '    num := 1 $',
-            '  BO1?NULL;',
-            '    num := num+1;',
-            '    NL := pop(NL);',
-            '    NL := push(NL, 1)',
+            '  BC1!E -->',
+            '    skip $',
+            '  BR1?E -->',
+            '    EL := push(EL, E); NL := push(NL, 1); num := 1 $',
+            '  BO1?NULL -->',
+            '    num := num+1; NL := pop(NL); NL := push(NL, 1)',
             ');',
             'num == 2 -> (',
             '  EL := pop(EL);',
@@ -115,6 +119,89 @@ class PPrintTest(unittest.TestCase):
             '  wait(2);',
             '  p2c?x;',
             '  c2p!x-1',
+            ')**'
+        ])
+
+    def test12(self):
+        self.run_test("(x?x --> x!x+1 $ y?y --> skip); x!x+2", [
+            'x?x -->',
+            '  x!x+1 $',
+            'y?y -->',
+            '  skip;',
+            'x!x+2'
+        ])
+
+    def testVanPerPol_continuous1(self):
+        self.run_test("t := 0; (ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> x5 := (1-x3)*(-2.2); t%8 == 0 -> x6 := max(x1, x5); t%10 == 0 -> (x6 > x2 -> x0 := 0; x6 <= x2 -> x0 := 1); ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>)**", [
+            't := 0;',
+            '(',
+            '  ch_x1?x1;',
+            '  ch_x2?x2;',
+            '  ch_x3?x3;',
+            '  t%4 == 0 -> x5 := (1-x3)*(-2.2);',
+            '  t%8 == 0 -> x6 := max(x1, x5);',
+            '  t%10 == 0 -> (',
+            '    x6 > x2 -> x0 := 0;',
+            '    x6 <= x2 -> x0 := 1',
+            '  );',
+            '  ch_x0_0!x0;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+2>',
+            ')**'
+        ])
+
+    def testVanPerPol_continuous2(self):
+        self.run_test("x2 := 10; x1 := 1; t := 0; (<x2_dot = x1, x1_dot = x0, t_dot = 1 & true> |> [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x2!x2 --> skip, ch_x3!min(x2, x2) --> skip))**", [
+            'x2 := 10;',
+            'x1 := 1;',
+            't := 0;',
+            '(',
+            '  <x2_dot = x1, x1_dot = x0, t_dot = 1 & true> |> [] (',
+            '    ch_x0_0?x0 -->',
+            '      skip',
+            '    ch_x1!x1 -->',
+            '      skip',
+            '    ch_x2!x2 -->',
+            '      skip',
+            '    ch_x3!min(x2, x2) -->',
+            '      skip',
+            '  )',
+            ')**'            
+        ])
+
+    def testVanPerPol_discrete1(self):
+        self.run_test("t := 0; (ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 -> (x8 >= 20 -> x10 := x7; x8 < 20 -> x10 := x9); ch_x10_0!x10; temp := t; <t_dot = 1 & t < temp+4>)**", [
+            't := 0;',
+            '(',
+            '  ch_x7?x7;',
+            '  ch_x8?x8;',
+            '  ch_x9?x9;',
+            '  t%4 == 0 -> (',
+            '    x8 >= 20 -> x10 := x7;',
+            '    x8 < 20 -> x10 := x9',
+            '  );',
+            '  ch_x10_0!x10;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+4>',
+            ')**'
+        ])
+
+    def testVanPerPol_discrete2(self):
+        self.run_test("t := 0; (ch_x0?x0; ch_x4?x4; t%gcd(in0, in0) == 0 -> x1 := min(x0, x0); t%4 == 0 -> x3 := (1-x1)*2; t%8 == 0 -> x5 := max(x4, x3); t%10 == 0 -> (x5 > x0 -> x6 := 0; x5 <= x0 -> x6 := 1); ch_x6_0!x6; temp := t; <t_dot = 1 & t < temp+gcd(2, and)>)**", [
+            't := 0;',
+            '(',
+            '  ch_x0?x0;',
+            '  ch_x4?x4;',
+            '  t%gcd(in0, in0) == 0 -> x1 := min(x0, x0);',
+            '  t%4 == 0 -> x3 := (1-x1)*2;',
+            '  t%8 == 0 -> x5 := max(x4, x3);',
+            '  t%10 == 0 -> (',
+            '    x5 > x0 -> x6 := 0;',
+            '    x5 <= x0 -> x6 := 1',
+            '  );',
+            '  ch_x6_0!x6;',
+            '  temp := t;',
+            '  <t_dot = 1 & t < temp+gcd(2, and)>',
             ')**'
         ])
 

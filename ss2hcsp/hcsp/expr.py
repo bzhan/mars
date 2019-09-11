@@ -1,5 +1,17 @@
 """Expressions"""
 
+from decimal import Decimal
+
+def get_num(x):
+    """Obtain the Decimal representation of x, rounded to three places
+    after the decimal point.
+
+    """
+    if isinstance(x, int):
+        return x
+    else:
+        d = Decimal(x).quantize(Decimal("1.000")).normalize()
+        return int(d) if d == int(d) else d
 
 class AExpr:  # Arithmetic expression
     def __init__(self):
@@ -43,8 +55,11 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-        assert isinstance(value, (int, float))
-        self.value = value
+        assert isinstance(value, (int, float, str, Decimal))
+        if isinstance(value, int):
+            self.value = value
+        else:
+            self.value = get_num(value)
 
     def __repr__(self):
         return "Const(%s)" % str(self.value)

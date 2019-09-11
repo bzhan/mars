@@ -5,6 +5,7 @@ import React from "react";
 import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
+import {Chart} from 'chart.js'
 import axios from "axios"
 
 
@@ -55,8 +56,72 @@ class Process extends React.Component {
                     return <span key={index} style={{marginLeft: "10px"}}>{var_name}: {val}</span>
                 })}
             </pre>
+            {this.props.time_series !== undefined ?
+                <canvas id={'chart'+String(this.props.index)} width="400" height="100"/> : null
+            }
             </div>
         );
+    }
+
+    componentDidUpdate() {
+        const ts = this.props.time_series;
+        if (ts === undefined) {
+            return;
+        }
+        var series = {};
+        for (let i = 0; i < ts.length; i++) {
+            for (let k in ts[i].state) {
+                if (!(k in series)) {
+                    series[k] = [];
+                }
+                series[k].push({x: ts[i].time, y: ts[i].state[k]});
+            }
+        }
+        var datasets = [];
+        var colors = ['blue', 'red', 'green', 'yellow'];
+        for (let k in series) {
+            let color = colors[datasets.length];
+            datasets.push({
+                label: k,
+                lineTension: 0,
+                backgroundColor: color,
+                borderColor: color,
+                borderWidth: 1,
+                fill: false,
+                pointRadius: 0,
+                data: series[k]
+            })
+        }
+
+        var ctx = document.getElementById('chart'+String(this.props.index))
+        this.chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: datasets
+            },
+            options: {
+                animation: {
+                    duration: 0
+                },
+                hover: {
+                    animationDuration: 0
+                },
+                responsiveAnimationDuration: 0,
+                scales: {
+                    xAxes: [{
+                        type: "linear",
+                        display: true,
+                        ticks: {
+                            suggestedMin: 0,
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                    }]
+                },
+            }
+        })
+        this.chart.update();
     }
 }
 
@@ -100,11 +165,23 @@ class App extends React.Component {
             // history[i+2].
             events: [],
 
+            // Time series information
+            time_series: [],
+
             // Current position
             history_pos: 0,
 
+            // Step history for the current event.
+            steps: [],
+
+            // Current step position
+            history_step: undefined,
+
             // Whether there is a file loaded.
-            file_loaded: false
+            file_loaded: false,
+
+            // Whether a query is in process
+            querying: false
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -124,7 +201,10 @@ class App extends React.Component {
                 file_loaded: true,
                 history: [],
                 events: [],
+                time_series: [],
                 history_pos: 0,
+                steps: [],
+                history_step: undefined
             });
         };
         this.reader.readAsText(this.fileSelector.files[0]);
@@ -157,29 +237,136 @@ class App extends React.Component {
         this.setState({
             history: response.data.history,
             events: response.data.events,
+            time_series: response.data.time_series,
         })
     };
 
     nextEvent = (e) => {
         this.setState((state) => ({
-            history_pos: state.history_pos + 1
+            history_pos: state.history_pos + 1,
+            steps: [],
+            history_step: undefined,
         }))
     };
 
     prevEvent = (e) => {
         this.setState((state) => ({
-            history_pos: state.history_pos - 1
+            history_pos: state.history_pos - 1,
+            steps: [],
+            history_step: undefined,
         }))
     };
 
     eventOnClick = (e, i) => {
-        this.setState({history_pos: i})
+        this.setState({
+            history_pos: i,
+            steps: [],
+            history_step: undefined
+        })
     }
 
-    nextStep = (e) => {
+    nextStep = async (e) => {
+        if (this.state.history_step !== undefined) {
+            // Already exploring steps
+            if (this.state.history_step === this.state.steps.length - 2) {
+                // At the last step of the current event, return to exploring events
+                this.setState((state) => ({
+                    history_pos: state.history_pos + 1,
+                    steps: [],
+                    history_step: undefined,
+                }));
+            } else {
+                // Otherwise, continue to next step in the current event
+                this.setState((state) => ({
+                    history_step: state.history_step + 1,
+                }))
+            }
+        } else {
+            // Not exploring steps: query the server for steps of the current
+            // event
+            const hpos = this.state.history_pos;
+            const infos = []
+            for (let i = 0; i < this.state.hcspCode.length; i++) {
+                infos.push({
+                    'hp': this.state.hcspCode[i],
+                    'pos': this.state.history[hpos][i].pos,
+                    'state': this.state.history[hpos][i].state,
+                });
+            }
+            const data = {
+                infos: infos,
+                start_event: (hpos !== 0),
+            }
+            this.setState({querying: true})
+            const response = await axios.post('/run_hcsp_steps', data);
+            this.setState({querying: false})
+            const history = response.data.history;
+            if (history.length <= 1) {
+                // Directly go to the next event
+                this.setState((state) => ({
+                    history_pos: state.history_pos + 1,
+                    steps: [],
+                    history_step: undefined,
+                }))
+            } else {
+                // Otherwise, start traversing the steps
+                this.setState((state) => ({
+                    steps: response.data.history,
+                    history_step: 0,                    
+                }))
+            }    
+        }
     };
 
-    prevStep = (e) => {
+    prevStep = async (e) => {
+        if (this.state.history_step !== undefined) {
+            // Already exploring steps
+            if (this.state.history_step === 0) {
+                // At the first step of the current event, return to exploring events
+                this.setState({
+                    steps: [],
+                    history_step: undefined,
+                });
+            } else {
+                // Otherwise, go to previous step in the current event
+                this.setState((state) => ({
+                    history_step: state.history_step - 1,
+                }))
+            }
+        } else {
+            // Not exploring steps: query the server for steps of the previous
+            // event, then go to the last step of that event.
+            const hpos = this.state.history_pos;
+            const infos = []
+            for (let i = 0; i < this.state.hcspCode.length; i++) {
+                infos.push({
+                    'hp': this.state.hcspCode[i],
+                    'pos': this.state.history[hpos-1][i].pos,
+                    'state': this.state.history[hpos-1][i].state,
+                });
+            }
+            const data = {
+                infos: infos,
+                start_event: (hpos-1 !== 0),
+            }
+            const response = await axios.post('/run_hcsp_steps', data);
+            const history = response.data.history;
+            if (history.length <= 1) {
+                // Directly go to the previous event
+                this.setState((state) => ({
+                    history_pos: state.history_pos - 1,
+                    steps: [],
+                    history_step: undefined,
+                }))
+            } else {
+                // Otherwise, traverse the steps starting at the end
+                this.setState((state) => ({
+                    history_pos: state.history_pos - 1,
+                    steps: response.data.history,
+                    history_step: response.data.history.length - 2,
+                }))
+            }    
+        }
     };
 
     setStateAsync = (state) => {
@@ -202,10 +389,14 @@ class App extends React.Component {
             res += " Current event: "
             if (this.state.history_pos === 0) {
                 res += "start."
-            } else if (this.state.history_pos == events.length - 1) {
+            } else if (this.state.history_pos === events.length - 1) {
                 res += "end."
             } else {
-                res += String(this.state.history_pos)
+                res += String(this.state.history_pos) + "."
+            }
+            if (this.state.history_step !== undefined) {
+                res += " Current step: " + String(this.state.history_step+1) + "/" +
+                       String(this.state.steps.length-1)
             }
             return res
         }
@@ -242,11 +433,14 @@ class App extends React.Component {
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
 
-                        <Button variant="secondary" title={"forward"} onClick={this.nextStep} disabled={!this.state.started}>
+                        <Button variant="secondary" title={"forward"} onClick={this.nextStep}
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faCaretRight} size="lg"/>
                         </Button>
 
-                        <Button variant="secondary" title={"backward"} onClick={this.prevStep} disabled={!this.state.started}>
+                        <Button variant="secondary" title={"backward"} onClick={this.prevStep}
+                            disabled={this.state.querying || this.state.history.length === 0 ||
+                                (this.state.history_pos === 0 && this.state.history_step === undefined)}>
                             <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
                         </Button>
 
@@ -262,20 +456,45 @@ class App extends React.Component {
                         const lines = info[0];
                         const mapping = info[1];
                         if (this.state.history.length === 0) {
-                            return <Process key={index} lines={lines}
-                                            start={undefined} end={undefined} state={[]}/>
+                            // No data is available
+                            return <Process key={index} index={index} lines={lines}
+                                            start={undefined} end={undefined} state={[]}
+                                            time_series={undefined}/>
                         } else {
                             const hpos = this.state.history_pos;
-                            const pos = this.state.history[hpos][index].pos;
-                            if (pos === 'end') {
-                                return <Process key={index} lines={lines}
-                                                start={undefined} end={undefined} state={[]}/>
+                            const hstep = this.state.history_step;
+                            var pos, state;
+                            if (hstep === undefined) {
+                                pos = this.state.history[hpos][index].pos;
+                                state = this.state.history[hpos][index].state;    
                             } else {
+                                pos = this.state.steps[hstep][index].pos;
+                                state = this.state.steps[hstep][index].state;
+                            }
+                            var time_series = []
+                            for (let i = 0; i < this.state.time_series.length; i++) {
+                                time_series.push({
+                                    time: this.state.time_series[i].time,
+                                    state: this.state.time_series[i].states[index]
+                                });
+                            }
+                            if (pos === 'end') {
+                                // End of data set
+                                return <Process key={index} index={index} lines={lines}
+                                                start={undefined} end={undefined} state={state}
+                                                time_series={time_series}/>
+                            } else {
+                                // Process out the 'w{n}' in the end if necessary
+                                const sep = pos.lastIndexOf('.');
+                                if (sep !== -1 && pos[sep+1] === 'w') {
+                                    pos = pos.slice(0, sep)
+                                }
+                                // Find start and end position in the output
                                 const start = mapping[pos][0];
                                 const end = mapping[pos][1];
-                                const state = this.state.history[hpos][index].state;
-                                return <Process key={index} lines={lines}
-                                                start={start} end={end} state={state}/>
+                                return <Process key={index} index={index} lines={lines}
+                                                start={start} end={end} state={state}
+                                                time_series={time_series}/>
                             }
                         }
                     })}

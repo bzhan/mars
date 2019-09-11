@@ -49,7 +49,9 @@ def run_hcsp():
     num_steps = data['num_steps']
 
     info = [simulator.HCSPInfo(hp) for hp in hcspCode]
-    history, events = simulator.exec_parallel(info, num_steps, log_state=True)
+    history = []
+    time_series = []
+    events = simulator.exec_parallel(info, num_steps, state_log=history, time_series=time_series)
     if events[-1] != 'deadlock':
         events = ['start'] + events + ['end']
     else:
@@ -58,8 +60,19 @@ def run_hcsp():
     return json.dumps({
         'history': history,
         'events': events,
+        'time_series': time_series,
     })
 
+@app.route('/run_hcsp_steps', methods=['POST'])
+def run_hcsp_steps():
+    data = json.loads(request.get_data())
+    infos = data['infos']
+    infos = [simulator.HCSPInfo(info['hp'], pos=info['pos'], state=info['state']) for info in infos]
+    history = simulator.exec_parallel_steps(infos, start_event=data['start_event'])
+
+    return json.dumps({
+        'history': history,
+    })
 
 @app.route('/process', methods=['POST'])
 def process():

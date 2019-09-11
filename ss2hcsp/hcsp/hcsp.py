@@ -74,7 +74,7 @@ class Assign(HCSP):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        return "Assign(%s, %s)" % (self.var_name, str(self.expr))
+        return "Assign(%s,%s)" % (self.var_name, str(self.expr))
 
     def __str__(self):
         return self.var_name + " := " + str(self.expr)
@@ -298,24 +298,30 @@ class Parallel(HCSP):
 
 
 class SelectComm(HCSP):
-    def __init__(self, *hps):
-        """hps is a list of hybrid programs."""
+    def __init__(self, *io_comms):
+        """io_comms is a list of pairs, where the first element of each
+        pair must be a communication, and the second entry can be
+        any program.
+        
+        """
         self.type = "select_comm"
-        assert all(isinstance(hp, HCSP) for hp in hps)
-        # assert all(is_comm_channel(hp) for hp in hps)
-        assert len(hps) >= 2
-        self.hps = list(hps)  # type(hps) == tuple
+        assert len(io_comms) >= 2
+        assert all(is_comm_channel(comm_hp) and isinstance(out_hp, HCSP)
+                   for comm_hp, out_hp in io_comms)
+        self.io_comms = tuple(io_comms)
 
     def __eq__(self, other):
-        return self.type == other.type and self.hps == other.hps
+        return self.type == other.type and self.io_comms == other.io_comms
 
     def __repr__(self):
-        return "SelectComm(%s)" % (",".join(repr(hp) for hp in self.hps))
+        return "SelectComm(%s)" % (",".join("%s,%s" % (repr(comm_hp), repr(out_hp))
+                                            for comm_hp, out_hp in self.io_comms))
 
     def __str__(self):
         return " $ ".join(
-            str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
-            for hp in self.hps)
+            "%s --> %s" % (comm_hp, out_hp) if out_hp.priority() > self.priority() else \
+                "%s --> (%s)" % (comm_hp, out_hp) \
+            for comm_hp, out_hp in self.io_comms)
 
 
 class Recursion(HCSP):

@@ -83,7 +83,7 @@
   display: inline-block;
   max-width: 30%;
   vertical-align: top;
-  position: absolute;
+  position: fixed;
   top: 127px;
   bottom: 0px;
   overflow-y: scroll;
