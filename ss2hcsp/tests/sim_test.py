@@ -313,13 +313,21 @@ class SimTest(unittest.TestCase):
 
         res = [
             ("M", "num := 0; (@M_main)**"),
-            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); num == 1 -> (BC1!E $ BR1?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
+            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); "
+                       "num == 1 -> (BC1!E --> skip $ "
+                       "BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
+                       "BO1?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
+                       "num == 2 -> (EL := pop(EL); NL := pop(NL); "
+                       "EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
             ("D", "@M || @S1"),
             ("S1", "a_S1 := 1; a_A := 1; a_A1 := 1; rec X.(BC1?E; @Diag_S1; BO1!)"),
             ("Diag_S1", "a_A == 1 -> (@A); a_B == 1 -> (@B)"),
-            ("A", "done := 0; E == e && done == 0 -> (a_A2 == 1 -> (a_A2 := 0); a_A1 == 1 -> (a_A1 := 0); a_A := 0; a_B := 1; done := 1); done == 0 -> (@Diag_A)"),
+            ("A", "done := 0; E == e && done == 0 -> "
+                  "(a_A2 == 1 -> (a_A2 := 0); a_A1 == 1 -> (a_A1 := 0); a_A := 0; a_B := 1; done := 1); "
+                  "done == 0 -> (@Diag_A)"),
             ("Diag_A", "a_A1 == 1 -> (@A1); a_A2 == 1 -> (@A2)"),
-            ("A1", "done := 0; done == 0 -> (BR1!e; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> (skip)"),
+            ("A1", "done := 0; done == 0 -> "
+                   "(BR1!e; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> (skip)"),
             ("A2", "skip"),
             ("B", "skip"),
         ]
