@@ -5,7 +5,7 @@ import json
 from aadl2hcsp.parserAnnex import AnnexParser
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
-    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess
+    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess,Skip
 
 def createStructure(dic):
     process = HCSPProcess()
@@ -100,7 +100,7 @@ class Process:
 
     def _preemptPriority(self, thread):
         hps = []
-        hps.append(InputChannel('tran_'+str(thread), AVar('prior')))  # insert variable
+        hps_con = InputChannel('tran_'+str(thread), AVar('prior'))  # insert variable
         con1= RelExpr('<', AVar('run_prior'), AVar('prior'))
         con2= RelExpr('>', AVar('run_prior'), AVar('prior'))
         con_hp1 = Sequence(Var('BUSY_' + self.process_name),
@@ -114,18 +114,18 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        return Sequence(*hps)
+        return (hps_con ,Sequence(*hps))
 
     def _noPreemptSequence(self, thread):
-        hps = [InputChannel('tran_' + str(thread)), # insert variable
-               OutputChannel('insert_' + str(thread)),
+        hps_con = InputChannel('tran_' + str(thread)) # insert variable
+        hps = [OutputChannel('insert_' + str(thread)),
                Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)]))]
 
-        return Sequence(*hps)
+        return (hps_con, Sequence(*hps))
 
     def _freeActionPriority(self):
         hps = []
-        hps.append(InputChannel('free'))  # insert variable
+        hps_con= InputChannel('free')  # insert variable
         con1 = RelExpr('>', AVar('ready_num'), AConst(0))
         con2 = RelExpr('==', AVar('ready_num'), AConst(0))
         con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
@@ -140,11 +140,11 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        return Sequence(*hps)
+        return (hps_con, Sequence(*hps))
 
     def _freeActionSequence(self):
         hps = []
-        hps.append(InputChannel('free'))  # insert variable
+        hps_con = InputChannel('free') # insert variable
         con1 = RelExpr('>', AVar('ready_num'), AConst(0))
         con2 = RelExpr('==', AVar('ready_num'), AConst(0))
         con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
@@ -157,7 +157,7 @@ class Process:
         hps.append(Condition(con1, con_hp1))
         hps.append(Condition(con2, con_hp2))
 
-        return Sequence(*hps)
+        return (hps_con, Sequence(*hps))
 
 
     def _createBusy(self):
@@ -204,7 +204,11 @@ class Process:
                 hps2.append(self._insertTail(thread))
             hps2.append(self._changeActionHead())
 
-        hps2 = SelectComm(*hps2)
+        if len(hps2) >= 2:
+            hps2 = SelectComm(*hps2)
+        else:
+            hps2 = hps2[0]
+
         hps.append(Loop(hps2))
         hps = Sequence(*hps)
 
@@ -212,7 +216,7 @@ class Process:
 
     def _insertPriority(self, thread):
         hps = []
-        hps.append(InputChannel('insert_' + str(thread), AVar('prior')))  # insert variable
+        hps_con = InputChannel('insert_' + str(thread), AVar('prior'))  # insert variable
         con_tmp = Sequence(Assign('q_'+str(0), AVar(thread)),
                            Assign('p_'+str(0), AVar('prior')))
         for i in range(self.thread_num-1):
@@ -229,11 +233,16 @@ class Process:
                                 Condition(con2, con_hp2))
         hps.append(con_tmp)
 
-        return Sequence(*hps)
+        if len(hps) >= 2:
+            hps = Sequence(*hps)
+        else:
+            hps = hps[0]
+
+        return (hps_con, hps)
 
     def _insertTail(self, thread):
         hps = []
-        hps.append(InputChannel('insert_' + str(thread)))  # insert variable
+        hps_con = InputChannel('insert_' + str(thread))  # insert variable
         con_tmp = Assign('q_' + str(self.thread_num-1), AVar(thread))
         for i in range(self.thread_num-2, -1, -1):
             con1 = RelExpr('!=', AVar('q_' + str(i)), AConst(0))
@@ -245,12 +254,18 @@ class Process:
                                Condition(con2, con_hp2))
         hps.append(con_tmp)
 
-        return Sequence(*hps)
+        if len(hps) >=2:
+            hps=Sequence(*hps)
+        else:
+            hps=hps[0]
+
+        return (hps_con, hps)
+
 
 
     def _changeActionPriority(self):
         hps = []
-        hps.append(InputChannel('change_' + self.process_name))  # insert variable
+        hps_con = InputChannel('change_' + self.process_name) # insert variable
         hps.append(OutputChannel('ch_run_' + self.process_name,AVar('q_0')))
         hps.append(OutputChannel('ch_prior_' + self.process_name, AVar('p_0')))
 
@@ -261,11 +276,11 @@ class Process:
         hps.append(Assign('q_' + str(self.thread_num-1), AConst(0)))
         hps.append(Assign('p_' + str(self.thread_num-1), AConst(0)))
 
-        return Sequence(*hps)
+        return (hps_con, Sequence(*hps))
 
     def _changeActionHead(self):
         hps = []
-        hps.append(InputChannel('change_' + self.process_name))  # insert variable
+        hps_con = InputChannel('change_' + self.process_name)  # insert variable
         hps.append(OutputChannel('ch_run_' + self.process_name, AVar('q_0')))
 
         for i in range(self.thread_num - 1):
@@ -273,7 +288,7 @@ class Process:
 
         hps.append(Assign('q_' + str(self.thread_num - 1), AConst(0)))
 
-        return Sequence(*hps)
+        return (hps_con, Sequence(*hps))
 
 
 class Thread:
@@ -331,7 +346,7 @@ class Thread:
             self.lines.add('ACT_' + self.thread_name, act_hps)
 
             dis_hps = [InputChannel('act_' + self.thread_name),  # insert variable
-                       Wait(int(self.thread_period)),
+                       Wait(AConst(int(self.thread_period))),
                        OutputChannel('dis_' + self.thread_name)]  # insert output
 
             for feature in self.thread_featureIn:
@@ -340,8 +355,8 @@ class Thread:
             for feature in self.thread_featureIn:
                 dis_hps.append(OutputChannel('input_' + self.thread_name + '_' + feature, AVar(feature))) # insert output, was AVar(self.thread_featureIn)
 
-            dis_hps.append(SelectComm(InputChannel('complete_' + self.thread_name),  # insert variable
-                                      InputChannel('exit_' + self.thread_name)))  # insert variable
+            dis_hps.append(SelectComm((InputChannel('complete_' + self.thread_name),Skip()), # insert variable
+                                       (InputChannel('exit_' + self.thread_name),Skip()))) # insert variable
 
             dis_hps = Sequence(*dis_hps)
             self.lines.add('DIS_' + self.thread_name, dis_hps)
@@ -368,11 +383,10 @@ class Thread:
 
     def _createReady(self):
         hps = []
-        hps2 = [InputChannel('init_'+self.thread_name, 't'),
-                InputChannel('preempt_'+self.thread_name, 't'),
-                InputChannel('unblock_'+self.thread_name, 't')]
+        hps2 = SelectComm((InputChannel('init_'+self.thread_name, 't'), Skip()),
+                          (InputChannel('preempt_'+self.thread_name, 't'), Skip()),
+                          (InputChannel('unblock_'+self.thread_name, 't'), Skip()))
 
-        hps2 = SelectComm(*hps2)
         hps.append(hps2)
         hps.append(OutputChannel('tran_'+self.thread_name, AVar('prior')))
 
@@ -406,8 +420,8 @@ class Thread:
 
     def _createRunning(self):
         hps = [InputChannel('resume_' + self.thread_name, 't')]
-        hps.append(SelectComm(OutputChannel('start_Annex_'+self.thread_name),
-                              OutputChannel('restart_Annex_'+self.thread_name)))# insert output
+        hps.append(SelectComm((OutputChannel('start_Annex_'+self.thread_name),Skip()),
+                              (OutputChannel('restart_Annex_'+self.thread_name), Skip())))# insert output
 
         eqs = [('t', AConst(1)), ('c', AConst(1))]
         constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
@@ -445,10 +459,10 @@ class Thread:
         if self.annex:
             hps.extend(self.annex)
 
-        hps.append(Wait(5))
+        hps.append(Wait(AConst(5)))
         hps.append(OutputChannel('need_Resource_' + self.thread_name))
         hps.append(InputChannel('restart_Annex_' + self.thread_name))
-        hps.append(Wait(5))
+        hps.append(Wait(AConst(5)))
 
         for feature in self.thread_featureOut:
             hps.append(OutputChannel(self.thread_name + '_' + feature, feature))

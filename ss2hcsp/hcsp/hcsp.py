@@ -282,7 +282,7 @@ class Condition(HCSP):
     def __init__(self, cond, hp):
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
-        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
+        assert isinstance(cond, BExpr)  and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP
@@ -327,6 +327,7 @@ class SelectComm(HCSP):
         """
         self.type = "select_comm"
         assert len(io_comms) >= 2
+
         assert all(is_comm_channel(comm_hp) and isinstance(out_hp, HCSP)
                    for comm_hp, out_hp in io_comms)
         self.io_comms = tuple(io_comms)
