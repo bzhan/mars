@@ -279,7 +279,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
             "c?x"
-        ], 3, ["delay 2.449", "IO c 3.0", "deadlock"], print_time_series=True)
+        ], 3, ["delay 2.449", "IO c 3.0", "deadlock"])
 
     def testExecParallel11(self):
         self.run_test([
@@ -287,6 +287,11 @@ class SimulatorTest(unittest.TestCase):
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 5>; c!x",
             "c?x; c?x"
         ], 5, ["delay 2.449", "IO c 3.0", "delay 0.713", "IO c 5.0", "deadlock"])
+
+    def testExecParallel12(self):
+        self.run_test([
+            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
+        ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([

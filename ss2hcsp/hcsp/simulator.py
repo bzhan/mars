@@ -334,7 +334,7 @@ class HCSPInfo:
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            return "delay", cur_hp.delay - self.pos[-1]
+            return "delay", eval_expr(cur_hp.delay, self.state) - self.pos[-1]
 
         elif cur_hp.type == "ode":
             # Find delay of ODE
@@ -465,7 +465,7 @@ class HCSPInfo:
             pass
 
         elif cur_hp.type == "wait":
-            delay_left = cur_hp.delay - self.pos[-1]
+            delay_left = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
             assert delay_left >= delay
             if delay_left == delay:
                 self.pos = step_pos(self.hp, self.pos)
@@ -486,6 +486,8 @@ class HCSPInfo:
             if all(isinstance(deriv, AConst) for var_name, deriv in cur_hp.eqs):
                 for var_name, deriv in cur_hp.eqs:
                     self.state[var_name] += delay * deriv.value
+            elif delay == 0.0:
+                return
             else:
                 def ode_fun(t, y):
                     res = []
@@ -625,7 +627,7 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
                         else:
                             states.append(copy(infos[j].state))
                     new_entry = {
-                        "time": t,
+                        "time": time + t,
                         "states": states
                     }
                     if len(time_series) == 0 or new_entry != time_series[-1]:
