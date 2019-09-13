@@ -153,7 +153,7 @@ class HPTransformer(Transformer):
         return hcsp.Wait(int(delay))
 
     def assign_cmd(self, var, expr):
-        return hcsp.Assign(var, expr)
+        return hcsp.Assign(str(var), expr)
 
     def seq_cmd(self, *args):
         if len(args) == 1:
@@ -180,7 +180,7 @@ class HPTransformer(Transformer):
         res = []
         for i in range(0,len(args),2):
             assert args[i].endswith("_dot")
-            res.append((args[i][:-4], args[i+1]))
+            res.append((str(args[i][:-4]), args[i+1]))
         return res
 
     def interrupt(self, *args):

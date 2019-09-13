@@ -8,10 +8,9 @@ from copy import copy
 import itertools
 import math
 from scipy.integrate import solve_ivp
-from decimal import Decimal
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    BConst, LogicExpr, RelExpr, true_expr, get_num
+    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -158,9 +157,9 @@ def get_ode_delay(hp, state):
     # of the time range.
     delays = [1, 2, 5, 10, 20, 50, 100]
     for delay in delays:
-        sol = solve_ivp(ode_fun, [0, delay], y0, events=[event])
+        sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-4)
         if sol.t[-1] < delay:
-            return sol.t[-1]
+            return opt_round(sol.t[-1])
 
     # Otherwise, return the maximum 100.
     return 100
@@ -455,7 +454,7 @@ class HCSPInfo:
         else:
             assert False
 
-    def exec_delay(self, delay):
+    def exec_delay(self, delay, *, time_series=None):
         """Perform delay on the hybrid program of the given length."""
         if self.pos is None:
             return
@@ -501,9 +500,20 @@ class HCSPInfo:
                 for var_name, _ in cur_hp.eqs:
                     y0.append(self.state[var_name])
 
-                sol = solve_ivp(ode_fun, [0, delay], y0)
+                t_eval = [x for x in get_range(0, delay)] if time_series is not None else None
+                sol = solve_ivp(ode_fun, [0, delay], y0, t_eval=t_eval, rtol=1e-5, atol=1e-7)
+
+                # Store time series
+                if time_series is not None:
+                    for i in range(len(sol.t)):
+                        state2 = copy(self.state)
+                        for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
+                            state2[var_name] = opt_round(yval[i])
+                        time_series.append(state2)
+
+                # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
-                    self.state[var_name] = get_num(sol.y[i][-1])
+                    self.state[var_name] = opt_round(sol.y[i][-1])
 
             if finish_ode:
                 self.pos = step_pos(self.hp, self.pos)
@@ -572,7 +582,7 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
         if time_series is not None:
             new_entry = {
                 "time": time,
-                "states": [copy(info.state) for info in infos]
+                "states": list(copy(info.state) for info in infos)
             }
             if len(time_series) == 0 or new_entry != time_series[-1]:
                 time_series.append(new_entry)
@@ -600,17 +610,32 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
             break
         elif event[0] == "delay":
             _, min_delay = event
-            trace.append("delay %s" % str(get_num(min_delay)))
-            log_time_series()
+            trace.append("delay %s" % str(round(min_delay, 3)))
+            all_series = []
             for info in infos:
-                info.exec_delay(min_delay)
+                series = []
+                info.exec_delay(min_delay, time_series=series)
+                all_series.append(series)
+            if time_series is not None:
+                for i, t in enumerate(get_range(0, min_delay)):
+                    states = []
+                    for j in range(len(infos)):
+                        if len(all_series[j]) > 0:
+                            states.append(copy(all_series[j][i]))
+                        else:
+                            states.append(copy(infos[j].state))
+                    new_entry = {
+                        "time": t,
+                        "states": states
+                    }
+                    if len(time_series) == 0 or new_entry != time_series[-1]:
+                        time_series.append(new_entry)
             time += min_delay
-            log_time_series()
         else:
             _, id_out, id_in, ch_name = event
             val = infos[id_out].exec_output_comm(ch_name)
             infos[id_in].exec_input_comm(ch_name, val)
-            trace.append("IO %s %s" % (ch_name, str(val)))
+            trace.append("IO %s %s" % (ch_name, str(round(val, 3))))
 
     # Log info and time series at the end
     if trace[-1] != 'deadlock':

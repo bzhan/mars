@@ -1,10 +1,8 @@
 """Unittest for simulation of HCSP."""
 
 import unittest
-from decimal import Decimal
 import math
 
-from ss2hcsp.hcsp.expr import get_num
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
@@ -151,6 +149,11 @@ class SimulatorTest(unittest.TestCase):
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
+    def assertAlmostEqualState(self, st1, st2):
+        self.assertEqual(set(st1.keys()), set(st2.keys()))
+        for k in st1:
+            self.assertAlmostEqual(st1[k], st2[k], places=3)
+
     def testODEComm(self):
         test_data = [
             # Acceleration
@@ -159,35 +162,35 @@ class SimulatorTest(unittest.TestCase):
 
             # Acceleration with floating point numbers
             ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
-             {"a": 1.1, "v": 0, "x": 0}, 3, {"a": 1.1, "v": Decimal("3.3"), "x": Decimal("4.95")}),
+             {"a": 1.1, "v": 0, "x": 0}, 3, {"a": 1.1, "v": 3.3, "x": 4.95}),
 
             # Exponential growth
-            ("<x_dot = x & true> |> [](c!x --> skip)", {"x": 1}, 3, {"x": get_num(math.exp(3))}),
+            ("<x_dot = x & true> |> [](c!x --> skip)", {"x": 1}, 3, {"x": math.exp(3)}),
 
             # Circular motion
             ("<x_dot = -1 * y, y_dot = x & true> |> [](c!x --> skip)",
-             {"x": 1, "y": 0}, 3, {"x": get_num(math.cos(3)), "y": get_num(math.sin(3))}),
+             {"x": 1, "y": 0}, 3, {"x": math.cos(3), "y": math.sin(3)}),
         ]
 
         for cmd, state, delay, state2 in test_data:
             info = simulator.HCSPInfo(cmd, state=state)
             info.exec_delay(delay)
-            self.assertEqual(info.state, state2)
+            self.assertAlmostEqualState(info.state, state2)
 
     def testODEDelay(self):
         test_data = [
             # Acceleration
-            ("<x_dot = v, v_dot = a, t_dot = 1 & t < 3>", {"t": 0, "a": 1, "v": 0, "x": 0}, 3),
+            ("<x_dot = v, v_dot = a, t_dot = 1 & t < 3>", {"t": 0, "a": 1, "v": 0, "x": 0}, 3.0),
 
             # Acceleration, upon x reaching a certain value
             ("<x_dot = v, v_dot = a, t_dot = 1 & x < 3>",
-             {"t": 0, "a": 1, "v": 0, "x": 0}, get_num(math.sqrt(6))),
+             {"t": 0, "a": 1, "v": 0, "x": 0}, math.sqrt(6)),
 
             # Exponential growth
-            ("<x_dot = x, t_dot = 1 & x < 3>", {"t": 0, "x": 1}, get_num(math.log(3))),
+            ("<x_dot = x, t_dot = 1 & x < 3>", {"t": 0, "x": 1}, math.log(3)),
 
             # Circular motion
-            ("<x_dot = -1 * y, y_dot = x & x > 0>", {"x": 1, "y": 0}, get_num(math.pi/2)),
+            ("<x_dot = -1 * y, y_dot = x & x > 0>", {"x": 1, "y": 0}, math.pi/2),
 
             # Some examples of large or infinite delay
             ("<t_dot = 0.1 & t < 6>", {"t": 0}, 60),
@@ -197,15 +200,19 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, state, delay in test_data:
             hp = parser.hp_parser.parse(cmd)
-            res = get_num(simulator.get_ode_delay(hp, state))
-            self.assertEqual(res, delay)
+            res = simulator.get_ode_delay(hp, state)
+            self.assertAlmostEqual(res, delay, places=3)
 
-    def run_test(self, infos, num_steps, trace):
+    def run_test(self, infos, num_steps, trace, *, print_time_series=False):
         for i in range(len(infos)):
             infos[i] = simulator.HCSPInfo(infos[i])
 
-        res = simulator.exec_parallel(infos, num_steps)
+        time_series = [] if print_time_series else None
+        res = simulator.exec_parallel(infos, num_steps, time_series=time_series)
         self.assertEqual(res, trace)
+        if print_time_series:
+            for record in time_series:
+                print("%s: %s" % (record['time'], record['states']))
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
@@ -272,14 +279,14 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
             "c?x"
-        ], 3, ["delay 2.449", "IO c 3", "deadlock"])
+        ], 3, ["delay 2.449", "IO c 3.0", "deadlock"], print_time_series=True)
 
     def testExecParallel11(self):
         self.run_test([
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
             "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 5>; c!x",
             "c?x; c?x"
-        ], 5, ["delay 2.449", "IO c 3", "delay 0.713", "IO c 5", "deadlock"])
+        ], 5, ["delay 2.449", "IO c 3.0", "delay 0.713", "IO c 5.0", "deadlock"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([

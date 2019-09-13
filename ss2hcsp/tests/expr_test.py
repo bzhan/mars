@@ -9,6 +9,12 @@ from ss2hcsp.hcsp import hcsp
 
 
 class ExprTest(unittest.TestCase):
+    def testGetRange(self):
+        self.assertEqual(expr.get_range(0.1, 0.4), [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(expr.get_range(0.03, 0.41), [0.03, 0.1, 0.2, 0.3, 0.4, 0.41])
+        self.assertEqual(expr.get_range(0.1, 0.41), [0.1, 0.2, 0.3, 0.4, 0.41])
+        self.assertEqual(expr.get_range(0.03, 0.4), [0.03, 0.1, 0.2, 0.3, 0.4])
+
     def testAExprParser(self):
         test_data = [
             ("a + 1", "Plus(+Var(a), +Const(1))"),

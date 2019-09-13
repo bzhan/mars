@@ -1,17 +1,30 @@
 """Expressions"""
 
-from decimal import Decimal
+import math
 
-def get_num(x):
-    """Obtain the Decimal representation of x, rounded to three places
-    after the decimal point.
+def opt_round(x):
+    if abs(round(x, 3) - x) < 1e-7:
+        return round(x, 3)
+    else:
+        return x
+
+
+def get_range(start, end):
+    """Returns a range of numbers between start and end, inserting
+    multiples of 0.1 along the way.
 
     """
-    if isinstance(x, int):
-        return x
-    else:
-        d = Decimal(x).quantize(Decimal("1.000")).normalize()
-        return int(d) if d == int(d) else d
+    start_int = math.ceil(start * 10)
+    end_int = math.floor(end * 10)
+    res = []
+    if start * 10 != start_int:
+        res.append(start)
+    for i in range(start_int, end_int+1):
+        res.append(i / 10)
+    if end * 10 != end_int:
+        res.append(end)
+    return res
+
 
 class AExpr:  # Arithmetic expression
     def __init__(self):
@@ -55,11 +68,8 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-        assert isinstance(value, (int, float, str, Decimal))
-        if isinstance(value, int):
-            self.value = value
-        else:
-            self.value = get_num(value)
+        assert isinstance(value, (int, float))
+        self.value = value
 
     def __repr__(self):
         return "Const(%s)" % str(self.value)
