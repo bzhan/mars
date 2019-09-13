@@ -230,9 +230,9 @@ class SF_Chart:
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E $ BR" + i
-                                                    + "?E; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "?NULL; num := num+1; NL := pop(NL); NL := push(NL, 1))"))
+                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> skip $ BR" + i
+                                                    + "?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
+                                                    + "?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0);"
@@ -327,13 +327,14 @@ class SF_Chart:
             # Check if there is an X in the processes
             # If so, then there is an event triggered inner the states,
             # which means process S_i is recursive.
-            has_X = False
+            contain_X = False
             for _, process in processes.hps:
-                if hp.Var("X") in hp.decompose(process):
-                    has_X = True
+                # if hp.Var("X") in hp.decompose(process):
+                if process.contain_hp(name="X"):
+                    contain_X = True
                     s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Recursion(s_i_proc))
                     break
-            if not has_X:
+            if not contain_X:
                 s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Loop(s_i_proc))
 
             # The output order is after D, M and M_main

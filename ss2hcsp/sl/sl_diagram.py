@@ -27,7 +27,7 @@ from math import gcd, pow
 import re
 import operator
 
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, FunExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, FunExpr
 
 
 def get_gcd(sample_times):
@@ -273,14 +273,16 @@ class SL_Diagram:
                 self.add_block(block=Add(name=block_name, dest_spec=dest_spec))
             elif block_type == "Bias":
                 bias = get_attribute_value(block=block, attribute="Bias")
-                self.add_block(block=Bias(name=block_name, bias=eval(bias)))
+                bias = eval(bias) if bias else 0
+                self.add_block(block=Bias(name=block_name, bias=bias))
             elif block_type == "Product":
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "**"
                 self.add_block(block=Divide(name=block_name, dest_spec=dest_spec))
             elif block_type == "Gain":
                 factor = get_attribute_value(block=block, attribute="Gain")
-                self.add_block(block=Gain(name=block_name, factor=eval(factor)))
+                factor = eval(factor) if factor else 1
+                self.add_block(block=Gain(name=block_name, factor=factor))
             elif block_type == "Saturate":
                 upper_limit = get_attribute_value(block=block, attribute="UpperLimit")
                 upper_limit = eval(upper_limit) if upper_limit else 0.5
@@ -414,11 +416,7 @@ class SL_Diagram:
                     num_lines += 1
 
     def comp_inher_st(self):
-        """Compute the sample time for each block with inherent sample time.
-        This function cannot be executed correctly until all the ports are deleted, i.e.,
-        delete_ports() should precede comp_inher_st(), or let delete_port() be
-        at the begining of comp_inher_st()."""
-        # self.delete_ports()
+        """Compute the sample time for each block with inherent sample time."""
         terminate = False
         while not terminate:
             terminate = True
@@ -449,22 +447,31 @@ class SL_Diagram:
                         known_in_st.append(in_block.st)
                     else:
                         unknown_in_st.append(AVar(in_block.name))
+                assert unknown_in_st
+
                 if known_in_st:
                     known_in_st = [AConst(get_gcd(sample_times=known_in_st))]
                 known_in_st.extend(unknown_in_st)
                 if len(known_in_st) == 1:
                     block.st = known_in_st[0]
+                    assert isinstance(block.st, AVar)
                 else:  # len(known_in_st) >= 2
                     block.st = FunExpr(fun_name="gcd", exprs=known_in_st)
         # Deal with unit_delay and constant blocks
         for block in self.blocks_dict.values():
             if block.type == "unit_delay":
                 if block.delay == -1:  # the delay is unknow
-                    src_block = self.blocks_dict[block.dest_lines[0].src]
-                    # assert isinstance(src_block.st, AExpr)
-                    block.delay = src_block.st if isinstance(src_block.st, AExpr) else AConst(src_block.st)
+                    # block.delay = block.st
+                    assert isinstance(block.st, (int, float, AVar, FunExpr))
+                    block.delay = AConst(block.st) if isinstance(block.st, (int, float)) else block.st
+                    # src_block = self.blocks_dict[block.dest_lines[0].src]
+                    # block.delay = src_block.st if isinstance(src_block.st, AExpr) else AConst(src_block.st)
                 else:
+                    assert isinstance(block.delay, (int, float))
                     block.delay = AConst(block.delay)
             elif block.type == "constant":
                 dest_block = self.blocks_dict[block.src_lines[0][0].dest]
                 block.is_continuous = dest_block.is_continuous
+
+        assert all(isinstance(block.st, (int, float, AVar, FunExpr)) for block in self.blocks_dict.values()
+                   if block.type not in ["in_port", "out_port"])

@@ -46,7 +46,7 @@ grammar = r"""
 
     ?atom_cmd: "@" CNAME -> var_cmd
         | "skip" -> skip_cmd
-        | "wait" "(" INT ")" -> wait_cmd
+        | "wait" "(" expr ")" -> wait_cmd
         | CNAME ":=" expr -> assign_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
@@ -150,7 +150,7 @@ class HPTransformer(Transformer):
         return hcsp.Skip()
 
     def wait_cmd(self, delay):
-        return hcsp.Wait(int(delay))
+        return hcsp.Wait(delay)
 
     def assign_cmd(self, var, expr):
         return hcsp.Assign(str(var), expr)

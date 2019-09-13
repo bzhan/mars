@@ -1,10 +1,13 @@
 """Hybrid programs"""
 
 # from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AExpr, BExpr
+from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr
 
 
 class HCSP:
+    def __init__(self):
+        self.type = None
+
     def priority(self):
         if self.type == "parallel":
             return 30
@@ -16,6 +19,24 @@ class HCSP:
             return 90
         else:
             return 100
+
+    def contain_hp(self, name):
+        # return if it contains an hcsp named name
+        if self == Var(name):
+            return True
+        elif isinstance(self, (Sequence, Parallel)):
+            for sub_hp in self.hps:
+                if sub_hp.contain_hp(name):
+                    return True
+        elif isinstance(self, (Loop, Condition, Recursion)):
+            return self.hp.contain_hp(name)
+        elif isinstance(self, ODE):
+            return self.out_hp.contain_hp(name)
+        elif isinstance(self, (ODE_Comm, SelectComm)):
+            for io_comm in self.io_comms:
+                if io_comm[1].contain_hp(name):
+                    return True
+        return False
 
 
 class Var(HCSP):
@@ -49,7 +70,7 @@ class Skip(HCSP):
 
 class Wait(HCSP):
     def __init__(self, delay):
-        assert isinstance(delay, int)
+        assert isinstance(delay, (AConst, AVar, FunExpr))
         self.type = "wait"
         self.delay = delay
 
@@ -261,7 +282,7 @@ class Condition(HCSP):
     def __init__(self, cond, hp):
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
-        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
+        assert isinstance(cond, BExpr)  and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP
@@ -306,6 +327,7 @@ class SelectComm(HCSP):
         """
         self.type = "select_comm"
         assert len(io_comms) >= 2
+
         assert all(is_comm_channel(comm_hp) and isinstance(out_hp, HCSP)
                    for comm_hp, out_hp in io_comms)
         self.io_comms = tuple(io_comms)
@@ -375,24 +397,3 @@ class HCSPProcess:
 
     def __eq__(self, other):
         return self.hps == other.hps
-
-
-def decompose(hcsp):
-    """Returns list of atomic hcsps."""
-    atomic_hps = list()
-    if isinstance(hcsp, (Sequence, Parallel, SelectComm)):
-        for sub_hp in hcsp.hps:
-            atomic_hps.extend(decompose(sub_hp))
-    elif isinstance(hcsp, (Loop, Condition, Recursion)):
-        atomic_hps.extend(decompose(hcsp.hp))
-    elif isinstance(hcsp, ODE):
-        atomic_hps.extend(decompose(hcsp.out_hp))
-    elif isinstance(hcsp, ODE_Comm):
-        for io_comm in hcsp.io_comms:
-            atomic_hps.extend(io_comm[1])
-    else:
-        atomic_hps.append(hcsp)
-
-    assert all(isinstance(hcsp, (Var, Skip, Assign, InputChannel, OutputChannel))
-               for hcsp in atomic_hps)
-    return atomic_hps

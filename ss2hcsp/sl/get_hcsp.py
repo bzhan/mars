@@ -5,9 +5,9 @@ from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.hcsp.expr import *
 # from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 
-from functools import reduce
-from math import gcd
-import re
+# from functools import reduce
+from ss2hcsp.sl.sl_diagram import get_gcd
+# from math import gcd
 import operator
 from itertools import product
 
@@ -106,9 +106,9 @@ def translate_continuous(diag):
             dest_name = block.dest_lines[0].name
             ode_eqs.append((src_name, AVar(dest_name)))
         elif block.type == "unit_delay":
-            dest_name = block.dest_lines[0].name
-            init_hps.append(hp.Assign(var_name=dest_name, expr=AConst(block.init_value)))
-            ode_eqs.append((dest_name, AConst(0)))
+            src_name = block.src_lines[0][0].name
+            init_hps.append(hp.Assign(var_name=src_name, expr=AConst(block.init_value)))
+            ode_eqs.append((src_name, AConst(0)))
 
     init_hps.append(hp.Assign(var_name="t", expr=AConst(0)))
     ode_eqs.append(("t", AConst(1)))
@@ -151,7 +151,8 @@ def translate_continuous(diag):
                 _expr = composition[var_list.index(in_var.name)][1]
                 # new_ode_eqs.append((out_var, aexpr_parse(expr)))
                 new_ode_eqs.append((out_var, _expr))
-                constraints.add(cond)
+                if cond != BConst(True):
+                    constraints.add(cond)
             else:
                 new_ode_eqs.append((out_var, in_var))
         # print("new_ode_eqs = ", new_ode_eqs)
@@ -163,7 +164,8 @@ def translate_continuous(diag):
                 comm_hps.append(
                     (hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=_expr), hp.Skip()))
                 # comm_hps.append((hp.OutputChannel(var_name=out_channel, expr=aexpr_parse(expr)), hp.Skip()))
-                constraints.add(cond)
+                if cond != BConst(True):
+                    constraints.add(cond)
             else:
                 comm_hps.append(
                     (hp.OutputChannel(ch_name="ch_" + out_channel + bran_num, expr=AVar(out_channel)), hp.Skip()))
@@ -324,25 +326,20 @@ def translate_discrete(diag):
     known_st = []
     unknown_st = []
     for block in blocks:
-        if hasattr(block, "st") and re.match("\\d+", str(block.st)):
+        if isinstance(block.st, (int, float)):
+            assert block.st > -1
             known_st.append(block.st)
-        elif hasattr(block, "st"):
+        else:
+            assert isinstance(block.st, (AVar, FunExpr))
             unknown_st.append(AVar(block.name))
+
     if known_st:
-        known_st = [AConst(reduce(gcd, known_st) if len(known_st) >= 2 else known_st[0])]
+        known_st = [AConst(get_gcd(known_st))]
     known_st.extend(unknown_st)
     st_gcd = FunExpr(fun_name="gcd", exprs=known_st) if len(known_st) >= 2 else known_st[0]
-    temp = hp.Assign(var_name="temp", expr=AVar("t"))
-    time_ode = hp.ODE(eqs=[("t", AConst(1))],
-                      constraint=RelExpr(op="<", expr1=AVar("t"),
-                                         expr2=PlusExpr(signs="++", exprs=[AVar("temp"), st_gcd])))
-    time_processes = [temp, time_ode]
+
     # Get loop body
-    loop_hps = in_channels + discrete_hps + out_channels + time_processes
-    # loop_body = loop_hps[0]
-    # for i in range(1, len(loop_hps)):
-    #     loop_body = hp.Sequence(loop_body, loop_hps[i])
-    # process = hp.Sequence(init_hp, hp.Loop(loop_body))
+    loop_hps = in_channels + discrete_hps + out_channels + [hp.Wait(delay=st_gcd)]
     loop_hps = hp.Sequence(*loop_hps)
     process = hp.Sequence(init_hp, hp.Loop(loop_hps))
     return process
