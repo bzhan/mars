@@ -130,7 +130,6 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecDelay(self):
         test_data = [
-            ("skip", (), {}, 3, (), {}),
             ("wait(3)", (0,), {}, 3, None, {}),
             ("wait(3)", (0,), {}, 2, (2,), {}),
             ("wait(3)", (1,), {}, 1, (2,), {}),

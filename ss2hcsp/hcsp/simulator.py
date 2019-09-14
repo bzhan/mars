@@ -460,8 +460,7 @@ class HCSPInfo:
             return
 
         cur_hp = get_pos(self.hp, self.pos)
-
-        if cur_hp.type in ["skip", "input_channel", "output_channel", "select_comm"]:
+        if cur_hp.type in ["input_channel", "output_channel", "select_comm"]:
             pass
 
         elif cur_hp.type == "wait":

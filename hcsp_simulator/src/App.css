@@ -50,7 +50,6 @@
 .program-text {
   margin-top: 10px;
   font-family: 'Consolas', Courier, monospace;
-  width: 50%;
 }
 
 .program-text-hl {
@@ -77,6 +76,10 @@
 .left {
   display: inline-block;
   max-width: 70%;
+  position: fixed;
+  top: 127px;
+  bottom: 0px;
+  overflow-y: scroll;
 }
 
 .right {
@@ -86,5 +89,6 @@
   position: fixed;
   top: 127px;
   bottom: 0px;
+  left: 70%;
   overflow-y: scroll;
 }
