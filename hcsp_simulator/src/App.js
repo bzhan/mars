@@ -9,6 +9,45 @@ import {Chart} from 'chart.js'
 import axios from "axios"
 
 
+const verticalLinePlugin = {
+    getLinePosition: function (chart, xval) {
+        const left = chart.chartArea.left;
+        const right = chart.chartArea.right;
+        const xstart = chart.scales['x-axis-0'].start;
+        const xend = chart.scales['x-axis-0'].end;
+        return (xval - xstart) / (xend - xstart) * (right - left) + left;
+    },
+
+    renderVerticalLine: function (chartInstance, pointIndex) {
+        const scale = chartInstance.scales['y-axis-0'];
+        const context = chartInstance.chart.ctx;
+  
+        if (typeof(pointIndex) === 'number') {
+            // render vertical line
+            const lineLeftOffset = this.getLinePosition(chartInstance, pointIndex);
+            context.beginPath();
+            context.strokeStyle = 'black';
+            context.moveTo(lineLeftOffset, scale.top);
+            context.lineTo(lineLeftOffset, scale.bottom);
+            context.stroke();
+        } else {
+            const lineLeftOffset1 = this.getLinePosition(chartInstance, pointIndex[0]);
+            const lineLeftOffset2 = this.getLinePosition(chartInstance, pointIndex[1]);
+            context.fillStyle = 'lightgray';
+            context.fillRect(lineLeftOffset1, scale.bottom, lineLeftOffset2-lineLeftOffset1, scale.top-scale.bottom);
+        }
+    },
+  
+    beforeDatasetsDraw: function (chart, easing) {
+        if (chart.config.lineAtIndex) {
+            chart.config.lineAtIndex.forEach(pointIndex => this.renderVerticalLine(chart, pointIndex));
+        }
+    }
+};
+
+Chart.plugins.register(verticalLinePlugin);
+
+
 class Process extends React.Component {
     render() {
         return (
@@ -93,12 +132,13 @@ class Process extends React.Component {
             })
         }
 
-        var ctx = document.getElementById('chart'+String(this.props.index))
-        this.chart = new Chart(ctx, {
+        var canvas = document.getElementById('chart'+String(this.props.index));
+        this.chart = new Chart(canvas, {
             type: 'line',
             data: {
                 datasets: datasets
             },
+            lineAtIndex: [this.props.event_time],
             options: {
                 animation: {
                     duration: 0
@@ -130,11 +170,13 @@ class Events extends React.Component {
         return (
             <div className="event-list">
                 {this.props.events.map((event, index) => {
-                    if (index === this.props.current_index) {
-                        return <pre key={index}><span className="event-list-hl">{event}</span></pre>
-                    } else {
-                        return <pre key={index} onClick={(e) => this.props.onClick(e, index)}>{event}</pre>
-                    }
+                    return (
+                        <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
+                            <span className={index === this.props.current_index?"event-list-hl":""}>
+                                {event.str}
+                            </span>
+                        </pre>
+                    )
                 })}
             </div>
         )
@@ -459,7 +501,7 @@ class App extends React.Component {
                             // No data is available
                             return <Process key={index} index={index} lines={lines}
                                             start={undefined} end={undefined} state={[]}
-                                            time_series={undefined}/>
+                                            time_series={undefined} event_time={undefined}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const hstep = this.state.history_step;
@@ -470,6 +512,13 @@ class App extends React.Component {
                             } else {
                                 pos = this.state.steps[hstep][index].pos;
                                 state = this.state.steps[hstep][index].state;
+                            }
+                            const cur_event = this.state.events[hpos];
+                            var event_time;
+                            if (cur_event.type !== 'delay') {
+                                event_time = cur_event.time;
+                            } else {
+                                event_time = [cur_event.time, cur_event.time + cur_event.delay_time];
                             }
                             var time_series = []
                             for (let i = 0; i < this.state.time_series.length; i++) {
@@ -482,7 +531,7 @@ class App extends React.Component {
                                 // End of data set
                                 return <Process key={index} index={index} lines={lines}
                                                 start={undefined} end={undefined} state={state}
-                                                time_series={time_series}/>
+                                                time_series={time_series} event_time={event_time}/>
                             } else {
                                 // Process out the 'w{n}' in the end if necessary
                                 const sep = pos.lastIndexOf('.');
@@ -494,7 +543,7 @@ class App extends React.Component {
                                 const end = mapping[pos][1];
                                 return <Process key={index} index={index} lines={lines}
                                                 start={start} end={end} state={state}
-                                                time_series={time_series}/>
+                                                time_series={time_series} event_time={event_time}/>
                             }
                         }
                     })}

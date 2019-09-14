@@ -207,8 +207,9 @@ class SimulatorTest(unittest.TestCase):
             infos[i] = simulator.HCSPInfo(infos[i])
 
         time_series = [] if print_time_series else None
-        res = simulator.exec_parallel(infos, num_steps, time_series=time_series)
-        self.assertEqual(res, trace)
+        _, res = simulator.exec_parallel(infos, num_steps, time_series=time_series)
+        res_trace = [event['str'] for event in res]
+        self.assertEqual(res_trace, trace)
         if print_time_series:
             for record in time_series:
                 print("%s: %s" % (record['time'], record['states']))

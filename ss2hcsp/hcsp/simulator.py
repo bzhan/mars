@@ -607,11 +607,12 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
 
         event = extract_event(reasons)
         if event == "deadlock":
-            trace.append("deadlock")
+            trace.append({"time": time, "type": "deadlock", "str": "deadlock"})
             break
         elif event[0] == "delay":
             _, min_delay = event
-            trace.append("delay %s" % str(round(min_delay, 3)))
+            trace_str = "delay %s" % str(round(min_delay, 3))
+            trace.append({"time": time, "type": "delay", "delay_time": min_delay, "str": trace_str})
             all_series = []
             for info in infos:
                 series = []
@@ -636,14 +637,15 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
             _, id_out, id_in, ch_name = event
             val = infos[id_out].exec_output_comm(ch_name)
             infos[id_in].exec_input_comm(ch_name, val)
-            trace.append("IO %s %s" % (ch_name, str(round(val, 3))))
+            trace_str = "IO %s %s" % (ch_name, str(round(val, 3)))
+            trace.append({"time": time, "type": "comm", "ch_name": ch_name, "val": val, "str": trace_str})
 
     # Log info and time series at the end
     if trace[-1] != 'deadlock':
         log_info()
     log_time_series()
 
-    return trace
+    return time, trace
 
 def exec_parallel_steps(infos, *, start_event):
     """Execute the programs in infos, until the next event.

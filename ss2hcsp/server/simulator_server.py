@@ -51,11 +51,11 @@ def run_hcsp():
     info = [simulator.HCSPInfo(hp) for hp in hcspCode]
     history = []
     time_series = []
-    events = simulator.exec_parallel(info, num_steps, state_log=history, time_series=time_series)
+    time, events = simulator.exec_parallel(info, num_steps, state_log=history, time_series=time_series)
     if events[-1] != 'deadlock':
-        events = ['start'] + events + ['end']
+        events = [{'time': 0, 'str': 'start'}] + events + [{'time': time, 'str': 'end'}]
     else:
-        events = ['start'] + events
+        events = [{'time': 0, 'str': 'start'}] + events
 
     return json.dumps({
         'history': history,
