@@ -482,10 +482,7 @@ class HCSPInfo:
                 if delay == ode_delay:
                     finish_ode = True
 
-            if all(isinstance(deriv, AConst) for var_name, deriv in cur_hp.eqs):
-                for var_name, deriv in cur_hp.eqs:
-                    self.state[var_name] += delay * deriv.value
-            elif delay == 0.0:
+            if delay == 0.0:
                 return
             else:
                 def ode_fun(t, y):
