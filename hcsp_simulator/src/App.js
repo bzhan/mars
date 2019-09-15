@@ -203,6 +203,9 @@ class App extends React.Component {
 
             // Whether there is a file loaded.
             file_loaded: false,
+
+            // Error from server.
+            error: undefined,
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -213,14 +216,27 @@ class App extends React.Component {
             const response = await axios.post("/parse_hcsp", {
                 text: this.reader.result,
             })
-            this.setState({
-                hcsp_info: response.data.hcsp_info,
-                hcspFileName: this.fileSelector.files[0].name,
-                file_loaded: true,
-                history: [],
-                time_series: [],
-                history_pos: 0,
-            });
+            if ('error' in response.data) {
+                this.setState({
+                    error: response.data.error,
+                    hcsp_info: [],
+                    hcspFileName: this.fileSelector.files[0].name,
+                    file_loaded: true,
+                    history: [],
+                    time_series: [],
+                    history_pos: 0,
+                })
+            } else {
+                this.setState({
+                    error: undefined,
+                    hcsp_info: response.data.hcsp_info,
+                    hcspFileName: this.fileSelector.files[0].name,
+                    file_loaded: true,
+                    history: [],
+                    time_series: [],
+                    history_pos: 0,
+                });    
+            }
         };
         this.reader.readAsText(this.fileSelector.files[0]);
     };
@@ -323,6 +339,59 @@ class App extends React.Component {
     }
 
     render() {
+        const left = this.state.error !== undefined ?
+            <pre className="error-message">
+                Error: {this.state.error}
+            </pre>
+        : (
+            <Container className="left">
+            {this.state.hcsp_info.map((info, index) => {
+                const hcsp_name = info.name;
+                if ('parallel' in info) {
+                    return <span key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</span>
+                }
+                else if (this.state.history.length === 0) {
+                    // No data is available
+                    return <Process key={index} index={index} lines={info.lines}
+                                    name={hcsp_name} pos={undefined} state={[]}
+                                    time_series={undefined} event_time={undefined}/>
+                } else {
+                    const hpos = this.state.history_pos;
+                    const event = this.state.history[hpos];
+                    var pos = event.infos[hcsp_name].pos;
+                    var state = event.infos[hcsp_name].state;
+                    var event_time;
+                    if (event.type !== 'delay') {
+                        event_time = event.time;
+                    } else {
+                        event_time = [event.time, event.time + event.delay_time];
+                    }
+                    var time_series = this.state.time_series[hcsp_name];
+                    if (pos === 'end') {
+                        // End of data set
+                        return <Process key={index} index={index} lines={info.lines}
+                                        name={hcsp_name} pos={undefined} state={state}
+                                        time_series={time_series} event_time={event_time}/>
+                    } else {
+                        // Process out the 'w{n}' in the end if necessary
+                        const sep = pos.lastIndexOf('.');
+                        if (sep !== -1 && pos[sep+1] === 'w') {
+                            pos = pos.slice(0, sep)
+                        }
+                        return <Process key={index} index={index} lines={info.lines}
+                                        name={hcsp_name} pos={info.mapping[pos]} state={state}
+                                        time_series={time_series} event_time={event_time}/>
+                    }
+                }
+            })}
+            </Container>
+        );
+        const right = (
+            <Container className="right">
+                <Events events={this.state.history} current_index={this.state.history_pos}
+                        onClick={this.eventOnClick}/>
+            </Container>
+        );
         return (
             <div>
                 <Navbar bg="light" variant="light">
@@ -335,11 +404,13 @@ class App extends React.Component {
 
                 <div>
                     <ButtonToolbar>
-                        <Button variant="success" title={"run"} onClick={this.run} disabled={!this.state.file_loaded}>
+                        <Button variant="success" title={"run"} onClick={this.run}
+                            disabled={!this.state.file_loaded || this.state.error !== undefined}>
                             <FontAwesomeIcon icon={faPlayCircle} size="lg"/>
                         </Button>
 
-                        <Button variant="secondary" title={"refresh"} onClick={this.handleFiles} disabled={!this.state.file_loaded}>
+                        <Button variant="secondary" title={"refresh"} onClick={this.handleFiles}
+                            disabled={!this.state.file_loaded}>
                             <FontAwesomeIcon icon={faSync} size="lg"/>
                         </Button>
 
@@ -370,51 +441,8 @@ class App extends React.Component {
                 </div>
 
                 <hr/>
-                <Container className="left">
-                    {this.state.hcsp_info.map((info, index) => {
-                        const hcsp_name = info.name;
-                        if ('parallel' in info) {
-                            return <span key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</span>
-                        }
-                        else if (this.state.history.length === 0) {
-                            // No data is available
-                            return <Process key={index} index={index} lines={info.lines}
-                                            name={hcsp_name} pos={undefined} state={[]}
-                                            time_series={undefined} event_time={undefined}/>
-                        } else {
-                            const hpos = this.state.history_pos;
-                            const event = this.state.history[hpos];
-                            var pos = event.infos[hcsp_name].pos;
-                            var state = event.infos[hcsp_name].state;
-                            var event_time;
-                            if (event.type !== 'delay') {
-                                event_time = event.time;
-                            } else {
-                                event_time = [event.time, event.time + event.delay_time];
-                            }
-                            var time_series = this.state.time_series[hcsp_name];
-                            if (pos === 'end') {
-                                // End of data set
-                                return <Process key={index} index={index} lines={info.lines}
-                                                name={hcsp_name} pos={undefined} state={state}
-                                                time_series={time_series} event_time={event_time}/>
-                            } else {
-                                // Process out the 'w{n}' in the end if necessary
-                                const sep = pos.lastIndexOf('.');
-                                if (sep !== -1 && pos[sep+1] === 'w') {
-                                    pos = pos.slice(0, sep)
-                                }
-                                return <Process key={index} index={index} lines={info.lines}
-                                                name={hcsp_name} pos={info.mapping[pos]} state={state}
-                                                time_series={time_series} event_time={event_time}/>
-                            }
-                        }
-                    })}
-                </Container>
-                <Container className="right">
-                    <Events events={this.state.history} current_index={this.state.history_pos}
-                            onClick={this.eventOnClick}/>
-                </Container>
+                {left}
+                {right}
             </div>
         );
     }

@@ -92,3 +92,8 @@
   left: 70%;
   overflow-y: scroll;
 }
+
+.error-message {
+  margin-left: 10px;
+  color: red;
+}
