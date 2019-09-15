@@ -49,6 +49,13 @@ Chart.plugins.register(verticalLinePlugin);
 
 
 class Process extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            show_graph: false,
+        }
+    }
+
     render() {
         return (
             <div>
@@ -90,17 +97,25 @@ class Process extends React.Component {
                 {Object.keys(this.props.state).map((key, index) => {
                     return <span key={index} style={{marginLeft: "10px"}}>{key}: {this.props.state[key]}</span>
                 })}
+                <span>&nbsp;&nbsp;</span>
+                <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
             </pre>
-            {this.props.time_series !== undefined ?
+            {(this.state.show_graph && this.props.time_series !== undefined) ?
                 <canvas id={'chart'+String(this.props.index)} width="400" height="100"/> : null
             }
             </div>
         );
     }
 
+    toggleShowGraph = (e) => {
+        this.setState((state) => ({
+            show_graph: !state.show_graph,
+        }))
+    }
+
     componentDidUpdate() {
         const ts = this.props.time_series;
-        if (ts === undefined) {
+        if (!this.state.show_graph || ts === undefined) {
             return;
         }
         var series = {};
