@@ -51,7 +51,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos, state=state)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_step()
             self.assertEqual(res, 'step')
             self.assertEqual(info.pos, pos2)
@@ -70,7 +70,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, reason, arg in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos)
             res = info.exec_step()
             self.assertEqual(res, (reason, arg))
             self.assertEqual(info.pos, pos)
@@ -90,7 +90,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos, state=state)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_process()
             self.assertEqual(res, reason)
             self.assertEqual(info.pos, pos2)
@@ -106,7 +106,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos, state=state)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             info.exec_input_comm(ch_name, val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -122,7 +122,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos, state=state)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_output_comm(ch_name)
             self.assertEqual(res, val)
             self.assertEqual(info.pos, pos2)
@@ -143,7 +143,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
-            info = simulator.HCSPInfo(cmd, pos=pos, state=state)
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -172,7 +172,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, state, delay, state2 in test_data:
-            info = simulator.HCSPInfo(cmd, state=state)
+            info = simulator.HCSPInfo('P0', cmd, state=state)
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
 
@@ -204,11 +204,10 @@ class SimulatorTest(unittest.TestCase):
 
     def run_test(self, infos, num_steps, trace, *, print_time_series=False):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo(infos[i])
+            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
-        time_series = [] if print_time_series else None
-        _, res = simulator.exec_parallel(infos, num_steps, time_series=time_series)
-        res_trace = [event['str'] for event in res]
+        res = simulator.exec_parallel(infos, num_steps)
+        res_trace = [event['str'] for event in res['trace']]
         self.assertEqual(res_trace, trace)
         if print_time_series:
             for record in time_series:
@@ -216,7 +215,7 @@ class SimulatorTest(unittest.TestCase):
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo(infos[i])
+            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel_steps(infos, start_event=start_event)
         self.assertEqual(len(res), res_len)
@@ -225,13 +224,13 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",
-        ], 6, ["delay 2", "IO p2c 2", "IO c2p 1", "delay 2", "IO p2c 3", "IO c2p 2"])
+        ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0", "end"])
 
     def testExecParallel2(self):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "wait(2); p2c?x; c2p!x-1",
-        ], 6, ["delay 2", "IO p2c 2", "IO c2p 1", "deadlock"])
+        ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "deadlock"])
 
     def testExecParallel3(self):
         self.run_test([
@@ -267,7 +266,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "(x?x --> x!x+1 $ y?y --> skip); x!x+2",
             "x!3; x?x; x?x"
-        ], 3, ["IO x 3", "IO x 4", "IO x 5"])
+        ], 3, ["IO x 3", "IO x 4", "IO x 5", "end"])
 
     def testExecParallel9(self):
         self.run_test([
@@ -291,7 +290,7 @@ class SimulatorTest(unittest.TestCase):
     def testExecParallel12(self):
         self.run_test([
             "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
-        ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
+        ], 3, ["delay 2.0", "delay 1.6", "delay 1.28", "end"])
 
     def testExecParallelSteps1(self):
         self.run_test_steps([

@@ -54,24 +54,21 @@ class Process extends React.Component {
             <div>
             <div className="program-text">
                 {this.props.lines.map((str, line_no) => {
-                    if (this.props.start === undefined) {
+                    if (this.props.pos === undefined) {
                         return <pre key={line_no}>{str}</pre>
                     }
+                    const pos = this.props.pos;
                     var bg_start, bg_end;
-                    const sl = this.props.start[0];
-                    const sc = this.props.start[1];
-                    const el = this.props.end[0];
-                    const ec = this.props.end[1];
-                    if (line_no === sl) {
-                        bg_start = sc;
-                    } else if (line_no > sl) {
+                    if (line_no === pos.start_x) {
+                        bg_start = pos.start_y;
+                    } else if (line_no > pos.start_x) {
                         bg_start = 0;
                     } else {
                         bg_start = str.length;
                     }
-                    if (line_no === el) {
-                        bg_end = ec;
-                    } else if (line_no < el) {
+                    if (line_no === pos.end_x) {
+                        bg_end = pos.end_y;
+                    } else if (line_no < pos.end_x) {
                         bg_end = str.length;
                     } else {
                         bg_end = 0;
@@ -89,10 +86,8 @@ class Process extends React.Component {
             </div>
             <pre className="program-state">
                 <span>&nbsp;</span>
-                {this.props.state.map((pair, index) => {
-                    const var_name = pair[0];
-                    const val = pair[1];
-                    return <span key={index} style={{marginLeft: "10px"}}>{var_name}: {val}</span>
+                {Object.keys(this.props.state).forEach((key) => {
+                    return <span key={key} style={{marginLeft: "10px"}}>{key}: {this.props.state[key]}</span>
                 })}
             </pre>
             {this.props.time_series !== undefined ?
@@ -190,34 +185,20 @@ class App extends React.Component {
             // Name of the currently open file
             hcspFileName: "",
 
-            // Code for the HCSP program, one entry for each process 
-            hcspCode: [],
-
-            // Pretty-printed form of the HCSP program
-            print_info: [],
+            // Info about the HCSP program
+            hcsp_info: [],
 
             // Currently computed history. Each entry represents one
-            // state in the execution. The first entry is the starting
-            // state. All other entries are waiting for some event.
+            // state in the execution.
             // Each entry contains the position and state of the program
             // at each step.
             history: [],
-
-            // List of events. The events[i] carries history[i+1] to
-            // history[i+2].
-            events: [],
 
             // Time series information
             time_series: [],
 
             // Current position
             history_pos: 0,
-
-            // Step history for the current event.
-            steps: [],
-
-            // Current step position
-            history_step: undefined,
 
             // Whether there is a file loaded.
             file_loaded: false,
@@ -231,22 +212,16 @@ class App extends React.Component {
 
     handleFiles = () => {
         this.reader.onloadend = async () => {
-            let text = this.reader.result;
-            let hcspCode = text.trim().split('\n');
             const response = await axios.post("/parse_hcsp", {
-                hcspCode: hcspCode,
+                text: this.reader.result,
             })
             this.setState({
-                hcspCode: hcspCode,
-                print_info: response.data.print_info,
+                hcsp_info: response.data.hcsp_info,
                 hcspFileName: this.fileSelector.files[0].name,
                 file_loaded: true,
                 history: [],
-                events: [],
                 time_series: [],
                 history_pos: 0,
-                steps: [],
-                history_step: undefined
             });
         };
         this.reader.readAsText(this.fileSelector.files[0]);
@@ -273,12 +248,11 @@ class App extends React.Component {
     run = async (e) => {
         e.preventDefault();
         const response = await axios.post("/run_hcsp", {
-            hcspCode: this.state.hcspCode,
+            hcsp_info: this.state.hcsp_info,
             num_steps: 100,
         })
         this.setState({
-            history: response.data.history,
-            events: response.data.events,
+            history: response.data.trace,
             time_series: response.data.time_series,
         })
     };
@@ -286,16 +260,12 @@ class App extends React.Component {
     nextEvent = (e) => {
         this.setState((state) => ({
             history_pos: state.history_pos + 1,
-            steps: [],
-            history_step: undefined,
         }))
     };
 
     prevEvent = (e) => {
         this.setState((state) => ({
             history_pos: state.history_pos - 1,
-            steps: [],
-            history_step: undefined,
         }))
     };
 
@@ -421,24 +391,20 @@ class App extends React.Component {
         if (this.state.history.length === 0) {
             return "No data"
         } else {
-            const events = this.state.events;
+            const history = this.state.history;
             var res;
-            if (events[events.length - 1] === 'deadlock') {
-                res = String(events.length-2) + " events."
+            if (history[history.length-1].type === 'deadlock') {
+                res = String(history.length-1) + " events."
             } else {
-                res = String(events.length-2) + "+ events."
+                res = String(history.length-1) + "+ events."
             }
             res += " Current event: "
             if (this.state.history_pos === 0) {
                 res += "start."
-            } else if (this.state.history_pos === events.length - 1) {
+            } else if (this.state.history_pos === history.length - 1) {
                 res += "end."
             } else {
                 res += String(this.state.history_pos) + "."
-            }
-            if (this.state.history_step !== undefined) {
-                res += " Current step: " + String(this.state.history_step+1) + "/" +
-                       String(this.state.steps.length-1)
             }
             return res
         }
@@ -494,43 +460,31 @@ class App extends React.Component {
 
                 <hr/>
                 <Container className="left">
-                    {this.state.print_info.map((info, index) => {
-                        const lines = info[0];
-                        const mapping = info[1];
+                    {this.state.hcsp_info.map((info, index) => {
+                        const lines = info.lines;
+                        const mapping = info.mapping;
+                        const hcsp_name = info.name;
                         if (this.state.history.length === 0) {
                             // No data is available
                             return <Process key={index} index={index} lines={lines}
-                                            start={undefined} end={undefined} state={[]}
+                                            pos={undefined} state={[]}
                                             time_series={undefined} event_time={undefined}/>
                         } else {
                             const hpos = this.state.history_pos;
-                            const hstep = this.state.history_step;
-                            var pos, state;
-                            if (hstep === undefined) {
-                                pos = this.state.history[hpos][index].pos;
-                                state = this.state.history[hpos][index].state;    
-                            } else {
-                                pos = this.state.steps[hstep][index].pos;
-                                state = this.state.steps[hstep][index].state;
-                            }
-                            const cur_event = this.state.events[hpos];
+                            const event = this.state.history[hpos];
+                            var pos = event.infos[index].pos;
+                            var state = event.infos[index].state;    
                             var event_time;
-                            if (cur_event.type !== 'delay') {
-                                event_time = cur_event.time;
+                            if (event.type !== 'delay') {
+                                event_time = event.time;
                             } else {
-                                event_time = [cur_event.time, cur_event.time + cur_event.delay_time];
+                                event_time = [event.time, event.time + event.delay_time];
                             }
-                            var time_series = []
-                            for (let i = 0; i < this.state.time_series.length; i++) {
-                                time_series.push({
-                                    time: this.state.time_series[i].time,
-                                    state: this.state.time_series[i].states[index]
-                                });
-                            }
+                            var time_series = this.state.time_series[hcsp_name];
                             if (pos === 'end') {
                                 // End of data set
                                 return <Process key={index} index={index} lines={lines}
-                                                start={undefined} end={undefined} state={state}
+                                                pos={undefined} state={state}
                                                 time_series={time_series} event_time={event_time}/>
                             } else {
                                 // Process out the 'w{n}' in the end if necessary
@@ -538,18 +492,15 @@ class App extends React.Component {
                                 if (sep !== -1 && pos[sep+1] === 'w') {
                                     pos = pos.slice(0, sep)
                                 }
-                                // Find start and end position in the output
-                                const start = mapping[pos][0];
-                                const end = mapping[pos][1];
                                 return <Process key={index} index={index} lines={lines}
-                                                start={start} end={end} state={state}
+                                                pos={mapping[pos]} state={state}
                                                 time_series={time_series} event_time={event_time}/>
                             }
                         }
                     })}
                 </Container>
                 <Container className="right">
-                    <Events events={this.state.events} current_index={this.state.history_pos}
+                    <Events events={this.state.history} current_index={this.state.history_pos}
                             onClick={this.eventOnClick}/>
                 </Container>
             </div>

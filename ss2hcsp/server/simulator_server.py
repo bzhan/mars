@@ -17,33 +17,36 @@ def hello_world():
 @app.route('/parse_hcsp', methods=['POST'])
 def parse_hcsp():
     data = json.loads(request.get_data())
-    hcspCode = data['hcspCode']
-    print_info = [pprint.pprint_lines(parser.hp_parser.parse(hp), record_pos=True) for hp in hcspCode]
+    text = data['text']
+    text_lines = text.strip().split('\n')
+    hcsp_info = []
+    for line in text_lines:
+        index = line.index('::=')
+        name = line[:index].strip()
+        hp_text = line[index+3:].strip()
+        hp = parser.hp_parser.parse(hp_text)
+        lines, mapping = pprint.pprint_lines(hp, record_pos=True)
+        hcsp_info.append({
+            'name': name,
+            'text': hp_text,
+            'lines': lines,
+            'mapping': mapping
+        })
 
     return json.dumps({
-        'print_info': print_info,
+        'hcsp_info': hcsp_info,
     })
 
 @app.route('/run_hcsp', methods=['POST'])
 def run_hcsp():
     data = json.loads(request.get_data())
-    hcspCode = data['hcspCode']
+    infos = data['hcsp_info']
     num_steps = data['num_steps']
 
-    info = [simulator.HCSPInfo(hp) for hp in hcspCode]
-    history = []
-    time_series = []
-    time, events = simulator.exec_parallel(info, num_steps, state_log=history, time_series=time_series)
-    if events[-1] != 'deadlock':
-        events = [{'time': 0, 'str': 'start'}] + events + [{'time': time, 'str': 'end'}]
-    else:
-        events = [{'time': 0, 'str': 'start'}] + events
+    infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos]
+    res = simulator.exec_parallel(infos, num_steps)
 
-    return json.dumps({
-        'history': history,
-        'events': events,
-        'time_series': time_series,
-    })
+    return json.dumps(res)
 
 @app.route('/run_hcsp_steps', methods=['POST'])
 def run_hcsp_steps():
@@ -68,8 +71,6 @@ def get_AADL_port():
     aadl_code = request.get_data(as_text=True)
     ports = get_aadl_port_service(aadl_code)
     return json.dumps(ports)
-
-
 
 
 if __name__ == '__main__':

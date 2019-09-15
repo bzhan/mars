@@ -271,8 +271,11 @@ class HCSPInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, hp, *, pos="start", state=None):
+    def __init__(self, name, hp, *, pos="start", state=None):
         """Initializes with starting position as the execution position."""
+        assert isinstance(name, str)
+        self.name = name
+
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
@@ -498,16 +501,15 @@ class HCSPInfo:
                 for var_name, _ in cur_hp.eqs:
                     y0.append(self.state[var_name])
 
-                t_eval = [x for x in get_range(0, delay)] if time_series is not None else None
+                t_eval = [x for x in get_range(0, delay)]
                 sol = solve_ivp(ode_fun, [0, delay], y0, t_eval=t_eval, rtol=1e-5, atol=1e-7)
 
                 # Store time series
                 if time_series is not None:
                     for i in range(len(sol.t)):
-                        state2 = copy(self.state)
                         for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
-                            state2[var_name] = opt_round(yval[i])
-                        time_series.append(state2)
+                            self.state[var_name] = opt_round(yval[i])
+                        time_series.append({'time': t_eval[i], 'state': copy(self.state)})
 
                 # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
@@ -555,39 +557,54 @@ def get_log_info(infos):
     cur_info = []
     for info in infos:
         info_pos = string_of_pos(info.hp, info.pos)
-        info_state = sorted([(k, v) for k, v in info.state.items()])
-        cur_info.append({'pos': info_pos, 'state': info_state})
+        cur_info.append({'pos': info_pos, 'state': copy(info.state)})
     return cur_info
 
-def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
+def exec_parallel(infos, num_steps):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
-    If state_log is given (as a list), append the log of states.
+    The returned result is a dictionary containing the result of the
+    run. The entries are:
+
+    time - total time spent in the model.
+
+    trace - list of events. Each event contains information about the
+        event, as well as the current state *before* executing the event.
+    time_series - records evolution of variables in each program by time.
+        This is a dictionary indexed by names of programs.
 
     """
-    # Stores the list of events
-    trace = []
+    # Overall returned result
+    res = {
+        'time': 0,    # Current time
+        'trace': [],  # List of events
+        'time_series': {}  # Evolution of variables, indexed by program
+    }
 
-    # Current time
-    time = 0
+    for info in infos:
+        res['time_series'][info.name] = []
 
-    def log_info():
-        if state_log is not None:
-            state_log.append(get_log_info(infos))
+    def log_event(**xargs):
+        """Log the given event, starting with the given event info."""
+        new_event = xargs
+        new_event['time'] = res['time']
+        new_event['infos'] = get_log_info(infos)
+        res['trace'].append(new_event)
 
-    def log_time_series():
-        if time_series is not None:
-            new_entry = {
-                "time": time,
-                "states": list(copy(info.state) for info in infos)
-            }
-            if len(time_series) == 0 or new_entry != time_series[-1]:
-                time_series.append(new_entry)
+    def log_time_series(name, time, state):
+        """Log the given time series for program with the given name."""
+        new_entry = {
+            "time": time,
+            "state": copy(state),
+        }
+        series = res['time_series'][name]
+        if len(series) == 0 or new_entry != series[-1]:
+            series.append(new_entry)
 
-    # Record state and time series at the beginning
-    log_info()
-    log_time_series()
+    # Record time series at the beginning.
+    for info in infos:
+        log_time_series(info.name, 0, info.state)
 
     for iteration in range(num_steps):
         # List of stopping reasons for each process
@@ -597,52 +614,39 @@ def exec_parallel(infos, num_steps, *, state_log=None, time_series=None):
         # collect the stopping reasons.
         for info in infos:
             reason = info.exec_process()
+            log_time_series(info.name, res['time'], info.state)            
             reasons.append(reason)
-
-        # Record state after exec_process
-        log_info()
 
         event = extract_event(reasons)
         if event == "deadlock":
-            trace.append({"time": time, "type": "deadlock", "str": "deadlock"})
+            log_event(type="deadlock", str="deadlock")
             break
         elif event[0] == "delay":
             _, min_delay = event
             trace_str = "delay %s" % str(round(min_delay, 3))
-            trace.append({"time": time, "type": "delay", "delay_time": min_delay, "str": trace_str})
+            log_event(type="delay", delay_time=min_delay, str=trace_str)
             all_series = []
             for info in infos:
                 series = []
                 info.exec_delay(min_delay, time_series=series)
-                all_series.append(series)
-            if time_series is not None:
-                for i, t in enumerate(get_range(0, min_delay)):
-                    states = []
-                    for j in range(len(infos)):
-                        if len(all_series[j]) > 0:
-                            states.append(copy(all_series[j][i]))
-                        else:
-                            states.append(copy(infos[j].state))
-                    new_entry = {
-                        "time": time + t,
-                        "states": states
-                    }
-                    if len(time_series) == 0 or new_entry != time_series[-1]:
-                        time_series.append(new_entry)
-            time += min_delay
+                for entry in series:
+                    log_time_series(info.name, res['time'] + entry['time'], entry['state'])
+                log_time_series(info.name, res['time'] + min_delay, info.state)
+            res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
+            log_event(type="comm", ch_name=ch_name)
             val = infos[id_out].exec_output_comm(ch_name)
-            infos[id_in].exec_input_comm(ch_name, val)
             trace_str = "IO %s %s" % (ch_name, str(round(val, 3)))
-            trace.append({"time": time, "type": "comm", "ch_name": ch_name, "val": val, "str": trace_str})
+            res['trace'][-1].update({'val': val, 'str': trace_str})
+            infos[id_in].exec_input_comm(ch_name, val)
+            log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
     # Log info and time series at the end
-    if trace[-1] != 'deadlock':
-        log_info()
-    log_time_series()
+    if res['trace'][-1]['type'] != 'deadlock':
+        log_event(type='end', str='end')
 
-    return time, trace
+    return res
 
 def exec_parallel_steps(infos, *, start_event):
     """Execute the programs in infos, until the next event.

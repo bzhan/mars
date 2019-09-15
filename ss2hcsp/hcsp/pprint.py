@@ -31,12 +31,12 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
     def start_pos(pos):
         if record_pos:
             pos = 'p' + '.'.join(str(p) for p in pos)
-            mapping[pos] = (len(lines) - 1, len(lines[-1]))
+            mapping[pos] = {'start_x': len(lines)-1, 'start_y': len(lines[-1])}
 
     def end_pos(pos):
         if record_pos:
             pos = 'p' + '.'.join(str(p) for p in pos)
-            mapping[pos] = (mapping[pos], (len(lines) - 1, len(lines[-1])))
+            mapping[pos].update({'end_x': len(lines)-1, 'end_y': len(lines[-1])})
 
     def rec(hp, indent, pos):
         if max_line and len(str(hp)) <= max_line:
