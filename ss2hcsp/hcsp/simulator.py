@@ -602,7 +602,8 @@ def exec_parallel(infos, num_steps):
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
-    # Record time series at the beginning.
+    # Record event and time series at the beginning.
+    log_event(type="start", str="start")
     for info in infos:
         log_time_series(info.name, 0, info.state)
 
@@ -613,8 +614,15 @@ def exec_parallel(infos, num_steps):
         # Iterate over the processes, apply exec_process to each,
         # collect the stopping reasons.
         for info in infos:
-            reason = info.exec_process()
-            log_time_series(info.name, res['time'], info.state)            
+            while info.pos is not None:
+                reason = info.exec_step()
+                if reason == "step":
+                    log_event(type="step", str="step")
+                    log_time_series(info.name, res['time'], info.state)
+                else:
+                    break
+            if info.pos is None:
+                reason = "end"
             reasons.append(reason)
 
         event = extract_event(reasons)
@@ -624,7 +632,6 @@ def exec_parallel(infos, num_steps):
         elif event[0] == "delay":
             _, min_delay = event
             trace_str = "delay %s" % str(round(min_delay, 3))
-            log_event(type="delay", delay_time=min_delay, str=trace_str)
             all_series = []
             for info in infos:
                 series = []
@@ -632,19 +639,15 @@ def exec_parallel(infos, num_steps):
                 for entry in series:
                     log_time_series(info.name, res['time'] + entry['time'], entry['state'])
                 log_time_series(info.name, res['time'] + min_delay, info.state)
+            log_event(type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
-            log_event(type="comm", ch_name=ch_name)
             val = infos[id_out].exec_output_comm(ch_name)
-            trace_str = "IO %s %s" % (ch_name, str(round(val, 3)))
-            res['trace'][-1].update({'val': val, 'str': trace_str})
             infos[id_in].exec_input_comm(ch_name, val)
+            trace_str = "IO %s %s" % (ch_name, str(round(val, 3)))
+            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str)
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
-
-    # Log info and time series at the end
-    if res['trace'][-1]['type'] != 'deadlock':
-        log_event(type='end', str='end')
 
     return res
 

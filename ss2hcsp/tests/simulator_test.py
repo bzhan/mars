@@ -207,7 +207,7 @@ class SimulatorTest(unittest.TestCase):
             infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel(infos, num_steps)
-        res_trace = [event['str'] for event in res['trace']]
+        res_trace = [event['str'] for event in res['trace'] if event['str'] != 'step']
         self.assertEqual(res_trace, trace)
         if print_time_series:
             for record in time_series:
