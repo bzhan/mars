@@ -310,12 +310,14 @@ class App extends React.Component {
     };
 
     nextEvent = (e) => {
+        document.getElementById('right').scrollTop += 21;
         this.setState((state) => ({
             history_pos: state.history_pos + 1,
         }))
     };
 
     prevEvent = (e) => {
+        document.getElementById('right').scrollTop -= 21;
         this.setState((state) => ({
             history_pos: state.history_pos - 1,
         }))
@@ -332,6 +334,7 @@ class App extends React.Component {
         while (hpos < this.state.history.length - 1 && this.state.history[hpos].type === 'step') {
             hpos += 1;
         }
+        document.getElementById('right').scrollTop += (hpos - this.state.history_pos) * 21;
         this.setState({
             history_pos: hpos
         })
@@ -342,6 +345,7 @@ class App extends React.Component {
         while (hpos > 0 && this.state.history[hpos].type === 'step') {
             hpos -= 1;
         }
+        document.getElementById('right').scrollTop -= (this.state.history_pos - hpos) * 21;
         this.setState({
             history_pos: hpos
         })
@@ -425,7 +429,7 @@ class App extends React.Component {
             </Container>
         );
         const right = (
-            <Container className="right">
+            <Container id="right" className="right">
                 <Events events={this.state.history} current_index={this.state.history_pos}
                         onClick={this.eventOnClick}/>
             </Container>
