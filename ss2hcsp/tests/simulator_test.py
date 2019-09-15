@@ -202,11 +202,11 @@ class SimulatorTest(unittest.TestCase):
             res = simulator.get_ode_delay(hp, state)
             self.assertAlmostEqual(res, delay, places=3)
 
-    def run_test(self, infos, num_steps, trace, *, print_time_series=False):
+    def run_test(self, infos, num_io_events, trace, *, print_time_series=False):
         for i in range(len(infos)):
             infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
-        res = simulator.exec_parallel(infos, num_steps)
+        res = simulator.exec_parallel(infos, num_io_events=num_io_events)
         res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
         self.assertEqual(res_trace, trace)
         if print_time_series:

@@ -66,10 +66,14 @@ def parse_hcsp():
 def run_hcsp():
     data = json.loads(request.get_data())
     infos = data['hcsp_info']
+    num_io_events = data['num_io_events']
     num_steps = data['num_steps']
 
     infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
-    res = simulator.exec_parallel(infos, num_steps)
+    try:
+        res = simulator.exec_parallel(infos, num_steps=num_steps, num_io_events=num_io_events)
+    except simulator.SimulatorException as e:
+        return raise_error(e.error_msg)
 
     return json.dumps(res)
 

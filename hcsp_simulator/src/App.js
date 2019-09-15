@@ -221,6 +221,9 @@ class App extends React.Component {
 
             // Error from server.
             error: undefined,
+
+            // Whether a query is in progress.
+            querying: false
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -228,6 +231,9 @@ class App extends React.Component {
 
     handleFiles = () => {
         this.reader.onloadend = async () => {
+            this.setState({
+                querying: true
+            })
             const response = await axios.post("/parse_hcsp", {
                 text: this.reader.result,
             })
@@ -240,6 +246,7 @@ class App extends React.Component {
                     history: [],
                     time_series: [],
                     history_pos: 0,
+                    querying: false
                 })
             } else {
                 this.setState({
@@ -250,6 +257,7 @@ class App extends React.Component {
                     history: [],
                     time_series: [],
                     history_pos: 0,
+                    querying: false
                 });    
             }
         };
@@ -276,14 +284,29 @@ class App extends React.Component {
 
     run = async (e) => {
         e.preventDefault();
+        this.setState({
+            querying: true
+        })
         const response = await axios.post("/run_hcsp", {
             hcsp_info: this.state.hcsp_info,
-            num_steps: 100,
+            num_io_events: 100,
+            num_steps: 400,
         })
-        this.setState({
-            history: response.data.trace,
-            time_series: response.data.time_series,
-        })
+        if ('error' in response.data) {
+            this.setState({
+                error: response.data.error,
+                history: [],
+                time_series: [],
+                querying: false
+            })
+        } else {
+            this.setState({
+                error: undefined,
+                history: response.data.trace,
+                time_series: response.data.time_series,
+                querying: false
+            })
+        }
     };
 
     nextEvent = (e) => {
@@ -420,32 +443,32 @@ class App extends React.Component {
                 <div>
                     <ButtonToolbar>
                         <Button variant="success" title={"run"} onClick={this.run}
-                            disabled={!this.state.file_loaded || this.state.error !== undefined}>
+                            disabled={this.state.querying || !this.state.file_loaded || this.state.error !== undefined}>
                             <FontAwesomeIcon icon={faPlayCircle} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"refresh"} onClick={this.handleFiles}
-                            disabled={!this.state.file_loaded}>
+                            disabled={this.state.querying || !this.state.file_loaded}>
                             <FontAwesomeIcon icon={faSync} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"forward"} onClick={this.nextEvent}
-                            disabled={this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faCaretRight} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"backward"} onClick={this.prevEvent}
-                            disabled={this.state.history.length === 0 || this.state.history_pos === 0}>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === 0}>
                             <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"step forward"} onClick={this.nextStep}
-                            disabled={this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
                             <FontAwesomeIcon icon={faForward} size="lg"/>
                         </Button>
 
                         <Button variant="secondary" title={"step backward"} onClick={this.prevStep}
-                            disabled={this.state.history.length === 0 || this.state.history_pos === 0}>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === 0}>
                             <FontAwesomeIcon icon={faBackward} size="lg"/>
                         </Button>
 

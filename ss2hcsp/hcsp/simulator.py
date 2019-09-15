@@ -15,11 +15,18 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
 
+class SimulatorException(Exception):
+    def __init__(self, error_msg):
+        self.error_msg = error_msg
+
+
 def eval_expr(expr, state):
     """Evaluate the given expression on the given state."""
     if isinstance(expr, AVar):
         # Variable case
-        assert expr.name in state
+        if expr.name not in state:
+            raise SimulatorException("Uninitialized variable: " + expr.name)
+
         return state[expr.name]
 
     elif isinstance(expr, AConst):
@@ -560,7 +567,7 @@ def get_log_info(infos):
         cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
     return cur_info
 
-def exec_parallel(infos, num_steps):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -582,15 +589,20 @@ def exec_parallel(infos, num_steps):
         'time_series': {}  # Evolution of variables, indexed by program
     }
 
+    end_run = False
+
     for info in infos:
         res['time_series'][info.name] = []
 
     def log_event(**xargs):
         """Log the given event, starting with the given event info."""
+        nonlocal end_run
         new_event = xargs
         new_event['time'] = res['time']
         new_event['infos'] = get_log_info(infos)
         res['trace'].append(new_event)
+        if len(res['trace']) > num_steps:
+            end_run = True
 
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""
@@ -607,14 +619,14 @@ def exec_parallel(infos, num_steps):
     for info in infos:
         log_time_series(info.name, 0, info.state)
 
-    for iteration in range(num_steps):
+    for iteration in range(num_io_events):
         # List of stopping reasons for each process
         reasons = []
 
         # Iterate over the processes, apply exec_process to each,
         # collect the stopping reasons.
         for info in infos:
-            while info.pos is not None:
+            while info.pos is not None and not end_run:
                 reason = info.exec_step()
                 if reason == "step":
                     log_event(type="step", str="step")
@@ -624,6 +636,9 @@ def exec_parallel(infos, num_steps):
             if info.pos is None:
                 reason = "end"
             reasons.append(reason)
+
+        if end_run:
+            break
 
         event = extract_event(reasons)
         if event == "deadlock":
