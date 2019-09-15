@@ -207,7 +207,7 @@ class SimulatorTest(unittest.TestCase):
             infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel(infos, num_steps)
-        res_trace = [event['str'] for event in res['trace'] if event['str'] != 'step']
+        res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
         self.assertEqual(res_trace, trace)
         if print_time_series:
             for record in time_series:
@@ -224,7 +224,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",
-        ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0", "end"])
+        ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0"])
 
     def testExecParallel2(self):
         self.run_test([
@@ -266,7 +266,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "(x?x --> x!x+1 $ y?y --> skip); x!x+2",
             "x!3; x?x; x?x"
-        ], 3, ["IO x 3", "IO x 4", "IO x 5", "end"])
+        ], 3, ["IO x 3", "IO x 4", "IO x 5"])
 
     def testExecParallel9(self):
         self.run_test([
@@ -290,19 +290,7 @@ class SimulatorTest(unittest.TestCase):
     def testExecParallel12(self):
         self.run_test([
             "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
-        ], 3, ["delay 2.0", "delay 1.6", "delay 1.28", "end"])
-
-    def testExecParallelSteps1(self):
-        self.run_test_steps([
-            "x := 1; y := 2; z := 3; wait(3); w := 4",
-            "x := 11; y := 12; wait(2); z := 3"
-        ], 5, start_event=False)
-
-    def testExecParallelSteps2(self):
-        self.run_test_steps([
-            "wait(1); x := 1; y := 2; z := 3; wait(3); w := 4",
-            "wait(2); z := 3"
-        ], 4, start_event=True)
+        ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
 
 
 if __name__ == "__main__":

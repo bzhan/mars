@@ -48,17 +48,6 @@ def run_hcsp():
 
     return json.dumps(res)
 
-@app.route('/run_hcsp_steps', methods=['POST'])
-def run_hcsp_steps():
-    data = json.loads(request.get_data())
-    infos = data['infos']
-    infos = [simulator.HCSPInfo(info['hp'], pos=info['pos'], state=info['state']) for info in infos]
-    history = simulator.exec_parallel_steps(infos, start_event=data['start_event'])
-
-    return json.dumps({
-        'history': history,
-    })
-
 @app.route('/get_simulink_port', methods=['POST'])
 def get_simulink_port():
     simulink_code = request.get_data(as_text=True)
