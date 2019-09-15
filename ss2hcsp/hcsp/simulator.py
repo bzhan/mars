@@ -554,10 +554,10 @@ def extract_event(reasons):
 
 def get_log_info(infos):
     """Obtain the logged info."""
-    cur_info = []
+    cur_info = dict()
     for info in infos:
         info_pos = string_of_pos(info.hp, info.pos)
-        cur_info.append({'pos': info_pos, 'state': copy(info.state)})
+        cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
     return cur_info
 
 def exec_parallel(infos, num_steps):

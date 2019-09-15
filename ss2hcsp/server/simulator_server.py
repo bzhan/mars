@@ -25,13 +25,19 @@ def parse_hcsp():
         name = line[:index].strip()
         hp_text = line[index+3:].strip()
         hp = parser.hp_parser.parse(hp_text)
-        lines, mapping = pprint.pprint_lines(hp, record_pos=True)
-        hcsp_info.append({
-            'name': name,
-            'text': hp_text,
-            'lines': lines,
-            'mapping': mapping
-        })
+        if hp.type == 'parallel':
+            hcsp_info.append({
+                'name': name,
+                'parallel': [sub_hp.name for sub_hp in hp.hps]
+            })
+        else:
+            lines, mapping = pprint.pprint_lines(hp, record_pos=True)
+            hcsp_info.append({
+                'name': name,
+                'text': hp_text,
+                'lines': lines,
+                'mapping': mapping
+            })
 
     return json.dumps({
         'hcsp_info': hcsp_info,
@@ -43,7 +49,7 @@ def run_hcsp():
     infos = data['hcsp_info']
     num_steps = data['num_steps']
 
-    infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos]
+    infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
     res = simulator.exec_parallel(infos, num_steps)
 
     return json.dumps(res)

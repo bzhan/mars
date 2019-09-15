@@ -52,6 +52,7 @@ class Process extends React.Component {
     render() {
         return (
             <div>
+            <div>Process: {this.props.name}</div>
             <div className="program-text">
                 {this.props.lines.map((str, line_no) => {
                     if (this.props.pos === undefined) {
@@ -86,8 +87,8 @@ class Process extends React.Component {
             </div>
             <pre className="program-state">
                 <span>&nbsp;</span>
-                {Object.keys(this.props.state).forEach((key) => {
-                    return <span key={key} style={{marginLeft: "10px"}}>{key}: {this.props.state[key]}</span>
+                {Object.keys(this.props.state).map((key, index) => {
+                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {this.props.state[key]}</span>
                 })}
             </pre>
             {this.props.time_series !== undefined ?
@@ -371,19 +372,20 @@ class App extends React.Component {
                 <hr/>
                 <Container className="left">
                     {this.state.hcsp_info.map((info, index) => {
-                        const lines = info.lines;
-                        const mapping = info.mapping;
                         const hcsp_name = info.name;
-                        if (this.state.history.length === 0) {
+                        if ('parallel' in info) {
+                            return <span key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</span>
+                        }
+                        else if (this.state.history.length === 0) {
                             // No data is available
-                            return <Process key={index} index={index} lines={lines}
-                                            pos={undefined} state={[]}
+                            return <Process key={index} index={index} lines={info.lines}
+                                            name={hcsp_name} pos={undefined} state={[]}
                                             time_series={undefined} event_time={undefined}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
-                            var pos = event.infos[index].pos;
-                            var state = event.infos[index].state;    
+                            var pos = event.infos[hcsp_name].pos;
+                            var state = event.infos[hcsp_name].state;
                             var event_time;
                             if (event.type !== 'delay') {
                                 event_time = event.time;
@@ -393,8 +395,8 @@ class App extends React.Component {
                             var time_series = this.state.time_series[hcsp_name];
                             if (pos === 'end') {
                                 // End of data set
-                                return <Process key={index} index={index} lines={lines}
-                                                pos={undefined} state={state}
+                                return <Process key={index} index={index} lines={info.lines}
+                                                name={hcsp_name} pos={undefined} state={state}
                                                 time_series={time_series} event_time={event_time}/>
                             } else {
                                 // Process out the 'w{n}' in the end if necessary
@@ -402,8 +404,8 @@ class App extends React.Component {
                                 if (sep !== -1 && pos[sep+1] === 'w') {
                                     pos = pos.slice(0, sep)
                                 }
-                                return <Process key={index} index={index} lines={lines}
-                                                pos={mapping[pos]} state={state}
+                                return <Process key={index} index={index} lines={info.lines}
+                                                name={hcsp_name} pos={info.mapping[pos]} state={state}
                                                 time_series={time_series} event_time={event_time}/>
                             }
                         }
