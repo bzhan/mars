@@ -223,10 +223,17 @@ class App extends React.Component {
             error: undefined,
 
             // Whether a query is in progress.
-            querying: false
+            querying: false,
+
+            // Maximum number of IO events for the query.
+            max_io_event: 100,
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
+    }
+
+    handleChange = (e) => {
+        this.setState({max_io_event: Number(e.target.value)})
     }
 
     handleFiles = () => {
@@ -289,7 +296,7 @@ class App extends React.Component {
         })
         const response = await axios.post("/run_hcsp", {
             hcsp_info: this.state.hcsp_info,
-            num_io_events: 100,
+            num_io_events: this.state.max_io_event,
             num_steps: 400,
         })
         if ('error' in response.data) {
@@ -441,6 +448,8 @@ class App extends React.Component {
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
+                        <label htmlFor="max_io_event" style={{margin:'0px 0px 0px 10px',alignSelf:'center'}}>Max IO events:</label>
+                        <input type="text" id="max_io_event" value={this.state.max_io_event} onChange={this.handleChange} />
                     </Nav>
                 </Navbar>
 
