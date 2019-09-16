@@ -101,7 +101,6 @@ def translate_continuous(diag):
     for block in blocks:
         if block.type == "integrator":
             src_name = block.src_lines[0][0].name
-            # init_hps.append(hp.Assign(var_name=src_name, expr=aexpr_parse(block.init_value)))
             init_hps.append(hp.Assign(var_name=src_name, expr=AConst(block.init_value)))
             dest_name = block.dest_lines[0].name
             ode_eqs.append((src_name, AVar(dest_name)))
@@ -110,8 +109,8 @@ def translate_continuous(diag):
             init_hps.append(hp.Assign(var_name=src_name, expr=AConst(block.init_value)))
             ode_eqs.append((src_name, AConst(0)))
 
-    init_hps.append(hp.Assign(var_name="t", expr=AConst(0)))
-    ode_eqs.append(("t", AConst(1)))
+    # init_hps.append(hp.Assign(var_name="t", expr=AConst(0)))
+    # ode_eqs.append(("t", AConst(1)))
 
     # Add communication for each port
     in_channels = diag["in"]
@@ -339,7 +338,8 @@ def translate_discrete(diag):
     st_gcd = FunExpr(fun_name="gcd", exprs=known_st) if len(known_st) >= 2 else known_st[0]
 
     # Get loop body
-    loop_hps = in_channels + discrete_hps + out_channels + [hp.Wait(delay=st_gcd)]
+    loop_hps = in_channels + discrete_hps + out_channels + \
+               [hp.Wait(delay=st_gcd), hp.Assign(var_name="t", expr=PlusExpr(signs="++", exprs=[AVar("t"), st_gcd]))]
     loop_hps = hp.Sequence(*loop_hps)
     process = hp.Sequence(init_hp, hp.Loop(loop_hps))
     return process
@@ -454,24 +454,32 @@ def seperate_diagram(blocks_dict):
 def get_processes(dis_subdiag_with_chs, con_subdiag_with_chs):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
-    system = System()
+    processes = hp.HCSPProcess()
+    main_processes = []
     # Compute the discrete processes from discrete subdiagrams
     num = 0
     for diag in dis_subdiag_with_chs:
+        name = "PD" + str(num)
         discrete_process = translate_discrete(diag)
-        discrete_process.name = "PD" + str(num)
-        system.discrete_processes.append(discrete_process)
+        processes.add(name, discrete_process)
+        main_processes.append(hp.Var(name))
         num += 1
 
     # Compute the continuous processes from continuous subdiagrams
     num = 0
     for diag in con_subdiag_with_chs:
+        name = "PC" + str(num)
         continuous_process = translate_continuous(diag)
-        continuous_process.name = "PC" + str(num)
-        system.continuous_processes.append(continuous_process)
+        processes.add(name, continuous_process)
+        main_processes.append(hp.Var(name))
         num += 1
 
-    return system
+    # Get main paralell processes
+    assert len(main_processes) >= 1
+    main_process = hp.Parallel(*main_processes) if len(main_processes) >= 2 else main_processes[0]
+    processes.insert(n=0, name="P", hp=main_process)
+
+    return processes
 
 
 def delete_subsystems(blocks_dict):

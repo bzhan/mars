@@ -241,6 +241,8 @@ class SL_Diagram:
         for block in blocks:
             block_type = block.getAttribute("BlockType")
             block_name = block.getAttribute("Name")
+            sample_time = get_attribute_value(block=block, attribute="SampleTime")
+            sample_time = eval(sample_time) if sample_time else -1
             if block_type == "Constant":
                 value = get_attribute_value(block=block, attribute="Value")
                 value = eval(value) if value else 1
@@ -254,59 +256,58 @@ class SL_Diagram:
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 num_dest = int(inputs) if inputs else 2
                 if _operator == "OR":
-                    self.add_block(block=Or(name=block_name, num_dest=num_dest))
+                    self.add_block(block=Or(name=block_name, num_dest=num_dest, st=sample_time))
                 elif _operator == "NOT":
-                    self.add_block(block=Not(name=block_name))
+                    self.add_block(block=Not(name=block_name, st=sample_time))
                 else:  # _operator == None, meaning it is an AND block
-                    self.add_block(block=And(name=block_name, num_dest=num_dest))
+                    self.add_block(block=And(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "RelationalOperator":
                 # operator_relation = {"&gt;": ">", "&gt;=": ">=", "&lt;": "<", "&lt;=": "<=", "~=": "!=", "==": "=="}
                 relation = get_attribute_value(block=block, attribute="Operator")
                 if relation == "~=":
                     relation = "!="
-                self.add_block(block=Relation(name=block_name, relation=relation))
+                self.add_block(block=Relation(name=block_name, relation=relation, st=sample_time))
             elif block_type == "Abs":
-                self.add_block(block=Abs(name=block_name))
+                self.add_block(block=Abs(name=block_name, st=sample_time))
             elif block_type == "Sum":
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "++"
-                self.add_block(block=Add(name=block_name, dest_spec=dest_spec))
+                self.add_block(block=Add(name=block_name, dest_spec=dest_spec, st=sample_time))
             elif block_type == "Bias":
                 bias = get_attribute_value(block=block, attribute="Bias")
                 bias = eval(bias) if bias else 0
-                self.add_block(block=Bias(name=block_name, bias=bias))
+                self.add_block(block=Bias(name=block_name, bias=bias, st=sample_time))
             elif block_type == "Product":
                 inputs = get_attribute_value(block=block, attribute="Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "**"
-                self.add_block(block=Divide(name=block_name, dest_spec=dest_spec))
+                self.add_block(block=Divide(name=block_name, dest_spec=dest_spec, st=sample_time))
             elif block_type == "Gain":
                 factor = get_attribute_value(block=block, attribute="Gain")
                 factor = eval(factor) if factor else 1
-                self.add_block(block=Gain(name=block_name, factor=factor))
+                self.add_block(block=Gain(name=block_name, factor=factor, st=sample_time))
             elif block_type == "Saturate":
                 upper_limit = get_attribute_value(block=block, attribute="UpperLimit")
                 upper_limit = eval(upper_limit) if upper_limit else 0.5
                 lower_limit = get_attribute_value(block=block, attribute="LowerLimit")
                 lower_limit = eval(lower_limit) if lower_limit else -0.5
-                self.add_block(block=Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit))
+                self.add_block(block=Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit,
+                                                st=sample_time))
             elif block_type == "UnitDelay":
                 init_value = get_attribute_value(block=block, attribute="InitialCondition")
                 init_value = eval(init_value) if init_value else 0
-                sample_time = get_attribute_value(block=block, attribute="SampleTime")
-                sample_time = eval(sample_time) if sample_time else -1
                 self.add_block(block=UnitDelay(name=block_name, init_value=init_value, delay=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block=block, attribute="Function")
                 fun_name = fun_name if fun_name else "min"
                 input_num = get_attribute_value(block=block, attribute="Inputs")
                 input_num = int(input_num) if input_num else 1
-                self.add_block(block=MinMax(name=block_name, num_dest=input_num, fun_name=fun_name))
+                self.add_block(block=MinMax(name=block_name, num_dest=input_num, fun_name=fun_name, st=sample_time))
             elif block_type == "Switch":
                 criteria = get_attribute_value(block=block, attribute="Criteria")
                 relation = ">" if criteria == "u2 > Threshold" else ("!=" if criteria == "u2 ~= 0" else ">=")
                 threshold = get_attribute_value(block=block, attribute="Threshold")
                 threshold = eval(threshold) if threshold else 0
-                self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold))
+                self.add_block(block=Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
             elif block_type == "SubSystem" and block_name not in self.charts:
                 ports = get_attribute_value(block=block, attribute="Ports")
                 num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
