@@ -357,7 +357,7 @@ class Recursion(HCSP):
         return self.type == other.type and self.entry == other.entry and self.hp == other.hp
 
     def __repr__(self):
-        return "Recrusion(%s, %s)" % (self.entry, repr(self.hp))
+        return "Recursion(%s, %s)" % (self.entry, repr(self.hp))
 
     def __str__(self):
         return "rec " + self.entry + ".(" + str(self.hp) + ")"

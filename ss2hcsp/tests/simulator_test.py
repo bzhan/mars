@@ -48,6 +48,9 @@ class SimulatorTest(unittest.TestCase):
             ("x == 0 -> x := 2; x := 3", (0,), {"x": 1}, (1,), {"x": 1}),
             ("x == 0 -> x := 2", (), {"x": 0}, (0,), {"x": 0}),
             ("x == 0 -> x := 2", (), {"x": 1}, None, {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (), {"x": 1}, (0, 0), {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2), {"x": 1}, (), {"x": 1}),
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
@@ -67,6 +70,7 @@ class SimulatorTest(unittest.TestCase):
             ("x := 1; wait(3)", (1, 0), "delay", 3),
             ("(x := 1; wait(3))**", (1, 0), "delay", 3),
             ("(x := 1; wait(3))**", (1, 1), "delay", 2),
+            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), "delay", 1),
         ]
 
         for cmd, pos, reason, arg in test_data:
@@ -140,6 +144,7 @@ class SimulatorTest(unittest.TestCase):
             ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, 3, (), {"x": 5}),
             ("<x_dot = 1 & true> |> [](c!x --> skip); x := x + 1", (0,), {"x": 2}, 3, (0,), {"x": 5}),
             ("wait(3)", "end", {}, 3, None, {}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"x": 1}, 1, (0, 2), {"x": 1}),
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
@@ -291,6 +296,17 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
         ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
+
+    def testExecParallel13(self):
+        self.run_test([
+            "x := 0; rec X.(x := x + 1; wait(1); @X)"
+        ], 4, ["delay 1", "delay 1", "delay 1", "delay 1"])
+
+    def testExecParallel14(self):
+        self.run_test([
+            "x := 0; rec X.(x := x + 1; wait(1); x < 3 -> @X); c!x",
+            "c?x"
+        ], 5, ["delay 1", "delay 1", "delay 1", "IO c 3", "deadlock"])
 
 
 if __name__ == "__main__":
