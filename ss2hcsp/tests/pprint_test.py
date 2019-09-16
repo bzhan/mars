@@ -14,7 +14,8 @@ class PPrintTest(unittest.TestCase):
             for line in lines:
                 print(line)
         if print_mapping:
-            print(mapping)
+            for k, v in mapping.items():
+                print("%s: (%s, %s) -> (%s, %s)" % (k, v['start_x'], v['start_y'], v['end_x'], v['end_y']))
         self.assertEqual(lines, res_list)
 
     def test1(self):
@@ -129,6 +130,16 @@ class PPrintTest(unittest.TestCase):
             'y?y -->',
             '  skip;',
             'x!x+2'
+        ])
+
+    def test13(self):
+        self.run_test("x := 0; rec X.(x := x + 1; wait(1); @X)", [
+            'x := 0;',
+            'rec X.(',
+            '  x := x+1;',
+            '  wait(1);',
+            '  @X',
+            ')'
         ])
 
     def testVanPerPol_continuous1(self):

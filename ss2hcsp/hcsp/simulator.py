@@ -211,6 +211,11 @@ def get_pos(hp, pos):
         else:
             _, out_hp = hp.io_comms[pos[0]]
             return get_pos(out_hp, pos[1:])
+    elif hp.type == 'recursion':
+        if len(pos) == 0:
+            return hp
+        else:
+            return get_pos(hp.hp, pos[1:])
     else:
         assert len(pos) == 0
         return hp
@@ -240,6 +245,12 @@ def step_pos(hp, pos):
     elif hp.type == 'delay':
         assert len(pos) == 1
         return None
+    elif hp.type == 'recursion':
+        sub_step = step_pos(hp.hp, pos[1:])
+        if sub_step is None:
+            return None
+        else:
+            return (0,) + sub_step
     else:
         return None
 
@@ -333,6 +344,26 @@ class HCSPInfo:
             else:
                 self.pos = step_pos(self.hp, self.pos)
             return "step"
+
+        elif cur_hp.type == "recursion":
+            # Enter into recursion
+            self.pos = self.pos + (0,) + start_pos(cur_hp.hp)
+            return "step"            
+
+        elif cur_hp.type == "var":
+            # Return to body of recursion
+            for i in range(len(self.pos)):
+                try:
+                    hp = get_pos(self.hp, self.pos[:i])
+                except AssertionError:
+                    pass
+                else:
+                    if hp.type == 'recursion' and hp.entry == cur_hp.name:
+                        self.pos = self.pos[:i]
+                        return "step"
+
+            # Otherwise, not a recursion variable
+            raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
 
         elif cur_hp.type == "input_channel":
             # Waiting for input

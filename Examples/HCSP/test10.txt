@@ -1,3 +1,1 @@
-P ::= @PD0 || @PC0
-PD0 ::= t := 0; (ch_y?y; ch_z?z; t % 6 == 0 -> b := z*z+(-1); t % 4 == 0 -> x := y*b*(-0.1)-z; ch_x_0!x; wait(2); t := t+2)**
-PC0 ::= z := 1; y := 1; x := 0; (<y_dot = x, z_dot = y & true> |> [] (ch_x_0?x --> skip, ch_y!y --> skip, ch_z!z --> skip))**
+P0 ::= x := 0; rec X.(x := x + 1; wait(1); @X)
