@@ -695,4 +695,15 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             log_event(type="comm", ch_name=ch_name, val=val, str=trace_str)
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
+        # Overflow detection
+        has_overflow = False
+        for info in infos:
+            for k, v in info.state.items():
+                if abs(v) > 1e10:
+                    has_overflow = True
+
+        if has_overflow:
+            log_event(type="overflow", str="overflow")
+            break
+
     return res

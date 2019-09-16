@@ -308,6 +308,12 @@ class SimulatorTest(unittest.TestCase):
             "c?x"
         ], 5, ["delay 1", "delay 1", "delay 1", "IO c 3", "deadlock"])
 
+    def testExecParallel15(self):
+        self.run_test([
+            "x := 1; (<x_dot = x & true> |> [](c!x --> skip))**",
+            "(wait(10); c?x)**"
+        ], 100, ['delay 10', 'IO c 22026.815', 'delay 10', 'IO c 485180544.948', 'delay 10', 'overflow'])
+
 
 if __name__ == "__main__":
     unittest.main()
