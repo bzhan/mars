@@ -5,17 +5,23 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 
 grammar = r"""
-    ?expr: CNAME -> var_expr
+    ?atom_expr: CNAME -> var_expr
         | SIGNED_NUMBER -> num_expr
-        | expr "+" expr -> plus_expr
-        | expr "-" expr -> minus_expr
-        | expr "*" expr -> times_expr
-        | expr "%" expr -> mod_expr
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "(" expr ")"
+
+    ?times_expr: times_expr "*" atom_expr -> times_expr
+        | times_expr "%" atom_expr -> mod_expr
+        | atom_expr
+
+    ?plus_expr: plus_expr "+" times_expr -> plus_expr
+        | plus_expr "-" times_expr -> minus_expr
+        | times_expr
+
+    ?expr: plus_expr
 
     ?atom_cond: expr "==" expr -> eq_cond
         | expr "!=" expr -> ineq_cond

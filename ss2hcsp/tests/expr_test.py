@@ -21,6 +21,10 @@ class ExprTest(unittest.TestCase):
             ("a * b", "Times(*Var(a), *Var(b))"),
             ("a - b", "Plus(+Var(a), -Var(b))"),
             ("min(a, b)", "Fun(min, Var(a), Var(b))"),
+            ("a * b + c", "Plus(+Times(*Var(a), *Var(b)), +Var(c))"),
+            ("a * (b + c)", "Times(*Var(a), *Plus(+Var(b), +Var(c)))"),
+            ("a + b - c", "Plus(+Plus(+Var(a), +Var(b)), -Var(c))"),
+            ("a + (b - c)", "Plus(+Var(a), +Plus(+Var(b), -Var(c)))"),
         ]
         
         for s, res in test_data:
