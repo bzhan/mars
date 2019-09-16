@@ -181,13 +181,11 @@ def translate_continuous(diag):
         # ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=bexpr_parse(constraint), io_comms=comm_hps))
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
 
-    # ode_hp = hp.ODE_Comm(eqs=ode_eqs, constraint="True", io_comms=comm_hps)
     process = None
     if len(ode_hps) == 1:
         process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(ode_hps[0]))
     elif len(ode_hps) >= 2:
         process = hp.Sequence(hp.Sequence(*init_hps), hp.Loop(hp.Sequence(*ode_hps)))
-    # process.name = "PC" + str(process_num)
     return process
 
 

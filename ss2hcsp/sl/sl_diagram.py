@@ -37,6 +37,9 @@ def get_gcd(sample_times):
     if len(sample_times) == 1:
         return sample_times[0]
 
+    if 0 in sample_times:
+        return 0
+
     scaling_positions = []
     for st in sample_times:
         if isinstance(st, int):

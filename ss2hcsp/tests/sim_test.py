@@ -333,14 +333,13 @@ class SimTest(unittest.TestCase):
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_y?y; ch_z?z; t%6 == 0 -> b := (z*z)+(-1); t%4 == 0 -> x := (y*b*(-0.1))-z;
-        ch_x_0!x; wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""ch_z?z; t%6 == 0 -> b := z*z+(-1); t%4 == 0 -> c := b*(-0.1); ch_c_0!c; 
+        wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
         con_init = hp_parser.parse("z := 1; y := 1")
-        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = x & true> |> [] 
-        (ch_x_0?x --> skip, ch_y!y --> skip, ch_z!z --> skip)""")
+        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> [] (ch_c_0?c --> skip, ch_z!z --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
         # print(expected_hp)
