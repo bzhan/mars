@@ -22,7 +22,10 @@ class SimulatorException(Exception):
 
 def eval_expr(expr, state):
     """Evaluate the given expression on the given state."""
-    if isinstance(expr, AVar):
+    if expr is None:
+        return None
+
+    elif isinstance(expr, AVar):
         # Variable case
         if expr.name not in state:
             raise SimulatorException("Uninitialized variable: " + expr.name)
@@ -236,6 +239,14 @@ def step_pos(hp, pos):
                 return (pos[0]+1,) + start_pos(hp.hps[pos[0]+1])
         else:
             return (pos[0],) + sub_step
+    elif hp.type == 'select_comm':
+        assert len(pos) > 0
+        _, out_hp = hp.io_comms[pos[0]]
+        sub_step = step_pos(out_hp, pos[1:])
+        if sub_step is None:
+            return None
+        else:
+            return (pos[0],) + sub_step
     elif hp.type == 'loop':
         sub_step = step_pos(hp.hp, pos)
         if sub_step is None:
@@ -432,7 +443,11 @@ class HCSPInfo:
 
         if cur_hp.type == "input_channel":
             assert cur_hp.ch_name == ch_name
-            self.state[cur_hp.var_name] = x
+            if cur_hp.var_name is None:
+                assert x is None
+            else:
+                assert x is not None
+                self.state[cur_hp.var_name] = x
             self.pos = step_pos(self.hp, self.pos)
 
         elif cur_hp.type == "ode_comm":
@@ -448,7 +463,11 @@ class HCSPInfo:
         elif cur_hp.type == "select_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
-                    self.state[comm_hp.var_name] = x
+                    if comm_hp.var_name is None:
+                        assert x is None
+                    else:
+                        assert x is not None
+                        self.state[comm_hp.var_name] = x
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -691,7 +710,13 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             _, id_out, id_in, ch_name = event
             val = infos[id_out].exec_output_comm(ch_name)
             infos[id_in].exec_input_comm(ch_name, val)
-            trace_str = "IO %s %s" % (ch_name, str(round(val, 3)))
+            if val is None:
+                val_str = ""
+            elif isinstance(val, float):
+                val_str = " " + str(round(val, 3))
+            else:
+                val_str = " " + str(val)
+            trace_str = "IO %s%s" % (ch_name, val_str)
             log_event(type="comm", ch_name=ch_name, val=val, str=trace_str)
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
@@ -699,7 +724,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         has_overflow = False
         for info in infos:
             for k, v in info.state.items():
-                if abs(v) > 1e10:
+                if isinstance(v, (int, float)) and abs(v) > 1e10:
                     has_overflow = True
 
         if has_overflow:

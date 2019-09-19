@@ -68,7 +68,7 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-        assert isinstance(value, (int, float))
+        assert isinstance(value, (int, float, tuple, str))
         self.value = value
 
     def __repr__(self):

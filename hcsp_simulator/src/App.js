@@ -95,7 +95,7 @@ class Process extends React.Component {
             <pre className="program-state">
                 <span>&nbsp;</span>
                 {Object.keys(this.props.state).map((key, index) => {
-                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {this.props.state[key]}</span>
+                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {String(this.props.state[key])}</span>
                 })}
                 <span>&nbsp;&nbsp;</span>
                 <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>

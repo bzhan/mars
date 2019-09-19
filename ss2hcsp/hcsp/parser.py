@@ -7,6 +7,8 @@ from ss2hcsp.hcsp import hcsp
 grammar = r"""
     ?atom_expr: CNAME -> var_expr
         | SIGNED_NUMBER -> num_expr
+        | "[]" -> empty_list
+        | ESCAPED_STRING -> string_expr
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
@@ -77,6 +79,7 @@ grammar = r"""
     %import common.DECIMAL
     %import common.NUMBER
     %import common.SIGNED_NUMBER
+    %import common.ESCAPED_STRING
 
     %ignore WS
 """
@@ -91,6 +94,12 @@ class HPTransformer(Transformer):
 
     def num_expr(self, v):
         return expr.AConst(eval(v))
+
+    def empty_list(self):
+        return expr.AConst(tuple())
+
+    def string_expr(self, s):
+        return expr.AConst(str(s))
 
     def plus_expr(self, e1, e2):
         return expr.PlusExpr(["+", "+"], [e1, e2])

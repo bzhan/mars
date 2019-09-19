@@ -25,6 +25,8 @@ class ExprTest(unittest.TestCase):
             ("a * (b + c)", "Times(*Var(a), *Plus(+Var(b), +Var(c)))"),
             ("a + b - c", "Plus(+Plus(+Var(a), +Var(b)), -Var(c))"),
             ("a + (b - c)", "Plus(+Var(a), +Plus(+Var(b), -Var(c)))"),
+            ("[]", "Const(())"),
+            ("\"a\"", "Const(\"a\")"),
         ]
         
         for s, res in test_data:

@@ -9,6 +9,9 @@ from ss2hcsp.hcsp import parser
 
 
 class SimulatorTest(unittest.TestCase):
+    def testEvalNone(self):
+        self.assertEqual(simulator.eval_expr(None, {"x": 2}), None)
+
     def testEvalAExpr(self):
         test_data = [
             ("x + 2", {"x": 1}, 3),
@@ -207,7 +210,7 @@ class SimulatorTest(unittest.TestCase):
             res = simulator.get_ode_delay(hp, state)
             self.assertAlmostEqual(res, delay, places=3)
 
-    def run_test(self, infos, num_io_events, trace, *, print_time_series=False):
+    def run_test(self, infos, num_io_events, trace, *, print_time_series=False, print_state=False):
         for i in range(len(infos)):
             infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
 
@@ -217,6 +220,9 @@ class SimulatorTest(unittest.TestCase):
         if print_time_series:
             for record in time_series:
                 print("%s: %s" % (record['time'], record['states']))
+        if print_state:
+            for info in infos:
+                print(info.state)
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
@@ -313,6 +319,18 @@ class SimulatorTest(unittest.TestCase):
             "x := 1; (<x_dot = x & true> |> [](c!x --> skip))**",
             "(wait(10); c?x)**"
         ], 100, ['delay 10', 'IO c 22026.815', 'delay 10', 'IO c 485180544.948', 'delay 10', 'overflow'])
+
+    def testExecParallel16(self):
+        self.run_test([
+            "EL := []; EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x",
+            "ch?x"
+        ], 2, ['IO ch "a"', "deadlock"])
+
+    def testExecParallel17(self):
+        self.run_test([
+            "EL := []; (in?e --> EL := push(EL, e) $ out? --> e := top(EL); outval!e; EL := pop(EL))**",
+            "in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e",
+        ], 7, ['IO in "a"', 'IO in "b"', 'IO out', 'IO outval "b"', 'IO out', 'IO outval "a"', 'deadlock'])
 
 
 if __name__ == "__main__":
