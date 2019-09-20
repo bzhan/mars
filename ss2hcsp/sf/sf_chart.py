@@ -34,7 +34,7 @@ def get_hps(hps):  # get the process from a list of hps
             if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):
                 # For example, hps[i].expr.name = E_S1
                 state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
-                hps[i].expr.name = (lambda x: x[:x.index("_")])(hps[i].expr.name)  # E
+                hps[i].expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # "e"
                 assert hps[i + 1] == hp.Var("X")
                 _hps.extend(hps[i:i + 2])
                 if len(hps) - 1 >= i + 2:
@@ -179,7 +179,7 @@ class SF_Chart:
                 # event, condition, cond_act, tran_act = out_tran.parse()
                 conds = list()
                 if out_tran.event:
-                    conds.append(bexpr_parser.parse(event_var + " == " + out_tran.event))
+                    conds.append(bexpr_parser.parse(event_var + ' == "' + out_tran.event + '"'))
                 if out_tran.condition:
                     conds.append(out_tran.condition)
                 conds.append(bexpr_parser.parse("done == 0"))
@@ -226,17 +226,18 @@ class SF_Chart:
         hp_M = hp.Sequence(hp.Assign(var_name="num", expr=AConst(0)), hp.Loop(hp.Var("M_main")))
 
         # Get M_main process
-        hp_M_main = hp_parser.parse("num == 0 -> (tri?E; EL := E; NL := 1; num := 1)")
+        hp_M_main = hp_parser.parse('num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
+                                    'NL := []; NL := push(NL, 1); num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
                                     hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> skip $ BR" + i
                                                     + "?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1))"))
+                                                    + "? --> num := num+1; NL := pop(NL); NL := push(NL, 1))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
-                                                " -> (EL := pop(EL); NL := pop(NL); EL == NULL -> (num := 0);"
-                                                " EL != NULL -> (E := top(EL); num := top(NL)))"))
+                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0);"
+                                                " EL != [] -> (E := top(EL); num := top(NL)))"))
         return hp_M, hp_M_main, state_num
 
     def get_process(self, event_var="E"):
@@ -300,7 +301,7 @@ class SF_Chart:
         process = hp.Var("M")
         for num in range(state_num):
             process = hp.Parallel(process, hp.Var("S" + str(num + 1)))
-        processes.add("D", process)
+        processes.insert(0, "D", process)
 
         # Get each S_i process
         parallel_states = self.state.children if self.state.name == "S0" else [self.state]
@@ -332,13 +333,14 @@ class SF_Chart:
                 # if hp.Var("X") in hp.decompose(process):
                 if process.contain_hp(name="X"):
                     contain_X = True
-                    s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Recursion(s_i_proc))
+                    s_i_proc = hp.Sequence(get_hps(s_i.init()), get_hps(s_i.activate()), hp.Recursion(s_i_proc))
                     break
             if not contain_X:
-                s_i_proc = hp.Sequence(get_hps(s_i.activate()), hp.Loop(s_i_proc))
+                s_i_proc = hp.Sequence(get_hps(s_i.init()), get_hps(s_i.activate()), hp.Loop(s_i_proc))
 
             # The output order is after D, M and M_main
             processes.insert(3, s_i.name, s_i_proc)
 
             i += 1
+
         return processes

@@ -1,5 +1,5 @@
 import re
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import bexpr_parser
 # from ss2hcsp.hcsp import hcsp as hp
 
 

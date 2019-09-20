@@ -389,6 +389,44 @@ class HCSPProcess:
         """Insert (name, hp) at position n."""
         self.hps.insert(n, (name, hp))
 
+    def substitute(self):
+        def _substitute(_hp):
+            assert isinstance(_hp, (Skip, Wait, Assign, InputChannel, OutputChannel, Var, Loop, Recursion,
+                                    Condition, Sequence, Parallel, ODE, ODE_Comm, SelectComm))
+            if isinstance(_hp, Var):
+                _name = _hp.name
+                if _name in substituted.keys():
+                    _hp = substituted[_name]
+                elif _name in hps_dict:
+                    _hp = _substitute(hps_dict[_name])
+                    substituted[_name] = _hp
+                    del hps_dict[_name]
+            elif isinstance(_hp, (Loop, Recursion, Condition)):
+                _hp.hp = _substitute(_hp.hp)
+            elif isinstance(_hp, Sequence):
+                _hps = [_substitute(sub_hp) for sub_hp in _hp.hps]
+                _hp = Sequence(*_hps)
+            elif isinstance(_hp, ODE):
+                _hp.out_hp = _substitute(_hp.out_hp)
+            elif isinstance(_hp, (ODE_Comm, SelectComm)):
+                _hp.io_comms = tuple((io_comm[0], _substitute(io_comm[1])) for io_comm in _hp.io_comms)
+            return _hp
+
+        hps_dict = {name: hp for name, hp in self.hps}
+        assert len(hps_dict) == len(self.hps)
+        substituted = dict()
+        while hps_dict:
+            name, hp = hps_dict.popitem()
+            assert name not in substituted
+            substituted[name] = _substitute(hp)
+        assert set(substituted.keys()) == set(name for name, _ in self.hps)
+
+        # self.hps[0] is the main process
+        main_name, main_hp = self.hps[0]
+        assert all(isinstance(hp, Var) for hp in main_hp.hps)
+        self.hps = [(hp.name, substituted[hp.name]) for hp in main_hp.hps]
+        self.hps.insert(0, (main_name, main_hp))
+
     def __str__(self):
         return "\n".join("%s ::= %s" % (name, str(hp)) for name, hp in self.hps)
 

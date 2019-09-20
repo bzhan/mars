@@ -62,6 +62,14 @@ class SF_State:
 
         return result
 
+    def init(self):
+        hps = list()
+        hps.append(self._exit())  # turn off
+        for child in self.children:
+            if isinstance(child, (AND_State, OR_State)):
+                hps.extend(child.init())
+        return hps
+
     def _activate(self):  # turn on
         return hp_parser.parse("a_" + self.name + " := 1")
 

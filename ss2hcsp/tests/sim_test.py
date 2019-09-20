@@ -239,8 +239,8 @@ class SimTest(unittest.TestCase):
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2); 
-        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 > x3 -> (x0 := 0); x2 <= x3 -> (x0 := 1)); 
+        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2);
+        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 > x3 -> (x0 := 0); x2 <= x3 -> (x0 := 1));
         ch_x0_0!x0; wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
@@ -293,58 +293,86 @@ class SimTest(unittest.TestCase):
         chart = list(diagram.charts.values())[0]
 
         res = [
+            ("D", "@M || @S1"),
             ("M", "num := 0; (@M_main)**"),
-            ("M_main", "num == 0 -> (tri?E; EL := E; NL := 1; num := 1); "
+            ("M_main", 'num == 0 -> (E := "e"; EL := []; EL := push(EL, E); NL := []; NL := push(NL, 1); num := 1); '
                        "num == 1 -> (BC1!E --> skip $ "
                        "BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
-                       "BO1?NULL --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
+                       "BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
                        "num == 2 -> (EL := pop(EL); NL := pop(NL); "
-                       "EL == NULL -> (num := 0); EL != NULL -> (E := top(EL); num := top(NL)))"),
-            ("D", "@M || @S1"),
-            ("S1", "a_S1 := 1; a_A := 1; a_A1 := 1; rec X.(BC1?E; @Diag_S1; BO1!)"),
+                       "EL == [] -> (num := 0); EL != [] -> (E := top(EL); num := top(NL)))"),
+            ("S1", "a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; "
+                   "a_S1 := 1; a_A := 1; a_A1 := 1; rec X.(BC1?E; @Diag_S1; BO1!)"),
             ("Diag_S1", "a_A == 1 -> (@A); a_B == 1 -> (@B)"),
-            ("A", "done := 0; E == e && done == 0 -> "
+            ("A", 'done := 0; E == "e" && done == 0 -> '
                   "(a_A2 == 1 -> (a_A2 := 0); a_A1 == 1 -> (a_A1 := 0); a_A := 0; a_B := 1; done := 1); "
                   "done == 0 -> (@Diag_A)"),
             ("Diag_A", "a_A1 == 1 -> (@A1); a_A2 == 1 -> (@A2)"),
             ("A1", "done := 0; done == 0 -> "
-                   "(BR1!e; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> (skip)"),
+                   '(BR1!"e"; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> (skip)'),
             ("A2", "skip"),
             ("B", "skip"),
         ]
 
         process = chart.get_process()
+        # print(process)
         expected_process = hcsp.HCSPProcess()
         for name, hp in res:
             expected_process.add(name, hp_parser.parse(hp))
+        # print(expected_process)
 
         self.assertEqual(process, expected_process)
 
-    def testVanderPol(self):
-        location = "./Examples/Van_der_Pol/Van_der_Pol.xml"
-        diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
-        diagram.add_line_name()
-        diagram.comp_inher_st()
-        dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
-        real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-        # print(real_hp)
+        process.substitute()
+        # print(process)
+        res = [
+            ("D", "@M || @S1"),
+            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
+                  "NL := []; NL := push(NL, 1); num := 1); "
+                  "num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
+                  "BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
+                  "num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; "
+                  "EL != [] -> (E := top(EL); num := top(NL))))**"),
+            ("S1", "a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; "
+                   "a_S1 := 1; a_A := 1; a_A1 := 1; "
+                   'rec X.(BC1?E; a_A == 1 -> (done := 0; E == "e" && done == 0 -> '
+                   "(a_A2 == 1 -> a_A2 := 0; a_A1 == 1 -> a_A1 := 0; a_A := 0; a_B := 1; done := 1); "
+                   "done == 0 -> (a_A1 == 1 -> (done := 0; done == 0 -> "
+                   '(BR1!"e"; @X; a_A == 1 -> (a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> skip); '
+                   "a_A2 == 1 -> skip)); a_B == 1 -> skip; BO1!)"),
+        ]
+        expected_process = hcsp.HCSPProcess()
+        for name, hp in res:
+            expected_process.add(name, hp_parser.parse(hp))
+        # print(expected_process)
 
-        expected_hp = hcsp.HCSPProcess()
-        expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
-        dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_z?z; t%6 == 0 -> b := z*z+(-1); t%4 == 0 -> c := b*(-0.1); ch_c_0!c; 
-        wait(2); t := t+2""")
-        discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
-        expected_hp.add("PD0", discrete_hp)
+        self.assertEqual(process, expected_process)
 
-        con_init = hp_parser.parse("z := 1; y := 1")
-        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> [] (ch_c_0?c --> skip, ch_z!z --> skip)""")
-        continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
-        expected_hp.add("PC0", continuous_hp)
-        # print(expected_hp)
-
-        self.assertEqual(real_hp, expected_hp)
+    # def testVanderPol(self):
+    #     location = "./Examples/Van_der_Pol/Van_der_Pol.xml"
+    #     diagram = SL_Diagram(location=location)
+    #     diagram.parse_xml()
+    #     diagram.add_line_name()
+    #     diagram.comp_inher_st()
+    #     dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
+    #     real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+    #     # print(real_hp)
+    #
+    #     expected_hp = hcsp.HCSPProcess()
+    #     expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
+    #     dis_init = hp_parser.parse("t := 0")
+    #     dis_hp = hp_parser.parse(r"""ch_z?z; t%6 == 0 -> b := z*z+(-1); t%4 == 0 -> c := b*(-0.1); ch_c_0!c;
+    #     wait(2); t := t+2""")
+    #     discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
+    #     expected_hp.add("PD0", discrete_hp)
+    #
+    #     con_init = hp_parser.parse("z := 1; y := 1")
+    #     con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> [] (ch_c_0?c --> skip, ch_z!z --> skip)""")
+    #     continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
+    #     expected_hp.add("PC0", continuous_hp)
+    #     # print(expected_hp)
+    #
+    #     self.assertEqual(real_hp, expected_hp)
 
 
 if __name__ == "__main__":
