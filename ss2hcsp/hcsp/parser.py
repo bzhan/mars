@@ -61,6 +61,7 @@ grammar = r"""
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
+        | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
         | "(" cmd ")" -> paren_cmd
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
@@ -214,6 +215,7 @@ class HPTransformer(Transformer):
         return hcsp.Condition(cond=cond, hp=cmd)
 
     def select_cmd(self, *args):
+        assert len(args) % 2 == 0 and len(args) >= 4
         io_comms = []
         for i in range(0, len(args), 2):
             io_comms.append((args[i], args[i+1]))
@@ -221,6 +223,14 @@ class HPTransformer(Transformer):
 
     def rec_cmd(self, var_name, c):
         return hcsp.Recursion(c, entry=var_name)
+
+    def ite_cmd(self, *args):
+        assert len(args) % 2 == 1 and len(args) >= 3
+        if_hps = []
+        for i in range(0, len(args)-1, 2):
+            if_hps.append((args[i], args[i+1]))
+        else_hp = args[-1]
+        return hcsp.ITE(if_hps, else_hp)
 
     def paren_cmd(self, c):
         return c

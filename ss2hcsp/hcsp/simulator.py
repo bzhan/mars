@@ -219,6 +219,14 @@ def get_pos(hp, pos):
             return hp
         else:
             return get_pos(hp.hp, pos[1:])
+    elif hp.type == 'ite':
+        if len(pos) == 0:
+            return hp
+        elif pos[0] < len(hp.if_hps):
+            return get_pos(hp.if_hps[pos[0]][1], pos[1:])
+        else:
+            assert pos[0] == len(hp.if_hps)
+            return get_pos(hp.else_hp, pos[1:])
     else:
         assert len(pos) == 0
         return hp
@@ -274,6 +282,19 @@ def step_pos(hp, pos):
         assert len(pos) > 0
         _, out_hp = hp.io_comms[pos[0]]
         sub_step = step_pos(out_hp, pos[1:])
+        if sub_step is None:
+            return None
+        else:
+            return (pos[0],) + sub_step
+    elif hp.type == 'ite':
+        assert len(pos) > 0
+        if pos[0] < len(hp.if_hps):
+            _, sub_hp = hp.if_hps[pos[0]]
+            sub_step = step_pos(sub_hp, pos[1:])
+        else:
+            assert pos[0] == len(hp.if_hps)
+            sub_step = step_pos(hp.else_hp, pos[1:])
+    
         if sub_step is None:
             return None
         else:
@@ -367,7 +388,7 @@ class HCSPInfo:
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
             if eval_expr(cur_hp.cond, self.state):
-                self.pos = self.pos + (0,) + start_pos(cur_hp.hp)
+                self.pos += (0,) + start_pos(cur_hp.hp)
             else:
                 self.pos = step_pos(self.hp, self.pos)
             return "step"
@@ -429,6 +450,17 @@ class HCSPInfo:
                 else:
                     raise NotImplementedError
             return "comm", comms
+
+        elif cur_hp.type == 'ite':
+            # Find the first condition that evaluates to true
+            for i, (cond, sub_hp) in enumerate(cur_hp.if_hps):
+                if eval_expr(cond, self.state):
+                    self.pos += (i,) + start_pos(sub_hp)
+                    return "step"
+
+            # Otherwise, go to the else branch
+            self.pos += (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
+            return "step"
 
         else:
             raise NotImplementedError

@@ -142,6 +142,37 @@ class PPrintTest(unittest.TestCase):
             ')'
         ])
 
+    def test14(self):
+        self.run_test("if x == 0 then x := 1 else x := 0 endif", [
+            'if x == 0 then',
+            '  x := 1',
+            'else',
+            '  x := 0',
+            'endif'
+        ])
+
+    def test15(self):
+        self.run_test("if x == 0 then x := 1; skip else x := 0; skip endif", [
+            'if x == 0 then',
+            '  x := 1;',
+            '  skip',
+            'else',
+            '  x := 0;',
+            '  skip',
+            'endif'
+        ])
+
+    def test16(self):
+        self.run_test("if x == 0 then x := 1 elif x == 1 then x := 0 else skip endif", [
+            'if x == 0 then',
+            '  x := 1',
+            'elif x == 1 then',
+            '  x := 0',
+            'else',
+            '  skip',
+            'endif'
+        ])
+
     def testVanPerPol_continuous1(self):
         self.run_test("t := 0; (ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> x5 := (1-x3)*(-2.2); t%8 == 0 -> x6 := max(x1, x5); t%10 == 0 -> (x6 > x2 -> x0 := 0; x6 <= x2 -> x0 := 1); ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>)**", [
             't := 0;',

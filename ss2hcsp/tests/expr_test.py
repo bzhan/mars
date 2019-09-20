@@ -102,6 +102,9 @@ class ExprTest(unittest.TestCase):
             ("x == 0 -> @A; @B", "Seq(Condition(x == 0, Var(A)), Var(B))"),
             ("x == 0 -> (@A; @B)", "Condition(x == 0, Seq(Var(A), Var(B)))"),
             ("x?; y? || z?", "Parallel(Seq(InputC(x), InputC(y)), InputC(z))"),
+            ("if x == 1 then x := 0 else x := 1 endif", "ITE(x == 1, Assign(x,0), Assign(x,1))"),
+            ("if x == 0 then x := 1 elif x == 1 then x := 0 else skip endif",
+             "ITE(x == 0, Assign(x,1), x == 1, Assign(x,0), Skip())"),
         ]
 
         for s, res in test_data:

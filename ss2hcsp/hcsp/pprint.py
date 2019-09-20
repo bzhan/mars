@@ -105,6 +105,22 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             new_line(indent)
             add_str(")")
             end_pos(pos)
+
+        elif hp.type == 'ite':
+            new_line(indent)
+            start_pos(pos)
+            add_str("if %s then" % hp.if_hps[0][0])
+            rec(hp.if_hps[0][1], indent+2, pos+(0,))
+            new_line(indent)
+            for i, (cond, sub_hp) in enumerate(hp.if_hps[1:], 1):
+                add_str("elif %s then" % cond)
+                rec(sub_hp, indent+2, pos+(i,))
+                new_line(indent)
+            add_str("else")
+            rec(hp.else_hp, indent+2, pos+(len(hp.if_hps),))
+            new_line(indent)
+            add_str("endif")
+            end_pos(pos)
             
         else:
             new_line(indent)

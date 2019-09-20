@@ -362,6 +362,34 @@ class Recursion(HCSP):
     def __str__(self):
         return "rec " + self.entry + ".(" + str(self.hp) + ")"
 
+class ITE(HCSP):
+    def __init__(self, if_hps, else_hp):
+        """if-then-else statements.
+
+        if_hps is a list of condition-program pairs. else_hp is a program.
+        The program associated to the first true condition in if_hps will
+        be executed. If no condition is true, else_hp is executed.
+
+        """
+        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        assert isinstance(else_hp, HCSP)
+        self.type = "ite"
+        self.if_hps = tuple(if_hps)
+        self.else_hp = else_hp
+
+    def __eq__(self, other):
+        return self.type == other.type and self.if_hps == other.if_hps and self.else_hp == other.else_hp
+
+    def __repr__(self):
+        if_hps_strs = ", ".join("%s, %s" % (cond, repr(hp)) for cond, hp in self.if_hps)
+        return "ITE(%s, %s)" % (if_hps_strs, repr(self.else_hp))
+
+    def __str__(self):
+        res = "if %s then %s " % (self.if_hps[0][0], self.if_hps[0][1])
+        for cond, hp in self.if_hps[1:]:
+            res += "elif %s then %s " % (cond, hp)
+        res += "else %s endif" % self.else_hp
+        return res
 
 class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""

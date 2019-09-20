@@ -54,6 +54,11 @@ class SimulatorTest(unittest.TestCase):
             ("rec X.(x := 1; wait(1); @X)", (), {"x": 1}, (0, 0), {"x": 1}),
             ("rec X.(x := 1; wait(1); @X)", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
             ("rec X.(x := 1; wait(1); @X)", (0, 2), {"x": 1}, (), {"x": 1}),
+            ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 0}, (0,), {"x": 0}),
+            ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 1}, (1,), {"x": 1}),
+            ("if x == 0 then x := 1 else x := 0 endif", (0,), {"x": 0}, None, {"x": 1}),
+            ("if x == 0 then x := 1 else x := 0 endif", (1,), {"x": 1}, None, {"x": 0}),
+            ("if x == 0 then x := 1; skip else skip endif", (0, 0), {"x": 0}, (0, 1), {"x": 1}),
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
@@ -349,6 +354,12 @@ class SimulatorTest(unittest.TestCase):
             "x := 0; y := 0; (<x_dot = 1, y_dot = 1 & true> |> [](cx!x --> cy!y; x := x - 1, cy!y --> cx!x; y := y - 1))**",
             "wait(1); cx?x; cy?y; wait(1); cy?y; cx?x; wait(1); cx?x; cy?y"
         ], 10, ['delay 1', 'IO cx 1.0', 'IO cy 1.0', 'delay 1', 'IO cy 2.0', 'IO cx 1.0', 'delay 1', 'IO cx 2.0', 'IO cy 2.0', 'deadlock'])
+
+    def testExecParallel21(self):
+        self.run_test([
+            "x := 0; (if x == 0 then x := 1 elif x == 1 then x := 2 else x := 0 endif; c!x)**",
+            "(c?x)**"
+        ], 6, ['IO c 1', 'IO c 2', 'IO c 0', 'IO c 1', 'IO c 2', 'IO c 0'])
 
 
 if __name__ == "__main__":
