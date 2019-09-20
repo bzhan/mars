@@ -75,8 +75,10 @@ class AConst(AExpr):
         return "Const(%s)" % str(self.value)
 
     def __str__(self):
-        # return str(self.value)
-        return str(list(self.value)) if isinstance(self.value, tuple) else str(self.value)
+        if isinstance(self.value, tuple):            
+            return "[" + ",".join(str(v) for v in self.value) + "]"
+        else:
+            return str(self.value)
 
     def __eq__(self, other):
         return isinstance(other, AConst) and self.value == other.value

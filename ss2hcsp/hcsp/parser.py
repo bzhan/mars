@@ -8,6 +8,7 @@ grammar = r"""
     ?atom_expr: CNAME -> var_expr
         | SIGNED_NUMBER -> num_expr
         | "[]" -> empty_list
+        | "[" ESCAPED_STRING ("," ESCAPED_STRING)* "]" -> literal_list
         | ESCAPED_STRING -> string_expr
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
@@ -98,6 +99,9 @@ class HPTransformer(Transformer):
 
     def empty_list(self):
         return expr.AConst(tuple())
+
+    def literal_list(self, *args):
+        return expr.AConst(tuple(str(s) for s in args))
 
     def string_expr(self, s):
         return expr.AConst(str(s))
