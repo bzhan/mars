@@ -270,6 +270,14 @@ def step_pos(hp, pos):
             return None
         else:
             return (0,) + sub_step
+    elif hp.type == 'ode_comm':
+        assert len(pos) > 0
+        _, out_hp = hp.io_comms[pos[0]]
+        sub_step = step_pos(out_hp, pos[1:])
+        if sub_step is None:
+            return None
+        else:
+            return (pos[0],) + sub_step
     else:
         return None
 

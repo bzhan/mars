@@ -344,6 +344,12 @@ class SimulatorTest(unittest.TestCase):
             "ch_a?y; ch_b!y"
         ], 3, ['IO ch_a 0', 'IO ch_b 0', 'deadlock'])
 
+    def testExecParallel20(self):
+        self.run_test([
+            "x := 0; y := 0; (<x_dot = 1, y_dot = 1 & true> |> [](cx!x --> cy!y; x := x - 1, cy!y --> cx!x; y := y - 1))**",
+            "wait(1); cx?x; cy?y; wait(1); cy?y; cx?x; wait(1); cx?x; cy?y"
+        ], 10, ['delay 1', 'IO cx 1.0', 'IO cy 1.0', 'delay 1', 'IO cy 2.0', 'IO cx 1.0', 'delay 1', 'IO cx 2.0', 'IO cy 2.0', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()
