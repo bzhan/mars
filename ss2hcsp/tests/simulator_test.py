@@ -338,5 +338,12 @@ class SimulatorTest(unittest.TestCase):
             "ch?E"
         ], 2, ['IO ch "e"', 'deadlock'])
 
+    def testExecParallel9(self):
+        self.run_test([
+            "num := 0; (ch_a!0 --> skip $ ch_b?x --> skip)**",
+            "ch_a?y; ch_b!y"
+        ], 3, ['IO ch_a 0', 'IO ch_b 0', 'deadlock'])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,3 @@
+P ::= @P0 || @P1
+P0 ::= num := 0; (ch_a!0 --> skip $ ch_b?x --> skip)**
+P1 ::= ch_a?y; ch_b!y
