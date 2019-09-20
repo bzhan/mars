@@ -332,6 +332,11 @@ class SimulatorTest(unittest.TestCase):
             "in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e",
         ], 7, ['IO in "a"', 'IO in "b"', 'IO out', 'IO outval "b"', 'IO out', 'IO outval "a"', 'deadlock'])
 
+    def testExecParallel18(self):
+        self.run_test([
+            "num := 0; num == 0 -> (E := \"e\"; num := 1); ch!E",
+            "ch?E"
+        ], 2, ['IO ch "e"', 'deadlock'])
 
 if __name__ == "__main__":
     unittest.main()

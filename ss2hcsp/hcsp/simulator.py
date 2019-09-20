@@ -253,6 +253,14 @@ def step_pos(hp, pos):
             return start_pos(hp.hp)
         else:
             return sub_step
+    elif hp.type == 'condition':
+        if len(pos) == 0:
+            return None
+        sub_step = step_pos(hp.hp, pos[1:])
+        if sub_step is None:
+            return None
+        else:
+            return (0,) + sub_step
     elif hp.type == 'delay':
         assert len(pos) == 1
         return None
@@ -351,7 +359,7 @@ class HCSPInfo:
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
             if eval_expr(cur_hp.cond, self.state):
-                self.pos = self.pos + (0,)
+                self.pos = self.pos + (0,) + start_pos(cur_hp.hp)
             else:
                 self.pos = step_pos(self.hp, self.pos)
             return "step"
