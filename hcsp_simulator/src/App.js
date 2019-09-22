@@ -8,7 +8,7 @@ import {faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft} 
 import {Chart} from 'chart.js'
 import axios from "axios"
 
-
+// Plugin for drawing vertical lines on the graph.
 const verticalLinePlugin = {
     getLinePosition: function (chart, xval) {
         const left = chart.chartArea.left;
@@ -59,6 +59,7 @@ class Process extends React.Component {
     render() {
         return (
             <div>
+            {/* Program text, with highlight on current location */}
             <div>Process: {this.props.name}</div>
             <div className="program-text">
                 {this.props.lines.map((str, line_no) => {
@@ -92,14 +93,23 @@ class Process extends React.Component {
                     return <pre key={line_no}>{str}</pre>
                 })}
             </div>
+
+            {/* State of the program */}
             <pre className="program-state">
                 <span>&nbsp;</span>
                 {Object.keys(this.props.state).map((key, index) => {
-                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {String(this.props.state[key])}</span>
+                    // Round numbers to at most three digits for display
+                    var val = this.props.state[key];
+                    if (typeof(val) == 'number') {
+                        val = Math.round(val.toFixed(3)*1000)/1000
+                    }
+                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {String(val)}</span>
                 })}
                 <span>&nbsp;&nbsp;</span>
                 <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
             </pre>
+
+            {/* Graph of time series */}
             {(this.state.show_graph && this.props.time_series !== undefined) ?
                 <canvas id={'chart'+String(this.props.index)} width="400" height="100"/> : null
             }
