@@ -9,6 +9,7 @@ grammar = r"""
         | SIGNED_NUMBER -> num_expr
         | "[]" -> empty_list
         | "[" ESCAPED_STRING ("," ESCAPED_STRING)* "]" -> literal_list
+        | "[" SIGNED_NUMBER ("," SIGNED_NUMBER)* "]" -> literal_num_list
         | ESCAPED_STRING -> string_expr
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
@@ -95,13 +96,16 @@ class HPTransformer(Transformer):
         return expr.AVar(str(s))
 
     def num_expr(self, v):
-        return expr.AConst(eval(v))
+        return expr.AConst(float(v) if '.' in v else int(v))
 
     def empty_list(self):
         return expr.AConst(tuple())
 
     def literal_list(self, *args):
         return expr.AConst(tuple(str(s) for s in args))
+
+    def literal_num_list(self, *args):
+        return expr.AConst(tuple(float(v) if '.' in v else int(v) for v in args))
 
     def string_expr(self, s):
         return expr.AConst(str(s))

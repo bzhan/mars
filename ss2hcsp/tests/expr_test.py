@@ -108,6 +108,8 @@ class ExprTest(unittest.TestCase):
             ('E := "x"', 'Assign(E,"x")'),
             ('EL := ["x"]', 'Assign(EL,["x"])'),
             ('EL := ["x","y"]', 'Assign(EL,["x","y"])'),
+            ('NL := [1]', 'Assign(NL,[1])'),
+            ('NL := [1,2.1]', 'Assign(NL,[1,2.1])'),
         ]
 
         for s, res in test_data:
