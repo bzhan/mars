@@ -189,6 +189,7 @@ class SL_Diagram:
                         _state = OR_State(ssid=ssid, out_trans=out_trans, name=name, en=en, du=du, ex=ex,
                                           default_tran=default_tran)
                     else:
+                        print(state_type)
                         raise RuntimeError("ErrorStates")
 
                     # Get children states and junctions recursively
