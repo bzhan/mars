@@ -71,7 +71,10 @@ class SF_State:
         return hps
 
     def _activate(self):  # turn on
-        return hp_parser.parse("a_" + self.name + " := 1")
+        time_process = "state_time := 0; " if isinstance(self, OR_State) and self.has_aux_var("state_time") else ""
+        activate_process = "a_" + self.name + " := 1"
+        return hp_parser.parse(time_process + activate_process)
+        # return hp_parser.parse("a_" + self.name + " := 1")
 
     def _exit(self):
         return hp_parser.parse("a_" + self.name + " := 0")
@@ -94,6 +97,7 @@ class SF_State:
                 # Activate the state with default transition
                 # _, _, cond_act, _ = child.default_tran.parse()
                 if child.default_tran.cond_acts:
+                    # print(child.default_tran.cond_acts)
                     hps.extend(child.default_tran.cond_acts)
                 hps.extend(child.activate())
                 break
@@ -195,6 +199,14 @@ class OR_State(SF_State):
         self.out_trans = out_trans
         self.default_tran = default_tran  # The default transition to this state
         self.tran_acts = []  # the queue to store transition actions
+
+    def has_aux_var(self, var_name):
+        # return if the state has the auxiliary variable var_name
+        # The auxiliary variables are all in the conditions of outgoing transitions
+        for tran in self.out_trans:
+            if var_name in tran.cond_vars:
+                return True
+        return False
 
 
 class AND_State(SF_State):

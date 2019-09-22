@@ -75,7 +75,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
 
 
 class SF_Chart:
-    def __init__(self, name, state):
+    def __init__(self, name, state, st=-1):
         self.name = name
         assert isinstance(state, AND_State)
         self.state = state
@@ -86,6 +86,8 @@ class SF_Chart:
         self.find_root_for_states()
         self.find_root_and_loc_for_trans()
         self.parse_acts_on_states_and_trans()
+
+        self.st = st
 
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.state))
@@ -251,13 +253,17 @@ class SF_Chart:
 
             if _state.du:  # add dur
                 _s_du.extend(_state.du)
+            if isinstance(_state, OR_State) and _state.has_aux_var("state_time"):
+                _s_du.append(hp_parser.parse("state_time := state_time+" + str(self.st)))
             if _state.children:
                 _s_du.append(hp.Var(_p_diag_name))  # P_diag
 
                 if isinstance(_state.children[0], AND_State):
                     _p_diag = [hp.Var(_child.name) for _child in _state.children]
-                else:
-                    _p_diag = [hp.Condition(cond=_child.activated(), hp=hp.Var(_child.name))
+                else:  # OR_State
+                    # _p_diag = [hp.Condition(cond=_child.activated(), hp=hp.Var(_child.name))
+                    #            for _child in _state.children if isinstance(_child, OR_State)]
+                    _p_diag = [(_child.activated(), hp.Var(_child.name))
                                for _child in _state.children if isinstance(_child, OR_State)]
 
             if len(_s_du) == 0:
@@ -280,14 +286,21 @@ class SF_Chart:
         # Analyse P_diag recursively
         def analyse_P_diag(_p_diag):
             for proc in _p_diag:
-                _state_name = proc.hp.name if isinstance(proc, hp.Condition) else proc.name
+                # _state_name = proc.hp.name if isinstance(proc, hp.Condition) else proc.name
+                _state_name = proc.name if isinstance(proc, hp.Var) else proc[1].name
                 assert _state_name
                 _state = self.get_state_by_name(name=_state_name)
                 _s_du, new_p_diag, new_p_diag_name = get_S_du_and_P_diag(_state=_state,
                                                                          _hps=self.execute_event(_state))
                 processes.add(_state_name, _s_du)
                 if new_p_diag:
-                    new_p_diag_proc = hp.Sequence(*new_p_diag) if len(new_p_diag) >= 2 else new_p_diag[0]
+                    if isinstance(new_p_diag[0], hp.Var):
+                        assert all(isinstance(e, hp.Var) for e in new_p_diag)
+                        new_p_diag_proc = hp.Sequence(*new_p_diag) if len(new_p_diag) >= 2 else new_p_diag[0]
+                    else:
+                        assert all(isinstance(e, tuple) and len(e) == 2 for e in new_p_diag)
+                        new_p_diag_proc = hp.ITE(if_hps=new_p_diag, else_hp=hp.Skip()) if len(new_p_diag) >= 2 \
+                            else hp.Condition(cond=new_p_diag[0][0], hp=new_p_diag[0][1])
                     assert new_p_diag_name
                     processes.add(new_p_diag_name, new_p_diag_proc)
                     analyse_P_diag(new_p_diag)
@@ -311,7 +324,7 @@ class SF_Chart:
             assert s_i.name == "S" + str(i)
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_event(state=s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
-            assert all(isinstance(s, hp.HCSP) for s in p_diag)
+            assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
 
             # Body of process S_i
             s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var),
@@ -320,7 +333,13 @@ class SF_Chart:
 
             # P_diag = p_diag_proc
             if p_diag:
-                p_diag_proc = hp.Sequence(*p_diag) if len(p_diag) >= 2 else p_diag[0]
+                if isinstance(p_diag[0], hp.Var):
+                    assert all(isinstance(e, hp.Var) for e in p_diag)
+                    p_diag_proc = hp.Sequence(*p_diag) if len(p_diag) >= 2 else p_diag[0]
+                else:
+                    assert all(isinstance(e, tuple) and len(e) == 2 for e in p_diag)
+                    p_diag_proc = hp.ITE(if_hps=p_diag, else_hp=hp.Skip()) if len(p_diag) >= 2 \
+                        else hp.Condition(cond=p_diag[0][0], hp=p_diag[0][1])
                 assert p_diag_name
                 processes.add(p_diag_name, p_diag_proc)
                 analyse_P_diag(p_diag)  # analyse P_diag recursively

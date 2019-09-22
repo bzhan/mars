@@ -36,6 +36,12 @@ class HCSP:
             for io_comm in self.io_comms:
                 if io_comm[1].contain_hp(name):
                     return True
+        elif isinstance(self, ITE):
+            if self.else_hp.contain_hp(name):
+                return True
+            for sub_hp in [_hp for _cond, _hp in self.if_hps]:
+                if sub_hp.contain_hp(name):
+                    return True
         return False
 
 
@@ -362,6 +368,7 @@ class Recursion(HCSP):
     def __str__(self):
         return "rec " + self.entry + ".(" + str(self.hp) + ")"
 
+
 class ITE(HCSP):
     def __init__(self, if_hps, else_hp):
         """if-then-else statements.
@@ -390,6 +397,7 @@ class ITE(HCSP):
             res += "elif %s then %s " % (cond, hp)
         res += "else %s endif" % self.else_hp
         return res
+
 
 class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""
@@ -420,7 +428,7 @@ class HCSPProcess:
     def substitute(self):
         def _substitute(_hp):
             assert isinstance(_hp, (Skip, Wait, Assign, InputChannel, OutputChannel, Var, Loop, Recursion,
-                                    Condition, Sequence, Parallel, ODE, ODE_Comm, SelectComm))
+                                    Condition, Sequence, Parallel, ODE, ODE_Comm, SelectComm, ITE))
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():
@@ -434,10 +442,14 @@ class HCSPProcess:
             elif isinstance(_hp, Sequence):
                 _hps = [_substitute(sub_hp) for sub_hp in _hp.hps]
                 _hp = Sequence(*_hps)
+                # _hp = Sequence(tuple(_substitute(sub_hp) for sub_hp in _hp.hps))
             elif isinstance(_hp, ODE):
                 _hp.out_hp = _substitute(_hp.out_hp)
             elif isinstance(_hp, (ODE_Comm, SelectComm)):
                 _hp.io_comms = tuple((io_comm[0], _substitute(io_comm[1])) for io_comm in _hp.io_comms)
+            elif isinstance(_hp, ITE):
+                _hp.if_hps = tuple((e[0], _substitute(e[1])) for e in _hp.if_hps)
+                _hp.else_hp = _substitute(_hp.else_hp)
             return _hp
 
         hps_dict = {name: hp for name, hp in self.hps}

@@ -228,7 +228,9 @@ class SL_Diagram:
             if chart_state.children and isinstance(chart_state.children[0], AND_State):
                 chart_state.children.sort(key=operator.attrgetter("order"))
             assert chart_state.check_children()
-            sf_chart = SF_Chart(name=chart_name, state=chart_state)
+            chart_st = get_attribute_value(block=chart, attribute="sampleTime")
+            chart_st = eval(chart_st) if chart_st else -1
+            sf_chart = SF_Chart(name=chart_name, state=chart_state, st=chart_st)
             self.charts[chart_name] = sf_chart
 
     def parse_xml(self):

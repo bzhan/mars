@@ -17,6 +17,8 @@ class Transition:
         self.condition = None
         self.cond_acts = list()
         self.tran_acts = list()
+        self.cond_vars = set()  # record SPECIAL (e.g., state time) variables in the condition
+
         self.parse()
 
     def __str__(self):
@@ -36,7 +38,22 @@ class Transition:
         cond_pattern = "\\[.*?\\]"
         conditions = re.findall(pattern=cond_pattern, string=label)
         assert len(conditions) <= 1
-        self.condition = bexpr_parser.parse(conditions[0].strip("[]")) if conditions else None
+        if conditions:
+            condition = conditions[0].strip("[]")
+            if re.match(pattern="after\\(.*?,.*?\\)", string=condition):
+                # Parse after(number, event) condition
+                # print(condition)
+                # number, event = condition[6:-1].split(",")
+                number, event = [e.strip() for e in condition[6:-1].split(",")]
+                if event == "sec":
+                    special_var = "state_time"
+                    self.condition = bexpr_parser.parse(special_var + " >= " + number)
+                    self.cond_vars.add(special_var)
+            else:
+                self.condition = bexpr_parser.parse(conditions[0].strip("[]"))
+        else:
+            self.condition = None
+        # self.condition = bexpr_parser.parse(conditions[0].strip("[]")) if conditions else None
         # Delete transition condition
         label = re.sub(pattern=cond_pattern, repl="", string=label)
 
@@ -57,9 +74,11 @@ class Transition:
         assert len(cond_acts) <= 1
         # cond_act = None
         if cond_acts:
-            self.cond_acts = re.sub(pattern="=", repl=":=", string=cond_acts[0].strip("{;}")).split(";")
+            self.cond_acts = [act.strip()
+                              for act in re.sub(pattern="=", repl=":=", string=cond_acts[0].strip("{;}")).split(";")]
             # cond_act = hp_parser.parse(cond_act)
         # Delete condition action
+        # print(self.cond_acts)
         label = re.sub(pattern=cond_act_pattern, repl="", string=label)
 
         # Get event
