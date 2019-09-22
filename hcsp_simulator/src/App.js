@@ -115,18 +115,25 @@ class Process extends React.Component {
 
     componentDidUpdate() {
         const ts = this.props.time_series;
-        if (!this.state.show_graph || ts === undefined) {
+        if (!this.state.show_graph || ts === undefined || ts.length === 0) {
             return;
         }
         var series = {};
+        const is_discrete = (ts[ts.length-1].time === 0)
         for (let i = 0; i < ts.length; i++) {
             for (let k in ts[i].state) {
-                if (!(k in series)) {
-                    series[k] = [];
+                if (typeof(ts[i].state[k]) === 'number') {
+                    if (!(k in series)) {
+                        series[k] = [];
+                    }
+                    if (is_discrete) {
+                        series[k].push({x: ts[i].event, y: ts[i].state[k]});
+                    } else {
+                        series[k].push({x: ts[i].time, y: ts[i].state[k]});
+                    }
                 }
-                series[k].push({x: ts[i].time, y: ts[i].state[k]});
             }
-        }
+        }    
         var datasets = [];
         var colors = ['blue', 'red', 'green', 'yellow'];
         for (let k in series) {
@@ -144,12 +151,13 @@ class Process extends React.Component {
         }
 
         var canvas = document.getElementById('chart'+String(this.props.index));
+        const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
         this.chart = new Chart(canvas, {
             type: 'line',
             data: {
                 datasets: datasets
             },
-            lineAtIndex: [this.props.event_time],
+            lineAtIndex: [lineAtIndex],
             options: {
                 animation: {
                     duration: 0
@@ -225,15 +233,15 @@ class App extends React.Component {
             // Whether a query is in progress.
             querying: false,
 
-            // Maximum number of IO events for the query.
-            max_io_event: 100,
+            // Maximum number of events for the query.
+            num_steps: 200,
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
     }
 
     handleChange = (e) => {
-        this.setState({max_io_event: Number(e.target.value)})
+        this.setState({num_steps: Number(e.target.value)})
     }
 
     handleFiles = () => {
@@ -296,8 +304,8 @@ class App extends React.Component {
         })
         const response = await axios.post("/run_hcsp", {
             hcsp_info: this.state.hcsp_info,
-            num_io_events: this.state.max_io_event,
-            num_steps: 400,
+            num_io_events: this.state.num_steps,
+            num_steps: this.state.num_steps,
         })
         if ('error' in response.data) {
             this.setState({
@@ -403,7 +411,7 @@ class App extends React.Component {
                     // No data is available
                     return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={[]}
-                                    time_series={undefined} event_time={undefined}/>
+                                    time_series={undefined} event_time={undefined} hpos={undefined}/>
                 } else {
                     const hpos = this.state.history_pos;
                     const event = this.state.history[hpos];
@@ -420,7 +428,7 @@ class App extends React.Component {
                         // End of data set
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={undefined} state={state}
-                                        time_series={time_series} event_time={event_time}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
                     } else {
                         // Process out the 'w{n}' in the end if necessary
                         const sep = pos.lastIndexOf('.');
@@ -429,7 +437,7 @@ class App extends React.Component {
                         }
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={info.mapping[pos]} state={state}
-                                        time_series={time_series} event_time={event_time}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
                     }
                 }
             })}
@@ -448,8 +456,8 @@ class App extends React.Component {
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
-                        <label htmlFor="max_io_event" style={{margin:'0px 0px 0px 10px',alignSelf:'center'}}>Max IO events:</label>
-                        <input type="text" id="max_io_event" value={this.state.max_io_event} onChange={this.handleChange} />
+                        <label htmlFor="num_steps" style={{margin:'0px 0px 0px 10px',alignSelf:'center'}}>Number of steps:</label>
+                        <input type="text" id="num_steps" value={this.state.num_steps} onChange={this.handleChange} />
                     </Nav>
                 </Navbar>
 

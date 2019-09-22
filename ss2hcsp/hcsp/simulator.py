@@ -706,6 +706,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         """Log the given time series for program with the given name."""
         new_entry = {
             "time": time,
+            "event": len(res['trace']),
             "state": copy(state),
         }
         series = res['time_series'][name]
