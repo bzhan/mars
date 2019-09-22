@@ -18,7 +18,7 @@ class SfTest(unittest.TestCase):
         res = [
             ("D", "@M || @S1"),
             ("M", "num := 0; (@M_main)**"),
-            ("M_main", 'num == 0 -> (E := "e"; EL := []; EL := push(EL, E); NL := []; NL := push(NL, 1); num := 1); '
+            ("M_main", 'num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); '
                        "num == 1 -> (BC1!E --> skip $ "
                        "BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
                        "BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
@@ -48,8 +48,7 @@ class SfTest(unittest.TestCase):
         # print(process)
         res = [
             ("D", "@M || @S1"),
-            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
-                  "NL := []; NL := push(NL, 1); num := 1); "
+            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); '
                   "num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
                   "BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
                   "num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; "
@@ -80,8 +79,8 @@ class SfTest(unittest.TestCase):
 
         res = [
             ("D", "@M || @S1"),
-            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
-                  'NL := []; NL := push(NL, 1); num := 1); num == 1 -> (BC1!E --> skip $ '
+            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; '
+                  'NL := [1]; num := 1); num == 1 -> (BC1!E --> skip $ '
                   'BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ '
                   'BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); '
@@ -111,8 +110,8 @@ class SfTest(unittest.TestCase):
 
         res = [
             ("D", "@M || @S1"),
-            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
-                  "NL := []; NL := push(NL, 1); num := 1); num == 1 -> (BC1!E --> skip $ "
+            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; '
+                  "NL := [1]; num := 1); num == 1 -> (BC1!E --> skip $ "
                   "BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ "
                   "BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
                   "num == 2 -> (EL := pop(EL); NL := pop(NL); "
@@ -144,7 +143,7 @@ class SfTest(unittest.TestCase):
         res = [
             ("D", "@M || @S1"),
             ("M", "num := 0; (@M_main)**"),
-            ("M_main", 'num == 0 -> (E := "e"; EL := []; EL := push(EL, E); NL := []; NL := push(NL, 1); num := 1); '
+            ("M_main", 'num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); '
                        "num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); "
                        "num := 1 $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); "
                        "num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; "
@@ -177,8 +176,8 @@ class SfTest(unittest.TestCase):
         # print(process)
         res = [
             ("D", "@M || @S1"),
-            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
-                  'NL := []; NL := push(NL, 1); num := 1); num == 1 -> '
+            ("M", 'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; '
+                  'NL := [1]; num := 1); num == 1 -> '
                   '(BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ '
                   'BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; '

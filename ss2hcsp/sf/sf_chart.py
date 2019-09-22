@@ -228,8 +228,7 @@ class SF_Chart:
         hp_M = hp.Sequence(hp.Assign(var_name="num", expr=AConst(0)), hp.Loop(hp.Var("M_main")))
 
         # Get M_main process
-        hp_M_main = hp_parser.parse('num == 0 -> (E := "e"; EL := []; EL := push(EL, E); '
-                                    'NL := []; NL := push(NL, 1); num := 1)')
+        hp_M_main = hp_parser.parse('num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
