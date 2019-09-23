@@ -12,6 +12,8 @@ writer ::=
 		if st1 == "announcing" then
 			if unsent != [] then
 				st1 := "pushing"
+			elif ack == sent then
+				hb_count := 3
 			else
 				hb_count := hb_count - 1;
 				if hb_count == 0 then
@@ -96,6 +98,12 @@ ack ::=
 	ack![];
 	acknack![];
 	ack![3];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![];
 	acknack![];
 	ack![7, 5];
 	acknack![4];

@@ -199,13 +199,17 @@ class Events extends React.Component {
         return (
             <div className="event-list">
                 {this.props.events.map((event, index) => {
-                    return (
-                        <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
-                            <span className={index === this.props.current_index?"event-list-hl":""}>
-                                {event.str}
-                            </span>
-                        </pre>
-                    )
+                    if (this.props.show_event_only && event.type === 'step') {
+                        return null
+                    } else {
+                        return (
+                            <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
+                                <span className={index === this.props.current_index?"event-list-hl":""}>
+                                    {event.str}
+                                </span>
+                            </pre>
+                        )    
+                    }
                 })}
             </div>
         )
@@ -245,6 +249,9 @@ class App extends React.Component {
 
             // Maximum number of events for the query.
             num_steps: 200,
+
+            // Whether to show events only.
+            show_event_only: false,
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -335,14 +342,18 @@ class App extends React.Component {
     };
 
     nextEvent = (e) => {
-        document.getElementById('right').scrollTop += 21;
+        if (!this.state.show_event_only) {
+            document.getElementById('right').scrollTop += 21;
+        }
         this.setState((state) => ({
             history_pos: state.history_pos + 1,
         }))
     };
 
     prevEvent = (e) => {
-        document.getElementById('right').scrollTop -= 21;
+        if (!this.state.show_event_only) {
+            document.getElementById('right').scrollTop -= 21;
+        }
         this.setState((state) => ({
             history_pos: state.history_pos - 1,
         }))
@@ -403,6 +414,12 @@ class App extends React.Component {
             }
             return res
         }
+    };
+
+    toggleShowEvent = () => {
+        this.setState((state) => ({
+            show_event_only: !state.show_event_only
+        }))
     }
 
     render() {
@@ -451,7 +468,7 @@ class App extends React.Component {
         const right = (
             <Container id="right" className="right">
                 <Events events={this.state.history} current_index={this.state.history_pos}
-                        onClick={this.eventOnClick}/>
+                        onClick={this.eventOnClick} show_event_only={this.state.show_event_only}/>
             </Container>
         );
         return (
@@ -501,6 +518,11 @@ class App extends React.Component {
                         <span style={{marginLeft:'20px',fontSize:'large',marginTop:"auto",marginBottom:"auto"}}>
                             {this.eventLine()}
                         </span>
+
+                        <a href="#" style={{marginLeft:'auto',marginRight:'10px',marginTop:'auto',marginBottom:'auto'}}
+                           onClick={this.toggleShowEvent}>
+                            {this.state.show_event_only ? 'Show all steps' : 'Show events only'}
+                        </a>
                     </ButtonToolbar>
                 </div>
 
