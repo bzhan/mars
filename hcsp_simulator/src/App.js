@@ -103,7 +103,10 @@ class Process extends React.Component {
                     if (typeof(val) == 'number') {
                         val = Math.round(val.toFixed(3)*1000)/1000
                     }
-                    return <span key={index} style={{marginLeft: "10px"}}>{key}: {String(val)}</span>
+                    return (<>
+                    {index > 0 && index % 5 === 0 ? <><br/><span>&nbsp;</span></> : null}
+                    <span key={index} style={{marginLeft: "10px"}}>{key}: {String(val)}</span>
+                    </>)
                 })}
                 <span>&nbsp;&nbsp;</span>
                 <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
