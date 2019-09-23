@@ -385,6 +385,12 @@ class SimulatorTest(unittest.TestCase):
             "ch_a!0; ch_a!1; ch_b?y; ch_b?y"
         ], 5, ['IO ch_a 0', 'IO ch_a 1', 'IO ch_b 1', 'IO ch_b 1', 'deadlock'])
 
+    def testExecParallel23(self):
+        self.run_test([
+            'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; EL != [] -> (E := top(EL); num := top(NL))))**',
+            'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X.(BC1?E; if a_A == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_S1 == 1 -> (a_A := 0; BR1!"e"; @X; a_S1 == 1 -> (a_B := 1; done := 1))); done == 0 -> skip elif a_B == 1 then skip else skip endif; BO1!)'
+        ], 5, ['IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"'])
+
 
 if __name__ == "__main__":
     unittest.main()

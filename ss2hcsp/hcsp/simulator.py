@@ -221,9 +221,8 @@ def get_pos(hp, pos, rec_vars=None):
         if len(pos) == 0:
             return hp
         else:
-            new_rec_vars = copy(rec_vars)
-            new_rec_vars[hp.entry] = hp
-            return get_pos(hp.hp, pos[1:], new_rec_vars)
+            rec_vars[hp.entry] = hp
+            return get_pos(hp.hp, pos[1:], rec_vars)
     elif hp.type == 'ite':
         if len(pos) == 0:
             return hp
@@ -241,7 +240,7 @@ def get_pos(hp, pos, rec_vars=None):
             raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
 
         rec_hp = rec_vars[hp.name]
-        return get_pos(rec_hp, pos[1:])
+        return get_pos(rec_hp, pos[1:], rec_vars)
     else:
         assert len(pos) == 0
         return hp
@@ -290,16 +289,15 @@ def step_pos(hp, pos, rec_vars=None):
         assert len(pos) == 1
         return None
     elif hp.type == 'recursion':
-        new_rec_vars = copy(rec_vars)
-        new_rec_vars[hp.entry] = hp
-        sub_step = step_pos(hp.hp, pos[1:], new_rec_vars)
+        rec_vars[hp.entry] = hp
+        sub_step = step_pos(hp.hp, pos[1:], rec_vars)
         if sub_step is None:
             return None
         else:
             return (0,) + sub_step
     elif hp.type == 'var':
         if hp.name not in rec_vars:
-            raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
+            raise SimulatorException("Unrecognized process variable: " + hp.name)
 
         rec_hp = rec_vars[hp.name]
         sub_step = step_pos(rec_hp, pos[1:], rec_vars)
@@ -310,7 +308,7 @@ def step_pos(hp, pos, rec_vars=None):
     elif hp.type == 'ode_comm':
         assert len(pos) > 0
         _, out_hp = hp.io_comms[pos[0]]
-        sub_step = step_pos(out_hp, pos[1:])
+        sub_step = step_pos(out_hp, pos[1:], rec_vars)
         if sub_step is None:
             return None
         else:
@@ -319,10 +317,10 @@ def step_pos(hp, pos, rec_vars=None):
         assert len(pos) > 0
         if pos[0] < len(hp.if_hps):
             _, sub_hp = hp.if_hps[pos[0]]
-            sub_step = step_pos(sub_hp, pos[1:])
+            sub_step = step_pos(sub_hp, pos[1:], rec_vars)
         else:
             assert pos[0] == len(hp.if_hps)
-            sub_step = step_pos(hp.else_hp, pos[1:])
+            sub_step = step_pos(hp.else_hp, pos[1:], rec_vars)
     
         if sub_step is None:
             return None
@@ -422,16 +420,17 @@ class HCSPInfo:
         by a channel name and direction (e.g. ("p2c", "!") or ("c2p", "?"))).
         
         """
-        cur_hp = get_pos(self.hp, self.pos)
+        rec_vars = dict()
+        cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "skip":
-            self.pos = step_pos(self.hp, self.pos)
+            self.pos = step_pos(self.hp, self.pos, rec_vars)
             return "step"
             
         elif cur_hp.type == "assign":
             # Perform assignment
             self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
-            self.pos = step_pos(self.hp, self.pos)
+            self.pos = step_pos(self.hp, self.pos, rec_vars)
             return "step"
 
         elif cur_hp.type == "condition":
@@ -439,7 +438,7 @@ class HCSPInfo:
             if eval_expr(cur_hp.cond, self.state):
                 self.pos += (0,) + start_pos(cur_hp.hp)
             else:
-                self.pos = step_pos(self.hp, self.pos)
+                self.pos = step_pos(self.hp, self.pos, rec_vars)
             return "step"
 
         elif cur_hp.type == "recursion":
@@ -532,7 +531,8 @@ class HCSPInfo:
         and input value.
 
         """
-        cur_hp = get_pos(self.hp, self.pos)
+        rec_vars = dict()
+        cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "input_channel":
             assert cur_hp.ch_name == ch_name
@@ -541,7 +541,7 @@ class HCSPInfo:
             else:
                 assert x is not None
                 self.state[cur_hp.var_name] = x
-            self.pos = step_pos(self.hp, self.pos)
+            self.pos = step_pos(self.hp, self.pos, rec_vars)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
@@ -578,11 +578,12 @@ class HCSPInfo:
         Returns the output value.
 
         """
-        cur_hp = get_pos(self.hp, self.pos)
+        rec_vars = dict()
+        cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "output_channel":
             assert cur_hp.ch_name == ch_name
-            self.pos = step_pos(self.hp, self.pos)
+            self.pos = step_pos(self.hp, self.pos, rec_vars)
             return eval_expr(cur_hp.expr, self.state)
 
         elif cur_hp.type == "ode_comm":
@@ -612,7 +613,8 @@ class HCSPInfo:
         if self.pos is None:
             return
 
-        cur_hp = get_pos(self.hp, self.pos)
+        rec_vars = dict()
+        cur_hp = get_pos(self.hp, self.pos, rec_vars)
         if cur_hp.type in ["input_channel", "output_channel", "select_comm"]:
             pass
 
@@ -620,7 +622,7 @@ class HCSPInfo:
             delay_left = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
             assert delay_left >= delay
             if delay_left == delay:
-                self.pos = step_pos(self.hp, self.pos)
+                self.pos = step_pos(self.hp, self.pos, rec_vars)
             else:
                 self.pos = self.pos[:-1] + (self.pos[-1] + delay,)
 
@@ -666,7 +668,7 @@ class HCSPInfo:
                     self.state[var_name] = opt_round(sol.y[i][-1])
 
             if finish_ode:
-                self.pos = step_pos(self.hp, self.pos)
+                self.pos = step_pos(self.hp, self.pos, rec_vars)
 
         else:
             assert False
