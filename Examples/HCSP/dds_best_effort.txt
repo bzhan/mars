@@ -1,0 +1,43 @@
+system ::= @writer || @env || @reader
+
+writer ::=
+	st1 := "idle";
+	unsent := [];
+	(
+		if st1 == "pushing" then
+			if unsent == [] then
+				st1 := "idle"
+			else
+				n := bottom(unsent);
+				unsent := get(unsent);
+				send!n
+			endif
+		else
+			if unsent != [] then
+				st1 := "pushing"
+			else
+				skip
+			endif
+		endif;
+	
+		add?ls;
+		unsent := push(unsent, ls)
+	)**
+
+env ::=
+	add![3];
+	add![4, 7];
+	add![];
+	add![5, 6];
+	add![1, 3];
+	add![0, 2];
+	(
+		add![]
+	)**
+
+reader ::=
+	data := [];
+	(
+		send?n;
+		data := push(data, n)
+	)**

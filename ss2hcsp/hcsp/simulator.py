@@ -70,7 +70,10 @@ def eval_expr(expr, state):
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, tuple)
-            return a + (b,)
+            if isinstance(b, tuple):
+                return a + b
+            else:
+                return a + (b,)
         elif expr.fun_name == "pop":
             a, = args
             assert isinstance(a, tuple) and len(a) > 0
@@ -79,6 +82,14 @@ def eval_expr(expr, state):
             a, = args
             assert isinstance(a, tuple) and len(a) > 0
             return a[-1]
+        elif expr.fun_name == "bottom":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            return a[0]
+        elif expr.fun_name == "get":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            return a[1:]
         else:
             raise NotImplementedError
 

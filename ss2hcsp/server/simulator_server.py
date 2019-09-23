@@ -26,12 +26,19 @@ def parse_hcsp():
     text = data['text']
     text_lines = text.strip().split('\n')
     hcsp_info = []
-    for i, line in enumerate(text_lines):
-        try:
-            index = line.index('::=')
-        except ValueError:
-            return raise_error("Line %s must contain '::='.\n  %s" % (str(i+1), line))
 
+    # First, read lines from file, each line containing ::= means the
+    # start of a new program.
+    lines = []
+    for line in text_lines:
+        if line.find('::=') != -1:
+            lines.append(line)
+        else:
+            lines[-1] += line
+
+    # Now each entry in lines represent the definition of a program.
+    for line in lines:
+        index = line.index('::=')
         name = line[:index].strip()
         hp_text = line[index+3:].strip()
 
