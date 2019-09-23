@@ -474,19 +474,19 @@ class HCSPInfo:
 
         elif cur_hp.type == "input_channel":
             # Waiting for input
-            return "comm", [(cur_hp.ch_name, "?")]
+            return {"comm": [(cur_hp.ch_name, "?")]}
 
         elif cur_hp.type == "output_channel":
             # Waiting for someone to receive output
-            return "comm", [(cur_hp.ch_name, "!")]
+            return {"comm": [(cur_hp.ch_name, "!")]}
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            return "delay", eval_expr(cur_hp.delay, self.state) - self.pos[-1]
+            return {"delay": eval_expr(cur_hp.delay, self.state) - self.pos[-1]}
 
         elif cur_hp.type == "ode":
             # Find delay of ODE
-            return "delay", get_ode_delay(cur_hp, self.state)
+            return {"delay": get_ode_delay(cur_hp, self.state)}
 
         elif cur_hp.type == "ode_comm":
             # Run ODE until one of the communication events
@@ -496,7 +496,7 @@ class HCSPInfo:
                     comms.append((io_comm.ch_name, "?"))
                 else:
                     comms.append((io_comm.ch_name, "!"))
-            return "comm", comms
+            return {"comm": comms}
 
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
@@ -508,7 +508,7 @@ class HCSPInfo:
                     comms.append((comm_hp.ch_name, "!"))
                 else:
                     raise NotImplementedError
-            return "comm", comms
+            return {"comm": comms}
 
         elif cur_hp.type == 'ite':
             # Find the first condition that evaluates to true
@@ -701,18 +701,18 @@ def extract_event(reasons):
     for i, reason1 in enumerate(reasons):
         for j, reason2 in enumerate(reasons):
             if reason1 != 'end' and reason2 != 'end' and \
-                reason1[0] == 'comm' and reason2[0] == 'comm':
-                for ch_name1, dir1 in reason1[1]:
-                    for ch_name2, dir2 in reason2[1]:
+                'comm' in reason1 and 'comm' in reason2:
+                for ch_name1, dir1 in reason1['comm']:
+                    for ch_name2, dir2 in reason2['comm']:
                         if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
                             return ("comm", i, j, ch_name1)
 
     # If there is no communication, find minimum delay
     min_delay = None
     for reason in reasons:
-        if reason != 'end' and reason[0] == "delay":
-            if min_delay is None or min_delay > reason[1]:
-                min_delay = reason[1]
+        if reason != 'end' and 'delay' in reason:
+            if min_delay is None or min_delay > reason['delay']:
+                min_delay = reason['delay']
 
     if min_delay is not None:
         return ("delay", min_delay)

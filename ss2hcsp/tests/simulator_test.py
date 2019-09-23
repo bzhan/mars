@@ -88,21 +88,21 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep2(self):
         test_data = [
-            ("c?x", (), "comm", [("c", "?")]),
-            ("c!x", (), "comm", [("c", "!")]),
-            ("wait(3)", (0,), "delay", 3),
-            ("wait(3)", (1,), "delay", 2),
-            ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), "comm", [("c1", "?"), ("c2", "!")]),
-            ("x := 1; wait(3)", (1, 0), "delay", 3),
-            ("(x := 1; wait(3))**", (1, 0), "delay", 3),
-            ("(x := 1; wait(3))**", (1, 1), "delay", 2),
-            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), "delay", 1),
+            ("c?x", (), {"comm": [("c", "?")]}),
+            ("c!x", (), {"comm": [("c", "!")]}),
+            ("wait(3)", (0,), {"delay": 3}),
+            ("wait(3)", (1,), {"delay": 2}),
+            ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {"comm": [("c1", "?"), ("c2", "!")]}),
+            ("x := 1; wait(3)", (1, 0), {"delay": 3}),
+            ("(x := 1; wait(3))**", (1, 0), {"delay": 3}),
+            ("(x := 1; wait(3))**", (1, 1), {"delay": 2}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"delay": 1}),
         ]
 
-        for cmd, pos, reason, arg in test_data:
+        for cmd, pos, reason in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos)
             res = info.exec_step()
-            self.assertEqual(res, (reason, arg))
+            self.assertEqual(res, reason)
             self.assertEqual(info.pos, pos)
             self.assertEqual(info.state, dict())
 
@@ -111,9 +111,9 @@ class SimulatorTest(unittest.TestCase):
             ("skip", (), {}, None, {}, "end"),
             ("x := 2", (), {}, None, {"x": 2}, "end"),
             ("x := 2; x := x + 1", (0,), {}, None, {"x": 3}, "end"),
-            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, ("comm", [("c", "!")])),
-            ("wait(3)", (0,), {}, (0,), {}, ("delay", 3)),
-            ("(x := x + 1; wait(3))**", (0,), {"x": 2}, (1, 0), {"x": 3}, ("delay", 3)),
+            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [("c", "!")]}),
+            ("wait(3)", (0,), {}, (0,), {}, {"delay": 3}),
+            ("(x := x + 1; wait(3))**", (0,), {"x": 2}, (1, 0), {"x": 3}, {"delay": 3}),
             ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 0}, None, {"x": 0}, "end"),
             ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 2}, None, {"x": 1}, "end"),
             ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": -2}, None, {"x": -1}, "end"),
