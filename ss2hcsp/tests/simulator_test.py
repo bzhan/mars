@@ -36,6 +36,22 @@ class SimulatorTest(unittest.TestCase):
             expr = parser.bexpr_parser.parse(expr)
             self.assertEqual(simulator.eval_expr(expr, state), res)
 
+    def testStringOfPos(self):
+        test_data = [
+            ("x := 1; x := x + 1", (1,), "p1"),
+            ("x := 1; wait(1)", (1, 0), "p1"),
+            ("rec X.(x := 1; wait(1); @X)", (), "p"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0.2"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0.0"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0.1"),
+        ]
+
+        for hp, pos, expected_pos in test_data:
+            hp = parser.hp_parser.parse(hp)
+            pos = simulator.remove_rec(hp, pos)
+            self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
+
     def testExecStep(self):
         test_data = [
             ("skip", (), {}, None, {}),
@@ -53,7 +69,9 @@ class SimulatorTest(unittest.TestCase):
             ("x == 0 -> x := 2", (), {"x": 1}, None, {"x": 1}),
             ("rec X.(x := 1; wait(1); @X)", (), {"x": 1}, (0, 0), {"x": 1}),
             ("rec X.(x := 1; wait(1); @X)", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), {"x": 1}, (), {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2), {"x": 1}, (0, 2, 0), {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), {"x": 1}, (0, 2, 0, 0, 0), {"x": 1}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), {"x": 1}, (0, 2, 0, 0, 1, 0), {"x": 1}),
             ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 0}, (0,), {"x": 0}),
             ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 1}, (1,), {"x": 1}),
             ("if x == 0 then x := 1 else x := 0 endif", (0,), {"x": 0}, None, {"x": 1}),
@@ -360,6 +378,12 @@ class SimulatorTest(unittest.TestCase):
             "x := 0; (if x == 0 then x := 1 elif x == 1 then x := 2 else x := 0 endif; c!x)**",
             "(c?x)**"
         ], 6, ['IO c 1', 'IO c 2', 'IO c 0', 'IO c 1', 'IO c 2', 'IO c 0'])
+
+    def testExecParallel22(self):
+        self.run_test([
+            "rec X.(ch_a?x; x == 0 -> (@X); ch_b!x)",
+            "ch_a!0; ch_a!1; ch_b?y; ch_b?y"
+        ], 5, ['IO ch_a 0', 'IO ch_a 1', 'IO ch_b 1', 'IO ch_b 1', 'deadlock'])
 
 
 if __name__ == "__main__":

@@ -440,11 +440,6 @@ class App extends React.Component {
                                         name={hcsp_name} pos={undefined} state={state}
                                         time_series={time_series} event_time={event_time} hpos={hpos}/>
                     } else {
-                        // Process out the 'w{n}' in the end if necessary
-                        const sep = pos.lastIndexOf('.');
-                        if (sep !== -1 && pos[sep+1] === 'w') {
-                            pos = pos.slice(0, sep)
-                        }
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={info.mapping[pos]} state={state}
                                         time_series={time_series} event_time={event_time} hpos={hpos}/>

@@ -185,61 +185,78 @@ def start_pos(hp):
     else:
         return tuple()
 
-def get_pos(hp, pos):
+def get_pos(hp, pos, rec_vars=None):
     """Obtain the sub-program corresponding to the given position."""
     assert pos is not None, "get_pos: already reached the end."
+    if rec_vars is None:
+        rec_vars = dict()
     if hp.type == 'sequence':
-        assert len(pos) > 0 and pos[0] < len(hp.hps)
-        return get_pos(hp.hps[pos[0]], pos[1:])
+        if len(pos) == 0:
+            return hp
+        return get_pos(hp.hps[pos[0]], pos[1:], rec_vars)
     elif hp.type == 'loop':
-        return get_pos(hp.hp, pos)
+        return get_pos(hp.hp, pos, rec_vars)
     elif hp.type == 'wait':
-        assert len(pos) == 1
+        # assert len(pos) == 1
         return hp
     elif hp.type == 'ode_comm':
         if len(pos) == 0:
             return hp
         else:
             _, out_hp = hp.io_comms[pos[0]]
-            return get_pos(out_hp, pos[1:])
+            return get_pos(out_hp, pos[1:], rec_vars)
     elif hp.type == 'condition':
         if len(pos) == 0:
             return hp
         else:
             assert pos[0] == 0
-            return get_pos(hp.hp, pos[1:])
+            return get_pos(hp.hp, pos[1:], rec_vars)
     elif hp.type == 'select_comm':
         if len(pos) == 0:
             return hp
         else:
             _, out_hp = hp.io_comms[pos[0]]
-            return get_pos(out_hp, pos[1:])
+            return get_pos(out_hp, pos[1:], rec_vars)
     elif hp.type == 'recursion':
         if len(pos) == 0:
             return hp
         else:
-            return get_pos(hp.hp, pos[1:])
+            new_rec_vars = copy(rec_vars)
+            new_rec_vars[hp.entry] = hp
+            return get_pos(hp.hp, pos[1:], new_rec_vars)
     elif hp.type == 'ite':
         if len(pos) == 0:
             return hp
         elif pos[0] < len(hp.if_hps):
-            return get_pos(hp.if_hps[pos[0]][1], pos[1:])
+            return get_pos(hp.if_hps[pos[0]][1], pos[1:], rec_vars)
         else:
             assert pos[0] == len(hp.if_hps)
-            return get_pos(hp.else_hp, pos[1:])
+            return get_pos(hp.else_hp, pos[1:], rec_vars)
+    elif hp.type == 'var':
+        if len(pos) == 0:
+            return hp
+        assert pos[0] == 0
+
+        if hp.name not in rec_vars:
+            raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
+
+        rec_hp = rec_vars[hp.name]
+        return get_pos(rec_hp, pos[1:])
     else:
         assert len(pos) == 0
         return hp
 
-def step_pos(hp, pos):
+def step_pos(hp, pos, rec_vars=None):
     """Execute a (non-communicating) step in the program. Returns the
     new position, or None if steping to the end.
     
     """
     assert pos is not None, "step_pos: already reached the end."
+    if rec_vars is None:
+        rec_vars = dict()
     if hp.type == 'sequence':
         assert len(pos) > 0 and pos[0] < len(hp.hps)
-        sub_step = step_pos(hp.hps[pos[0]], pos[1:])
+        sub_step = step_pos(hp.hps[pos[0]], pos[1:], rec_vars)
         if sub_step is None:
             if pos[0] == len(hp.hps) - 1:
                 return None
@@ -250,13 +267,13 @@ def step_pos(hp, pos):
     elif hp.type == 'select_comm':
         assert len(pos) > 0
         _, out_hp = hp.io_comms[pos[0]]
-        sub_step = step_pos(out_hp, pos[1:])
+        sub_step = step_pos(out_hp, pos[1:], rec_vars)
         if sub_step is None:
             return None
         else:
             return (pos[0],) + sub_step
     elif hp.type == 'loop':
-        sub_step = step_pos(hp.hp, pos)
+        sub_step = step_pos(hp.hp, pos, rec_vars)
         if sub_step is None:
             return start_pos(hp.hp)
         else:
@@ -264,7 +281,7 @@ def step_pos(hp, pos):
     elif hp.type == 'condition':
         if len(pos) == 0:
             return None
-        sub_step = step_pos(hp.hp, pos[1:])
+        sub_step = step_pos(hp.hp, pos[1:], rec_vars)
         if sub_step is None:
             return None
         else:
@@ -273,7 +290,19 @@ def step_pos(hp, pos):
         assert len(pos) == 1
         return None
     elif hp.type == 'recursion':
-        sub_step = step_pos(hp.hp, pos[1:])
+        new_rec_vars = copy(rec_vars)
+        new_rec_vars[hp.entry] = hp
+        sub_step = step_pos(hp.hp, pos[1:], new_rec_vars)
+        if sub_step is None:
+            return None
+        else:
+            return (0,) + sub_step
+    elif hp.type == 'var':
+        if hp.name not in rec_vars:
+            raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
+
+        rec_hp = rec_vars[hp.name]
+        sub_step = step_pos(rec_hp, pos[1:], rec_vars)
         if sub_step is None:
             return None
         else:
@@ -319,6 +348,26 @@ def parse_pos(hp, pos):
 
     return pos
 
+def remove_rec(hp, pos, rec_vars=None):
+    """Given a position in a program possibly with recursion,
+    return the simplest expression for the same position in the program
+    (removing recursion). This simpler position is used for display
+    in user interface.
+
+    """
+    if pos is None:
+        return None
+
+    rec_list = []
+    for i in range(len(pos)+1):
+        sub_hp = get_pos(hp, pos[:i])
+        if sub_hp.type == 'recursion':
+            rec_list.append(i)
+
+    if len(rec_list) >= 2:
+        pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
+    return pos
+
 def string_of_pos(hp, pos):
     """Convert pos in internal representation to string form."""
     if pos is None:
@@ -326,7 +375,7 @@ def string_of_pos(hp, pos):
     elif get_pos(hp, pos).type != 'wait':
         return 'p' + '.'.join(str(p) for p in pos)
     else:
-        return 'p' + '.'.join(str(p) for p in pos[:-1]) + '.w' + str(pos[-1])
+        return 'p' + '.'.join(str(p) for p in pos[:-1])
 
 class HCSPInfo:
     """Represents a (non-parallel) HCSP program together with
@@ -395,20 +444,16 @@ class HCSPInfo:
 
         elif cur_hp.type == "recursion":
             # Enter into recursion
-            self.pos = self.pos + (0,) + start_pos(cur_hp.hp)
-            return "step"            
+            self.pos += (0,) + start_pos(cur_hp.hp)
+            return "step"
 
         elif cur_hp.type == "var":
             # Return to body of recursion
             for i in range(len(self.pos)):
-                try:
-                    hp = get_pos(self.hp, self.pos[:i])
-                except AssertionError:
-                    pass
-                else:
-                    if hp.type == 'recursion' and hp.entry == cur_hp.name:
-                        self.pos = self.pos[:i]
-                        return "step"
+                hp = get_pos(self.hp, self.pos[:i])
+                if hp.type == 'recursion' and hp.entry == cur_hp.name:
+                    self.pos += (0,) + start_pos(hp)
+                    return "step"
 
             # Otherwise, not a recursion variable
             raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
@@ -661,7 +706,8 @@ def get_log_info(infos):
     """Obtain the logged info."""
     cur_info = dict()
     for info in infos:
-        info_pos = string_of_pos(info.hp, info.pos)
+        out_pos = remove_rec(info.hp, info.pos)
+        info_pos = string_of_pos(info.hp, out_pos)
         cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
     return cur_info
 
