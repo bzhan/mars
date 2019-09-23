@@ -402,6 +402,12 @@ class SimulatorTest(unittest.TestCase):
             'wait(0.2); c?x; wait(1.3); c?x'
         ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
 
+    def testExecParallel25(self):
+        self.run_test([
+            'x := 0; (<x_dot = 1 & x < 1> |> [](c!x --> skip)){x < 1}**; c!x',
+            'wait(0.2); c?x; wait(1.3); c?x'
+        ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,8 @@
 """Pretty-printing for HCSP commands."""
 
+from ss2hcsp.hcsp.expr import true_expr
 from ss2hcsp.hcsp import hcsp
+
 
 def pprint_lines(hp, *, max_line=None, record_pos=False):
     """Pretty-printing for a HCSP command.
@@ -82,7 +84,10 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             add_str("(")
             rec(hp.hp, indent+2, pos)
             new_line(indent)
-            add_str(")**")
+            if hp.constraint == true_expr:
+                add_str(")**")
+            else:
+                add_str("){%s}**" % hp.constraint)
 
         elif hp.type == 'ode_comm':
             new_line(indent)

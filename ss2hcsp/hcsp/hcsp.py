@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 # from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr
+from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr, true_expr
 
 
 class HCSP:
@@ -267,20 +267,26 @@ class ODE_Comm(HCSP):
 
 class Loop(HCSP):
     """Represents an infinite loop of a program."""
-    def __init__(self, hp):
+    def __init__(self, hp, constraint=true_expr):
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp  # hcsp
+        self.constraint = constraint
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp == other.hp
+        return self.type == other.type and self.hp == other.hp and self.constraint == other.constraint
 
     def __repr__(self):
-        return "Loop(%s)" % repr(self.hp)
+        if self.constraint == true_expr:
+            return "Loop(%s)" % repr(self.hp)
+        else:
+            return "Loop(%s, %s)" % (repr(self.hp), self.constraint)
 
     def __str__(self):
-        return "(" + str(self.hp) + ")**"
-
+        if self.constraint == true_expr:
+            return "(%s)**" % str(self.hp)
+        else:
+            return "(%s){%s}**" % (str(self.hp), str(self.constraint))
 
 class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;

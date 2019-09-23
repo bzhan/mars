@@ -60,6 +60,7 @@ grammar = r"""
         | CNAME ":=" expr -> assign_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
+        | "(" cmd "){" cond "}**" -> repeat_cond_cmd
         | "<" ode_seq "&" cond ">" -> ode
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
@@ -199,6 +200,9 @@ class HPTransformer(Transformer):
 
     def repeat_cmd(self, cmd):
         return hcsp.Loop(cmd)
+
+    def repeat_cond_cmd(self, cmd, cond):
+        return hcsp.Loop(cmd, constraint=cond)
 
     def ode_seq(self, *args):
         res = []

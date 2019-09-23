@@ -173,6 +173,13 @@ class PPrintTest(unittest.TestCase):
             'endif'
         ])
 
+    def test17(self):
+        self.run_test("(x := x + 1){x < 3}**", [
+            '(',
+            '  x := x+1',
+            '){x < 3}**'
+        ])
+
     def testVanPerPol_continuous1(self):
         self.run_test("t := 0; (ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> x5 := (1-x3)*(-2.2); t%8 == 0 -> x6 := max(x1, x5); t%10 == 0 -> (x6 > x2 -> x0 := 0; x6 <= x2 -> x0 := 1); ch_x0_0!x0; temp := t; <t_dot = 1 & t < temp+2>)**", [
             't := 0;',
