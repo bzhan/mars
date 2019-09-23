@@ -1,0 +1,121 @@
+system ::= @writer || @env || @reader
+
+writer ::=
+	st1 := "announcing";
+	st2 := "waiting";
+	unsent := [];
+	sent := 0;
+	ack := 0;
+	re_unsent := [];
+	hb_count := 3;
+	(
+		if st1 == "announcing" then
+			if unsent != [] then
+				st1 := "pushing"
+			else
+				hb_count := hb_count - 1;
+				if hb_count == 0 then
+					heartbeat!;
+					hb_count := 3
+				else
+					skip
+				endif
+			endif
+		else
+			if unsent == [] then
+				st1 := "announcing";
+				hb_count := 3
+			else
+				n := bottom(unsent);
+				unsent := get(unsent);
+				send!n;
+				sent := sent + 1
+			endif
+		endif;
+
+		if st2 == "waiting" then
+			if re_unsent != [] then
+				st2 := "must_repair";
+				resp_delay := 5
+			else
+				skip
+			endif
+		elif st2 == "must_repair" then
+			resp_delay := resp_delay - 1;
+			if resp_delay == 0 then
+				st2 := "repairing"
+			else
+				skip
+			endif
+		else
+			if re_unsent == [] then
+				st2 := "waiting"
+			else
+				n := bottom(re_unsent);
+				re_unsent := get(re_unsent);
+				send!n
+			endif
+		endif;
+
+		add?ls;
+		unsent := push(unsent, ls);
+
+		ack?ls;
+		ack := ack + len(ls);
+
+		acknack?ls;
+		re_unsent := push(re_unsent, ls)
+	)**
+
+env ::=
+	add![3];
+	add![4, 7];
+	add![];
+	add![5, 6];
+	add![1];
+	add![0, 2];
+	(
+		add![]
+	)**
+
+reader ::=
+	data := [];
+	(
+		send?n;
+		data := push(data, n)
+	)**
+
+heartbeat ::=
+	(
+		heartbeat?
+	)**
+
+ack ::=
+	ack![];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![3];
+	acknack![];
+	ack![7, 5];
+	acknack![4];
+	ack![];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![6, 1];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![0, 2];
+	acknack![];
+	ack![];
+	acknack![];
+	ack![4];
+	acknack![];
+	(
+		ack![];
+		acknack![]
+	)**

@@ -90,6 +90,10 @@ def eval_expr(expr, state):
             a, = args
             assert isinstance(a, tuple) and len(a) > 0
             return a[1:]
+        elif expr.fun_name == "len":
+            a, = args
+            assert isinstance(a, tuple)
+            return len(a)
         else:
             raise NotImplementedError
 
