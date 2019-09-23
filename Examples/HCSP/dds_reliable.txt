@@ -1,4 +1,4 @@
-system ::= @writer || @env || @reader
+system ::= @writer || @env || @reader || @heartbeat || @ack
 
 writer ::=
 	st1 := "announcing";
