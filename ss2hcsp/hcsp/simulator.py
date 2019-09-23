@@ -143,7 +143,7 @@ def get_ode_delay(hp, state):
     given state.
     
     """
-    assert hp.type == 'ode'
+    assert hp.type in ('ode', 'ode_comm')
 
     def ode_fun(t, y):
         res = []
@@ -321,7 +321,9 @@ def step_pos(hp, pos, rec_vars=None):
         else:
             return (0,) + sub_step
     elif hp.type == 'ode_comm':
-        assert len(pos) > 0
+        if len(pos) == 0:
+            return None
+
         _, out_hp = hp.io_comms[pos[0]]
         sub_step = step_pos(out_hp, pos[1:], rec_vars)
         if sub_step is None:
@@ -489,14 +491,17 @@ class HCSPInfo:
             return {"delay": get_ode_delay(cur_hp, self.state)}
 
         elif cur_hp.type == "ode_comm":
-            # Run ODE until one of the communication events
+            # Run ODE until one of the communication events (or the boundary)
             comms = []
             for io_comm, rest in cur_hp.io_comms:
                 if io_comm.type == "input_channel":
                     comms.append((io_comm.ch_name, "?"))
                 else:
                     comms.append((io_comm.ch_name, "!"))
-            return {"comm": comms}
+            res = {"comm": comms}
+            if cur_hp.constraint != true_expr:
+                res["delay"] = get_ode_delay(cur_hp, self.state)
+            return res
 
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
@@ -643,9 +648,8 @@ class HCSPInfo:
 
         elif cur_hp.type == "ode_comm" or cur_hp.type == "ode":
             finish_ode = False
-            if cur_hp.type == "ode_comm":
-                assert cur_hp.constraint == true_expr
-            else:
+
+            if cur_hp.constraint != true_expr:
                 # Test whether this finishes the ODE.
                 ode_delay = get_ode_delay(cur_hp, self.state)
                 assert delay <= ode_delay

@@ -88,23 +88,28 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep2(self):
         test_data = [
-            ("c?x", (), {"comm": [("c", "?")]}),
-            ("c!x", (), {"comm": [("c", "!")]}),
-            ("wait(3)", (0,), {"delay": 3}),
-            ("wait(3)", (1,), {"delay": 2}),
-            ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {"comm": [("c1", "?"), ("c2", "!")]}),
-            ("x := 1; wait(3)", (1, 0), {"delay": 3}),
-            ("(x := 1; wait(3))**", (1, 0), {"delay": 3}),
-            ("(x := 1; wait(3))**", (1, 1), {"delay": 2}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"delay": 1}),
+            ("c?x", (), {}, {"comm": [("c", "?")]}),
+            ("c!x", (), {}, {"comm": [("c", "!")]}),
+            ("wait(3)", (0,), {}, {"delay": 3}),
+            ("wait(3)", (1,), {}, {"delay": 2}),
+            ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {},
+             {"comm": [("c1", "?"), ("c2", "!")]}),
+            ("x := 1; wait(3)", (1, 0), {}, {"delay": 3}),
+            ("(x := 1; wait(3))**", (1, 0), {}, {"delay": 3}),
+            ("(x := 1; wait(3))**", (1, 1), {}, {"delay": 2}),
+            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {}, {"delay": 1}),
+            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0},
+             {"comm": [("c1", "?"), ("c2", "!")], "delay": 1.0}),
+            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0.5},
+             {"comm": [("c1", "?"), ("c2", "!")], "delay": 0.5}),
         ]
 
-        for cmd, pos, reason in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos)
+        for cmd, pos, state, reason in test_data:
+            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_step()
             self.assertEqual(res, reason)
             self.assertEqual(info.pos, pos)
-            self.assertEqual(info.state, dict())
+            self.assertEqual(info.state, state)
 
     def testExecProcess(self):
         test_data = [
@@ -390,6 +395,12 @@ class SimulatorTest(unittest.TestCase):
             'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; EL != [] -> (E := top(EL); num := top(NL))))**',
             'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X.(BC1?E; if a_A == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_S1 == 1 -> (a_A := 0; BR1!"e"; @X; a_S1 == 1 -> (a_B := 1; done := 1))); done == 0 -> skip elif a_B == 1 then skip else skip endif; BO1!)'
         ], 5, ['IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"'])
+
+    def testExecParallel24(self):
+        self.run_test([
+            'x := 0; <x_dot = 1 & x < 1> |> [](c!x --> skip); <x_dot = 1 & x < 1> |> [](c!x --> skip); c!x',
+            'wait(0.2); c?x; wait(1.3); c?x'
+        ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
 
 
 if __name__ == "__main__":
