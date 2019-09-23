@@ -52,7 +52,7 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
         elif hp.type == 'condition':
             new_line(indent)
             start_pos(pos)
-            if hp.hp.type == 'sequence' or hp.hp.type == 'select_comm':
+            if hp.hp.type in ('sequence', 'select_comm', 'ite'):
                 add_str(str(hp.cond) + " -> (")
                 start_pos(pos+(0,))
                 rec(hp.hp, indent+2, pos+(0,))

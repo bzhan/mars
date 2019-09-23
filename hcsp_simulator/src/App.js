@@ -147,7 +147,7 @@ class Process extends React.Component {
         var datasets = [];
         var colors = ['blue', 'red', 'green', 'yellow'];
         for (let k in series) {
-            let color = colors[datasets.length];
+            let color = datasets.length >= 4 ? 'black' : colors[datasets.length];
             datasets.push({
                 label: k,
                 lineTension: 0,
