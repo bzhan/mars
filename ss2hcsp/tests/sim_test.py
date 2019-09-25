@@ -113,9 +113,9 @@ class SimTest(unittest.TestCase):
         expected_hp.add("PD0", discrete_hp0)
 
         hp1_init = hp_parser.parse("t := 0")
-        hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%gcd(in0, in0) == 0 ->
+        hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%-1 == 0 ->
         (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
-        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6; wait(gcd(2, and)); t := t+gcd(2, and)""")
+        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6; wait(-1); t := t+(-1)""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
         expected_hp.add("PD1", discrete_hp1)
         # print("E: ", expected_hp)

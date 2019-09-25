@@ -76,7 +76,7 @@ class Skip(HCSP):
 
 class Wait(HCSP):
     def __init__(self, delay):
-        assert isinstance(delay, (AConst, AVar, FunExpr))
+        assert isinstance(delay, AConst)
         self.type = "wait"
         self.delay = delay
 
@@ -287,6 +287,7 @@ class Loop(HCSP):
             return "(%s)**" % str(self.hp)
         else:
             return "(%s){%s}**" % (str(self.hp), str(self.constraint))
+
 
 class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;

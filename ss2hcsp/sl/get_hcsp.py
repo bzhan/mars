@@ -212,10 +212,9 @@ def translate_discrete(diag):
         if not hasattr(block, "st") or block.type == "constant":
             continue
 
-        st_cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"),
-                                                 expr2=AConst(block.st)
-                                                 if isinstance(block.st, (int, float)) else block.st),
-                          expr2=AConst(0))
+        assert isinstance(block.st, (int, float))
+        st_cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"), expr2=AConst(block.st)), expr2=AConst(0))
+        # if isinstance(block.st, (int, float)) else block.st),
         if st_cond not in st_cond_inst_dict:
             st_cond_inst_dict[st_cond] = Conditional_Inst()
 
@@ -239,7 +238,6 @@ def translate_discrete(diag):
                 res_expr = FunExpr(fun_name="abs", exprs=[in_vars[0]])
             elif block.type == "not":
                 res_expr = PlusExpr(signs="+-", exprs=[AConst(1), in_vars[0]])
-            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type in ["add", "divide"]:  # multiple inputs, one output
             assert len(in_vars) == len(block.dest_spec)
@@ -247,7 +245,6 @@ def translate_discrete(diag):
                 res_expr = PlusExpr(signs=block.dest_spec, exprs=in_vars)
             elif block.type == "divide":
                 res_expr = TimesExpr(signs=block.dest_spec, exprs=in_vars)
-            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type in ["or", "and", "min_max"]:  # multiple inputs, one output
             assert len(in_vars) == block.num_dest
@@ -257,38 +254,23 @@ def translate_discrete(diag):
                 res_expr = FunExpr(fun_name="min", exprs=in_vars)
             elif block.type == "min_max":
                 res_expr = FunExpr(fun_name=block.fun_name, exprs=in_vars)
-            # block_hp = hp.Assign(var_name=out_var, expr=res_expr)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
         elif block.type == "relation":
             cond0 = RelExpr(op=block.relation, expr1=in_vars[0], expr2=in_vars[1])
-            # hp0 = hp.Assign(var_name=out_var, expr=AConst(1))
-            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond1 = cond0.neg()
-            # hp1 = hp.Assign(var_name=out_var, expr=AConst(0))
-            # cond_hp_1 = hp.Condition(cond=cond1, hp=hp1)
-            # block_hp = hp.Sequence(cond_hp_0, cond_hp_1)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(1)), (cond1, AConst(0))])
         elif block.type == "switch":
             cond0 = RelExpr(op=block.relation, expr1=in_vars[1], expr2=AConst(block.threshold))
-            # hp0 = hp.Assign(var_name=out_var, expr=in_vars[0])
-            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp0)
             cond2 = cond0.neg()
-            # hp2 = hp.Assign(var_name=out_var, expr=in_vars[2])
-            # cond_hp_2 = hp.Condition(cond=cond2, hp=hp2)
-            # block_hp = hp.Sequence(cond_hp_0, cond_hp_2)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, in_vars[0]), (cond2, in_vars[2])])
         elif block.type == "saturation":
             in_var = in_vars[0]
             cond0 = RelExpr(op=">", expr1=in_var, expr2=AConst(block.up_lim))
-            # cond_hp_0 = hp.Condition(cond=cond0, hp=hp.Assign(var_name=out_var, expr=AConst(block.up_lim)))
             cond1 = RelExpr(op="<", expr1=in_var, expr2=AConst(block.low_lim))
-            # cond_hp_1 = hp.Condition(cond=cond1, hp=hp.Assign(var_name=out_var, expr=AConst(block.low_lim)))
             cond2 = LogicExpr(op="&&", expr1=cond0.neg(), expr2=cond1.neg())
-            # block_hp = hp.Sequence(hp.Assign(var_name=out_var, expr=in_var), cond_hp_0, cond_hp_1)
             st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
                                                                         (cond1, AConst(block.low_lim)),
                                                                         (cond2, in_var)])
-        # discrete_hps.append(hp.Condition(cond=cond, hp=block_hp))
 
     # Delete useless (intermidiate) variables in st_cond_inst_dict[st_cond] for each st_cond
     for st_cond, cond_inst in st_cond_inst_dict.items():
@@ -320,24 +302,25 @@ def translate_discrete(diag):
 
     # Get the time process
     # Compute the GCD of sample times of all the discrete blocks
-    known_st = []
-    unknown_st = []
-    for block in blocks:
-        if isinstance(block.st, (int, float)):
-            assert block.st > -1
-            known_st.append(block.st)
-        else:
-            assert isinstance(block.st, (AVar, FunExpr))
-            unknown_st.append(AVar(block.name))
-
-    if known_st:
-        known_st = [AConst(get_gcd(known_st))]
-    known_st.extend(unknown_st)
-    st_gcd = FunExpr(fun_name="gcd", exprs=known_st) if len(known_st) >= 2 else known_st[0]
+    gcd_st = AConst(get_gcd([block.st for block in blocks]))
+    # known_st = []
+    # unknown_st = []
+    # for block in blocks:
+    #     if isinstance(block.st, (int, float)):
+    #         assert block.st > -1
+    #         known_st.append(block.st)
+    #     else:
+    #         assert isinstance(block.st, (AVar, FunExpr))
+    #         unknown_st.append(AVar(block.name))
+    #
+    # if known_st:
+    #     known_st = [AConst(get_gcd(known_st))]
+    # known_st.extend(unknown_st)
+    # st_gcd = FunExpr(fun_name="gcd", exprs=known_st) if len(known_st) >= 2 else known_st[0]
 
     # Get loop body
     loop_hps = in_channels + discrete_hps + out_channels + \
-               [hp.Wait(delay=st_gcd), hp.Assign(var_name="t", expr=PlusExpr(signs="++", exprs=[AVar("t"), st_gcd]))]
+               [hp.Wait(delay=gcd_st), hp.Assign(var_name="t", expr=PlusExpr(signs="++", exprs=[AVar("t"), gcd_st]))]
     loop_hps = hp.Sequence(*loop_hps)
     process = hp.Sequence(init_hp, hp.Loop(loop_hps))
     return process
