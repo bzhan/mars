@@ -54,17 +54,17 @@ def createConnections(dic):
                 for i in range(len(hps)):
                    sub_comm.append((category['name']+'_Conn_'+str(i), hps[i]))
                    hp2.append(Var(category['name']+'_Conn_'+str(i)))
-                process.add(category['name'] + '_Conns', Parallel(*hp2))
+                process.add('Comms_'+ category['name'] , Parallel(*hp2))
                 for (name, hp) in sub_comm:
                     process.add(name,hp)
             else:
-                process.add(category['name']+'_Conns', hps[0])
+                process.add('Comms_'+category['name'], hps[0])
 
 
     return process
 
 class Process:
-    def __init__(self, process, threadlines, protocol='FIFO'):
+    def __init__(self, process, threadlines, protocol='HPF'):
         self.threadlines = threadlines
         self.protocol = protocol
         self.process_name = process['name']
@@ -101,11 +101,11 @@ class Process:
 
     def _preemptPriority(self, thread):
         hps = []
-        hps_con = InputChannel('tran_'+str(thread), AVar('prior'))  # insert variable
+        hps_con = InputChannel('tran_'+str(thread), 'prior')  # insert variable
         con1= RelExpr('<', AVar('run_prior'), AVar('prior'))
         con2= RelExpr('>', AVar('run_prior'), AVar('prior'))
         con_hp1 = Sequence(self._BusyProcess(),
-                           Assign('run_now', AVar(thread)),
+                           Assign('run_now', AConst('"'+str(thread)+'"')),
                            Assign('run_prior', AVar('prior')),
                            OutputChannel('run_' + str(thread)))  # insert output
 
@@ -130,8 +130,8 @@ class Process:
         con1 = RelExpr('>', AVar('ready_num'), AConst(0))
         con2 = RelExpr('==', AVar('ready_num'), AConst(0))
         con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
-                           InputChannel('ch_run_' + self.process_name, AVar('run_now')),
-                           InputChannel('ch_prior_' + self.process_name, AVar('run_prior')),
+                           InputChannel('ch_run_' + self.process_name, 'run_now'),
+                           InputChannel('ch_prior_' + self.process_name, 'run_prior'),
                            self._RunProcess(),
                            Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
 
@@ -164,7 +164,7 @@ class Process:
     def _BusyProcess(self):
         hps = []
         for thread in self.threadlines:
-            con = RelExpr('==', AVar('run_now'), AVar(thread))
+            con = RelExpr('==', AVar('run_now'), AConst('"'+str(thread)+'"'))
             con_hp = OutputChannel('busy_'+str(thread))  # insert output
             hps.append(Condition(con, con_hp))
 
@@ -178,7 +178,7 @@ class Process:
     def _RunProcess(self):
         hps = []
         for thread in self.threadlines:
-            con = RelExpr('==', AVar('run_now'), AVar(thread))
+            con = RelExpr('==', AVar('run_now'), AConst('"'+str(thread)+'"'))
             con_hp = OutputChannel('run_'+str(thread))  # insert output
             hps.append(Condition(con,con_hp))
 
@@ -222,8 +222,8 @@ class Process:
 
     def _insertPriority(self, thread):
         hps = []
-        hps_con = InputChannel('insert_' + str(thread), AVar('prior'))  # insert variable
-        con_tmp = Sequence(Assign('q_'+str(0), AVar(thread)),
+        hps_con = InputChannel('insert_' + str(thread), 'prior')  # insert variable
+        con_tmp = Sequence(Assign('q_'+str(0), AConst('"'+str(thread)+'"')),
                            Assign('p_'+str(0), AVar('prior')))
         for i in range(self.thread_num-1):
             con1 = RelExpr('<', AVar('p_'+str(i)), AVar('prior'))
@@ -232,7 +232,7 @@ class Process:
                                Assign('p_'+str(i+1), AVar('p_'+str(i))),
                                con_tmp)  # insert output
 
-            con_hp2 = Sequence(Assign('q_'+str(i+1), AVar(thread)),
+            con_hp2 = Sequence(Assign('q_'+str(i+1), AConst('"'+str(thread)+'"')),
                                Assign('p_'+str(i+1), AVar('prior')))
 
             con_tmp = Sequence(Condition(con1, con_hp1),
@@ -249,12 +249,12 @@ class Process:
     def _insertTail(self, thread):
         hps = []
         hps_con = InputChannel('insert_' + str(thread))  # insert variable
-        con_tmp = Assign('q_' + str(self.thread_num-1), AVar(thread))
+        con_tmp = Assign('q_' + str(self.thread_num-1), AConst('"'+str(thread)+'"'))
         for i in range(self.thread_num-2, -1, -1):
             con1 = RelExpr('!=', AVar('q_' + str(i)), AConst(0))
             con2 = RelExpr('==', AVar('q_' + str(i)), AConst(0))
             con_hp1 = con_tmp  # insert output
-            con_hp2 = Assign('q_' + str(i), AVar(thread))
+            con_hp2 = Assign('q_' + str(i), AConst('"'+str(thread)+'"'))
 
             con_tmp = Sequence(Condition(con1, con_hp1),
                                Condition(con2, con_hp2))
@@ -386,6 +386,7 @@ class Thread:
 
     def _createReady(self):
         com_ready = []
+        com_ready.append(Assign('prior', AConst(int(self.thread_priority))))
         hps = SelectComm((InputChannel('init_'+self.thread_name, 't'), Skip()),
                           (InputChannel('preempt_'+self.thread_name, 't'), Skip()),
                           (InputChannel('unblock_'+self.thread_name, 't'), Skip()))
@@ -475,7 +476,8 @@ class Thread:
             hps = Sequence(*hps)
         else:
             hps = hps[0]
-        return hps
+        #return hps
+        return Skip()
 
 def convert_AADL(json_file, annex_file):
     out = HCSPProcess()

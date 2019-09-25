@@ -1,12 +1,10 @@
-HeatSW ::= @sensor || @HeatCooler || @Regulator
-Regulator ::= @regulator
+HeatSW ::= @sensor || @HeatCooler || @regulator
 box ::= @boxThread || @Comms_box
-conditioner ::= @HeatSW || @sim_model || @Comms_conditioner
-sim_model ::= @box
-box_Conns ::= @box_Conn_0 || @box_Conn_1
+conditioner ::= @HeatSW || @box || @Comms_conditioner
+Comms_box ::= @box_Conn_0 || @box_Conn_1
 box_Conn_0 ::= boxIn?x; boxThread_simIn!x
 box_Conn_1 ::= boxThread_simOut?x; boxOut!x
-conditioner_Conns ::= @conditioner_Conn_0 || @conditioner_Conn_1
+Comms_conditioner ::= @conditioner_Conn_0 || @conditioner_Conn_1
 conditioner_Conn_0 ::= HeatSW_currrentTemp?x; sim_model_boxIn!x
 conditioner_Conn_1 ::= sim_model_boxOut?x; HeatSW_desiredTemp!x
 HeatCooler ::= @ACT_HeatCooler || @DIS_HeatCooler || @COM_HeatCooler
@@ -14,34 +12,34 @@ ACT_HeatCooler ::= (act_HeatCooler!)**
 DIS_HeatCooler ::= (act_HeatCooler?; wait(20); dis_HeatCooler!; (complete_HeatCooler? --> skip $ exit_HeatCooler? --> skip))**
 COM_HeatCooler ::= @Init_HeatCooler || @Ready_HeatCooler || @Running_HeatCooler || @Await_HeatCooler
 Init_HeatCooler ::= (dis_HeatCooler?; t := 0; init_HeatCooler!t)**
-Ready_HeatCooler ::= ((init_HeatCooler?t --> skip $ preempt_HeatCooler?t --> skip $ unblock_HeatCooler?t --> skip); tran_HeatCooler!prior; <t_dot = 1 & t < 20> |> [] (run_HeatCooler? --> resume_HeatCooler!t); t == 20 -> exit_HeatCooler!)**
+Ready_HeatCooler ::= (prior := 10; (init_HeatCooler?t --> skip $ preempt_HeatCooler?t --> skip $ unblock_HeatCooler?t --> skip); tran_HeatCooler!prior; <t_dot = 1 & t < 20> |> [] (run_HeatCooler? --> resume_HeatCooler!t); t == 20 -> exit_HeatCooler!)**
 Await_HeatCooler ::= (block_HeatCooler?t; applyResource_HeatCooler!; <t_dot = 1 & t < 20> |> [] (haveResource_HeatCooler? --> unblock_HeatCooler!t); t == 20 -> exit_HeatCooler!)**
-Running_HeatCooler ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_HeatCooler?t; c == 0 -> (command >= 0.0 -> (heating := heating; Temp := Temp+1.0); command < 0.0 -> (cooling := cooling; Temp := Temp-1.0); temperature := Temp); <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_HeatCooler? --> preempt_HeatCooler!t; InitFlag := 1, needResource_HeatCooler? --> block_HeatCooler!t; InitFlag := 1); free!; t < 20 -> (complete_HeatCooler!; InitFlag := 0); t == 20 -> (exit_HeatCooler!; InitFlag := 0))**
-SCHEDULE_HeatSW ::= run_now := 0; ready_num := 0; (tran_sensor? --> insert_sensor!; ready_num := ready_num+1 $ tran_HeatCooler? --> insert_HeatCooler!; ready_num := ready_num+1 $ tran_Regulator? --> insert_Regulator!; ready_num := ready_num+1 $ free? --> ready_num > 0 -> (change_HeatSW!; ch_run_HeatSW?run_now; run_now == sensor -> run_sensor!; run_now == HeatCooler -> run_HeatCooler!; run_now == Regulator -> run_Regulator!; ready_num := ready_num-1); ready_num == 0 -> run_now := 0)**
-QUEUE_HeatSW ::= q_0 := 0; q_1 := 0; q_2 := 0; (insert_sensor? --> q_0 != 0 -> (q_1 != 0 -> q_2 := sensor; q_1 == 0 -> q_1 := sensor); q_0 == 0 -> q_0 := sensor $ insert_HeatCooler? --> q_0 != 0 -> (q_1 != 0 -> q_2 := HeatCooler; q_1 == 0 -> q_1 := HeatCooler); q_0 == 0 -> q_0 := HeatCooler $ insert_Regulator? --> q_0 != 0 -> (q_1 != 0 -> q_2 := Regulator; q_1 == 0 -> q_1 := Regulator); q_0 == 0 -> q_0 := Regulator $ change_HeatSW? --> ch_run_HeatSW!q_0; q_0 := q_1; q_1 := q_2; q_2 := 0)**
+Running_HeatCooler ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_HeatCooler?t; c == 0 -> skip; <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_HeatCooler? --> preempt_HeatCooler!t; InitFlag := 1, needResource_HeatCooler? --> block_HeatCooler!t; InitFlag := 1); free!; t < 20 -> (complete_HeatCooler!; InitFlag := 0); t == 20 -> (exit_HeatCooler!; InitFlag := 0))**
+SCHEDULE_HeatSW ::= run_now := 0; run_prior := 0; ready_num := 0; (tran_sensor?prior --> run_prior < prior -> (run_now == "sensor" -> busy_sensor!; run_now == "HeatCooler" -> busy_HeatCooler!; run_now == "Regulator" -> busy_Regulator!; run_now := "sensor"; run_prior := prior; run_sensor!); run_prior > prior -> (insert_sensor!prior; ready_num := ready_num+1) $ tran_HeatCooler?prior --> run_prior < prior -> (run_now == "sensor" -> busy_sensor!; run_now == "HeatCooler" -> busy_HeatCooler!; run_now == "Regulator" -> busy_Regulator!; run_now := "HeatCooler"; run_prior := prior; run_HeatCooler!); run_prior > prior -> (insert_HeatCooler!prior; ready_num := ready_num+1) $ tran_Regulator?prior --> run_prior < prior -> (run_now == "sensor" -> busy_sensor!; run_now == "HeatCooler" -> busy_HeatCooler!; run_now == "Regulator" -> busy_Regulator!; run_now := "Regulator"; run_prior := prior; run_Regulator!); run_prior > prior -> (insert_Regulator!prior; ready_num := ready_num+1) $ free? --> ready_num > 0 -> (change_HeatSW!; ch_run_HeatSW?run_now; ch_prior_HeatSW?run_prior; run_now == "sensor" -> run_sensor!; run_now == "HeatCooler" -> run_HeatCooler!; run_now == "Regulator" -> run_Regulator!; ready_num := ready_num-1); ready_num == 0 -> (run_now := 0; run_prior := 0))**
+QUEUE_HeatSW ::= q_0 := 0; p_0 := 0; q_1 := 0; p_1 := 0; q_2 := 0; p_2 := 0; (insert_sensor?prior --> p_1 < prior -> (q_2 := q_1; p_2 := p_1; p_0 < prior -> (q_1 := q_0; p_1 := p_0; q_0 := "sensor"; p_0 := prior); p_0 > prior -> (q_1 := "sensor"; p_1 := prior)); p_1 > prior -> (q_2 := "sensor"; p_2 := prior) $ insert_HeatCooler?prior --> p_1 < prior -> (q_2 := q_1; p_2 := p_1; p_0 < prior -> (q_1 := q_0; p_1 := p_0; q_0 := "HeatCooler"; p_0 := prior); p_0 > prior -> (q_1 := "HeatCooler"; p_1 := prior)); p_1 > prior -> (q_2 := "HeatCooler"; p_2 := prior) $ insert_Regulator?prior --> p_1 < prior -> (q_2 := q_1; p_2 := p_1; p_0 < prior -> (q_1 := q_0; p_1 := p_0; q_0 := "Regulator"; p_0 := prior); p_0 > prior -> (q_1 := "Regulator"; p_1 := prior)); p_1 > prior -> (q_2 := "Regulator"; p_2 := prior) $ change_HeatSW? --> ch_run_HeatSW!q_0; ch_prior_HeatSW!p_0; q_0 := q_1; p_0 := p_1; q_1 := q_2; p_1 := p_2; q_2 := 0; p_2 := 0)**
 boxThread ::= @ACT_boxThread || @DIS_boxThread || @COM_boxThread
 ACT_boxThread ::= (act_boxThread!)**
 DIS_boxThread ::= (act_boxThread?; wait(10); dis_boxThread!; boxThread_simIn?simIn; boxThread_simOut?simOut; input_boxThread_simIn!simIn; input_boxThread_simOut!simOut; (complete_boxThread? --> skip $ exit_boxThread? --> skip))**
 COM_boxThread ::= @Init_boxThread || @Ready_boxThread || @Running_boxThread || @Await_boxThread
 Init_boxThread ::= (dis_boxThread?; t := 0; init_boxThread!t)**
-Ready_boxThread ::= ((init_boxThread?t --> skip $ preempt_boxThread?t --> skip $ unblock_boxThread?t --> skip); tran_boxThread!prior; <t_dot = 1 & t < 10> |> [] (run_boxThread? --> resume_boxThread!t); t == 10 -> exit_boxThread!)**
+Ready_boxThread ::= (prior := 1; (init_boxThread?t --> skip $ preempt_boxThread?t --> skip $ unblock_boxThread?t --> skip); tran_boxThread!prior; <t_dot = 1 & t < 10> |> [] (run_boxThread? --> resume_boxThread!t); t == 10 -> exit_boxThread!)**
 Await_boxThread ::= (block_boxThread?t; applyResource_boxThread!; <t_dot = 1 & t < 10> |> [] (haveResource_boxThread? --> unblock_boxThread!t); t == 10 -> exit_boxThread!)**
 Running_boxThread ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_boxThread?t; free!; t < 10 -> (complete_boxThread!; InitFlag := 0); t == 10 -> (exit_boxThread!; InitFlag := 0))**
-SCHEDULE_box ::= run_now := 0; ready_num := 0; (tran_boxThread? --> insert_boxThread!; ready_num := ready_num+1 $ free? --> ready_num > 0 -> (change_box!; ch_run_box?run_now; run_now == boxThread -> run_boxThread!; ready_num := ready_num-1); ready_num == 0 -> run_now := 0)**
-QUEUE_box ::= q_0 := 0; (insert_boxThread? --> q_0 := boxThread $ change_box? --> ch_run_box!q_0; q_0 := 0)**
+SCHEDULE_box ::= run_now := 0; run_prior := 0; ready_num := 0; (tran_boxThread?prior --> run_prior < prior -> (run_now == "boxThread" -> busy_boxThread!; run_now := "boxThread"; run_prior := prior; run_boxThread!); run_prior > prior -> (insert_boxThread!prior; ready_num := ready_num+1) $ free? --> ready_num > 0 -> (change_box!; ch_run_box?run_now; ch_prior_box?run_prior; run_now == "boxThread" -> run_boxThread!; ready_num := ready_num-1); ready_num == 0 -> (run_now := 0; run_prior := 0))**
+QUEUE_box ::= q_0 := 0; p_0 := 0; (insert_boxThread?prior --> q_0 := "boxThread"; p_0 := prior $ change_box? --> ch_run_box!q_0; ch_prior_box!p_0; q_0 := 0; p_0 := 0)**
 regulator ::= @ACT_regulator || @DIS_regulator || @COM_regulator
 ACT_regulator ::= (act_regulator!)**
 DIS_regulator ::= (act_regulator?; wait(20); dis_regulator!; (complete_regulator? --> skip $ exit_regulator? --> skip))**
 COM_regulator ::= @Init_regulator || @Ready_regulator || @Running_regulator || @Await_regulator
 Init_regulator ::= (dis_regulator?; t := 0; init_regulator!t)**
-Ready_regulator ::= ((init_regulator?t --> skip $ preempt_regulator?t --> skip $ unblock_regulator?t --> skip); tran_regulator!prior; <t_dot = 1 & t < 20> |> [] (run_regulator? --> resume_regulator!t); t == 20 -> exit_regulator!)**
+Ready_regulator ::= (prior := 10; (init_regulator?t --> skip $ preempt_regulator?t --> skip $ unblock_regulator?t --> skip); tran_regulator!prior; <t_dot = 1 & t < 20> |> [] (run_regulator? --> resume_regulator!t); t == 20 -> exit_regulator!)**
 Await_regulator ::= (block_regulator?t; applyResource_regulator!; <t_dot = 1 & t < 20> |> [] (haveResource_regulator? --> unblock_regulator!t); t == 20 -> exit_regulator!)**
-Running_regulator ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_regulator?t; c == 0 -> (gain := 2.0; diff := desiredTemp-measuredTemp; heaterCommand := diff*gain); <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_regulator? --> preempt_regulator!t; InitFlag := 1, needResource_regulator? --> block_regulator!t; InitFlag := 1); free!; t < 20 -> (complete_regulator!; InitFlag := 0); t == 20 -> (exit_regulator!; InitFlag := 0))**
+Running_regulator ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_regulator?t; c == 0 -> skip; <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_regulator? --> preempt_regulator!t; InitFlag := 1, needResource_regulator? --> block_regulator!t; InitFlag := 1); free!; t < 20 -> (complete_regulator!; InitFlag := 0); t == 20 -> (exit_regulator!; InitFlag := 0))**
 sensor ::= @ACT_sensor || @DIS_sensor || @COM_sensor
 ACT_sensor ::= (act_sensor!)**
 DIS_sensor ::= (act_sensor?; wait(20); dis_sensor!; sensor_heatTemp?heatTemp; sensor_measureTemp?measureTemp; input_sensor_heatTemp!heatTemp; input_sensor_measureTemp!measureTemp; (complete_sensor? --> skip $ exit_sensor? --> skip))**
 COM_sensor ::= @Init_sensor || @Ready_sensor || @Running_sensor || @Await_sensor
 Init_sensor ::= (dis_sensor?; t := 0; init_sensor!t)**
-Ready_sensor ::= ((init_sensor?t --> skip $ preempt_sensor?t --> skip $ unblock_sensor?t --> skip); tran_sensor!prior; <t_dot = 1 & t < 20> |> [] (run_sensor? --> resume_sensor!t); t == 20 -> exit_sensor!)**
+Ready_sensor ::= (prior := 10; (init_sensor?t --> skip $ preempt_sensor?t --> skip $ unblock_sensor?t --> skip); tran_sensor!prior; <t_dot = 1 & t < 20> |> [] (run_sensor? --> resume_sensor!t); t == 20 -> exit_sensor!)**
 Await_sensor ::= (block_sensor?t; applyResource_sensor!; <t_dot = 1 & t < 20> |> [] (haveResource_sensor? --> unblock_sensor!t); t == 20 -> exit_sensor!)**
-Running_sensor ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_sensor?t; c == 0 -> (input_sensor_heatTemp?heatTemp; input_sensor_measureTemp?measureTemp; e := 1.0; measuredTemp := heaterTemp+e); <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_sensor? --> preempt_sensor!t; InitFlag := 1, needResource_sensor? --> block_sensor!t; InitFlag := 1); free!; t < 20 -> (complete_sensor!; InitFlag := 0); t == 20 -> (exit_sensor!; InitFlag := 0))**
+Running_sensor ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_sensor?t; c == 0 -> skip; <t_dot = 1, c_dot = 1 & t < 20> |> [] (busy_sensor? --> preempt_sensor!t; InitFlag := 1, needResource_sensor? --> block_sensor!t; InitFlag := 1); free!; t < 20 -> (complete_sensor!; InitFlag := 0); t == 20 -> (exit_sensor!; InitFlag := 0))**
