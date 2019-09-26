@@ -719,14 +719,17 @@ def extract_event(reasons):
                             return ("comm", i, j, ch_name1)
 
     # If there is no communication, find minimum delay
-    min_delay = None
-    for reason in reasons:
+    min_delay, delay_pos = None, []
+    for i, reason in enumerate(reasons):
         if reason != 'end' and 'delay' in reason:
             if min_delay is None or min_delay > reason['delay']:
                 min_delay = reason['delay']
+                delay_pos = [i]
+            elif min_delay == reason['delay']:
+                delay_pos.append(i)
 
     if min_delay is not None:
-        return ("delay", min_delay)
+        return ("delay", min_delay, delay_pos)
     else:
         return "deadlock"
 
@@ -734,8 +737,7 @@ def get_log_info(infos):
     """Obtain the logged info."""
     cur_info = dict()
     for info in infos:
-        out_pos = remove_rec(info.hp, info.pos)
-        info_pos = string_of_pos(info.hp, out_pos)
+        info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
         cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
     return cur_info
 
@@ -761,6 +763,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         'time_series': {}  # Evolution of variables, indexed by program
     }
 
+    # Signals the maximum number of steps has been reached.
     end_run = False
 
     for info in infos:
@@ -802,7 +805,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             while info.pos is not None and not end_run:
                 reason = info.exec_step()
                 if reason == "step":
-                    log_event(type="step", str="step")
+                    log_event(type="step", str="step", ori_pos=[info.name])
                     log_time_series(info.name, res['time'], info.state)
                 else:
                     break
@@ -818,7 +821,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             log_event(type="deadlock", str="deadlock")
             break
         elif event[0] == "delay":
-            _, min_delay = event
+            _, min_delay, delay_pos = event
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
             for info in infos:
@@ -827,7 +830,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
                 for entry in series:
                     log_time_series(info.name, res['time'] + entry['time'], entry['state'])
                 log_time_series(info.name, res['time'] + min_delay, info.state)
-            log_event(type="delay", delay_time=min_delay, str=trace_str)
+            log_event(type="delay", delay_time=min_delay, str=trace_str,
+                      ori_pos=[infos[p].name for p in delay_pos])
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
@@ -840,7 +844,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             else:
                 val_str = " " + str(val)
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str)
+            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str,
+                      ori_pos=[infos[id_in].name, infos[id_out].name])
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
         # Overflow detection

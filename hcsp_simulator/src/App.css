@@ -56,6 +56,10 @@
   background-color: yellow;
 }
 
+.program-text-next-hl {
+  background-color: springgreen;
+}
+
 .program-text pre {
   margin: 0px;
 }

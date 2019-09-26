@@ -86,7 +86,9 @@ class Process extends React.Component {
                         return (
                             <pre key={line_no}>
                                 <span>{str.slice(0,bg_start)}</span>
-                                <span className="program-text-hl">{str.slice(bg_start,bg_end)}</span>
+                                <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                    {str.slice(bg_start,bg_end)}
+                                </span>
                                 <span>{str.slice(bg_end,str.length)}</span>
                             </pre>)
                     }
@@ -441,7 +443,8 @@ class App extends React.Component {
                     // No data is available
                     return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={[]}
-                                    time_series={undefined} event_time={undefined} hpos={undefined}/>
+                                    time_series={undefined} event_time={undefined} hpos={undefined}
+                                    npos={undefined}/>
                 } else {
                     const hpos = this.state.history_pos;
                     const event = this.state.history[hpos];
@@ -458,11 +461,20 @@ class App extends React.Component {
                         // End of data set
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={undefined} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={undefined}/>
                     } else {
+                        var npos = false;
+                        if (hpos < this.state.history.length-1) {
+                            const next_history = this.state.history[hpos+1];
+                            if ('ori_pos' in next_history && next_history.ori_pos.indexOf(hcsp_name) !== -1) {
+                                npos = true;
+                            }
+                        }
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={info.mapping[pos]} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={npos}/>
                     }
                 }
             })}
