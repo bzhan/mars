@@ -36,6 +36,8 @@ def parse_hcsp():
         else:
             lines[-1] += line
 
+    infos = []
+
     # Now each entry in lines represent the definition of a program.
     for line in lines:
         index = line.index('::=')
@@ -57,6 +59,7 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
+            infos.append(simulator.HCSPInfo(name, hp_text))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             hcsp_info.append({
                 'name': name,
@@ -65,8 +68,11 @@ def parse_hcsp():
                 'mapping': mapping
             })
 
+    warnings = simulator.check_comms(infos)
+
     return json.dumps({
         'hcsp_info': hcsp_info,
+        'warnings': warnings
     })
 
 @app.route('/run_hcsp', methods=['POST'])

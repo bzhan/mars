@@ -257,6 +257,9 @@ class App extends React.Component {
 
             // Whether to show events only.
             show_event_only: false,
+
+            // Warnings from checks of channel mismatches.
+            warnings: []
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -274,6 +277,11 @@ class App extends React.Component {
             const response = await axios.post("/parse_hcsp", {
                 text: this.reader.result,
             })
+            if ('warnings' in response.data) {
+                this.setState({
+                    warnings: response.data.warnings
+                })
+            }
             if ('error' in response.data) {
                 this.setState({
                     error: response.data.error,
@@ -434,6 +442,9 @@ class App extends React.Component {
             </pre>
         : (
             <Container className="left">
+            {this.state.warnings.map((warning, index) => {
+                return <div key={index} style={{color:'red'}}>{warning}</div>
+            })}
             {this.state.hcsp_info.map((info, index) => {
                 const hcsp_name = info.name;
                 if ('parallel' in info) {

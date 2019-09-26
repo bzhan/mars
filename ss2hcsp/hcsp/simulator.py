@@ -751,7 +751,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
     time - total time spent in the model.
 
     trace - list of events. Each event contains information about the
-        event, as well as the current state *before* executing the event.
+        event, as well as the current state after executing the event.
+
     time_series - records evolution of variables in each program by time.
         This is a dictionary indexed by names of programs.
 
@@ -860,3 +861,41 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             break
 
     return res
+
+def check_comms(infos):
+    """Given a list of HCSP infos, check for potential mismatch of
+    communication channels.
+
+    """
+    # Map communication channels to processes containing them
+    comm_in_map, comm_out_map = dict(), dict()
+    warnings = []
+    for info in infos:
+        if info.hp.type == 'parallel':
+            continue
+
+        for ch_name, direction in hcsp.get_comm_chs(info.hp):
+            if direction == '?':
+                if ch_name not in comm_in_map:
+                    comm_in_map[ch_name] = []
+                comm_in_map[ch_name].append(info.name)
+            else:
+                if ch_name not in comm_out_map:
+                    comm_out_map[ch_name] = []
+                comm_out_map[ch_name].append(info.name)
+
+    for ch_name, hp_names in comm_in_map.items():
+        if len(hp_names) >= 2:
+            warnings.append("Warning: input %s used in more than one process: %s" % (ch_name, ', '.join(hp_names)))
+        if ch_name not in comm_out_map:
+            warnings.append("Warning: input channel %s has no corresponding output" % ch_name)
+        elif hp_names[0] in comm_out_map[ch_name]:
+            warnings.append("Warning: input and output channel %s in the same process" % ch_name)
+
+    for ch_name, hp_names in comm_out_map.items():
+        if len(hp_names) >= 2:            
+            warnings.append("Warning: output %s used in more than one process: %s" % (ch_name, ', '.join(hp_names)))
+        if ch_name not in comm_in_map:
+            warnings.append("Warning: output channel %s has no corresponding input" % ch_name)
+
+    return warnings
