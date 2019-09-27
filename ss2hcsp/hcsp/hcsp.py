@@ -388,7 +388,7 @@ class ITE(HCSP):
         assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert isinstance(else_hp, HCSP)
         self.type = "ite"
-        self.if_hps = tuple(if_hps)
+        self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
 
     def __eq__(self, other):
