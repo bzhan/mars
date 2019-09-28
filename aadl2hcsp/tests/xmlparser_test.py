@@ -6,9 +6,13 @@ from aadl2hcsp.xmlparser import parser
 
 class XMLParserTest(unittest.TestCase):
     def testXMLParser(self):
-        path = './Examples/AADL/air_conditioner/instances'
-        out_file = './Examples/AADL/air_conditioner/out.json'
-        ref_file = './Examples/AADL/air_conditioner/out_ref.json'
+        #path = './Examples/AADL/air_conditioner/instances'
+        #out_file = './Examples/AADL/air_conditioner/out.json'
+        #ref_file = './Examples/AADL/air_conditioner/out_ref.json'
+
+        path = './Examples/AADL/isolette/instances_new'
+        out_file = './Examples/AADL/isolette/out.json'
+        ref_file = './Examples/AADL/isolette/out_ref.json'
 
         dic = {}
         for xmlfile in os.listdir(path):

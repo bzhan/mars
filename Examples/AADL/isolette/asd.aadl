@@ -1,0 +1,125 @@
+package example
+public
+	with BLESS;
+	with Base_Types;
+
+system isollete
+end isollete;
+
+system implementation isollete.impl
+		subcomponents
+			heatCPU: processor heatCPU;
+			heatRAM: memory heatRAM {Actual_Memory_Binding => (reference (heatRAM));};
+			heatSW: process heatSW.impl {Actual_Processor_Binding => (reference (heatCPU));};
+			babybox: abstract babybox.impl;
+		connections
+			cnx1: port heatSW.heatCommand -> babybox.heatCommand;
+			cnx2: port babybox.boxTemp -> heatSW.boxTemp;
+	end isollete.impl;
+
+process heatSW
+	features
+		boxTemp: in data port ;
+		heatCommand: out data port;
+end heatSW;
+
+process implementation heatSW.impl
+	subcomponents
+		sensor: thread sensor.impl;
+		actuator: thread actuator.impl;
+		controller: thread controller.impl;
+	connections
+		cnx1: port sensor.measuredTemp -> controller.measuredTemp;
+		cnx2: port controller.diff -> actuator.diff;
+		cnx3: port boxTemp -> sensor.boxTemp;
+		cnx4: port actuator.heatCommand -> heatCommand;
+end heatSW.impl;
+
+processor heatCPU
+	properties
+		Scheduling_Protocol => (RMS);
+end heatCPU;
+
+memory heatRAM
+end heatRAM;
+
+abstract babybox
+	features
+		heatCommand: in data port;
+		boxTemp: out data port;
+end babybox;
+
+abstract implementation babybox.impl
+	annex Simulink{**
+		
+	**};
+end babybox.impl;
+
+thread sensor
+	features
+		boxTemp: in data port;
+		measuredTemp: out data port;
+end sensor;
+
+thread implementation sensor.impl
+	properties
+		Dispatch_Protocol => Periodic;
+		Priority => 10;
+		Deadline => 20ms;
+		Period => 20ms;
+	annex BLESS {**
+		variables: e ;
+		states s : initial complete final state;
+		transitions t : s -[on dispatch]-> s
+  	{ e:=1 ; measuredTemp := heaterTemp + e ; };
+  	**};
+end sensor.impl;
+
+thread controller
+	features
+		measuredTemp: in data port;
+		diff: out data port;
+end controller;
+
+thread implementation controller.impl
+	properties
+		Dispatch_Protocol => Periodic;
+		Priority => 10;
+		Deadline => 20ms;
+		Period => 20ms;
+	annex BLESS {**
+		variables: gain ;
+		states s : initial complete final state;
+		transitions t : s -[on dispatch]-> s
+  	{ 	gain := 10;
+  		if(measuredTemp > 100) diff := gain*(measuredTemp - 100);
+  		elsif(measuredTemp < 97) diff :=gain*(measuredTemp - 97);
+  		else diff :=0; end if;
+  	};
+	**};
+end controller.impl;
+
+thread actuator
+	features
+		diff: in data port;
+		heatCommand: out data port;
+end actuator;
+
+thread implementation actuator.impl
+	properties
+		Dispatch_Protocol => Sporadic;
+		Priority => 10;
+		Deadline => 20ms;
+        Compute_Execution_Time => 3ms..5ms;
+	annex BLESS {**
+		states s : initial complete final state;
+		transitions t : s -[on dispatch]-> s
+  	{ 
+  		if(diff > 0) heatCommand := -1;
+  		elsif(diff < 0) heatCommand := 1;
+  		else heatCommand :=0; end if;
+  	};
+	**};
+end actuator.impl;
+	
+end example;
