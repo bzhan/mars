@@ -3,9 +3,9 @@ Created by PLY version 3.10 (http://www.dabeaz.com/ply)
 Grammar
 
 Rule 0     S' -> statement
-Rule 1     statement -> statement ; statement
-Rule 2     statement -> NAME ATTACHED expression
-Rule 3     statement -> expression
+Rule 1     statement -> statement statement
+Rule 2     statement -> NAME ATTACHED expression ;
+Rule 3     statement -> expression ;
 Rule 4     expression -> expression PLUS expression
 Rule 5     expression -> expression MINUS expression
 Rule 6     expression -> expression TIMES expression
@@ -15,7 +15,7 @@ Rule 9     expression -> expression EQUALS expression
 Rule 10    expression -> expression LEFT_ANGLE_BRA expression
 Rule 11    expression -> expression RIGHT_ANGLE_BRA expression
 Rule 12    expression -> expression COMP_OP expression
-Rule 13    statement -> expression !
+Rule 13    statement -> expression ! ;
 Rule 14    expression -> ( expression )
 Rule 15    expression -> NUMBER
 Rule 16    expression -> NAME
@@ -23,36 +23,44 @@ Rule 17    expression -> expression , expression
 Rule 18    type -> INT
 Rule 19    type -> FLOAT
 Rule 20    type -> BOOLEAN
-Rule 21    statement -> VARIABLES expression : type
-Rule 22    statement -> VARIABLES expression
+Rule 21    statement -> VARIABLES expression : type ;
+Rule 22    statement -> VARIABLES : expression ;
 Rule 23    state -> state state
 Rule 24    state -> INITIAL
 Rule 25    state -> COMPLETE
 Rule 26    state -> FINAL
-Rule 27    statement -> STATES NAME : state STATE
-Rule 28    statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-Rule 29    statement -> IF ( expression ) statement END IF
-Rule 30    statement -> WHILE ( expression ) statement END WHILE
+Rule 27    statement -> STATES NAME : state STATE ;
+Rule 28    statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+Rule 29    if_statement -> IF ( expression ) statement
+Rule 30    else_statement -> ELSE statement
+Rule 31    elif_statement -> ELIF ( expression ) statement
+Rule 32    elif_statement -> elif_statement elif_statement
+Rule 33    statement -> if_statement END IF ;
+Rule 34    statement -> if_statement else_statement END IF ;
+Rule 35    statement -> if_statement elif_statement else_statement END IF ;
+Rule 36    statement -> WHILE ( expression ) statement END WHILE ;
 
 Terminals, with rules where they appear
 
 !                    : 13
-(                    : 14 29 30
-)                    : 14 29 30
+(                    : 14 29 31 36
+)                    : 14 29 31 36
 ,                    : 17
-:                    : 21 27 28
-;                    : 1
+:                    : 21 22 27 28
+;                    : 2 3 13 21 22 27 28 33 34 35 36
 ATTACHED             : 2
 BOOLEAN              : 20
 COMPLETE             : 25
 COMP_OP              : 12
 DISPATCH             : 28
 DIVIDE               : 7
-END                  : 29 30
+ELIF                 : 31
+ELSE                 : 30
+END                  : 33 34 35 36
 EQUALS               : 9
 FINAL                : 26
 FLOAT                : 19
-IF                   : 29 29
+IF                   : 29 33 34 35
 INITIAL              : 24
 INT                  : 18
 LEFT_ANGLE_BRA       : 10
@@ -72,14 +80,17 @@ STATES               : 27
 TIMES                : 6
 TRANSITIONS          : 28
 VARIABLES            : 21 22
-WHILE                : 30 30
+WHILE                : 36 36
 error                : 
 
 Nonterminals, with rules where they appear
 
-expression           : 2 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 14 17 17 21 22 29 30
+elif_statement       : 32 32 35
+else_statement       : 34 35
+expression           : 2 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 14 17 17 21 22 29 31 36
+if_statement         : 33 34 35
 state                : 23 23 27
-statement            : 1 1 28 29 30 0
+statement            : 1 1 28 29 30 31 36 0
 type                 : 21
 
 Parsing method: LALR
@@ -87,16 +98,18 @@ Parsing method: LALR
 state 0
 
     (0) S' -> . statement
-    (1) statement -> . statement ; statement
-    (2) statement -> . NAME ATTACHED expression
-    (3) statement -> . expression
-    (13) statement -> . expression !
-    (21) statement -> . VARIABLES expression : type
-    (22) statement -> . VARIABLES expression
-    (27) statement -> . STATES NAME : state STATE
-    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-    (29) statement -> . IF ( expression ) statement END IF
-    (30) statement -> . WHILE ( expression ) statement END WHILE
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -110,33 +123,72 @@ state 0
     (15) expression -> . NUMBER
     (16) expression -> . NAME
     (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
     NAME            shift and go to state 2
     VARIABLES       shift and go to state 4
     STATES          shift and go to state 5
     TRANSITIONS     shift and go to state 6
-    IF              shift and go to state 7
     WHILE           shift and go to state 9
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
     statement                      shift and go to state 1
     expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
 
 state 1
 
     (0) S' -> statement .
-    (1) statement -> statement . ; statement
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
-    ;               shift and go to state 11
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
+    statement                      shift and go to state 12
+    expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
 
 state 2
 
-    (2) statement -> NAME . ATTACHED expression
+    (2) statement -> NAME . ATTACHED expression ;
     (16) expression -> NAME .
 
-    ATTACHED        shift and go to state 12
+    ATTACHED        shift and go to state 13
+    ;               reduce using rule 16 (expression -> NAME .)
     !               reduce using rule 16 (expression -> NAME .)
     PLUS            reduce using rule 16 (expression -> NAME .)
     MINUS           reduce using rule 16 (expression -> NAME .)
@@ -148,16 +200,12 @@ state 2
     RIGHT_ANGLE_BRA reduce using rule 16 (expression -> NAME .)
     COMP_OP         reduce using rule 16 (expression -> NAME .)
     ,               reduce using rule 16 (expression -> NAME .)
-    ;               reduce using rule 16 (expression -> NAME .)
-    $end            reduce using rule 16 (expression -> NAME .)
-    END             reduce using rule 16 (expression -> NAME .)
-    RIGHT_CURLY_BRA reduce using rule 16 (expression -> NAME .)
 
 
 state 3
 
-    (3) statement -> expression .
-    (13) statement -> expression . !
+    (3) statement -> expression . ;
+    (13) statement -> expression . ! ;
     (4) expression -> expression . PLUS expression
     (5) expression -> expression . MINUS expression
     (6) expression -> expression . TIMES expression
@@ -169,27 +217,24 @@ state 3
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    ;               reduce using rule 3 (statement -> expression .)
-    $end            reduce using rule 3 (statement -> expression .)
-    END             reduce using rule 3 (statement -> expression .)
-    RIGHT_CURLY_BRA reduce using rule 3 (statement -> expression .)
-    !               shift and go to state 13
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    ;               shift and go to state 14
+    !               shift and go to state 15
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
 state 4
 
-    (21) statement -> VARIABLES . expression : type
-    (22) statement -> VARIABLES . expression
+    (21) statement -> VARIABLES . expression : type ;
+    (22) statement -> VARIABLES . : expression ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -204,34 +249,58 @@ state 4
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    :               shift and go to state 27
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 24
+    expression                     shift and go to state 26
 
 state 5
 
-    (27) statement -> STATES . NAME : state STATE
+    (27) statement -> STATES . NAME : state STATE ;
 
-    NAME            shift and go to state 26
+    NAME            shift and go to state 29
 
 
 state 6
 
-    (28) statement -> TRANSITIONS . NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
+    (28) statement -> TRANSITIONS . NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
 
-    NAME            shift and go to state 27
+    NAME            shift and go to state 30
 
 
 state 7
 
-    (29) statement -> IF . ( expression ) statement END IF
+    (33) statement -> if_statement . END IF ;
+    (34) statement -> if_statement . else_statement END IF ;
+    (35) statement -> if_statement . elif_statement else_statement END IF ;
+    (30) else_statement -> . ELSE statement
+    (31) elif_statement -> . ELIF ( expression ) statement
+    (32) elif_statement -> . elif_statement elif_statement
 
-    (               shift and go to state 28
+    END             shift and go to state 31
+    ELSE            shift and go to state 34
+    ELIF            shift and go to state 35
 
+    else_statement                 shift and go to state 32
+    elif_statement                 shift and go to state 33
 
 state 8
+
+    (29) if_statement -> IF . ( expression ) statement
+
+    (               shift and go to state 36
+
+
+state 9
+
+    (36) statement -> WHILE . ( expression ) statement END WHILE ;
+
+    (               shift and go to state 37
+
+
+state 10
 
     (14) expression -> ( . expression )
     (4) expression -> . expression PLUS expression
@@ -248,23 +317,17 @@ state 8
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 29
+    expression                     shift and go to state 38
 
-state 9
-
-    (30) statement -> WHILE . ( expression ) statement END WHILE
-
-    (               shift and go to state 30
-
-
-state 10
+state 11
 
     (15) expression -> NUMBER .
 
+    ;               reduce using rule 15 (expression -> NUMBER .)
     !               reduce using rule 15 (expression -> NUMBER .)
     PLUS            reduce using rule 15 (expression -> NUMBER .)
     MINUS           reduce using rule 15 (expression -> NUMBER .)
@@ -276,27 +339,26 @@ state 10
     RIGHT_ANGLE_BRA reduce using rule 15 (expression -> NUMBER .)
     COMP_OP         reduce using rule 15 (expression -> NUMBER .)
     ,               reduce using rule 15 (expression -> NUMBER .)
-    ;               reduce using rule 15 (expression -> NUMBER .)
-    $end            reduce using rule 15 (expression -> NUMBER .)
     :               reduce using rule 15 (expression -> NUMBER .)
-    END             reduce using rule 15 (expression -> NUMBER .)
-    RIGHT_CURLY_BRA reduce using rule 15 (expression -> NUMBER .)
     )               reduce using rule 15 (expression -> NUMBER .)
 
 
-state 11
+state 12
 
-    (1) statement -> statement ; . statement
-    (1) statement -> . statement ; statement
-    (2) statement -> . NAME ATTACHED expression
-    (3) statement -> . expression
-    (13) statement -> . expression !
-    (21) statement -> . VARIABLES expression : type
-    (22) statement -> . VARIABLES expression
-    (27) statement -> . STATES NAME : state STATE
-    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-    (29) statement -> . IF ( expression ) statement END IF
-    (30) statement -> . WHILE ( expression ) statement END WHILE
+    (1) statement -> statement statement .
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -310,22 +372,46 @@ state 11
     (15) expression -> . NUMBER
     (16) expression -> . NAME
     (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
+  ! shift/reduce conflict for NAME resolved as shift
+  ! shift/reduce conflict for VARIABLES resolved as shift
+  ! shift/reduce conflict for STATES resolved as shift
+  ! shift/reduce conflict for TRANSITIONS resolved as shift
+  ! shift/reduce conflict for WHILE resolved as shift
+  ! shift/reduce conflict for ( resolved as shift
+  ! shift/reduce conflict for NUMBER resolved as shift
+  ! shift/reduce conflict for IF resolved as shift
+    $end            reduce using rule 1 (statement -> statement statement .)
+    END             reduce using rule 1 (statement -> statement statement .)
+    ELSE            reduce using rule 1 (statement -> statement statement .)
+    ELIF            reduce using rule 1 (statement -> statement statement .)
+    RIGHT_CURLY_BRA reduce using rule 1 (statement -> statement statement .)
     NAME            shift and go to state 2
     VARIABLES       shift and go to state 4
     STATES          shift and go to state 5
     TRANSITIONS     shift and go to state 6
-    IF              shift and go to state 7
     WHILE           shift and go to state 9
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
-    statement                      shift and go to state 31
+  ! NAME            [ reduce using rule 1 (statement -> statement statement .) ]
+  ! VARIABLES       [ reduce using rule 1 (statement -> statement statement .) ]
+  ! STATES          [ reduce using rule 1 (statement -> statement statement .) ]
+  ! TRANSITIONS     [ reduce using rule 1 (statement -> statement statement .) ]
+  ! WHILE           [ reduce using rule 1 (statement -> statement statement .) ]
+  ! (               [ reduce using rule 1 (statement -> statement statement .) ]
+  ! NUMBER          [ reduce using rule 1 (statement -> statement statement .) ]
+  ! IF              [ reduce using rule 1 (statement -> statement statement .) ]
+
+    statement                      shift and go to state 12
     expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
 
-state 12
+state 13
 
-    (2) statement -> NAME ATTACHED . expression
+    (2) statement -> NAME ATTACHED . expression ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -340,23 +426,39 @@ state 12
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 32
-
-state 13
-
-    (13) statement -> expression ! .
-
-    ;               reduce using rule 13 (statement -> expression ! .)
-    $end            reduce using rule 13 (statement -> expression ! .)
-    END             reduce using rule 13 (statement -> expression ! .)
-    RIGHT_CURLY_BRA reduce using rule 13 (statement -> expression ! .)
-
+    expression                     shift and go to state 39
 
 state 14
+
+    (3) statement -> expression ; .
+
+    NAME            reduce using rule 3 (statement -> expression ; .)
+    VARIABLES       reduce using rule 3 (statement -> expression ; .)
+    STATES          reduce using rule 3 (statement -> expression ; .)
+    TRANSITIONS     reduce using rule 3 (statement -> expression ; .)
+    WHILE           reduce using rule 3 (statement -> expression ; .)
+    (               reduce using rule 3 (statement -> expression ; .)
+    NUMBER          reduce using rule 3 (statement -> expression ; .)
+    IF              reduce using rule 3 (statement -> expression ; .)
+    $end            reduce using rule 3 (statement -> expression ; .)
+    END             reduce using rule 3 (statement -> expression ; .)
+    ELSE            reduce using rule 3 (statement -> expression ; .)
+    ELIF            reduce using rule 3 (statement -> expression ; .)
+    RIGHT_CURLY_BRA reduce using rule 3 (statement -> expression ; .)
+
+
+state 15
+
+    (13) statement -> expression ! . ;
+
+    ;               shift and go to state 40
+
+
+state 16
 
     (4) expression -> expression PLUS . expression
     (4) expression -> . expression PLUS expression
@@ -373,13 +475,13 @@ state 14
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 33
+    expression                     shift and go to state 41
 
-state 15
+state 17
 
     (5) expression -> expression MINUS . expression
     (4) expression -> . expression PLUS expression
@@ -396,13 +498,13 @@ state 15
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 34
+    expression                     shift and go to state 42
 
-state 16
+state 18
 
     (6) expression -> expression TIMES . expression
     (4) expression -> . expression PLUS expression
@@ -419,13 +521,13 @@ state 16
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 35
+    expression                     shift and go to state 43
 
-state 17
+state 19
 
     (7) expression -> expression DIVIDE . expression
     (4) expression -> . expression PLUS expression
@@ -442,13 +544,13 @@ state 17
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 36
+    expression                     shift and go to state 44
 
-state 18
+state 20
 
     (8) expression -> expression REMAINDER . expression
     (4) expression -> . expression PLUS expression
@@ -465,13 +567,13 @@ state 18
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 37
+    expression                     shift and go to state 45
 
-state 19
+state 21
 
     (9) expression -> expression EQUALS . expression
     (4) expression -> . expression PLUS expression
@@ -488,13 +590,13 @@ state 19
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 38
+    expression                     shift and go to state 46
 
-state 20
+state 22
 
     (10) expression -> expression LEFT_ANGLE_BRA . expression
     (4) expression -> . expression PLUS expression
@@ -511,13 +613,13 @@ state 20
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 39
+    expression                     shift and go to state 47
 
-state 21
+state 23
 
     (11) expression -> expression RIGHT_ANGLE_BRA . expression
     (4) expression -> . expression PLUS expression
@@ -534,13 +636,13 @@ state 21
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 40
+    expression                     shift and go to state 48
 
-state 22
+state 24
 
     (12) expression -> expression COMP_OP . expression
     (4) expression -> . expression PLUS expression
@@ -557,13 +659,13 @@ state 22
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 41
+    expression                     shift and go to state 49
 
-state 23
+state 25
 
     (17) expression -> expression , . expression
     (4) expression -> . expression PLUS expression
@@ -580,16 +682,15 @@ state 23
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 42
+    expression                     shift and go to state 50
 
-state 24
+state 26
 
-    (21) statement -> VARIABLES expression . : type
-    (22) statement -> VARIABLES expression .
+    (21) statement -> VARIABLES expression . : type ;
     (4) expression -> expression . PLUS expression
     (5) expression -> expression . MINUS expression
     (6) expression -> expression . TIMES expression
@@ -601,24 +702,43 @@ state 24
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    :               shift and go to state 43
-    ;               reduce using rule 22 (statement -> VARIABLES expression .)
-    $end            reduce using rule 22 (statement -> VARIABLES expression .)
-    END             reduce using rule 22 (statement -> VARIABLES expression .)
-    RIGHT_CURLY_BRA reduce using rule 22 (statement -> VARIABLES expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    :               shift and go to state 51
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
-state 25
+state 27
+
+    (22) statement -> VARIABLES : . expression ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
+
+    expression                     shift and go to state 52
+
+state 28
 
     (16) expression -> NAME .
 
@@ -633,31 +753,106 @@ state 25
     RIGHT_ANGLE_BRA reduce using rule 16 (expression -> NAME .)
     COMP_OP         reduce using rule 16 (expression -> NAME .)
     ,               reduce using rule 16 (expression -> NAME .)
-    ;               reduce using rule 16 (expression -> NAME .)
-    $end            reduce using rule 16 (expression -> NAME .)
-    END             reduce using rule 16 (expression -> NAME .)
-    RIGHT_CURLY_BRA reduce using rule 16 (expression -> NAME .)
     )               reduce using rule 16 (expression -> NAME .)
+    ;               reduce using rule 16 (expression -> NAME .)
     !               reduce using rule 16 (expression -> NAME .)
 
 
-state 26
+state 29
 
-    (27) statement -> STATES NAME . : state STATE
+    (27) statement -> STATES NAME . : state STATE ;
 
-    :               shift and go to state 44
-
-
-state 27
-
-    (28) statement -> TRANSITIONS NAME . : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    :               shift and go to state 45
+    :               shift and go to state 53
 
 
-state 28
+state 30
 
-    (29) statement -> IF ( . expression ) statement END IF
+    (28) statement -> TRANSITIONS NAME . : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    :               shift and go to state 54
+
+
+state 31
+
+    (33) statement -> if_statement END . IF ;
+
+    IF              shift and go to state 55
+
+
+state 32
+
+    (34) statement -> if_statement else_statement . END IF ;
+
+    END             shift and go to state 56
+
+
+state 33
+
+    (35) statement -> if_statement elif_statement . else_statement END IF ;
+    (32) elif_statement -> elif_statement . elif_statement
+    (30) else_statement -> . ELSE statement
+    (31) elif_statement -> . ELIF ( expression ) statement
+    (32) elif_statement -> . elif_statement elif_statement
+
+    ELSE            shift and go to state 34
+    ELIF            shift and go to state 35
+
+    elif_statement                 shift and go to state 57
+    else_statement                 shift and go to state 58
+
+state 34
+
+    (30) else_statement -> ELSE . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    statement                      shift and go to state 59
+    expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
+
+state 35
+
+    (31) elif_statement -> ELIF . ( expression ) statement
+
+    (               shift and go to state 60
+
+
+state 36
+
+    (29) if_statement -> IF ( . expression ) statement
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -672,13 +867,36 @@ state 28
     (16) expression -> . NAME
     (17) expression -> . expression , expression
 
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
 
-    expression                     shift and go to state 46
+    expression                     shift and go to state 61
 
-state 29
+state 37
+
+    (36) statement -> WHILE ( . expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
+
+    expression                     shift and go to state 62
+
+state 38
 
     (14) expression -> ( expression . )
     (4) expression -> expression . PLUS expression
@@ -692,59 +910,22 @@ state 29
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    )               shift and go to state 47
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    )               shift and go to state 63
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
-state 30
+state 39
 
-    (30) statement -> WHILE ( . expression ) statement END WHILE
-    (4) expression -> . expression PLUS expression
-    (5) expression -> . expression MINUS expression
-    (6) expression -> . expression TIMES expression
-    (7) expression -> . expression DIVIDE expression
-    (8) expression -> . expression REMAINDER expression
-    (9) expression -> . expression EQUALS expression
-    (10) expression -> . expression LEFT_ANGLE_BRA expression
-    (11) expression -> . expression RIGHT_ANGLE_BRA expression
-    (12) expression -> . expression COMP_OP expression
-    (14) expression -> . ( expression )
-    (15) expression -> . NUMBER
-    (16) expression -> . NAME
-    (17) expression -> . expression , expression
-
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
-    NAME            shift and go to state 25
-
-    expression                     shift and go to state 48
-
-state 31
-
-    (1) statement -> statement ; statement .
-    (1) statement -> statement . ; statement
-
-  ! shift/reduce conflict for ; resolved as shift
-    $end            reduce using rule 1 (statement -> statement ; statement .)
-    END             reduce using rule 1 (statement -> statement ; statement .)
-    RIGHT_CURLY_BRA reduce using rule 1 (statement -> statement ; statement .)
-    ;               shift and go to state 11
-
-  ! ;               [ reduce using rule 1 (statement -> statement ; statement .) ]
-
-
-state 32
-
-    (2) statement -> NAME ATTACHED expression .
+    (2) statement -> NAME ATTACHED expression . ;
     (4) expression -> expression . PLUS expression
     (5) expression -> expression . MINUS expression
     (6) expression -> expression . TIMES expression
@@ -756,23 +937,39 @@ state 32
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    ;               reduce using rule 2 (statement -> NAME ATTACHED expression .)
-    $end            reduce using rule 2 (statement -> NAME ATTACHED expression .)
-    END             reduce using rule 2 (statement -> NAME ATTACHED expression .)
-    RIGHT_CURLY_BRA reduce using rule 2 (statement -> NAME ATTACHED expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    ;               shift and go to state 64
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
-state 33
+state 40
+
+    (13) statement -> expression ! ; .
+
+    NAME            reduce using rule 13 (statement -> expression ! ; .)
+    VARIABLES       reduce using rule 13 (statement -> expression ! ; .)
+    STATES          reduce using rule 13 (statement -> expression ! ; .)
+    TRANSITIONS     reduce using rule 13 (statement -> expression ! ; .)
+    WHILE           reduce using rule 13 (statement -> expression ! ; .)
+    (               reduce using rule 13 (statement -> expression ! ; .)
+    NUMBER          reduce using rule 13 (statement -> expression ! ; .)
+    IF              reduce using rule 13 (statement -> expression ! ; .)
+    $end            reduce using rule 13 (statement -> expression ! ; .)
+    END             reduce using rule 13 (statement -> expression ! ; .)
+    ELSE            reduce using rule 13 (statement -> expression ! ; .)
+    ELIF            reduce using rule 13 (statement -> expression ! ; .)
+    RIGHT_CURLY_BRA reduce using rule 13 (statement -> expression ! ; .)
+
+
+state 41
 
     (4) expression -> expression PLUS expression .
     (4) expression -> expression . PLUS expression
@@ -796,23 +993,20 @@ state 33
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 4 (expression -> expression PLUS expression .)
     ;               reduce using rule 4 (expression -> expression PLUS expression .)
-    $end            reduce using rule 4 (expression -> expression PLUS expression .)
+    !               reduce using rule 4 (expression -> expression PLUS expression .)
     :               reduce using rule 4 (expression -> expression PLUS expression .)
-    END             reduce using rule 4 (expression -> expression PLUS expression .)
-    RIGHT_CURLY_BRA reduce using rule 4 (expression -> expression PLUS expression .)
     )               reduce using rule 4 (expression -> expression PLUS expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 4 (expression -> expression PLUS expression .) ]
   ! MINUS           [ reduce using rule 4 (expression -> expression PLUS expression .) ]
@@ -826,7 +1020,7 @@ state 33
   ! ,               [ reduce using rule 4 (expression -> expression PLUS expression .) ]
 
 
-state 34
+state 42
 
     (5) expression -> expression MINUS expression .
     (4) expression -> expression . PLUS expression
@@ -850,23 +1044,20 @@ state 34
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 5 (expression -> expression MINUS expression .)
     ;               reduce using rule 5 (expression -> expression MINUS expression .)
-    $end            reduce using rule 5 (expression -> expression MINUS expression .)
+    !               reduce using rule 5 (expression -> expression MINUS expression .)
     :               reduce using rule 5 (expression -> expression MINUS expression .)
-    END             reduce using rule 5 (expression -> expression MINUS expression .)
-    RIGHT_CURLY_BRA reduce using rule 5 (expression -> expression MINUS expression .)
     )               reduce using rule 5 (expression -> expression MINUS expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 5 (expression -> expression MINUS expression .) ]
   ! MINUS           [ reduce using rule 5 (expression -> expression MINUS expression .) ]
@@ -880,7 +1071,7 @@ state 34
   ! ,               [ reduce using rule 5 (expression -> expression MINUS expression .) ]
 
 
-state 35
+state 43
 
     (6) expression -> expression TIMES expression .
     (4) expression -> expression . PLUS expression
@@ -904,23 +1095,20 @@ state 35
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 6 (expression -> expression TIMES expression .)
     ;               reduce using rule 6 (expression -> expression TIMES expression .)
-    $end            reduce using rule 6 (expression -> expression TIMES expression .)
+    !               reduce using rule 6 (expression -> expression TIMES expression .)
     :               reduce using rule 6 (expression -> expression TIMES expression .)
-    END             reduce using rule 6 (expression -> expression TIMES expression .)
-    RIGHT_CURLY_BRA reduce using rule 6 (expression -> expression TIMES expression .)
     )               reduce using rule 6 (expression -> expression TIMES expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 6 (expression -> expression TIMES expression .) ]
   ! MINUS           [ reduce using rule 6 (expression -> expression TIMES expression .) ]
@@ -934,7 +1122,7 @@ state 35
   ! ,               [ reduce using rule 6 (expression -> expression TIMES expression .) ]
 
 
-state 36
+state 44
 
     (7) expression -> expression DIVIDE expression .
     (4) expression -> expression . PLUS expression
@@ -958,23 +1146,20 @@ state 36
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 7 (expression -> expression DIVIDE expression .)
     ;               reduce using rule 7 (expression -> expression DIVIDE expression .)
-    $end            reduce using rule 7 (expression -> expression DIVIDE expression .)
+    !               reduce using rule 7 (expression -> expression DIVIDE expression .)
     :               reduce using rule 7 (expression -> expression DIVIDE expression .)
-    END             reduce using rule 7 (expression -> expression DIVIDE expression .)
-    RIGHT_CURLY_BRA reduce using rule 7 (expression -> expression DIVIDE expression .)
     )               reduce using rule 7 (expression -> expression DIVIDE expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 7 (expression -> expression DIVIDE expression .) ]
   ! MINUS           [ reduce using rule 7 (expression -> expression DIVIDE expression .) ]
@@ -988,7 +1173,7 @@ state 36
   ! ,               [ reduce using rule 7 (expression -> expression DIVIDE expression .) ]
 
 
-state 37
+state 45
 
     (8) expression -> expression REMAINDER expression .
     (4) expression -> expression . PLUS expression
@@ -1012,23 +1197,20 @@ state 37
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 8 (expression -> expression REMAINDER expression .)
     ;               reduce using rule 8 (expression -> expression REMAINDER expression .)
-    $end            reduce using rule 8 (expression -> expression REMAINDER expression .)
+    !               reduce using rule 8 (expression -> expression REMAINDER expression .)
     :               reduce using rule 8 (expression -> expression REMAINDER expression .)
-    END             reduce using rule 8 (expression -> expression REMAINDER expression .)
-    RIGHT_CURLY_BRA reduce using rule 8 (expression -> expression REMAINDER expression .)
     )               reduce using rule 8 (expression -> expression REMAINDER expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 8 (expression -> expression REMAINDER expression .) ]
   ! MINUS           [ reduce using rule 8 (expression -> expression REMAINDER expression .) ]
@@ -1042,7 +1224,7 @@ state 37
   ! ,               [ reduce using rule 8 (expression -> expression REMAINDER expression .) ]
 
 
-state 38
+state 46
 
     (9) expression -> expression EQUALS expression .
     (4) expression -> expression . PLUS expression
@@ -1066,23 +1248,20 @@ state 38
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 9 (expression -> expression EQUALS expression .)
     ;               reduce using rule 9 (expression -> expression EQUALS expression .)
-    $end            reduce using rule 9 (expression -> expression EQUALS expression .)
+    !               reduce using rule 9 (expression -> expression EQUALS expression .)
     :               reduce using rule 9 (expression -> expression EQUALS expression .)
-    END             reduce using rule 9 (expression -> expression EQUALS expression .)
-    RIGHT_CURLY_BRA reduce using rule 9 (expression -> expression EQUALS expression .)
     )               reduce using rule 9 (expression -> expression EQUALS expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 9 (expression -> expression EQUALS expression .) ]
   ! MINUS           [ reduce using rule 9 (expression -> expression EQUALS expression .) ]
@@ -1096,7 +1275,7 @@ state 38
   ! ,               [ reduce using rule 9 (expression -> expression EQUALS expression .) ]
 
 
-state 39
+state 47
 
     (10) expression -> expression LEFT_ANGLE_BRA expression .
     (4) expression -> expression . PLUS expression
@@ -1120,23 +1299,20 @@ state 39
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
     ;               reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
-    $end            reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
+    !               reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
     :               reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
-    END             reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
-    RIGHT_CURLY_BRA reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
     )               reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .) ]
   ! MINUS           [ reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .) ]
@@ -1150,7 +1326,7 @@ state 39
   ! ,               [ reduce using rule 10 (expression -> expression LEFT_ANGLE_BRA expression .) ]
 
 
-state 40
+state 48
 
     (11) expression -> expression RIGHT_ANGLE_BRA expression .
     (4) expression -> expression . PLUS expression
@@ -1174,23 +1350,20 @@ state 40
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
     ;               reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
-    $end            reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
+    !               reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
     :               reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
-    END             reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
-    RIGHT_CURLY_BRA reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
     )               reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .) ]
   ! MINUS           [ reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .) ]
@@ -1204,7 +1377,7 @@ state 40
   ! ,               [ reduce using rule 11 (expression -> expression RIGHT_ANGLE_BRA expression .) ]
 
 
-state 41
+state 49
 
     (12) expression -> expression COMP_OP expression .
     (4) expression -> expression . PLUS expression
@@ -1228,23 +1401,20 @@ state 41
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 12 (expression -> expression COMP_OP expression .)
     ;               reduce using rule 12 (expression -> expression COMP_OP expression .)
-    $end            reduce using rule 12 (expression -> expression COMP_OP expression .)
+    !               reduce using rule 12 (expression -> expression COMP_OP expression .)
     :               reduce using rule 12 (expression -> expression COMP_OP expression .)
-    END             reduce using rule 12 (expression -> expression COMP_OP expression .)
-    RIGHT_CURLY_BRA reduce using rule 12 (expression -> expression COMP_OP expression .)
     )               reduce using rule 12 (expression -> expression COMP_OP expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 12 (expression -> expression COMP_OP expression .) ]
   ! MINUS           [ reduce using rule 12 (expression -> expression COMP_OP expression .) ]
@@ -1258,7 +1428,7 @@ state 41
   ! ,               [ reduce using rule 12 (expression -> expression COMP_OP expression .) ]
 
 
-state 42
+state 50
 
     (17) expression -> expression , expression .
     (4) expression -> expression . PLUS expression
@@ -1282,23 +1452,20 @@ state 42
   ! shift/reduce conflict for RIGHT_ANGLE_BRA resolved as shift
   ! shift/reduce conflict for COMP_OP resolved as shift
   ! shift/reduce conflict for , resolved as shift
-    !               reduce using rule 17 (expression -> expression , expression .)
     ;               reduce using rule 17 (expression -> expression , expression .)
-    $end            reduce using rule 17 (expression -> expression , expression .)
+    !               reduce using rule 17 (expression -> expression , expression .)
     :               reduce using rule 17 (expression -> expression , expression .)
-    END             reduce using rule 17 (expression -> expression , expression .)
-    RIGHT_CURLY_BRA reduce using rule 17 (expression -> expression , expression .)
     )               reduce using rule 17 (expression -> expression , expression .)
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
   ! PLUS            [ reduce using rule 17 (expression -> expression , expression .) ]
   ! MINUS           [ reduce using rule 17 (expression -> expression , expression .) ]
@@ -1312,43 +1479,22 @@ state 42
   ! ,               [ reduce using rule 17 (expression -> expression , expression .) ]
 
 
-state 43
+state 51
 
-    (21) statement -> VARIABLES expression : . type
+    (21) statement -> VARIABLES expression : . type ;
     (18) type -> . INT
     (19) type -> . FLOAT
     (20) type -> . BOOLEAN
 
-    INT             shift and go to state 50
-    FLOAT           shift and go to state 51
-    BOOLEAN         shift and go to state 52
+    INT             shift and go to state 66
+    FLOAT           shift and go to state 67
+    BOOLEAN         shift and go to state 68
 
-    type                           shift and go to state 49
+    type                           shift and go to state 65
 
-state 44
+state 52
 
-    (27) statement -> STATES NAME : . state STATE
-    (23) state -> . state state
-    (24) state -> . INITIAL
-    (25) state -> . COMPLETE
-    (26) state -> . FINAL
-
-    INITIAL         shift and go to state 54
-    COMPLETE        shift and go to state 55
-    FINAL           shift and go to state 56
-
-    state                          shift and go to state 53
-
-state 45
-
-    (28) statement -> TRANSITIONS NAME : . NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    NAME            shift and go to state 57
-
-
-state 46
-
-    (29) statement -> IF ( expression . ) statement END IF
+    (22) statement -> VARIABLES : expression . ;
     (4) expression -> expression . PLUS expression
     (5) expression -> expression . MINUS expression
     (6) expression -> expression . TIMES expression
@@ -1360,23 +1506,203 @@ state 46
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    )               shift and go to state 58
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    ;               shift and go to state 69
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
-state 47
+state 53
+
+    (27) statement -> STATES NAME : . state STATE ;
+    (23) state -> . state state
+    (24) state -> . INITIAL
+    (25) state -> . COMPLETE
+    (26) state -> . FINAL
+
+    INITIAL         shift and go to state 71
+    COMPLETE        shift and go to state 72
+    FINAL           shift and go to state 73
+
+    state                          shift and go to state 70
+
+state 54
+
+    (28) statement -> TRANSITIONS NAME : . NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    NAME            shift and go to state 74
+
+
+state 55
+
+    (33) statement -> if_statement END IF . ;
+
+    ;               shift and go to state 75
+
+
+state 56
+
+    (34) statement -> if_statement else_statement END . IF ;
+
+    IF              shift and go to state 76
+
+
+state 57
+
+    (32) elif_statement -> elif_statement elif_statement .
+    (32) elif_statement -> elif_statement . elif_statement
+    (31) elif_statement -> . ELIF ( expression ) statement
+    (32) elif_statement -> . elif_statement elif_statement
+
+  ! shift/reduce conflict for ELIF resolved as shift
+    ELSE            reduce using rule 32 (elif_statement -> elif_statement elif_statement .)
+    ELIF            shift and go to state 35
+
+  ! ELIF            [ reduce using rule 32 (elif_statement -> elif_statement elif_statement .) ]
+
+    elif_statement                 shift and go to state 57
+
+state 58
+
+    (35) statement -> if_statement elif_statement else_statement . END IF ;
+
+    END             shift and go to state 77
+
+
+state 59
+
+    (30) else_statement -> ELSE statement .
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    END             reduce using rule 30 (else_statement -> ELSE statement .)
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    statement                      shift and go to state 12
+    expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
+
+state 60
+
+    (31) elif_statement -> ELIF ( . expression ) statement
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    NAME            shift and go to state 28
+
+    expression                     shift and go to state 78
+
+state 61
+
+    (29) if_statement -> IF ( expression . ) statement
+    (4) expression -> expression . PLUS expression
+    (5) expression -> expression . MINUS expression
+    (6) expression -> expression . TIMES expression
+    (7) expression -> expression . DIVIDE expression
+    (8) expression -> expression . REMAINDER expression
+    (9) expression -> expression . EQUALS expression
+    (10) expression -> expression . LEFT_ANGLE_BRA expression
+    (11) expression -> expression . RIGHT_ANGLE_BRA expression
+    (12) expression -> expression . COMP_OP expression
+    (17) expression -> expression . , expression
+
+    )               shift and go to state 79
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
+
+
+state 62
+
+    (36) statement -> WHILE ( expression . ) statement END WHILE ;
+    (4) expression -> expression . PLUS expression
+    (5) expression -> expression . MINUS expression
+    (6) expression -> expression . TIMES expression
+    (7) expression -> expression . DIVIDE expression
+    (8) expression -> expression . REMAINDER expression
+    (9) expression -> expression . EQUALS expression
+    (10) expression -> expression . LEFT_ANGLE_BRA expression
+    (11) expression -> expression . RIGHT_ANGLE_BRA expression
+    (12) expression -> expression . COMP_OP expression
+    (17) expression -> expression . , expression
+
+    )               shift and go to state 80
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
+
+
+state 63
 
     (14) expression -> ( expression ) .
 
+    ;               reduce using rule 14 (expression -> ( expression ) .)
     !               reduce using rule 14 (expression -> ( expression ) .)
     PLUS            reduce using rule 14 (expression -> ( expression ) .)
     MINUS           reduce using rule 14 (expression -> ( expression ) .)
@@ -1388,17 +1714,165 @@ state 47
     RIGHT_ANGLE_BRA reduce using rule 14 (expression -> ( expression ) .)
     COMP_OP         reduce using rule 14 (expression -> ( expression ) .)
     ,               reduce using rule 14 (expression -> ( expression ) .)
-    ;               reduce using rule 14 (expression -> ( expression ) .)
-    $end            reduce using rule 14 (expression -> ( expression ) .)
     :               reduce using rule 14 (expression -> ( expression ) .)
-    END             reduce using rule 14 (expression -> ( expression ) .)
-    RIGHT_CURLY_BRA reduce using rule 14 (expression -> ( expression ) .)
     )               reduce using rule 14 (expression -> ( expression ) .)
 
 
-state 48
+state 64
 
-    (30) statement -> WHILE ( expression . ) statement END WHILE
+    (2) statement -> NAME ATTACHED expression ; .
+
+    NAME            reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    VARIABLES       reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    STATES          reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    TRANSITIONS     reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    WHILE           reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    (               reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    NUMBER          reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    IF              reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    $end            reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    END             reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    ELSE            reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    ELIF            reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+    RIGHT_CURLY_BRA reduce using rule 2 (statement -> NAME ATTACHED expression ; .)
+
+
+state 65
+
+    (21) statement -> VARIABLES expression : type . ;
+
+    ;               shift and go to state 81
+
+
+state 66
+
+    (18) type -> INT .
+
+    ;               reduce using rule 18 (type -> INT .)
+
+
+state 67
+
+    (19) type -> FLOAT .
+
+    ;               reduce using rule 19 (type -> FLOAT .)
+
+
+state 68
+
+    (20) type -> BOOLEAN .
+
+    ;               reduce using rule 20 (type -> BOOLEAN .)
+
+
+state 69
+
+    (22) statement -> VARIABLES : expression ; .
+
+    NAME            reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    VARIABLES       reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    STATES          reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    TRANSITIONS     reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    WHILE           reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    (               reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    NUMBER          reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    IF              reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    $end            reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    END             reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    ELSE            reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    ELIF            reduce using rule 22 (statement -> VARIABLES : expression ; .)
+    RIGHT_CURLY_BRA reduce using rule 22 (statement -> VARIABLES : expression ; .)
+
+
+state 70
+
+    (27) statement -> STATES NAME : state . STATE ;
+    (23) state -> state . state
+    (23) state -> . state state
+    (24) state -> . INITIAL
+    (25) state -> . COMPLETE
+    (26) state -> . FINAL
+
+    STATE           shift and go to state 83
+    INITIAL         shift and go to state 71
+    COMPLETE        shift and go to state 72
+    FINAL           shift and go to state 73
+
+    state                          shift and go to state 82
+
+state 71
+
+    (24) state -> INITIAL .
+
+    STATE           reduce using rule 24 (state -> INITIAL .)
+    INITIAL         reduce using rule 24 (state -> INITIAL .)
+    COMPLETE        reduce using rule 24 (state -> INITIAL .)
+    FINAL           reduce using rule 24 (state -> INITIAL .)
+
+
+state 72
+
+    (25) state -> COMPLETE .
+
+    STATE           reduce using rule 25 (state -> COMPLETE .)
+    INITIAL         reduce using rule 25 (state -> COMPLETE .)
+    COMPLETE        reduce using rule 25 (state -> COMPLETE .)
+    FINAL           reduce using rule 25 (state -> COMPLETE .)
+
+
+state 73
+
+    (26) state -> FINAL .
+
+    STATE           reduce using rule 26 (state -> FINAL .)
+    INITIAL         reduce using rule 26 (state -> FINAL .)
+    COMPLETE        reduce using rule 26 (state -> FINAL .)
+    FINAL           reduce using rule 26 (state -> FINAL .)
+
+
+state 74
+
+    (28) statement -> TRANSITIONS NAME : NAME . LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    LEFT_DIS        shift and go to state 84
+
+
+state 75
+
+    (33) statement -> if_statement END IF ; .
+
+    NAME            reduce using rule 33 (statement -> if_statement END IF ; .)
+    VARIABLES       reduce using rule 33 (statement -> if_statement END IF ; .)
+    STATES          reduce using rule 33 (statement -> if_statement END IF ; .)
+    TRANSITIONS     reduce using rule 33 (statement -> if_statement END IF ; .)
+    WHILE           reduce using rule 33 (statement -> if_statement END IF ; .)
+    (               reduce using rule 33 (statement -> if_statement END IF ; .)
+    NUMBER          reduce using rule 33 (statement -> if_statement END IF ; .)
+    IF              reduce using rule 33 (statement -> if_statement END IF ; .)
+    $end            reduce using rule 33 (statement -> if_statement END IF ; .)
+    END             reduce using rule 33 (statement -> if_statement END IF ; .)
+    ELSE            reduce using rule 33 (statement -> if_statement END IF ; .)
+    ELIF            reduce using rule 33 (statement -> if_statement END IF ; .)
+    RIGHT_CURLY_BRA reduce using rule 33 (statement -> if_statement END IF ; .)
+
+
+state 76
+
+    (34) statement -> if_statement else_statement END IF . ;
+
+    ;               shift and go to state 85
+
+
+state 77
+
+    (35) statement -> if_statement elif_statement else_statement END . IF ;
+
+    IF              shift and go to state 86
+
+
+state 78
+
+    (31) elif_statement -> ELIF ( expression . ) statement
     (4) expression -> expression . PLUS expression
     (5) expression -> expression . MINUS expression
     (6) expression -> expression . TIMES expression
@@ -1410,125 +1884,34 @@ state 48
     (12) expression -> expression . COMP_OP expression
     (17) expression -> expression . , expression
 
-    )               shift and go to state 59
-    PLUS            shift and go to state 14
-    MINUS           shift and go to state 15
-    TIMES           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    REMAINDER       shift and go to state 18
-    EQUALS          shift and go to state 19
-    LEFT_ANGLE_BRA  shift and go to state 20
-    RIGHT_ANGLE_BRA shift and go to state 21
-    COMP_OP         shift and go to state 22
-    ,               shift and go to state 23
+    )               shift and go to state 87
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    TIMES           shift and go to state 18
+    DIVIDE          shift and go to state 19
+    REMAINDER       shift and go to state 20
+    EQUALS          shift and go to state 21
+    LEFT_ANGLE_BRA  shift and go to state 22
+    RIGHT_ANGLE_BRA shift and go to state 23
+    COMP_OP         shift and go to state 24
+    ,               shift and go to state 25
 
 
-state 49
+state 79
 
-    (21) statement -> VARIABLES expression : type .
-
-    ;               reduce using rule 21 (statement -> VARIABLES expression : type .)
-    $end            reduce using rule 21 (statement -> VARIABLES expression : type .)
-    END             reduce using rule 21 (statement -> VARIABLES expression : type .)
-    RIGHT_CURLY_BRA reduce using rule 21 (statement -> VARIABLES expression : type .)
-
-
-state 50
-
-    (18) type -> INT .
-
-    ;               reduce using rule 18 (type -> INT .)
-    $end            reduce using rule 18 (type -> INT .)
-    END             reduce using rule 18 (type -> INT .)
-    RIGHT_CURLY_BRA reduce using rule 18 (type -> INT .)
-
-
-state 51
-
-    (19) type -> FLOAT .
-
-    ;               reduce using rule 19 (type -> FLOAT .)
-    $end            reduce using rule 19 (type -> FLOAT .)
-    END             reduce using rule 19 (type -> FLOAT .)
-    RIGHT_CURLY_BRA reduce using rule 19 (type -> FLOAT .)
-
-
-state 52
-
-    (20) type -> BOOLEAN .
-
-    ;               reduce using rule 20 (type -> BOOLEAN .)
-    $end            reduce using rule 20 (type -> BOOLEAN .)
-    END             reduce using rule 20 (type -> BOOLEAN .)
-    RIGHT_CURLY_BRA reduce using rule 20 (type -> BOOLEAN .)
-
-
-state 53
-
-    (27) statement -> STATES NAME : state . STATE
-    (23) state -> state . state
-    (23) state -> . state state
-    (24) state -> . INITIAL
-    (25) state -> . COMPLETE
-    (26) state -> . FINAL
-
-    STATE           shift and go to state 61
-    INITIAL         shift and go to state 54
-    COMPLETE        shift and go to state 55
-    FINAL           shift and go to state 56
-
-    state                          shift and go to state 60
-
-state 54
-
-    (24) state -> INITIAL .
-
-    STATE           reduce using rule 24 (state -> INITIAL .)
-    INITIAL         reduce using rule 24 (state -> INITIAL .)
-    COMPLETE        reduce using rule 24 (state -> INITIAL .)
-    FINAL           reduce using rule 24 (state -> INITIAL .)
-
-
-state 55
-
-    (25) state -> COMPLETE .
-
-    STATE           reduce using rule 25 (state -> COMPLETE .)
-    INITIAL         reduce using rule 25 (state -> COMPLETE .)
-    COMPLETE        reduce using rule 25 (state -> COMPLETE .)
-    FINAL           reduce using rule 25 (state -> COMPLETE .)
-
-
-state 56
-
-    (26) state -> FINAL .
-
-    STATE           reduce using rule 26 (state -> FINAL .)
-    INITIAL         reduce using rule 26 (state -> FINAL .)
-    COMPLETE        reduce using rule 26 (state -> FINAL .)
-    FINAL           reduce using rule 26 (state -> FINAL .)
-
-
-state 57
-
-    (28) statement -> TRANSITIONS NAME : NAME . LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    LEFT_DIS        shift and go to state 62
-
-
-state 58
-
-    (29) statement -> IF ( expression ) . statement END IF
-    (1) statement -> . statement ; statement
-    (2) statement -> . NAME ATTACHED expression
-    (3) statement -> . expression
-    (13) statement -> . expression !
-    (21) statement -> . VARIABLES expression : type
-    (22) statement -> . VARIABLES expression
-    (27) statement -> . STATES NAME : state STATE
-    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-    (29) statement -> . IF ( expression ) statement END IF
-    (30) statement -> . WHILE ( expression ) statement END WHILE
+    (29) if_statement -> IF ( expression ) . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -1542,32 +1925,36 @@ state 58
     (15) expression -> . NUMBER
     (16) expression -> . NAME
     (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
     NAME            shift and go to state 2
     VARIABLES       shift and go to state 4
     STATES          shift and go to state 5
     TRANSITIONS     shift and go to state 6
-    IF              shift and go to state 7
     WHILE           shift and go to state 9
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
     expression                     shift and go to state 3
-    statement                      shift and go to state 63
+    statement                      shift and go to state 88
+    if_statement                   shift and go to state 7
 
-state 59
+state 80
 
-    (30) statement -> WHILE ( expression ) . statement END WHILE
-    (1) statement -> . statement ; statement
-    (2) statement -> . NAME ATTACHED expression
-    (3) statement -> . expression
-    (13) statement -> . expression !
-    (21) statement -> . VARIABLES expression : type
-    (22) statement -> . VARIABLES expression
-    (27) statement -> . STATES NAME : state STATE
-    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-    (29) statement -> . IF ( expression ) statement END IF
-    (30) statement -> . WHILE ( expression ) statement END WHILE
+    (36) statement -> WHILE ( expression ) . statement END WHILE ;
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -1581,20 +1968,41 @@ state 59
     (15) expression -> . NUMBER
     (16) expression -> . NAME
     (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
     NAME            shift and go to state 2
     VARIABLES       shift and go to state 4
     STATES          shift and go to state 5
     TRANSITIONS     shift and go to state 6
-    IF              shift and go to state 7
     WHILE           shift and go to state 9
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
     expression                     shift and go to state 3
-    statement                      shift and go to state 64
+    statement                      shift and go to state 89
+    if_statement                   shift and go to state 7
 
-state 60
+state 81
+
+    (21) statement -> VARIABLES expression : type ; .
+
+    NAME            reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    VARIABLES       reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    STATES          reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    TRANSITIONS     reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    WHILE           reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    (               reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    NUMBER          reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    IF              reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    $end            reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    END             reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    ELSE            reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    ELIF            reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+    RIGHT_CURLY_BRA reduce using rule 21 (statement -> VARIABLES expression : type ; .)
+
+
+state 82
 
     (23) state -> state state .
     (23) state -> state . state
@@ -1607,126 +2015,71 @@ state 60
   ! shift/reduce conflict for COMPLETE resolved as shift
   ! shift/reduce conflict for FINAL resolved as shift
     STATE           reduce using rule 23 (state -> state state .)
-    INITIAL         shift and go to state 54
-    COMPLETE        shift and go to state 55
-    FINAL           shift and go to state 56
+    INITIAL         shift and go to state 71
+    COMPLETE        shift and go to state 72
+    FINAL           shift and go to state 73
 
   ! INITIAL         [ reduce using rule 23 (state -> state state .) ]
   ! COMPLETE        [ reduce using rule 23 (state -> state state .) ]
   ! FINAL           [ reduce using rule 23 (state -> state state .) ]
 
-    state                          shift and go to state 60
+    state                          shift and go to state 82
 
-state 61
+state 83
 
-    (27) statement -> STATES NAME : state STATE .
+    (27) statement -> STATES NAME : state STATE . ;
 
-    ;               reduce using rule 27 (statement -> STATES NAME : state STATE .)
-    $end            reduce using rule 27 (statement -> STATES NAME : state STATE .)
-    END             reduce using rule 27 (statement -> STATES NAME : state STATE .)
-    RIGHT_CURLY_BRA reduce using rule 27 (statement -> STATES NAME : state STATE .)
+    ;               shift and go to state 90
 
 
-state 62
+state 84
 
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS . ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS . ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
 
-    ON              shift and go to state 65
-
-
-state 63
-
-    (29) statement -> IF ( expression ) statement . END IF
-    (1) statement -> statement . ; statement
-
-    END             shift and go to state 66
-    ;               shift and go to state 11
+    ON              shift and go to state 91
 
 
-state 64
+state 85
 
-    (30) statement -> WHILE ( expression ) statement . END WHILE
-    (1) statement -> statement . ; statement
+    (34) statement -> if_statement else_statement END IF ; .
 
-    END             shift and go to state 67
-    ;               shift and go to state 11
-
-
-state 65
-
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON . DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    DISPATCH        shift and go to state 68
-
-
-state 66
-
-    (29) statement -> IF ( expression ) statement END . IF
-
-    IF              shift and go to state 69
+    NAME            reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    VARIABLES       reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    STATES          reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    TRANSITIONS     reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    WHILE           reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    (               reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    NUMBER          reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    IF              reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    $end            reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    END             reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    ELSE            reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    ELIF            reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
+    RIGHT_CURLY_BRA reduce using rule 34 (statement -> if_statement else_statement END IF ; .)
 
 
-state 67
+state 86
 
-    (30) statement -> WHILE ( expression ) statement END . WHILE
+    (35) statement -> if_statement elif_statement else_statement END IF . ;
 
-    WHILE           shift and go to state 70
-
-
-state 68
-
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH . RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    RIGHT_DIS       shift and go to state 71
+    ;               shift and go to state 92
 
 
-state 69
+state 87
 
-    (29) statement -> IF ( expression ) statement END IF .
-
-    ;               reduce using rule 29 (statement -> IF ( expression ) statement END IF .)
-    $end            reduce using rule 29 (statement -> IF ( expression ) statement END IF .)
-    END             reduce using rule 29 (statement -> IF ( expression ) statement END IF .)
-    RIGHT_CURLY_BRA reduce using rule 29 (statement -> IF ( expression ) statement END IF .)
-
-
-state 70
-
-    (30) statement -> WHILE ( expression ) statement END WHILE .
-
-    ;               reduce using rule 30 (statement -> WHILE ( expression ) statement END WHILE .)
-    $end            reduce using rule 30 (statement -> WHILE ( expression ) statement END WHILE .)
-    END             reduce using rule 30 (statement -> WHILE ( expression ) statement END WHILE .)
-    RIGHT_CURLY_BRA reduce using rule 30 (statement -> WHILE ( expression ) statement END WHILE .)
-
-
-state 71
-
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS . NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    NAME            shift and go to state 72
-
-
-state 72
-
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME . LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-
-    LEFT_CURLY_BRA  shift and go to state 73
-
-
-state 73
-
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA . statement RIGHT_CURLY_BRA
-    (1) statement -> . statement ; statement
-    (2) statement -> . NAME ATTACHED expression
-    (3) statement -> . expression
-    (13) statement -> . expression !
-    (21) statement -> . VARIABLES expression : type
-    (22) statement -> . VARIABLES expression
-    (27) statement -> . STATES NAME : state STATE
-    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA
-    (29) statement -> . IF ( expression ) statement END IF
-    (30) statement -> . WHILE ( expression ) statement END WHILE
+    (31) elif_statement -> ELIF ( expression ) . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
     (4) expression -> . expression PLUS expression
     (5) expression -> . expression MINUS expression
     (6) expression -> . expression TIMES expression
@@ -1740,121 +2093,382 @@ state 73
     (15) expression -> . NUMBER
     (16) expression -> . NAME
     (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
     NAME            shift and go to state 2
     VARIABLES       shift and go to state 4
     STATES          shift and go to state 5
     TRANSITIONS     shift and go to state 6
-    IF              shift and go to state 7
     WHILE           shift and go to state 9
-    (               shift and go to state 8
-    NUMBER          shift and go to state 10
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
 
-    statement                      shift and go to state 74
     expression                     shift and go to state 3
+    statement                      shift and go to state 93
+    if_statement                   shift and go to state 7
 
-state 74
+state 88
 
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement . RIGHT_CURLY_BRA
-    (1) statement -> statement . ; statement
+    (29) if_statement -> IF ( expression ) statement .
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
 
-    RIGHT_CURLY_BRA shift and go to state 75
-    ;               shift and go to state 11
+    END             reduce using rule 29 (if_statement -> IF ( expression ) statement .)
+    ELSE            reduce using rule 29 (if_statement -> IF ( expression ) statement .)
+    ELIF            reduce using rule 29 (if_statement -> IF ( expression ) statement .)
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    expression                     shift and go to state 3
+    statement                      shift and go to state 12
+    if_statement                   shift and go to state 7
+
+state 89
+
+    (36) statement -> WHILE ( expression ) statement . END WHILE ;
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    END             shift and go to state 94
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    expression                     shift and go to state 3
+    statement                      shift and go to state 12
+    if_statement                   shift and go to state 7
+
+state 90
+
+    (27) statement -> STATES NAME : state STATE ; .
+
+    NAME            reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    VARIABLES       reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    STATES          reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    TRANSITIONS     reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    WHILE           reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    (               reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    NUMBER          reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    IF              reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    $end            reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    END             reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    ELSE            reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    ELIF            reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
+    RIGHT_CURLY_BRA reduce using rule 27 (statement -> STATES NAME : state STATE ; .)
 
 
-state 75
+state 91
 
-    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA .
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON . DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
 
-    ;               reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA .)
-    $end            reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA .)
-    END             reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA .)
-    RIGHT_CURLY_BRA reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA .)
+    DISPATCH        shift and go to state 95
+
+
+state 92
+
+    (35) statement -> if_statement elif_statement else_statement END IF ; .
+
+    NAME            reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    VARIABLES       reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    STATES          reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    TRANSITIONS     reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    WHILE           reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    (               reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    NUMBER          reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    IF              reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    $end            reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    END             reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    ELSE            reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    ELIF            reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+    RIGHT_CURLY_BRA reduce using rule 35 (statement -> if_statement elif_statement else_statement END IF ; .)
+
+
+state 93
+
+    (31) elif_statement -> ELIF ( expression ) statement .
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    ELSE            reduce using rule 31 (elif_statement -> ELIF ( expression ) statement .)
+    ELIF            reduce using rule 31 (elif_statement -> ELIF ( expression ) statement .)
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    expression                     shift and go to state 3
+    statement                      shift and go to state 12
+    if_statement                   shift and go to state 7
+
+state 94
+
+    (36) statement -> WHILE ( expression ) statement END . WHILE ;
+
+    WHILE           shift and go to state 96
+
+
+state 95
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH . RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    RIGHT_DIS       shift and go to state 97
+
+
+state 96
+
+    (36) statement -> WHILE ( expression ) statement END WHILE . ;
+
+    ;               shift and go to state 98
+
+
+state 97
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS . NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    NAME            shift and go to state 99
+
+
+state 98
+
+    (36) statement -> WHILE ( expression ) statement END WHILE ; .
+
+    NAME            reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    VARIABLES       reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    STATES          reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    TRANSITIONS     reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    WHILE           reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    (               reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    NUMBER          reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    IF              reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    $end            reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    END             reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    ELSE            reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    ELIF            reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+    RIGHT_CURLY_BRA reduce using rule 36 (statement -> WHILE ( expression ) statement END WHILE ; .)
+
+
+state 99
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME . LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+
+    LEFT_CURLY_BRA  shift and go to state 100
+
+
+state 100
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA . statement RIGHT_CURLY_BRA ;
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    statement                      shift and go to state 101
+    expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
+
+state 101
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement . RIGHT_CURLY_BRA ;
+    (1) statement -> statement . statement
+    (1) statement -> . statement statement
+    (2) statement -> . NAME ATTACHED expression ;
+    (3) statement -> . expression ;
+    (13) statement -> . expression ! ;
+    (21) statement -> . VARIABLES expression : type ;
+    (22) statement -> . VARIABLES : expression ;
+    (27) statement -> . STATES NAME : state STATE ;
+    (28) statement -> . TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
+    (33) statement -> . if_statement END IF ;
+    (34) statement -> . if_statement else_statement END IF ;
+    (35) statement -> . if_statement elif_statement else_statement END IF ;
+    (36) statement -> . WHILE ( expression ) statement END WHILE ;
+    (4) expression -> . expression PLUS expression
+    (5) expression -> . expression MINUS expression
+    (6) expression -> . expression TIMES expression
+    (7) expression -> . expression DIVIDE expression
+    (8) expression -> . expression REMAINDER expression
+    (9) expression -> . expression EQUALS expression
+    (10) expression -> . expression LEFT_ANGLE_BRA expression
+    (11) expression -> . expression RIGHT_ANGLE_BRA expression
+    (12) expression -> . expression COMP_OP expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . NAME
+    (17) expression -> . expression , expression
+    (29) if_statement -> . IF ( expression ) statement
+
+    RIGHT_CURLY_BRA shift and go to state 102
+    NAME            shift and go to state 2
+    VARIABLES       shift and go to state 4
+    STATES          shift and go to state 5
+    TRANSITIONS     shift and go to state 6
+    WHILE           shift and go to state 9
+    (               shift and go to state 10
+    NUMBER          shift and go to state 11
+    IF              shift and go to state 8
+
+    statement                      shift and go to state 12
+    expression                     shift and go to state 3
+    if_statement                   shift and go to state 7
+
+state 102
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA . ;
+
+    ;               shift and go to state 103
+
+
+state 103
+
+    (28) statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .
+
+    NAME            reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    VARIABLES       reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    STATES          reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    TRANSITIONS     reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    WHILE           reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    (               reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    NUMBER          reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    IF              reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    $end            reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    END             reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    ELSE            reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    ELIF            reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
+    RIGHT_CURLY_BRA reduce using rule 28 (statement -> TRANSITIONS NAME : NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ; .)
 
 WARNING: 
 WARNING: Conflicts:
 WARNING: 
-WARNING: shift/reduce conflict for ; in state 31 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 33 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 33 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 33 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 33 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 33 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 33 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 33 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 33 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 33 resolved as shift
-WARNING: shift/reduce conflict for , in state 33 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 34 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 34 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 34 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 34 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 34 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 34 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 34 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 34 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 34 resolved as shift
-WARNING: shift/reduce conflict for , in state 34 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 35 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 35 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 35 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 35 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 35 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 35 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 35 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 35 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 35 resolved as shift
-WARNING: shift/reduce conflict for , in state 35 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 36 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 36 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 36 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 36 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 36 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 36 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 36 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 36 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 36 resolved as shift
-WARNING: shift/reduce conflict for , in state 36 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 37 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 37 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 37 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 37 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 37 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 37 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 37 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 37 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 37 resolved as shift
-WARNING: shift/reduce conflict for , in state 37 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 38 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 38 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 38 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 38 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 38 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 38 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 38 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 38 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 38 resolved as shift
-WARNING: shift/reduce conflict for , in state 38 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 39 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 39 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 39 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 39 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 39 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 39 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 39 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 39 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 39 resolved as shift
-WARNING: shift/reduce conflict for , in state 39 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 40 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 40 resolved as shift
-WARNING: shift/reduce conflict for TIMES in state 40 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 40 resolved as shift
-WARNING: shift/reduce conflict for REMAINDER in state 40 resolved as shift
-WARNING: shift/reduce conflict for EQUALS in state 40 resolved as shift
-WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 40 resolved as shift
-WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 40 resolved as shift
-WARNING: shift/reduce conflict for COMP_OP in state 40 resolved as shift
-WARNING: shift/reduce conflict for , in state 40 resolved as shift
+WARNING: shift/reduce conflict for NAME in state 12 resolved as shift
+WARNING: shift/reduce conflict for VARIABLES in state 12 resolved as shift
+WARNING: shift/reduce conflict for STATES in state 12 resolved as shift
+WARNING: shift/reduce conflict for TRANSITIONS in state 12 resolved as shift
+WARNING: shift/reduce conflict for WHILE in state 12 resolved as shift
+WARNING: shift/reduce conflict for ( in state 12 resolved as shift
+WARNING: shift/reduce conflict for NUMBER in state 12 resolved as shift
+WARNING: shift/reduce conflict for IF in state 12 resolved as shift
 WARNING: shift/reduce conflict for PLUS in state 41 resolved as shift
 WARNING: shift/reduce conflict for MINUS in state 41 resolved as shift
 WARNING: shift/reduce conflict for TIMES in state 41 resolved as shift
@@ -1875,6 +2489,87 @@ WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 42 resolved as shift
 WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 42 resolved as shift
 WARNING: shift/reduce conflict for COMP_OP in state 42 resolved as shift
 WARNING: shift/reduce conflict for , in state 42 resolved as shift
-WARNING: shift/reduce conflict for INITIAL in state 60 resolved as shift
-WARNING: shift/reduce conflict for COMPLETE in state 60 resolved as shift
-WARNING: shift/reduce conflict for FINAL in state 60 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 43 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 43 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 43 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 43 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 43 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 43 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 43 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 43 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 43 resolved as shift
+WARNING: shift/reduce conflict for , in state 43 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 44 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 44 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 44 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 44 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 44 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 44 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 44 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 44 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 44 resolved as shift
+WARNING: shift/reduce conflict for , in state 44 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 45 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 45 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 45 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 45 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 45 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 45 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 45 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 45 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 45 resolved as shift
+WARNING: shift/reduce conflict for , in state 45 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 46 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 46 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 46 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 46 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 46 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 46 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 46 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 46 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 46 resolved as shift
+WARNING: shift/reduce conflict for , in state 46 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 47 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 47 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 47 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 47 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 47 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 47 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 47 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 47 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 47 resolved as shift
+WARNING: shift/reduce conflict for , in state 47 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 48 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 48 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 48 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 48 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 48 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 48 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 48 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 48 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 48 resolved as shift
+WARNING: shift/reduce conflict for , in state 48 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 49 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 49 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 49 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 49 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 49 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 49 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 49 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 49 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 49 resolved as shift
+WARNING: shift/reduce conflict for , in state 49 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 50 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 50 resolved as shift
+WARNING: shift/reduce conflict for TIMES in state 50 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 50 resolved as shift
+WARNING: shift/reduce conflict for REMAINDER in state 50 resolved as shift
+WARNING: shift/reduce conflict for EQUALS in state 50 resolved as shift
+WARNING: shift/reduce conflict for LEFT_ANGLE_BRA in state 50 resolved as shift
+WARNING: shift/reduce conflict for RIGHT_ANGLE_BRA in state 50 resolved as shift
+WARNING: shift/reduce conflict for COMP_OP in state 50 resolved as shift
+WARNING: shift/reduce conflict for , in state 50 resolved as shift
+WARNING: shift/reduce conflict for ELIF in state 57 resolved as shift
+WARNING: shift/reduce conflict for INITIAL in state 82 resolved as shift
+WARNING: shift/reduce conflict for COMPLETE in state 82 resolved as shift
+WARNING: shift/reduce conflict for FINAL in state 82 resolved as shift

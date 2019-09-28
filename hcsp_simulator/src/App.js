@@ -86,7 +86,9 @@ class Process extends React.Component {
                         return (
                             <pre key={line_no}>
                                 <span>{str.slice(0,bg_start)}</span>
-                                <span className="program-text-hl">{str.slice(bg_start,bg_end)}</span>
+                                <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                    {str.slice(bg_start,bg_end)}
+                                </span>
                                 <span>{str.slice(bg_end,str.length)}</span>
                             </pre>)
                     }
@@ -255,6 +257,9 @@ class App extends React.Component {
 
             // Whether to show events only.
             show_event_only: false,
+
+            // Warnings from checks of channel mismatches.
+            warnings: []
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
@@ -272,6 +277,11 @@ class App extends React.Component {
             const response = await axios.post("/parse_hcsp", {
                 text: this.reader.result,
             })
+            if ('warnings' in response.data) {
+                this.setState({
+                    warnings: response.data.warnings
+                })
+            }
             if ('error' in response.data) {
                 this.setState({
                     error: response.data.error,
@@ -432,6 +442,9 @@ class App extends React.Component {
             </pre>
         : (
             <Container className="left">
+            {this.state.warnings.map((warning, index) => {
+                return <div key={index} style={{color:'red'}}>{warning}</div>
+            })}
             {this.state.hcsp_info.map((info, index) => {
                 const hcsp_name = info.name;
                 if ('parallel' in info) {
@@ -441,7 +454,8 @@ class App extends React.Component {
                     // No data is available
                     return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={[]}
-                                    time_series={undefined} event_time={undefined} hpos={undefined}/>
+                                    time_series={undefined} event_time={undefined} hpos={undefined}
+                                    npos={undefined}/>
                 } else {
                     const hpos = this.state.history_pos;
                     const event = this.state.history[hpos];
@@ -458,11 +472,20 @@ class App extends React.Component {
                         // End of data set
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={undefined} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={undefined}/>
                     } else {
+                        var npos = false;
+                        if (hpos < this.state.history.length-1) {
+                            const next_history = this.state.history[hpos+1];
+                            if ('ori_pos' in next_history && next_history.ori_pos.indexOf(hcsp_name) !== -1) {
+                                npos = true;
+                            }
+                        }
                         return <Process key={index} index={index} lines={info.lines}
                                         name={hcsp_name} pos={info.mapping[pos]} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}/>
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={npos}/>
                     }
                 }
             })}

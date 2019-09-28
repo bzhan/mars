@@ -33,14 +33,14 @@ def getComponents(components):
     """Interpret a list of components."""
     Coms = []
     for component in components:
-        if component.getAttribute('category') in ['system', 'process', 'thread']:
+        if component.getAttribute('category') in ['system', 'process', 'thread', 'abstract']:
             com = {}
             com['category'] = component.getAttribute('category')
             com['name'] = component.getAttribute('name')
             if component.getElementsByTagName('classifier'):
-                name_impl = component.getElementsByTagName('classifier')[0].getAttribute('href').split('.')[-1]
-                if com['name']!=name_impl:
-                    com['name_impl']=name_impl
+                name_impl = component.getElementsByTagName('classifier')[0].getAttribute('href').split('.')[-2]
+                if com['name'] != name_impl:
+                    com['name_impl'] = name_impl
 
             com['features'] = [node for node in component.childNodes if node.nodeName == 'featureInstance']
             com['features'] = getFeatures(com['features'])

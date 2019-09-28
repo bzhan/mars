@@ -3,14 +3,18 @@ import json
 
 from aadl2hcsp import json2hcsp
 from ss2hcsp.hcsp import parser
-from ss2hcsp.hcsp.hcsp import HCSPProcess
 
 class Json2HCSPTest(unittest.TestCase):
     def testJson2HCSP(self):
-        json_file = './Examples/AADL/air_conditioner/out_ref.json'
-        annex_file = './Examples/AADL/air_conditioner/air_conditioner.aadl'
-        out_file = './Examples/AADL/air_conditioner/hcsp.txt'
-        ref_file = './Examples/AADL/air_conditioner/hcsp_ref.txt'
+        #json_file = './Examples/AADL/air_conditioner/out_ref.json'
+        #annex_file = './Examples/AADL/air_conditioner/air_conditioner.aadl'
+        #out_file = './Examples/AADL/air_conditioner/hcsp.txt'
+        #ref_file = './Examples/AADL/air_conditioner/hcsp_ref.txt'
+
+        json_file = './Examples/AADL/isolette/out_ref.json'
+        annex_file = './Examples/AADL/isolette/asd.aadl'
+        out_file = './Examples/AADL/isolette/hcsp.txt'
+        ref_file = './Examples/AADL/isolette/hcsp_ref.txt'
 
         out = json2hcsp.convert_AADL(json_file, annex_file)
 

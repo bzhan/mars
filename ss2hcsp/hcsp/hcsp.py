@@ -1,6 +1,6 @@
 """Hybrid programs"""
 
-# from ss2hcsp.hcsp import expr
+from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr, true_expr
 
 
@@ -388,7 +388,7 @@ class ITE(HCSP):
         assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert isinstance(else_hp, HCSP)
         self.type = "ite"
-        self.if_hps = tuple(if_hps)
+        self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
 
     def __eq__(self, other):
@@ -404,6 +404,41 @@ class ITE(HCSP):
             res += "elif %s then %s " % (cond, hp)
         res += "else %s endif" % self.else_hp
         return res
+
+
+def get_comm_chs(hp):
+    """Returns the list of communication channels for the given program.
+    
+    Result is a list of pairs (ch_name, '?'/'!').
+    
+    """
+    assert isinstance(hp, HCSP)
+    collect = []
+
+    def rec(hp):
+        if hp.type == 'input_channel':
+            collect.append((hp.ch_name, '?'))
+        elif hp.type == 'output_channel':
+            collect.append((hp.ch_name, '!'))
+        elif hp.type == 'sequence':
+            for arg in hp.hps:
+                rec(arg)
+        elif hp.type == 'ode':
+            if hp.out_hp:
+                rec(hp.out_hp)
+        elif hp.type in ('ode_comm', 'select_comm'):
+            for comm_hp, out_hp in hp.io_comms:
+                rec(comm_hp)
+                rec(out_hp)
+        elif hp.type in ('loop', 'condition', 'recursion'):
+            rec(hp.hp)
+        elif hp.type == 'ite':
+            for _, sub_hp in hp.if_hps:
+                rec(sub_hp)
+            rec(hp.else_hp)
+    
+    rec(hp)
+    return list(OrderedDict.fromkeys(collect))
 
 
 class HCSPProcess:
@@ -433,9 +468,9 @@ class HCSPProcess:
         self.hps.insert(n, (name, hp))
 
     def substitute(self):
+        """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (Skip, Wait, Assign, InputChannel, OutputChannel, Var, Loop, Recursion,
-                                    Condition, Sequence, Parallel, ODE, ODE_Comm, SelectComm, ITE))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():
