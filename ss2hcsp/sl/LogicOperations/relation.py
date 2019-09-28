@@ -1,9 +1,11 @@
 from ss2hcsp.sl.sl_block import SL_Block
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr
 
 
 class Relation(SL_Block):
     """Relation of two dest lines."""
     def __init__(self, name, relation, *, st=-1):
+        super(Relation, self).__init__()
         self.name = name
         self.type = "relation"
         self.is_continuous = (st == 0)
@@ -21,3 +23,12 @@ class Relation(SL_Block):
     def __str__(self):
         return "%s: Relation[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+
+    def get_var_map(self):
+        in_vars = [AVar(line.name) for line in self.dest_lines]
+        cond0 = RelExpr(self.relation, in_vars[0], in_vars[1])
+        expr0 = AConst(1)
+        cond1 = cond0.neg()
+        expr1 = AConst(0)
+        out_var = self.src_lines[0][0].name
+        return {out_var: [(cond0, expr0), (cond1, expr1)]}

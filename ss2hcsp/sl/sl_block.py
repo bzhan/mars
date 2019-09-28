@@ -46,3 +46,13 @@ class SL_Block:
     def add_dest(self, port_id, sl_line):
         assert port_id < self.num_dest
         self.dest_lines[port_id] = sl_line
+
+    def get_src_blocks(self):
+        return set(line.src for line in self.dest_lines)
+
+    def get_input_vars(self):
+        return set(line.name for line in self.dest_lines)
+
+    def get_output_vars(self):
+        assert all(len(set(line.name for line in line_list)) == 1 for line_list in self.src_lines)
+        return set(line_list[0].name for line_list in self.src_lines)

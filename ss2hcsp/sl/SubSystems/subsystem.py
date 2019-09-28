@@ -1,10 +1,10 @@
 from ss2hcsp.sl.sl_block import SL_Block
-# from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
 class Subsystem(SL_Block):
     """Subsystem is block in which there is a diagram"""
     def __init__(self, name, num_src, num_dest):
+        super(Subsystem, self).__init__()
         self.name = name
         self.type = "subsystem"
         self.is_continuous = False
@@ -17,3 +17,14 @@ class Subsystem(SL_Block):
     def __str__(self):
         return "%s: Subsystem[in = %s, out = %s, diagram = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.diagram))
+
+
+class Triggered_Subsystem(Subsystem):
+    def __init__(self, name, num_src, num_dest, trigger_type):
+        super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
+        self.type = "triggered_subsystem"
+        self.trigger_type = trigger_type
+
+    def __str__(self):
+        return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
+               (self.name, str(self.dest_lines), str(self.src_lines), self.trigger_type, str(self.diagram))

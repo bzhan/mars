@@ -1,9 +1,11 @@
 from ss2hcsp.sl.sl_block import SL_Block
+from ss2hcsp.hcsp.expr import AVar, PlusExpr, true_expr
 
 
 class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
-    def __init__(self, name, dest_spec, *, st=-1):
+    def __init__(self, name, dest_spec, st=-1):
+        super(Add, self).__init__()
         """dest_spec is a list of either '+' or '-'."""
         self.name = name
         self.type = "add"
@@ -22,3 +24,9 @@ class Add(SL_Block):
     def __str__(self):
         return "%s: Add[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+
+    def get_var_map(self):
+        in_vars = [AVar(line.name) for line in self.dest_lines]
+        expr = PlusExpr(self.dest_spec, in_vars)
+        out_var = self.src_lines[0][0].name
+        return {out_var: [(true_expr, expr)]}

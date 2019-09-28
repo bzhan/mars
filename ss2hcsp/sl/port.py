@@ -1,5 +1,4 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar
 
 
 class Port(SL_Block):
@@ -14,19 +13,20 @@ class Port(SL_Block):
         self.name = name
         assert port_type in ['in_port', 'out_port']
         self.type = port_type
+        self.st = -1
 
         if self.type == 'in_port':
             self.num_src = 1
             self.src_lines = [[]]
             self.num_dest = 0
             self.dest_lines = []
-            self.st = AVar(name=self.name)
+            # self.st = AVar(name=self.name)
         else:
             self.num_src = 0
             self.src_lines = []
             self.num_dest = 1
             self.dest_lines = [None]
-            self.st = -1
+            # self.st = -1
 
     def __str__(self):
         if self.type == 'in_port':

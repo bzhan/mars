@@ -1,19 +1,11 @@
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.sl.system import System
-from ss2hcsp.sl.sl_line import SL_Line
-# from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.expr import *
-# from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
-
-# from functools import reduce
 from ss2hcsp.sl.sl_diagram import get_gcd
-# from math import gcd
-import operator
 from itertools import product
 
 
 def translate_continuous(diag):
-    """Translate the given diagram to an HCSP program."""
+    """Translate a given diagram to an HCSP program."""
 
     """Some stateless blocks, such as add and gain, are treated as
     continuous here, so we have to delete these blocks and subsititue
@@ -46,12 +38,12 @@ def translate_continuous(diag):
                     elif block.type == "not":
                         res_expr = PlusExpr(signs="+-", exprs=[AConst(1), AVar(in_var)])
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-                elif block.type in ["add", "divide"]:  # Multiple inputs, one output
+                elif block.type in ["add", "product"]:  # Multiple inputs, one output
                     assert len(in_vars) == len(block.dest_spec)
                     exprs = [AVar(var) for var in in_vars]
                     if block.type == "add":
                         res_expr = PlusExpr(signs=block.dest_spec, exprs=exprs)
-                    elif block.type == "divide":
+                    elif block.type == "product":
                         res_expr = TimesExpr(signs=block.dest_spec, exprs=exprs)
                     cond_inst.add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
                 elif block.type in ["or", "and", "min_max"]:
@@ -82,13 +74,13 @@ def translate_continuous(diag):
                                                                (cond2, AVar(in_var))])
                 elif block.type == "unit_delay":
                     in_var = in_vars[0]
-                    assert isinstance(block.delay, AExpr)
-                    cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.delay)
-                    cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.delay)
+                    assert isinstance(block.st, AExpr)
+                    cond0 = RelExpr(op="<=", expr1=AVar("t"), expr2=block.st)
+                    cond1 = RelExpr(op=">", expr1=AVar("t"), expr2=block.st)
                     cond_inst.add(var_name=out_var,
                                   cond_inst=[(cond0, AConst(block.init_value)),
                                              (cond1, FunExpr(fun_name="delay",
-                                                             exprs=[AVar(in_var), block.delay]))])
+                                                             exprs=[AVar(in_var), block.st]))])
                 delete_block.append(block.name)
         assert delete_block
         for name in delete_block:
@@ -174,9 +166,8 @@ def translate_continuous(diag):
         else:  # len(constraints) >= 1:
             # Check whether conj(*constraints) is satisfiable
             # by mutually exclusive constraint set of cond_inst
-            if sum(set(con_pair).issubset(mu_ex_cons) for mu_ex_cons in cond_inst.mu_ex_cons
-                   for con_pair in product(constraints, constraints) if len(set(con_pair)) == 2) >= 1:
-                continue  # because cons_pairs contains exclusive constrains
+            if cond_inst.conflicting(constraints):
+                continue  # because cons_pairs contains mutually exclusive constrains
             constraint = conj(*constraints)
         # ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=bexpr_parse(constraint), io_comms=comm_hps))
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=constraint, io_comms=comm_hps))
@@ -189,247 +180,105 @@ def translate_continuous(diag):
     return process
 
 
-def translate_discrete(diag):
-    """Translate the given diagram to an HCSP program."""
-    blocks = diag["diag"]
-    blocks_dict = {block.name: block for block in blocks}
-
-    # Initialization
-    init_hp = hp.Assign(var_name="t", expr=AConst(0))
-
-    # Get input and output channels
-    in_ports = diag["in"]
-    out_ports = diag["out"]
-    in_channels = [hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name)
-                   for var_name, bran_num in sorted(in_ports)]
-    out_channels = [hp.OutputChannel(ch_name="ch_" + expr + bran_num, expr=AVar(expr))
-                    for expr, bran_num in sorted(out_ports)]
-
-    # Get discrete processes
-    st_cond_inst_dict = dict()  # used for merging the discrete processes with the same sample time
-    # discrete_hps = []  # the list of discrete processes
-    for block in blocks:
-        if not hasattr(block, "st") or block.type == "constant":
-            continue
-
-        assert isinstance(block.st, (int, float))
-        st_cond = RelExpr(op="==", expr1=ModExpr(expr1=AVar("t"), expr2=AConst(block.st)), expr2=AConst(0))
-        # if isinstance(block.st, (int, float)) else block.st),
-        if st_cond not in st_cond_inst_dict:
-            st_cond_inst_dict[st_cond] = Conditional_Inst()
-
-        # block_hp = None
-        in_vars = []
-        for line in block.dest_lines:
-            if line.src in blocks_dict:
-                src_block = blocks_dict[line.src]
-                if src_block.type == "constant":
-                    in_vars.append(AConst(src_block.value))
-                    continue
-            in_vars.append(AVar(line.name))
-        out_var = block.src_lines[0][0].name
-        res_expr = None
-        if block.type in ["gain", "bias", "abs", "not"]:  # one input, one output
-            if block.type == "gain":
-                res_expr = TimesExpr(signs="**", exprs=[in_vars[0], AConst(block.factor)])
-            elif block.type == "bias":
-                res_expr = PlusExpr(signs="++", exprs=[in_vars[0], AConst(block.bias)])
-            elif block.type == "abs":
-                res_expr = FunExpr(fun_name="abs", exprs=[in_vars[0]])
-            elif block.type == "not":
-                res_expr = PlusExpr(signs="+-", exprs=[AConst(1), in_vars[0]])
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-        elif block.type in ["add", "divide"]:  # multiple inputs, one output
-            assert len(in_vars) == len(block.dest_spec)
-            if block.type == "add":
-                res_expr = PlusExpr(signs=block.dest_spec, exprs=in_vars)
-            elif block.type == "divide":
-                res_expr = TimesExpr(signs=block.dest_spec, exprs=in_vars)
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-        elif block.type in ["or", "and", "min_max"]:  # multiple inputs, one output
-            assert len(in_vars) == block.num_dest
-            if block.type == "or":
-                res_expr = FunExpr(fun_name="max", exprs=in_vars)
-            elif block.type == "and":
-                res_expr = FunExpr(fun_name="min", exprs=in_vars)
-            elif block.type == "min_max":
-                res_expr = FunExpr(fun_name=block.fun_name, exprs=in_vars)
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(BConst(True), res_expr)])
-        elif block.type == "relation":
-            cond0 = RelExpr(op=block.relation, expr1=in_vars[0], expr2=in_vars[1])
-            cond1 = cond0.neg()
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(1)), (cond1, AConst(0))])
-        elif block.type == "switch":
-            cond0 = RelExpr(op=block.relation, expr1=in_vars[1], expr2=AConst(block.threshold))
-            cond2 = cond0.neg()
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, in_vars[0]), (cond2, in_vars[2])])
-        elif block.type == "saturation":
-            in_var = in_vars[0]
-            cond0 = RelExpr(op=">", expr1=in_var, expr2=AConst(block.up_lim))
-            cond1 = RelExpr(op="<", expr1=in_var, expr2=AConst(block.low_lim))
-            cond2 = LogicExpr(op="&&", expr1=cond0.neg(), expr2=cond1.neg())
-            st_cond_inst_dict[st_cond].add(var_name=out_var, cond_inst=[(cond0, AConst(block.up_lim)),
-                                                                        (cond1, AConst(block.low_lim)),
-                                                                        (cond2, in_var)])
-
-    # Delete useless (intermidiate) variables in st_cond_inst_dict[st_cond] for each st_cond
-    for st_cond, cond_inst in st_cond_inst_dict.items():
-        outport_vars = set(expr for expr, _ in out_ports)
-        in_var_others = set()  # the set of input variables of other groups of processes
-        for other_cond, other_inst in st_cond_inst_dict.items():
-            if st_cond != other_cond:
-                for cond_expr_list in other_inst.data.values():
-                    for cond, expr in cond_expr_list:
-                        in_var_others = in_var_others.union(cond.get_vars(), expr.get_vars())
-        useful_vars = outport_vars.union(set(cond_inst.data.keys()).intersection(in_var_others))
-        useless_vars = set(cond_inst.data.keys()) - useful_vars
-        for var in useless_vars:
-            del cond_inst.data[var]
-    # Get discrete processes
-    discrete_hps = []
-    for st_cond, cond_inst in st_cond_inst_dict.items():
+def translate_discrete_diagram(diagram):
+    def get_block_hp(_var_map):  # Get the hcsp of a block from its var_map
         processes = []
-        for var, cond_expr_list in cond_inst.data.items():
+        for _out_var, cond_expr_list in _var_map.items():
+            assert all(isinstance(_cond, BExpr) and isinstance(_expr, (AExpr, BExpr))
+                       for _cond, _expr in cond_expr_list) and cond_expr_list
             if len(cond_expr_list) == 1:
-                processes.append(hp.Assign(var_name=var, expr=cond_expr_list[0][1]))
-            else:  # len(cond_expr_list) >= 2:
-                for cond, expr in cond_expr_list:
-                    processes.append(hp.Condition(cond=cond, hp=hp.Assign(var_name=var, expr=expr)))
+                assert cond_expr_list[0][0] == true_expr
+                _expr = cond_expr_list[0][1]
+                processes.append(hp.Assign(_out_var, _expr))
+            elif len(cond_expr_list) >= 2:
+                cond_hp_list = [(_cond, hp.Assign(_out_var, _expr)) for _cond, _expr in cond_expr_list]
+                if_hps = cond_hp_list[:-1]
+                else_hp = cond_hp_list[-1][1]
+                processes.append(hp.ITE(if_hps, else_hp))
+        assert processes
         if len(processes) == 1:
-            discrete_hps.append(hp.Condition(cond=st_cond, hp=processes[0]))
+            return processes[0]
         else:
-            discrete_hps.append(hp.Condition(cond=st_cond, hp=hp.Sequence(*processes)))
+            return hp.Sequence(*processes)
 
-    # Get the time process
-    # Compute the GCD of sample times of all the discrete blocks
-    gcd_st = AConst(get_gcd([block.st for block in blocks]))
-    # known_st = []
-    # unknown_st = []
-    # for block in blocks:
-    #     if isinstance(block.st, (int, float)):
-    #         assert block.st > -1
-    #         known_st.append(block.st)
-    #     else:
-    #         assert isinstance(block.st, (AVar, FunExpr))
-    #         unknown_st.append(AVar(block.name))
-    #
-    # if known_st:
-    #     known_st = [AConst(get_gcd(known_st))]
-    # known_st.extend(unknown_st)
-    # st_gcd = FunExpr(fun_name="gcd", exprs=known_st) if len(known_st) >= 2 else known_st[0]
-
-    # Get loop body
-    loop_hps = in_channels + discrete_hps + out_channels + \
-               [hp.Wait(delay=gcd_st), hp.Assign(var_name="t", expr=PlusExpr(signs="++", exprs=[AVar("t"), gcd_st]))]
-    loop_hps = hp.Sequence(*loop_hps)
-    process = hp.Sequence(init_hp, hp.Loop(loop_hps))
-    return process
-
-
-def seperate_diagram(blocks_dict):
-    """Seperate a diagram into discrete and continous subdiagrams."""
-    # delete in and out-ports
-    blocks_dict = {name: block for name, block in blocks_dict.items() if block.type not in ['in_port', 'out_port']}
-
-    # Seperating: search SCC by BFS
-    discrete_subdiagrams = []
-    continuous_subdiagrams = []
-    while blocks_dict:
-        _, block = blocks_dict.popitem()
-        scc = [block]
-        bs = [block]
-        while bs:
-            b = bs.pop()
-            for src_line in b.src_lines:
-                for line in src_line:
-                    dest_name = line.dest
-                    if dest_name in blocks_dict and blocks_dict[dest_name].is_continuous == block.is_continuous:
-                        bs.append(blocks_dict[dest_name])
-                        scc.append(blocks_dict[dest_name])
-                        del blocks_dict[dest_name]
-            for dest_line in b.dest_lines:
-                src_name = dest_line.src
-                if src_name in blocks_dict and blocks_dict[src_name].is_continuous == block.is_continuous:
-                    bs.append(blocks_dict[src_name])
-                    scc.append(blocks_dict[src_name])
-                    del blocks_dict[src_name]
-        if block.is_continuous:
-            continuous_subdiagrams.append(scc)
-        else:
-            discrete_subdiagrams.append(scc)
-    # print("D:" + str(discrete_subdiagrams))
-    # print("C" + str(continuous_subdiagrams))
-
-    # Sorting: for disrecte blocks
-    discrete_subdiagrams_sorted = []
-    for scc in discrete_subdiagrams:
-        scc_dict = {block.name: block for block in scc}
-        sorted_scc = []
-        while scc_dict:
-            delete_blocks = []
-            for block in scc_dict.values():
-                src_set = set()
-                for dest_line in block.dest_lines:
-                    src_set.add(dest_line.src)
-                if src_set.isdisjoint(set(scc_dict.keys())):
-                    sorted_scc.append(block)
-                    delete_blocks.append(block.name)
-            for block_name in delete_blocks:
-                del scc_dict[block_name]
-        discrete_subdiagrams_sorted.append(sorted_scc)
-
+    # Get block dictionary
+    block_dict = {block.name: block for block in diagram["diag"]}
     # Get input and output channels
-    continuous_groups = [[block.name for block in scc] for scc in continuous_subdiagrams]
+    in_channels = [hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name)
+                   for var_name, bran_num in sorted(diagram["in"])]
+    out_channels = [hp.OutputChannel(ch_name="ch_" + expr + bran_num, expr=AVar(expr))
+                    for expr, bran_num in sorted(diagram["out"])]
 
-    dis_subdiag_with_chs = []
-    for sorted_scc in discrete_subdiagrams_sorted:
-        in_channels = set()
-        out_channels = set()
-        block_names = [block.name for block in sorted_scc]
-        for block in sorted_scc:
-            for dest_line in block.dest_lines:
-                if dest_line.src not in block_names:  # an input channel
-                    in_channels.add((dest_line.name, ""))  # (var_name, branch_num)
-            for src_lines in block.src_lines:  # Each group represents a variable
-                channel_groups = {}
-                for src_line in src_lines:
-                    if src_line.dest not in block_names:  # an output channel
-                        is_outport = True  # if src_line.dest is an outport
-                        for i in range(len(continuous_groups)):
-                            if src_line.dest in continuous_groups[i]:
-                                is_outport = False
-                                if i not in channel_groups:
-                                    channel_groups[i] = []
-                                channel_groups[i].append(src_line.branch)
-                                break
-                        if is_outport:
-                            out_channels.add((src_line.name, "_" + str(src_line.branch)))
-                for channels in channel_groups.values():
-                    out_channels.add((src_lines[0].name, "_" + str(min(channels))))
-        dis_subdiag_with_chs.append({"in": in_channels, "diag": sorted_scc, "out": out_channels})
+    # Get initial processes
+    init_hp = hp.Assign("t", AConst(0))
+    for block in block_dict.values():
+        if block.type == "constant":
+            var_map = block.get_var_map()
+            assert len(var_map) == 1
+            (out_var, [(_, expr)]) = var_map.popitem()
+            assert isinstance(expr, AConst)
+            init_hp = hp.Sequence(init_hp, hp.Assign(out_var, expr))
 
-    con_subdiag_with_chs = []
-    for scc in continuous_subdiagrams:
-        in_channels = set()
-        out_channels = set()
-        block_names = [block.name for block in scc]
-        channel_groups = {}
-        for block in scc:
-            for dest_line in block.dest_lines:
-                if dest_line.src not in block_names:  # an input channel
-                    if dest_line.name not in channel_groups:
-                        channel_groups[dest_line.name] = []
-                    channel_groups[dest_line.name].append(dest_line.branch)
-            for src_lines in block.src_lines:
-                for src_line in src_lines:
-                    if src_line.dest not in block_names:  # an output channel
-                        out_channels.add((src_line.name, ""))
-        for channel, branches in channel_groups.items():
-            in_channels.add((channel, "_" + str(min(branches))))
-        con_subdiag_with_chs.append({"in": in_channels, "diag": scc, "out": out_channels})
+    # Delete Constant blocks
+    constant_block_names = [name for name, block in block_dict.items() if block.type == "constant"]
+    for name in constant_block_names:
+        del block_dict[name]
 
-    # return discrete_subdiagrams_sorted, continuous_subdiagrams
-    return dis_subdiag_with_chs, con_subdiag_with_chs
+    # Get diagram sample time and the wait process
+    diagram_st = get_gcd([block.st for block in block_dict.values()])
+    wait_st = hp.Sequence(hp.Wait(AConst(diagram_st)),
+                          hp.Assign("t", PlusExpr("++", [AVar("t"), AConst(diagram_st)])))
+
+    # Get main processes
+    main_processes = []
+    while block_dict:
+        block_pool = dict()
+        for name, block in block_dict.items():
+            src_blocks = block.get_src_blocks()
+            assert isinstance(src_blocks, set)
+            if src_blocks.isdisjoint(set(block_dict.keys())):
+                assert name not in block_pool
+                block_pool[name] = block
+        assert block_pool
+        # Classify blocks in block_pool by Sample Time
+        st_to_hps = dict()
+        st_to_in_chs = dict()
+        st_to_out_chs = dict()
+        for block in block_pool.values():
+            # Get the hcsp of the block
+            if block.st not in st_to_hps:
+                assert (block.st not in st_to_in_chs) and (block.st not in st_to_out_chs)
+                st_to_hps[block.st] = []
+                st_to_in_chs[block.st] = []
+                st_to_out_chs[block.st] = []
+            st_to_hps[block.st].append(get_block_hp(block.get_var_map()))
+            # Get the input channels of the block
+            in_vars = block.get_input_vars()
+            for in_ch in in_channels:
+                if in_ch.var_name in in_vars:
+                    st_to_in_chs[block.st].append(in_ch)
+            # Get the output channels of the block
+            out_vars = block.get_output_vars()
+            for out_ch in out_channels:
+                if out_ch.expr.name in out_vars:
+                    st_to_out_chs[block.st].append(out_ch)
+        # Get each process wrt. Sample Time
+        for st in st_to_hps.keys():
+            # The condition of time is in form of t%st == 0
+            cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(st)), AConst(0))
+            # The process is in form of in_chs?;hcsp;out_chs!
+            assert st_to_hps[st]
+            st_processes = st_to_in_chs[st] + st_to_hps[st] + st_to_out_chs[st]
+            st_process = st_processes[0] if len(st_processes) == 1 else hp.Sequence(*st_processes)
+            main_processes.append(hp.Condition(cond_time, st_process))
+        # Delete blocks in block_pool from block_dict
+        for name in block_pool.keys():
+            del block_dict[name]
+
+    # Get loop body of the result process
+    main_processes.append(wait_st)
+    result_hp = hp.Sequence(init_hp, hp.Loop(hp.Sequence(*main_processes)))
+    return result_hp
 
 
 def get_processes(dis_subdiag_with_chs, con_subdiag_with_chs):
@@ -441,7 +290,8 @@ def get_processes(dis_subdiag_with_chs, con_subdiag_with_chs):
     num = 0
     for diag in dis_subdiag_with_chs:
         name = "PD" + str(num)
-        discrete_process = translate_discrete(diag)
+        # discrete_process = translate_discrete(diag)
+        discrete_process = translate_discrete_diagram(diag)
         processes.add(name, discrete_process)
         main_processes.append(hp.Var(name))
         num += 1
@@ -462,91 +312,3 @@ def get_processes(dis_subdiag_with_chs, con_subdiag_with_chs):
 
     return processes
 
-
-def delete_subsystems(blocks_dict):
-    subsystems = []
-    blocks_in_subsystems = []
-    for block in blocks_dict.values():
-        if block.type == "subsystem":
-            # Collect all the subsystems to be deleted
-            subsystems.append(block.name)
-            # The subsytem is treated as a diagram
-            subsystem = block.diagram
-            # Delete subsystems recursively
-            delete_subsystems(subsystem.blocks_dict)
-            # Move all the blocks except ports from the subsystem to the parent system
-            for sub_block in subsystem.blocks_dict.values():
-                if sub_block.type not in ["in_port", "out_port"]:
-                    blocks_in_subsystems.append(sub_block)
-            # Sort the input ports in the subsystem by names
-            input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
-            input_ports.sort(key=operator.attrgetter('name'))
-            # Sort the output ports in the subsystem by names
-            output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
-            output_ports.sort(key=operator.attrgetter('name'))
-
-            # Delete old input lines and add new ones
-            for port_id in range(block.num_dest):
-                input_line = block.dest_lines[port_id]
-
-                # src_block = blocks_dict[input_line.src]
-                if input_line.src in blocks_dict:
-                    src_block = blocks_dict[input_line.src]
-                else:
-                    for subsys in subsystems:
-                        if input_line.src in blocks_dict[subsys].diagram.blocks_dict:
-                            src_block = blocks_dict[subsys].diagram.blocks_dict[input_line.src]
-                            break
-
-                # Delete the old line (input_line) from src_block
-                src_block.src_lines[input_line.src_port][input_line.branch] = None
-                # Get the corresponding input port in the subsystem
-                port = input_ports[port_id]
-                assert port.name == "in_" + str(port_id)
-                for port_line in port.src_lines[0]:
-                    dest_block = subsystem.blocks_dict[port_line.dest]
-                    # Generate a new input line
-                    new_input_line = SL_Line(src=src_block.name, dest=dest_block.name,
-                                             src_port=input_line.src_port, dest_port=port_line.dest_port)
-                    new_input_line.name = input_line.name
-                    # Delete the old line (port_line) and add a new one
-                    dest_block.add_dest(port_id=port_line.dest_port, sl_line=new_input_line)
-                    # Add a new line for src_block
-                    src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
-
-            # Delete old output lines and add new ones
-            for port_id in range(block.num_src):
-                # Get the corresponding output port in the subsystem
-                port = output_ports[port_id]
-                assert port.name == "out_" + str(port_id)
-                port_line = port.dest_lines[0]
-                src_block = subsystem.blocks_dict[port_line.src]
-                # Delete the old line (port_line) from src_block
-                src_block.src_lines[port_line.src_port][port_line.branch] = None
-                for output_line in block.src_lines[port_id]:
-
-                    # dest_block = blocks_dict[output_line.dest]
-                    if output_line.dest in blocks_dict:
-                        dest_block = blocks_dict[output_line.dest]
-                    else:
-                        for subsys in subsystems:
-                            if output_line.dest in blocks_dict[subsys].diagram.blocks_dict:
-                                dest_block = blocks_dict[subsys].diagram.blocks_dict[output_line.dest]
-                                break
-
-                    # Generate a new output line
-                    new_output_line = SL_Line(src=src_block.name, dest=dest_block.name,
-                                              src_port=port_line.src_port, dest_port=output_line.dest_port)
-                    new_output_line.name = output_line.name
-                    # Delete the old line (output_line) and add a new one
-                    dest_block.add_dest(port_id=output_line.dest_port, sl_line=new_output_line)
-                    # Add a new line for src_block
-                    src_block.add_src(port_id=port_line.src_port, sl_line=new_output_line)
-
-    # Delete all the subsystems
-    for name in subsystems:
-        del blocks_dict[name]
-    # Add new blocks from subsystems to block_dict
-    for block in blocks_in_subsystems:
-        assert block.name not in blocks_dict
-        blocks_dict[block.name] = block

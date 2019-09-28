@@ -1,6 +1,8 @@
 """Expressions"""
 
 import math
+import itertools
+
 
 def opt_round(x):
     if abs(round(x, 3) - x) < 1e-7:
@@ -41,6 +43,7 @@ class AExpr:  # Arithmetic expression
 
 class AVar(AExpr):
     def __init__(self, name):
+        super(AVar, self).__init__()
         assert isinstance(name, str)
         self.name = name
 
@@ -68,6 +71,7 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
+        super(AConst, self).__init__()
         assert isinstance(value, (int, float, tuple, str))
         self.value = value
 
@@ -95,6 +99,7 @@ class AConst(AExpr):
 
 class PlusExpr(AExpr):
     def __init__(self, signs, exprs):
+        super(PlusExpr, self).__init__()
         self.signs = signs
         self.exprs = exprs
 
@@ -132,6 +137,7 @@ class PlusExpr(AExpr):
 
 class TimesExpr(AExpr):
     def __init__(self, signs, exprs):
+        super(TimesExpr, self).__init__()
         self.signs = signs
         self.exprs = exprs
 
@@ -169,6 +175,7 @@ class TimesExpr(AExpr):
 
 class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
+        super(FunExpr, self).__init__()
         assert fun_name in ["min", "max", "abs", "gcd", "delay", "push", "pop", "top", "get", "bottom", "len"]
         self.fun_name = fun_name
         self.exprs = exprs
@@ -195,6 +202,7 @@ class FunExpr(AExpr):
 
 class ModExpr(AExpr):
     def __init__(self, expr1, expr2):
+        super(ModExpr, self).__init__()
         assert isinstance(expr1, AVar) and isinstance(expr2, AExpr)
         self.expr1 = expr1
         self.expr2 = expr2
@@ -231,6 +239,7 @@ class BExpr:
 
 class BConst(BExpr):  # Boolean expression
     def __init__(self, value):
+        super(BConst, self).__init__()
         assert isinstance(value, bool)
         self.value = value
 
@@ -259,6 +268,7 @@ false_expr = BConst(False)
 
 class LogicExpr(BExpr):
     def __init__(self, op, expr1, expr2):
+        super(LogicExpr, self).__init__()
         assert op in ["&&", "||", "-->", "<-->"]
         assert isinstance(expr1, BExpr) and isinstance(expr2, BExpr)
         self.op = op
@@ -301,16 +311,27 @@ class LogicExpr(BExpr):
 
 def conj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
+    if false_expr in args:
+        return false_expr
+    args = set(args)  # delete repeated elements
+    if true_expr in args:
+        args.remove(true_expr)  # delete TRUE element
+    args = tuple(args)
     if len(args) == 0:
         return true_expr
-    elif len(args) == 1:
+    if len(args) == 1:
         return args[0]
-    else:
-        return LogicExpr("&&", args[0], conj(*args[1:]))
+    return LogicExpr("&&", args[0], conj(*args[1:]))
 
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
+    if true_expr in args:
+        return true_expr
+    args = set(args)  # delete repeated elements
+    if false_expr in args:
+        args.remove(false_expr)
+    args = tuple(args)
     if len(args) == 0:
         return false_expr
     elif len(args) == 1:
@@ -320,6 +341,10 @@ def disj(*args):
 
 
 def imp(b1, b2):
+    if b1 == false_expr or b2 == true_expr:
+        return true_expr
+    if b1 == true_expr:
+        return b2
     return LogicExpr("-->", b1, b2)
 
 
@@ -327,6 +352,7 @@ class RelExpr(BExpr):
     neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
 
     def __init__(self, op, expr1, expr2):
+        super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
         assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.op = op
@@ -367,7 +393,7 @@ class Conditional_Inst:
     """
     def __init__(self):
         self.data = dict()
-        self.mu_ex_cons = list()  # list of sets of mutually exclusive constraints
+        self.mu_ex_conds = list()  # record a list of sets of mutually exclusive constraints
 
     def __repr__(self):
         def repr_pair(cond, inst):
@@ -378,6 +404,24 @@ class Conditional_Inst:
 
         return "\n".join(var + ": " + repr_cond_inst(cond_inst) for var, cond_inst in self.data.items())
 
+    def conflicting(self, conditions):
+        assert isinstance(conditions, set)
+        if len(conditions) == 0:
+            return False  # No conflict
+        elif len(conditions) == 1:
+            condition = list(conditions)[0]
+            if condition == false_expr:
+                return True  # Conflict
+            else:
+                return False  # No conflict
+
+        for cond0, cond1 in itertools.combinations_with_replacement(conditions, 2):
+            if cond0 != cond1:
+                for mu_ex_cond_set in self.mu_ex_conds:
+                    if {cond0, cond1}.issubset(mu_ex_cond_set):
+                        return True
+        return False
+
     def add(self, var_name, cond_inst):
         """Add a new instantiation."""
         assert var_name not in self.data
@@ -387,24 +431,20 @@ class Conditional_Inst:
             new_cond_inst = []
             for cond, expr in cond_inst:
                 if var in cond.get_vars() or var in expr.get_vars():
-                    for cond2, expr2 in self.data[var]:
-                        if cond == true_expr:
-                            new_cond = cond2
-                        elif cond2 == true_expr:
-                            new_cond = cond.subst({var: expr2})
+                    for cond_var, expr_var in self.data[var]:
+                        new_cond = cond.subst({var: expr_var})
+                        if self.conflicting({new_cond, cond_var}) or conj(new_cond, cond_var) == false_expr:
+                            continue  # because new_cond && cond_var is False
                         else:
-                            if cond.subst({var: expr2}) == cond2:
-                                new_cond = cond2
-                            elif sum({cond.subst({var: expr2}), cond2}.issubset(mu_ex_cons)
-                                     for mu_ex_cons in self.mu_ex_cons) >= 1:
-                                continue  # because cond.subst({var: expr2}) && cond2 is False
-                            else:
-                                new_cond = conj(cond.subst({var: expr2}), cond2)
-                        new_expr = expr.subst({var: expr2})
+                            new_cond = conj(new_cond, cond_var)
+                        new_expr = expr.subst({var: expr_var})
                         new_cond_inst.append((new_cond, new_expr))
                 else:
                     new_cond_inst.append((cond, expr))
             cond_inst = new_cond_inst
+        # Check: the conditons in cond_inst are different
+        conditions = [cond for cond, _ in cond_inst]
+        assert len(conditions) == len(set(conditions))
 
         # Merge (cond, expr) pairs with the same expression
         expr_dict = dict()
@@ -422,28 +462,30 @@ class Conditional_Inst:
         # Extract mutually exclusive constraints
         if len(cond_inst) >= 2:
             mu_ex_cons = set(cond for cond, _ in cond_inst)
-            if mu_ex_cons not in self.mu_ex_cons:
-                self.mu_ex_cons.append(mu_ex_cons)
+            if mu_ex_cons not in self.mu_ex_conds:
+                self.mu_ex_conds.append(mu_ex_cons)
 
 
-#add by lqq
+# add by lqq
+# Modified by xux
 class NegExpr(AExpr):
-    def __init__(self,  expr):
-        assert isinstance(expr, AExpr)
+    def __init__(self, expr):
+        super(NegExpr, self).__init__()
+        assert isinstance(expr, BExpr)
         self.op = '~'
         self.expr = expr
 
     def __repr__(self):
-        return "Logic(%s,%s)" % (self.op, repr(self.expr))
+        return "Not(%s)" % repr(self.expr)
 
     def __str__(self):
-        return str( self.op + str(self.expr))
+        return self.op + str(self.expr)
 
     def __eq__(self, other):
         return isinstance(other, NegExpr) and self.op == other.op and self.expr == other.expr
 
     def __hash__(self):
-        return hash(("Logic", self.op, self.expr))
+        return hash(("Not", self.op, self.expr))
 
     def get_vars(self):
         return self.expr.get_vars()
