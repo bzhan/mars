@@ -10,7 +10,7 @@ class XMLParserTest(unittest.TestCase):
         #out_file = './Examples/AADL/air_conditioner/out.json'
         #ref_file = './Examples/AADL/air_conditioner/out_ref.json'
 
-        path = './Examples/AADL/isolette/instances_new'
+        path = './Examples/AADL/isolette/instances'
         out_file = './Examples/AADL/isolette/out.json'
         ref_file = './Examples/AADL/isolette/out_ref.json'
 

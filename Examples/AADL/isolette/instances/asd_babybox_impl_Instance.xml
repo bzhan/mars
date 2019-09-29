@@ -6,6 +6,6 @@
   <featureInstance name="boxTemp" direction="out">
     <feature xsi:type="aadl2:DataPort" href="../asd.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedDataPort.1"/>
   </featureInstance>
-  <systemOperationMode name="No Modes"/>abstract
+  <systemOperationMode name="No Modes"/>
   <componentImplementation xsi:type="aadl2:AbstractImplementation" href="../asd.aadl#eaxmple.babybox.impl"/>
 </instance:SystemInstance>

@@ -16,7 +16,27 @@
             }
         ],
         "name": "actuator",
-        "opas": []
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "6"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue"
+            }
+        ]
     },
     "babybox_impl_Instance": {
         "category": "abstract",
@@ -54,7 +74,28 @@
             }
         ],
         "name": "controller",
-        "opas": []
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "8"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            }
+        ]
     },
     "heatSW_impl_Instance": {
         "category": "process",
@@ -215,6 +256,27 @@
             }
         ],
         "name": "sensor",
-        "opas": []
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            }
+        ]
     }
 }

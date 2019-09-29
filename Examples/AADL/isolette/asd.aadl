@@ -71,7 +71,7 @@ thread implementation sensor.impl
 		variables: e ;
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
-  	{ e:=1 ; measuredTemp := heaterTemp + e ; };
+  	{ e:=1 ; measuredTemp := boxTemp + e ; };
   	**};
 end sensor.impl;
 

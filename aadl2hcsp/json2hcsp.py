@@ -353,6 +353,9 @@ class Process:
         return (hps_con, Sequence(*hps))
 
 
+
+
+
 class Thread:
     def __init__(self, thread, annex=None):
         self.thread_name = thread['name']
@@ -485,26 +488,28 @@ class Thread:
         hps.append(InputChannel('resume_' + self.thread_name, 't'))
 
         if flag=='Annex' and self.annex:
-            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), self._Block_Annex()))
+            busy_io=(InputChannel('busy_' + self.thread_name), Assign('InitFlag', AConst(0)))
+            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
 
             eqs = [('t', AConst(1)), ('c', AConst(1))]
             constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
             in1 = InputChannel('busy_' + self.thread_name)  # insert variable
-            out1 = Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')),
-                            Assign('InitFlag', AConst(1)))
+            out1 = OutputChannel('preempt_' + self.thread_name, AVar('t'))
 
             in2 = InputChannel('needResource_' + self.thread_name)  # insert variable
-            out2 = Sequence(OutputChannel('block_' + self.thread_name, AVar('t')),
-                            Assign('InitFlag', AConst(1)))
+            out2 = OutputChannel('block_' + self.thread_name, AVar('t'))
 
             io_comms = [(in1, out1), (in2, out2)]
-            hps.append(ODE_Comm(eqs, constraint, io_comms))
+            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), ODE_Comm(eqs, constraint, io_comms)))
 
             hps.append(OutputChannel('free'))  # insert output
 
             con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
-            con_hp1 = Sequence(OutputChannel('complete_' + self.thread_name),
-                               Assign('InitFlag', AConst(0)))     # insert output
+            con_hp1 = [OutputChannel('complete_' + self.thread_name)]
+            for feature in self.thread_featureOut:
+                    con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
+            con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
+            con_hp1=Sequence(*con_hp1)
             hps.append(Condition(con1, con_hp1))
 
             con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
@@ -517,8 +522,9 @@ class Thread:
 
 
     def _Block_Annex(self):
-        hps = []
-        for feature in self.thread_featureIn:
+        hps= []
+        io_hps = InputChannel('input_' + self.thread_name + '_' + self.thread_featureIn[0], self.thread_featureIn[0])
+        for feature in self.thread_featureIn[1:]:
             hps.append(InputChannel('input_' + self.thread_name + '_' + feature, str(feature)))
         if self.annex:
             hps.extend(self.annex)
@@ -527,15 +533,17 @@ class Thread:
         #hps.append(OutputChannel('need_Resource_' + self.thread_name))
         #hps.append(Wait(AConst(5)))
 
-        for feature in self.thread_featureOut:
-            hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
+        #for feature in self.thread_featureOut:
+            #hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
+
+        hps.append(Assign('InitFlag', AConst(1)))
 
         if len(hps) >= 2:
             hps = Sequence(*hps)
         else:
             hps = hps[0]
 
-        return hps
+        return (io_hps, hps)
 
 def convert_AADL(json_file, annex_file):
     out = HCSPProcess()
