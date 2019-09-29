@@ -361,4 +361,4 @@ class SF_Chart:
 
             i += 1
 
-        return processes
+        return processes.substitute()

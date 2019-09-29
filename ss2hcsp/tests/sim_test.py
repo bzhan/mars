@@ -5,13 +5,11 @@ import unittest
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
-from ss2hcsp.sl.MathOperations.divide import Divide
+from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
 from ss2hcsp.sl.MathOperations.add import Add
-from ss2hcsp.sl.LogicOperations.my_and import And
-from ss2hcsp.sl.LogicOperations.my_not import Not
-from ss2hcsp.sl.LogicOperations.my_or import Or
+from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem
@@ -46,9 +44,10 @@ class SimTest(unittest.TestCase):
         diagram.add_line("in1", "switch1", 0, 0)
         diagram.add_line("in2", "switch1", 0, 2)
         diagram.add_line("switch1", "out0", 0, 0)
+
         diagram.add_line_name()
         diagram.comp_inher_st()
-        dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
+        dis_subdiag_with_chs, con_subdiag_with_chs = diagram.seperate_diagram()
         real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
         # print("R: ", real_hp)
 
@@ -100,22 +99,23 @@ class SimTest(unittest.TestCase):
 
         diagram.add_line_name()
         diagram.comp_inher_st()
-        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
+        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PD1")))
         hp0_init = hp_parser.parse("t := 0")
-        hp0 = hp_parser.parse(r"""ch_x7?x7; ch_x8?x8; ch_x9?x9; t%4 == 0 ->
-        (x8 >= 20 -> (x10 := x7); x8 < 20 -> (x10 := x9)); ch_x10_0!x10; wait(4); t := t+4""")
+        hp0 = hp_parser.parse(r"""t%4 == 0 -> (ch_x7?x7; ch_x8?x8; ch_x9?x9; 
+        if x8 >= 20 then x10 := x7 else x10 := x9 endif; ch_x10_0!x10); wait(4); t := t+4""")
         discrete_hp0 = hcsp.Sequence(hp0_init, hcsp.Loop(hp0))
         expected_hp.add("PD0", discrete_hp0)
 
         hp1_init = hp_parser.parse("t := 0")
-        hp1 = hp_parser.parse(r"""ch_x0?x0; ch_x4?x4; t%-1 == 0 ->
-        (x1 := min(x0, x0)); t%4 == 0 -> (x3 := (1-x1)*2); t%8 == 0 -> (x5 := max(x4, x3));
-        t%10 == 0 -> (x5 > x0 -> (x6 := 0); x5 <= x0 -> (x6 := 1)); ch_x6_0!x6; wait(-1); t := t+(-1)""")
+        hp1 = hp_parser.parse(r"""t%-1 == 0 -> (ch_x0?x0; x1 := min(x0, x0)); t%4 == 0 -> x2 := 1-x1; 
+        t%4 == 0 -> x3 := x2*2; t%8 == 0 -> (ch_x4?x4; x5 := max(x4, x3)); 
+        t%10 == 0 -> (ch_x0?x0; if x5 <= x0 then x6 := 1 else x6 := 0 endif; 
+        ch_x6_0!x6); wait(-1); t := t+(-1)""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
         expected_hp.add("PD1", discrete_hp1)
         # print("E: ", expected_hp)
@@ -162,16 +162,16 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.comp_inher_st()
         # print(diagram)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
+        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x2?x2; ch_x3?x3; t%4 == 0 -> (x5 := (1-x3)*(-2.2));
-        t%8 == 0 -> (x6 := max(x1, x5)); t%10 == 0 -> (x6 > x2 -> (x0 := 0); x6 <= x2 -> (x0 := 1)); ch_x0_0!x0;
-        wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x3?x3; x4 := 1-x3); t%4 == 0 -> x5 := x4*(-2.2); 
+        t%8 == 0 -> (ch_x1?x1; x6 := max(x1, x5)); t%10 == 0 -> 
+        (ch_x2?x2; if x6 <= x2 then x0 := 1 else x0 := 0 endif; ch_x0_0!x0); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
@@ -180,8 +180,8 @@ class SimTest(unittest.TestCase):
         [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x2!x2 --> skip, ch_x3!min(x2, x2) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
-
         # print("E: ", expected_hp)
+
         self.assertEqual(real_hp, expected_hp)
 
     def testVanPerPol_subsystem(self):
@@ -227,21 +227,23 @@ class SimTest(unittest.TestCase):
         subsubsystem.diagram.add_line(src="in_0", dest="subsubsystem_and", src_port=0, dest_port=1)
         subsubsystem.diagram.add_line(src="subsubsystem_and", dest="subsubsystem_not", src_port=0, dest_port=0)
         subsubsystem.diagram.add_line(src="subsubsystem_not", dest="out_0", src_port=0, dest_port=0)
-        get_hp.delete_subsystems(diagram.blocks_dict)
+
+        # get_hp.delete_subsystems(diagram.blocks_dict)
+        diagram.delete_subsystems()
         # diagram.blocks = diagram.blocks_dict.values()
         diagram.add_line_name()
         diagram.comp_inher_st()
         # print(diagram)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = get_hp.seperate_diagram(diagram.blocks_dict)
+        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
         real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_x1?x1; ch_x3?x3; ch_x6?x6; t%4 == 0 -> (x4 := (1-x6)*2);
-        t%6 == 0 -> (x2 := max(x1, x4)); t%10 == 0 -> (x2 > x3 -> (x0 := 0); x2 <= x3 -> (x0 := 1));
-        ch_x0_0!x0; wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x6?x6; x5 := 1-x6); t%4 == 0 -> x4 := x5*2; 
+        t%6 == 0 -> (ch_x1?x1; x2 := max(x1, x4)); t%10 == 0 -> (ch_x3?x3; if x2 <= x3 then x0 := 1 else x0 := 0 endif; 
+        ch_x0_0!x0); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
@@ -250,7 +252,6 @@ class SimTest(unittest.TestCase):
         [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x3!x3 --> skip, ch_x6!min(x3, x3) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
-
         # print("E: ", expected_hp)
 
         self.assertEqual(real_hp, expected_hp)
@@ -292,15 +293,15 @@ class SimTest(unittest.TestCase):
         diagram.parse_xml()
         diagram.add_line_name()
         diagram.comp_inher_st()
-        dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
+        dis_subdiag_with_chs, con_subdiag_with_chs = diagram.seperate_diagram()
         real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
         # print(real_hp)
 
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""ch_z?z; t%6 == 0 -> b := z*z+(-1); t%4 == 0 -> c := b*(-0.1); ch_c_0!c;
-        wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""t%6 == 0 -> (ch_z?z; a := z*z); t%6 == 0 -> b := a+(-1); 
+        t%4 == 0 -> (c := b*(-0.1); ch_c_0!c); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 

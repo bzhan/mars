@@ -93,7 +93,7 @@ class Wait(HCSP):
 class Assign(HCSP):
     def __init__(self, var_name, expr):
         self.type = "assign"
-        assert isinstance(var_name, str) and isinstance(expr, AExpr)
+        assert isinstance(var_name, str) and isinstance(expr, (AExpr, BExpr))
         self.var_name = var_name  # string
         self.expr = expr  # AExpr
 
