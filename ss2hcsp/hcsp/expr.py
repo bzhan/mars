@@ -323,6 +323,11 @@ def conj(*args):
         return args[0]
     return LogicExpr("&&", args[0], conj(*args[1:]))
 
+def split_conj(e):
+    if isinstance(e, LogicExpr) and e.op == '&&':
+        return [e.expr1] + split_conj(e.expr2)
+    else:
+        return [e]
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)

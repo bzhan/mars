@@ -10,7 +10,7 @@ import math
 from scipy.integrate import solve_ivp
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range
+    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range, split_conj
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -154,24 +154,21 @@ def get_ode_delay(hp, state):
             res.append(eval_expr(expr, state2))
         return res
 
-    def event(t, y):
+    def event_gen(t, y, c):
+        # Here c is the constraint
         state2 = copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
 
-        c = hp.constraint
         if isinstance(c, RelExpr):
             if c.op in ('<', '<='):
                 return eval_expr(c.expr1, state2) - eval_expr(c.expr2, state2)
-            elif hp.constraint.op in ('>', '>='):
+            elif c.op in ('>', '>='):
                 return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
             else:
                 raise NotImplementedError
         else:
             raise NotImplementedError
-
-    event.terminal = True  # Terminate execution when result is 0
-    event.direction = 1    # Crossing from negative to positive
 
     y0 = []
     for var_name, _ in hp.eqs:
@@ -180,14 +177,24 @@ def get_ode_delay(hp, state):
     # Test the differential equation on longer and longer time ranges,
     # return the delay if the ODE solver detects event before the end
     # of the time range.
-    delays = [1, 2, 5, 10, 20, 50, 100]
-    for delay in delays:
-        sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-4)
-        if sol.t[-1] < delay:
-            return opt_round(sol.t[-1])
+    min_delay = 100
+    for c in split_conj(hp.constraint):
+        event = lambda t, y: event_gen(t, y, c)
+        event.terminal = True  # Terminate execution when result is 0
+        event.direction = 1    # Crossing from negative to positive
 
-    # Otherwise, return the maximum 100.
-    return 100
+        delays = [1, 2, 5, 10, 20, 50, 100]
+        cur_delay = 100
+        for delay in delays:
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-4)
+            if sol.t[-1] < delay:
+                cur_delay = opt_round(sol.t[-1])
+                break
+
+        if cur_delay < min_delay:
+            min_delay = cur_delay
+
+    return min_delay
 
 def start_pos(hp):
     """Returns the starting position for a given program."""

@@ -231,6 +231,9 @@ class SimulatorTest(unittest.TestCase):
             ("<t_dot = 0.1 & t < 6>", {"t": 0}, 60),
             ("<t_dot = 0.01 & t < 60>", {"t": 0}, 100),  # maximum is 100
             ("<x_dot = -1 * y, y_dot = x & x > -2>", {"x": 1, "y": 0}, 100),
+
+            # Conjunction
+            ("<x_dot = 1, y_dot = 1 & x < 3 && y < 2>", {"x": 0, "y": 0}, 2.0),
         ]
 
         for cmd, state, delay in test_data:
@@ -407,6 +410,13 @@ class SimulatorTest(unittest.TestCase):
             'x := 0; (<x_dot = 1 & x < 1> |> [](c!x --> skip)){x < 1}**; c!x',
             'wait(0.2); c?x; wait(1.3); c?x'
         ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
+
+    def testExecParallel26(self):
+        self.run_test([
+            'x := 0; y := 0; <x_dot = 1, y_dot = 2 & x < 2 && y < 3>; c!x; c!y',
+            'c?x; c?x'
+        ], 4, ['delay 1.5', 'IO c 1.5', 'IO c 3.0', 'deadlock'])
+
 
 
 if __name__ == "__main__":
