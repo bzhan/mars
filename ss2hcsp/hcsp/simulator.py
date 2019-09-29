@@ -186,7 +186,7 @@ def get_ode_delay(hp, state):
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-4)
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break

@@ -239,7 +239,7 @@ class SimulatorTest(unittest.TestCase):
         for cmd, state, delay in test_data:
             hp = parser.hp_parser.parse(cmd)
             res = simulator.get_ode_delay(hp, state)
-            self.assertAlmostEqual(res, delay, places=3)
+            self.assertAlmostEqual(res, delay, places=5)
 
     def run_test(self, infos, num_io_events, trace, *, print_time_series=False, print_state=False):
         for i in range(len(infos)):
