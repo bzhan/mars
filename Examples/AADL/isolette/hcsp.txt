@@ -9,14 +9,14 @@ Comms_isollete ::= @isollete_Conn_0 || @isollete_Conn_1
 isollete_Conn_0 ::= (babybox_boxTemp?x; heatSW_boxTemp!x)**
 isollete_Conn_1 ::= (heatSW_heatCommand?x; babybox_heatCommand!x)**
 actuator ::= @ACT_actuator || @DIS_actuator || @COM_actuator
-ACT_actuator ::= (act_actuator!; wait(10))**
+ACT_actuator ::= (act_actuator!; wait(20))**
 DIS_actuator ::= (act_actuator?; dis_actuator!; actuator_diff?diff; input_actuator_diff!diff; (complete_actuator? --> skip $ exit_actuator? --> skip))**
 COM_actuator ::= @Init_actuator || @Ready_actuator || @Running_actuator || @Await_actuator
 Init_actuator ::= (dis_actuator?; t := 0; init_actuator!t)**
 Ready_actuator ::= (prior := 6; (init_actuator?t --> skip $ preempt_actuator?t --> skip $ unblock_actuator?t --> skip); tran_actuator!prior; <t_dot = 1 & t < 20> |> [] (run_actuator? --> resume_actuator!t); t == 20 -> exit_actuator!)**
 Await_actuator ::= (block_actuator?t; applyResource_actuator!; <t_dot = 1 & t < 20> |> [] (haveResource_actuator? --> unblock_actuator!t); t == 20 -> exit_actuator!)**
 Running_actuator ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_actuator?t; c == 0 -> (input_actuator_diff?diff --> if diff > 0.0 then heatCommand := -1.0 elif diff < 0.0 then heatCommand := 1.0 else heatCommand := 0.0 endif; InitFlag := 1 $ busy_actuator? --> preempt_actuator!t; InitFlag := 0); InitFlag == 1 -> (<t_dot = 1, c_dot = 1 & false> |> [] (busy_actuator? --> preempt_actuator!t, needResource_actuator? --> block_actuator!t); c < 3 -> wait(3-c); free!; t < 20 -> (complete_actuator!; actuator_heatCommand!heatCommand; InitFlag := 0); t == 20 -> (exit_actuator!; InitFlag := 0)))**
-babybox ::= boxTemp := 98.0; q := 0; babybox_boxTemp!boxTemp; babybox_heatCommand?heatCommand; (<boxTemp_dot = -0.026*(boxTemp-q), q_dot = heatCommand & true> |> [] (babybox_boxTemp!boxTemp --> skip, babybox_heatCommand?heatCommand --> skip))**
+babybox ::= boxTemp := 73.0; q := 73.0; babybox_boxTemp!boxTemp; babybox_heatCommand?heatCommand; (<boxTemp_dot = -0.026*(boxTemp-q), q_dot = heatCommand & true> |> [] (babybox_boxTemp!boxTemp --> skip, babybox_heatCommand?heatCommand --> skip))**
 controller ::= @ACT_controller || @DIS_controller || @COM_controller
 ACT_controller ::= (act_controller!; wait(20))**
 DIS_controller ::= (act_controller?; dis_controller!; controller_measuredTemp?measuredTemp; input_controller_measuredTemp!measuredTemp; (complete_controller? --> skip $ exit_controller? --> skip))**

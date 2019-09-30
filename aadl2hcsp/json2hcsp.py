@@ -109,7 +109,7 @@ class Abstract:
         else:
             in_hp = in_hp[0]
 
-        init_hp = Sequence(Assign('boxTemp', AConst(98.0)), Assign('q', AConst(0)), out_hp, in_hp)
+        init_hp = Sequence(Assign('boxTemp', AConst(73.0)), Assign('q', AConst(73.0)), out_hp, in_hp)
 
        # if self.sim:
        #    hps.extend(self.sim)
@@ -370,8 +370,8 @@ class Thread:
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '1'
-        self.thread_deadline = '10'
-        self.thread_period = '10'
+        self.thread_deadline = '20'
+        self.thread_period = '20'
         self.thread_max_time = '5'
         self.thread_min_time = '1'
         self.thread_featureIn = []
