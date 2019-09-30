@@ -3,9 +3,9 @@
 import json
 
 from aadl2hcsp.parserAnnex import AnnexParser
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
-    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess,Skip
+    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
 
 def createStructure(dic):
     process = HCSPProcess()
@@ -92,30 +92,38 @@ class Abstract:
         self._createAbstract()
 
     def _createAbstract(self):
-        hps = []
-
-        hps.append(Assign('boxTemp', AConst(98.0)))
-
+        out_hp, in_hp = [],[]
         for feature in self.abstract_featureOut:
-            hps.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
-
-        if self.sim:
-            hps.extend(self.sim)
-
-        #hps.append(Wait(AConst(5)))
-        # hps.append(OutputChannel('need_Resource_' + self.thread_name))
-        # hps.append(Wait(AConst(5)))
+            out_hp.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
 
         for feature in self.abstract_featureIn:
-            hps.append(InputChannel(self.abstract_name + '_' + feature, str(feature)))
+            in_hp.append(InputChannel(self.abstract_name + '_' + feature, str(feature)))
 
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
+        if len(out_hp) >= 2:
+            out_hp = Sequence(*out_hp)
         else:
-            hps = hps[0]
+            out_hp = out_hp[0]
 
-        self.lines.add(self.abstract_name, Loop(hps))
+        if len(in_hp) >= 2:
+            in_hp = Sequence(*in_hp)
+        else:
+            in_hp = in_hp[0]
+
+        init_hp = Sequence(Assign('boxTemp', AConst(98.0)), Assign('q', AConst(0)), out_hp, in_hp)
+
+       # if self.sim:
+       #    hps.extend(self.sim)
+
+        eqs = [('boxTemp',  TimesExpr(['*', '*'], [AConst(-0.026), PlusExpr(['+','-'], [AVar('boxTemp'), AVar('q')])])),
+               ('q', AVar('heatCommand'))]
+
+        constraint = BConst(True)
+        io_comms = [(out_hp, Skip()), (in_hp, Skip())]
+
+        hps = Loop(ODE_Comm(eqs, constraint, io_comms))
+
+
+        self.lines.add(self.abstract_name, Sequence(init_hp, hps))
 
 
 class Process:
