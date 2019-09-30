@@ -306,7 +306,7 @@ class Condition(HCSP):
         super(Condition, self).__init__()
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
-        assert isinstance(cond, BExpr)  and isinstance(hp, HCSP)
+        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP

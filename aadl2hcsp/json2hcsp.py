@@ -58,7 +58,7 @@ def createConnections(dic):
                 else:
                     hp_out = OutputChannel(category['name'].strip() + '_' + com['destination'].strip(), AVar('x'))
 
-                hp = Sequence(*[hp_in,hp_out])
+                hp = Loop(Sequence(*[hp_in,hp_out]))
                 hps.append(hp)
 
             if len(hps) > 1:
@@ -71,7 +71,6 @@ def createConnections(dic):
                     process.add(name,hp)
             else:
                 process.add('Comms_'+category['name'], hps[0])
-
 
     return process
 
@@ -493,9 +492,11 @@ class Thread:
         hps.append(InputChannel('resume_' + self.thread_name, 't'))
 
         if flag=='Annex' and self.annex:
-            busy_io=(InputChannel('busy_' + self.thread_name), Assign('InitFlag', AConst(0)))
+            busy_io=(InputChannel('busy_' + self.thread_name),
+                     Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')), Assign('InitFlag', AConst(0))))
             hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
 
+            con_hp=[]
             eqs = [('t', AConst(1)), ('c', AConst(1))]
             constraint_1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
             constraint_2 = RelExpr('<', AVar('c'), AConst(int(self.thread_max_time)))
@@ -508,12 +509,12 @@ class Thread:
             out2 = OutputChannel('block_' + self.thread_name, AVar('t'))
 
             io_comms = [(in1, out1), (in2, out2)]
-            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), ODE_Comm(eqs, constraint, io_comms)))
+            con_hp.append(ODE_Comm(eqs, constraint, io_comms))
 
             constraint_4 = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
-            hps.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
+            con_hp.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
 
-            hps.append(OutputChannel('free'))  # insert output
+            con_hp.append(OutputChannel('free'))  # insert output
 
             con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
             con_hp1 = [OutputChannel('complete_' + self.thread_name)]
@@ -521,14 +522,17 @@ class Thread:
                     con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
             con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
             con_hp1=Sequence(*con_hp1)
-            hps.append(Condition(con1, con_hp1))
+            con_hp.append(Condition(con1, con_hp1))
 
             con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
             con_hp2 = Sequence(OutputChannel('exit_' + self.thread_name),
                                Assign('InitFlag', AConst(0)))# insert output
-            hps.append(Condition(con2, con_hp2))
+            con_hp.append(Condition(con2, con_hp2))
+
+            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*con_hp)))
 
         com_running = Sequence(FlagSet, Loop(Sequence(*hps)))
+
         self.lines.add('Running_' + self.thread_name, com_running)
 
 
