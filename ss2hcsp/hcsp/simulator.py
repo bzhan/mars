@@ -10,7 +10,7 @@ import math
 from scipy.integrate import solve_ivp
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range, split_conj
+    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range, split_conj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -101,7 +101,7 @@ def eval_expr(expr, state):
         return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
 
     elif isinstance(expr, BConst):
-        return self.value
+        return expr.value
 
     elif isinstance(expr, LogicExpr):
         a = eval_expr(expr.expr1, state)
@@ -145,6 +145,9 @@ def get_ode_delay(hp, state):
     """
     assert hp.type in ('ode', 'ode_comm')
 
+    if hp.constraint == false_expr:
+        return 0.0
+
     def ode_fun(t, y):
         res = []
         state2 = copy(state)
@@ -159,7 +162,6 @@ def get_ode_delay(hp, state):
         state2 = copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
-
         if isinstance(c, RelExpr):
             if c.op in ('<', '<='):
                 return eval_expr(c.expr1, state2) - eval_expr(c.expr2, state2)
@@ -259,7 +261,7 @@ def get_pos(hp, pos, rec_vars=None):
         assert pos[0] == 0
 
         if hp.name not in rec_vars:
-            raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
+            raise SimulatorException("Unrecognized process variable: " + hp.name)
 
         rec_hp = rec_vars[hp.name]
         return get_pos(rec_hp, pos[1:], rec_vars)
@@ -670,9 +672,7 @@ class HCSPInfo:
                 if delay == ode_delay:
                     finish_ode = True
 
-            if delay == 0.0:
-                return
-            else:
+            if delay != 0.0:
                 def ode_fun(t, y):
                     res = []
                     state2 = copy(self.state)
