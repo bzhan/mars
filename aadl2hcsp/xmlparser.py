@@ -82,6 +82,11 @@ def getOwnedPropertyAssociation(opas, category, name, *, protocol):
         elif opass['type'] == 'IntegerLiteral':
             opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
             .getAttribute('value')
+
+        elif opass['type'] == 'RangeValue':
+            range = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]
+            opass['value'] = [range.getElementsByTagName('minimum')[0].getAttribute('value'),
+                              range.getElementsByTagName('maximum')[0].getAttribute('value')]
         Opas.append(opass)
     return Opas
 

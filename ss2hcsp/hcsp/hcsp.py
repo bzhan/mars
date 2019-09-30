@@ -79,7 +79,7 @@ class Skip(HCSP):
 class Wait(HCSP):
     def __init__(self, delay):
         super(Wait, self).__init__()
-        assert isinstance(delay, AConst)
+        assert isinstance(delay, AExpr)
         self.type = "wait"
         self.delay = delay
 

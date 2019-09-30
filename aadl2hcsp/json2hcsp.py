@@ -3,7 +3,7 @@
 import json
 
 from aadl2hcsp.parserAnnex import AnnexParser
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess,Skip
 
@@ -366,7 +366,7 @@ class Thread:
         self.thread_deadline = '10'
         self.thread_period = '10'
         self.thread_max_time = '5'
-        self.thread_min_time = '2'
+        self.thread_min_time = '1'
         self.thread_featureIn = []
         self.thread_featureOut = []
         self.annex = annex
@@ -385,6 +385,11 @@ class Thread:
 
                 elif opa['name'] == 'Timing_Properties.Period':
                     self.thread_period = opa['value']
+
+                elif opa['name'] == 'Timing_Properties.Compute_Execution_Time':
+                    self.thread_min_time = opa['value'][0]
+                    self.thread_max_time = opa['value'][1]
+
 
         for feature in thread['features']:
             if feature['type'].lower() == 'dataport':
@@ -492,7 +497,10 @@ class Thread:
             hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
 
             eqs = [('t', AConst(1)), ('c', AConst(1))]
-            constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+            constraint_1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+            constraint_2 = RelExpr('<', AVar('c'), AConst(int(self.thread_max_time)))
+            constraint_3 = BConst(False)
+            constraint = conj(constraint_1, constraint_2, constraint_3)
             in1 = InputChannel('busy_' + self.thread_name)  # insert variable
             out1 = OutputChannel('preempt_' + self.thread_name, AVar('t'))
 
@@ -501,6 +509,8 @@ class Thread:
 
             io_comms = [(in1, out1), (in2, out2)]
             hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), ODE_Comm(eqs, constraint, io_comms)))
+
+            hps.append(Condition(RelExpr('<', AVar('c'), AConst(int(self.thread_min_time))), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
 
             hps.append(OutputChannel('free'))  # insert output
 

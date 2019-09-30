@@ -313,10 +313,7 @@ def conj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if false_expr in args:
         return false_expr
-    args = set(args)  # delete repeated elements
-    if true_expr in args:
-        args.remove(true_expr)  # delete TRUE element
-    args = tuple(args)
+    args = tuple(arg for arg in args if arg !=true_expr)  # delete repeated elements
     if len(args) == 0:
         return true_expr
     if len(args) == 1:
