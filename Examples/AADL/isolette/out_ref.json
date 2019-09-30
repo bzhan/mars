@@ -25,7 +25,7 @@
             {
                 "name": "Thread_Properties.Priority",
                 "type": "IntegerLiteral",
-                "value": "10"
+                "value": "6"
             },
             {
                 "name": "Timing_Properties.Deadline",
@@ -87,7 +87,7 @@
             {
                 "name": "Thread_Properties.Priority",
                 "type": "IntegerLiteral",
-                "value": "10"
+                "value": "8"
             },
             {
                 "name": "Timing_Properties.Deadline",

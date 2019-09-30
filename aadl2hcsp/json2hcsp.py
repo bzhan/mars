@@ -3,7 +3,7 @@
 import json
 
 from aadl2hcsp.parserAnnex import AnnexParser
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess,Skip
 
@@ -510,7 +510,8 @@ class Thread:
             io_comms = [(in1, out1), (in2, out2)]
             hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), ODE_Comm(eqs, constraint, io_comms)))
 
-            hps.append(Condition(RelExpr('<', AVar('c'), AConst(int(self.thread_min_time))), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
+            constraint_4 = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
+            hps.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
 
             hps.append(OutputChannel('free'))  # insert output
 

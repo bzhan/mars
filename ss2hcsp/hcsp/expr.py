@@ -470,7 +470,7 @@ class Conditional_Inst:
 
 # add by lqq
 # Modified by xux
-class NegExpr(AExpr):
+class NegExpr(BExpr):
     def __init__(self, expr):
         super(NegExpr, self).__init__()
         assert isinstance(expr, BExpr)
