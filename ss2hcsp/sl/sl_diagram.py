@@ -321,6 +321,7 @@ class SL_Diagram:
                     stateflow = Subsystem(block_name, num_src, num_dest)
                     stateflow.type = "stateflow"
                     stateflow.diagram = self.charts[block_name]
+                    stateflow.st = stateflow.diagram.st
                     self.add_block(stateflow)
                     continue
                 # Check if it is a triggered subsystem

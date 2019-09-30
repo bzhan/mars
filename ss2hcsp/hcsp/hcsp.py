@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, AVar, FunExpr, true_expr
+from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, true_expr
 
 
 class HCSP:
@@ -47,6 +47,7 @@ class HCSP:
 
 class Var(HCSP):
     def __init__(self, name):
+        super(Var, self).__init__()
         self.type = "var" 
         self.name = name
 
@@ -62,6 +63,7 @@ class Var(HCSP):
 
 class Skip(HCSP):
     def __init__(self):
+        super(Skip, self).__init__()
         self.type = "skip"
 
     def __eq__(self, other):
@@ -76,6 +78,7 @@ class Skip(HCSP):
 
 class Wait(HCSP):
     def __init__(self, delay):
+        super(Wait, self).__init__()
         assert isinstance(delay, AConst)
         self.type = "wait"
         self.delay = delay
@@ -92,8 +95,9 @@ class Wait(HCSP):
 
 class Assign(HCSP):
     def __init__(self, var_name, expr):
+        super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(var_name, str) and isinstance(expr, (AExpr, BExpr))
+        assert isinstance(var_name, str) and isinstance(expr, AExpr)
         self.var_name = var_name  # string
         self.expr = expr  # AExpr
 
@@ -109,6 +113,7 @@ class Assign(HCSP):
 
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
+        super(InputChannel, self).__init__()
         self.type = "input_channel"
         assert isinstance(ch_name, str)
         assert var_name is None or isinstance(var_name, str)
@@ -134,6 +139,7 @@ class InputChannel(HCSP):
 
 class OutputChannel(HCSP):
     def __init__(self, ch_name, expr=None):
+        super(OutputChannel, self).__init__()
         self.type = "output_channel"
         assert isinstance(ch_name, str)
         assert expr is None or isinstance(expr, AExpr)
@@ -162,6 +168,7 @@ def is_comm_channel(hp):
 
 class Sequence(HCSP):
     def __init__(self, *hps):
+        super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
         self.type = "sequence"
         assert all(isinstance(hp, HCSP) for hp in hps)
@@ -198,6 +205,7 @@ class ODE(HCSP):
         constraint is a boolean formula.
 
         """
+        super(ODE, self).__init__()
         assert isinstance(eqs, list)
         for eq in eqs:
             assert isinstance(eq, tuple) and len(eq) == 2
@@ -235,6 +243,7 @@ class ODE_Comm(HCSP):
         out_hp.
 
         """
+        super(ODE_Comm, self).__init__()
         assert isinstance(eqs, list)
         for eq in eqs:
             assert isinstance(eq, tuple) and len(eq) == 2
@@ -268,6 +277,7 @@ class ODE_Comm(HCSP):
 class Loop(HCSP):
     """Represents an infinite loop of a program."""
     def __init__(self, hp, constraint=true_expr):
+        super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp  # hcsp
@@ -293,6 +303,7 @@ class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;
      otherwise, it terminates immediately."""
     def __init__(self, cond, hp):
+        super(Condition, self).__init__()
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
         assert isinstance(cond, BExpr)  and isinstance(hp, HCSP)
@@ -314,6 +325,7 @@ class Condition(HCSP):
 class Parallel(HCSP):
     def __init__(self, *hps):
         """hps is a list of hybrid programs."""
+        super(Parallel, self).__init__()
         self.type = "parallel"
         assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 2
@@ -338,6 +350,7 @@ class SelectComm(HCSP):
         any program.
         
         """
+        super(SelectComm, self).__init__()
         self.type = "select_comm"
         assert len(io_comms) >= 2
 
@@ -361,6 +374,7 @@ class SelectComm(HCSP):
 
 class Recursion(HCSP):
     def __init__(self, hp, entry="X"):
+        super(Recursion, self).__init__()
         assert isinstance(entry, str) and isinstance(hp, HCSP)
         self.type = "recursion"
         self.entry = entry
@@ -385,6 +399,7 @@ class ITE(HCSP):
         be executed. If no condition is true, else_hp is executed.
 
         """
+        super(ITE, self).__init__()
         assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert isinstance(else_hp, HCSP)
         self.type = "ite"
@@ -415,27 +430,27 @@ def get_comm_chs(hp):
     assert isinstance(hp, HCSP)
     collect = []
 
-    def rec(hp):
-        if hp.type == 'input_channel':
-            collect.append((hp.ch_name, '?'))
-        elif hp.type == 'output_channel':
-            collect.append((hp.ch_name, '!'))
-        elif hp.type == 'sequence':
-            for arg in hp.hps:
+    def rec(_hp):
+        if _hp.type == 'input_channel':
+            collect.append((_hp.ch_name, '?'))
+        elif _hp.type == 'output_channel':
+            collect.append((_hp.ch_name, '!'))
+        elif _hp.type == 'sequence':
+            for arg in _hp.hps:
                 rec(arg)
-        elif hp.type == 'ode':
-            if hp.out_hp:
-                rec(hp.out_hp)
-        elif hp.type in ('ode_comm', 'select_comm'):
-            for comm_hp, out_hp in hp.io_comms:
+        elif _hp.type == 'ode':
+            if _hp.out_hp:
+                rec(_hp.out_hp)
+        elif _hp.type in ('ode_comm', 'select_comm'):
+            for comm_hp, out_hp in _hp.io_comms:
                 rec(comm_hp)
                 rec(out_hp)
-        elif hp.type in ('loop', 'condition', 'recursion'):
-            rec(hp.hp)
-        elif hp.type == 'ite':
-            for _, sub_hp in hp.if_hps:
+        elif _hp.type in ('loop', 'condition', 'recursion'):
+            rec(_hp.hp)
+        elif _hp.type == 'ite':
+            for _, sub_hp in _hp.if_hps:
                 rec(sub_hp)
-            rec(hp.else_hp)
+            rec(_hp.else_hp)
     
     rec(hp)
     return list(OrderedDict.fromkeys(collect))

@@ -47,8 +47,7 @@ class SimTest(unittest.TestCase):
 
         diagram.add_line_name()
         diagram.comp_inher_st()
-        dis_subdiag_with_chs, con_subdiag_with_chs = diagram.seperate_diagram()
-        real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
         hp_init = hp_parser.parse("x2 := 7; x1 := 3")
@@ -100,7 +99,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.comp_inher_st()
         discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
-        real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        real_hp = get_hp.get_hcsp(discrete_subdiagrams_sorted, continuous_subdiagrams)
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
@@ -162,8 +161,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.comp_inher_st()
         # print(diagram)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
-        real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
@@ -234,8 +232,7 @@ class SimTest(unittest.TestCase):
         diagram.add_line_name()
         diagram.comp_inher_st()
         # print(diagram)
-        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
-        real_hp = get_hp.get_processes(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
@@ -293,8 +290,7 @@ class SimTest(unittest.TestCase):
         diagram.parse_xml()
         diagram.add_line_name()
         diagram.comp_inher_st()
-        dis_subdiag_with_chs, con_subdiag_with_chs = diagram.seperate_diagram()
-        real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print(real_hp)
 
         expected_hp = hcsp.HCSPProcess()

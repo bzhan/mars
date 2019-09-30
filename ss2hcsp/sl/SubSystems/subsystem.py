@@ -24,6 +24,7 @@ class Triggered_Subsystem(Subsystem):
         super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
         self.type = "triggered_subsystem"
         self.trigger_type = trigger_type
+        self.st = -2  # non-periodic
 
     def __str__(self):
         return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
