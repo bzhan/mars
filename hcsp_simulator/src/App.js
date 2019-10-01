@@ -452,7 +452,7 @@ class App extends React.Component {
             {this.state.hcsp_info.map((info, index) => {
                 const hcsp_name = info.name;
                 if ('parallel' in info) {
-                    return <span key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</span>
+                    return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
                 }
                 else if (this.state.history.length === 0) {
                     // No data is available
