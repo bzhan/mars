@@ -798,8 +798,11 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         new_entry = {
             "time": time,
             "event": len(res['trace']),
-            "state": copy(state),
+            "state": dict()
         }
+        for k, v in state.items():
+            if isinstance(v, (int, float)):
+                new_entry['state'][k] = v
         series = res['time_series'][name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)

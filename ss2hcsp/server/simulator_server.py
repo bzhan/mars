@@ -2,6 +2,8 @@ from flask import Flask
 from flask import request
 import lark
 import json
+import math
+import time
 
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
@@ -84,9 +86,27 @@ def run_hcsp():
 
     infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
     try:
+        clock = time.clock()
         res = simulator.exec_parallel(infos, num_steps=num_steps, num_io_events=num_io_events)
+        print("Time:", time.clock() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
+
+    # Process time series, so that each process has at most 1000 events
+    for key in res['time_series']:
+        l = len(res['time_series'][key])
+        if l > 1000:
+            new_series = []
+            for i in range(1000):
+                idx = math.floor(i * (l / 1000.0))
+                new_series.append(res['time_series'][key][idx])
+            res['time_series'][key] = new_series
+
+    for key in res.keys():
+        print(key, len(json.dumps(res[key])))
+
+    for key in res['time_series']:
+        print(key, len(res['time_series'][key]))
 
     return json.dumps(res)
 
