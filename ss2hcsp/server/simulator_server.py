@@ -102,6 +102,20 @@ def run_hcsp():
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
 
+    # When limiting to a range, update info so it does not refer to value
+    # outside the range
+    num_show = data['num_show']
+    show_starting = data['show_starting']
+    for i in range(show_starting, show_starting + num_show):
+        for name, info in res['trace'][i]['infos'].items():
+            if isinstance(info, int):
+                if info < show_starting:
+                    res['trace'][i]['infos'][name] = res['trace'][info]['infos'][name]
+                else:
+                    res['trace'][i]['infos'][name] = info - show_starting
+
+    res['trace'] = res['trace'][show_starting : show_starting+num_show]
+
     for key in res.keys():
         print(key, len(json.dumps(res[key])))
 
