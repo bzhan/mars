@@ -651,21 +651,22 @@ class HCSPInfo:
             pass
 
         elif cur_hp.type == "wait":
-            delay_left = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
-            assert delay_left >= delay
-            if delay_left == delay:
+            assert 'delay' in self.reason
+            assert self.reason['delay'] >= delay
+            if self.reason['delay'] == delay:
                 self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             else:
                 self.pos = self.pos[:-1] + (self.pos[-1] + delay,)
+
+            self.reason['delay'] -= delay
 
         elif cur_hp.type == "ode_comm" or cur_hp.type == "ode":
             finish_ode = False
 
             if cur_hp.constraint != true_expr:
                 # Test whether this finishes the ODE.
-                ode_delay = get_ode_delay(cur_hp, self.state)
-                assert delay <= ode_delay
-                if delay == ode_delay:
+                assert 'delay' in self.reason and delay <= self.reason['delay']
+                if delay == self.reason['delay']:
                     finish_ode = True
 
             if delay != 0.0:
@@ -698,6 +699,9 @@ class HCSPInfo:
 
             if finish_ode:
                 self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            else:
+                if 'delay' in self.reason:
+                    self.reason['delay'] -= delay
 
         else:
             assert False
@@ -798,10 +802,16 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
     for info in infos:
         log_time_series(info.name, 0, info.state)
 
+    # List of processes that have been updated in the last round.
+    updated = [info.name for info in infos]
+
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
+            if info.name not in updated:
+                continue
+
             while info.pos is not None and not end_run:
                 info.exec_step()
                 if info.reason is None:
@@ -829,8 +839,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
                 for entry in series:
                     log_time_series(info.name, res['time'] + entry['time'], entry['state'])
                 log_time_series(info.name, res['time'] + min_delay, info.state)
-            log_event(type="delay", delay_time=min_delay, str=trace_str,
-                      ori_pos=[infos[p].name for p in delay_pos])
+
+            updated = [infos[p].name for p in delay_pos]
+            log_event(type="delay", delay_time=min_delay, str=trace_str, ori_pos=updated)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
@@ -842,9 +853,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
                 val_str = " " + str(round(val, 3))
             else:
                 val_str = " " + str(val)
+
+            updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str,
-                      ori_pos=[infos[id_in].name, infos[id_out].name])
+            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str, ori_pos=updated)
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
         # Overflow detection

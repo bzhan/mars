@@ -179,12 +179,12 @@ class SimulatorTest(unittest.TestCase):
             ("wait(3); x := x + 1", (0, 1), {"x": 2}, 2, (1,), {"x": 2}),
             ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, 3, (), {"x": 5}),
             ("<x_dot = 1 & true> |> [](c!x --> skip); x := x + 1", (0,), {"x": 2}, 3, (0,), {"x": 5}),
-            ("wait(3)", "end", {}, 3, None, {}),
             ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"x": 1}, 1, (0, 2), {"x": 1}),
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -214,6 +214,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, state, delay, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, state=state)
+            info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
 
