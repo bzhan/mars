@@ -451,6 +451,9 @@ class HCSPInfo:
         # possible keys 'comm' and 'delay'.
         self.reason = None
 
+        # Last step at which the state is changed. Used during simulation.
+        self.last_change = 0
+
     def exec_step(self):
         """Compute a single process for one step.
 
@@ -739,14 +742,6 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def get_log_info(infos):
-    """Obtain the logged info."""
-    cur_info = dict()
-    for info in infos:
-        info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
-        cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
-    return cur_info
-
 def exec_parallel(infos, *, num_io_events=100, num_steps=400):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
@@ -776,12 +771,24 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
     for info in infos:
         res['time_series'][info.name] = []
 
-    def log_event(**xargs):
+    def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
         nonlocal end_run
+        cur_index = len(res['trace'])
+
         new_event = xargs
         new_event['time'] = res['time']
-        new_event['infos'] = get_log_info(infos)
+
+        cur_info = dict()
+        for info in infos:
+            if info.name in ori_pos:
+                info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
+                cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
+                info.last_change = cur_index
+            else:
+                cur_info[info.name] = info.last_change
+
+        new_event['infos'] = cur_info
         res['trace'].append(new_event)
         if len(res['trace']) > num_steps:
             end_run = True
@@ -797,13 +804,13 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
-    # Record event and time series at the beginning.
-    log_event(type="start", str="start")
-    for info in infos:
-        log_time_series(info.name, 0, info.state)
-
     # List of processes that have been updated in the last round.
     updated = [info.name for info in infos]
+
+    # Record event and time series at the beginning.
+    log_event(ori_pos=updated, type="start", str="start")
+    for info in infos:
+        log_time_series(info.name, 0, info.state)
 
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
@@ -815,7 +822,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             while info.pos is not None and not end_run:
                 info.exec_step()
                 if info.reason is None:
-                    log_event(type="step", str="step", ori_pos=[info.name])
+                    log_event(ori_pos=[info.name], type="step", str="step")
                     log_time_series(info.name, res['time'], info.state)
                 else:
                     break
@@ -827,7 +834,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
 
         event = extract_event(infos)
         if event == "deadlock":
-            log_event(type="deadlock", str="deadlock")
+            log_event(ori_pos=[], type="deadlock", str="deadlock")
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
@@ -841,7 +848,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
                 log_time_series(info.name, res['time'] + min_delay, info.state)
 
             updated = [infos[p].name for p in delay_pos]
-            log_event(type="delay", delay_time=min_delay, str=trace_str, ori_pos=updated)
+            log_event(ori_pos=updated, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
@@ -856,7 +863,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
 
             updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(type="comm", ch_name=ch_name, val=val, str=trace_str, ori_pos=updated)
+            log_event(ori_pos=updated, type="comm", ch_name=ch_name, val=val, str=trace_str)
             log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
 
         # Overflow detection
@@ -867,7 +874,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
                     has_overflow = True
 
         if has_overflow:
-            log_event(type="overflow", str="overflow")
+            log_event(ori_pos=[], type="overflow", str="overflow")
             break
 
     return res

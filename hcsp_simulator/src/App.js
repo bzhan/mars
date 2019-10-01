@@ -459,8 +459,16 @@ class App extends React.Component {
                 } else {
                     const hpos = this.state.history_pos;
                     const event = this.state.history[hpos];
-                    var pos = event.infos[hcsp_name].pos;
-                    var state = event.infos[hcsp_name].state;
+                    var pos, state;
+                    if (typeof(event.infos[hcsp_name]) === 'number') {
+                        var prev_id = event.infos[hcsp_name];
+                        var prev_info = this.state.history[prev_id].infos[hcsp_name];
+                        pos = prev_info.pos;
+                        state = prev_info.state;
+                    } else {
+                        pos = event.infos[hcsp_name].pos;
+                        state = event.infos[hcsp_name].state;    
+                    }
                     var event_time;
                     if (event.type !== 'delay') {
                         event_time = event.time;
