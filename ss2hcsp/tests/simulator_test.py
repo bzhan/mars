@@ -81,8 +81,8 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_step()
-            self.assertEqual(res, 'step')
+            info.exec_step()
+            self.assertEqual(info.reason, None)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
@@ -106,8 +106,8 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, reason in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_step()
-            self.assertEqual(res, reason)
+            info.exec_step()
+            self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos)
             self.assertEqual(info.state, state)
 
@@ -126,8 +126,13 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2, reason in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_process()
-            self.assertEqual(res, reason)
+            while info.pos is not None:
+                info.exec_step()
+                if info.reason is not None:
+                    break
+            if info.pos is None:
+                info.reason = "end"
+            self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 

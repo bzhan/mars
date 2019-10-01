@@ -419,20 +419,25 @@ class HCSPInfo:
     """
     def __init__(self, name, hp, *, pos="start", state=None):
         """Initializes with starting position as the execution position."""
+
+        # Name of the program
         assert isinstance(name, str)
         self.name = name
 
+        # Code for the program
         if isinstance(hp, str):
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
 
+        # Current position of execution
         if isinstance(pos, str):
             pos = parse_pos(self.hp, pos)
         else:
             assert isinstance(pos, tuple)
         self.pos = pos
 
+        # Current state
         if state is None:
             state = dict()
         elif isinstance(state, (tuple, list)):
@@ -440,6 +445,11 @@ class HCSPInfo:
         else:
             assert isinstance(state, dict)
         self.state = state
+
+        # What the program is currently waiting for. None means not
+        # currently waiting. If not None, then it is a dictionary with
+        # possible keys 'comm' and 'delay'.
+        self.reason = None
 
     def exec_step(self):
         """Compute a single process for one step.
@@ -458,13 +468,13 @@ class HCSPInfo:
 
         if cur_hp.type == "skip":
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
-            return "step"
+            self.reason = None
             
         elif cur_hp.type == "assign":
             # Perform assignment
             self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
-            return "step"
+            self.reason = None
 
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
@@ -472,12 +482,12 @@ class HCSPInfo:
                 self.pos += (0,) + start_pos(cur_hp.hp)
             else:
                 self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
-            return "step"
+            self.reason = None
 
         elif cur_hp.type == "recursion":
             # Enter into recursion
             self.pos += (0,) + start_pos(cur_hp.hp)
-            return "step"
+            self.reason = None
 
         elif cur_hp.type == "var":
             # Return to body of recursion
@@ -485,26 +495,27 @@ class HCSPInfo:
                 hp = get_pos(self.hp, self.pos[:i])
                 if hp.type == 'recursion' and hp.entry == cur_hp.name:
                     self.pos += (0,) + start_pos(hp)
-                    return "step"
+                    self.reason = None
+                    return
 
             # Otherwise, not a recursion variable
             raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
 
         elif cur_hp.type == "input_channel":
             # Waiting for input
-            return {"comm": [(cur_hp.ch_name, "?")]}
+            self.reason = {"comm": [(cur_hp.ch_name, "?")]}
 
         elif cur_hp.type == "output_channel":
             # Waiting for someone to receive output
-            return {"comm": [(cur_hp.ch_name, "!")]}
+            self.reason = {"comm": [(cur_hp.ch_name, "!")]}
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            return {"delay": eval_expr(cur_hp.delay, self.state) - self.pos[-1]}
+            self.reason = {"delay": eval_expr(cur_hp.delay, self.state) - self.pos[-1]}
 
         elif cur_hp.type == "ode":
             # Find delay of ODE
-            return {"delay": get_ode_delay(cur_hp, self.state)}
+            self.reason = {"delay": get_ode_delay(cur_hp, self.state)}
 
         elif cur_hp.type == "ode_comm":
             # Run ODE until one of the communication events (or the boundary)
@@ -514,10 +525,9 @@ class HCSPInfo:
                     comms.append((io_comm.ch_name, "?"))
                 else:
                     comms.append((io_comm.ch_name, "!"))
-            res = {"comm": comms}
+            self.reason = {"comm": comms}
             if cur_hp.constraint != true_expr:
-                res["delay"] = get_ode_delay(cur_hp, self.state)
-            return res
+                self.reason["delay"] = get_ode_delay(cur_hp, self.state)
 
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
@@ -529,36 +539,22 @@ class HCSPInfo:
                     comms.append((comm_hp.ch_name, "!"))
                 else:
                     raise NotImplementedError
-            return {"comm": comms}
+            self.reason = {"comm": comms}
 
         elif cur_hp.type == 'ite':
             # Find the first condition that evaluates to true
             for i, (cond, sub_hp) in enumerate(cur_hp.if_hps):
                 if eval_expr(cond, self.state):
                     self.pos += (i,) + start_pos(sub_hp)
-                    return "step"
+                    self.reason = None
+                    return
 
             # Otherwise, go to the else branch
             self.pos += (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
-            return "step"
+            self.reason = None
 
         else:
             raise NotImplementedError
-
-    def exec_process(self):
-        """Compute a single process, until it must delay for some time,
-        or wait for some communication event.
-
-        Returns the stopping reason, either ("comm", [...]) or ("delay", d)
-        or "end" (for end of the program).
-
-        """
-        while self.pos is not None:
-            res = self.exec_step()
-            if res != "step":
-                return res
-
-        return "end"
 
     def exec_input_comm(self, ch_name, x):
         """Perform an input communication on a given hybrid program.
@@ -706,8 +702,8 @@ class HCSPInfo:
         else:
             assert False
 
-def extract_event(reasons):
-    """From a list of reasons, extract the next event. The returned
+def extract_event(infos):
+    """From a list of infos, extract the next event. The returned
     value is one of:
 
     "deadlock" -> the program has deadlocked.
@@ -716,23 +712,22 @@ def extract_event(reasons):
 
     """
     # First, attempt to find communication
-    for i, reason1 in enumerate(reasons):
-        for j, reason2 in enumerate(reasons):
-            if reason1 != 'end' and reason2 != 'end' and \
-                'comm' in reason1 and 'comm' in reason2:
-                for ch_name1, dir1 in reason1['comm']:
-                    for ch_name2, dir2 in reason2['comm']:
+    for i, info1 in enumerate(infos):
+        for j, info2 in enumerate(infos):
+            if 'comm' in info1.reason and 'comm' in info2.reason:
+                for ch_name1, dir1 in info1.reason['comm']:
+                    for ch_name2, dir2 in info2.reason['comm']:
                         if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
                             return ("comm", i, j, ch_name1)
 
     # If there is no communication, find minimum delay
     min_delay, delay_pos = None, []
-    for i, reason in enumerate(reasons):
-        if reason != 'end' and 'delay' in reason:
-            if min_delay is None or min_delay > reason['delay']:
-                min_delay = reason['delay']
+    for i, info in enumerate(infos):
+        if 'delay' in info.reason:
+            if min_delay is None or min_delay > info.reason['delay']:
+                min_delay = info.reason['delay']
                 delay_pos = [i]
-            elif min_delay == reason['delay']:
+            elif min_delay == info.reason['delay']:
                 delay_pos.append(i)
 
     if min_delay is not None:
@@ -804,27 +799,23 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         log_time_series(info.name, 0, info.state)
 
     for iteration in range(num_io_events):
-        # List of stopping reasons for each process
-        reasons = []
-
-        # Iterate over the processes, apply exec_process to each,
-        # collect the stopping reasons.
+        # Iterate over the processes, apply exec_step to each until
+        # stuck, find the stopping reasons.
         for info in infos:
             while info.pos is not None and not end_run:
-                reason = info.exec_step()
-                if reason == "step":
+                info.exec_step()
+                if info.reason is None:
                     log_event(type="step", str="step", ori_pos=[info.name])
                     log_time_series(info.name, res['time'], info.state)
                 else:
                     break
             if info.pos is None:
-                reason = "end"
-            reasons.append(reason)
+                info.reason = {'end': None}
 
         if end_run:
             break
 
-        event = extract_event(reasons)
+        event = extract_event(infos)
         if event == "deadlock":
             log_event(type="deadlock", str="deadlock")
             break
