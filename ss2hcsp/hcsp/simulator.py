@@ -778,6 +778,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
 
         new_event = xargs
         new_event['time'] = res['time']
+        new_event['ori_pos'] = ori_pos
 
         cur_info = dict()
         for info in infos:
