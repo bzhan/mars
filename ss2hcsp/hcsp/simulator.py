@@ -94,6 +94,16 @@ def eval_expr(expr, state):
             a, = args
             assert isinstance(a, tuple)
             return len(a)
+        elif expr.fun_name == "get_max":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            return max(a)
+        elif expr.fun_name == "pop_max":
+            a, = args
+            assert isinstance(a, tuple) and len(a) > 0
+            b = list(a)
+            b.remove(max(a))
+            return tuple(b)
         else:
             raise NotImplementedError
 
