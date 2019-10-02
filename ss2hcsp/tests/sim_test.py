@@ -51,12 +51,14 @@ class SimTest(unittest.TestCase):
         # print("R: ", real_hp)
 
         hp_init = hp_parser.parse("x2 := 7; x1 := 3")
-        hp_ode0 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 &
-        x4 < 10 && min(x2, x2) >= 5 || x5 < 10 && min(x2, x2) < 5> |>
-        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x5_0?x5 --> skip, ch_x7!x4 --> skip)""")
-        hp_ode1 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 &
-        x4 >= 10 && min(x2, x2) >= 5 || x5 >= 10 && min(x2, x2) < 5> |>
-        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x5_0?x5 --> skip, ch_x7!x5 --> skip)""")
+        hp_ode0 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & 
+        min(x2, x2) < 5 && x5 < 10 || x4 < 10 && min(x2, x2) >= 5> |> 
+        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
+        ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x4 --> skip)""")
+        hp_ode1 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & 
+        x5 >= 10 && min(x2, x2) < 5 || min(x2, x2) >= 5 && x4 >= 10> |> 
+        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
+        ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x5 --> skip)""")
         continuous_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(hp_ode0, hp_ode1)))
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Var("PC0"))
@@ -98,23 +100,22 @@ class SimTest(unittest.TestCase):
 
         diagram.add_line_name()
         diagram.comp_inher_st()
-        discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
-        real_hp = get_hp.get_hcsp(discrete_subdiagrams_sorted, continuous_subdiagrams)
+        # discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PD1")))
         hp0_init = hp_parser.parse("t := 0")
-        hp0 = hp_parser.parse(r"""t%4 == 0 -> (ch_x7?x7; ch_x8?x8; ch_x9?x9; 
+        hp0 = hp_parser.parse(r"""t%4 == 0 -> (ch_x7_0?x7; ch_x8_0?x8; ch_x9_0?x9; 
         if x8 >= 20 then x10 := x7 else x10 := x9 endif; ch_x10_0!x10); wait(4); t := t+4""")
         discrete_hp0 = hcsp.Sequence(hp0_init, hcsp.Loop(hp0))
         expected_hp.add("PD0", discrete_hp0)
 
         hp1_init = hp_parser.parse("t := 0")
-        hp1 = hp_parser.parse(r"""t%-1 == 0 -> (ch_x0?x0; x1 := min(x0, x0)); t%4 == 0 -> x2 := 1-x1; 
-        t%4 == 0 -> x3 := x2*2; t%8 == 0 -> (ch_x4?x4; x5 := max(x4, x3)); 
-        t%10 == 0 -> (ch_x0?x0; if x5 <= x0 then x6 := 1 else x6 := 0 endif; 
-        ch_x6_0!x6); wait(-1); t := t+(-1)""")
+        hp1 = hp_parser.parse(r"""t%-1 == 0 -> (ch_x0_0?x0; ch_x0_1?x0; x1 := min(x0, x0)); 
+        t%4 == 0 -> x2 := 1-x1; t%4 == 0 -> x3 := x2*2; t%8 == 0 -> (ch_x4_0?x4; x5 := max(x4, x3)); 
+        t%10 == 0 -> (ch_x0_2?x0; if x5 <= x0 then x6 := 1 else x6 := 0 endif; ch_x6_0!x6); wait(-1); t := t+(-1)""")
         discrete_hp1 = hcsp.Sequence(hp1_init, hcsp.Loop(hp1))
         expected_hp.add("PD1", discrete_hp1)
         # print("E: ", expected_hp)
@@ -167,15 +168,15 @@ class SimTest(unittest.TestCase):
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x3?x3; x4 := 1-x3); t%4 == 0 -> x5 := x4*(-2.2); 
-        t%8 == 0 -> (ch_x1?x1; x6 := max(x1, x5)); t%10 == 0 -> 
-        (ch_x2?x2; if x6 <= x2 then x0 := 1 else x0 := 0 endif; ch_x0_0!x0); wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x3_0?x3; x4 := 1-x3); t%4 == 0 -> x5 := x4*(-2.2); 
+        t%8 == 0 -> (ch_x1_0?x1; x6 := max(x1, x5)); 
+        t%10 == 0 -> (ch_x2_2?x2; if x6 <= x2 then x0 := 1 else x0 := 0 endif; ch_x0_0!x0); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
         con_init = hp_parser.parse("x2 := 10; x1 := 1")
-        con_hp = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & true> |>
-        [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x2!x2 --> skip, ch_x3!min(x2, x2) --> skip)""")
+        con_hp = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & true> |> 
+        [] (ch_x0_0?x0 --> skip, ch_x1_0!x1 --> skip, ch_x2_2!x2 --> skip, ch_x3_0!min(x2, x2) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
         # print("E: ", expected_hp)
@@ -238,15 +239,15 @@ class SimTest(unittest.TestCase):
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x6?x6; x5 := 1-x6); t%4 == 0 -> x4 := x5*2; 
-        t%6 == 0 -> (ch_x1?x1; x2 := max(x1, x4)); t%10 == 0 -> (ch_x3?x3; if x2 <= x3 then x0 := 1 else x0 := 0 endif; 
-        ch_x0_0!x0); wait(2); t := t+2""")
+        dis_hp = hp_parser.parse(r"""t%4 == 0 -> (ch_x6_0?x6; x5 := 1-x6); t%4 == 0 -> x4 := x5*2; 
+        t%6 == 0 -> (ch_x1_1?x1; x2 := max(x1, x4)); 
+        t%10 == 0 -> (ch_x3_0?x3; if x2 <= x3 then x0 := 1 else x0 := 0 endif; ch_x0_0!x0); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
         con_init = hp_parser.parse("x3 := 3; x1 := 2")
-        con_hp = hp_parser.parse(r"""<x3_dot = x1, x1_dot = x0 & true> |>
-        [] (ch_x0_0?x0 --> skip, ch_x1!x1 --> skip, ch_x3!x3 --> skip, ch_x6!min(x3, x3) --> skip)""")
+        con_hp = hp_parser.parse(r"""<x3_dot = x1, x1_dot = x0 & true> |> 
+        [] (ch_x0_0?x0 --> skip, ch_x1_1!x1 --> skip, ch_x3_0!x3 --> skip, ch_x6_0!min(x3, x3) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
         # print("E: ", expected_hp)
@@ -296,18 +297,60 @@ class SimTest(unittest.TestCase):
         expected_hp = hcsp.HCSPProcess()
         expected_hp.add("P", hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
         dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""t%6 == 0 -> (ch_z?z; a := z*z); t%6 == 0 -> b := a+(-1); 
+        dis_hp = hp_parser.parse(r"""t%6 == 0 -> (ch_z_0?z; ch_z_1?z; a := z*z); t%6 == 0 -> b := a+(-1); 
         t%4 == 0 -> (c := b*(-0.1); ch_c_0!c); wait(2); t := t+2""")
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
         con_init = hp_parser.parse("z := 1; y := 1")
-        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> [] (ch_c_0?c --> skip, ch_z!z --> skip)""")
+        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> 
+        [] (ch_c_0?c --> skip, ch_z_0!z --> skip, ch_z_1!z --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
         # print(expected_hp)
 
         self.assertEqual(real_hp, expected_hp)
+
+    def testSimulinkStateflow(self):
+        location = "./Examples/Stateflow/Simulink+Stateflow/SimulinkStateflow.xml"
+        diagram = SL_Diagram(location=location)
+        diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hp.get_hcsp(*diagram.seperate_diagram())
+        print(process)
+
+        res = [
+            ("P", "@PD0 || @PD1 || @PC0 || @PC1 || @M || @S1 || @buffer0 || @buffer1"),
+            ("PD0", "t := 0; (t%4 == 0 -> (ch_x6_0?x6; x7 := x6*1; ch_x7_0!x7); wait(4); t := t+4)**"),
+            ("PD1", "t := 0; (t%2 == 0 -> (ch_x4_0?x4; x5 := x4*1; ch_x5_0!x5); wait(2); t := t+2)**"),
+            ("PC0", "x1 := 2; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
+            ("PC1", "x4 := 3; (<x4_dot = 1 & true> |> [] (ch_x4_0!x4 --> skip))**"),
+            ("M", "x := 0; y := 0; a := 0; z := 0; num := 0; ch_x0_0?x; ch_x1_0?a; ch_x2_0!y; wait(3); "
+                  '(num == 0 -> (ch_x0_0?x; ch_x1_0?a; E := ""; EL := [""]; NL := [1]; num := 1); '
+                  "num == 1 -> (BC1!E --> VOut1_x!x; VOut1_y!y; VOut1_a!a; VOut1_z!z "
+                  "$ BR1?E --> VIn1_x?x; VIn1_y?y; VIn1_a?a; VIn1_z?z; EL := push(EL, E); NL := push(NL, 1); num := 1 "
+                  "$ BO1? --> VIn1_x?x; VIn1_y?y; VIn1_a?a; VIn1_z?z; num := num+1; NL := pop(NL); NL := push(NL, 1)); "
+                  "num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; ch_x2_0!y; wait(3)); "
+                  "EL != [] -> (E := top(EL); num := top(NL))))**"),
+            ("S1", "a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; "
+                   "(BC1?E; VOut1_x?x; VOut1_y?y; VOut1_a?a; VOut1_z?z; "
+                   "if a_on == 1 then done := 0; done == 0 -> (z := x+a; y := z+1; a_on := 0; a_off := 1; done := 1); "
+                   "done == 0 -> skip elif a_off == 1 then done := 0; done == 0 -> "
+                   "(y := x-a; a_off := 0; a_on := 1; done := 1); done == 0 -> skip else skip endif; "
+                   "BO1!; VIn1_x!x; VIn1_y!y; VIn1_a!a; VIn1_z!z)**"),
+            ("buffer0", "(ch_x5_0?x5; ch_x0_0!x5; wait(2); ch_x5_0?x5; wait(1); "
+                        "ch_x0_0!x5; wait(1); ch_x5_0?x5; wait(2))**"),
+            ("buffer1", "(ch_x2_0?x2; ch_x6_0!x2; wait(3); ch_x2_0?x2; wait(1); "
+                        "ch_x6_0!x2; wait(2); ch_x2_0?x2; wait(2); ch_x6_0!x2; wait(1); ch_x2_0?x2; wait(3))**")
+        ]
+        expected_process = hcsp.HCSPProcess()
+        for name, hp in res:
+            expected_process.add(name, hp_parser.parse(hp))
+        # print(expected_process)
+
+        self.assertEqual(process, expected_process)
 
 
 if __name__ == "__main__":

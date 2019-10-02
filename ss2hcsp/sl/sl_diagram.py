@@ -18,6 +18,7 @@ from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
+from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 
 from xml.dom.minidom import parse
 from functools import reduce
@@ -221,6 +222,7 @@ class SL_Diagram:
         for chart in charts:
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
+
             chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is encapsulated as an AND-state
             states, junctions = get_children(block=chart, tran_dict=get_transitions(block=chart))
             for state in states + junctions:
@@ -229,9 +231,13 @@ class SL_Diagram:
             if chart_state.children and isinstance(chart_state.children[0], AND_State):
                 chart_state.children.sort(key=operator.attrgetter("order"))
             assert chart_state.check_children()
+
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
             chart_st = eval(chart_st) if chart_st else -1
-            sf_chart = SF_Chart(name=chart_name, state=chart_state, st=chart_st)
+
+            chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
+
+            sf_chart = SF_Chart(name=chart_name, state=chart_state, all_vars=chart_vars, st=chart_st)
             self.charts[chart_name] = sf_chart
 
     def parse_xml(self):
@@ -313,19 +319,39 @@ class SL_Diagram:
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
             elif block_type == "SubSystem":
+                subsystem = block.getElementsByTagName("System")[0]
+
+                # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
-                if sf_block_type == "Chart":  # it is a stateflow chart
+                if sf_block_type == "Chart":
                     assert block_name in self.charts
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
                     stateflow = Subsystem(block_name, num_src, num_dest)
                     stateflow.type = "stateflow"
                     stateflow.diagram = self.charts[block_name]
+                    stateflow.diagram.subsystem = stateflow
                     stateflow.st = stateflow.diagram.st
+                    stateflow.port_to_in_var = dict()
+                    stateflow.port_to_out_var = dict()
+                    for child in subsystem.childNodes:
+                        if child.nodeName == "Block":
+                            if child.getAttribute("BlockType") == "Inport":
+                                in_var = child.getAttribute("Name")
+                                port_id = get_attribute_value(child, "Port")
+                                port_id = int(port_id) - 1 if port_id else 0
+                                assert port_id not in stateflow.port_to_in_var
+                                stateflow.port_to_in_var[port_id] = in_var
+                            elif child.getAttribute("BlockType") == "Outport":
+                                out_var = child.getAttribute("Name")
+                                port_id = get_attribute_value(child, "Port")
+                                port_id = int(port_id) - 1 if port_id else 0
+                                assert port_id not in stateflow.port_to_out_var
+                                stateflow.port_to_out_var[port_id] = out_var
                     self.add_block(stateflow)
                     continue
+
                 # Check if it is a triggered subsystem
-                subsystem = block.getElementsByTagName("System")[0]
                 triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
                             child.getAttribute("BlockType") == "TriggerPort"]
                 assert len(triggers) <= 1
@@ -381,29 +407,13 @@ class SL_Diagram:
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
                 dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
-                # Add buffer between discrete block and triggered subsystem
-                # if self.blocks_dict[src_block].type == "triggered_subsystem" and \
-                #         not self.blocks_dict[dest_block].is_continuous:
-                #     buffer = Buffer()
-                #     self.add_block(buffer)
-                    
-                # dest_port = int(get_attribute_value(block=branch, attribute="DstPort")) - 1
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name)
-            # else:  # No branches
-            #     dest_block = get_attribute_value(block=line, attribute="DstBlock")
-            #     if dest_block in port_name_dict:
-            #         dest_block = port_name_dict[dest_block]
-            #     dest_port = get_attribute_value(block=line, attribute="DstPort")
-            #     dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
-            #     # dest_port = int(get_attribute_value(block=line, attribute="DstPort")) - 1
-            #     if dest_block in self.blocks_dict:
-            #         self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
-            #                       name=line_name)
 
     def add_block(self, block):
         """Add given block to the diagram."""
+        assert block.name not in self.blocks_dict
         self.blocks.append(block)
         self.blocks_dict[block.name] = block
 
@@ -477,50 +487,6 @@ class SL_Diagram:
                         if block.st == 0:
                             block.is_continuous = True
                         terminate = False
-
-        # for block in self.blocks_dict.values():
-        #     if block.type == "unit_delay":
-        #         block.delay = block.st
-
-        # # Define the sample time for each block whose sample time is still unknown
-        # for block in self.blocks_dict.values():
-        #     if block.st == -1:
-        #         known_in_st = []  # list of known sample times of inputs of the block
-        #         unknown_in_st = []  # list of unknown sample times of inputs of the block
-        #         for line in block.dest_lines:
-        #             in_block = self.blocks_dict[line.src]
-        #             if isinstance(in_block.st, (int, float)) and in_block.st >= 0:
-        #                 known_in_st.append(in_block.st)
-        #             else:
-        #                 unknown_in_st.append(AVar(in_block.name))
-        #         assert unknown_in_st
-        #
-        #         if known_in_st:
-        #             known_in_st = [AConst(get_gcd(sample_times=known_in_st))]
-        #         known_in_st.extend(unknown_in_st)
-        #         if len(known_in_st) == 1:
-        #             block.st = known_in_st[0]
-        #             assert isinstance(block.st, AVar)
-        #         else:  # len(known_in_st) >= 2
-        #             block.st = FunExpr(fun_name="gcd", exprs=known_in_st)
-        # Deal with unit_delay and constant blocks
-        # for block in self.blocks_dict.values():
-        #     if block.type == "unit_delay":
-        #         if block.delay == -1:  # the delay is unknow
-        #             # block.delay = block.st
-        #             assert isinstance(block.st, (int, float, AVar, FunExpr))
-        #             block.delay = AConst(block.st) if isinstance(block.st, (int, float)) else block.st
-        #             # src_block = self.blocks_dict[block.dest_lines[0].src]
-        #             # block.delay = src_block.st if isinstance(src_block.st, AExpr) else AConst(src_block.st)
-        #         else:
-        #             assert isinstance(block.delay, (int, float))
-        #             block.delay = AConst(block.delay)
-        #     elif block.type == "constant":
-        #         dest_block = self.blocks_dict[block.src_lines[0][0].dest]
-        #         block.is_continuous = dest_block.is_continuous
-        #
-        # assert all(isinstance(block.st, (int, float, AVar, FunExpr)) for block in self.blocks_dict.values()
-        #            if block.type not in ["in_port", "out_port"])
 
     def delete_subsystems(self):
         subsystems = []
@@ -620,6 +586,15 @@ class SL_Diagram:
         blocks_dict = {name: block for name, block in self.blocks_dict.items()
                        if block.type not in ['in_port', 'out_port']}
 
+        # Get stateflow subsystems and then delete them from block_dict
+        sf_subsystems = [block for block in blocks_dict.values() if block.type == "stateflow"]
+        for name in [block.name for block in sf_subsystems]:
+            del blocks_dict[name]
+        # Get buffers and then delete them from block_dict
+        buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
+        for name in [block.name for block in buffers]:
+            del blocks_dict[name]
+
         # Seperating: search SCC by BFS
         discrete_subdiagrams = []
         continuous_subdiagrams = []
@@ -628,7 +603,7 @@ class SL_Diagram:
             scc = [block]
             bs = [block]
             while bs:
-                b = bs.pop()
+                b = bs.pop(-1)
                 for src_line in b.src_lines:
                     for line in src_line:
                         dest_name = line.dest
@@ -665,55 +640,47 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        # Get input and output channels
-        continuous_groups = [[block.name for block in scc] for scc in continuous_subdiagrams]
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_subsystems, buffers
+        # return dis_subdiag_with_chs, con_subdiag_with_chs
 
-        dis_subdiag_with_chs = []
-        for sorted_scc in discrete_subdiagrams_sorted:
-            in_channels = set()
-            out_channels = set()
-            block_names = [block.name for block in sorted_scc]
-            for block in sorted_scc:
-                for dest_line in block.dest_lines:
-                    if dest_line.src not in block_names:  # an input channel
-                        in_channels.add((dest_line.name, ""))  # (var_name, branch_num)
-                for src_lines in block.src_lines:  # Each group represents a variable
-                    channel_groups = {}
-                    for src_line in src_lines:
-                        if src_line.dest not in block_names:  # an output channel
-                            is_outport = True  # if src_line.dest is an outport
-                            for i in range(len(continuous_groups)):
-                                if src_line.dest in continuous_groups[i]:
-                                    is_outport = False
-                                    if i not in channel_groups:
-                                        channel_groups[i] = []
-                                    channel_groups[i].append(src_line.branch)
-                                    break
-                            if is_outport:
-                                out_channels.add((src_line.name, "_" + str(src_line.branch)))
-                    for channels in channel_groups.values():
-                        out_channels.add((src_lines[0].name, "_" + str(min(channels))))
-            dis_subdiag_with_chs.append({"in": in_channels, "diag": sorted_scc, "out": out_channels})
-
-        con_subdiag_with_chs = []
-        for scc in continuous_subdiagrams:
-            in_channels = set()
-            out_channels = set()
-            block_names = [block.name for block in scc]
-            channel_groups = {}
-            for block in scc:
-                for dest_line in block.dest_lines:
-                    if dest_line.src not in block_names:  # an input channel
-                        if dest_line.name not in channel_groups:
-                            channel_groups[dest_line.name] = []
-                        channel_groups[dest_line.name].append(dest_line.branch)
-                for src_lines in block.src_lines:
-                    for src_line in src_lines:
-                        if src_line.dest not in block_names:  # an output channel
-                            out_channels.add((src_line.name, ""))
-            for channel, branches in channel_groups.items():
-                in_channels.add((channel, "_" + str(min(branches))))
-            con_subdiag_with_chs.append({"in": in_channels, "diag": scc, "out": out_channels})
-
-        # return discrete_subdiagrams_sorted, continuous_subdiagrams
-        return dis_subdiag_with_chs, con_subdiag_with_chs
+    def add_buffers(self):
+        buffers = []
+        for block in self.blocks_dict.values():
+            if block.type == "stateflow":
+                for port_id in range(len(block.dest_lines)):
+                    line = block.dest_lines[port_id]
+                    src_block = self.blocks_dict[line.src]
+                    if not src_block.is_continuous:
+                        buffer = Discrete_Buffer(in_st=src_block.st, out_st=block.st)
+                        buffers.append(buffer)
+                        # Link src_block to buffer
+                        line.dest = buffer.name
+                        line.dest_port = 0
+                        assert buffer.dest_lines == [None]
+                        buffer.dest_lines = [line]
+                        # Link buffer to block
+                        line = SL_Line(src=buffer.name, dest=block.name, src_port=0, dest_port=port_id)
+                        line.branch = 0
+                        assert buffer.src_lines == [[]]
+                        buffer.src_lines = [[line]]
+                        block.dest_lines[port_id] = line
+                for branch_list in block.src_lines:
+                    for branch in branch_list:
+                        dest_block = self.blocks_dict[branch.dest]
+                        if not dest_block.is_continuous:
+                            buffer = Discrete_Buffer(in_st=block.st, out_st=dest_block.st)
+                            buffers.append(buffer)
+                            # Link buffer to dest_block
+                            line = SL_Line(src=buffer.name, dest=dest_block.name,
+                                           src_port=0, dest_port=branch.dest_port)
+                            line.branch = 0
+                            assert buffer.src_lines == [[]]
+                            buffer.src_lines = [[line]]
+                            dest_block.dest_lines[line.dest_port] = line
+                            # Link block to buffer
+                            branch.dest = buffer.name
+                            branch.dest_port = 0
+                            assert buffer.dest_lines == [None]
+                            buffer.dest_lines = [branch]
+        for buffer in buffers:
+            self.add_block(buffer)
