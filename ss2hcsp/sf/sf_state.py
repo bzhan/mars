@@ -23,6 +23,7 @@ class SF_State:
         self.father = None  # parent state
         self.children = list()  # list of children states
         self.root = None  # root of the tree of containment relation
+        self.chart = None  # The chart containing this state
 
     def __eq__(self, other):
         return self.ssid == other.ssid

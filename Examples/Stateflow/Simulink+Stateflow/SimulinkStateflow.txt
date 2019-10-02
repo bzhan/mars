@@ -1,0 +1,9 @@
+P ::= @PD0 || @PD1 || @PC0 || @PC1 || @M || @S1 || @buffer0 || @buffer1
+PD0 ::= t := 0; (t%4 == 0 -> (ch_x6_0?x6; x7 := x6*1; ch_x7_0!x7); wait(4); t := t+4)**
+PD1 ::= t := 0; (t%2 == 0 -> (ch_x4_0?x4; x5 := x4*1; ch_x5_0!x5); wait(2); t := t+2)**
+PC0 ::= x1 := 2; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**
+PC1 ::= x4 := 3; (<x4_dot = 1 & true> |> [] (ch_x4_0!x4 --> skip))**
+M ::= x := 0; y := 0; a := 0; z := 0; num := 0; ch_x0_0?x; ch_x1_0?a; ch_x2_0!y; wait(3); (num == 0 -> (ch_x0_0?x; ch_x1_0?a; E := ""; EL := [""]; NL := [1]; num := 1); num == 1 -> (BC1!E --> VOut1_x!x; VOut1_y!y; VOut1_a!a; VOut1_z!z $ BR1?E --> VIn1_x?x; VIn1_y?y; VIn1_a?a; VIn1_z?z; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1? --> VIn1_x?x; VIn1_y?y; VIn1_a?a; VIn1_z?z; num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; ch_x2_0!y; wait(3)); EL != [] -> (E := top(EL); num := top(NL))))**
+S1 ::= a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; (BC1?E; VOut1_x?x; VOut1_y?y; VOut1_a?a; VOut1_z?z; if a_on == 1 then done := 0; done == 0 -> (z := x+a; y := z+1; a_on := 0; a_off := 1; done := 1); done == 0 -> skip elif a_off == 1 then done := 0; done == 0 -> (y := x-a; a_off := 0; a_on := 1; done := 1); done == 0 -> skip else skip endif; BO1!; VIn1_x!x; VIn1_y!y; VIn1_a!a; VIn1_z!z)**
+buffer0 ::= (ch_x5_0?x5; ch_x0_0!x5; wait(2); ch_x5_0?x5; wait(1); ch_x0_0!x5; wait(1); ch_x5_0?x5; wait(2))**
+buffer1 ::= (ch_x2_0?x2; ch_x6_0!x2; wait(3); ch_x2_0?x2; wait(1); ch_x6_0!x2; wait(2); ch_x2_0?x2; wait(2); ch_x6_0!x2; wait(1); ch_x2_0?x2; wait(3))**

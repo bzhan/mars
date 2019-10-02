@@ -59,6 +59,10 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     assert isinstance(acts, list)
     assert all(isinstance(act, str) for act in acts)
     assert isinstance(root, AND_State) and isinstance(location, (AND_State, OR_State))
+
+    # Get VIn
+    def vin(_i, _vars): return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+
     hps = list()
     # acts = action.split(";")
     for act in acts:
@@ -70,24 +74,28 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             assert len(root_num) == 1
             root_num = root_num[0]
             hps.append(hp_parser.parse("BR" + root_num + "!" + event))
+            hps.append(hp_parser.parse(vin(root_num, location.root.chart.all_vars)))
             hps.append(hp.Var("X"))
     return hps
 
 
 class SF_Chart:
-    def __init__(self, name, state, st=-1):
+    def __init__(self, name, state, all_vars, st=-1):
         self.name = name
         assert isinstance(state, AND_State)
         self.state = state
+        self.state.chart = self
         self.all_states = state.get_all_descendants()  # dict
         assert self.state.ssid not in self.all_states
         self.all_states[self.state.ssid] = self.state
+        self.all_vars = all_vars
+
         self.add_names()
         self.find_root_for_states()
         self.find_root_and_loc_for_trans()
-        self.parse_acts_on_states_and_trans()
 
         self.st = st
+        self.subsystem = None  # The subsystem containing this chart
 
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.state))
@@ -175,6 +183,7 @@ class SF_Chart:
 
     # State transition
     def execute_event(self, state, event_var="E"):
+        # self.parse_acts_on_states_and_trans()
         hps = list()
         if isinstance(state, (OR_State, Junction)):
             for out_tran in state.out_trans:
@@ -224,27 +233,59 @@ class SF_Chart:
         assert len(self.state.children) >= 1
         state_num = len(self.state.children) if isinstance(self.state.children[0], AND_State) else 1
 
+        # Get input channels
+        in_channels = []
+        # print(self.subsystem)
+        for port_id, in_var in self.subsystem.port_to_in_var.items():
+            line = self.subsystem.dest_lines[port_id]
+            ch_name = "ch_" + line.name + "_" + str(line.branch)
+            in_channels.append(ch_name + "?" + in_var)
+
+        # Get output channels
+        out_channels = []
+        for port_id, out_var in self.subsystem.port_to_out_var.items():
+            lines = self.subsystem.src_lines[port_id]
+            for line in lines:
+                ch_name = "ch_" + line.name + "_" + str(line.branch)
+                out_channels.append(ch_name + "!" + out_var)
+
+        # Variable Initialisation
+        hp_init = hp_parser.parse("; ".join(var + " := 0" for var in self.all_vars + ["num"]))
+        # Initial input and output channels, and delay
+        init_ch = hp_parser.parse("; ".join(in_channels + out_channels + ["wait(" + str(self.st) + ")"]))
         # Get M process
-        hp_M = hp.Sequence(hp.Assign(var_name="num", expr=AConst(0)), hp.Loop(hp.Var("M_main")))
+        hp_M = hp.Sequence(hp_init, init_ch, hp.Loop(hp.Var("M_main")))
+
+        # Get VOut
+        def vout(_i, _vars): return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+
+        # Get VIn
+        def vin(_i, _vars): return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
+
+        # # Get input and output varriables
+        # in_vars = list(self.subsystem.port_to_in_var.values())
+        # out_vars = list(self.subsystem.port_to_out_var.values())
+        # assert set(in_vars).isdisjoint(set(out_vars)) and set(in_vars + out_vars).issubset(set(self.all_vars))
 
         # Get M_main process
-        hp_M_main = hp_parser.parse('num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1)')
+        hp_M_main = hp_parser.parse('num == 0 -> (' + "; ".join(in_channels)
+                                    + '; E := ""; EL := [""]; NL := [1]; num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> skip $ BR" + i
-                                                    + "?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "? --> num := num+1; NL := pop(NL); NL := push(NL, 1))"))
+                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> " + vout(i, self.all_vars)
+                                                    + " $ BR" + i + "?E -->" + vin(i, self.all_vars) +
+                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
+                                                    + "? -->" + vin(i, self.all_vars)
+                                                    + "; num := num+1; NL := pop(NL); NL := push(NL, 1))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
-                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0);"
-                                                " EL != [] -> (E := top(EL); num := top(NL)))"))
+                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0;"
+                                                + "; ".join(out_channels) + "; wait(" + str(self.st)
+                                                + ")); EL != [] -> (E := top(EL); num := top(NL)))"))
         return hp_M, hp_M_main, state_num
 
     def get_process(self, event_var="E"):
-        # List of HCSP processes
-        processes = hp.HCSPProcess()
-
         def get_S_du_and_P_diag(_state, _hps):
             _s_du = list()
             _p_diag = list()
@@ -304,6 +345,22 @@ class SF_Chart:
                     processes.add(new_p_diag_name, new_p_diag_proc)
                     analyse_P_diag(new_p_diag)
 
+        # Get VOut
+        def vout(_i, _vars):
+            return "; ".join("VOut" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
+
+        # Get VIn
+        def vin(_i, _vars):
+            return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+
+        self.parse_acts_on_states_and_trans()
+
+        # # Get input and output vars
+        # in_vars = list(self.subsystem.port_to_in_var.values())
+        # out_vars = list(self.subsystem.port_to_out_var.values())
+
+        # List of HCSP processes
+        processes = hp.HCSPProcess()
         # M and M_main
         hp_M, hp_M_main, state_num = self.get_monitor_process()
         processes.add("M", hp_M)
@@ -326,9 +383,9 @@ class SF_Chart:
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
 
             # Body of process S_i
-            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var),
+            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, self.all_vars)),
                                    s_du,  # S_du
-                                   hp.OutputChannel(ch_name="BO" + str(i)))
+                                   hp_parser.parse("BO" + str(i) + "!; " + vin(i, self.all_vars)))
 
             # P_diag = p_diag_proc
             if p_diag:
@@ -361,4 +418,5 @@ class SF_Chart:
 
             i += 1
 
-        return processes.substitute()
+        processes.substitute()
+        return processes

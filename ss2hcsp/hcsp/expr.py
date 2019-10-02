@@ -318,13 +318,19 @@ def conj(*args):
         return true_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("&&", args[0], conj(*args[1:]))
+    # Select the minimal element as the head
+    arg_strs = [str(arg) for arg in args]
+    min_arg_index = arg_strs.index(min(arg_strs))
+    return LogicExpr("&&", args[min_arg_index], conj(*args[:min_arg_index], *args[min_arg_index + 1:]))
+    # return LogicExpr("&&", args[0], conj(*args[1:]))
+
 
 def split_conj(e):
     if isinstance(e, LogicExpr) and e.op == '&&':
         return [e.expr1] + split_conj(e.expr2)
     else:
         return [e]
+
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -338,8 +344,11 @@ def disj(*args):
         return false_expr
     elif len(args) == 1:
         return args[0]
-    else:
-        return LogicExpr("||", args[0], disj(*args[1:]))
+    # Select the minimal element as the head
+    arg_strs = [str(arg) for arg in args]
+    min_arg_index = arg_strs.index(min(arg_strs))
+    return LogicExpr("||", args[min_arg_index], conj(*args[:min_arg_index], *args[min_arg_index + 1:]))
+    # return LogicExpr("||", args[0], disj(*args[1:]))
 
 
 def imp(b1, b2):

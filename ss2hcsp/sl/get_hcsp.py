@@ -2,16 +2,29 @@ from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
 from ss2hcsp.sl.sl_diagram import get_gcd
 from itertools import product
+import operator
 
 
 def translate_continuous(diagram):
     # Get block dictionary
-    block_dict = {block.name: block for block in diagram["diag"]}
+    block_dict = {block.name: block for block in diagram}
     # Get input and output channels
-    in_channels = [hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name)
-                   for var_name, bran_num in sorted(diagram["in"])]
-    out_channels = [hp.OutputChannel(ch_name="ch_" + expr + bran_num, expr=AVar(expr))
-                    for expr, bran_num in sorted(diagram["out"])]
+    in_channels, out_channels = [], []
+    for block in block_dict.values():
+        for line in block.dest_lines:
+            if line.src not in block_dict:
+                in_var = line.name
+                branch = line.branch
+                in_channels.append(hp.InputChannel(ch_name="ch_" + in_var + "_" + str(branch), var_name=in_var))
+        for lines in block.src_lines:
+            for line in lines:
+                if line.dest not in block_dict:
+                    out_var = line.name
+                    branch = line.branch
+                    out_channels.append(hp.OutputChannel(ch_name="ch_" + out_var + "_" + str(branch),
+                                                         expr=AVar(out_var)))
+    in_channels.sort(key=operator.attrgetter("ch_name"))
+    out_channels.sort(key=operator.attrgetter("ch_name"))
 
     # Get initial processes and ODEs
     init_hps = []
@@ -43,7 +56,9 @@ def translate_continuous(diagram):
     var_substitute = Conditional_Inst()  # an object for variable substitution
     for block in block_dict.values():
         if block.type == "constant":
-            out_var, cond_inst = block.get_var_map()
+            var_map = block.get_var_map()
+            assert len(var_map) == 1
+            out_var, cond_inst = var_map.popitem()
             var_substitute.add(out_var, cond_inst)
     # Delete constant blocks
     constant_names = [name for name, block in block_dict.items() if block.type == "constant"]
@@ -145,12 +160,8 @@ def translate_discrete(diagram):
             return hp.Sequence(*processes)
 
     # Get block dictionary
-    block_dict = {block.name: block for block in diagram["diag"]}
-    # Get input and output channels
-    in_channels = [hp.InputChannel(ch_name="ch_" + var_name + bran_num, var_name=var_name)
-                   for var_name, bran_num in sorted(diagram["in"])]
-    out_channels = [hp.OutputChannel(ch_name="ch_" + expr + bran_num, expr=AVar(expr))
-                    for expr, bran_num in sorted(diagram["out"])]
+    block_dict = {block.name: block for block in diagram}
+    all_blocks = list(block_dict.keys())
 
     # Get initial processes
     init_hp = hp.Assign("t", AConst(0))
@@ -196,15 +207,21 @@ def translate_discrete(diagram):
                 st_to_out_chs[block.st] = []
             st_to_hps[block.st].append(get_block_hp(block.get_var_map()))
             # Get the input channels of the block
-            in_vars = block.get_input_vars()
-            for in_ch in in_channels:
-                if in_ch.var_name in in_vars:
-                    st_to_in_chs[block.st].append(in_ch)
-            # Get the output channels of the block
-            out_vars = block.get_output_vars()
-            for out_ch in out_channels:
-                if out_ch.expr.name in out_vars:
-                    st_to_out_chs[block.st].append(out_ch)
+            for line in block.dest_lines:
+                if line.src not in all_blocks:
+                    in_var = line.name
+                    branch = line.branch
+                    st_to_in_chs[block.st].append(hp.InputChannel(ch_name="ch_" + in_var + "_" + str(branch),
+                                                                  var_name=in_var))
+            st_to_in_chs[block.st].sort(key=operator.attrgetter("ch_name"))
+            for lines in block.src_lines:
+                for line in lines:
+                    if line.dest not in all_blocks:
+                        out_var = line.name
+                        branch = line.branch
+                        st_to_out_chs[block.st].append(hp.OutputChannel(ch_name="ch_" + out_var + "_" + str(branch),
+                                                                        expr=AVar(out_var)))
+            st_to_out_chs[block.st].sort(key=operator.attrgetter("ch_name"))
         # Get each process wrt. Sample Time
         for st in st_to_hps.keys():
             # The condition of time is in form of t%st == 0
@@ -224,7 +241,7 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_subsystems, buffers):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
     processes = hp.HCSPProcess()
@@ -247,6 +264,19 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs):
         processes.add(name, continuous_process)
         main_processes.append(hp.Var(name))
         num += 1
+
+    # Compute the stateflow processes
+    for sf_subsystem in sf_subsystems:
+        sf_processes = sf_subsystem.diagram.get_process()
+        for name, sf_process in sf_processes.hps:
+            if not isinstance(sf_process, hp.Parallel):
+                processes.add(name, sf_process)
+                main_processes.append(hp.Var(name))
+
+    # Computer the buffer processes
+    for buffer in buffers:
+        processes.add(buffer.name, buffer.get_hcsp())
+        main_processes.append(hp.Var(buffer.name))
 
     # Get main paralell processes
     assert len(main_processes) >= 1
