@@ -37,7 +37,8 @@ def getComponents(components):
             com = {}
             com['category'] = component.getAttribute('category')
             com['name'] = component.getAttribute('name')
-            if component.getElementsByTagName('classifier'):
+            #if component.getElementsByTagName('classifier'):
+            if component.getElementsByTagName('componentImplementation'):
                 name_impl = component.getElementsByTagName('classifier')[0].getAttribute('href').split('.')[-2]
                 if com['name'] != name_impl:
                     com['name_impl'] = name_impl
@@ -60,7 +61,6 @@ def getConnections(connections):
             conn['type'] = connection.getElementsByTagName('feature')[0].getAttribute('xsi:type').split(':')[-1]
         Conns.append(conn)
     return Conns
-
 
 def getOwnedPropertyAssociation(opas, category, name, *, protocol):
     """Interpret a list of owned property associations."""

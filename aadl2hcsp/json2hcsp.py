@@ -109,7 +109,9 @@ class Abstract:
         else:
             in_hp = in_hp[0]
 
-        init_hp = Sequence(Assign('boxTemp', AConst(73.0)), Assign('q', AConst(73.0)), out_hp, in_hp)
+        init_hp = Sequence(Assign('boxTemp', AConst(73.0)),
+                           Assign('q', AConst(73.0)),
+                           out_hp, in_hp)
 
        # if self.sim:
        #    hps.extend(self.sim)
@@ -118,7 +120,7 @@ class Abstract:
                ('q', AVar('heatCommand'))]
 
         constraint = BConst(True)
-        io_comms = [(out_hp, Skip()), (in_hp, Skip())]
+        io_comms = [(in_hp, Skip()), (out_hp, Skip())]
 
         hps = Loop(ODE_Comm(eqs, constraint, io_comms))
 
@@ -370,8 +372,8 @@ class Thread:
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '1'
-        self.thread_deadline = '20'
-        self.thread_period = '20'
+        self.thread_deadline = '1000'
+        self.thread_period = '1000'
         self.thread_max_time = '5'
         self.thread_min_time = '1'
         self.thread_featureIn = []
@@ -397,6 +399,12 @@ class Thread:
                     self.thread_min_time = opa['value'][0]
                     self.thread_max_time = opa['value'][1]
 
+        ## change time unit from ms to s
+
+        self.thread_min_time = 0.001*int(self.thread_min_time)
+        self.thread_max_time = 0.001*int(self.thread_max_time)
+        self.thread_deadline = 0.001*int(self.thread_deadline)
+        self.thread_period = 0.001*int(self.thread_period)
 
         for feature in thread['features']:
             if feature['type'].lower() == 'dataport':
@@ -418,7 +426,7 @@ class Thread:
 
         if self.thread_protocol == 'Periodic':
             act_hps = Sequence(OutputChannel('act_' + self.thread_name),
-                               Wait(AConst(int(self.thread_period))))# insert output
+                               Wait(AConst(self.thread_period)))# insert output
             self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
 
             dis_hps = [InputChannel('act_' + self.thread_name),  # insert variable
@@ -466,11 +474,11 @@ class Thread:
         com_ready.append(OutputChannel('tran_'+self.thread_name, AVar('prior')))
 
         eqs = [('t', AConst(1))]
-        constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+        constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
         io_comms = [(InputChannel('run_'+self.thread_name),  # insert variable
                      OutputChannel('resume_'+self.thread_name, AVar('t')))]
         com_ready.append(ODE_Comm(eqs,constraint,io_comms))
-        con = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
+        con = RelExpr('==', AVar('t'), AConst(self.thread_deadline))
         con_hp = OutputChannel('exit_'+self.thread_name)  # insert output
         com_ready.append(Condition(con, con_hp))
 
@@ -481,12 +489,12 @@ class Thread:
         com_await = [InputChannel('block_' + self.thread_name, 't')]
         com_await.append(OutputChannel('applyResource_' + self.thread_name))
         eqs = [('t', AConst(1))]
-        constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+        constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
         io_comms = [(InputChannel('haveResource_' + self.thread_name),  # insert variable
                      OutputChannel('unblock_' + self.thread_name, AVar('t')))]
 
         com_await.append(ODE_Comm(eqs, constraint, io_comms))
-        con = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
+        con = RelExpr('==', AVar('t'), AConst(self.thread_deadline))
         con_hp = OutputChannel('exit_' + self.thread_name)  # insert output
         com_await.append(Condition(con, con_hp))
 
@@ -506,8 +514,8 @@ class Thread:
 
             con_hp=[]
             eqs = [('t', AConst(1)), ('c', AConst(1))]
-            constraint_1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
-            constraint_2 = RelExpr('<', AVar('c'), AConst(int(self.thread_max_time)))
+            constraint_1 = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
+            constraint_2 = RelExpr('<', AVar('c'), AConst(self.thread_max_time))
             constraint_3 = BConst(False)
             constraint = conj(constraint_1, constraint_2, constraint_3)
             in1 = InputChannel('busy_' + self.thread_name)  # insert variable

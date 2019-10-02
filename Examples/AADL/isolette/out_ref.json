@@ -30,7 +30,7 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "1000"
             },
             {
                 "name": "Timing_Properties.Compute_Execution_Time",
@@ -92,12 +92,12 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "1000"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "1000"
             }
         ]
     },
@@ -223,8 +223,7 @@
                         "type": "DataPort"
                     }
                 ],
-                "name": "heatSW",
-                "name_impl": "sensor"
+                "name": "heatSW"
             }
         ],
         "connections": [
@@ -274,12 +273,12 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "1000"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "1000"
             }
         ]
     }
