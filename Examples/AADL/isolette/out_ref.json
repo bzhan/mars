@@ -34,7 +34,11 @@
             },
             {
                 "name": "Timing_Properties.Compute_Execution_Time",
-                "type": "RangeValue"
+                "type": "RangeValue",
+                "value": [
+                    "3",
+                    "5"
+                ]
             }
         ]
     },

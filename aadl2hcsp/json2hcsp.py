@@ -3,9 +3,9 @@
 import json
 
 from aadl2hcsp.parserAnnex import AnnexParser
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
-    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess,Skip
+    SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
 
 def createStructure(dic):
     process = HCSPProcess()
@@ -58,7 +58,7 @@ def createConnections(dic):
                 else:
                     hp_out = OutputChannel(category['name'].strip() + '_' + com['destination'].strip(), AVar('x'))
 
-                hp = Sequence(*[hp_in,hp_out])
+                hp = Loop(Sequence(*[hp_in,hp_out]))
                 hps.append(hp)
 
             if len(hps) > 1:
@@ -71,7 +71,6 @@ def createConnections(dic):
                     process.add(name,hp)
             else:
                 process.add('Comms_'+category['name'], hps[0])
-
 
     return process
 
@@ -93,30 +92,38 @@ class Abstract:
         self._createAbstract()
 
     def _createAbstract(self):
-        hps = []
-
-        hps.append(Assign('boxTemp', AConst(98.0)))
-
+        out_hp, in_hp = [],[]
         for feature in self.abstract_featureOut:
-            hps.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
-
-        if self.sim:
-            hps.extend(self.sim)
-
-        #hps.append(Wait(AConst(5)))
-        # hps.append(OutputChannel('need_Resource_' + self.thread_name))
-        # hps.append(Wait(AConst(5)))
+            out_hp.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
 
         for feature in self.abstract_featureIn:
-            hps.append(InputChannel(self.abstract_name + '_' + feature, str(feature)))
+            in_hp.append(InputChannel(self.abstract_name + '_' + feature, str(feature)))
 
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
+        if len(out_hp) >= 2:
+            out_hp = Sequence(*out_hp)
         else:
-            hps = hps[0]
+            out_hp = out_hp[0]
 
-        self.lines.add(self.abstract_name, Loop(hps))
+        if len(in_hp) >= 2:
+            in_hp = Sequence(*in_hp)
+        else:
+            in_hp = in_hp[0]
+
+        init_hp = Sequence(Assign('boxTemp', AConst(73.0)), Assign('q', AConst(73.0)), out_hp, in_hp)
+
+       # if self.sim:
+       #    hps.extend(self.sim)
+
+        eqs = [('boxTemp',  TimesExpr(['*', '*'], [AConst(-0.026), PlusExpr(['+','-'], [AVar('boxTemp'), AVar('q')])])),
+               ('q', AVar('heatCommand'))]
+
+        constraint = BConst(True)
+        io_comms = [(out_hp, Skip()), (in_hp, Skip())]
+
+        hps = Loop(ODE_Comm(eqs, constraint, io_comms))
+
+
+        self.lines.add(self.abstract_name, Sequence(init_hp, hps))
 
 
 class Process:
@@ -363,10 +370,10 @@ class Thread:
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '1'
-        self.thread_deadline = '10'
-        self.thread_period = '10'
+        self.thread_deadline = '20'
+        self.thread_period = '20'
         self.thread_max_time = '5'
-        self.thread_min_time = '2'
+        self.thread_min_time = '1'
         self.thread_featureIn = []
         self.thread_featureOut = []
         self.annex = annex
@@ -385,6 +392,11 @@ class Thread:
 
                 elif opa['name'] == 'Timing_Properties.Period':
                     self.thread_period = opa['value']
+
+                elif opa['name'] == 'Timing_Properties.Compute_Execution_Time':
+                    self.thread_min_time = opa['value'][0]
+                    self.thread_max_time = opa['value'][1]
+
 
         for feature in thread['features']:
             if feature['type'].lower() == 'dataport':
@@ -488,11 +500,16 @@ class Thread:
         hps.append(InputChannel('resume_' + self.thread_name, 't'))
 
         if flag=='Annex' and self.annex:
-            busy_io=(InputChannel('busy_' + self.thread_name), Assign('InitFlag', AConst(0)))
+            busy_io=(InputChannel('busy_' + self.thread_name),
+                     Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')), Assign('InitFlag', AConst(0))))
             hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
 
+            con_hp=[]
             eqs = [('t', AConst(1)), ('c', AConst(1))]
-            constraint = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+            constraint_1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+            constraint_2 = RelExpr('<', AVar('c'), AConst(int(self.thread_max_time)))
+            constraint_3 = BConst(False)
+            constraint = conj(constraint_1, constraint_2, constraint_3)
             in1 = InputChannel('busy_' + self.thread_name)  # insert variable
             out1 = OutputChannel('preempt_' + self.thread_name, AVar('t'))
 
@@ -500,9 +517,12 @@ class Thread:
             out2 = OutputChannel('block_' + self.thread_name, AVar('t'))
 
             io_comms = [(in1, out1), (in2, out2)]
-            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), ODE_Comm(eqs, constraint, io_comms)))
+            con_hp.append(ODE_Comm(eqs, constraint, io_comms))
 
-            hps.append(OutputChannel('free'))  # insert output
+            constraint_4 = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
+            con_hp.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
+
+            con_hp.append(OutputChannel('free'))  # insert output
 
             con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
             con_hp1 = [OutputChannel('complete_' + self.thread_name)]
@@ -510,14 +530,17 @@ class Thread:
                     con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
             con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
             con_hp1=Sequence(*con_hp1)
-            hps.append(Condition(con1, con_hp1))
+            con_hp.append(Condition(con1, con_hp1))
 
             con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
             con_hp2 = Sequence(OutputChannel('exit_' + self.thread_name),
                                Assign('InitFlag', AConst(0)))# insert output
-            hps.append(Condition(con2, con_hp2))
+            con_hp.append(Condition(con2, con_hp2))
+
+            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*con_hp)))
 
         com_running = Sequence(FlagSet, Loop(Sequence(*hps)))
+
         self.lines.add('Running_' + self.thread_name, com_running)
 
 

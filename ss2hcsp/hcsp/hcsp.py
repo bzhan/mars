@@ -79,7 +79,7 @@ class Skip(HCSP):
 class Wait(HCSP):
     def __init__(self, delay):
         super(Wait, self).__init__()
-        assert isinstance(delay, AConst)
+        assert isinstance(delay, AExpr)
         self.type = "wait"
         self.delay = delay
 
@@ -306,7 +306,7 @@ class Condition(HCSP):
         super(Condition, self).__init__()
         if not (isinstance(cond, BExpr) and isinstance(hp, HCSP)):
             print(hp, type(hp))
-        assert isinstance(cond, BExpr)  and isinstance(hp, HCSP)
+        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP

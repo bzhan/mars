@@ -77,6 +77,11 @@
   background-color: yellow;
 }
 
+.menu-label {
+  margin: 0px 0px 0px 20px;
+  align-self: center;
+}
+
 .left {
   display: inline-block;
   max-width: 70%;

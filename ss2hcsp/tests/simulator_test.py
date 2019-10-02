@@ -81,8 +81,8 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_step()
-            self.assertEqual(res, 'step')
+            info.exec_step()
+            self.assertEqual(info.reason, None)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
@@ -106,8 +106,8 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, reason in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_step()
-            self.assertEqual(res, reason)
+            info.exec_step()
+            self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos)
             self.assertEqual(info.state, state)
 
@@ -126,8 +126,13 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2, reason in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_process()
-            self.assertEqual(res, reason)
+            while info.pos is not None:
+                info.exec_step()
+                if info.reason is not None:
+                    break
+            if info.pos is None:
+                info.reason = "end"
+            self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
@@ -174,12 +179,12 @@ class SimulatorTest(unittest.TestCase):
             ("wait(3); x := x + 1", (0, 1), {"x": 2}, 2, (1,), {"x": 2}),
             ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, 3, (), {"x": 5}),
             ("<x_dot = 1 & true> |> [](c!x --> skip); x := x + 1", (0,), {"x": 2}, 3, (0,), {"x": 5}),
-            ("wait(3)", "end", {}, 3, None, {}),
             ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"x": 1}, 1, (0, 2), {"x": 1}),
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -209,6 +214,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, state, delay, state2 in test_data:
             info = simulator.HCSPInfo('P0', cmd, state=state)
+            info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
 
@@ -416,6 +422,7 @@ class SimulatorTest(unittest.TestCase):
             'x := 0; y := 0; <x_dot = 1, y_dot = 2 & x < 2 && y < 3>; c!x; c!y',
             'c?x; c?x'
         ], 4, ['delay 1.5', 'IO c 1.5', 'IO c 3.0', 'deadlock'])
+
 
 
 

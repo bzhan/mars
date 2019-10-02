@@ -255,6 +255,12 @@ class App extends React.Component {
             // Maximum number of events for the query.
             num_steps: 200,
 
+            // Maximum number of events shown for the query.
+            num_show: 200,
+
+            // Showing starting from event number.
+            show_starting: 0,
+
             // Whether to show events only.
             show_event_only: false,
 
@@ -266,7 +272,11 @@ class App extends React.Component {
     }
 
     handleChange = (e) => {
-        this.setState({num_steps: Number(e.target.value)})
+        const name = e.target.name;
+
+        this.setState({
+            [name]: Number(e.target.value)
+        })
     }
 
     handleFiles = () => {
@@ -336,6 +346,8 @@ class App extends React.Component {
             hcsp_info: this.state.hcsp_info,
             num_io_events: this.state.num_steps,
             num_steps: this.state.num_steps,
+            num_show: this.state.num_show,
+            show_starting: this.state.show_starting,
         })
         if ('error' in response.data) {
             this.setState({
@@ -417,14 +429,6 @@ class App extends React.Component {
             } else {
                 res = String(history.length-1) + "+ events."
             }
-            res += " Current event: "
-            if (this.state.history_pos === 0) {
-                res += "start."
-            } else if (this.state.history_pos === history.length - 1) {
-                res += "end."
-            } else {
-                res += String(this.state.history_pos) + "."
-            }
             return res
         }
     };
@@ -448,7 +452,7 @@ class App extends React.Component {
             {this.state.hcsp_info.map((info, index) => {
                 const hcsp_name = info.name;
                 if ('parallel' in info) {
-                    return <span key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</span>
+                    return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
                 }
                 else if (this.state.history.length === 0) {
                     // No data is available
@@ -459,8 +463,16 @@ class App extends React.Component {
                 } else {
                     const hpos = this.state.history_pos;
                     const event = this.state.history[hpos];
-                    var pos = event.infos[hcsp_name].pos;
-                    var state = event.infos[hcsp_name].state;
+                    var pos, state;
+                    if (typeof(event.infos[hcsp_name]) === 'number') {
+                        var prev_id = event.infos[hcsp_name];
+                        var prev_info = this.state.history[prev_id].infos[hcsp_name];
+                        pos = prev_info.pos;
+                        state = prev_info.state;
+                    } else {
+                        pos = event.infos[hcsp_name].pos;
+                        state = event.infos[hcsp_name].state;    
+                    }
                     var event_time;
                     if (event.type !== 'delay') {
                         event_time = event.time;
@@ -504,8 +516,12 @@ class App extends React.Component {
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
-                        <label htmlFor="num_steps" style={{margin:'0px 0px 0px 10px',alignSelf:'center'}}>Number of steps:</label>
-                        <input type="text" id="num_steps" value={this.state.num_steps} onChange={this.handleChange} />
+                        <label htmlFor="num_steps" className="menu-label">Number of steps:</label>
+                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps} onChange={this.handleChange}/>
+                        <label htmlFor="num_show" className="menu-label">Showing </label>
+                        <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange}/>
+                        <label htmlFor="show_starting" className="menu-label">starting from </label>
+                        <input type="text" id="show_starting" name="show_starting" value={this.state.show_starting} onChange={this.handleChange}/>
                     </Nav>
                 </Navbar>
 
