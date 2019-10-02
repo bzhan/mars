@@ -163,6 +163,15 @@ def translate_discrete(diagram):
     block_dict = {block.name: block for block in diagram}
     all_blocks = list(block_dict.keys())
 
+    # The case that there are only constant blocks in block_dict
+    if all(block.type == "constant" for block in block_dict.values()):
+        assert len(block_dict) == 1
+        _, block = block_dict.popitem()
+        line = block.src_lines[0][0]
+        out_ch_name = "ch_" + line.name + "_" + str(line.branch)
+        return hp.Condition(cond=RelExpr("==", ModExpr(AVar("t"), AConst(block.st)), AConst(0)),
+                            hp=hp.OutputChannel(ch_name=out_ch_name, expr=AConst(block.value)))
+
     # Get initial processes
     init_hp = hp.Assign("t", AConst(0))
     for block in block_dict.values():
@@ -241,7 +250,7 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_subsystems, buffers):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
     processes = hp.HCSPProcess()
@@ -266,8 +275,8 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_subsystems, buffers)
         num += 1
 
     # Compute the stateflow processes
-    for sf_subsystem in sf_subsystems:
-        sf_processes = sf_subsystem.diagram.get_process()
+    for chart in sf_charts:
+        sf_processes = chart.get_process()
         for name, sf_process in sf_processes.hps:
             if not isinstance(sf_process, hp.Parallel):
                 processes.add(name, sf_process)

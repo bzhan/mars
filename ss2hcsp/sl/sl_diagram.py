@@ -26,6 +26,8 @@ from math import gcd, pow
 import re
 import operator
 
+from ss2hcsp.hcsp.parser import aexpr_parser
+
 
 def get_gcd(sample_times):
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
@@ -74,8 +76,8 @@ class SL_Diagram:
         # Dictionary of blocks indexed by name
         self.blocks_dict = dict()
 
-        # Dictionary of STATEFLOW charts indexed by name
-        self.charts = dict()
+        # Dictionary of STATEFLOW parameters indexed by name
+        self.chart_parameters = dict()
 
         # XML data structure
         self.model = None
@@ -237,8 +239,10 @@ class SL_Diagram:
 
             chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
 
-            sf_chart = SF_Chart(name=chart_name, state=chart_state, all_vars=chart_vars, st=chart_st)
-            self.charts[chart_name] = sf_chart
+            # sf_chart = SF_Chart(name=chart_name, state=chart_state, all_vars=chart_vars, st=chart_st)
+            # self.charts[chart_name] = sf_chart
+            assert chart_name not in self.chart_parameters
+            self.chart_parameters[chart_name] = {"state": chart_state, "all_vars": chart_vars, "st": chart_st}
 
     def parse_xml(self):
         self.parse_stateflow_xml()
@@ -324,16 +328,17 @@ class SL_Diagram:
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
-                    assert block_name in self.charts
-                    ports = get_attribute_value(block=block, attribute="Ports")
-                    num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    stateflow = Subsystem(block_name, num_src, num_dest)
-                    stateflow.type = "stateflow"
-                    stateflow.diagram = self.charts[block_name]
-                    stateflow.diagram.subsystem = stateflow
-                    stateflow.st = stateflow.diagram.st
-                    stateflow.port_to_in_var = dict()
-                    stateflow.port_to_out_var = dict()
+                    assert block_name in self.chart_parameters
+                    chart_paras = self.chart_parameters[block_name]
+                    ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                    if len(ports) == 0:
+                        ports = [0, 0]
+                    elif len(ports) == 1:
+                        ports.append(0)
+                    num_dest, num_src = ports
+                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], all_vars=chart_paras["all_vars"],
+                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"])
+                    assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
                         if child.nodeName == "Block":
                             if child.getAttribute("BlockType") == "Inport":
@@ -428,13 +433,13 @@ class SL_Diagram:
 
     def __str__(self):
         blocks = "\n".join(str(block) for block in self.blocks_dict.values())
-        charts = "\n".join(str(chart) for chart in self.charts.values())
+        # charts = "\n".join(str(chart) for chart in self.charts.values())
 
         result = ""
         if self.blocks_dict:
             result += "Blocks:\n" + blocks
-        if self.charts:
-            result += "Charts:\n" + charts
+        # if self.charts:
+        #     result += "Charts:\n" + charts
         return result
 
     def check(self):
@@ -487,6 +492,12 @@ class SL_Diagram:
                         if block.st == 0:
                             block.is_continuous = True
                         terminate = False
+        # Re-classify the constant blocks
+        for block in self.blocks_dict.values():
+            if block.type == "constant":
+                dest_block = self.blocks_dict[block.src_lines[0][0].dest]
+                block.st = dest_block.st
+                block.is_continuous = dest_block.is_continuous
 
     def delete_subsystems(self):
         subsystems = []
@@ -586,9 +597,9 @@ class SL_Diagram:
         blocks_dict = {name: block for name, block in self.blocks_dict.items()
                        if block.type not in ['in_port', 'out_port']}
 
-        # Get stateflow subsystems and then delete them from block_dict
-        sf_subsystems = [block for block in blocks_dict.values() if block.type == "stateflow"]
-        for name in [block.name for block in sf_subsystems]:
+        # Get stateflow charts and then delete them from block_dict
+        sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
+        for name in [block.name for block in sf_charts]:
             del blocks_dict[name]
         # Get buffers and then delete them from block_dict
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
@@ -640,7 +651,7 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_subsystems, buffers
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, buffers
         # return dis_subdiag_with_chs, con_subdiag_with_chs
 
     def add_buffers(self):
@@ -651,6 +662,8 @@ class SL_Diagram:
                     line = block.dest_lines[port_id]
                     src_block = self.blocks_dict[line.src]
                     if not src_block.is_continuous:
+                        if src_block.st == block.st:
+                            continue
                         buffer = Discrete_Buffer(in_st=src_block.st, out_st=block.st)
                         buffers.append(buffer)
                         # Link src_block to buffer
@@ -668,6 +681,8 @@ class SL_Diagram:
                     for branch in branch_list:
                         dest_block = self.blocks_dict[branch.dest]
                         if not dest_block.is_continuous:
+                            if block.st == dest_block.st:
+                                continue
                             buffer = Discrete_Buffer(in_st=block.st, out_st=dest_block.st)
                             buffers.append(buffer)
                             # Link buffer to dest_block
@@ -684,3 +699,5 @@ class SL_Diagram:
                             buffer.dest_lines = [branch]
         for buffer in buffers:
             self.add_block(buffer)
+        # Reset buffer number to 0
+        Discrete_Buffer.num = 0

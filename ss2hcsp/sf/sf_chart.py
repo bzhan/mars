@@ -1,3 +1,4 @@
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import AConst, BExpr, conj
@@ -74,39 +75,47 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             assert len(root_num) == 1
             root_num = root_num[0]
             hps.append(hp_parser.parse("BR" + root_num + "!" + event))
-            hps.append(hp_parser.parse(vin(root_num, location.root.chart.all_vars)))
+            if location.root.chart.all_vars:
+                hps.append(hp_parser.parse(vin(root_num, location.root.chart.all_vars)))
             hps.append(hp.Var("X"))
     return hps
 
 
-class SF_Chart:
-    def __init__(self, name, state, all_vars, st=-1):
-        self.name = name
+class SF_Chart(Subsystem):
+    def __init__(self, name, state, all_vars, num_src, num_dest, st=-1):
+        super(SF_Chart, self).__init__(name, num_src, num_dest)
+
+        self.type = "stateflow"
+
         assert isinstance(state, AND_State)
-        self.state = state
-        self.state.chart = self
+        self.diagram = state
+        self.diagram.chart = self
+
         self.all_states = state.get_all_descendants()  # dict
-        assert self.state.ssid not in self.all_states
-        self.all_states[self.state.ssid] = self.state
+        assert self.diagram.ssid not in self.all_states
+        self.all_states[self.diagram.ssid] = self.diagram
+
         self.all_vars = all_vars
+
+        self.st = st
+
+        self.port_to_in_var = dict()
+        self.port_to_out_var = dict()
 
         self.add_names()
         self.find_root_for_states()
         self.find_root_and_loc_for_trans()
 
-        self.st = st
-        self.subsystem = None  # The subsystem containing this chart
-
     def __str__(self):
-        return "Chart(%s):\n%s" % (self.name, str(self.state))
+        return "Chart(%s):\n%s" % (self.name, str(self.diagram))
 
     def add_names(self):  # add names to states and junctions
-        self.state.name = "S1"
-        if self.state.children:
-            if isinstance(self.state.children[0], AND_State):
-                self.state.name = "S0"
+        self.diagram.name = "S1"
+        if self.diagram.children:
+            if isinstance(self.diagram.children[0], AND_State):
+                self.diagram.name = "S0"
                 num = 1
-                for child in self.state.children:
+                for child in self.diagram.children:
                     child.name = "S" + str(num)
                     num += 1
 
@@ -132,15 +141,15 @@ class SF_Chart:
                 for _child in _state.children:
                     find_root_recursively(_child)
 
-        if self.state.name == "S0":
-            for child in self.state.children:
+        if self.diagram.name == "S0":
+            for child in self.diagram.children:
                 assert isinstance(child, AND_State)
                 child.root = child
                 for grandchild in child.children:
                     find_root_recursively(grandchild)
-        elif self.state.name == "S1":
+        elif self.diagram.name == "S1":
             for state in self.all_states.values():
-                state.root = self.state
+                state.root = self.diagram
         else:
             raise RuntimeError("add_names() should be executed in advance!")
 
@@ -195,8 +204,6 @@ class SF_Chart:
                     conds.append(out_tran.condition)
                 conds.append(bexpr_parser.parse("done == 0"))
                 cond = conj(*conds) if len(conds) >= 2 else conds[0]
-                # cond_act = [cond_act] if cond_act else []  # delete None
-                # tran_act = [tran_act] if tran_act else []  # delete None
 
                 dst_state = self.all_states[out_tran.dst]
                 assert not isinstance(dst_state, AND_State)
@@ -230,21 +237,21 @@ class SF_Chart:
 
     def get_monitor_process(self):
         # Get the number of AND_states
-        assert len(self.state.children) >= 1
-        state_num = len(self.state.children) if isinstance(self.state.children[0], AND_State) else 1
+        assert len(self.diagram.children) >= 1
+        state_num = len(self.diagram.children) if isinstance(self.diagram.children[0], AND_State) else 1
 
         # Get input channels
         in_channels = []
         # print(self.subsystem)
-        for port_id, in_var in self.subsystem.port_to_in_var.items():
-            line = self.subsystem.dest_lines[port_id]
+        for port_id, in_var in self.port_to_in_var.items():
+            line = self.dest_lines[port_id]
             ch_name = "ch_" + line.name + "_" + str(line.branch)
             in_channels.append(ch_name + "?" + in_var)
 
         # Get output channels
         out_channels = []
-        for port_id, out_var in self.subsystem.port_to_out_var.items():
-            lines = self.subsystem.src_lines[port_id]
+        for port_id, out_var in self.port_to_out_var.items():
+            lines = self.src_lines[port_id]
             for line in lines:
                 ch_name = "ch_" + line.name + "_" + str(line.branch)
                 out_channels.append(ch_name + "!" + out_var)
@@ -257,19 +264,22 @@ class SF_Chart:
         hp_M = hp.Sequence(hp_init, init_ch, hp.Loop(hp.Var("M_main")))
 
         # Get VOut
-        def vout(_i, _vars): return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+        def vout(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
 
         # Get VIn
-        def vin(_i, _vars): return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
+        def vin(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
 
-        # # Get input and output varriables
-        # in_vars = list(self.subsystem.port_to_in_var.values())
-        # out_vars = list(self.subsystem.port_to_out_var.values())
-        # assert set(in_vars).isdisjoint(set(out_vars)) and set(in_vars + out_vars).issubset(set(self.all_vars))
+        in_channels = "; ".join(in_channels) + "; " if in_channels else ""
+        out_channels = "; ".join(out_channels) + "; " if out_channels else ""
 
         # Get M_main process
-        hp_M_main = hp_parser.parse('num == 0 -> (' + "; ".join(in_channels)
-                                    + '; E := ""; EL := [""]; NL := [1]; num := 1)')
+        hp_M_main = hp_parser.parse("num == 0 -> (" + in_channels + 'E := ""; EL := [""]; NL := [1]; num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
             hp_M_main = hp.Sequence(hp_M_main,
@@ -280,8 +290,8 @@ class SF_Chart:
                                                     + "; num := num+1; NL := pop(NL); NL := push(NL, 1))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
-                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0;"
-                                                + "; ".join(out_channels) + "; wait(" + str(self.st)
+                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; "
+                                                + out_channels + "wait(" + str(self.st)
                                                 + ")); EL != [] -> (E := top(EL); num := top(NL)))"))
         return hp_M, hp_M_main, state_num
 
@@ -347,17 +357,17 @@ class SF_Chart:
 
         # Get VOut
         def vout(_i, _vars):
+            if not _vars:
+                return "skip"
             return "; ".join("VOut" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
 
         # Get VIn
         def vin(_i, _vars):
+            if not _vars:
+                return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
 
         self.parse_acts_on_states_and_trans()
-
-        # # Get input and output vars
-        # in_vars = list(self.subsystem.port_to_in_var.values())
-        # out_vars = list(self.subsystem.port_to_out_var.values())
 
         # List of HCSP processes
         processes = hp.HCSPProcess()
@@ -373,7 +383,7 @@ class SF_Chart:
         processes.insert(0, "D", process)
 
         # Get each S_i process
-        parallel_states = self.state.children if self.state.name == "S0" else [self.state]
+        parallel_states = self.diagram.children if self.diagram.name == "S0" else [self.diagram]
         assert len(parallel_states) == state_num
         i = 1
         for s_i in parallel_states:  # for each S_i state
