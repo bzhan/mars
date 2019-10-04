@@ -48,7 +48,7 @@ class AVar(AExpr):
         self.name = name
 
     def __repr__(self):
-        return "Var(%s)" % self.name
+        return "AVar(%s)" % self.name
 
     def __str__(self):
         return self.name
@@ -76,7 +76,7 @@ class AConst(AExpr):
         self.value = value
 
     def __repr__(self):
-        return "Const(%s)" % str(self.value)
+        return "AConst(%s)" % str(self.value)
 
     def __str__(self):
         if isinstance(self.value, tuple):            
@@ -210,7 +210,7 @@ class ModExpr(AExpr):
         self.expr2 = expr2
 
     def __repr__(self):
-        return "Mod(%s, %s)" % (str(self.expr1), str(self.expr2))
+        return "Mod(%s, %s)" % (repr(self.expr1), str(repr.expr2))
 
     def __str__(self):
         return "%s%%%s" % (str(self.expr1), str(self.expr2))
@@ -226,6 +226,62 @@ class ModExpr(AExpr):
 
     def subst(self, inst):
         return ModExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
+
+
+class ListExpr(AExpr):
+    def __init__(self, *args):
+        super(ListExpr, self).__init__()
+        args = tuple(args)
+        assert all(isinstance(arg, AExpr) for arg in args)
+        self.args = args
+
+    def __repr__(self):
+        return "List(%s)" % (','.join(repr(arg) for arg in self.args))
+
+    def __str__(self):
+        return "[%s]" % (','.join(str(arg) for arg in self.args))
+
+    def __eq__(self, other):
+        return isinstance(other, ListExpr) and self.args == other.args
+
+    def __hash__(self):
+        return hash(("List", self.args))
+
+    def get_vars(self):
+        return set().union(*(expr.get_vars() for expr in self.exprs))
+
+    def subst(self, inst):
+        return ListExpr(expr.subst(inst) for expr in self.args)
+
+
+class ArrayIdxExpr(AExpr):
+    """Expressions of the form a[i], where a evaluates to a list and i
+    evaluates to an integer.
+    
+    """
+    def __init__(self, expr1, expr2):
+        super(ArrayIdxExpr, self).__init__()
+        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        self.expr1 = expr1
+        self.expr2 = expr2
+
+    def __repr__(self):
+        return "ArrayIdxExpr(%s,%s)" % (repr(self.expr1), repr(self.expr2))
+
+    def __str__(self):
+        return "%s[%s]" % (str(self.expr1), str(self.expr2))
+
+    def __eq__(self, other):
+        return isinstance(other, ArrayIdxExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
+
+    def __hash__(self):
+        return hash(("ArrayIdx", self.expr1, self.expr2))
+
+    def get_vars(self):
+        return self.expr1.get_vars().union(self.expr2.get_vars())
+
+    def subst(self, inst):
+        return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
 
 class BExpr:

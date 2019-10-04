@@ -7,10 +7,10 @@ from ss2hcsp.hcsp import hcsp
 grammar = r"""
     ?atom_expr: CNAME -> var_expr
         | SIGNED_NUMBER -> num_expr
-        | "[]" -> empty_list
-        | "[" ESCAPED_STRING ("," ESCAPED_STRING)* "]" -> literal_list
-        | "[" SIGNED_NUMBER ("," SIGNED_NUMBER)* "]" -> literal_num_list
         | ESCAPED_STRING -> string_expr
+        | "[]" -> empty_list
+        | "[" expr ("," expr)* "]" -> literal_list
+        | atom_expr "[" expr "]" -> array_idx_expr
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
@@ -99,17 +99,20 @@ class HPTransformer(Transformer):
     def num_expr(self, v):
         return expr.AConst(float(v) if '.' in v else int(v))
 
+    def string_expr(self, s):
+        return expr.AConst(str(s))
+
     def empty_list(self):
         return expr.AConst(tuple())
 
     def literal_list(self, *args):
-        return expr.AConst(tuple(str(s) for s in args))
+        if all(isinstance(arg, expr.AConst) for arg in args):
+            return expr.AConst(tuple(arg.value for arg in args))
+        else:
+            return expr.ListExpr(*args)
 
-    def literal_num_list(self, *args):
-        return expr.AConst(tuple(float(v) if '.' in v else int(v) for v in args))
-
-    def string_expr(self, s):
-        return expr.AConst(str(s))
+    def array_idx_expr(self, a, i):
+        return expr.ArrayIdxExpr(a, i)
 
     def plus_expr(self, e1, e2):
         return expr.PlusExpr(["+", "+"], [e1, e2])

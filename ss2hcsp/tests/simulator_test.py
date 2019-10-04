@@ -429,6 +429,11 @@ class SimulatorTest(unittest.TestCase):
             'ch_new![1,2]; ch_max?x; ch_new!3; ch_max?x; ch_new![]; ch_max?x'
         ], 10, ['IO ch_new (1, 2)', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new ()', 'IO ch_max 1', 'deadlock'])
 
+    def testExecParallel28(self):
+        self.run_test([
+            'b := 10; xs := [b, 1]; a := xs[0]; ch!a; b := xs[1]; ch!b',
+            'ch?a; ch?b'
+        ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
 
 if __name__ == "__main__":
     unittest.main()

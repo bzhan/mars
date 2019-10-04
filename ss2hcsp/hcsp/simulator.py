@@ -10,7 +10,8 @@ import math
 from scipy.integrate import solve_ivp
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    BConst, LogicExpr, RelExpr, true_expr, opt_round, get_range, split_conj, false_expr
+    ListExpr, ArrayIdxExpr, BConst, LogicExpr, RelExpr, true_expr, \
+    opt_round, get_range, split_conj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -109,6 +110,15 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, ModExpr):
         return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
+
+    elif isinstance(expr, ListExpr):
+        return tuple(eval_expr(arg, state) for arg in expr.args)
+
+    elif isinstance(expr, ArrayIdxExpr):
+        a = eval_expr(expr.expr1, state)
+        i = eval_expr(expr.expr2, state)
+        assert isinstance(a, tuple) and isinstance(i, int) and i < len(a)
+        return a[i]
 
     elif isinstance(expr, BConst):
         return expr.value
