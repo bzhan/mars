@@ -161,9 +161,9 @@ class Process:
 
     def _preemptPriority(self, thread):
         hps_con = InputChannel('tran_'+str(thread), 'prior')
-        con1 = RelExpr('<=', AVar('run_prior'), AVar('prior'))
+        con1 = RelExpr('>=', AVar('run_prior'), AVar('prior'))
         hp1 = Assign('run_queue', FunExpr('push', [AVar('run_queue'), ListExpr(AVar('prior'), AConst('"'+str(thread)+'"'))]))
-        con2 = RelExpr('>', AVar('run_prior'), AVar('prior'))
+        con2 = RelExpr('<', AVar('run_prior'), AVar('prior'))
         hp2 = Sequence(self._BusyProcess(),
                        Assign('run_now', AConst('"'+str(thread)+'"')),
                        Assign('run_prior', AVar('prior')),
@@ -214,7 +214,7 @@ class Process:
         hp1 = Sequence(Assign('run_now', AConst(0)),
                        Assign('run_prior', AConst(0)))
 
-        hp2 = Sequence(Assign(('run_now', 'run_prior'), FunExpr('pop_max', [AVar('run_queue')])),
+        hp2 = Sequence(Assign(('run_prior', 'run_now'), FunExpr('pop_max', [AVar('run_queue')])),
                        self._RunProcess())
 
         hps.append(ITE([(con1,hp1)], hp2))

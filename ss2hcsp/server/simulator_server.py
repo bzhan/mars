@@ -106,7 +106,7 @@ def run_hcsp():
     # outside the range
     num_show = data['num_show']
     show_starting = data['show_starting']
-    for i in range(show_starting, show_starting + num_show):
+    for i in range(show_starting, min(len(res['trace']), show_starting + num_show)):
         for name, info in res['trace'][i]['infos'].items():
             if isinstance(info, int):
                 if info < show_starting:
