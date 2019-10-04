@@ -3,7 +3,7 @@
 import json
 
 from aadl2hcsp.parserAnnex import AnnexParser
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr, FunExpr, ListExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
 
@@ -136,28 +136,23 @@ class Process:
 
         self.lines = HCSPProcess()
         self._createSchedule()
-        self._createQueue()
 
     def _createSchedule(self):
-        if self.protocol == 'HPF':
-            hps = [Assign('run_queue', AConst(0)),
-                   Assign('run_prior', AConst(0)),
-                   Assign('ready_num', AConst(0))]
+        hps = [Assign('run_queue', AConst(tuple())),
+               Assign('run_now', AConst(0))]
 
-            hps2 = []
+        hps2 = []
+        if self.protocol == 'HPF':
+            hps.append(Assign('run_prior', AConst(0)))
             for thread in self.threadlines:
                 hps2.append(self._preemptPriority(thread))
-            hps2.append(self._freeActionPriority())
+            hps2.append((InputChannel('free'), self._changeActionPriority()))
+
 
         elif self.protocol == 'FIFO':
-            hps = [Assign('run_now', AConst(0)),
-                   Assign('ready_num', AConst(0))]
-
-            hps2 = []
             for thread in self.threadlines:
                 hps2.append(self._noPreemptSequence(thread))
-            hps2.append(self._freeActionSequence())
-
+            hps2.append((InputChannel('free'), self._changeActionSequence()))
 
         hps2 = SelectComm(*hps2)
         hps.append(Loop(hps2))
@@ -165,66 +160,24 @@ class Process:
         self.lines.add('SCHEDULE_' + self.process_name, hps)
 
     def _preemptPriority(self, thread):
-        hps = []
-        hps_con = InputChannel('tran_'+str(thread), 'prior')  # insert variable
-        con1= RelExpr('<', AVar('run_prior'), AVar('prior'))
-        con2= RelExpr('>', AVar('run_prior'), AVar('prior'))
-        con_hp1 = Sequence(self._BusyProcess(),
-                           Assign('run_now', AConst('"'+str(thread)+'"')),
-                           Assign('run_prior', AVar('prior')),
-                           OutputChannel('run_' + str(thread)))  # insert output
+        hps_con = InputChannel('tran_'+str(thread), 'prior')
+        con1 = RelExpr('<=', AVar('run_prior'), AVar('prior'))
+        hp1 = Assign('run_queue', FunExpr('push', [AVar('run_queue'), ListExpr(AVar('prior'), AConst('"'+str(thread)+'"'))]))
+        con2 = RelExpr('>', AVar('run_prior'), AVar('prior'))
+        hp2 = Sequence(self._BusyProcess(),
+                       Assign('run_now', AConst('"'+str(thread)+'"')),
+                       Assign('run_prior', AVar('prior')),
+                       OutputChannel('run_' + str(thread)))
 
-        con_hp2 = Sequence(OutputChannel('insert_' + str(thread), AVar('prior')),
-                           Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)])))
+        hps = Sequence(Condition(con1, hp1), Condition(con2, hp2))
 
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con ,Sequence(*hps))
+        return (hps_con ,hps)
 
     def _noPreemptSequence(self, thread):
-        hps_con = InputChannel('tran_' + str(thread)) # insert variable
-        hps = [OutputChannel('insert_' + str(thread)),
-               Assign('ready_num', PlusExpr(['+','+'], [AVar('ready_num'), AConst(1)]))]
+        hps_con = InputChannel('tran_' + str(thread))
+        hps = Assign('run_queue', FunExpr('push', [AVar('run_queue'), AConst('"'+str(thread)+'"')]))
 
-        return (hps_con, Sequence(*hps))
-
-    def _freeActionPriority(self):
-        hps = []
-        hps_con= InputChannel('free')  # insert variable
-        con1 = RelExpr('>', AVar('ready_num'), AConst(0))
-        con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
-                           InputChannel('ch_run_' + self.process_name, 'run_now'),
-                           InputChannel('ch_prior_' + self.process_name, 'run_prior'),
-                           self._RunProcess(),
-                           Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
-
-        con_hp2 = Sequence(Assign('run_now', AConst(0)),
-                           Assign('run_prior', AConst(0)))
-
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con, Sequence(*hps))
-
-    def _freeActionSequence(self):
-        hps = []
-        hps_con = InputChannel('free') # insert variable
-        con1 = RelExpr('>', AVar('ready_num'), AConst(0))
-        con2 = RelExpr('==', AVar('ready_num'), AConst(0))
-        con_hp1 = Sequence(OutputChannel('change_' + self.process_name),
-                           InputChannel('ch_run_' + self.process_name, 'run_now'),
-                           self._RunProcess(),
-                           Assign('ready_num', PlusExpr(['+','-'], [AVar('ready_num'), AConst(1)])))
-
-        con_hp2 = Assign('run_now', AConst(0))
-
-        hps.append(Condition(con1, con_hp1))
-        hps.append(Condition(con2, con_hp2))
-
-        return (hps_con, Sequence(*hps))
-
+        return (hps_con, hps)
 
     def _BusyProcess(self):
         hps = []
@@ -245,7 +198,7 @@ class Process:
         for thread in self.threadlines:
             con = RelExpr('==', AVar('run_now'), AConst('"'+str(thread)+'"'))
             con_hp = OutputChannel('run_'+str(thread))  # insert output
-            hps.append(Condition(con,con_hp))
+            hps.append(Condition(con, con_hp))
 
         if len(hps) >= 2:
             hps = Sequence(*hps)
@@ -254,114 +207,33 @@ class Process:
 
         return hps
 
-    def _createQueue(self):
-        self.thread_num = len(self.threadlines)
-        if self.protocol == 'HPF':
-            hps = []
-            for i in range(self.thread_num):
-                hps.append(Assign('q_' + str(i), AConst(0)))
-                hps.append(Assign('p_' + str(i), AConst(0)))
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._insertPriority(thread))
-            hps2.append(self._changeActionPriority())
-
-        elif self.protocol == 'FIFO':
-            hps = []
-            for i in range(self.thread_num):
-                hps.append(Assign('q_' + str(i), AConst(0)))
-            hps2 = []
-            for thread in self.threadlines:
-                hps2.append(self._insertTail(thread))
-            hps2.append(self._changeActionHead())
-
-        if len(hps2) >= 2:
-            hps2 = SelectComm(*hps2)
-        else:
-            hps2 = hps2[0]
-
-        hps.append(Loop(hps2))
-        hps = Sequence(*hps)
-
-        self.lines.add('QUEUE_' + self.process_name, hps)
-
-    def _insertPriority(self, thread):
-        hps = []
-        hps_con = InputChannel('insert_' + str(thread), 'prior')  # insert variable
-        con_tmp = Sequence(Assign('q_'+str(0), AConst('"'+str(thread)+'"')),
-                           Assign('p_'+str(0), AVar('prior')))
-        for i in range(self.thread_num-1):
-            con1 = RelExpr('<', AVar('p_'+str(i)), AVar('prior'))
-            con2 = RelExpr('>', AVar('p_'+str(i)), AVar('prior'))
-            con_hp1 = Sequence(Assign('q_'+str(i+1), AVar('q_'+str(i))),
-                               Assign('p_'+str(i+1), AVar('p_'+str(i))),
-                               con_tmp)  # insert output
-
-            con_hp2 = Sequence(Assign('q_'+str(i+1), AConst('"'+str(thread)+'"')),
-                               Assign('p_'+str(i+1), AVar('prior')))
-
-            con_tmp = Sequence(Condition(con1, con_hp1),
-                               Condition(con2, con_hp2))
-        hps.append(con_tmp)
-
-        if len(hps) >= 2:
-            hps = Sequence(*hps)
-        else:
-            hps = hps[0]
-
-        return (hps_con, hps)
-
-    def _insertTail(self, thread):
-        hps = []
-        hps_con = InputChannel('insert_' + str(thread))  # insert variable
-        con_tmp = Assign('q_' + str(self.thread_num-1), AConst('"'+str(thread)+'"'))
-        for i in range(self.thread_num-2, -1, -1):
-            con1 = RelExpr('!=', AVar('q_' + str(i)), AConst(0))
-            con2 = RelExpr('==', AVar('q_' + str(i)), AConst(0))
-            con_hp1 = con_tmp  # insert output
-            con_hp2 = Assign('q_' + str(i), AConst('"'+str(thread)+'"'))
-
-            con_tmp = Sequence(Condition(con1, con_hp1),
-                               Condition(con2, con_hp2))
-        hps.append(con_tmp)
-
-        if len(hps) >=2:
-            hps=Sequence(*hps)
-        else:
-            hps=hps[0]
-
-        return (hps_con, hps)
-
-
 
     def _changeActionPriority(self):
-        hps = []
-        hps_con = InputChannel('change_' + self.process_name) # insert variable
-        hps.append(OutputChannel('ch_run_' + self.process_name,AVar('q_0')))
-        hps.append(OutputChannel('ch_prior_' + self.process_name, AVar('p_0')))
+        hps = [Assign('ready_num', FunExpr('len', [AVar('run_queue')]))]
+        con1 = RelExpr('==', AVar('ready_num'), AConst(0))
+        hp1 = Sequence(Assign('run_now', AConst(0)),
+                       Assign('run_prior', AConst(0)))
 
-        for i in range(self.thread_num-1):
-            hps.append(Assign('q_' + str(i), AVar('q_' + str(i + 1))))
-            hps.append(Assign('p_' + str(i), AVar('p_' + str(i + 1))))
+        hp2 = Sequence(Assign(('run_now', 'run_prior'), FunExpr('pop_max', [AVar('run_queue')])),
+                       self._RunProcess())
 
-        hps.append(Assign('q_' + str(self.thread_num-1), AConst(0)))
-        hps.append(Assign('p_' + str(self.thread_num-1), AConst(0)))
+        hps.append(ITE([(con1,hp1)], hp2))
+        return Sequence(*hps)
 
-        return (hps_con, Sequence(*hps))
+    def _changeActionSequence(self):
 
-    def _changeActionHead(self):
-        hps = []
-        hps_con = InputChannel('change_' + self.process_name)  # insert variable
-        hps.append(OutputChannel('ch_run_' + self.process_name, AVar('q_0')))
+        hps = [Assign('ready_num', FunExpr('len', [AVar('run_queue')]))]
+        con1 = RelExpr('==', AVar('ready_num'), AConst(0))
+        hp1 = Assign('run_now', AConst(""))
 
-        for i in range(self.thread_num - 1):
-            hps.append(Assign('q_' + str(i), AVar('q_' + str(i + 1))))
+        con2 = RelExpr('>', AVar('ready_num'), AConst(0))
+        hp2 = Sequence(Assign('run_now', FunExpr('bottom', [AVar('run_queue')])),
+                       self._RunProcess())
 
-        hps.append(Assign('q_' + str(self.thread_num - 1), AConst(0)))
+        hps.append(Condition(con1, hp1))
+        hps.append(Condition(con2, hp2))
 
-        return (hps_con, Sequence(*hps))
-
-
+        return Sequence(*hps)
 
 
 

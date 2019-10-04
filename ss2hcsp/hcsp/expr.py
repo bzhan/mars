@@ -180,6 +180,8 @@ class FunExpr(AExpr):
             "min", "max", "abs", "gcd", "delay",
             "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max"]
         self.fun_name = fun_name
+        exprs = tuple(exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
 
     def __repr__(self):
@@ -190,10 +192,11 @@ class FunExpr(AExpr):
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
-            list(self.exprs) == list(other.exprs)
+               self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("Fun", self.fun_name, tuple(self.exprs)))
+        return hash(("Fun", self.fun_name, self.exprs))
+
 
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
