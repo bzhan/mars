@@ -17,16 +17,18 @@ class ExprTest(unittest.TestCase):
 
     def testAExprParser(self):
         test_data = [
-            ("a + 1", "Plus(+Var(a), +Const(1))"),
-            ("a * b", "Times(*Var(a), *Var(b))"),
-            ("a - b", "Plus(+Var(a), -Var(b))"),
-            ("min(a, b)", "Fun(min, Var(a), Var(b))"),
-            ("a * b + c", "Plus(+Times(*Var(a), *Var(b)), +Var(c))"),
-            ("a * (b + c)", "Times(*Var(a), *Plus(+Var(b), +Var(c)))"),
-            ("a + b - c", "Plus(+Plus(+Var(a), +Var(b)), -Var(c))"),
-            ("a + (b - c)", "Plus(+Var(a), +Plus(+Var(b), -Var(c)))"),
-            ("[]", "Const(())"),
-            ("\"a\"", "Const(\"a\")"),
+            ("a + 1", "Plus(+AVar(a), +AConst(1))"),
+            ("a * b", "Times(*AVar(a), *AVar(b))"),
+            ("a - b", "Plus(+AVar(a), -AVar(b))"),
+            ("min(a, b)", "Fun(min, AVar(a), AVar(b))"),
+            ("a * b + c", "Plus(+Times(*AVar(a), *AVar(b)), +AVar(c))"),
+            ("a * (b + c)", "Times(*AVar(a), *Plus(+AVar(b), +AVar(c)))"),
+            ("a + b - c", "Plus(+Plus(+AVar(a), +AVar(b)), -AVar(c))"),
+            ("a + (b - c)", "Plus(+AVar(a), +Plus(+AVar(b), -AVar(c)))"),
+            ("[]", "AConst(())"),
+            ("\"a\"", "AConst(\"a\")"),
+            ("[b, 0]", "List(AVar(b),AConst(0))"),
+            ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))")
         ]
         
         for s, res in test_data:
@@ -35,8 +37,8 @@ class ExprTest(unittest.TestCase):
 
     def testBExprParser(self):
         test_data = [
-            ("a < 1", "Rel(<, Var(a), Const(1))"),
-            ("a == 1 && true", "Logic(&&, Rel(==, Var(a), Const(1)), BConst(True))")
+            ("a < 1", "Rel(<, AVar(a), AConst(1))"),
+            ("a == 1 && true", "Rel(==, AVar(a), AConst(1))")
         ]
 
         for s, res in test_data:
@@ -55,7 +57,6 @@ class ExprTest(unittest.TestCase):
             cond_inst = [(bexpr_parser.parse(cond), aexpr_parser.parse(inst))
                          for cond, inst in cond_inst_str]
             res_inst[var_name] = cond_inst
-
         self.assertEqual(inst.data, res_inst)
 
     def testConditionalInst1(self):        
@@ -66,7 +67,7 @@ class ExprTest(unittest.TestCase):
 
         res = [
             ("x", [("true", "a + 1")]),
-            ("y", [("a < 1", "(a + 1) - 1"), ("a >= 1", "a + 1")])
+            ("y", [("a >= 1", "a + 1"), ("a < 1", "(a + 1) - 1")])
         ]
 
         self.assertConditionalInst(test_data, res)
