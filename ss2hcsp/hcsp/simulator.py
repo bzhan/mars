@@ -501,7 +501,17 @@ class HCSPInfo:
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
+            if isinstance(cur_hp.var_name, str):
+                self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
+            else:
+                # Multiple assignment
+                val = eval_expr(cur_hp.expr, self.state)
+                assert isinstance(val, tuple) and len(val) == len(cur_hp.var_name), \
+                    "Multiple assignment: value not a tuple or of the wrong length."
+                for i, s in enumerate(cur_hp.var_name):
+                    if s != '_':
+                        self.state[s] = val[i]
+
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
 

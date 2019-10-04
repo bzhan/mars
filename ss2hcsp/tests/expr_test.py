@@ -112,6 +112,7 @@ class ExprTest(unittest.TestCase):
             ('NL := [1]', 'Assign(NL,[1])'),
             ('NL := [1,2.1]', 'Assign(NL,[1,2.1])'),
             ("(x := x+1){x < 3}**", "Loop(Assign(x,x+1), x < 3)"),
+            ("(a, b) := xs", "Assign([a,b],xs)"),
         ]
 
         for s, res in test_data:

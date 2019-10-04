@@ -97,18 +97,31 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(var_name, str) and isinstance(expr, AExpr)
-        self.var_name = var_name  # string
+        assert isinstance(expr, AExpr)
+        if isinstance(var_name, str):
+            self.var_name = var_name
+        else:
+            var_name = tuple(var_name)
+            assert len(var_name) >= 2 and all(isinstance(name, str) for name in var_name)
+            self.var_name = var_name  # string or tuple of strings
         self.expr = expr  # AExpr
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        return "Assign(%s,%s)" % (self.var_name, str(self.expr))
+        if isinstance(self.var_name, str):
+            var_str = self.var_name
+        else:
+            var_str = "[%s]" % (','.join(self.var_name))
+        return "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
-        return self.var_name + " := " + str(self.expr)
+        if isinstance(self.var_name, str):
+            var_str = self.var_name
+        else:
+            var_str = "(%s)" % (', '.join(self.var_name))
+        return var_str + " := " + str(self.expr)
 
 
 class InputChannel(HCSP):

@@ -435,5 +435,13 @@ class SimulatorTest(unittest.TestCase):
             'ch?a; ch?b'
         ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
 
+    def testExecParallel29(self):
+        """Test multiple assignment."""
+        self.run_test([
+            'b := 10; xs := [b, 1]; (a, b) := xs; ch!a; ch!b',
+            'ch?a; ch?b'
+        ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
+
+
 if __name__ == "__main__":
     unittest.main()
