@@ -239,7 +239,7 @@ class Process:
 
 
 class Thread:
-    def __init__(self, thread, annex=None):
+    def __init__(self, thread, annex=None, resource_query=None):
         self.thread_name = thread['name']
 
         # Default parameters
@@ -252,6 +252,7 @@ class Thread:
         self.thread_featureIn = []
         self.thread_featureOut = []
         self.annex = annex
+        self.resource_query = resource_query
 
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
@@ -317,17 +318,27 @@ class Thread:
             dis_hps = Sequence(*dis_hps)
             self.lines.add('DIS_' + self.thread_name, Loop(dis_hps))
 
+        if self.resource_query:
+            com_hps = (Parallel(*[Var('Init_' + self.thread_name),
+                                  Var('Ready_' + self.thread_name),
+                                  Var('Running_' + self.thread_name),
+                                  Var('Await_' + self.thread_name)]))
 
-        com_hps = (Parallel(*[Var('Init_' + self.thread_name),
-                              Var('Ready_' + self.thread_name),
-                              Var('Running_' + self.thread_name),
-                              Var('Await_' + self.thread_name)]))
+            self.lines.add('COM_' + self.thread_name, com_hps)
+            self._createInit()
+            self._createReady()
+            self._createAwait()
+            self._createRunning()
 
-        self.lines.add('COM_' + self.thread_name, com_hps)
-        self._createInit()
-        self._createReady()
-        self._createAwait()
-        self._createRunning()
+        else:
+            com_hps = (Parallel(*[Var('Init_' + self.thread_name),
+                                  Var('Ready_' + self.thread_name),
+                                  Var('Running_' + self.thread_name)]))
+
+            self.lines.add('COM_' + self.thread_name, com_hps)
+            self._createInit()
+            self._createReady()
+            self._createRunning()
 
     def _createInit(self):
         com_init = Loop(Sequence(InputChannel('dis_' + self.thread_name),  # insert variable
@@ -339,9 +350,13 @@ class Thread:
     def _createReady(self):
         com_ready = []
         com_ready.append(Assign('prior', AConst(int(self.thread_priority))))
-        hps = SelectComm((InputChannel('init_'+self.thread_name, 't'), Skip()),
-                          (InputChannel('preempt_'+self.thread_name, 't'), Skip()),
-                          (InputChannel('unblock_'+self.thread_name, 't'), Skip()))
+        if self.resource_query:
+            hps = SelectComm((InputChannel('init_'+self.thread_name, 't'), Skip()),
+                             (InputChannel('preempt_'+self.thread_name, 't'), Skip()),
+                             (InputChannel('unblock_'+self.thread_name, 't'), Skip()))
+        else:
+            hps = SelectComm((InputChannel('init_' + self.thread_name, 't'), Skip()),
+                             (InputChannel('preempt_' + self.thread_name, 't'), Skip()))
 
         com_ready.append(hps)
         com_ready.append(OutputChannel('tran_'+self.thread_name, AVar('prior')))
@@ -380,12 +395,13 @@ class Thread:
         hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), Assign('c', AConst(0))))
         hps.append(InputChannel('resume_' + self.thread_name, 't'))
 
-        if flag=='Annex' and self.annex:
-            busy_io=(InputChannel('busy_' + self.thread_name),
+        if flag == 'Annex' and self.annex and 'Discrete' in self.annex.keys():
+            busy_io = (InputChannel('busy_' + self.thread_name),
                      Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')), Assign('InitFlag', AConst(0))))
-            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
+            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Discrete_Annex(), busy_io)))
 
-            con_hp=[]
+        con_hp = []
+        if flag == 'Annex' and self.annex and 'Continous' in self.annex.keys():
             eqs = [('t', AConst(1)), ('c', AConst(1))]
             constraint_1 = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
             constraint_2 = RelExpr('<', AVar('c'), AConst(self.thread_max_time))
@@ -397,45 +413,47 @@ class Thread:
             in2 = InputChannel('needResource_' + self.thread_name)  # insert variable
             out2 = OutputChannel('block_' + self.thread_name, AVar('t'))
 
-            io_comms = [(in1, out1), (in2, out2)]
+            if self.resource_query:
+                io_comms = [(in1, out1), (in2, out2)]
+            else:
+                io_comms = [(in1, out1)]
             con_hp.append(ODE_Comm(eqs, constraint, io_comms))
 
-            constraint_4 = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
-            con_hp.append(Condition(conj(BConst(True), constraint_4), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
+        constraint_min = RelExpr('<', AVar('c'), AConst(int(self.thread_min_time)))
+        con_hp.append(Condition(conj(BConst(True), constraint_min), Wait(PlusExpr(['+','-'], [AConst(int(self.thread_min_time)), AVar('c')]))))
 
-            con_hp.append(OutputChannel('free'))  # insert output
+        con_hp.append(OutputChannel('free'))  # insert output
 
-            con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
-            con_hp1 = [OutputChannel('complete_' + self.thread_name)]
-            for feature in self.thread_featureOut:
-                    con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
-            con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
-            con_hp1=Sequence(*con_hp1)
-            con_hp.append(Condition(con1, con_hp1))
+        con1 = RelExpr('<', AVar('t'), AConst(int(self.thread_deadline)))
+        con_hp1 = [OutputChannel('complete_' + self.thread_name)]
+        for feature in self.thread_featureOut:
+                con_hp1.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
+        con_hp1.append(Assign('InitFlag', AConst(0)))  # insert output
+        con_hp1=Sequence(*con_hp1)
+        con_hp.append(Condition(con1, con_hp1))
 
-            con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
-            con_hp2 = Sequence(OutputChannel('exit_' + self.thread_name),
-                               Assign('InitFlag', AConst(0)))# insert output
-            con_hp.append(Condition(con2, con_hp2))
+        con2 = RelExpr('==', AVar('t'), AConst(int(self.thread_deadline)))
+        con_hp2 = Sequence(OutputChannel('exit_' + self.thread_name),
+                           Assign('InitFlag', AConst(0)))# insert output
+        con_hp.append(Condition(con2, con_hp2))
 
-            hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*con_hp)))
+        hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*con_hp)))
 
         com_running = Sequence(FlagSet, Loop(Sequence(*hps)))
 
         self.lines.add('Running_' + self.thread_name, com_running)
 
 
-    def _Block_Annex(self):
+    def _Discrete_Annex(self):
         hps= []
         io_hps = InputChannel('input_' + self.thread_name + '_' + self.thread_featureIn[0], self.thread_featureIn[0])
         for feature in self.thread_featureIn[1:]:
             hps.append(InputChannel('input_' + self.thread_name + '_' + feature, str(feature)))
         if self.annex:
-            hps.extend(self.annex)
+            hps.extend(self.annex['Discrete'])
 
-        #hps.append(Wait(AConst(5)))
-        #hps.append(OutputChannel('need_Resource_' + self.thread_name))
-        #hps.append(Wait(AConst(5)))
+        if self.resource_query:
+            hps.append(OutputChannel('need_Resource_' + self.thread_name))
 
         #for feature in self.thread_featureOut:
             #hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
@@ -456,7 +474,8 @@ def convert_AADL(json_file, annex_file):
     Annexs = AP.getAnnex(annex_file)
     Annex_HP = {}
     for th in Annexs.keys():
-        Annex_HP[th] = AP.createHCSP(Annexs[th])
+        Annex_HP[th] = {}
+        Annex_HP[th]['Discrete'] = AP.createHCSP(Annexs[th]['Discrete'])
 
 
     with open(json_file, 'r') as f:

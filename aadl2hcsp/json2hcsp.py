@@ -507,10 +507,10 @@ class Thread:
         hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), Assign('c', AConst(0))))
         hps.append(InputChannel('resume_' + self.thread_name, 't'))
 
-        if flag=='Annex' and self.annex:
+        if flag=='Annex' and self.annex and 'Discrete' in self.annex.keys():
             busy_io=(InputChannel('busy_' + self.thread_name),
                      Sequence(OutputChannel('preempt_' + self.thread_name, AVar('t')), Assign('InitFlag', AConst(0))))
-            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Block_Annex(),busy_io)))
+            hps.append(Condition(RelExpr('==', AVar('c'), AConst(0)), SelectComm(self._Discrete_Annex(),busy_io)))
 
             con_hp=[]
             eqs = [('t', AConst(1)), ('c', AConst(1))]
@@ -552,13 +552,13 @@ class Thread:
         self.lines.add('Running_' + self.thread_name, com_running)
 
 
-    def _Block_Annex(self):
+    def _Discrete_Annex(self):
         hps= []
         io_hps = InputChannel('input_' + self.thread_name + '_' + self.thread_featureIn[0], self.thread_featureIn[0])
         for feature in self.thread_featureIn[1:]:
             hps.append(InputChannel('input_' + self.thread_name + '_' + feature, str(feature)))
         if self.annex:
-            hps.extend(self.annex)
+            hps.extend(self.annex['Discrete'])
 
         #hps.append(Wait(AConst(5)))
         #hps.append(OutputChannel('need_Resource_' + self.thread_name))
@@ -583,7 +583,8 @@ def convert_AADL(json_file, annex_file):
     Annexs = AP.getAnnex(annex_file)
     Annex_HP = {}
     for th in Annexs.keys():
-        Annex_HP[th] = AP.createHCSP(Annexs[th])
+        Annex_HP[th] = {}
+        Annex_HP[th]['Discrete'] = AP.createHCSP(Annexs[th]['Discrete'])
 
 
     with open(json_file, 'r') as f:

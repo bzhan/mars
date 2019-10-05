@@ -29,10 +29,11 @@ class AnnexParser(object):
                 thread_name = words[-1].split('.')[0]
                 flag = 1
             elif 'annex' in words and '{**' in words and flag == 1:
+                self.Annexs[thread_name] = {}
                 annex_cont = []
                 flag = 2
             elif '**};' in words and flag == 2:
-                self.Annexs[thread_name] = annex_cont
+                self.Annexs[thread_name]['Discrete'] = annex_cont
                 flag = 0
             elif '**};' not in words and flag == 2:
                 annex_cont.append(line)
@@ -335,7 +336,8 @@ if __name__=='__main__':
     Annexs=AP.getAnnex(file)
     HP={}
     for th in Annexs.keys():
-        HP[th]=str(AP.createHCSP(Annexs[th]))
+        HP[th] = {}
+        HP[th]['Discrete'] = str(AP.createHCSP(Annexs[th]['Discrete']))
     print(HP)
 
 
