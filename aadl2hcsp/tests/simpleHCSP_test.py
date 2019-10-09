@@ -1,7 +1,7 @@
 import unittest
 import json
 
-from aadl2hcsp import simple_hcsp
+from aadl2hcsp import simple_hcsp2
 from ss2hcsp.hcsp import parser
 
 class Json2simHCSPTest(unittest.TestCase):
@@ -13,9 +13,9 @@ class Json2simHCSPTest(unittest.TestCase):
 
         json_file = './Examples/AADL/isolette/out_ref.json'
         annex_file = './Examples/AADL/isolette/asd.aadl'
-        out_file = './Examples/AADL/isolette/hcsp2.txt'
+        out_file = './Examples/AADL/isolette/hcsp3.txt'
 
-        out = simple_hcsp.convert_AADL(json_file, annex_file)
+        out = simple_hcsp2.convert_AADL(json_file, annex_file)
 
         for _, hp in out.hps:
             hp_str = str(hp)

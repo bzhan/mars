@@ -508,8 +508,6 @@ class HCSPInfo:
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
-                print(val)
-                print(cur_hp.var_name)
                 assert isinstance(val, tuple) and len(val) == len(cur_hp.var_name), \
                     "Multiple assignment: value not a tuple or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
