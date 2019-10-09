@@ -357,7 +357,7 @@ class Thread:
         if self.annex and 'Discrete' in self.annex.keys():
             eqs = [('t', AConst(1))]
             constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-            busy_io = (InputChannel('busy_' + self.thread_name), Sequence(OutputChannel('free'), Assign('state', AConst(state[1]))))
+            busy_io = (InputChannel('busy_' + self.thread_name), Assign('state', AConst(state[1])))
             input_io = (in_hps, self._Discrete_Annex())
             discrete_hps = Sequence(Assign('c', AConst(0)),ODE_Comm(eqs, constraint, [input_io, busy_io]))
             running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), discrete_hps))
@@ -392,9 +392,8 @@ class Thread:
             delay_hps = ODE_Comm(eqs, constraint, [(in_1, out_1)])
             temp_hps.append(delay_hps)
 
-        temp_hps.append(OutputChannel('free'))
-        temp_hps.append(Condition(RelExpr('==', AVar('t'), AConst(self.thread_deadline)), Assign('state', AConst(state[0]))))
-        temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, Assign('state', AConst(state[0])))))
+        temp_hps.append(Condition(RelExpr('==', AVar('t'), AConst(self.thread_deadline)), Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
+        temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
         running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*temp_hps)))
         running_hps = Sequence(*running_hps)
         ## await state ##
