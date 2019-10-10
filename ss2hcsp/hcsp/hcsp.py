@@ -531,11 +531,12 @@ class HCSPProcess:
             substituted[name] = _substitute(hp)
         assert set(substituted.keys()) == set(name for name, _ in self.hps)
 
-        # self.hps[0] is the main process
-        main_name, main_hp = self.hps[0]
-        assert all(isinstance(hp, Var) for hp in main_hp.hps)
-        self.hps = [(hp.name, substituted[hp.name]) for hp in main_hp.hps]
-        self.hps.insert(0, (main_name, main_hp))
+        return substituted
+        # # self.hps[0] is the main process
+        # main_name, main_hp = self.hps[0]
+        # assert all(isinstance(hp, Var) for hp in main_hp.hps)
+        # self.hps = [(hp.name, substituted[hp.name]) for hp in main_hp.hps]
+        # self.hps.insert(0, (main_name, main_hp))
 
     def __str__(self):
         return "\n".join("%s ::= %s" % (name, str(hp)) for name, hp in self.hps)

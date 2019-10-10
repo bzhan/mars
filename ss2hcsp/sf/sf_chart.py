@@ -70,6 +70,9 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
         if re.match(pattern="\\w+ *:=.+", string=act):  # an assigment
             hps.append(hp_parser.parse(act))
         elif re.match(pattern="\\w+", string=act):  # an event
+            assert isinstance(root.chart, SF_Chart)
+            root.chart.has_event = True
+
             event = act + "_" + location.name
             root_num = re.findall(pattern="\\d+", string=root.name)
             assert len(root_num) == 1
@@ -95,6 +98,8 @@ class SF_Chart(Subsystem):
         assert self.diagram.ssid not in self.all_states
         self.all_states[self.diagram.ssid] = self.diagram
 
+        self.has_event = False  # if the acts in the sf_chart have any broadcast event
+
         self.all_vars = all_vars
 
         self.st = st
@@ -105,6 +110,8 @@ class SF_Chart(Subsystem):
         self.add_names()
         self.find_root_for_states()
         self.find_root_and_loc_for_trans()
+
+        self.parse_acts_on_states_and_trans()
 
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.diagram))
@@ -257,11 +264,11 @@ class SF_Chart(Subsystem):
                 out_channels.append(ch_name + "!" + out_var)
 
         # Variable Initialisation
-        hp_init = hp_parser.parse("; ".join(var + " := 0" for var in self.all_vars + ["num"]))
+        init_var = hp_parser.parse("; ".join(var + " := 0" for var in self.all_vars + ["num"]))
         # Initial input and output channels, and delay
         init_ch = hp_parser.parse("; ".join(in_channels + out_channels + ["wait(" + str(self.st) + ")"]))
         # Get M process
-        hp_M = hp.Sequence(hp_init, init_ch, hp.Loop(hp.Var("M_main")))
+        hp_M = hp.Sequence(init_var, init_ch, hp.Loop(hp.Var("M_main")))
 
         # Get VOut
         def vout(_i, _vars):
@@ -334,7 +341,7 @@ class SF_Chart(Subsystem):
             return _s_du, _p_diag, _p_diag_name
 
         # Analyse P_diag recursively
-        def analyse_P_diag(_p_diag):
+        def analyse_P_diag(_p_diag, _processes):
             for proc in _p_diag:
                 # _state_name = proc.hp.name if isinstance(proc, hp.Condition) else proc.name
                 _state_name = proc.name if isinstance(proc, hp.Var) else proc[1].name
@@ -342,7 +349,7 @@ class SF_Chart(Subsystem):
                 _state = self.get_state_by_name(name=_state_name)
                 _s_du, new_p_diag, new_p_diag_name = get_S_du_and_P_diag(_state=_state,
                                                                          _hps=self.execute_event(_state))
-                processes.add(_state_name, _s_du)
+                _processes.add(_state_name, _s_du)
                 if new_p_diag:
                     if isinstance(new_p_diag[0], hp.Var):
                         assert all(isinstance(e, hp.Var) for e in new_p_diag)
@@ -352,8 +359,8 @@ class SF_Chart(Subsystem):
                         new_p_diag_proc = hp.ITE(if_hps=new_p_diag, else_hp=hp.Skip()) if len(new_p_diag) >= 2 \
                             else hp.Condition(cond=new_p_diag[0][0], hp=new_p_diag[0][1])
                     assert new_p_diag_name
-                    processes.add(new_p_diag_name, new_p_diag_proc)
-                    analyse_P_diag(new_p_diag)
+                    _processes.add(new_p_diag_name, new_p_diag_proc)
+                    analyse_P_diag(new_p_diag, _processes)
 
         # Get VOut
         def vout(_i, _vars):
@@ -367,7 +374,9 @@ class SF_Chart(Subsystem):
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
 
-        self.parse_acts_on_states_and_trans()
+        # If there is no event, return two functions and move to get_pure_process
+        if not self.has_event:
+            return get_S_du_and_P_diag, analyse_P_diag
 
         # List of HCSP processes
         processes = hp.HCSPProcess()
@@ -408,7 +417,7 @@ class SF_Chart(Subsystem):
                         else hp.Condition(cond=p_diag[0][0], hp=p_diag[0][1])
                 assert p_diag_name
                 processes.add(p_diag_name, p_diag_proc)
-                analyse_P_diag(p_diag)  # analyse P_diag recursively
+                analyse_P_diag(p_diag, processes)  # analyse P_diag recursively
 
             # Check if there is an X in the processes
             # If so, then there is an event triggered inner the states,
@@ -428,5 +437,86 @@ class SF_Chart(Subsystem):
 
             i += 1
 
-        processes.substitute()
+        new_processes = hp.HCSPProcess()
+        substituted = processes.substitute()
+        # Only one parallel process
+        assert len([process for process in substituted.values() if isinstance(process, hp.Parallel)]) == 1
+        for name, process in substituted.items():
+            if isinstance(process, hp.Parallel):
+                for _hp in process.hps:
+                    assert isinstance(_hp, hp.Var)
+                    new_processes.add(_hp.name, substituted[_hp.name])
+                break
+
+        return new_processes
+
+    def get_pure_process(self):
+        assert not self.has_event
+        get_S_du_and_P_diag, analyse_P_diag = self.get_process()
+
+        # Initialise variables
+        init_vars = [hp_parser.parse(var + " := 0") for var in self.all_vars]
+        # Initialise and Activate states
+        init_states = []
+        activate_states = []
+        parallel_states = self.diagram.children if self.diagram.name == "S0" else [self.diagram]
+        for s_i in parallel_states:
+            init_states.extend(s_i.init())
+            activate_states.extend(s_i.activate())
+        for sub_hp in init_states + activate_states:
+            assert isinstance(sub_hp, (hp.Assign, hp.Sequence))
+            if isinstance(sub_hp, hp.Sequence):
+                assert all(isinstance(_hp, hp.Assign) for _hp in sub_hp.hps)
+        # Null channel operations at the first round
+        in_chs = []
+        for port_id, in_var in self.port_to_in_var.items():
+            line = self.dest_lines[port_id]
+            ch_name = "ch_" + line.name + "_" + str(line.branch)
+            in_chs.append(hp_parser.parse(ch_name + "?" + in_var))
+        out_chs = []
+        for port_id, out_var in self.port_to_out_var.items():
+            lines = self.src_lines[port_id]
+            for line in lines:
+                ch_name = "ch_" + line.name + "_" + str(line.branch)
+                out_chs.append(hp_parser.parse(ch_name + "!" + out_var))
+
+        # Initialzation of the process
+        init_hps = init_vars + init_states + activate_states + in_chs + out_chs
+        # Delay one period at the first round
+        init_hp = hp.Sequence(*init_hps, hp.Wait(AConst(self.st)))
+
+        processes = hp.HCSPProcess()
+        # Get main process
+        main_body = [hp.Var(state.name) for state in parallel_states]
+        main_processes = in_chs + main_body + out_chs
+        main_process = hp.Sequence(init_hp, hp.Loop(hp.Sequence(*main_processes, hp.Wait(AConst(self.st)))))
+        processes.add(self.name, main_process)
+
+        # Get each S_i process
+        i = 0
+        for s_i in parallel_states:  # for each S_i state
+            i += 1
+            assert s_i.name == "S" + str(i)
+
+            s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_event(state=s_i))
+            assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
+            assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
+            processes.add(s_i.name, s_du)
+
+            # P_diag = p_diag_proc
+            if p_diag:
+                if isinstance(p_diag[0], hp.Var):
+                    assert all(isinstance(e, hp.Var) for e in p_diag)
+                    p_diag_proc = hp.Sequence(*p_diag) if len(p_diag) >= 2 else p_diag[0]
+                else:
+                    assert all(isinstance(e, tuple) and len(e) == 2 for e in p_diag)
+                    p_diag_proc = hp.ITE(if_hps=p_diag, else_hp=hp.Skip()) if len(p_diag) >= 2 \
+                        else hp.Condition(cond=p_diag[0][0], hp=p_diag[0][1])
+                assert p_diag_name
+                processes.add(p_diag_name, p_diag_proc)
+                analyse_P_diag(p_diag, processes)  # analyse P_diag recursively
+
+        substituted = processes.substitute()
+        processes.hps = [(self.name, substituted[self.name])]
+
         return processes

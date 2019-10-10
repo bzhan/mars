@@ -99,7 +99,7 @@ class SL_Diagram:
             between them.
             
             """
-            tran_dict = dict()
+            _tran_dict = dict()
             for transition in block.getElementsByTagName("transition"):
                 tran_ssid = transition.getAttribute("SSID")
                 tran_label = get_attribute_value(transition, "labelString")
@@ -113,12 +113,12 @@ class SL_Diagram:
                     elif child.nodeName == "dst":
                         dst_ssid = get_attribute_value(child, "SSID")
                 assert dst_ssid  # each transition must have a destination state
-                assert (src_ssid, dst_ssid) not in tran_dict
-                tran_dict[(src_ssid, dst_ssid)] = Transition(ssid=tran_ssid, label=tran_label, order=order,
-                                                             src=src_ssid, dst=dst_ssid)
-            return tran_dict
+                assert (src_ssid, dst_ssid) not in _tran_dict
+                _tran_dict[(src_ssid, dst_ssid)] = Transition(ssid=tran_ssid, label=tran_label, order=order,
+                                                              src=src_ssid, dst=dst_ssid)
+            return _tran_dict
 
-        def get_children(block, tran_dict):
+        def get_children(block):  # , tran_dict):
             """Get lists of children states and junctions of the current
             block.
 
@@ -196,7 +196,7 @@ class SL_Diagram:
                         raise RuntimeError("ErrorStates")
 
                     # Get children states and junctions recursively
-                    child_states, child_junctions = get_children(child, tran_dict)
+                    child_states, child_junctions = get_children(child)  # , tran_dict)
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
@@ -226,7 +226,8 @@ class SL_Diagram:
             chart_name = get_attribute_value(block=chart, attribute="name")
 
             chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is encapsulated as an AND-state
-            states, junctions = get_children(block=chart, tran_dict=get_transitions(block=chart))
+            tran_dict = get_transitions(block=chart)
+            states, junctions = get_children(block=chart)  # , tran_dict=get_transitions(block=chart))
             for state in states + junctions:
                 state.father = chart_state
                 chart_state.children.append(state)

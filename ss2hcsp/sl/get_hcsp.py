@@ -276,11 +276,11 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers):
 
     # Compute the stateflow processes
     for chart in sf_charts:
-        sf_processes = chart.get_process()
+        sf_processes = chart.get_process() if chart.has_event else chart.get_pure_process()
         for name, sf_process in sf_processes.hps:
-            if not isinstance(sf_process, hp.Parallel):
-                processes.add(name, sf_process)
-                main_processes.append(hp.Var(name))
+            assert not isinstance(sf_process, hp.Parallel)
+            processes.add(name, sf_process)
+            main_processes.append(hp.Var(name))
 
     # Computer the buffer processes
     for buffer in buffers:
