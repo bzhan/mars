@@ -3,7 +3,6 @@ import os, json
 
 from aadl2hcsp.xmlparser import parser, aadlparser
 
-
 class XMLParserTest(unittest.TestCase):
     def testXMLParser(self):
         #path = './Examples/AADL/air_conditioner/instances'

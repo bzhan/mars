@@ -6,6 +6,8 @@ from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
 
+from ss2hcsp.hcsp.parser import hp_parser
+
 def createStructure(dic):
     process = HCSPProcess()
 
@@ -430,13 +432,13 @@ class Thread:
             if 'INITIAL' in state[s] or 'initial' in state[s]:
                 now_state = s
                 next_state = trans[s]['distination']
-                hps.extend(trans[s]['content'])
+                hps.extend([hp_parser.parse(hp) for hp in trans[s]['content']])
                 break
 
         while 'FINAL' not in state[now_state] and 'final' not in state[now_state]:
             now_state = next_state
             next_state = trans[s]['distination']
-            hps.extend(trans[s]['content'])
+            hps.extend([hp_parser.parse(hp) for hp in trans[s]['content']])
 
         if self.resource_query:
             hps.append(OutputChannel('need_Resource_' + self.thread_name))

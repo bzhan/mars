@@ -15,7 +15,7 @@ COM_actuator ::= @Init_actuator || @Ready_actuator || @Running_actuator
 Init_actuator ::= (dis_actuator?; t := 0; init_actuator!t)**
 Ready_actuator ::= (prior := 6; (init_actuator?t --> skip $ preempt_actuator?t --> skip); tran_actuator!prior; <t_dot = 1 & t < 1.0> |> [] (run_actuator? --> resume_actuator!t); t == 1.0 -> exit_actuator!)**
 Running_actuator ::= InitFlag := 0; (InitFlag == 0 -> c := 0; resume_actuator?t; c == 0 -> (input_actuator_diff?diff --> if diff > 0.0 then heatCommand := -1.0 elif diff < 0.0 then heatCommand := 1.0 else heatCommand := 0.0 endif; InitFlag := 1 $ busy_actuator? --> preempt_actuator!t; InitFlag := 0); InitFlag == 1 -> (c < 0 -> wait(0-c); free!; t < 1 -> (complete_actuator!; actuator_heatCommand!heatCommand; InitFlag := 0); t == 1 -> (exit_actuator!; InitFlag := 0)))**
-babybox ::= boxTemp := 73.0; q := 73.0; babybox_boxTemp!boxTemp; babybox_heatCommand?heatCommand; (<boxTemp_dot = -0.026*(boxTemp-q), q_dot = heatCommand & true> |> [] (babybox_heatCommand?heatCommand --> skip, babybox_boxTemp!boxTemp --> skip))**
+babybox ::= boxTemp := 73.0; q := 73.0; heatCommand := 0; (<boxTemp_dot = -0.026*(boxTemp-q), q_dot = heatCommand & true> |> [] (babybox_heatCommand?heatCommand --> skip, babybox_boxTemp!boxTemp --> skip))**
 controller ::= @ACT_controller || @DIS_controller || @COM_controller
 ACT_controller ::= (act_controller!; wait(1.0))**
 DIS_controller ::= (act_controller?; dis_controller!; controller_measuredTemp?measuredTemp; input_controller_measuredTemp!measuredTemp; (complete_controller? --> skip $ exit_controller? --> skip))**

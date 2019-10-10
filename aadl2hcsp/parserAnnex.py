@@ -265,9 +265,9 @@ class AnnexParser(object):
         def p_define_transtion(p):
             """statement : TRANSITIONS NAME ':' NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ';' """
             if isinstance(p[11], list):
-                con = [repr(hp) for hp in p[11]]
+                con = [str(hp) for hp in p[11]]
             elif isinstance(p[11], HCSP):
-                con = [repr(p[11])]
+                con = [str(p[11])]
             else:
                 con = []
             trans[p[4]]={'distination':p[9], 'content': con}
@@ -275,9 +275,9 @@ class AnnexParser(object):
 
         def p_if_substatement(p):
             """ if_statement : IF '(' expression ')' statement  """
-            if isinstance(p[5],HCSP):
+            if isinstance(p[5], HCSP):
                 p[0] =[[p[3], p[5]]]
-            elif  isinstance(p[5],list):
+            elif  isinstance(p[5], list):
                 p[0] = [[p[3], Sequence(*p[5])]]
 
         def p_else_substatement(p):
