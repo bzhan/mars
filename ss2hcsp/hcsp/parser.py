@@ -23,6 +23,7 @@ grammar = r"""
 
     ?plus_expr: plus_expr "+" times_expr -> plus_expr
         | plus_expr "-" times_expr -> minus_expr
+        | "-" times_expr -> uminus_expr
         | times_expr
 
     ?expr: plus_expr
@@ -120,6 +121,9 @@ class HPTransformer(Transformer):
 
     def minus_expr(self, e1, e2):
         return expr.PlusExpr(["+", "-"], [e1, e2])
+
+    def uminus_expr(self, e):
+        return expr.PlusExpr(["-"], [e])
 
     def times_expr(self, e1, e2):
         return expr.TimesExpr(["*", "*"], [e1, e2])

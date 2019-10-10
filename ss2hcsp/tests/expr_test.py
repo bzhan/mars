@@ -28,7 +28,9 @@ class ExprTest(unittest.TestCase):
             ("[]", "AConst(())"),
             ("\"a\"", "AConst(\"a\")"),
             ("[b, 0]", "List(AVar(b),AConst(0))"),
-            ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))")
+            ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))"),
+            ("-x", "Plus(-AVar(x))"),
+            ("-x + y", "Plus(+Plus(-AVar(x)), +AVar(y))"),
         ]
         
         for s, res in test_data:
@@ -113,6 +115,8 @@ class ExprTest(unittest.TestCase):
             ('NL := [1,2.1]', 'Assign(NL,[1,2.1])'),
             ("(x := x+1){x < 3}**", "Loop(Assign(x,x+1), x < 3)"),
             ("(a, b) := xs", "Assign([a,b],xs)"),
+            ("x := -x", "Assign(x,-x)"),
+            ("x := -x+y", "Assign(x,-x+y)"),
         ]
 
         for s, res in test_data:
