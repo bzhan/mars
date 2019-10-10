@@ -117,7 +117,20 @@ class HPTransformer(Transformer):
         return expr.ArrayIdxExpr(a, i)
 
     def plus_expr(self, e1, e2):
-        return expr.PlusExpr(["+", "+"], [e1, e2])
+        signs, exprs = [], []
+        if isinstance(e1, expr.PlusExpr):
+            signs.extend(e1.signs)
+            exprs.extend(e1.exprs)
+        else:
+            signs.append('+')
+            exprs.append(e1)
+        if isinstance(e2, expr.PlusExpr):
+            signs.extend(e2.signs)
+            exprs.extend(e2.exprs)
+        else:
+            signs.append('+')
+            exprs.append(e2)
+        return expr.PlusExpr(signs, exprs)
 
     def minus_expr(self, e1, e2):
         return expr.PlusExpr(["+", "-"], [e1, e2])

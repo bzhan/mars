@@ -24,13 +24,13 @@ class ExprTest(unittest.TestCase):
             ("a * b + c", "Plus(+Times(*AVar(a), *AVar(b)), +AVar(c))"),
             ("a * (b + c)", "Times(*AVar(a), *Plus(+AVar(b), +AVar(c)))"),
             ("a + b - c", "Plus(+Plus(+AVar(a), +AVar(b)), -AVar(c))"),
-            ("a + (b - c)", "Plus(+AVar(a), +Plus(+AVar(b), -AVar(c)))"),
+            ("a + (b - c)", "Plus(+AVar(a), +AVar(b), -AVar(c))"),
             ("[]", "AConst(())"),
             ("\"a\"", "AConst(\"a\")"),
             ("[b, 0]", "List(AVar(b),AConst(0))"),
             ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))"),
             ("-x", "Plus(-AVar(x))"),
-            ("-x + y", "Plus(+Plus(-AVar(x)), +AVar(y))"),
+            ("-x + y", "Plus(-AVar(x), +AVar(y))"),
         ]
         
         for s, res in test_data:
