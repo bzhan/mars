@@ -11,7 +11,7 @@
             "trans": {
                 "s": {
                     "content": [
-                        "ITE(diff > 0.0, Assign(heatCommand,-1.0), diff < 0.0, Assign(heatCommand,1.0), Assign(heatCommand,0.0))"
+                        "if diff > 0.0 then heatCommand := -1.0 elif diff < 0.0 then heatCommand := 1.0 else heatCommand := 0.0 endif"
                     ],
                     "distination": "s"
                 }
@@ -91,8 +91,8 @@
             "trans": {
                 "s": {
                     "content": [
-                        "Assign(gain,10.0)",
-                        "ITE(measuredTemp > 100.0, Assign(diff,gain*(measuredTemp-100.0)), measuredTemp < 97.0, Assign(diff,gain*(measuredTemp-97.0)), Assign(diff,0.0))"
+                        "gain := 10.0",
+                        "if measuredTemp > 100.0 then diff := gain*(measuredTemp-100.0) elif measuredTemp < 97.0 then diff := gain*(measuredTemp-97.0) else diff := 0.0 endif"
                     ],
                     "distination": "s"
                 }
@@ -293,8 +293,8 @@
             "trans": {
                 "s": {
                     "content": [
-                        "Assign(e,1.0)",
-                        "Assign(measuredTemp,boxTemp+e)"
+                        "e := 1.0",
+                        "measuredTemp := boxTemp+e"
                     ],
                     "distination": "s"
                 }
