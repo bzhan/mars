@@ -7,6 +7,8 @@
 #include<time.h>
 #include<string.h>
 #include<math.h>
+#include "isolette.h"
+#include "rtwtypes.h"
 
 /** type struct definition of components 
 ------------------------------------------------------
@@ -129,12 +131,12 @@ void behaviorExecution(char *threadName)
 		thread_HeatCooler_heatCooling = thread_HeatCooler(thread_Regulator_HeaterCommad);
 
 
-	printf("running thread: %s\n", threadName);
-	printf("thread_Sensor_measureTemp: %d\n", thread_Sensor_measureTemp);
-	printf("thread_Regulator_HeaterCommad: %d\n", thread_Regulator_HeaterCommad);
-	printf("thread_HeatCooler_heatCooling: %d\n", thread_HeatCooler_heatCooling);
-	printf("thread_HeatCooler_Temperature: %d\n", thread_HeatCooler_Temperature);
-	printf("desired_temperature: %d\n", desired_temperature);
+	// printf("running thread: %s\n", threadName);
+	// printf("thread_Sensor_measureTemp: %d\n", thread_Sensor_measureTemp);
+	// printf("thread_Regulator_HeaterCommad: %d\n", thread_Regulator_HeaterCommad);
+	// printf("thread_HeatCooler_heatCooling: %d\n", thread_HeatCooler_heatCooling);
+	// printf("thread_HeatCooler_Temperature: %d\n", thread_HeatCooler_Temperature);
+	// printf("desired_temperature: %d\n", desired_temperature);
 	
 };
 
@@ -394,8 +396,26 @@ void sched_HPF(struct Thread *threads[])
 	Thread *runningThread = (Thread *)malloc(sizeof(Thread));
 	Thread *pthread_temp = (Thread *)malloc(sizeof(Thread));
 	Thread *pthread_rm_temp = (Thread *)malloc(sizeof(Thread));
-	while(globalCount < 70)
+
+
+	// Initialize simulink model
+	isolette_initialize();
+
+	// printf("Out1: %f\n", isolette_Y.Out1);
+	// printf("In1: %f\n", isolette_U.In1);
+
+	while(globalCount < 3000)
 	{
+		isolette_U.In1 = thread_HeatCooler_heatCooling;
+		printf("%f,%f\n", isolette_U.In1, isolette_Y.Out1);
+
+		isolette_step();
+		thread_HeatCooler_Temperature = isolette_Y.Out1;
+		// printf("%f\n",thread_HeatCooler_Temperature);
+
+		// printf("Out1: %f\n", isolette_Y.Out1);
+		// printf("In1: %f\n", isolette_U.In1);
+
 		//printf("Enter loop\n");
 
 		//Stage 1: check period_triger for each thread
@@ -512,8 +532,8 @@ void sched_HPF(struct Thread *threads[])
 
 		for(int i = 0; i< threadNum; i++)
 		{
-			//printf("print state\n");
-			printf("%s state: %s\n", threads[i]->threadName, threads[i]->state);
+			// printf("print state\n");
+			// printf("%s state: %s\n", threads[i]->threadName, threads[i]->state);
 
 		}
 
@@ -526,7 +546,7 @@ void sched_HPF(struct Thread *threads[])
 			}
 		}
 		globalCount += 1;
-		printf("%d\n", globalCount);
+		// printf("%d\n", globalCount);
 
 	}
 };
