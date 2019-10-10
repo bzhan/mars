@@ -12,10 +12,9 @@ class Json2simHCSPTest(unittest.TestCase):
         #ref_file = './Examples/AADL/air_conditioner/hcsp_ref.txt'
 
         json_file = './Examples/AADL/isolette/out_ref.json'
-        annex_file = './Examples/AADL/isolette/asd.aadl'
-        out_file = './Examples/AADL/isolette/hcsp3.txt'
+        out_file = './Examples/AADL/isolette/hcsp4.txt'
 
-        out = simple_hcsp2.convert_AADL(json_file, annex_file)
+        out = simple_hcsp2.convert_AADL(json_file)
 
         for _, hp in out.hps:
             hp_str = str(hp)

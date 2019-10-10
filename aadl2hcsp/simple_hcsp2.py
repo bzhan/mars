@@ -2,7 +2,6 @@
 
 import json
 
-from aadl2hcsp.parserAnnex import AnnexParser
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, RelExpr, LogicExpr, BConst, conj, NegExpr, TimesExpr, FunExpr, ListExpr
 from ss2hcsp.hcsp.hcsp import Var, Sequence, InputChannel, OutputChannel, Loop, Wait, \
     SelectComm, Assign, ODE_Comm, Condition, Parallel, HCSPProcess, Skip, ITE
@@ -75,11 +74,12 @@ def createConnections(dic):
     return process
 
 class Abstract:
-    def __init__(self, abstract, sim=None):
+    def __init__(self, abstract, annex= False, sim = False):
         self.abstract_name = abstract['name']
         self.abstract_featureIn = []
         self.abstract_featureOut = []
         self.sim = sim
+        self.annex = annex
 
         for feature in abstract['features']:
             if feature['type'].lower() == 'dataport':
@@ -113,7 +113,7 @@ class Abstract:
                            Assign('q', AConst(73.0)),
                            Assign('heatCommand', AConst(0)))
 
-       # if self.sim:
+       #if self.sim:
        #    hps.extend(self.sim)
 
         eqs = [('boxTemp',  TimesExpr(['*', '*'], [AConst(-0.026), PlusExpr(['+','-'], [AVar('boxTemp'), AVar('q')])])),
@@ -239,7 +239,7 @@ class Process:
 
 
 class Thread:
-    def __init__(self, thread, annex=None, resource_query=None):
+    def __init__(self, thread, annex=False, sim = False, resource_query=None):
         self.thread_name = thread['name']
 
         # Default parameters
@@ -252,7 +252,14 @@ class Thread:
         self.thread_featureIn = []
         self.thread_featureOut = []
         self.annex = annex
+        self.sim = sim
         self.resource_query = resource_query
+
+        if self.annex:
+            self.annex_block = thread['Annex']
+
+        if self.sim:
+            self.sim_block = thread['Sim']
 
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
@@ -354,7 +361,7 @@ class Thread:
         ## running state ##
 
         running_hps = []
-        if self.annex and 'Discrete' in self.annex.keys():
+        if self.annex:
             eqs = [('t', AConst(1))]
             constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
             busy_io = (InputChannel('busy_' + self.thread_name), Assign('state', AConst(state[1])))
@@ -363,7 +370,7 @@ class Thread:
             running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), discrete_hps))
 
         temp_hps = []
-        if self.annex and 'Continous' in self.annex.keys():
+        if self.sim:
             eqs = [('t', AConst(1)), ('c', AConst(1))]
             constraint_1 = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
             constraint_2 = RelExpr('<', AVar('c'), AConst(self.thread_max_time))
@@ -418,8 +425,18 @@ class Thread:
 
     def _Discrete_Annex(self):
         hps= []
-        if self.annex:
-            hps.extend(self.annex['Discrete'])
+        state, trans = self.annex_block['state'], self.annex_block['trans']
+        for s in state.keys():
+            if 'INITIAL' in state[s] or 'initial' in state[s]:
+                now_state = s
+                next_state = trans[s]['distination']
+                hps.extend(trans[s]['content'])
+                break
+
+        while 'FINAL' not in state[now_state] and 'final' not in state[now_state]:
+            now_state = next_state
+            next_state = trans[s]['distination']
+            hps.extend(trans[s]['content'])
 
         if self.resource_query:
             hps.append(OutputChannel('need_Resource_' + self.thread_name))
@@ -436,16 +453,8 @@ class Thread:
 
         return hps
 
-def convert_AADL(json_file, annex_file):
+def convert_AADL(json_file):
     out = HCSPProcess()
-
-    AP = AnnexParser()
-    Annexs = AP.getAnnex(annex_file)
-    Annex_HP = {}
-    for th in Annexs.keys():
-        Annex_HP[th] = {}
-        Annex_HP[th]['Discrete'] = AP.createHCSP(Annexs[th]['Discrete'])
-
 
     with open(json_file, 'r') as f:
         dic = json.load(f)
@@ -462,12 +471,20 @@ def convert_AADL(json_file, annex_file):
             out.extend(Process(category,threadlines).lines)
 
         elif category['category'] == 'thread':
-            if category['name'] in Annex_HP.keys():
-                out.extend(Thread(category, Annex_HP[category['name']]).lines)
-            else:
-                out.extend(Thread(category).lines)
+            annex_flag, sim_flag = False, False
+            if 'Annex' in category.keys():
+                annex_flag = True
+            if 'Sim' in category.keys():
+                sim_flag = True
+            out.extend(Thread(category, annex=annex_flag, sim=sim_flag).lines)
 
         elif category['category'] == 'abstract':
-            out.extend(Abstract(category).lines)
+            annex_flag, sim_flag = False, False
+            if 'Annex' in category.keys():
+                annex_flag = True
+            if 'Sim' in category.keys():
+                sim_flag = True
+            out.extend(Abstract(category, annex=annex_flag, sim=sim_flag).lines)
+
 
     return out

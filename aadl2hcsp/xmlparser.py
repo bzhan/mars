@@ -5,6 +5,7 @@ to a dictionary (which can be outputted as a JSON file).
 
 # Use minidom to parse XML files
 import xml.dom.minidom as xmldom
+from aadl2hcsp import parserAnnex
 import os
 import json
 
@@ -89,6 +90,21 @@ def getOwnedPropertyAssociation(opas, category, name, *, protocol):
                               range.getElementsByTagName('maximum')[0].getAttribute('value')]
         Opas.append(opass)
     return Opas
+
+
+def aadlparser(aadlfile, dic):
+    """Parse the give AADL file, add the annex info into dic."""
+    AP = parserAnnex.AnnexParser()
+    Annexs = AP.getAnnex(aadlfile)
+    for th in Annexs.keys():
+        if isinstance(Annexs[th]['Discrete'], list) and th in dic.keys():
+            code = ' '.join(Annexs[th]['Discrete'])
+            var, state, trans = AP.createParser(code)
+            dic[th]['Annex'] = {}
+            dic[th]['Annex']['var'] = var
+            dic[th]['Annex']['state'] = state
+            dic[th]['Annex']['trans'] = trans
+
 
 def parser(xmlfile, dic, *, protocol):
     """Parse the given XML file, add the read info into dic."""

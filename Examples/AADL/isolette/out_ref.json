@@ -1,5 +1,23 @@
 {
     "actuator_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "ITE(diff > 0.0, Assign(heatCommand,-1.0), diff < 0.0, Assign(heatCommand,1.0), Assign(heatCommand,0.0))"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": []
+        },
         "category": "thread",
         "components": [],
         "connections": [],
@@ -62,6 +80,27 @@
         "opas": []
     },
     "controller_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "Assign(gain,10.0)",
+                        "ITE(measuredTemp > 100.0, Assign(diff,gain*(measuredTemp-100.0)), measuredTemp < 97.0, Assign(diff,gain*(measuredTemp-97.0)), Assign(diff,0.0))"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": [
+                "gain"
+            ]
+        },
         "category": "thread",
         "components": [],
         "connections": [],
@@ -243,6 +282,27 @@
         "opas": []
     },
     "sensor_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "Assign(e,1.0)",
+                        "Assign(measuredTemp,boxTemp+e)"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": [
+                "e"
+            ]
+        },
         "category": "thread",
         "components": [],
         "connections": [],

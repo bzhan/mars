@@ -26,7 +26,7 @@ class AnnexParser(object):
             words = [w.strip() for w in line.split()]
             if ('THREAD' in words or 'thread' in words) and \
                     ('IMPLEMENTATION' in words or 'implementation' in words) and flag == 0:
-                thread_name = words[-1].split('.')[0]
+                thread_name = words[-1].replace('.','_')+'_Instance'
                 flag = 1
             elif 'annex' in words and '{**' in words and flag == 1:
                 self.Annexs[thread_name] = {}
@@ -41,12 +41,7 @@ class AnnexParser(object):
             i += 1
         return self.Annexs
 
-
-    def createHCSP(self, codelist):
-        if not isinstance(codelist,list):
-            return
-        code = ' '.join(codelist)
-        var, state, trans = self._createParser(code)
+    def createHCSP(self, state, trans):
         hcsp=[]
         for s in state.keys():
             if 'INITIAL' in state[s] or 'initial' in state[s]:
@@ -63,7 +58,7 @@ class AnnexParser(object):
         return hcsp
 
 
-    def _createParser(self, code):
+    def createParser(self, code):
         var=[]
         state={}
         trans={}
@@ -269,13 +264,13 @@ class AnnexParser(object):
 
         def p_define_transtion(p):
             """statement : TRANSITIONS NAME ':' NAME LEFT_DIS ON DISPATCH RIGHT_DIS NAME LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ';' """
-            if isinstance(p[11],list):
-                con = p[11]
-            elif isinstance(p[11],HCSP):
-                con = [p[11]]
+            if isinstance(p[11], list):
+                con = [repr(hp) for hp in p[11]]
+            elif isinstance(p[11], HCSP):
+                con = [repr(p[11])]
             else:
                 con = []
-            trans[p[4]]={'distination':p[9],'content':con}
+            trans[p[4]]={'distination':p[9], 'content': con}
 
 
         def p_if_substatement(p):
@@ -308,7 +303,7 @@ class AnnexParser(object):
                           | if_statement else_statement END IF ';'
                           | if_statement elif_statement else_statement END IF ';' """
             if len(p)== 5:
-                p[0] = Condition(p[1][0][0],p[1][0][1])
+                p[0] = Condition(p[1][0][0], p[1][0][1])
             elif len(p)== 6:
                 p[0] = ITE(p[1], p[2])
             else:
@@ -337,7 +332,10 @@ if __name__=='__main__':
     HP={}
     for th in Annexs.keys():
         HP[th] = {}
-        HP[th]['Discrete'] = str(AP.createHCSP(Annexs[th]['Discrete']))
+        if isinstance(Annexs[th]['Discrete'], list):
+            code = ' '.join(Annexs[th]['Discrete'])
+            var, state, trans = AP.createParser(code)
+            HP[th]['Discrete'] = str(AP.createHCSP(state, trans))
     print(HP)
 
 
