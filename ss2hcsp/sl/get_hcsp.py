@@ -13,16 +13,11 @@ def translate_continuous(diagram):
     for block in block_dict.values():
         for line in block.dest_lines:
             if line.src not in block_dict:
-                in_var = line.name
-                branch = line.branch
-                in_channels.append(hp.InputChannel(ch_name="ch_" + in_var + "_" + str(branch), var_name=in_var))
+                in_channels.append(hp.InputChannel(ch_name=line.ch_name, var_name=line.name))
         for lines in block.src_lines:
             for line in lines:
                 if line.dest not in block_dict:
-                    out_var = line.name
-                    branch = line.branch
-                    out_channels.append(hp.OutputChannel(ch_name="ch_" + out_var + "_" + str(branch),
-                                                         expr=AVar(out_var)))
+                    out_channels.append(hp.OutputChannel(ch_name=line.ch_name, expr=AVar(line.name)))
     in_channels.sort(key=operator.attrgetter("ch_name"))
     out_channels.sort(key=operator.attrgetter("ch_name"))
 
@@ -168,9 +163,8 @@ def translate_discrete(diagram):
         assert len(block_dict) == 1
         _, block = block_dict.popitem()
         line = block.src_lines[0][0]
-        out_ch_name = "ch_" + line.name + "_" + str(line.branch)
         return hp.Condition(cond=RelExpr("==", ModExpr(AVar("t"), AConst(block.st)), AConst(0)),
-                            hp=hp.OutputChannel(ch_name=out_ch_name, expr=AConst(block.value)))
+                            hp=hp.OutputChannel(ch_name=line.ch_name, expr=AConst(block.value)))
 
     # Get initial processes
     init_hp = hp.Assign("t", AConst(0))
@@ -218,18 +212,12 @@ def translate_discrete(diagram):
             # Get the input channels of the block
             for line in block.dest_lines:
                 if line.src not in all_blocks:
-                    in_var = line.name
-                    branch = line.branch
-                    st_to_in_chs[block.st].append(hp.InputChannel(ch_name="ch_" + in_var + "_" + str(branch),
-                                                                  var_name=in_var))
+                    st_to_in_chs[block.st].append(hp.InputChannel(ch_name=line.ch_name, var_name=line.name))
             st_to_in_chs[block.st].sort(key=operator.attrgetter("ch_name"))
             for lines in block.src_lines:
                 for line in lines:
                     if line.dest not in all_blocks:
-                        out_var = line.name
-                        branch = line.branch
-                        st_to_out_chs[block.st].append(hp.OutputChannel(ch_name="ch_" + out_var + "_" + str(branch),
-                                                                        expr=AVar(out_var)))
+                        st_to_out_chs[block.st].append(hp.OutputChannel(ch_name=line.ch_name, expr=AVar(line.name)))
             st_to_out_chs[block.st].sort(key=operator.attrgetter("ch_name"))
         # Get each process wrt. Sample Time
         for st in st_to_hps.keys():
@@ -293,4 +281,3 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers):
     processes.insert(n=0, name="P", hp=main_process)
 
     return processes
-

@@ -398,8 +398,10 @@ class SL_Diagram:
             line_name = get_attribute_value(block=line, attribute="Name")
             if not line_name:
                 line_name = "?"
+            ch_name = "?"
             src_block = get_attribute_value(block=line, attribute="SrcBlock")
             if src_block in port_name_dict:
+                ch_name = src_block
                 src_block = port_name_dict[src_block]
             src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
             branches = [branch for branch in line.getElementsByTagName(name="Branch")
@@ -410,12 +412,14 @@ class SL_Diagram:
             for branch in branches:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                 if dest_block in port_name_dict:
+                    assert ch_name == "?"
+                    ch_name = dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
                 dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
-                                  name=line_name)
+                                  name=line_name, ch_name=ch_name)
 
     def add_block(self, block):
         """Add given block to the diagram."""
@@ -423,9 +427,9 @@ class SL_Diagram:
         self.blocks.append(block)
         self.blocks_dict[block.name] = block
 
-    def add_line(self, src, dest, src_port, dest_port, *, name="?"):
+    def add_line(self, src, dest, src_port, dest_port, *, name="?", ch_name="?"):
         """Add given line to the diagram."""
-        line = SL_Line(src, dest, src_port, dest_port, name=name)
+        line = SL_Line(src, dest, src_port, dest_port, name=name, ch_name=ch_name)
         src_block = self.blocks_dict[line.src]
         dest_block = self.blocks_dict[line.dest]
         
@@ -472,6 +476,17 @@ class SL_Diagram:
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1
+        # Add channel name for each line
+        for block in self.blocks_dict.values():
+            for line in block.dest_lines:
+                assert line.name != "?"
+                if line.ch_name == "?":
+                    line.ch_name = "ch_" + line.name + "_" + str(line.branch)
+            for lines in block.src_lines:
+                for line in lines:
+                    assert line.name != "?"
+                    if line.ch_name == "?":
+                        line.ch_name = "ch_" + line.name + "_" + str(line.branch)
 
     def comp_inher_st(self):
         """Compute the sample time for each block with inherent sample time."""
@@ -499,6 +514,12 @@ class SL_Diagram:
                 dest_block = self.blocks_dict[block.src_lines[0][0].dest]
                 block.st = dest_block.st
                 block.is_continuous = dest_block.is_continuous
+
+    def inherit_to_continuous(self):
+        for block in self.blocks_dict.values():
+            if block.st == -1:
+                block.st = 0
+                block.is_continuous = True
 
     def delete_subsystems(self):
         subsystems = []

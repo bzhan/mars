@@ -47,6 +47,7 @@ class SimTest(unittest.TestCase):
 
         diagram.add_line_name()
         diagram.comp_inher_st()
+
         real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
@@ -100,7 +101,7 @@ class SimTest(unittest.TestCase):
 
         diagram.add_line_name()
         diagram.comp_inher_st()
-        # discrete_subdiagrams_sorted, continuous_subdiagrams = diagram.seperate_diagram()
+
         real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
@@ -305,6 +306,29 @@ class SimTest(unittest.TestCase):
         con_init = hp_parser.parse("z := 1; y := 1")
         con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> 
         [] (ch_c_0?c --> skip, ch_z_0!z --> skip, ch_z_1!z --> skip)""")
+        continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
+        expected_hp.add("PC0", continuous_hp)
+        # print(expected_hp)
+
+        self.assertEqual(real_hp, expected_hp)
+
+    def testIsolette(self):
+        location = "./Examples/isolette/isolette.xml"
+        diagram = SL_Diagram(location)
+        diagram.parse_xml()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        real_hp = get_hp.get_hcsp(*diagram.seperate_diagram())
+        # print(real_hp)
+
+        expected_hp = hcsp.HCSPProcess()
+        expected_hp.add("P", hcsp.Var("PC0"))
+        con_init = hp_parser.parse("q := 97; c := 100")
+        con_hp = hp_parser.parse("<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] "
+                                 "(heatCommand?x0 --> skip, boxTemp!c --> skip); "
+                                 "<q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] "
+                                 "(heatCommand?x0 --> skip, boxTemp!c --> skip)")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
         expected_hp.add("PC0", continuous_hp)
         # print(expected_hp)
