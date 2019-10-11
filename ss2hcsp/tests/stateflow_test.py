@@ -50,14 +50,14 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "@Chart"),
-            ("Chart", "unsent := 0; cansend := 0; flag := 0; a := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
-                      "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(-1); "
-                      "(if a_pushing == 1 then done := 0; done == 0 && unsent <= 0 -> "
-                      "(a_pushing := 0; a_idle := 1; done := 1); cansend == 1 && done == 0 -> "
-                      "(a_pushing := 0; unsent := unsent-1; a_pushing := 1; done := 1); "
-                      "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && unsent > 0 -> "
-                      "(a_idle := 0; a_pushing := 1; done := 1); done == 0 -> flag := 1 else skip endif; wait(-1))**"),
+            # ("P", "@Chart"),
+            ("P", "unsent := 0; cansend := 0; flag := 0; a := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
+                  "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(-1); "
+                  "(if a_pushing == 1 then done := 0; done == 0 && unsent <= 0 -> "
+                  "(a_pushing := 0; a_idle := 1; done := 1); cansend == 1 && done == 0 -> "
+                  "(a_pushing := 0; unsent := unsent-1; a_pushing := 1; done := 1); "
+                  "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && unsent > 0 -> "
+                  "(a_idle := 0; a_pushing := 1; done := 1); done == 0 -> flag := 1 else skip endif; wait(-1))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
@@ -77,16 +77,16 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "@Chart"),
-            ("Chart", "i := 0; heartbeatPeriod := 0; flag := 0; cansend := 0; heartbeat := 0; a := 0; a_S1 := 0; "
-                      "a_pushing := 0; a_idle := 0; a_S1 := 1; i := 3; cansend := 1; state_time := 0; a_idle := 1; "
-                      "heartbeat := 0; wait(2); (if a_pushing == 1 then done := 0; done == 0 && i <= 0 -> "
-                      "(a_pushing := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
-                      "cansend == 1 && done == 0 -> (i := i-1; a_pushing := 0; a_pushing := 1; done := 1); "
-                      "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && i > 0 -> "
-                      "(a_idle := 0; a_pushing := 1; done := 1); done == 0 && state_time >= 3 -> "
-                      "(heartbeat := 1; a_idle := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
-                      "done == 0 -> (flag := 1; state_time := state_time+2) else skip endif; wait(2))**"),
+            # ("P", "@Chart"),
+            ("P", "i := 0; heartbeatPeriod := 0; flag := 0; cansend := 0; heartbeat := 0; a := 0; a_S1 := 0; "
+                  "a_pushing := 0; a_idle := 0; a_S1 := 1; i := 3; cansend := 1; state_time := 0; a_idle := 1; "
+                  "heartbeat := 0; wait(2); (if a_pushing == 1 then done := 0; done == 0 && i <= 0 -> "
+                  "(a_pushing := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
+                  "cansend == 1 && done == 0 -> (i := i-1; a_pushing := 0; a_pushing := 1; done := 1); "
+                  "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && i > 0 -> "
+                  "(a_idle := 0; a_pushing := 1; done := 1); done == 0 && state_time >= 3 -> "
+                  "(heartbeat := 1; a_idle := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
+                  "done == 0 -> (flag := 1; state_time := state_time+2) else skip endif; wait(2))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
@@ -106,20 +106,20 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "@Chart"),
-            ("Chart", "flag := 0; re_changes := 0; ResponseDelay := 0; cansend := 0; ACKNACK := 0; a_S1 := 0; "
-                      "a_repairing := 0; a_must_repair := 0; a_waiting := 0; a_S1 := 1; re_changes := 0; "
-                      "ACKNACK := 1; cansend := 1; a_waiting := 1; wait(2); (if a_repairing == 1 then done := 0; "
-                      "done == 0 && re_changes == 0 -> (a_repairing := 0; a_waiting := 1; done := 1); "
-                      "cansend == 1 && done == 0 -> (a_repairing := 0; re_changes := re_changes-1; a_repairing := 1; "
-                      "done := 1); done == 0 -> flag := 0 elif a_must_repair == 1 then done := 0; "
-                      "done == 0 && state_time >= 5 -> (a_must_repair := 0; a_repairing := 1; done := 1); "
-                      "ACKNACK == 1 && done == 0 -> (a_must_repair := 0; re_changes := re_changes+1; state_time := 0; "
-                      "a_must_repair := 1; done := 1); done == 0 -> (flag := 1; state_time := state_time+2) "
-                      "elif a_waiting == 1 then done := 0; done == 0 && re_changes > 0 -> "
-                      "(ACKNACK := 0; a_waiting := 0; state_time := 0; a_must_repair := 1; done := 1); "
-                      "ACKNACK == 1 && done == 0 -> (a_waiting := 0; re_changes := re_changes+1; a_waiting := 1; "
-                      "done := 1); done == 0 -> flag := 1 else skip endif; wait(2))**"),
+            # ("P", "@Chart"),
+            ("P", "flag := 0; re_changes := 0; ResponseDelay := 0; cansend := 0; ACKNACK := 0; a_S1 := 0; "
+                  "a_repairing := 0; a_must_repair := 0; a_waiting := 0; a_S1 := 1; re_changes := 0; "
+                  "ACKNACK := 1; cansend := 1; a_waiting := 1; wait(2); (if a_repairing == 1 then done := 0; "
+                  "done == 0 && re_changes == 0 -> (a_repairing := 0; a_waiting := 1; done := 1); "
+                  "cansend == 1 && done == 0 -> (a_repairing := 0; re_changes := re_changes-1; a_repairing := 1; "
+                  "done := 1); done == 0 -> flag := 0 elif a_must_repair == 1 then done := 0; "
+                  "done == 0 && state_time >= 5 -> (a_must_repair := 0; a_repairing := 1; done := 1); "
+                  "ACKNACK == 1 && done == 0 -> (a_must_repair := 0; re_changes := re_changes+1; state_time := 0; "
+                  "a_must_repair := 1; done := 1); done == 0 -> (flag := 1; state_time := state_time+2) "
+                  "elif a_waiting == 1 then done := 0; done == 0 && re_changes > 0 -> "
+                  "(ACKNACK := 0; a_waiting := 0; state_time := 0; a_must_repair := 1; done := 1); "
+                  "ACKNACK == 1 && done == 0 -> (a_waiting := 0; re_changes := re_changes+1; a_waiting := 1; "
+                  "done := 1); done == 0 -> flag := 1 else skip endif; wait(2))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:

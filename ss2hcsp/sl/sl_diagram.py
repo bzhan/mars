@@ -248,6 +248,10 @@ class SL_Diagram:
     def parse_xml(self):
         self.parse_stateflow_xml()
 
+        models = self.model.getElementsByTagName("Model")
+        assert len(models) == 1
+        model_name = models[0].getAttribute("Name")
+
         system = self.model.getElementsByTagName("System")[0]
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
@@ -400,8 +404,8 @@ class SL_Diagram:
                 line_name = "?"
             ch_name = "?"
             src_block = get_attribute_value(block=line, attribute="SrcBlock")
-            if src_block in port_name_dict:
-                ch_name = src_block
+            if src_block in port_name_dict:  # an input port
+                ch_name = model_name + "_" + src_block
                 src_block = port_name_dict[src_block]
             src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
             branches = [branch for branch in line.getElementsByTagName(name="Branch")
@@ -411,15 +415,17 @@ class SL_Diagram:
             # if branches:
             for branch in branches:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
-                if dest_block in port_name_dict:
+                if dest_block in port_name_dict:  # an output port
                     assert ch_name == "?"
-                    ch_name = dest_block
+                    ch_name = model_name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
                 dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
+
+        return model_name
 
     def add_block(self, block):
         """Add given block to the diagram."""

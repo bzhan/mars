@@ -238,7 +238,7 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers, model_name="P"):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
     processes = hp.HCSPProcess()
@@ -276,8 +276,11 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers):
         main_processes.append(hp.Var(buffer.name))
 
     # Get main paralell processes
-    assert len(main_processes) >= 1
-    main_process = hp.Parallel(*main_processes) if len(main_processes) >= 2 else main_processes[0]
-    processes.insert(n=0, name="P", hp=main_process)
+    assert len(main_processes) >= 1 and len(main_processes) == len(processes.hps)
+    if len(main_processes) == 1:
+        processes.hps = [(model_name, processes.hps[0][1])]
+    else:
+        main_process = hp.Parallel(*main_processes)
+        processes.insert(n=0, name=model_name, hp=main_process)
 
     return processes

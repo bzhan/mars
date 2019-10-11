@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="isolette">
+  <Model Name="babybox">
     <P Name="Version">9.1</P>
     <P Name="SavedCharacterEncoding">GB2312</P>
     <GraphicalInterface>
@@ -154,13 +154,13 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="7" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">isolette</P>
+        <P Name="model_" Class="char">babybox</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">isolette</Cell>
+          <Cell Class="char">babybox</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
-          <Cell>[]</Cell>
+          <Cell Class="double">[]</Cell>
         </Array>
       </Object>
     </SimulationSettings>
@@ -1132,7 +1132,6 @@
         <P Name="ZOrder">2</P>
         <P Name="SrcBlock">Switch</P>
         <P Name="SrcPort">1</P>
-        <P Name="Points">[15, 0]</P>
         <P Name="DstBlock">Integrator</P>
         <P Name="DstPort">1</P>
       </Line>
