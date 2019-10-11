@@ -52,55 +52,56 @@ typedef struct Processor
 
 /******************Behavior Execution******************/
 
-int thread_Regulator_HeaterCommad = 0;
-int thread_HeatCooler_Temperature = 80;
-int thread_HeatCooler_heatCooling = 0;
-int thread_Sensor_measureTemp = 0;
-int desired_temperature = 100;
+float diff;
+float heatCommand;
+float measuredTemp;
+float boxTemp;
 
-int thread_Sensor(int heaterTemp)
+void thread_Sensor()
 {
-	int e;
-	e = 0;
-	int measuredTemp = heaterTemp + e;
-	return measuredTemp;
+	float e;
+	e = 1.0;
+	measuredTemp = boxTemp + e;
 };
 
-int thread_HeatCooler(int command)
+void thread_HeatCooler()
 {
-	int heatcooling;
-
-	if (command > 0) {
-		heatcooling = 1;
+	if (diff > 0.0) {
+		heatCommand = -1.0;
 	}
-	if (command == 0) {
-		heatcooling = 0;
+	else if (diff < 0.0) {
+		heatCommand = 1.0;
 	}
-	if (command < 0) {
-		heatcooling = -1;
+	else {
+		heatCommand = 0.0;
 	}
-	return heatcooling;
 };
 
-int thread_regulator(int desiredTemp, int measuredTemp)
+void thread_regulator()
 {
-	int gain, diff, heaterCommad;
-	gain = 10;
-	diff = desiredTemp - measuredTemp;
-	heaterCommad = diff * gain;
-	return heaterCommad;
+	float gain;
+	gain = 10.0;
+	if (measuredTemp > 100.0) {
+		diff = gain * (measuredTemp - 100.0);
+	}
+	else if (measuredTemp < 97.0) {
+		diff = gain * (measuredTemp - 97.0);
+	}
+	else {
+		diff = 0.0;
+	}
 };
 
 void behaviorExecution(char *threadName)
 {
 	if (strcmp(threadName, "Sensor") == 0) {
-		thread_Sensor_measureTemp = thread_Sensor(thread_HeatCooler_Temperature);
+		thread_Sensor();
 	}
 	if (strcmp(threadName, "Regulator") == 0) {
-		thread_Regulator_HeaterCommad = thread_regulator(desired_temperature, thread_Sensor_measureTemp);
+		thread_regulator();
 	}
 	if (strcmp(threadName, "HeatCooler") == 0) {
-		thread_HeatCooler_heatCooling = thread_HeatCooler(thread_Regulator_HeaterCommad);	
+		thread_HeatCooler();	
 	}
 };
 
@@ -147,11 +148,11 @@ void sched_HPF(struct Thread **threads, int threadNum, int iterCount)
 	while (globalCount < iterCount)
 	{
 		// Communicate with simulink model, print state.
-		isolette_U.In1 = thread_HeatCooler_heatCooling;
+		isolette_U.In1 = heatCommand;
 		printf("%f,%f\n", isolette_U.In1, isolette_Y.Out1);
 
 		isolette_step();
-		thread_HeatCooler_Temperature = isolette_Y.Out1;
+		boxTemp = isolette_Y.Out1;
 
 		// Stage 1: check period_triger for each thread
 		for (int i = 0; i < threadNum; i++)

@@ -1,0 +1,345 @@
+{
+    "actuator_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "if diff > 0.0 then heatCommand := -1.0 elif diff < 0.0 then heatCommand := 1.0 else heatCommand := 0.0 endif"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": []
+        },
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "diff",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "heatCommand",
+                "type": "DataPort"
+            }
+        ],
+        "name": "actuator",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "6"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "3",
+                    "5"
+                ]
+            }
+        ]
+    },
+    "babybox_impl_Instance": {
+        "category": "abstract",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "heatCommand",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "boxTemp",
+                "type": "DataPort"
+            }
+        ],
+        "name": "babybox",
+        "opas": []
+    },
+    "controller_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "gain := 10.0",
+                        "if measuredTemp > 100.0 then diff := gain*(measuredTemp-100.0) elif measuredTemp < 97.0 then diff := gain*(measuredTemp-97.0) else diff := 0.0 endif"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": [
+                "gain"
+            ]
+        },
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "measuredTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "diff",
+                "type": "DataPort"
+            }
+        ],
+        "name": "controller",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "8"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "10"
+            }
+        ]
+    },
+    "heatSW_impl_Instance": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "boxTemp",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "measuredTemp",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "sensor"
+            },
+            {
+                "category": "thread",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "diff",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "heatCommand",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "actuator"
+            },
+            {
+                "category": "thread",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "measuredTemp",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "diff",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "controller"
+            }
+        ],
+        "connections": [
+            {
+                "destination": "sensor.boxTemp",
+                "name": "boxTemp -> sensor.boxTemp",
+                "source": "boxTemp"
+            },
+            {
+                "destination": "controller.measuredTemp",
+                "name": "sensor.measuredTemp -> controller.measuredTemp",
+                "source": "sensor.measuredTemp"
+            },
+            {
+                "destination": "heatCommand",
+                "name": "actuator.heatCommand -> heatCommand",
+                "source": "actuator.heatCommand"
+            },
+            {
+                "destination": "actuator.diff",
+                "name": "controller.diff -> actuator.diff",
+                "source": "controller.diff"
+            }
+        ],
+        "features": [
+            {
+                "direction": "",
+                "name": "boxTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "heatCommand",
+                "type": "DataPort"
+            }
+        ],
+        "name": "heatSW",
+        "opas": []
+    },
+    "isollete_impl_Instance": {
+        "category": "system",
+        "components": [
+            {
+                "category": "abstract",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "heatCommand",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "boxTemp",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "babybox"
+            },
+            {
+                "category": "process",
+                "features": [
+                    {
+                        "direction": "",
+                        "name": "boxTemp",
+                        "type": "DataPort"
+                    },
+                    {
+                        "direction": "out",
+                        "name": "heatCommand",
+                        "type": "DataPort"
+                    }
+                ],
+                "name": "heatSW"
+            }
+        ],
+        "connections": [
+            {
+                "destination": "heatSW.sensor.boxTemp",
+                "name": "babybox.boxTemp -> heatSW.sensor.boxTemp",
+                "source": "babybox.boxTemp"
+            },
+            {
+                "destination": "babybox.heatCommand",
+                "name": "heatSW.actuator.heatCommand -> babybox.heatCommand",
+                "source": "heatSW.actuator.heatCommand"
+            }
+        ],
+        "features": [],
+        "name": "isollete",
+        "opas": []
+    },
+    "sensor_impl_Instance": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "e := 1.0",
+                        "measuredTemp := boxTemp+e"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": [
+                "e"
+            ]
+        },
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [
+            {
+                "direction": "",
+                "name": "boxTemp",
+                "type": "DataPort"
+            },
+            {
+                "direction": "out",
+                "name": "measuredTemp",
+                "type": "DataPort"
+            }
+        ],
+        "name": "sensor",
+        "opas": [
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "10"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "10"
+            }
+        ]
+    }
+}
