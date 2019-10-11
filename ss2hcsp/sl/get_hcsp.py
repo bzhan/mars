@@ -1,6 +1,7 @@
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
 from ss2hcsp.sl.sl_diagram import get_gcd
+from ss2hcsp.sl.Continuous.integrator import Integrator
 from itertools import product
 import operator
 
@@ -21,7 +22,7 @@ def translate_continuous(diagram):
     in_channels.sort(key=operator.attrgetter("ch_name"))
     out_channels.sort(key=operator.attrgetter("ch_name"))
 
-    # Get initial processes and ODEs
+    # Get initial process and ODEs
     init_hps = []
     ode_eqs = []
     for block in block_dict.values():
@@ -40,7 +41,6 @@ def translate_continuous(diagram):
             out_var = out_vars.pop()
             ode_eqs.append((out_var, AConst(0)))
     assert init_hps
-    init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     # Delete integrator blocks
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
@@ -126,6 +126,19 @@ def translate_continuous(diagram):
                 new_out_channels.append(hp.OutputChannel(ch_name=out_ch.ch_name, expr=out_ch.expr))
         io_comms = [(io_ch, hp.Skip()) for io_ch in in_channels + new_out_channels]
         ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=cond, io_comms=io_comms))
+
+    # Initialise input variables
+    initialised_vars = [init_hp.var_name for init_hp in init_hps]
+    assert len(initialised_vars) == len(set(initialised_vars))  # no repeated initialised varaibles
+    for ode_hp in ode_hps:
+        for io_comm in ode_hp.io_comms:
+            ch_hp = io_comm[0]
+            if isinstance(ch_hp, hp.InputChannel):
+                var_name = ch_hp.var_name
+                if var_name not in initialised_vars:
+                    init_hps.append(hp.Assign(var_name, AConst(0)))
+                    initialised_vars.append(var_name)
+    init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     assert ode_hps
     result_hp = hp.Sequence(init_hp, hp.Loop(ode_hps[0])) if len(ode_hps) == 1 \
