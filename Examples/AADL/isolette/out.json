@@ -61,6 +61,9 @@
         ]
     },
     "babybox_impl_Instance": {
+        "Sim": [
+            "q := 97; c := 100; (<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] (babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip); <q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] (babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip))**"
+        ],
         "category": "abstract",
         "components": [],
         "connections": [],

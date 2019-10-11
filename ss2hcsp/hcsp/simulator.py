@@ -176,6 +176,9 @@ def get_ode_delay(hp, state):
     if hp.constraint == false_expr:
         return 0.0
 
+    if not eval_expr(hp.constraint, state):
+        return 0.0
+
     def ode_fun(t, y):
         res = []
         state2 = copy(state)

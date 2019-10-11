@@ -1,7 +1,7 @@
 import unittest
 import os, json
 
-from aadl2hcsp.xmlparser import parser, aadlparser
+from aadl2hcsp.xmlparser import parser, aadlparser, simparser
 
 class XMLParserTest(unittest.TestCase):
     def testXMLParser(self):
@@ -11,6 +11,7 @@ class XMLParserTest(unittest.TestCase):
 
         path = './Examples/AADL/isolette/instances'
         aadl_file = './Examples/AADL/isolette/asd.aadl'
+        sim_file = "./Examples/isolette/babybox.xml"
         out_file = './Examples/AADL/isolette/out.json'
         ref_file = './Examples/AADL/isolette/out_ref.json'
 
@@ -19,6 +20,7 @@ class XMLParserTest(unittest.TestCase):
             parser(os.path.join(path, xmlfile), dic, protocol="Periodic")
 
         aadlparser(aadl_file, dic)
+        simparser(sim_file, dic)
 
         with open(ref_file, 'r', encoding='utf-8') as ref:
             dic_ref = json.load(ref)

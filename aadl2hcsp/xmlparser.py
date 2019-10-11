@@ -6,8 +6,21 @@ to a dictionary (which can be outputted as a JSON file).
 # Use minidom to parse XML files
 import xml.dom.minidom as xmldom
 from aadl2hcsp import parserAnnex
-import os
-import json
+
+from ss2hcsp.sl.port import Port
+from ss2hcsp.sl.Continuous.integrator import Integrator
+from ss2hcsp.sl.Continuous.constant import Constant
+from ss2hcsp.sl.MathOperations.product import Product
+from ss2hcsp.sl.MathOperations.bias import Bias
+from ss2hcsp.sl.MathOperations.gain import Gain
+from ss2hcsp.sl.MathOperations.add import Add
+from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
+from ss2hcsp.sl.LogicOperations.relation import Relation
+from ss2hcsp.sl.SignalRouting.switch import Switch
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem
+from ss2hcsp.sl.sl_diagram import SL_Diagram
+
+from ss2hcsp.sl.get_hcsp import get_hcsp
 
 def parseModel(model):
     """Return instances of the model separated by type."""
@@ -104,6 +117,16 @@ def aadlparser(aadlfile, dic):
             dic[th]['Annex']['var'] = var
             dic[th]['Annex']['state'] = state
             dic[th]['Annex']['trans'] = trans
+
+def simparser(simfile, dic):
+        diagram = SL_Diagram(simfile)
+        model_name = diagram.parse_xml()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        for block in dic.keys():
+            if dic[block]['name'] == model_name:
+                dic[block]['Sim'] = [str(hp) for _, hp in get_hcsp(*diagram.seperate_diagram()).hps]
 
 
 def parser(xmlfile, dic, *, protocol):

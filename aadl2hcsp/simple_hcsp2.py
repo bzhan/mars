@@ -83,6 +83,12 @@ class Abstract:
         self.sim = sim
         self.annex = annex
 
+        if self.annex:
+            self.annex_block = abstract['Annex']
+
+        if self.sim:
+            self.sim_block = abstract['Sim']
+
         for feature in abstract['features']:
             if feature['type'].lower() == 'dataport':
                 if feature['direction'].lower() == 'out':
@@ -93,7 +99,7 @@ class Abstract:
         self.lines = HCSPProcess()
         self._createAbstract()
 
-    def _createAbstract(self):
+    def _createAbstract_test(self):
         out_hp, in_hp = [],[]
         for feature in self.abstract_featureOut:
             out_hp.append(OutputChannel(self.abstract_name + '_' + feature, AVar(str(feature))))
@@ -115,8 +121,6 @@ class Abstract:
                            Assign('q', AConst(73.0)),
                            Assign('heatCommand', AConst(0)))
 
-       #if self.sim:
-       #    hps.extend(self.sim)
 
         eqs = [('boxTemp',  TimesExpr(['*', '*'], [AConst(-0.026), PlusExpr(['+','-'], [AVar('boxTemp'), AVar('q')])])),
                ('q', AVar('heatCommand'))]
@@ -128,6 +132,15 @@ class Abstract:
 
 
         self.lines.add(self.abstract_name, Sequence(init_hp, hps))
+
+    def _createAbstract(self):
+
+        hps = [Assign('x0', AConst(1))]
+
+        if self.sim:
+                hps.extend([hp_parser.parse(hp) for hp in self.sim_block])
+
+        self.lines.add(self.abstract_name, Sequence(*hps))
 
 
 class Process:
@@ -266,8 +279,7 @@ class Thread:
         if len(thread['opas']) > 0:
             for opa in thread['opas']:
                 if opa['name'] == 'Thread_Properties.Dispatch_Protocol':
-                    if opa['value'] == 'Periodic':
-                        self.thread_protocol = 'Periodic'
+                    self.thread_protocol = opa['value']
 
                 elif opa['name'] == 'Thread_Properties.Priority':
                     self.thread_priority = opa['value']
@@ -330,8 +342,10 @@ class Thread:
                                Wait(AConst(self.thread_period)))
 
         elif self.thread_protocol == 'Sporadic':
-            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
-                               Wait(AConst(self.thread_period)))
+            temp_hps = [OutputChannel('act_' + self.thread_name)]
+            for feature in self.thread_featureIn:
+                temp_hps.append(OutputChannel(self.thread_name + '_data_' + feature, AVar(str(feature))))
+            act_hps = Sequence(in_hps, Sequence(*temp_hps))
 
         self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
 
@@ -371,11 +385,20 @@ class Thread:
 
         running_hps = []
         if self.annex:
-            eqs = [('t', AConst(1))]
-            constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-            busy_io = (InputChannel('busy_' + self.thread_name), Assign('state', AConst(state[1])))
-            input_io = (in_hps, self._Discrete_Annex())
-            discrete_hps = Sequence(Assign('c', AConst(0)),ODE_Comm(eqs, constraint, [input_io, busy_io]))
+            if self.thread_protocol == 'Periodic':
+                eqs = [('t', AConst(1))]
+                constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
+                busy_io = (InputChannel('busy_' + self.thread_name), Assign('state', AConst(state[1])))
+                input_io = (in_hps, self._Discrete_Annex())
+                discrete_hps = Sequence(Assign('c', AConst(0)),ODE_Comm(eqs, constraint, [input_io, busy_io]))
+
+            elif self.thread_protocol == 'Sporadic':
+                discrete_hps = [Assign('c', AConst(0))]
+                for feature in self.thread_featureIn:
+                    discrete_hps.append(InputChannel(self.thread_name + '_data_' + feature, feature))
+                discrete_hps.append(self._Discrete_Annex())
+                discrete_hps = Sequence(*discrete_hps)
+
             running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), discrete_hps))
 
         temp_hps = []
