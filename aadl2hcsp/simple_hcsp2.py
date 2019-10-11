@@ -246,9 +246,9 @@ class Thread:
 
         # Default parameters
         self.thread_protocol = 'Periodic'
-        self.thread_priority = '1'
-        self.thread_deadline = '1000'
-        self.thread_period = '1000'
+        self.thread_priority = '0'
+        self.thread_deadline = '0'
+        self.thread_period = '0'
         self.thread_max_time = '5'
         self.thread_min_time = '1'
         self.thread_featureIn = []
@@ -306,14 +306,7 @@ class Thread:
                        Var('COM_' + self.thread_name))
         self.lines.add(self.thread_name, hps)
 
-    ### active process ###
-        if self.thread_protocol == 'Periodic':
-            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
-                               Wait(AConst(self.thread_period)))
-            self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
-
-
-    ### compute process ###
+    ###  get io channels ###
         in_hps, out_hps = [], []
         for feature in self.thread_featureIn:
             in_hps.append(InputChannel(self.thread_name + '_' + feature, feature))
@@ -330,6 +323,20 @@ class Thread:
             out_hps = Sequence(*out_hps)
         else:
             out_hps = out_hps[0]
+
+    ### active process ###
+        if self.thread_protocol == 'Periodic':
+            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
+                               Wait(AConst(self.thread_period)))
+
+        elif self.thread_protocol == 'Sporadic':
+            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
+                               Wait(AConst(self.thread_period)))
+
+        self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
+
+
+    ### compute process ###
 
         state = ['"dispatch"', '"ready"', '"running"', '"await"']
 

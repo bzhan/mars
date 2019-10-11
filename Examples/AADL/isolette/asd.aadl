@@ -116,8 +116,7 @@ thread implementation actuator.impl
 		transitions t : s -[on dispatch]-> s
   	{ 
   		if(diff > 0) heatCommand := -1;
-  		elsif(diff < 0) heatCommand := 1;
-  		else heatCommand :=0; end if;
+  		else heatCommand :=1; end if;
   	};
 	**};
 end actuator.impl;

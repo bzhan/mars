@@ -51,11 +51,6 @@
                 "value": "1000"
             },
             {
-                "name": "Timing_Properties.Period",
-                "type": "IntegerLiteral",
-                "value": "1000"
-            },
-            {
                 "name": "Timing_Properties.Compute_Execution_Time",
                 "type": "RangeValue",
                 "value": [

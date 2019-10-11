@@ -39,15 +39,16 @@ Rule 33    statement -> if_statement END IF ;
 Rule 34    statement -> if_statement else_statement END IF ;
 Rule 35    statement -> if_statement elif_statement else_statement END IF ;
 Rule 36    statement -> WHILE ( expression ) statement END WHILE ;
+Rule 37    statememt -> FOR ( expression IN expression RANGE expression ) LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ;
 
 Terminals, with rules where they appear
 
 !                    : 13
-(                    : 14 29 31 36
-)                    : 14 29 31 36
+(                    : 14 29 31 36 37
+)                    : 14 29 31 36 37
 ,                    : 17
 :                    : 21 22 27 28
-;                    : 2 3 13 21 22 27 28 33 34 35 36
+;                    : 2 3 13 21 22 27 28 33 34 35 36 37
 ATTACHED             : 2
 BOOLEAN              : 20
 COMPLETE             : 25
@@ -60,20 +61,23 @@ END                  : 33 34 35 36
 EQUALS               : 9
 FINAL                : 26
 FLOAT                : 19
+FOR                  : 37
 IF                   : 29 33 34 35
+IN                   : 37
 INITIAL              : 24
 INT                  : 18
 LEFT_ANGLE_BRA       : 10
-LEFT_CURLY_BRA       : 28
+LEFT_CURLY_BRA       : 28 37
 LEFT_DIS             : 28
 MINUS                : 5
 NAME                 : 2 16 27 28 28 28
 NUMBER               : 15
 ON                   : 28
 PLUS                 : 4
+RANGE                : 37
 REMAINDER            : 8
 RIGHT_ANGLE_BRA      : 11
-RIGHT_CURLY_BRA      : 28
+RIGHT_CURLY_BRA      : 28 37
 RIGHT_DIS            : 28
 STATE                : 27
 STATES               : 27
@@ -87,10 +91,11 @@ Nonterminals, with rules where they appear
 
 elif_statement       : 32 32 35
 else_statement       : 34 35
-expression           : 2 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 14 17 17 21 22 29 31 36
+expression           : 2 3 4 4 5 5 6 6 7 7 8 8 9 9 10 10 11 11 12 12 13 14 17 17 21 22 29 31 36 37 37 37
 if_statement         : 33 34 35
 state                : 23 23 27
-statement            : 1 1 28 29 30 31 36 0
+statememt            : 
+statement            : 1 1 28 29 30 31 36 37 0
 type                 : 21
 
 Parsing method: LALR

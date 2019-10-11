@@ -26,7 +26,7 @@ class AnnexParser(object):
             words = [w.strip() for w in line.split()]
             if ('THREAD' in words or 'thread' in words) and \
                     ('IMPLEMENTATION' in words or 'implementation' in words) and flag == 0:
-                thread_name = words[-1].replace('.','_')+'_Instance'
+                thread_name = words[-1].replace('.', '_')+'_Instance'
                 flag = 1
             elif 'annex' in words and '{**' in words and flag == 1:
                 self.Annexs[thread_name] = {}
@@ -80,7 +80,9 @@ class AnnexParser(object):
             'elsif':'ELIF',
             'else':'ELSE',
             'while': 'WHILE',
-            'end': 'END'
+            'end': 'END',
+            'for': 'FOR',
+            'in': 'IN'
         }
         tokens = ['NAME',
                   'NUMBER',
@@ -97,7 +99,8 @@ class AnnexParser(object):
                   'DIVIDE',
                   'REMAINDER',
                   'LEFT_DIS',
-                  'RIGHT_DIS'
+                  'RIGHT_DIS',
+                  'RANGE'
         ]
         tokens = tokens + list(reserved.values())
         literals = [ '(',')',',',':',';','!']
@@ -116,6 +119,7 @@ class AnnexParser(object):
         t_NUMBER = r'(-)?\d+(\.\d+)?'
         t_LEFT_DIS=r'-\['
         t_RIGHT_DIS=r']->'
+        t_RANGE = r'\...'
 
 
         def t_COMP_OP(t):
@@ -312,6 +316,14 @@ class AnnexParser(object):
         def p_while_statement(p):
             """ statement :  WHILE '(' expression ')' statement  END WHILE ';' """
             p[0] = Loop(Condition(p[3], p[5]))
+
+        def p_for_statement(p):
+            """ statememt : FOR '(' expression IN expression RANGE expression ')' LEFT_CURLY_BRA statement RIGHT_CURLY_BRA ';' """
+
+            init = Assign(str(p[3]), p[5])
+            final = RelExpr('<=', p[3], p[7])
+            cur = Assign(str(p[3]), PlusExpr(['+', '+'], [p[3], AConst(1)]))
+            p[0] = Sequence(init, Loop(Sequence(p[10], cur), final))
 
         def p_error(p):
             if p:
