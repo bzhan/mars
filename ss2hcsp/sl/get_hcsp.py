@@ -136,7 +136,8 @@ def translate_continuous(diagram):
             if isinstance(ch_hp, hp.InputChannel):
                 var_name = ch_hp.var_name
                 if var_name not in initialised_vars:
-                    init_hps.append(hp.Assign(var_name, AConst(0)))
+                    ## update by lqq
+                    init_hps.append(hp.Assign(var_name, AConst(1)))
                     initialised_vars.append(var_name)
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 

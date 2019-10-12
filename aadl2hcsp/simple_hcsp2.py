@@ -135,12 +135,16 @@ class Abstract:
 
     def _createAbstract(self):
 
-        hps = [Assign('x0', AConst(1))]
-
+        hps = []
         if self.sim:
                 hps.extend([hp_parser.parse(hp) for hp in self.sim_block])
 
-        self.lines.add(self.abstract_name, Sequence(*hps))
+        if len(hps) >= 2:
+            hps = Sequence(*hps)
+        else:
+            hps = hps[0]
+
+        self.lines.add(self.abstract_name, hps)
 
 
 class Process:
@@ -435,11 +439,23 @@ class Thread:
         temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
         running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*temp_hps)))
         running_hps = Sequence(*running_hps)
-        ## await state ##
 
-        await_hps = []
 
         if self.resource_query:
+            ## await state ##
+
+            await_hps = [OutputChannel('applyResource_' + self.thread_name)]
+            eqs = [('t', AConst(1))]
+            constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
+
+            in1 = InputChannel('haveResource_' + self.thread_name)  # insert variable
+            out1 = Assign('state', AConst(state[1]))
+
+            await_hps.append(ODE_Comm(eqs, constraint, [(in1, out1)]))
+            await_hps.append(Condition(RelExpr('==', AVar('t'), AConst(self.thread_deadline)), Assign('state', AConst(state[0]))))
+            await_hps = Sequence(*await_hps)
+
+
             com_hps.append(Loop(ITE([(RelExpr('==', AVar('state'), AConst(state[0])), dis_hps),
                                      (RelExpr('==', AVar('state'), AConst(state[1])), ready_hps),
                                      (RelExpr('==', AVar('state'), AConst(state[2])), running_hps)],
