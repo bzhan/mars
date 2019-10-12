@@ -38,7 +38,7 @@
             {
                 "name": "Thread_Properties.Dispatch_Protocol",
                 "type": "NamedValue",
-                "value": "Periodic"
+                "value": "Sporadic"
             },
             {
                 "name": "Thread_Properties.Priority",
@@ -124,7 +124,7 @@
             {
                 "name": "Thread_Properties.Dispatch_Protocol",
                 "type": "NamedValue",
-                "value": "Periodic"
+                "value": "Sporadic"
             },
             {
                 "name": "Thread_Properties.Priority",
