@@ -185,6 +185,17 @@ class SfTest(unittest.TestCase):
 
         self.assertEqual(process, expected_process)
 
+    # def testFunctions(self):
+    #     location = "/Users/BEAR/Desktop/Simulink Cases/inner_trans.xml"
+    #     diagram = SL_Diagram(location)
+    #     diagram.parse_xml()
+    #     diagram.comp_inher_st()
+    #     diagram.add_buffers()
+    #     diagram.add_line_name()
+    #     # print(diagram)
+    #     process = get_hcsp(*diagram.seperate_diagram())
+    #     print(process)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,7 +1,6 @@
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
 from ss2hcsp.sl.sl_diagram import get_gcd
-from ss2hcsp.sl.Continuous.integrator import Integrator
 from itertools import product
 import operator
 

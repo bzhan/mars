@@ -50,7 +50,7 @@ class Transition:
                     self.condition = bexpr_parser.parse(special_var + " >= " + number)
                     self.cond_vars.add(special_var)
             else:
-                self.condition = bexpr_parser.parse(conditions[0].strip("[]"))
+                self.condition = bexpr_parser.parse(condition)
         else:
             self.condition = None
         # self.condition = bexpr_parser.parse(conditions[0].strip("[]")) if conditions else None
@@ -63,8 +63,8 @@ class Transition:
         assert len(tran_acts) <= 1
         # tran_act = None
         if tran_acts:
-            self.tran_acts = re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";")
-            # tran_act = hp_parser.parse(tran_act)
+            self.tran_acts = [act.strip() for act in
+                              re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";")]
         # Delete transition action
         label = re.sub(pattern=tran_act_pattern, repl="", string=label)
 
@@ -74,9 +74,8 @@ class Transition:
         assert len(cond_acts) <= 1
         # cond_act = None
         if cond_acts:
-            self.cond_acts = [act.strip()
-                              for act in re.sub(pattern="=", repl=":=", string=cond_acts[0].strip("{;}")).split(";")]
-            # cond_act = hp_parser.parse(cond_act)
+            self.cond_acts = [act.strip() for act in
+                              re.sub(pattern="=", repl=":=", string=cond_acts[0].strip("{;}")).split(";")]
         # Delete condition action
         # print(self.cond_acts)
         label = re.sub(pattern=cond_act_pattern, repl="", string=label)

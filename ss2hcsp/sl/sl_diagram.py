@@ -15,7 +15,7 @@ from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
@@ -128,11 +128,11 @@ class SL_Diagram:
             _junction: list of Junction objects.
             
             """
-            _states, _junctions = list(), list()
+            _states, _junctions, _functions = list(), list(), list()
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
             if not children:
-                return _states, _junctions
+                return _states, _junctions, _functions
 
             assert len(children) == 1
             # Get outgoing transitions from states in children
@@ -142,8 +142,17 @@ class SL_Diagram:
             # Add out_trans and inner_trans to each state
             for child in children[0].childNodes:
                 if child.nodeName == "state":
-                    # Get ssid and name
                     ssid = child.getAttribute("SSID")
+                    state_type = get_attribute_value(child, "type")
+                    if state_type == "FUNC_STATE":
+                        # Get functions
+                        fun_name = get_attribute_value(child, "labelString")
+                        fun_script = get_attribute_value(child, "script")
+                        _functions.append(Function(ssid, fun_name, fun_script))
+                        continue
+
+                    # Extract AND- and OR-states
+                    # Get state label and name
                     labels = get_attribute_value(child, "labelString").split("\n")
                     name = labels[0]  # the name of the state
 
@@ -159,7 +168,8 @@ class SL_Diagram:
                     for act in acts:
                         assert "==" not in act
                         act = re.sub(pattern="=", repl=":=", string=act)
-                        state_acts = (lambda x: x[x.index(":") + 1:].strip("; ").split(";"))(act)
+                        state_acts = [_act.strip("; ") for _act in act[act.index(":") + 1:].split(";")]
+                        # state_acts = (lambda x: x[x.index(":") + 1:].split(";").strip("; "))(act)
                         if act.startswith("en"):
                             en = state_acts
                         elif act.startswith("du"):
@@ -192,7 +202,7 @@ class SL_Diagram:
                                 inner_trans.append(tran)
                     inner_trans.sort(key=operator.attrgetter("order"))
 
-                    # Get state type and create a state object
+                    # Create a state object
                     state_type = get_attribute_value(child, "type")
                     if state_type == "AND_STATE":
                         assert default_tran is None and out_trans == []
@@ -207,7 +217,8 @@ class SL_Diagram:
                         raise RuntimeError("ErrorStates")
 
                     # Get children states and junctions recursively
-                    child_states, child_junctions = get_children(child)
+                    child_states, child_junctions, child_functions = get_children(child)
+                    _state.funs = child_functions
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
@@ -230,7 +241,7 @@ class SL_Diagram:
 
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans))
-            return _states, _junctions
+            return _states, _junctions, _functions
 
         # Create charts
         charts = self.model.getElementsByTagName(name="chart")
@@ -238,9 +249,10 @@ class SL_Diagram:
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
 
-            chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is wrapped into an AND-state
-            # tran_dict = get_transitions(block=chart)
-            states, junctions = get_children(block=chart)
+            # A chart is wrapped into an AND-state
+            chart_state = AND_State(ssid=chart_id, name=chart_name)
+            states, junctions, functions = get_children(block=chart)
+            chart_state.funs = functions
             for state in states + junctions:
                 state.father = chart_state
                 chart_state.children.append(state)
@@ -253,8 +265,6 @@ class SL_Diagram:
 
             chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
 
-            # sf_chart = SF_Chart(name=chart_name, state=chart_state, all_vars=chart_vars, st=chart_st)
-            # self.charts[chart_name] = sf_chart
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "all_vars": chart_vars, "st": chart_st}
 

@@ -67,12 +67,20 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     hps = list()
     # acts = action.split(";")
     for act in acts:
-        if re.match(pattern="\\w+ *:=.+", string=act):  # an assigment
+        # print(re.match(pattern="\\w+", string=act), act)
+        if re.match(pattern="^\\w+ *:=.+$", string=act):  # an assigment
             hps.append(hp_parser.parse(act))
-        elif re.match(pattern="\\w+", string=act):  # an event
+        elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act):  # a function
+            assert isinstance(root.chart, SF_Chart)
+            fun_path = tuple(act[:act.index("(")].split("."))
+            for path, fun in root.chart.fun_dict.items():
+                assert len(fun_path) <= len(path) and isinstance(fun, hp.HCSP)
+                if path[-len(fun_path):] == fun_path:
+                    hps.append(fun)
+                    break
+        elif re.match(pattern="^\\w+$", string=act):  # an event
             assert isinstance(root.chart, SF_Chart)
             root.chart.has_event = True
-
             event = act + "_" + location.name
             root_num = re.findall(pattern="\\d+", string=root.name)
             assert len(root_num) == 1
@@ -97,6 +105,10 @@ class SF_Chart(Subsystem):
         self.all_states = state.get_all_descendants()  # dict
         assert self.diagram.ssid not in self.all_states
         self.all_states[self.diagram.ssid] = self.diagram
+
+        # The dictionary of functions in stateflow,
+        # in form of {path (tuple): function (hcsp)}
+        self.fun_dict = state.get_fun_dict()
 
         self.has_event = False  # if the acts in the sf_chart have any broadcast event
 

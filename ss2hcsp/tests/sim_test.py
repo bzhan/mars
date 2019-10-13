@@ -51,7 +51,7 @@ class SimTest(unittest.TestCase):
         real_hp = get_hcsp(*diagram.seperate_diagram())
         # print("R: ", real_hp)
 
-        hp_init = hp_parser.parse("x2 := 7; x1 := 3; x0 := 0; x4 := 0; x5 := 0")
+        hp_init = hp_parser.parse("x2 := 7; x1 := 3; x0 := 1; x4 := 1; x5 := 1")
         hp_ode0 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & 
         min(x2, x2) < 5 && x5 < 10 || x4 < 10 && min(x2, x2) >= 5> |> 
         [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
@@ -175,7 +175,7 @@ class SimTest(unittest.TestCase):
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
-        con_init = hp_parser.parse("x2 := 10; x1 := 1; x0 := 0")
+        con_init = hp_parser.parse("x2 := 10; x1 := 1; x0 := 1")
         con_hp = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & true> |> 
         [] (ch_x0_0?x0 --> skip, ch_x1_0!x1 --> skip, ch_x2_2!x2 --> skip, ch_x3_0!min(x2, x2) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
@@ -246,7 +246,7 @@ class SimTest(unittest.TestCase):
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
-        con_init = hp_parser.parse("x3 := 3; x1 := 2; x0 := 0")
+        con_init = hp_parser.parse("x3 := 3; x1 := 2; x0 := 1")
         con_hp = hp_parser.parse(r"""<x3_dot = x1, x1_dot = x0 & true> |> 
         [] (ch_x0_0?x0 --> skip, ch_x1_1!x1 --> skip, ch_x3_0!x3 --> skip, ch_x6_0!min(x3, x3) --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
@@ -303,7 +303,7 @@ class SimTest(unittest.TestCase):
         discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
         expected_hp.add("PD0", discrete_hp)
 
-        con_init = hp_parser.parse("z := 1; y := 1; c := 0")
+        con_init = hp_parser.parse("z := 1; y := 1; c := 1")
         con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> 
         [] (ch_c_0?c --> skip, ch_z_0!z --> skip, ch_z_1!z --> skip)""")
         continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
@@ -324,7 +324,7 @@ class SimTest(unittest.TestCase):
 
         expected_hp = hcsp.HCSPProcess()
         # expected_hp.add(model_name, hcsp.Var("PC0"))
-        con_init = hp_parser.parse("q := 97; c := 100; x0 := 0")
+        con_init = hp_parser.parse("q := 97; c := 100; x0 := 1")
         con_hp = hp_parser.parse("<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] "
                                  "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip); "
                                  "<q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] "

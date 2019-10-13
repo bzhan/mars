@@ -1,4 +1,6 @@
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from ss2hcsp.hcsp import hcsp as hp
+import re
 
 
 class SF_State:
@@ -28,6 +30,9 @@ class SF_State:
         # Inner transitions of this state
         assert isinstance(inner_trans, (list, tuple))
         self.inner_trans = inner_trans
+
+        # Functions in this state
+        self.funs = None
 
     def __eq__(self, other):
         return self.ssid == other.ssid
@@ -179,6 +184,20 @@ class SF_State:
                 descendants.update(child_descendants)
         return descendants
 
+    def get_fun_dict(self):
+        fun_dict = dict()
+        if self.funs:
+            for fun in self.funs:
+                assert (self.name, fun.name) not in fun_dict
+                fun_dict[(self.name, fun.name)] = fun.parse()
+        for child in self.children:
+            if isinstance(child, (AND_State, OR_State)):
+                for path, hcsp in child.get_fun_dict().items():
+                    new_path = (self.name,) + path
+                    assert new_path not in fun_dict
+                    fun_dict[new_path] = hcsp
+        return fun_dict
+
     def check_children(self):
         has_AND_state = has_OR_state = has_Junction = False
         for child in self.children:
@@ -250,3 +269,20 @@ class Junction:
         if self.father != ancestor:
             return self.father.exit_to(ancestor)
         return list()
+
+
+class Function:
+    def __init__(self, ssid, name, script):
+        self.ssid = ssid
+        self.name = name
+        self.script = script
+
+    def parse(self):
+        assert "==" not in self.script
+        script = re.sub(pattern="=", repl=":=", string=self.script)
+        acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
+        assert re.match(pattern="function \\w+", string=acts[0])
+        hps = [hp_parser.parse(act) for act in acts[1:]]
+        assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
+        result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
+        return result_hp
