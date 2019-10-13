@@ -197,50 +197,110 @@ class SF_Chart(Subsystem):
             if state.name == name:
                 return state
 
-    # State transition
-    def execute_event(self, state, event_var="E"):
-        # self.parse_acts_on_states_and_trans()
-        hps = list()
+    # Execute one step from a state
+    def execute_one_step_from_state(self, state):
+        def are_instances(objects, classes):
+            assert len(objects) == len(classes)
+            return all(isinstance(_obj, _class) for _obj, _class in zip(objects, classes))
+
+        # Transfer an object into a Condition one if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
+        def to_Condition(obj):
+            if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip():
+                return hp.Condition(cond=obj.if_hps[0][0], hp=obj.if_hps[0][1])
+            return obj
+
+        # Get the result hcsp of executing outgoing and inner transitions from state
+        out_tran_hp = self.execute_trans_from_state(state, tran_type="out_trans")
+        assert isinstance(out_tran_hp, (hp.Skip, hp.ITE))
+        in_tran_hp = self.execute_trans_from_state(state, tran_type="inner_trans")
+        assert isinstance(in_tran_hp, (hp.Skip, hp.ITE))
+
+        # Get during action
+        during_hp = get_hps(state.du) if state.du else hp.Skip()
+
+        # Composite out_tran_hp, during_hp and in_tran_hp
+        comp = [out_tran_hp, during_hp, in_tran_hp]
+        if are_instances(comp, [hp.Skip, hp.Skip, hp.Skip]):
+            return hp.Skip()
+        if are_instances(comp, [hp.Skip, hp.Skip, hp.ITE]):
+            return to_Condition(in_tran_hp)
+        if are_instances(comp, [hp.Skip, hp.HCSP, hp.Skip]):
+            assert not isinstance(during_hp, hp.Skip)
+            return during_hp
+        if are_instances(comp, [hp.Skip, hp.HCSP, hp.ITE]):
+            assert not isinstance(during_hp, hp.Skip)
+            return hp.Sequence(during_hp, to_Condition(in_tran_hp))
+        if are_instances(comp, [hp.ITE, hp.Skip, hp.Skip]):
+            return to_Condition(out_tran_hp)
+        if are_instances(comp, [hp.ITE, hp.Skip, hp.ITE]):
+            assert out_tran_hp.else_hp == hp.Skip()
+            out_tran_hp.else_hp = to_Condition(in_tran_hp)
+            return out_tran_hp
+        if are_instances(comp, [hp.ITE, hp.HCSP, hp.Skip]):
+            assert not isinstance(during_hp, hp.Skip)
+            assert out_tran_hp.else_hp == hp.Skip()
+            out_tran_hp.else_hp = during_hp
+            return out_tran_hp
+        if are_instances(comp, [hp.ITE, hp.HCSP, hp.ITE]):
+            assert not isinstance(during_hp, hp.Skip)
+            assert out_tran_hp.else_hp == hp.Skip()
+            out_tran_hp.else_hp = hp.Sequence(during_hp, to_Condition(in_tran_hp))
+            return out_tran_hp
+
+    # Execute transitions from a state
+    def execute_trans_from_state(self, state, tran_type="out_trans", event_var="E"):
+        assert tran_type in ["out_trans", "inner_trans"]
+
+        if isinstance(state, AND_State) and tran_type == "out_trans":
+            return hp.Skip()  # an AND-state has no outgoing transitions
+        trans = state.out_trans if tran_type == "out_trans" else state.inner_trans
+        # state must be the source of each transition in trans
+        assert all(state.ssid == tran.src for tran in trans)
+
+        if_hps = list()
+        else_hp = hp.Skip()
         if isinstance(state, (OR_State, Junction)):
-            for out_tran in state.out_trans:
-                # event, condition, cond_act, tran_act = out_tran.parse()
+            for tran in trans:
                 conds = list()
-                if out_tran.event:
-                    conds.append(bexpr_parser.parse(event_var + ' == "' + out_tran.event + '"'))
-                if out_tran.condition:
-                    conds.append(out_tran.condition)
+                if tran.event:
+                    conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
+                if tran.condition:
+                    conds.append(tran.condition)
                 conds.append(bexpr_parser.parse("done == 0"))
                 cond = conj(*conds) if len(conds) >= 2 else conds[0]
 
-                dst_state = self.all_states[out_tran.dst]
+                dst_state = self.all_states[tran.dst]
                 assert not isinstance(dst_state, AND_State)
-                dst_state.tran_acts = state.tran_acts + out_tran.tran_acts
+
+                dst_state.tran_acts = state.tran_acts + tran.tran_acts
                 common_ancestor = get_common_ancestor(state, dst_state)
                 assert common_ancestor == get_common_ancestor(dst_state, state)
-                descendant_exit = state.all_descendant_exit() if isinstance(state, OR_State) else []
-                exit_to_ancestor = state.exit_to(ancestor=common_ancestor)
-                enter_into_dst = common_ancestor.enter_into(descendant=dst_state)
+                descendant_exit = state.all_descendant_exit() if isinstance(state, OR_State) else list()
+                exit_to_ancestor = state.exit_to(common_ancestor)
+                enter_into_dst = common_ancestor.enter_into(dst_state)
 
-                processes = list()
+                hps = list()
                 if isinstance(dst_state, OR_State):
-                    processes = out_tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
-                                + enter_into_dst + [hp_parser.parse("done := 1")]
+                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts + enter_into_dst \
+                          + [hp_parser.parse("done := 1")]
                 elif isinstance(dst_state, Junction):
-                    if not dst_state.visited:  # hasn't been visited before
+                    if not dst_state.visited:  # has not been visited before
                         dst_state.visited = True
                         assert dst_state.process is None
-                        dst_state.process = descendant_exit + exit_to_ancestor + enter_into_dst \
-                                            + self.execute_event(state=dst_state, event_var=event_var)
-                        processes = out_tran.cond_acts + dst_state.process
-                        dst_state.process = get_hps(dst_state.process)
+                        dst_state.process = self.execute_trans_from_state(dst_state, dst_state.out_trans)
+                        assert isinstance(dst_state.process, (hp.Skip, hp.Condition, hp.ITE))
+                        hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                              + enter_into_dst + ([] if dst_state.process == hp.Skip() else [dst_state.process])
                     else:  # visited before
-                        processes = out_tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
-                                    + enter_into_dst + [hp.Var(dst_state.name)]
-                if cond:
-                    hps.append((cond, processes))
-                else:
-                    hps.extend(processes)
-        return hps
+                        hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                              + enter_into_dst + [hp.Var(dst_state.name)]
+                if_hps.append((cond, get_hps(hps)))
+
+            if len(if_hps) >= 1:
+                return hp.ITE(if_hps, else_hp)
+
+        assert if_hps == list()
+        return hp.Skip()
 
     def get_monitor_process(self):
         # Get the number of AND_states
@@ -308,8 +368,8 @@ class SF_Chart(Subsystem):
             _p_diag = list()
             _p_diag_name = "Diag_" + _state.name
 
-            if _state.du:  # add dur
-                _s_du.extend(_state.du)
+            # if _state.du:  # add during action
+            #     _s_du.extend(_state.du)
             if isinstance(_state, OR_State) and _state.has_aux_var("state_time"):
                 _s_du.append(hp_parser.parse("state_time := state_time+" + str(self.st)))
             if _state.children:
@@ -318,8 +378,6 @@ class SF_Chart(Subsystem):
                 if isinstance(_state.children[0], AND_State):
                     _p_diag = [hp.Var(_child.name) for _child in _state.children]
                 else:  # OR_State
-                    # _p_diag = [hp.Condition(cond=_child.activated(), hp=hp.Var(_child.name))
-                    #            for _child in _state.children if isinstance(_child, OR_State)]
                     _p_diag = [(_child.activated(), hp.Var(_child.name))
                                for _child in _state.children if isinstance(_child, OR_State)]
 
@@ -331,13 +389,12 @@ class SF_Chart(Subsystem):
                 _s_du = hp.Sequence(*_s_du)
             # _s_du = dur; P_diag
 
-            if _hps:  # generated from an OR-state
+            # _hps is TTN(...)
+            if _hps != hp.Skip():  # generated from an OR-state
                 init = hp_parser.parse("done := 0")
-                _s_du = hp.Condition(cond=bexpr_parser.parse("done == 0"), hp=_s_du)
-                # _s_du = \neg done -> (dur; P_diag)
-
-                _s_du = hp.Sequence(init, get_hps(_hps), _s_du)
-                # _s_du = done := False; TTN(...); \neg done -> (dur; P_diag)
+                _s_du = hp.Sequence(init, _hps) if _s_du == hp.Skip() \
+                    else hp.Sequence(init, _hps, hp.Condition(cond=bexpr_parser.parse("done == 0"), hp=_s_du))
+                # _s_du = done := False; TTN(...); \neg done -> (P_diag)
             return _s_du, _p_diag, _p_diag_name
 
         # Analyse P_diag recursively
@@ -348,7 +405,7 @@ class SF_Chart(Subsystem):
                 assert _state_name
                 _state = self.get_state_by_name(name=_state_name)
                 _s_du, new_p_diag, new_p_diag_name = get_S_du_and_P_diag(_state=_state,
-                                                                         _hps=self.execute_event(_state))
+                                                                         _hps=self.execute_one_step_from_state(_state))
                 _processes.add(_state_name, _s_du)
                 if new_p_diag:
                     if isinstance(new_p_diag[0], hp.Var):
@@ -397,7 +454,8 @@ class SF_Chart(Subsystem):
         i = 1
         for s_i in parallel_states:  # for each S_i state
             assert s_i.name == "S" + str(i)
-            s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_event(state=s_i))
+            s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i,
+                                                            _hps=self.execute_one_step_from_state(s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
 
@@ -498,7 +556,8 @@ class SF_Chart(Subsystem):
             i += 1
             assert s_i.name == "S" + str(i)
 
-            s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_event(state=s_i))
+            s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i,
+                                                            _hps=self.execute_one_step_from_state(s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
             processes.add(s_i.name, s_du)

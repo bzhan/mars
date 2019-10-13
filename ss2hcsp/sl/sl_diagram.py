@@ -118,7 +118,7 @@ class SL_Diagram:
                                                               src=src_ssid, dst=dst_ssid)
             return _tran_dict
 
-        def get_children(block):  # , tran_dict):
+        def get_children(block):
             """Get lists of children states and junctions of the current
             block.
 

@@ -29,7 +29,7 @@ class SfTest(unittest.TestCase):
                    'rec X.(BC1?E; skip; if a_A == 1 then done := 0; E == "e" && done == 0 -> '
                    '(a_A2 == 1 -> a_A2 := 0; a_A1 == 1 -> a_A1 := 0; a_A := 0; a_B := 1; done := 1); '
                    'done == 0 -> if a_A1 == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_A == 1 -> '
-                   '(a_A1 := 0; a_A2 := 1; done := 1)); done == 0 -> skip elif a_A2 == 1 then skip else skip endif '
+                   '(a_A1 := 0; a_A2 := 1; done := 1)) elif a_A2 == 1 then skip else skip endif '
                    'elif a_B == 1 then skip else skip endif; BO1!; skip)'),
         ]
         expected_process = hcsp.HCSPProcess()
@@ -50,14 +50,12 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            # ("P", "@Chart"),
             ("P", "unsent := 0; cansend := 0; flag := 0; a := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
                   "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(-1); "
-                  "(if a_pushing == 1 then done := 0; done == 0 && unsent <= 0 -> "
-                  "(a_pushing := 0; a_idle := 1; done := 1); cansend == 1 && done == 0 -> "
-                  "(a_pushing := 0; unsent := unsent-1; a_pushing := 1; done := 1); "
-                  "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && unsent > 0 -> "
-                  "(a_idle := 0; a_pushing := 1; done := 1); done == 0 -> flag := 1 else skip endif; wait(-1))**"),
+                  "(if a_pushing == 1 then done := 0; if done == 0 && unsent <= 0 then a_pushing := 0; a_idle := 1; "
+                  "done := 1 elif cansend == 1 && done == 0 then a_pushing := 0; unsent := unsent-1; a_pushing := 1; "
+                  "done := 1 else flag := 0 endif elif a_idle == 1 then done := 0; if done == 0 && unsent > 0 "
+                  "then a_idle := 0; a_pushing := 1; done := 1 else flag := 1 endif else skip endif; wait(-1))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
@@ -77,16 +75,15 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            # ("P", "@Chart"),
             ("P", "i := 0; heartbeatPeriod := 0; flag := 0; cansend := 0; heartbeat := 0; a := 0; a_S1 := 0; "
                   "a_pushing := 0; a_idle := 0; a_S1 := 1; i := 3; cansend := 1; state_time := 0; a_idle := 1; "
-                  "heartbeat := 0; wait(2); (if a_pushing == 1 then done := 0; done == 0 && i <= 0 -> "
-                  "(a_pushing := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
-                  "cansend == 1 && done == 0 -> (i := i-1; a_pushing := 0; a_pushing := 1; done := 1); "
-                  "done == 0 -> flag := 0 elif a_idle == 1 then done := 0; done == 0 && i > 0 -> "
-                  "(a_idle := 0; a_pushing := 1; done := 1); done == 0 && state_time >= 3 -> "
-                  "(heartbeat := 1; a_idle := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1); "
-                  "done == 0 -> (flag := 1; state_time := state_time+2) else skip endif; wait(2))**"),
+                  "heartbeat := 0; wait(2); (if a_pushing == 1 then done := 0; if done == 0 && i <= 0 "
+                  "then a_pushing := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1 "
+                  "elif cansend == 1 && done == 0 then i := i-1; a_pushing := 0; a_pushing := 1; done := 1 "
+                  "else flag := 0 endif elif a_idle == 1 then done := 0; if done == 0 && i > 0 then a_idle := 0; "
+                  "a_pushing := 1; done := 1 elif done == 0 && state_time >= 3 then heartbeat := 1; a_idle := 0; "
+                  "state_time := 0; a_idle := 1; heartbeat := 0; done := 1 else flag := 1 endif;"
+                  "done == 0 -> (state_time := state_time+2) else skip endif; wait(2))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
@@ -110,20 +107,22 @@ class SfTest(unittest.TestCase):
             ("P", "flag := 0; re_changes := 0; ResponseDelay := 0; cansend := 0; ACKNACK := 0; a_S1 := 0; "
                   "a_repairing := 0; a_must_repair := 0; a_waiting := 0; a_S1 := 1; re_changes := 0; "
                   "ACKNACK := 1; cansend := 1; a_waiting := 1; wait(2); (if a_repairing == 1 then done := 0; "
-                  "done == 0 && re_changes == 0 -> (a_repairing := 0; a_waiting := 1; done := 1); "
-                  "cansend == 1 && done == 0 -> (a_repairing := 0; re_changes := re_changes-1; a_repairing := 1; "
-                  "done := 1); done == 0 -> flag := 0 elif a_must_repair == 1 then done := 0; "
-                  "done == 0 && state_time >= 5 -> (a_must_repair := 0; a_repairing := 1; done := 1); "
-                  "ACKNACK == 1 && done == 0 -> (a_must_repair := 0; re_changes := re_changes+1; state_time := 0; "
-                  "a_must_repair := 1; done := 1); done == 0 -> (flag := 1; state_time := state_time+2) "
-                  "elif a_waiting == 1 then done := 0; done == 0 && re_changes > 0 -> "
-                  "(ACKNACK := 0; a_waiting := 0; state_time := 0; a_must_repair := 1; done := 1); "
-                  "ACKNACK == 1 && done == 0 -> (a_waiting := 0; re_changes := re_changes+1; a_waiting := 1; "
-                  "done := 1); done == 0 -> flag := 1 else skip endif; wait(2))**"),
+                  "if done == 0 && re_changes == 0 then a_repairing := 0; a_waiting := 1; done := 1 "
+                  "elif cansend == 1 && done == 0 then a_repairing := 0; re_changes := re_changes-1; a_repairing := 1; "
+                  "done := 1 else flag := 0 endif elif a_must_repair == 1 then done := 0; "
+                  "if done == 0 && state_time >= 5 then a_must_repair := 0; a_repairing := 1; done := 1 "
+                  "elif ACKNACK == 1 && done == 0 then a_must_repair := 0; re_changes := re_changes+1; "
+                  "state_time := 0; a_must_repair := 1; done := 1 else flag := 1 endif; "
+                  "done == 0 -> (state_time := state_time+2) "
+                  "elif a_waiting == 1 then done := 0; if done == 0 && re_changes > 0 "
+                  "then ACKNACK := 0; a_waiting := 0; state_time := 0; a_must_repair := 1; done := 1 "
+                  "elif ACKNACK == 1 && done == 0 then a_waiting := 0; re_changes := re_changes+1; a_waiting := 1; "
+                  "done := 1 else flag := 1 endif else skip endif; wait(2))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
             expected_process.add(name, hp_parser.parse(_hp))
+        # print(expected_process)
 
         self.assertEqual(process, expected_process)
 
@@ -141,13 +140,13 @@ class SfTest(unittest.TestCase):
             ("P", "@PD0 || @PD1 || @PC0 || @PC1 || @Chart || @buffer0 || @buffer1"),
             ("PD0", "t := 0; (t%4 == 0 -> (ch_x6_0?x6; x7 := x6*1; ch_x7_0!x7); wait(4); t := t+4)**"),
             ("PD1", "t := 0; (t%2 == 0 -> (ch_x4_0?x4; x5 := x4*1; ch_x5_0!x5); wait(2); t := t+2)**"),
-            ("PC0", "x1 := 2; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
+            ("PC0", "x1 := 2; x7 := 0; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
             ("PC1", "x4 := 3; (<x4_dot = 1 & true> |> [] (ch_x4_0!x4 --> skip))**"),
             ("Chart", "x := 0; y := 0; a := 0; z := 0; a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; "
                       "ch_x0_0?x; ch_x1_0?a; ch_x2_0!y; wait(3); (ch_x0_0?x; ch_x1_0?a; if a_on == 1 then "
-                      "done := 0; done == 0 -> (z := x+a; y := z+1; a_on := 0; a_off := 1; done := 1); "
-                      "done == 0 -> skip elif a_off == 1 then done := 0; done == 0 -> "
-                      "(y := x-a; a_off := 0; a_on := 1; done := 1); done == 0 -> skip else skip endif; "
+                      "done := 0; done == 0 -> (z := x+a; y := z+1; a_on := 0; a_off := 1; done := 1) "
+                      "elif a_off == 1 then done := 0; done == 0 -> "
+                      "(y := x-a; a_off := 0; a_on := 1; done := 1) else skip endif; "
                       "ch_x2_0!y; wait(3))**"),
             ("buffer0", "(ch_x5_0?x5; ch_x0_0!x5; wait(2); ch_x5_0?x5; wait(1); "
                         "ch_x0_0!x5; wait(1); ch_x5_0?x5; wait(2))**"),

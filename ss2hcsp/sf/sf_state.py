@@ -125,6 +125,8 @@ class SF_State:
         assert isinstance(self, OR_State)
         assert isinstance(ancestor, (AND_State, OR_State))
         hps = list()
+        if self == ancestor:
+            return hps
         if self.ex:
             hps.extend(self.ex)
         hps.append(self._exit())  # turn off
@@ -198,6 +200,7 @@ class OR_State(SF_State):
     def __init__(self, ssid, out_trans, name="", en=None, du=None, ex=None, default_tran=None):
         super(OR_State, self).__init__(ssid, name, en, du, ex)
         self.out_trans = out_trans
+        self.inner_trans = []
         self.default_tran = default_tran  # The default transition to this state
         self.tran_acts = []  # the queue to store transition actions
 
@@ -214,6 +217,7 @@ class AND_State(SF_State):
     def __init__(self, ssid, name="", en=None, du=None, ex=None, order=0):
         super(AND_State, self).__init__(ssid, name, en, du, ex)
         self.order = order
+        self.inner_trans = []
 
 
 class Junction:
@@ -225,6 +229,7 @@ class Junction:
         self.visited = False
         self.process = None
         self.tran_acts = []  # the queue to store transition actions
+        self.inner_trans = []
 
     def __str__(self):
         result = "JUN(" + self.ssid + ") " + self.name + "\n"
