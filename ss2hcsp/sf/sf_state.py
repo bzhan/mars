@@ -14,7 +14,7 @@ class SF_State:
     - exit: when exiting the state.
 
     """
-    def __init__(self, ssid, name="", en=None, du=None, ex=None):
+    def __init__(self, ssid, inner_trans=(), name="", en=None, du=None, ex=None):
         self.ssid = ssid  # ID of the state
         self.name = name  # Name of the state
         self.en = en  # entry event
@@ -24,6 +24,10 @@ class SF_State:
         self.children = list()  # list of children states
         self.root = None  # root of the tree of containment relation
         self.chart = None  # The chart containing this state
+
+        # Inner transitions of this state
+        assert isinstance(inner_trans, (list, tuple))
+        self.inner_trans = inner_trans
 
     def __eq__(self, other):
         return self.ssid == other.ssid
@@ -50,8 +54,13 @@ class SF_State:
 
         # Display output transitions
         if isinstance(self, OR_State) and self.out_trans:
-            result += "  Transitions:\n"
+            result += "  Out-Transitions:\n"
             for tran in self.out_trans:
+                result += "    " + str(tran) + "\n"
+        # Display inner transitions
+        if self.inner_trans:
+            result += "  IN-transitions:\n"
+            for tran in self.inner_trans:
                 result += "    " + str(tran) + "\n"
 
         # Display children
@@ -91,17 +100,19 @@ class SF_State:
             hps.extend(self.en)
         # Activate children
         for child in self.children:
-            if isinstance(child, (AND_State, Junction)):
+            if isinstance(child, AND_State):
                 # hps.append(child._activate())
                 hps.extend(child.activate())
             elif isinstance(child, OR_State) and child.default_tran:
                 # Activate the state with default transition
-                # _, _, cond_act, _ = child.default_tran.parse()
                 if child.default_tran.cond_acts:
-                    # print(child.default_tran.cond_acts)
                     hps.extend(child.default_tran.cond_acts)
+                if child.default_tran.tran_acts:
+                    hps.extend(child.default_tran.tran_acts)
                 hps.extend(child.activate())
                 break
+            elif isinstance(child, Junction):
+                pass
         hps = [_hp for _hp in hps if _hp]  # delete Nones
         return hps
 
@@ -197,10 +208,9 @@ class SF_State:
 
 
 class OR_State(SF_State):
-    def __init__(self, ssid, out_trans, name="", en=None, du=None, ex=None, default_tran=None):
-        super(OR_State, self).__init__(ssid, name, en, du, ex)
+    def __init__(self, ssid, out_trans, inner_trans=(), name="", en=None, du=None, ex=None, default_tran=None):
+        super(OR_State, self).__init__(ssid, inner_trans, name, en, du, ex)
         self.out_trans = out_trans
-        self.inner_trans = []
         self.default_tran = default_tran  # The default transition to this state
         self.tran_acts = []  # the queue to store transition actions
 
@@ -214,10 +224,9 @@ class OR_State(SF_State):
 
 
 class AND_State(SF_State):
-    def __init__(self, ssid, name="", en=None, du=None, ex=None, order=0):
-        super(AND_State, self).__init__(ssid, name, en, du, ex)
+    def __init__(self, ssid, inner_trans=(), name="", en=None, du=None, ex=None, order=0):
+        super(AND_State, self).__init__(ssid, inner_trans, name, en, du, ex)
         self.order = order
-        self.inner_trans = []
 
 
 class Junction:
@@ -229,7 +238,6 @@ class Junction:
         self.visited = False
         self.process = None
         self.tran_acts = []  # the queue to store transition actions
-        self.inner_trans = []
 
     def __str__(self):
         result = "JUN(" + self.ssid + ") " + self.name + "\n"

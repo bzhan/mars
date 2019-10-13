@@ -165,12 +165,13 @@ class SF_Chart(Subsystem):
             if hasattr(state, "default_tran") and state.default_tran:
                 state.default_tran.root = state.root
                 state.default_tran.location = state.father
-            if hasattr(state, "out_trans") and state.out_trans:
-                for tran in state.out_trans:
-                    tran.root = state.root
-                    src_state = self.all_states[tran.src]
-                    dst_state = self.all_states[tran.dst]
-                    tran.location = get_common_ancestor(src_state, dst_state)
+            out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
+            inner_trans = list(state.inner_trans) if hasattr(state, "inner_trans") else list()
+            for tran in out_trans + inner_trans:
+                tran.root = state.root
+                src_state = self.all_states[tran.src]
+                dst_state = self.all_states[tran.dst]
+                tran.location = get_common_ancestor(src_state, dst_state)
 
     def parse_acts_on_states_and_trans(self):
         for state in self.all_states.values():
@@ -182,15 +183,17 @@ class SF_Chart(Subsystem):
                 if state.ex:
                     state.ex = parse_act_into_hp(acts=state.ex, root=state.root, location=state)
                 if hasattr(state, "default_tran") and state.default_tran:
-                    assert not state.default_tran.tran_acts
-                    acts = state.default_tran.cond_acts
+                    cond_acts = state.default_tran.cond_acts
+                    tran_acts = state.default_tran.tran_acts
                     root = state.default_tran.root
                     location = state.default_tran.location
-                    state.default_tran.cond_acts = parse_act_into_hp(acts, root, location)
-                if hasattr(state, "out_trans") and state.out_trans:
-                    for tran in state.out_trans:
-                        tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
-                        tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
+                    state.default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
+                    state.default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
+                out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
+                inner_trans = list(state.inner_trans) if hasattr(state, "inner_trans") else list()
+                for tran in out_trans + inner_trans:
+                    tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
+                    tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
 
     def get_state_by_name(self, name):
         for state in self.all_states.values():
@@ -251,53 +254,61 @@ class SF_Chart(Subsystem):
     def execute_trans_from_state(self, state, tran_type="out_trans", event_var="E"):
         assert tran_type in ["out_trans", "inner_trans"]
 
-        if isinstance(state, AND_State) and tran_type == "out_trans":
-            return hp.Skip()  # an AND-state has no outgoing transitions
-        trans = state.out_trans if tran_type == "out_trans" else state.inner_trans
+        # An AND-state has no outgoing transitions
+        # A Junction has no inner transitions
+        if isinstance(state, AND_State) and tran_type == "out_trans" \
+                or isinstance(state, Junction) and tran_type == "inner_trans":
+            return hp.Skip()
+
+        if tran_type == "out_trans":
+            assert isinstance(state, (OR_State, Junction))
+            trans = state.out_trans
+        else:  # tran_type == "inner_trans"
+            assert isinstance(state, (OR_State, AND_State))
+            trans = state.inner_trans
         # state must be the source of each transition in trans
         assert all(state.ssid == tran.src for tran in trans)
 
-        if_hps = list()
-        else_hp = hp.Skip()
-        if isinstance(state, (OR_State, Junction)):
-            for tran in trans:
-                conds = list()
-                if tran.event:
-                    conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
-                if tran.condition:
-                    conds.append(tran.condition)
-                conds.append(bexpr_parser.parse("done == 0"))
-                cond = conj(*conds) if len(conds) >= 2 else conds[0]
+        if_hps, else_hp = list(), hp.Skip()
+        # if isinstance(state, (OR_State, Junction)):
+        for tran in trans:
+            conds = list()
+            if tran.event:
+                conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
+            if tran.condition:
+                conds.append(tran.condition)
+            conds.append(bexpr_parser.parse("done == 0"))
+            cond = conj(*conds) if len(conds) >= 2 else conds[0]
 
-                dst_state = self.all_states[tran.dst]
-                assert not isinstance(dst_state, AND_State)
+            dst_state = self.all_states[tran.dst]
+            assert not isinstance(dst_state, AND_State)
 
-                dst_state.tran_acts = state.tran_acts + tran.tran_acts
-                common_ancestor = get_common_ancestor(state, dst_state)
-                assert common_ancestor == get_common_ancestor(dst_state, state)
-                descendant_exit = state.all_descendant_exit() if isinstance(state, OR_State) else list()
-                exit_to_ancestor = state.exit_to(common_ancestor)
-                enter_into_dst = common_ancestor.enter_into(dst_state)
+            dst_state.tran_acts = state.tran_acts + tran.tran_acts
+            common_ancestor = get_common_ancestor(state, dst_state)
+            assert common_ancestor == get_common_ancestor(dst_state, state)
+            descendant_exit = list() if isinstance(state, Junction) else state.all_descendant_exit()
+            exit_to_ancestor = state.exit_to(common_ancestor)
+            enter_into_dst = common_ancestor.enter_into(dst_state)
 
-                hps = list()
-                if isinstance(dst_state, OR_State):
-                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts + enter_into_dst \
-                          + [hp_parser.parse("done := 1")]
-                elif isinstance(dst_state, Junction):
-                    if not dst_state.visited:  # has not been visited before
-                        dst_state.visited = True
-                        assert dst_state.process is None
-                        dst_state.process = self.execute_trans_from_state(dst_state, dst_state.out_trans)
-                        assert isinstance(dst_state.process, (hp.Skip, hp.Condition, hp.ITE))
-                        hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
-                              + enter_into_dst + ([] if dst_state.process == hp.Skip() else [dst_state.process])
-                    else:  # visited before
-                        hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
-                              + enter_into_dst + [hp.Var(dst_state.name)]
-                if_hps.append((cond, get_hps(hps)))
+            hps = list()
+            if isinstance(dst_state, OR_State):
+                hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts + enter_into_dst \
+                      + [hp_parser.parse("done := 1")]
+            elif isinstance(dst_state, Junction):
+                if not dst_state.visited:  # has not been visited before
+                    dst_state.visited = True
+                    assert dst_state.process is None
+                    dst_state.process = self.execute_trans_from_state(dst_state, dst_state.out_trans)
+                    assert isinstance(dst_state.process, (hp.Skip, hp.Condition, hp.ITE))
+                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                          + enter_into_dst + ([] if dst_state.process == hp.Skip() else [dst_state.process])
+                else:  # visited before
+                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + dst_state.tran_acts \
+                          + enter_into_dst + [hp.Var(dst_state.name)]
+            if_hps.append((cond, get_hps(hps)))
 
-            if len(if_hps) >= 1:
-                return hp.ITE(if_hps, else_hp)
+        if len(if_hps) >= 1:
+            return hp.ITE(if_hps, else_hp)
 
         assert if_hps == list()
         return hp.Skip()

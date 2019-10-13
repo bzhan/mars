@@ -103,7 +103,6 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            # ("P", "@Chart"),
             ("P", "flag := 0; re_changes := 0; ResponseDelay := 0; cansend := 0; ACKNACK := 0; a_S1 := 0; "
                   "a_repairing := 0; a_must_repair := 0; a_waiting := 0; a_S1 := 1; re_changes := 0; "
                   "ACKNACK := 1; cansend := 1; a_waiting := 1; wait(2); (if a_repairing == 1 then done := 0; "
@@ -140,7 +139,7 @@ class SfTest(unittest.TestCase):
             ("P", "@PD0 || @PD1 || @PC0 || @PC1 || @Chart || @buffer0 || @buffer1"),
             ("PD0", "t := 0; (t%4 == 0 -> (ch_x6_0?x6; x7 := x6*1; ch_x7_0!x7); wait(4); t := t+4)**"),
             ("PD1", "t := 0; (t%2 == 0 -> (ch_x4_0?x4; x5 := x4*1; ch_x5_0!x5); wait(2); t := t+2)**"),
-            ("PC0", "x1 := 2; x7 := 0; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
+            ("PC0", "x1 := 2; x7 := 1; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
             ("PC1", "x4 := 3; (<x4_dot = 1 & true> |> [] (ch_x4_0!x4 --> skip))**"),
             ("Chart", "x := 0; y := 0; a := 0; z := 0; a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; "
                       "ch_x0_0?x; ch_x1_0?a; ch_x2_0!y; wait(3); (ch_x0_0?x; ch_x1_0?a; if a_on == 1 then "
@@ -152,6 +151,32 @@ class SfTest(unittest.TestCase):
                         "ch_x0_0!x5; wait(1); ch_x5_0?x5; wait(2))**"),
             ("buffer1", "(ch_x2_0?x2; ch_x6_0!x2; wait(3); ch_x2_0?x2; wait(1); "
                         "ch_x6_0!x2; wait(2); ch_x2_0?x2; wait(2); ch_x6_0!x2; wait(1); ch_x2_0?x2; wait(3))**")
+        ]
+        expected_process = hcsp.HCSPProcess()
+        for name, _hp in res:
+            expected_process.add(name, hp_parser.parse(_hp))
+        # print(expected_process)
+
+        self.assertEqual(process, expected_process)
+
+    def testInnerTrans(self):
+        location = "./Examples/Stateflow/inner_trans/inner_trans.xml"
+        diagram = SL_Diagram(location)
+        diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        # print(process)
+
+        res = [
+            ("P", "out := 0; a_S1 := 0; a_super := 0; a_sub1 := 0; a_sub2 := 0; a_S1 := 1; a_super := 1; "
+                  "out := 1; out := 3; out := 4; a_sub1 := 1; out := 7; wait(1); (a_super == 1 -> "
+                  "(done := 0; out := 2; done == 0 -> (out := 5; a_sub2 == 1 -> a_sub2 := 0; a_sub1 == 1 -> "
+                  "(out := 8; a_sub1 := 0); out := 6; a_sub1 := 1; out := 7; done := 1); done == 0 -> "
+                  "if a_sub1 == 1 then done := 0; done == 0 -> (out := 8; a_sub1 := 0; out := 6; a_sub2 := 1; "
+                  "done := 1) elif a_sub2 == 1 then done := 0; done == 0 -> (a_sub2 := 0; out := 6; a_sub1 := 1; "
+                  "out := 7; done := 1) else skip endif); wait(1))**")
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:

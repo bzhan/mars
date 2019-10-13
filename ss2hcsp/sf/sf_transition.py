@@ -87,5 +87,5 @@ class Transition:
 
         # Assertion on default transitions
         if self.src is None:  # a default transition
-            assert self.condition is None and self.tran_acts == [] and self.event == ""
+            assert self.condition is None and self.event == ""
 

@@ -90,32 +90,32 @@ class SL_Diagram:
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
 
-        def get_transitions(block):
+        def get_transitions(blocks):
             """Get a transition dictionary of the form
 
-            {(src_ssid, dst_ssid): Transition(...), ...}
+            {tran_ssid: Transition(...), ...}
 
-            mapping from pairs of IDs for states or junctions to a transition
-            between them.
+            mapping from ID to a transition.
             
             """
             _tran_dict = dict()
-            for transition in block.getElementsByTagName("transition"):
-                tran_ssid = transition.getAttribute("SSID")
-                tran_label = get_attribute_value(transition, "labelString")
-                order = int(get_attribute_value(transition, "executionOrder"))
-                assert len([child for child in transition.childNodes if child.nodeName == "src"]) == 1
-                assert len([child for child in transition.childNodes if child.nodeName == "dst"]) == 1
-                src_ssid, dst_ssid = None, None
-                for child in transition.childNodes:
-                    if child.nodeName == "src":
-                        src_ssid = get_attribute_value(child, "SSID")
-                    elif child.nodeName == "dst":
-                        dst_ssid = get_attribute_value(child, "SSID")
-                assert dst_ssid  # each transition must have a destination state
-                assert (src_ssid, dst_ssid) not in _tran_dict
-                _tran_dict[(src_ssid, dst_ssid)] = Transition(ssid=tran_ssid, label=tran_label, order=order,
-                                                              src=src_ssid, dst=dst_ssid)
+            for block in blocks:
+                if block.nodeName == "transition":
+                    tran_ssid = block.getAttribute("SSID")
+                    tran_label = get_attribute_value(block, "labelString")
+                    order = int(get_attribute_value(block, "executionOrder"))
+                    assert len([child for child in block.childNodes if child.nodeName == "src"]) == 1
+                    assert len([child for child in block.childNodes if child.nodeName == "dst"]) == 1
+                    src_ssid, dst_ssid = None, None
+                    for child in block.childNodes:
+                        if child.nodeName == "src":
+                            src_ssid = get_attribute_value(child, "SSID")
+                        elif child.nodeName == "dst":
+                            dst_ssid = get_attribute_value(child, "SSID")
+                    assert dst_ssid  # each transition must have a destination state
+                    assert tran_ssid not in _tran_dict
+                    _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
+                                                       src=src_ssid, dst=dst_ssid)
             return _tran_dict
 
         def get_children(block):
@@ -135,6 +135,11 @@ class SL_Diagram:
                 return _states, _junctions
 
             assert len(children) == 1
+            # Get outgoing transitions from states in children
+            out_trans_dict = get_transitions(children[0].childNodes)
+            # The number of default transitions is less than 1 at each hierarchy
+            assert len([tran for tran in out_trans_dict.values() if tran.src is None]) <= 1
+            # Add out_trans and inner_trans to each state
             for child in children[0].childNodes:
                 if child.nodeName == "state":
                     # Get ssid and name
@@ -154,7 +159,6 @@ class SL_Diagram:
                     for act in acts:
                         assert "==" not in act
                         act = re.sub(pattern="=", repl=":=", string=act)
-                        # hcsp = (lambda x: hp_parser.parse(x[x.index(":") + 1:].strip("; ")))(act)
                         state_acts = (lambda x: x[x.index(":") + 1:].strip("; ").split(";"))(act)
                         if act.startswith("en"):
                             en = state_acts
@@ -168,35 +172,42 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    for (src, dst), tran in tran_dict.items():
-                        if src is None and dst == ssid:
-                            # The number of default transitons is less than 1 at each hierarchy
-                            assert default_tran is None
+                    for tran in out_trans_dict.values():
+                        src, dst = tran.src, tran.dst
+                        if src is None and dst == ssid:  # it is a default transition
                             default_tran = tran
-                        elif src == ssid:
+                        elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
                     out_trans.sort(key=operator.attrgetter("order"))
-                    # Delete default_tran and out_trans from tran_dict
-                    if default_tran:
-                        del tran_dict[(None, ssid)]
-                    for tran in out_trans:
-                        del tran_dict[(tran.src, tran.dst)]
+
+                    # Get inner_trans
+                    inner_trans = list()
+                    grandchildren = [grandchild for grandchild in child.childNodes if grandchild.nodeName == "Children"]
+                    assert len(grandchildren) <= 1
+                    if len(grandchildren) == 1:
+                        inner_trans_dict = get_transitions(grandchildren[0].childNodes)
+                        for tran in inner_trans_dict.values():
+                            src, dst = tran.src, tran.dst
+                            if src == ssid:
+                                inner_trans.append(tran)
+                    inner_trans.sort(key=operator.attrgetter("order"))
 
                     # Get state type and create a state object
                     state_type = get_attribute_value(child, "type")
                     if state_type == "AND_STATE":
                         assert default_tran is None and out_trans == []
                         order = int(get_attribute_value(child, "executionOrder"))
-                        _state = AND_State(ssid=ssid, name=name, en=en, du=du, ex=ex, order=order)
+                        _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name, en=en, du=du, ex=ex,
+                                           order=order)
                     elif state_type == "OR_STATE":
-                        _state = OR_State(ssid=ssid, out_trans=out_trans, name=name, en=en, du=du, ex=ex,
-                                          default_tran=default_tran)
+                        _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,
+                                          en=en, du=du, ex=ex, default_tran=default_tran)
                     else:
                         print(state_type)
                         raise RuntimeError("ErrorStates")
 
                     # Get children states and junctions recursively
-                    child_states, child_junctions = get_children(child)  # , tran_dict)
+                    child_states, child_junctions = get_children(child)
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
@@ -206,14 +217,16 @@ class SL_Diagram:
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
 
-                    # Get out_trans
-                    out_trans = []
-                    for (src, _), tran in tran_dict.items():
-                        if src == ssid:
+                    # Get default_tran and out_trans
+                    default_tran = None
+                    out_trans = list()
+                    for tran in out_trans_dict.values():
+                        src, dst = tran.src, tran.dst
+                        if src is None and dst == ssid:  # it is a default transition
+                            default_tran = tran
+                        elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
-                    # Delete out_trans from tran_dict
-                    for tran in out_trans:
-                        del tran_dict[(tran.src, tran.dst)]
+                    out_trans.sort(key=operator.attrgetter("order"))
 
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans))
@@ -225,9 +238,9 @@ class SL_Diagram:
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
 
-            chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is encapsulated as an AND-state
-            tran_dict = get_transitions(block=chart)
-            states, junctions = get_children(block=chart)  # , tran_dict=get_transitions(block=chart))
+            chart_state = AND_State(ssid=chart_id, name=chart_name)  # A chart is wrapped into an AND-state
+            # tran_dict = get_transitions(block=chart)
+            states, junctions = get_children(block=chart)
             for state in states + junctions:
                 state.father = chart_state
                 chart_state.children.append(state)
