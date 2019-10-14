@@ -152,6 +152,22 @@ void isolette_step(void)
    *  Integrator: '<S1>/Integrator1'
    *  Sum: '<S1>/Sum'
    */
+<<<<<<< HEAD
+=======
+   //printf("XXXXXXXXXXXXXXXX, %f\n",isolette_X.Integrator1_CSTATE);
+   //printf("YYYYYYYYYYYYYYYY, %f\n",isolette_X.Integrator_CSTATE);
+  // FILE *fpWrite=fopen("heat.txt","a");
+	// 	if(fpWrite==NULL)
+  //       {
+  //           return;
+  //       }
+  //       else
+  //       {
+  //           fprintf(fpWrite, "%f\n", isolette_X.Integrator_CSTATE);
+  //       }
+  //       fclose(fpWrite);
+
+>>>>>>> d1981bc90875c9b9473e36ac60333b79de1ed1fa
   isolette_B.Gain = (isolette_X.Integrator1_CSTATE -
                      isolette_X.Integrator_CSTATE) * -0.026;
 
