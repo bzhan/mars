@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 
 data = []
-with open('output.csv') as csvDataFile:
+with open('output1.csv') as csvDataFile:
     csvReader = csv.reader(csvDataFile)
     for row in csvReader:
         data.append([float(row[0])*10+100, float(row[1])])

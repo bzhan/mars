@@ -133,17 +133,15 @@ void isolette_step(void)
   }
 
   /* Integrator: '<S1>/Integrator1' */
-  //printf("XXXXXXXXXXXXXXXX, %d\n",isolette_DW.Integrator1_IWORK);
   if (isolette_DW.Integrator1_IWORK != 0) {
     isolette_X.Integrator1_CSTATE = isolette_ConstB.Constant1;
   }
-  //printf("XXXXXXXXXXXXXXXX, %f\n",isolette_X.Integrator1_CSTATE);
 
   /* Outport: '<Root>/Out1' incorporates:
    *  Integrator: '<S1>/Integrator1'
    */
   isolette_Y.Out1 = isolette_X.Integrator1_CSTATE;
-    //printf("XXXXXXXXXXXXXXXX, %f\n",isolette_Y.Out1);
+    
   /* Integrator: '<S1>/Integrator' */
   if (isolette_DW.Integrator_IWORK != 0) {
     isolette_X.Integrator_CSTATE = isolette_ConstB.Constant;
@@ -154,19 +152,6 @@ void isolette_step(void)
    *  Integrator: '<S1>/Integrator1'
    *  Sum: '<S1>/Sum'
    */
-   //printf("XXXXXXXXXXXXXXXX, %f\n",isolette_X.Integrator1_CSTATE);
-   //printf("YYYYYYYYYYYYYYYY, %f\n",isolette_X.Integrator_CSTATE);
-  FILE *fpWrite=fopen("heat.txt","a");
-		if(fpWrite==NULL)
-        {
-            return;
-        }
-        else
-        {
-            fprintf(fpWrite, "%f\n", isolette_X.Integrator_CSTATE);
-        }
-        fclose(fpWrite);
-
   isolette_B.Gain = (isolette_X.Integrator1_CSTATE -
                      isolette_X.Integrator_CSTATE) * -0.026;
 
