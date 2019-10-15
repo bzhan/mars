@@ -1,5 +1,6 @@
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
+from ss2hcsp.sf.sf_state import Junction
 from ss2hcsp.sl.sl_diagram import get_gcd
 from itertools import product
 import operator
@@ -282,6 +283,10 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers, mod
             assert not isinstance(sf_process, hp.Parallel)
             processes.add(name, sf_process)
             main_processes.append(hp.Var(name))
+        # for state in chart.all_states:
+        #     if isinstance(state, Junction):
+        #         assert state.process
+        #         processes.add(state.name, state.process)
 
     # Computer the buffer processes
     for buffer in buffers:

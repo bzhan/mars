@@ -11,7 +11,7 @@ class SfTest(unittest.TestCase):
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
         diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
@@ -42,7 +42,7 @@ class SfTest(unittest.TestCase):
     def test_statelessWriter1(self):
         location = "./Examples/Stateflow/dds/statelessWriter1.xml"
         diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
@@ -50,7 +50,7 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "unsent := 0; cansend := 0; flag := 0; a := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
+            ("P", "a := 0; cansend := 0; flag := 0; unsent := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
                   "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(-1); "
                   "(if a_pushing == 1 then done := 0; if done == 0 && unsent <= 0 then a_pushing := 0; a_idle := 1; "
                   "done := 1 elif cansend == 1 && done == 0 then a_pushing := 0; unsent := unsent-1; a_pushing := 1; "
@@ -67,7 +67,7 @@ class SfTest(unittest.TestCase):
     def test_statelessWriter2_1(self):
         location = "./Examples/Stateflow/dds/statelessWriter2_1.xml"
         diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
@@ -75,7 +75,7 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "i := 0; heartbeatPeriod := 0; flag := 0; cansend := 0; heartbeat := 0; a := 0; a_S1 := 0; "
+            ("P", "a := 0; cansend := 0; flag := 0; heartbeat := 0; heartbeatPeriod := 0; i := 0; a_S1 := 0; "
                   "a_pushing := 0; a_idle := 0; a_S1 := 1; i := 3; cansend := 1; state_time := 0; a_idle := 1; "
                   "heartbeat := 0; wait(2); (if a_pushing == 1 then done := 0; if done == 0 && i <= 0 "
                   "then a_pushing := 0; state_time := 0; a_idle := 1; heartbeat := 0; done := 1 "
@@ -95,7 +95,7 @@ class SfTest(unittest.TestCase):
     def test_statelessWriter2_2(self):
         location = "./Examples/Stateflow/dds/statelessWriter2_2.xml"
         diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         # diagram.add_line_name()
@@ -103,7 +103,7 @@ class SfTest(unittest.TestCase):
         # print(process)
 
         res = [
-            ("P", "flag := 0; re_changes := 0; ResponseDelay := 0; cansend := 0; ACKNACK := 0; a_S1 := 0; "
+            ("P", "ACKNACK := 0; ResponseDelay := 0; cansend := 0; flag := 0; re_changes := 0; a_S1 := 0; "
                   "a_repairing := 0; a_must_repair := 0; a_waiting := 0; a_S1 := 1; re_changes := 0; "
                   "ACKNACK := 1; cansend := 1; a_waiting := 1; wait(2); (if a_repairing == 1 then done := 0; "
                   "if done == 0 && re_changes == 0 then a_repairing := 0; a_waiting := 1; done := 1 "
@@ -128,7 +128,7 @@ class SfTest(unittest.TestCase):
     def testSimulinkStateflow(self):
         location = "./Examples/Stateflow/Simulink+Stateflow/SimulinkStateflow.xml"
         diagram = SL_Diagram(location=location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
@@ -141,7 +141,7 @@ class SfTest(unittest.TestCase):
             ("PD1", "t := 0; (t%2 == 0 -> (ch_x4_0?x4; x5 := x4*1; ch_x5_0!x5); wait(2); t := t+2)**"),
             ("PC0", "x1 := 2; x7 := 1; (<x1_dot = x7 & true> |> [] (ch_x7_0?x7 --> skip, ch_x1_0!x1 --> skip))**"),
             ("PC1", "x4 := 3; (<x4_dot = 1 & true> |> [] (ch_x4_0!x4 --> skip))**"),
-            ("Chart", "x := 0; y := 0; a := 0; z := 0; a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; "
+            ("Chart", "a := 0; x := 0; y := 0; z := 0; a_S1 := 0; a_on := 0; a_off := 0; a_S1 := 1; a_on := 1; "
                       "ch_x0_0?x; ch_x1_0?a; ch_x2_0!y; wait(3); (ch_x0_0?x; ch_x1_0?a; if a_on == 1 then "
                       "done := 0; done == 0 -> (z := x+a; y := z+1; a_on := 0; a_off := 1; done := 1) "
                       "elif a_off == 1 then done := 0; done == 0 -> "
@@ -162,10 +162,11 @@ class SfTest(unittest.TestCase):
     def testInnerTrans(self):
         location = "./Examples/Stateflow/inner_trans/inner_trans.xml"
         diagram = SL_Diagram(location)
-        diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
+        # print(diagram)
         process = get_hcsp(*diagram.seperate_diagram())
         # print(process)
 
@@ -174,8 +175,8 @@ class SfTest(unittest.TestCase):
                   "out := 1; out := 3; out := 4; a_sub1 := 1; out := 7; wait(1); (a_super == 1 -> "
                   "(done := 0; out := 2; done == 0 -> (out := 5; a_sub2 == 1 -> a_sub2 := 0; a_sub1 == 1 -> "
                   "(out := 8; a_sub1 := 0); out := 6; a_sub1 := 1; out := 7; done := 1); done == 0 -> "
-                  "if a_sub1 == 1 then done := 0; done == 0 -> (out := 8; a_sub1 := 0; out := 6; a_sub2 := 1; "
-                  "done := 1) elif a_sub2 == 1 then done := 0; done == 0 -> (a_sub2 := 0; out := 6; a_sub1 := 1; "
+                  "if a_sub1 == 1 then done := 0; done == 0 -> (out := 8; a_sub1 := 0; a_sub2 := 1; "
+                  "done := 1) elif a_sub2 == 1 then done := 0; done == 0 -> (a_sub2 := 0; a_sub1 := 1; "
                   "out := 7; done := 1) else skip endif); wait(1))**")
         ]
         expected_process = hcsp.HCSPProcess()
@@ -185,16 +186,17 @@ class SfTest(unittest.TestCase):
 
         self.assertEqual(process, expected_process)
 
-    # def testFunctions(self):
-    #     location = "/Users/BEAR/Desktop/Simulink Cases/inner_trans.xml"
-    #     diagram = SL_Diagram(location)
-    #     diagram.parse_xml()
-    #     diagram.comp_inher_st()
-    #     diagram.add_buffers()
-    #     diagram.add_line_name()
-    #     # print(diagram)
-    #     process = get_hcsp(*diagram.seperate_diagram())
-    #     print(process)
+    def testFsco(self):
+        location = "./Examples/Stateflow/CTCS3/CTCS3.xml"
+        diagram = SL_Diagram(location)
+        _ = diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
 
 
 if __name__ == "__main__":

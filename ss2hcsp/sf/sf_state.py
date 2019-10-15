@@ -27,12 +27,16 @@ class SF_State:
         self.root = None  # root of the tree of containment relation
         self.chart = None  # The chart containing this state
 
+        # self.tran_acts = []  # the queue to store transition actions
+
         # Inner transitions of this state
         assert isinstance(inner_trans, (list, tuple))
         self.inner_trans = inner_trans
 
-        # Functions in this state
-        self.funs = None
+        self.funs = None  # functions in this state
+
+        # Variables modified in this state
+        # self.modified_vars = sorted(list(self.get_modified_vars()))
 
     def __eq__(self, other):
         return self.ssid == other.ssid
@@ -138,7 +142,7 @@ class SF_State:
         return hps
 
     def exit_to(self, ancestor):  # return a list of hps
-        assert isinstance(self, OR_State)
+        assert isinstance(self, (OR_State, AND_State))
         assert isinstance(ancestor, (AND_State, OR_State))
         hps = list()
         if self == ancestor:
@@ -152,7 +156,7 @@ class SF_State:
 
     def enter_into(self, descendant):  # return a list of hps
         assert isinstance(self, (AND_State, OR_State))
-        assert isinstance(descendant, (OR_State, Junction))
+        # assert isinstance(descendant, (AND_State, OR_State))
         # assert self.is_ancestor_of(descendant)
         ancestor_chain = []  # from descendant to self
         cursor = descendant
@@ -198,6 +202,33 @@ class SF_State:
                     fun_dict[new_path] = hcsp
         return fun_dict
 
+    def get_modified_vars(self):
+        en_du_ex_acts = self.en if self.en else list() + self.du if self.du else list() + self.ex if self.ex else list()
+        inner_tran_acts = list()
+        for tran in self.inner_trans:
+            inner_tran_acts.extend(list(tran.cond_acts) + list(tran.tran_acts))
+        out_tran_acts = list()
+        defalut_tran_acts = list()
+        if isinstance(self, OR_State):
+            for tran in self.out_trans:
+                out_tran_acts.extend(list(tran.cond_acts) + list(tran.tran_acts))
+            if self.default_tran:
+                defalut_tran_acts = list(self.default_tran.cond_acts) + list(self.default_tran.tran_acts)
+        assert all(isinstance(_hp, hp.HCSP) for _hp in en_du_ex_acts + inner_tran_acts + out_tran_acts
+                   + defalut_tran_acts)
+
+        modified_vars = set()
+        for _hp in en_du_ex_acts + inner_tran_acts + out_tran_acts + defalut_tran_acts:
+            if isinstance(_hp, hp.Assign):
+                modified_vars.add(_hp.var_name)
+            elif isinstance(_hp, hp.Sequence):
+                modified_vars = modified_vars.union(set(sub_hp.var_name for sub_hp in _hp.hps
+                                                        if isinstance(sub_hp, hp.Assign)))
+
+        for child in self.children:
+            modified_vars = modified_vars.union(child.get_modified_vars())
+        return modified_vars
+
     def check_children(self):
         has_AND_state = has_OR_state = has_Junction = False
         for child in self.children:
@@ -218,20 +249,12 @@ class SF_State:
                 return False
         return True
 
-    # def is_ancestor_of(self, state):  # return if self is an ancestor of the state
-    #     if state.father == self:
-    #         return True
-    #     if state.father is None:
-    #         return False
-    #     return self.is_ancestor_of(state.father)
-
 
 class OR_State(SF_State):
     def __init__(self, ssid, out_trans, inner_trans=(), name="", en=None, du=None, ex=None, default_tran=None):
         super(OR_State, self).__init__(ssid, inner_trans, name, en, du, ex)
         self.out_trans = out_trans
         self.default_tran = default_tran  # The default transition to this state
-        self.tran_acts = []  # the queue to store transition actions
 
     def has_aux_var(self, var_name):
         # return if the state has the auxiliary variable var_name
@@ -258,6 +281,9 @@ class Junction:
         self.process = None
         self.tran_acts = []  # the queue to store transition actions
 
+        # Variables modified in this junction
+        # self.modified_vars = sorted(list(self.get_modified_vars()))
+
     def __str__(self):
         result = "JUN(" + self.ssid + ") " + self.name + "\n"
         for tran in self.out_trans:
@@ -269,6 +295,18 @@ class Junction:
         if self.father != ancestor:
             return self.father.exit_to(ancestor)
         return list()
+
+    def get_modified_vars(self):
+        modified_vars = set()
+        for tran in self.out_trans:
+            assert all(isinstance(_hp, hp.HCSP) for _hp in list(tran.cond_acts) + list(tran.tran_acts))
+            for _hp in list(tran.cond_acts) + list(tran.tran_acts):
+                if isinstance(_hp, hp.Assign):
+                    modified_vars.add(_hp.var_name)
+                elif isinstance(_hp, hp.Sequence):
+                    modified_vars = modified_vars.union(set(sub_hp.var_name for sub_hp in _hp.hps
+                                                            if isinstance(sub_hp, hp.Assign)))
+        return modified_vars
 
 
 class Function:

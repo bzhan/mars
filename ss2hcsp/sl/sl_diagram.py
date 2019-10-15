@@ -10,6 +10,7 @@ from ss2hcsp.sl.MathOperations.add import Add
 from ss2hcsp.sl.MathOperations.my_abs import Abs
 from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
+from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
@@ -263,17 +264,25 @@ class SL_Diagram:
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
             chart_st = eval(chart_st) if chart_st else -1
 
-            chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
+            chart_data = dict()
+            for data in chart.getElementsByTagName(name="data"):
+                var_name = data.getAttribute("name")
+                assert var_name and var_name not in chart_data
+                value = get_attribute_value(data, "initialValue")
+                value = eval(value) if value else 0
+                chart_data[var_name] = value
+            # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
 
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "all_vars": chart_vars, "st": chart_st}
+            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st}
 
-    def parse_xml(self):
+    def parse_xml(self, model_name=""):
         self.parse_stateflow_xml()
 
         models = self.model.getElementsByTagName("Model")
-        assert len(models) == 1
-        model_name = models[0].getAttribute("Name")
+        assert len(models) <= 1
+        if models:
+            model_name = models[0].getAttribute("Name")
 
         system = self.model.getElementsByTagName("System")[0]
         # Add blocks
@@ -310,6 +319,12 @@ class SL_Diagram:
                 if relation == "~=":
                     relation = "!="
                 self.add_block(Relation(name=block_name, relation=relation, st=sample_time))
+            elif block_type == "Reference":
+                relop = get_attribute_value(block, "relop")
+                assert relop
+                if relop == "~=":
+                    relop = "!="
+                self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
             elif block_type == "Sum":
@@ -364,7 +379,7 @@ class SL_Diagram:
                     elif len(ports) == 1:
                         ports.append(0)
                     num_dest, num_src = ports
-                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], all_vars=chart_paras["all_vars"],
+                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"])
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
@@ -403,7 +418,8 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                subsystem.diagram.parse_xml()
+                inner_model_name = subsystem.diagram.parse_xml(model_name)
+                assert inner_model_name == model_name
                 self.add_block(subsystem)
             elif block_type == "Inport":
                 port_number = get_attribute_value(block, "Port")
@@ -527,7 +543,7 @@ class SL_Diagram:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
-                        if isinstance(in_block.st, (int, float)) and in_block.st >= 0:
+                        if not isinstance(in_block, SF_Chart) and in_block.st >= 0:
                             in_st.append(in_block.st)
                         else:
                             in_st = None
@@ -546,7 +562,7 @@ class SL_Diagram:
 
     def inherit_to_continuous(self):
         for block in self.blocks_dict.values():
-            if block.st == -1:
+            if not isinstance(block, SF_Chart) and block.st == -1:
                 block.st = 0
                 block.is_continuous = True
 

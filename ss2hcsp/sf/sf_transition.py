@@ -16,7 +16,7 @@ class Transition:
         self.event = None
         self.condition = None
         self.cond_acts = list()
-        self.tran_acts = list()
+        self.tran_acts = tuple()
         self.cond_vars = set()  # record SPECIAL (e.g., state time) variables in the condition
 
         self.parse()
@@ -63,8 +63,8 @@ class Transition:
         assert len(tran_acts) <= 1
         # tran_act = None
         if tran_acts:
-            self.tran_acts = [act.strip() for act in
-                              re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";")]
+            self.tran_acts = tuple(act.strip() for act in
+                                   re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";"))
         # Delete transition action
         label = re.sub(pattern=tran_act_pattern, repl="", string=label)
 

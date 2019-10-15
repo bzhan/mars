@@ -342,7 +342,13 @@ class Parallel(HCSP):
         self.type = "parallel"
         assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 2
-        self.hps = list(hps)  # type(hps) == tuple
+        # self.hps = list(hps)  # type(hps) == tuple
+        self.hps = []
+        for hp in hps:
+            if hp.type == "parallel":
+                self.hps.extend(hp.hps)
+            else:
+                self.hps.append(hp)
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
