@@ -383,7 +383,6 @@ def conj(*args):
     arg_strs = [str(arg) for arg in args]
     min_arg_index = arg_strs.index(min(arg_strs))
     return LogicExpr("&&", args[min_arg_index], conj(*args[:min_arg_index], *args[min_arg_index + 1:]))
-    # return LogicExpr("&&", args[0], conj(*args[1:]))
 
 
 def split_conj(e):
@@ -408,8 +407,7 @@ def disj(*args):
     # Select the minimal element as the head
     arg_strs = [str(arg) for arg in args]
     min_arg_index = arg_strs.index(min(arg_strs))
-    return LogicExpr("||", args[min_arg_index], conj(*args[:min_arg_index], *args[min_arg_index + 1:]))
-    # return LogicExpr("||", args[0], disj(*args[1:]))
+    return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
 
 
 def imp(b1, b2):

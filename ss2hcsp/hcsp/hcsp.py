@@ -123,6 +123,9 @@ class Assign(HCSP):
             var_str = "(%s)" % (', '.join(self.var_name))
         return var_str + " := " + str(self.expr)
 
+    def get_vars(self):
+        return {self.var_name}.union(self.expr.get_vars())
+
 
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
@@ -188,7 +191,7 @@ class Sequence(HCSP):
         assert len(hps) >= 2
         self.hps = []
         for hp in hps:
-            if hp.type == "sequence":
+            if isinstance(hp, Sequence):
                 self.hps.extend(hp.hps)
             else:
                 self.hps.append(hp)
@@ -203,6 +206,14 @@ class Sequence(HCSP):
         return "; ".join(
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
             for hp in self.hps)
+
+    def get_vars(self):
+        var_set = set()
+        for hp in self.hps:
+            assert not isinstance(hp, Sequence)
+            if isinstance(hp, Assign):
+                var_set = var_set.union(hp.get_vars())
+        return var_set
 
 
 class ODE(HCSP):

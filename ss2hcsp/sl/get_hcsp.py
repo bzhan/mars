@@ -1,6 +1,5 @@
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-from ss2hcsp.sf.sf_state import Junction
 from ss2hcsp.sl.sl_diagram import get_gcd
 from itertools import product
 import operator
@@ -136,7 +135,7 @@ def translate_continuous(diagram):
             if isinstance(ch_hp, hp.InputChannel):
                 var_name = ch_hp.var_name
                 if var_name not in initialised_vars:
-                    ## update by lqq
+                    # update by lqq
                     init_hps.append(hp.Assign(var_name, AConst(1)))
                     initialised_vars.append(var_name)
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
@@ -283,10 +282,6 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers, mod
             assert not isinstance(sf_process, hp.Parallel)
             processes.add(name, sf_process)
             main_processes.append(hp.Var(name))
-        # for state in chart.all_states:
-        #     if isinstance(state, Junction):
-        #         assert state.process
-        #         processes.add(state.name, state.process)
 
     # Computer the buffer processes
     for buffer in buffers:

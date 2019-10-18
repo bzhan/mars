@@ -1,6 +1,7 @@
 import re
 from ss2hcsp.hcsp.parser import bexpr_parser
-# from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.hcsp.expr import BExpr
+from ss2hcsp.hcsp import hcsp as hp
 
 
 class Transition:
@@ -16,7 +17,7 @@ class Transition:
         self.event = None
         self.condition = None
         self.cond_acts = list()
-        self.tran_acts = tuple()
+        self.tran_acts = list()
         self.cond_vars = set()  # record SPECIAL (e.g., state time) variables in the condition
 
         self.parse()
@@ -63,8 +64,8 @@ class Transition:
         assert len(tran_acts) <= 1
         # tran_act = None
         if tran_acts:
-            self.tran_acts = tuple(act.strip() for act in
-                                   re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";"))
+            self.tran_acts = [act.strip() for act in
+                              re.sub(pattern="=", repl=":=", string=tran_acts[0].strip("/{;}")).split(";")]
         # Delete transition action
         label = re.sub(pattern=tran_act_pattern, repl="", string=label)
 
@@ -88,3 +89,15 @@ class Transition:
         if self.src is None:  # a default transition
             assert self.condition is None and self.event == ""
 
+    def get_vars(self):
+        var_set = set()
+        # Get variables in condition
+        if self.condition:
+            assert isinstance(self.condition, BExpr)
+            var_set = var_set.union(self.condition.get_vars())
+        # Get variables in actions
+        for act in list(self.cond_acts) + list(self.tran_acts):
+            assert isinstance(act, hp.HCSP)
+            if isinstance(act, (hp.Assign, hp.Sequence)):
+                var_set = var_set.union(act.get_vars())
+        return var_set

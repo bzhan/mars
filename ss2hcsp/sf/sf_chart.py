@@ -69,9 +69,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     assert all(isinstance(act, str) for act in acts)
     assert isinstance(root, AND_State) and isinstance(location, (AND_State, OR_State))
 
-    # Get VIn
-    # def vin(_i, _vars): return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
-
     hps = list()
     # acts = action.split(";")
     for act in acts:
@@ -80,12 +77,13 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             hps.append(hp_parser.parse(act))
         elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
-            fun_path = tuple(act[:act.index("(")].split("."))
-            for path, fun in root.chart.fun_dict.items():
-                assert len(fun_path) <= len(path) and isinstance(fun, hp.HCSP)
-                if path[-len(fun_path):] == fun_path:
-                    hps.append(fun)
-                    break
+            hps.append(root.chart.get_fun_by_path(act))
+            # fun_path = tuple(act[:act.index("(")].split("."))
+            # for path, fun in root.chart.fun_dict.items():
+            #     assert len(fun_path) <= len(path) and isinstance(fun, hp.HCSP)
+            #     if path[-len(fun_path):] == fun_path:
+            #         hps.append(fun)
+            #         break
         elif re.match(pattern="^\\w+$", string=act):  # an event
             assert isinstance(root.chart, SF_Chart)
             root.chart.has_event = True
@@ -94,8 +92,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             assert len(root_num) == 1
             root_num = root_num[0]
             hps.append(hp_parser.parse("BR" + root_num + "!" + event))
-            # if location.root.modified_vars:
-            #     hps.append(hp_parser.parse(vin(root_num, location.root.modified_vars)))
             hps.append(hp.Var("X"))
     return hps
 
@@ -216,16 +212,16 @@ class SF_Chart(Subsystem):
                     root = state.default_tran.root
                     location = state.default_tran.location
                     state.default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
-                    state.default_tran.tran_acts = tuple(parse_act_into_hp(tran_acts, root, location))
+                    state.default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
                 out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
                 inner_trans = list(state.inner_trans) if hasattr(state, "inner_trans") else list()
                 for tran in out_trans + inner_trans:
                     tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
-                    tran.tran_acts = tuple(parse_act_into_hp(tran.tran_acts, tran.root, tran.location))
+                    tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
             elif isinstance(state, Junction):
                 for tran in state.out_trans:
                     tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
-                    tran.tran_acts = tuple(parse_act_into_hp(tran.tran_acts, tran.root, tran.location))
+                    tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
             else:
                 print(state, type(state))
                 raise RuntimeError("Error State!")
@@ -234,6 +230,20 @@ class SF_Chart(Subsystem):
         for state in self.all_states.values():
             if state.name == name:
                 return state
+
+    def get_fun_by_path(self, fun_path):
+        assert isinstance(fun_path, str)
+        fun_path = tuple(fun_path[:fun_path.index("(")].split("."))
+        matched_paths = []
+        for path, fun in self.fun_dict.items():
+            assert len(fun_path) <= len(path) and isinstance(fun, hp.HCSP)
+            if path[-len(fun_path):] == fun_path:
+                matched_paths.append(path)
+        assert matched_paths
+        path_lengths = [len(path) for path in matched_paths]
+        assert len(path_lengths) == len(set(path_lengths))
+        longest_path = matched_paths[path_lengths.index(max(path_lengths))]
+        return self.fun_dict[longest_path]
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -293,7 +303,7 @@ class SF_Chart(Subsystem):
         :param event_var: event variable, E default
         :return: an hcsp (an ITE or Skip object) of execution result
         """
-        assert tran_type in ["out_trans", "inner_trans"] and isinstance(tran_act_Q, tuple)
+        assert tran_type in ["out_trans", "inner_trans"]
 
         # An AND-state has no outgoing transitions
         # A Junction has no inner transitions
@@ -321,7 +331,7 @@ class SF_Chart(Subsystem):
             cond = conj(*conds) if len(conds) >= 2 else conds[0]
 
             dst_state = self.all_states[tran.dst]
-            current_tran_act_Q = tuple(tran_act_Q) + tuple(tran.tran_acts)
+            current_tran_act_Q = list(tran_act_Q) + tran.tran_acts
             common_ancestor = get_common_ancestor(state, dst_state)
             assert common_ancestor == get_common_ancestor(dst_state, state)
             descendant_exit = list() if isinstance(state, Junction) else state.all_descendant_exit()
@@ -331,20 +341,26 @@ class SF_Chart(Subsystem):
             hps = list()
             if isinstance(dst_state, (AND_State, OR_State)):
                 assert not isinstance(dst_state, AND_State) or tran_type == "inner_trans"
-                hps = tran.cond_acts + descendant_exit + exit_to_ancestor + list(current_tran_act_Q) + enter_into_dst \
+                hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
                       + [hp_parser.parse("done := 1")]
             elif isinstance(dst_state, Junction):
-                if not dst_state.visited:  # has not been visited before
+                if not dst_state.visited:  # has not been visited in this round
                     dst_state.visited = True
-                    assert dst_state.process is None
-                    dst_state.process = self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
-                                                                      tran_act_Q=current_tran_act_Q)
-                    assert isinstance(dst_state.process, (hp.Skip, hp.Condition, hp.ITE))
-                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + list(current_tran_act_Q) \
-                          + enter_into_dst + ([] if dst_state.process == hp.Skip() else [dst_state.process])
-                else:  # visited before
-                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + list(current_tran_act_Q) \
-                          + enter_into_dst + [hp.Var(dst_state.name)]
+                    assert isinstance(dst_state.processes, list)
+                    num = len(dst_state.processes)
+                    process_name = dst_state.name + str(num)
+                    assert all(process_name != name for name, _ in dst_state.processes)
+                    process = self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
+                                                            tran_act_Q=current_tran_act_Q)
+                    assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
+                    dst_state.processes.append((process_name, process))
+                    dst_state.visited = False
+                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                          + enter_into_dst + ([] if process == hp.Skip() else [process])
+                else:  # visited in this round
+                    process_name = dst_state.processes[-1][0]
+                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                          + enter_into_dst + [hp.Var(process_name)]
             if_hps.append((cond, get_hcsp(hps)))
 
         if len(if_hps) >= 1:
@@ -360,11 +376,11 @@ class SF_Chart(Subsystem):
 
         # Get input channels
         in_channels = []
-        # print(self.subsystem)
         for port_id, in_var in self.port_to_in_var.items():
             line = self.dest_lines[port_id]
             ch_name = "ch_" + line.name + "_" + str(line.branch)
             in_channels.append(ch_name + "?" + in_var)
+        in_channels.sort()
 
         # Get output channels
         out_channels = []
@@ -373,6 +389,7 @@ class SF_Chart(Subsystem):
             for line in lines:
                 ch_name = "ch_" + line.name + "_" + str(line.branch)
                 out_channels.append(ch_name + "!" + out_var)
+        out_channels.sort()
 
         # Variable Initialisation
         init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
@@ -387,19 +404,13 @@ class SF_Chart(Subsystem):
         def vout(_i, _vars):
             if not _vars:
                 return "skip"
-            # var_list = "[" + ", ".join(_vars) + "]" if len(_vars) >= 2 else _vars[0]
-            # return "VOut_" + str(_i) + "!" + var_list
-            _var = sorted(list(_vars))
-            return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+            return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 
         # Get VIn
         def vin(_i, _vars):
             if not _vars:
                 return "skip"
-            # var_list = "[" + ", ".join(_vars) + "]" if len(_vars) >= 2 else _vars[0]
-            # return "VIn_" + str(_i) + "?" + var_list
-            _var = sorted(list(_vars))
-            return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
+            return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
 
         in_channels = "; ".join(in_channels) + "; " if in_channels else ""
         out_channels = "; ".join(out_channels) + "; " if out_channels else ""
@@ -410,13 +421,13 @@ class SF_Chart(Subsystem):
             i = str(i)
             s_i = self.get_state_by_name("S" + i)
             assert isinstance(s_i, AND_State)
-            modified_vars = s_i.get_modified_vars()
+            vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> " + vout(i, modified_vars)
-                                                    + " $ BR" + i + "?E -->" + vin(i, modified_vars) +
+                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> " + vout(i, vars_in_s_i)
+                                                    + " $ BR" + i + "?E -->" + vin(i, vars_in_s_i) +
                                                     "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "? -->" + vin(i, modified_vars)
-                                                    + "; num := num+1; NL := pop(NL); NL := push(NL, 1))"))
+                                                    + "? -->" + vin(i, vars_in_s_i)
+                                                    + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; "
@@ -485,19 +496,13 @@ class SF_Chart(Subsystem):
         def vout(_i, _vars):
             if not _vars:
                 return "skip"
-            # var_list = "[" + ", ".join(_vars) + "]" if len(_vars) >= 2 else _vars[0]
-            # return "VOut_" + str(_i) + "?" + var_list
-            _var = sorted(list(_vars))
-            return "; ".join("VOut" + str(_i) + "_" + _var + "?" + _var for _var in _vars)
+            return "; ".join("VOut" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
 
         # Get VIn
         def vin(_i, _vars):
             if not _vars:
                 return "skip"
-            # var_list = "[" + ", ".join(_vars) + "]" if len(_vars) >= 2 else _vars[0]
-            # return "VIn_" + str(_i) + "!" + var_list
-            _var = sorted(list(_vars))
-            return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in _vars)
+            return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 
         # Add VIn! after BR! in an hcsp list of state
         def add_VIn_after_BR_in_list(_num, _hps, _modified_vars):
@@ -581,17 +586,17 @@ class SF_Chart(Subsystem):
         i = 1
         for s_i in parallel_states:  # for each S_i state
             assert s_i.name == "S" + str(i)
-            modified_vars = s_i.get_modified_vars()
-            add_VIn_after_BR_in_state(i, s_i, modified_vars)
+            vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
+            add_VIn_after_BR_in_state(i, s_i, vars_in_s_i)
 
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_one_step_from_state(s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
 
             # Body of process S_i
-            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, modified_vars)),
+            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, vars_in_s_i)),
                                    s_du,  # S_du
-                                   hp_parser.parse("BO" + str(i) + "!; " + vin(i, modified_vars)))
+                                   hp_parser.parse("BO" + str(i) + "!; " + vin(i, vars_in_s_i)))
 
             # P_diag = p_diag_proc
             if p_diag:
@@ -614,7 +619,8 @@ class SF_Chart(Subsystem):
                 # if hp.Var("X") in hp.decompose(process):
                 if process.contain_hp(name="X"):
                     contain_X = True
-                    s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()), hp.Recursion(s_i_proc))
+                    s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),
+                                           hp.Loop(hp.Recursion(s_i_proc)))
                     break
             if not contain_X:
                 s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()), hp.Loop(s_i_proc))
@@ -627,8 +633,9 @@ class SF_Chart(Subsystem):
         # Add Junction processes
         for state in self.all_states.values():
             if isinstance(state, Junction):
-                assert state.process
-                processes.add(state.name, state.process)
+                assert state.processes
+                for process_name, process in state.processes:
+                    processes.add(process_name, process)
         substituted = processes.substitute()
         # Only one parallel process
         assert len([process for process in substituted.values() if isinstance(process, hp.Parallel)]) == 1
@@ -710,6 +717,12 @@ class SF_Chart(Subsystem):
                 processes.add(p_diag_name, p_diag_proc)
                 analyse_P_diag(p_diag, processes)  # analyse P_diag recursively
 
+        # Add Junction processes
+        for state in self.all_states.values():
+            if isinstance(state, Junction):
+                assert state.processes
+                for process_name, process in state.processes:
+                    processes.add(process_name, process)
         substituted = processes.substitute()
         processes.hps = [(self.name, substituted[self.name])]
 

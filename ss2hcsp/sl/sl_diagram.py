@@ -127,6 +127,7 @@ class SL_Diagram:
 
             _states: list of SF_State objects.
             _junction: list of Junction objects.
+            _functions : list of Function objects.
             
             """
             _states, _junctions, _functions = list(), list(), list()
@@ -228,7 +229,6 @@ class SL_Diagram:
                     _states.append(_state)
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
-
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
@@ -239,7 +239,6 @@ class SL_Diagram:
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
                     out_trans.sort(key=operator.attrgetter("order"))
-
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans))
             return _states, _junctions, _functions

@@ -196,38 +196,32 @@ class SF_State:
                 fun_dict[(self.name, fun.name)] = fun.parse()
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
-                for path, hcsp in child.get_fun_dict().items():
+                child_fun_dict = child.get_fun_dict()
+                for path, hcsp in child_fun_dict.items():
                     new_path = (self.name,) + path
                     assert new_path not in fun_dict
                     fun_dict[new_path] = hcsp
         return fun_dict
 
-    def get_modified_vars(self):
-        en_du_ex_acts = self.en if self.en else list() + self.du if self.du else list() + self.ex if self.ex else list()
-        inner_tran_acts = list()
+    def get_vars(self):
+        var_set = set()
+        en_du_ex_acts = (self.en if self.en else list()) \
+                        + (self.du if self.du else list()) \
+                        + (self.ex if self.ex else list())
+        for act in en_du_ex_acts:
+            assert isinstance(act, hp.HCSP)
+            if isinstance(act, (hp.Assign, hp.Sequence)):
+                var_set = var_set.union(act.get_vars())
         for tran in self.inner_trans:
-            inner_tran_acts.extend(list(tran.cond_acts) + list(tran.tran_acts))
-        out_tran_acts = list()
-        defalut_tran_acts = list()
+            var_set = var_set.union(tran.get_vars())
         if isinstance(self, OR_State):
             for tran in self.out_trans:
-                out_tran_acts.extend(list(tran.cond_acts) + list(tran.tran_acts))
+                var_set = var_set.union(tran.get_vars())
             if self.default_tran:
-                defalut_tran_acts = list(self.default_tran.cond_acts) + list(self.default_tran.tran_acts)
-        assert all(isinstance(_hp, hp.HCSP) for _hp in en_du_ex_acts + inner_tran_acts + out_tran_acts
-                   + defalut_tran_acts)
-
-        modified_vars = set()
-        for _hp in en_du_ex_acts + inner_tran_acts + out_tran_acts + defalut_tran_acts:
-            if isinstance(_hp, hp.Assign):
-                modified_vars.add(_hp.var_name)
-            elif isinstance(_hp, hp.Sequence):
-                modified_vars = modified_vars.union(set(sub_hp.var_name for sub_hp in _hp.hps
-                                                        if isinstance(sub_hp, hp.Assign)))
-
+                var_set = var_set.union(self.default_tran.get_vars())
         for child in self.children:
-            modified_vars = modified_vars.union(child.get_modified_vars())
-        return modified_vars
+            var_set = var_set.union(child.get_vars())
+        return var_set
 
     def check_children(self):
         has_AND_state = has_OR_state = has_Junction = False
@@ -278,8 +272,8 @@ class Junction:
         self.name = name
         self.father = None
         self.visited = False
-        self.process = None
-        self.tran_acts = []  # the queue to store transition actions
+        self.processes = list()
+        self.tran_acts = list()  # the queue to store transition actions
 
         # Variables modified in this junction
         # self.modified_vars = sorted(list(self.get_modified_vars()))
@@ -296,17 +290,11 @@ class Junction:
             return self.father.exit_to(ancestor)
         return list()
 
-    def get_modified_vars(self):
-        modified_vars = set()
+    def get_vars(self):
+        var_set = set()
         for tran in self.out_trans:
-            assert all(isinstance(_hp, hp.HCSP) for _hp in list(tran.cond_acts) + list(tran.tran_acts))
-            for _hp in list(tran.cond_acts) + list(tran.tran_acts):
-                if isinstance(_hp, hp.Assign):
-                    modified_vars.add(_hp.var_name)
-                elif isinstance(_hp, hp.Sequence):
-                    modified_vars = modified_vars.union(set(sub_hp.var_name for sub_hp in _hp.hps
-                                                            if isinstance(sub_hp, hp.Assign)))
-        return modified_vars
+            var_set = var_set.union(tran.get_vars())
+        return var_set
 
 
 class Function:

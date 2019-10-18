@@ -3,7 +3,7 @@
 import unittest
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
-from ss2hcsp.hcsp.parser import hp_parser
+from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
 
 
@@ -22,15 +22,15 @@ class SfTest(unittest.TestCase):
             ("P", "@M || @S1"),
             ("M", 'num := 0; wait(-1); (num == 0 -> (E := ""; EL := [""]; NL := [1]; num := 1); '
                   'num == 1 -> (BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 '
-                  '$ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, 1)); '
+                  '$ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(-1)); '
                   'EL != [] -> (E := top(EL); num := top(NL))))**'),
             ("S1", 'a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; a_S1 := 1; a_A := 1; a_A1 := 1; '
-                   'rec X.(BC1?E; skip; if a_A == 1 then done := 0; E == "e" && done == 0 -> '
+                   '(rec X.(BC1?E; skip; if a_A == 1 then done := 0; E == "e" && done == 0 -> '
                    '(a_A2 == 1 -> a_A2 := 0; a_A1 == 1 -> a_A1 := 0; a_A := 0; a_B := 1; done := 1); '
                    'done == 0 -> if a_A1 == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_A == 1 -> '
                    '(a_A1 := 0; a_A2 := 1; done := 1)) elif a_A2 == 1 then skip else skip endif '
-                   'elif a_B == 1 then skip else skip endif; BO1!; skip)'),
+                   'elif a_B == 1 then skip else skip endif; BO1!; skip))**'),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
