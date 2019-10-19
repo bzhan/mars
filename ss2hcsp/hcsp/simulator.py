@@ -11,7 +11,7 @@ from scipy.integrate import solve_ivp
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, ArrayIdxExpr, BConst, LogicExpr, RelExpr, true_expr, \
-    opt_round, get_range, split_conj, false_expr
+    opt_round, get_range, split_conj, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 
@@ -212,14 +212,17 @@ def get_ode_delay(hp, state):
     # of the time range.
     min_delay = 100
     for c in split_conj(hp.constraint):
-        event = lambda t, y: event_gen(t, y, c)
-        event.terminal = True  # Terminate execution when result is 0
-        event.direction = 1    # Crossing from negative to positive
+        events = []
+        for atom in split_disj(c):
+            event = lambda t, y: event_gen(t, y, atom)
+            event.terminal = True  # Terminate execution when result is 0
+            event.direction = 1    # Crossing from negative to positive
+            events.append(event)
 
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=events, rtol=1e-5, atol=1e-7)
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break

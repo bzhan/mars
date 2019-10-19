@@ -410,6 +410,13 @@ def disj(*args):
     return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
 
 
+def split_disj(e):
+    if isinstance(e, LogicExpr) and e.op == '||':
+        return [e.expr1] + split_disj(e.expr2)
+    else:
+        return [e]
+
+
 def imp(b1, b2):
     if b1 == false_expr or b2 == true_expr:
         return true_expr
