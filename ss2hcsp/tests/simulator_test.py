@@ -442,6 +442,16 @@ class SimulatorTest(unittest.TestCase):
             'ch?a; ch?b'
         ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
 
+    def testExecParallel30(self):
+        self.run_test([
+            'x := 0; <x_dot = 0 * x & x <= 0>'
+        ], 3, ['delay 100', 'deadlock'])
+
+    def testExecParallel31(self):
+        self.run_test([
+            'x := 0; <x_dot = 0 * x & x < 0>'
+        ], 3, ['delay 0.0', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -203,26 +203,69 @@ def get_ode_delay(hp, state):
         else:
             raise NotImplementedError
 
-    y0 = []
-    for var_name, _ in hp.eqs:
-        y0.append(state[var_name])
+    def is_zero(t):
+        """Whether the given expression simplifies to 0."""
+        if isinstance(t, TimesExpr):
+            return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
+        elif isinstance(t, AConst):
+            return t.value == 0
+        else:
+            return False
 
-    # Test the differential equation on longer and longer time ranges,
-    # return the delay if the ODE solver detects event before the end
-    # of the time range.
-    min_delay = 100
-    for c in split_conj(hp.constraint):
-        events = []
-        for atom in split_disj(c):
-            event = lambda t, y: event_gen(t, y, atom)
-            event.terminal = True  # Terminate execution when result is 0
-            event.direction = 1    # Crossing from negative to positive
-            events.append(event)
+    changed_vars = []
+    for var_name, eq in hp.eqs:
+        if not is_zero(eq):
+            changed_vars.append(var_name)
+
+    def occur_var(e, var_name):
+        if isinstance(e, RelExpr):
+            return occur_var(e.expr1, var_name) or occur_var(e.expr2, var_name)
+        if isinstance(e, AVar):
+            return e.name == var_name
+        elif isinstance(e, AConst):
+            return False
+        elif isinstance(e, PlusExpr):
+            return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
+        elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
+            return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
+        else:
+            print(e)
+            raise NotImplementedError
+
+    def test_cond(e):
+        if isinstance(e, LogicExpr) and e.op == '||':
+            delay1 = test_cond(e.expr1)
+            delay2 = test_cond(e.expr2)
+            return max(delay1, delay2)
+        
+        if isinstance(e, LogicExpr) and e.op == '&&':
+            delay1 = test_cond(e.expr1)
+            delay2 = test_cond(e.expr2)
+            return min(delay1, delay2)
+
+        if all(not occur_var(e, var_name) for var_name in changed_vars):
+            if eval_expr(e, state):
+                return 100
+            else:
+                return 0
+
+        y0 = []
+        for var_name, _ in hp.eqs:
+            y0.append(state[var_name])
+
+        # Test the differential equation on longer and longer time ranges,
+        # return the delay if the ODE solver detects event before the end
+        # of the time range.
+        min_delay = 100
+
+        event = lambda t, y: event_gen(t, y, e)
+        event.terminal = True  # Terminate execution when result is 0
+        event.direction = 1    # Crossing from negative to positive
 
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            sol = solve_ivp(ode_fun, [0, delay], y0, events=events, rtol=1e-5, atol=1e-7)
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break
@@ -230,7 +273,9 @@ def get_ode_delay(hp, state):
         if cur_delay < min_delay:
             min_delay = cur_delay
 
-    return min_delay
+        return min_delay
+
+    return test_cond(hp.constraint)
 
 def start_pos(hp):
     """Returns the starting position for a given program."""
