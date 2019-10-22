@@ -197,7 +197,6 @@ class FunExpr(AExpr):
     def __hash__(self):
         return hash(("Fun", self.fun_name, self.exprs))
 
-
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
@@ -251,7 +250,9 @@ class ListExpr(AExpr):
         return hash(("List", self.args))
 
     def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.exprs))
+        # return set().union(*(expr.get_vars() for expr in self.exprs))
+        # Modified by xux
+        return set().union(*(arg.get_vars() for arg in self.args))
 
     def subst(self, inst):
         return ListExpr(expr.subst(inst) for expr in self.args)

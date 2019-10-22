@@ -1,12 +1,26 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, BExpr, AConst, true_expr
+from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr
+import re
 
 
 class HCSP:
     def __init__(self):
         self.type = None
+
+    def sc_str(self):
+        """
+        The HCSP form that can be accepted by HCSP2SC,
+        the program translating HCSP into SystemC.
+        """
+        return str(self)
+
+    def get_vars(self):
+        return set()
+
+    def get_chs(self):
+        return set()
 
     def priority(self):
         if self.type == "parallel":
@@ -59,6 +73,9 @@ class Var(HCSP):
 
     def __str__(self):
         return "@" + self.name
+
+    def sc_str(self):
+        return self.name
 
 
 class Skip(HCSP):
@@ -124,7 +141,11 @@ class Assign(HCSP):
         return var_str + " := " + str(self.expr)
 
     def get_vars(self):
-        return {self.var_name}.union(self.expr.get_vars())
+        var_set = {self.var_name} if isinstance(self.var_name, str) else set(self.var_name)
+        return var_set.union(self.expr.get_vars())
+
+    def sc_str(self):
+        return re.sub(pattern=":=", repl="=", string=str(self))
 
 
 class InputChannel(HCSP):
@@ -152,6 +173,17 @@ class InputChannel(HCSP):
         else:
             return self.ch_name + "?"
 
+    def get_vars(self):
+        if self.var_name:
+            return {self.var_name}
+        return set()
+
+    def get_chs(self):
+        return {self.ch_name}
+
+    def sc_str(self):
+        return re.sub(pattern="\\?", repl="??", string=str(self))
+
 
 class OutputChannel(HCSP):
     def __init__(self, ch_name, expr=None):
@@ -176,6 +208,17 @@ class OutputChannel(HCSP):
             return self.ch_name + "!" + str(self.expr)
         else:
             return self.ch_name + "!"
+
+    def get_vars(self):
+        if self.expr:
+            return self.expr.get_vars()
+        return set()
+
+    def get_chs(self):
+        return {self.ch_name}
+
+    def sc_str(self):
+        return re.sub(pattern="!", repl="!!", string=str(self))
 
 
 def is_comm_channel(hp):
@@ -207,13 +250,25 @@ class Sequence(HCSP):
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
             for hp in self.hps)
 
-    def get_vars(self):
+    def sc_str(self):
+        return "; ".join(
+            hp.sc_str() if hp.priority() > self.priority() else "(" + hp.sc_str() + ")"
+            for hp in self.hps)
+
+    def get_vars(self):  # in assignments
         var_set = set()
         for hp in self.hps:
-            assert not isinstance(hp, Sequence)
-            if isinstance(hp, Assign):
-                var_set = var_set.union(hp.get_vars())
+            # if isinstance(hp, Assign):
+            # var_set = var_set.union(hp.get_vars())
+            var_set.update(hp.get_vars())
         return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for hp in self.hps:
+            # ch_set = ch_set.union(hp.get_chs())
+            ch_set.update(hp.get_chs())
+        return ch_set
 
 
 class ODE(HCSP):
@@ -250,6 +305,18 @@ class ODE(HCSP):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
+
+    def get_vars(self):
+        var_set = set()
+        for variable, expression in self.eqs:
+            var_set.add(variable)
+            var_set.update(expression.get_vars())
+        var_set.update(self.constraint.get_vars())
+        var_set.update(self.out_hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        return self.out_hp.get_chs()
 
 
 class ODE_Comm(HCSP):
@@ -297,6 +364,33 @@ class ODE_Comm(HCSP):
         str_io_comms = ", ".join(str(comm_hp) + ", " + str(out_hp) for comm_hp, out_hp in self.io_comms)
         return "ODEComm(%s, %s, %s)" % (str_eqs, str(self.constraint), str_io_comms)
 
+    def sc_str(self):
+        derivatives = "DOT(" + ", ".join(var_name for var_name, _ in self.eqs) + ")"
+        expressions = "{" + ", ".join(str(expr) for _, expr in self.eqs) + "}"
+        domain = "DOMAIN(" + ("TRUE" if self.constraint == true_expr else str(self.constraint)) + ")"
+        assert all(isinstance(out_hp, Var) for _, out_hp in self.io_comms)
+        interupt = "INTERRUPT({" + ", ".join(comm_hp.sc_str() for comm_hp, _ in self.io_comms) + "}{" \
+                   + ", ".join(out_hp.sc_str() for _, out_hp in self.io_comms) + "})"
+        return derivatives + "=" + expressions + " " + domain + " " + interupt
+
+    def get_vars(self):
+        var_set = set()
+        for variable, expression in self.eqs:
+            var_set.add(variable)
+            var_set.update(expression.get_vars())
+        var_set.update(self.constraint.get_vars())
+        for ch, out_hp in self.io_comms:
+            var_set.update(ch.get_vars())
+            var_set.update(out_hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for ch, out_hp in self.io_comms:
+            ch_set.update(ch.get_chs())
+            ch_set.update(out_hp.get_chs())
+        return ch_set
+
 
 class Loop(HCSP):
     """Represents an infinite loop of a program."""
@@ -322,6 +416,16 @@ class Loop(HCSP):
         else:
             return "(%s){%s}**" % (str(self.hp), str(self.constraint))
 
+    def sc_str(self):
+        assert isinstance(self.hp, Var)
+        return self.hp.sc_str() + "**"
+
+    def get_vars(self):
+        return self.hp.get_vars()
+
+    def get_chs(self):
+        return self.hp.get_chs()
+
 
 class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true;
@@ -344,6 +448,18 @@ class Condition(HCSP):
     def __str__(self):
         return str(self.cond) + " -> " + \
             (str(self.hp) if self.hp.priority() > self.priority() else "(" + str(self.hp) + ")")
+
+    def sc_str(self):
+        assert isinstance(self.hp, Var)
+        if_hps = ((self.cond, self.hp),)
+        else_hp = Skip()
+        return ITE(if_hps, else_hp).sc_str()
+
+    def get_vars(self):
+        return self.cond.get_vars().union(self.hp.get_vars())
+
+    def get_chs(self):
+        return self.hp.get_chs()
 
 
 class Parallel(HCSP):
@@ -372,6 +488,23 @@ class Parallel(HCSP):
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
             for hp in self.hps)
 
+    def sc_str(self):
+        return " || ".join(
+            hp.sc_str() if hp.priority() > self.priority() else "(" + hp.sc_str() + ")"
+            for hp in self.hps)
+
+    def get_vars(self):
+        var_set = set()
+        for hp in self.hps:
+            var_set.update(hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for hp in self.hps:
+            ch_set.update(hp.get_chs())
+        return ch_set
+
 
 class SelectComm(HCSP):
     def __init__(self, *io_comms):
@@ -397,9 +530,27 @@ class SelectComm(HCSP):
 
     def __str__(self):
         return " $ ".join(
-            "%s --> %s" % (comm_hp, out_hp) if out_hp.priority() > self.priority() else \
-                "%s --> (%s)" % (comm_hp, out_hp) \
+            "%s --> %s" % (comm_hp, out_hp) if out_hp.priority() > self.priority() else
+            "%s --> (%s)" % (comm_hp, out_hp)
             for comm_hp, out_hp in self.io_comms)
+
+    def sc_str(self):
+        return " [[ ".join("(%s; %s)" % (comm_hp.sc_str(), out_hp.sc_str()) if out_hp.priority() > self.priority()
+                           else "(%s; (%s))" % (comm_hp.sc_str(), out_hp.sc_str()) for comm_hp, out_hp in self.io_comms)
+
+    def get_vars(self):
+        var_set = set()
+        for ch, out_hp in self.io_comms:
+            var_set.update(ch.get_vars())
+            var_set.update(out_hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for ch, out_hp in self.io_comms:
+            ch_set.update(ch.get_chs())
+            ch_set.update(out_hp.get_chs())
+        return ch_set
 
 
 class Recursion(HCSP):
@@ -418,6 +569,12 @@ class Recursion(HCSP):
 
     def __str__(self):
         return "rec " + self.entry + ".(" + str(self.hp) + ")"
+
+    def get_vars(self):
+        return self.hp.get_vars()
+
+    def get_chs(self):
+        return self.hp.get_chs()
 
 
 class ITE(HCSP):
@@ -449,6 +606,25 @@ class ITE(HCSP):
             res += "elif %s then %s " % (cond, hp)
         res += "else %s endif" % self.else_hp
         return res
+
+    def sc_str(self):
+        assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and isinstance(self.else_hp, (Skip, Var))
+        return "if %s then %s else %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str(), self.else_hp.sc_str())
+
+    def get_vars(self):
+        var_set = set()
+        for cond, hp in self.if_hps:
+            var_set.update(cond.get_vars())
+            var_set.update(hp.get_vars())
+        var_set.update(self.else_hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for _, hp in self.if_hps:
+            ch_set.update(hp.get_chs())
+        ch_set.update(self.else_hp.get_chs())
+        return ch_set
 
 
 def get_comm_chs(hp):
@@ -549,11 +725,6 @@ class HCSPProcess:
         assert set(substituted.keys()) == set(name for name, _ in self.hps)
 
         return substituted
-        # # self.hps[0] is the main process
-        # main_name, main_hp = self.hps[0]
-        # assert all(isinstance(hp, Var) for hp in main_hp.hps)
-        # self.hps = [(hp.name, substituted[hp.name]) for hp in main_hp.hps]
-        # self.hps.insert(0, (main_name, main_hp))
 
     def __str__(self):
         return "\n".join("%s ::= %s" % (name, str(hp)) for name, hp in self.hps)
@@ -563,3 +734,29 @@ class HCSPProcess:
 
     def __eq__(self, other):
         return self.hps == other.hps
+
+    def sc_str(self):
+        assert len([_ for _, hp in self.hps if isinstance(hp, Parallel)]) == 1
+        system, process = None, None
+        for name, hp in self.hps:
+            if isinstance(hp, Parallel):
+                system, process = name, hp
+                break
+        sys_def = "systemDef " + system + " ::= " + process.sc_str() + "\n\n"
+        var_def = "variableDef ::= " + ("; ".join(self.get_vars())) + "\n\n"
+        ch_def = "channelDef ::= " + ("; ".join(self.get_chs())) + "\n\n"
+        hp_def = "\n".join("processDef " + "%s ::= %s" % (name, hp.sc_str()) for name, hp in self.hps
+                           if not isinstance(hp, Parallel))
+        return sys_def + var_def + ch_def + hp_def
+
+    def get_vars(self):
+        var_set = set()
+        for _, hp in self.hps:
+            var_set.update(hp.get_vars())
+        return var_set
+
+    def get_chs(self):
+        ch_set = set()
+        for _, hp in self.hps:
+            ch_set.update(hp.get_chs())
+        return ch_set
