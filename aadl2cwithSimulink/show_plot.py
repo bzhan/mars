@@ -2,7 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 
 data = []
-with open('output1.csv') as csvDataFile:
+with open('output_sporadic.csv') as csvDataFile:
     csvReader = csv.reader(csvDataFile)
     for row in csvReader:
         data.append([float(row[0])*10+100, float(row[1])])

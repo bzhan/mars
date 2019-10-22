@@ -21,6 +21,7 @@
 typedef struct Thread 
 {
     int tid; /* The ID of a thread */
+    int event_flag;
     int runCount;
     char *threadName; /*name of thread*/
     int period; /*time interval to be stimulated*/
@@ -56,9 +57,13 @@ float measuredTemp;
 float diff;
 float boxTemp;
 
+int measuredTemp_sensor_controller = 0;
+int diff_controller_actuator = 0;
+
 
 void thread_actuator()
 {
+    diff_controller_actuator = 0;
     if (diff > 0.0) {
         heatCommand = -1.0;
     }
@@ -72,6 +77,7 @@ void thread_actuator()
 
 void thread_controller()
 {
+    measuredTemp_sensor_controller = 0;
     float gain;
     gain = 10.0;
     if (measuredTemp > 100.0) {
@@ -84,6 +90,7 @@ void thread_controller()
         diff = 0.0;
     }
 
+    diff_controller_actuator = 1;
 };
 
 void thread_sensor()
@@ -92,6 +99,7 @@ void thread_sensor()
     e = 1.0;
     measuredTemp = boxTemp+e;
 
+    measuredTemp_sensor_controller = 1;
 };
 
 void behaviorExecution(char *threadName)
@@ -157,11 +165,38 @@ void sched_HPF(struct Thread **threads, int threadNum, int iterCount)
         isolette_step();
         boxTemp = isolette_Y.Out1;
 
+        // Update event triger flag
+        for (int i = 0; i < threadNum; i++)
+        {
+            if(threads[i]->threadName == "controller")
+            {
+                if (measuredTemp_sensor_controller == 1)
+                    threads[i]->event_flag = 1;
+                else
+                    threads[i]->event_flag = 0;
+            }
+            if(threads[i]->threadName == "actuator")
+            {
+                if (diff_controller_actuator == 1)
+                    threads[i]->event_flag = 1;
+                else
+                    threads[i]->event_flag = 0;
+            }
+        }
+
         // Stage 1: check period_triger for each thread
         for (int i = 0; i < threadNum; i++)
         {
             int temp_period = threads[i]->period;
-            if (globalCount % temp_period == 0)
+            if ((temp_period > 0) && (threads[i]->dispatch_protocol == "Periodic"))
+            {
+                if (globalCount % temp_period == 0)
+                {
+                    threads[i]->state = "READY";
+                    threads[i]->runCount = 0;
+                }
+            }
+            if((threads[i]->event_flag == 1) && (threads[i]->dispatch_protocol == "Sporadic"))
             {
                 threads[i]->state = "READY";
                 threads[i]->runCount = 0;
@@ -192,7 +227,7 @@ void sched_HPF(struct Thread **threads, int threadNum, int iterCount)
             {
                 threads[i]->runCount += 1;
                 behaviorExecution(threads[i]->threadName);
-            
+                threads[i]->event_flag = 0;
 
                 if (threads[i]->runCount >= threads[i]->minExecutionTime) // Runnning Over
                 {
@@ -244,9 +279,10 @@ int main()
 {
     Thread *actuator = (Thread *)malloc(sizeof(Thread));
     actuator->tid = 1;
+    actuator->event_flag = 0;
     actuator->runCount = 0;
     actuator->threadName = "actuator"; 
-    actuator->period = 10; 
+    actuator->period = 0; 
     actuator->priority = 6; 
     actuator->deadline = 10; 
     actuator->state = "HALTED"; 
@@ -256,9 +292,10 @@ int main()
 
     Thread *controller = (Thread *)malloc(sizeof(Thread));
     controller->tid = 2;
+    controller->event_flag = 0;
     controller->runCount = 0;
     controller->threadName = "controller"; 
-    controller->period = 10; 
+    controller->period = 0; 
     controller->priority = 8; 
     controller->deadline = 10; 
     controller->state = "HALTED"; 
@@ -268,6 +305,7 @@ int main()
 
     Thread *sensor = (Thread *)malloc(sizeof(Thread));
     sensor->tid = 3;
+    sensor->event_flag = 0;
     sensor->runCount = 0;
     sensor->threadName = "sensor"; 
     sensor->period = 10; 
