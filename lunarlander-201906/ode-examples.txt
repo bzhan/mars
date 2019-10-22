@@ -1,0 +1,143 @@
+Example 1
+{
+    {(parx≥((1))) ,Inv},
+    {Inv ,(parx≥((1)))},
+    {
+        {{{parx,Null},{((2)),Null},{ True }},Inv},
+        Inv
+    },
+    Null
+}
+
+Example 2
+{
+    {(((parx≥((0)))&&(pary≥((0))))&&(parz≥((0)))) ,Inv},
+    {Inv ,(parx≥((0)))},
+    {
+        {{{parx,pary,Null},{pary,parz,Null},{ True }},Inv} ,
+        Inv
+    },
+    Null
+}
+
+Example 3
+{
+    {(parx≥((0))) ,Inv},
+    {Inv ,(parx≥((0)))},
+    {
+        {{{parx,Null},{((5)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{parx,Null},{((2)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{parx,Null},{parx,Null},{ True }},Inv} ,Inv
+    },
+    Null
+}
+
+Example 4
+{
+    {(( parx^2 ≤((1 / 2)))&&( pary^2 ≤((1 / 3)))) ,Inv},
+    {Inv ,((parx- ((4))*pary )<((8)))},
+    {
+        {{{x,y,Null},
+          {((((((0))-parx)-  ((1117))*pary /((500)) )+  ((439))* pary^3  /((200)) )- ((333))* pary^5  /((500)) ),
+           ((parx+(  ((617))*pary /((500)) - ((439))* pary^3  /((200)) ))+  ((333))* pary^5  /((500)) ),
+           Null},
+          { True }},Inv
+        } ,Inv
+    },
+    Null
+}
+
+Example 5
+{
+    {(( parx^2 ≤((1 / 2)))&&( pary^2 ≤((1 / 3)))) ,Inv},
+    {Inv ,(( (parx-((1)))^2 + (pary-((3 / 2)))^2 )>((1 / 4)))},
+    {
+        {{{x,y,Null},
+          {((pary-parx)- parx^3 ),
+           (( pary^2 -parx)-pary),
+           Null},
+          { True }},Inv
+        } ,Inv
+    },
+    Null
+}
+
+Example 6
+{
+    {(( parx^2 ==((1)))&&(( pary^2 ==((1)))&&( parz^2 ==((1))))) ,Inv},
+    {Inv ,(!((parx==((0))))&&(!((pary==((0))))&&!((parz==((0))))))},
+    {
+        {{{x,y,z,Null},
+          {( parx*pary - parx*parz ),
+           ( pary*parz - pary*parx ),
+           ( parz*parx - parz*pary ),
+           Null},
+          { True }},Inv
+        } ,Inv
+    },
+    Null
+}":
+
+Example 7
+{
+    {
+        ((plant_t≥((0)))&&((plant_t≤((16 / 125)))&&Inv)) ,
+        (((plant_v1_1+((2)))<((1 / 20)))&&((plant_v1_1+((2)))>((- (1 / 20)))))
+    },
+    {
+        ((plant_v1_1==((- 2)))&&((plant_m1_1==((1250)))&&((control_1==((4055 / 2)))&&(plant_t==((0)))))) ,
+        Inv
+    },
+    {
+        ((plant_t==((16 / 125)))&&Inv) ,
+        {
+            {plant_t,((0))},
+            Inv
+        }
+    },
+    {
+        Inv ,
+        {
+            {control_1, plant_m1_1*((((811 / 500))- ((1 / 100))*( control_1/plant_m1_1 -((811 / 500))) )- ((3 / 5))*(plant_v1_1+((2))) ) },
+            Inv
+        }
+    },
+    {
+        {{{plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},
+          {( control_1/plant_m1_1 -((811 / 500))),
+           (((0))- control_1/((2548)) ),
+           plant_v1_1,
+           ((1)),
+           Null
+          },
+         {(plant_t<((16 / 125)))}},
+         Inv
+        }, Inv
+    },
+    {
+        {{{plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},
+          {( control_1/plant_m1_1 -((811 / 500))),
+           (((0))- control_1/((2842)) ),
+           plant_v1_1,
+           ((1)),
+           Null
+          },
+         {(plant_t<((16 / 125)))}},
+         Inv
+        } ,Inv
+    },
+    Null
+}
+
+{
+    {((plant_t≥((0)))&&((plant_t≤((16 / 125)))&&Inv)) ,(((plant_v1_1+((2)))<((1 / 20)))&&((plant_v1_1+((2)))>((- (1 / 20)))))},
+    {((plant_v1_1==((- 2)))&&((plant_m1_1==((1250)))&&((control_1==((4055 / 2)))&&(plant_t==((0)))))) ,Inv},
+    {((plant_t==((16 / 125)))&&Inv) ,{{plant_t,((0))},Inv}},
+    {Inv ,{{control_1, plant_m1_1*((((811 / 500))- ((1 / 100))*( control_1/plant_m1_1 -((811 / 500))) )- ((3 / 5))*(plant_v1_1+((2))) ) },Inv}},
+    {{{{plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},{( control_1/plant_m1_1 -((811 / 500))),(((0))- control_1/((2548)) ),plant_v1_1,((1)),Null},{(plant_t<((16 / 125)))}},Inv} ,Inv},
+    {{{{plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},{( control_1/plant_m1_1 -((811 / 500))),(((0))- control_1/((2842)) ),plant_v1_1,((1)),Null},{(plant_t<((16 / 125)))}},Inv} ,Inv},
+    Null}":

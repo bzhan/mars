@@ -1,0 +1,16 @@
+invChecker[]:=Module[{dir,fname,fp,result,inv},
+dir = DirectoryName[$InputFileName];
+fname = FileNameJoin[{dir, "output"}];
+fp=OpenRead[fname];
+
+Skip[fp,String,11];
+result=Read[fp,String];
+Print[StringMatchQ[result,"*Successfully solved*"]];
+Skip[fp,String,1];
+inv=Read[fp,Expression];
+Close[fp]
+];
+
+invChecker[]
+
+Exit[]

@@ -1,0 +1,101 @@
+{
+    {(parx>=((1))) ,Inv},
+    {Inv ,(parx>=((1)))},
+    {
+        {{{x,Null},{((2)),Null},{ True }},Inv},
+        Inv
+    },
+    Null
+}
+
+{
+    {(((parx>=((0)))&&(pary>=((0))))&&(parz>=((0)))) ,Inv},
+    {Inv ,(parx>=((0)))},
+    {
+        {{{x,y,Null},{pary,parz,Null},{ True }},Inv} ,
+        Inv
+    },
+    Null
+}
+
+{
+    {(parx>=((0))) ,Inv},
+    {Inv ,(parx>=((0)))},
+    {
+        {{{x,Null},{((5)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{x,Null},{((2)),Null},{ True }},Inv} ,Inv
+    },
+    {
+        {{{x,Null},{parx,Null},{ True }},Inv} ,Inv
+    },
+    Null
+}
+
+{
+    {
+        (
+            (
+                (plant_t>=((0))) &&
+                (plant_t<=((16 / 125)))
+            ) && Inv
+        ),
+        (
+            ((plant_v1_1+((2)))<((1 / 20))) &&
+            ((plant_v1_1+((2)))>((- (1 / 20))))
+        )
+    },
+    {
+        (
+            (
+                ((plant_v1_1==((-2)))&&(plant_m1_1==((1250)))) &&
+                (control_1==((4055 / 2)))
+            ) &&
+            (plant_t==((0)))
+        ), Inv
+    },
+    {
+        ((plant_t==((16 / 125))) && Inv),
+        {{plant_t,((0))}, Inv}
+    },
+    {
+        Inv,
+        {
+            {control_1,
+             plant_m1_1*((((811 / 500))-((1 / 100))*( control_1/plant_m1_1 -((811 / 500))) ) -
+                ((3 / 5))*(plant_v1_1+((2))) )
+            }, Inv
+        }
+    },
+    {
+        {
+            {
+                {plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},
+                {
+                    (control_1/plant_m1_1 -((811 / 500))),
+                    (((0)) - control_1/((2548))),
+                    plant_v1_1,
+                    ((1)),
+                    Null
+                }
+            }, Inv
+        }, Inv
+    },
+    {
+        {
+            {
+                {plant_v1_1,plant_m1_1,plant_r1_1,plant_t,Null},
+                {
+                    (control_1/plant_m1_1 -((811 / 500))),
+                    (((0)) - control_1/((2842))),
+                    plant_v1_1,
+                    ((1)),
+                    Null
+                }
+            }, Inv
+        }, Inv
+    },
+    Null
+}
+
