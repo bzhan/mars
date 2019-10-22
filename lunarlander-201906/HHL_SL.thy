@@ -524,6 +524,26 @@ lemma CaseRule : "{p [&] pb} P {q; H} \<and> {(p [&] ([\<not>]pb))} P {q; H}
    ==> {p} P {q; H}"
 apply (simp add:Valid_def fAnd_def fNot_def, auto)
 apply metis+
-done
+  done
+
+
+lemma interrupt1R: "{px, py} (P || Q) {qx, qy; Hx, Hy} \<Longrightarrow>  
+         (\<forall> s. qx s \<longrightarrow> (rx (% y. if (y=x) then (evalE e s) else s y))) \<Longrightarrow>
+         (\<forall> s. qy s \<longrightarrow> ry s) \<Longrightarrow>
+         (\<forall> h n m. (Hx[^](elE 0 [[|]] almost Inv)) h n m \<longrightarrow> Gx h n m) \<Longrightarrow>
+         (\<forall> h n m. (Hy[^](elE 0 [[|]] almost qy)) h n m \<longrightarrow> Gy h n m) \<Longrightarrow>
+          {px, py} (P; ((<VL:EL && Inv&b>)[[ ((ch??(RVar x))) \<rightarrow> Skip))||(Q; (Cm (ch!!e))) {rx, ry; Gx, Gy}"
+  sorry
+
+
+lemma interrupt2R: "{px, py} (P || Q) {qx, qy; Hx, Hy} \<Longrightarrow>  
+         (\<forall> s. qy s \<longrightarrow> (ry (% y. if (y=x) then (evalE e s) else s y))) \<Longrightarrow>
+         (\<forall> s. qx s \<longrightarrow> rx s) \<Longrightarrow>
+         (\<forall> h n m. (Hx[^](elE 0 [[|]] almost Inv)) h n m \<longrightarrow> Gx h n m) \<Longrightarrow>
+         (\<forall> h n m. (Hy[^](elE 0 [[|]] almost qy)) h n m \<longrightarrow> Gy h n m) \<Longrightarrow>
+          {px, py} (P; ((<VL:EL && Inv&b>)[[ ((ch!!e)) \<rightarrow> Skip))||(Q; (Cm (ch??(RVar x)))) {rx, ry; Gx, Gy}"
+  sorry
+
+
 
 end

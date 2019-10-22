@@ -1,0 +1,44 @@
+Process isollete ::= babybox || controller 
+
+
+Process: babybox
+q := 98.5;
+c := 98.5;
+x0 := 1;
+(
+  x0 <= 0 --> <q_dot = -1, c_dot = (-q+c)*(-0.026) > |> [] (
+      babybox_boxTemp!c -->
+      skip
+  );
+  x0 > 0 --> <q_dot = 1, c_dot = (-q+c)*(-0.026) > |> [] (
+      babybox_boxTemp!c -->
+      skip
+  )£»
+x0 <= 0 --> <q_dot = -1, c_dot = (-q+c)*(-0.026) > |> [] (
+    actuator_heatCommand?x0 -->
+      skip
+  );
+  x0 > 0 --> <q_dot = 1, c_dot = (-q+c)*(-0.026) > |> [] (
+    actuator_heatCommand?x0 -->
+      skip
+  )
+
+)**
+
+ 
+Process: controller
+(
+      wait(1.0);
+      babybox_boxTemp?boxTemp;
+      gain := 10.0;
+      diff := gain*(boxTemp-98.5)
+      if diff > 0.0 then
+        heatCommand := -1.0 
+      else
+        heatCommand := 1.0
+      endif;
+      actuator_heatCommand!heatCommand;
+ )**
+
+ 
+ 
