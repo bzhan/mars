@@ -516,7 +516,7 @@ def convert_AADL(json_file):
             for com in category['components']:
                 if com['category'] == 'thread':
                     threadlines.append(com['name'])
-            out.extend(Process(category,threadlines).lines)
+            out.extend(Process(category, threadlines).lines)
 
         elif category['category'] == 'thread':
             annex_flag, sim_flag = False, False

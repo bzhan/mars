@@ -71,7 +71,7 @@ thread implementation sensor.impl
 		variables: e ;
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
-  	{ e:=1 ; measuredTemp := boxTemp + e ; };
+  	{ e:=0.0 ; measuredTemp := boxTemp + e ; };
   	**};
 end sensor.impl;
 
@@ -92,9 +92,7 @@ thread implementation controller.impl
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
   	{ 	gain := 10;
-  		if(measuredTemp > 100) diff := gain*(measuredTemp - 100);
-  		elsif(measuredTemp < 97) diff :=gain*(measuredTemp - 97);
-  		else diff :=0; end if;
+  		diff := gain*(measuredTemp - 98.5);
   	};
 	**};
 end controller.impl;
