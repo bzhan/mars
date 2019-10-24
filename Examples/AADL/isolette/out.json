@@ -232,7 +232,7 @@
         "name": "heatSW",
         "opas": []
     },
-    "isollete_impl_Instance": {
+    "isolette_impl_Instance": {
         "category": "system",
         "components": [
             {
@@ -281,7 +281,7 @@
             }
         ],
         "features": [],
-        "name": "isollete",
+        "name": "isolette",
         "opas": []
     },
     "sensor_impl_Instance": {

@@ -2,10 +2,10 @@ package example
 public
 	with Base_Types;
 
-system isollete
-end isollete;
+system isolette
+end isolette;
 
-system implementation isollete.impl
+system implementation isolette.impl
 		subcomponents
 			heatCPU: processor heatCPU;
 			heatRAM: memory heatRAM {Actual_Memory_Binding => (reference (heatRAM));};
@@ -14,7 +14,7 @@ system implementation isollete.impl
 		connections
 			cnx1: port heatSW.heatCommand -> babybox.heatCommand;
 			cnx2: port babybox.boxTemp -> heatSW.boxTemp;
-	end isollete.impl;
+	end isolette.impl;
 
 process heatSW
 	features

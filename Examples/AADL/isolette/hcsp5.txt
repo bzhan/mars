@@ -1,13 +1,13 @@
 heatSW ::= @sensor || @actuator || @controller || @Comms_heatSW
-isollete ::= @babybox || @heatSW || @Comms_isollete
+isolette ::= @babybox || @heatSW || @Comms_isollete
 Comms_heatSW ::= @heatSW_Conn_0 || @heatSW_Conn_1 || @heatSW_Conn_2 || @heatSW_Conn_3
 heatSW_Conn_0 ::= (heatSW_boxTemp?x; sensor_boxTemp!x)**
 heatSW_Conn_1 ::= (sensor_measuredTemp?x; controller_measuredTemp!x)**
 heatSW_Conn_2 ::= (actuator_heatCommand?x; heatSW_heatCommand!x)**
 heatSW_Conn_3 ::= (controller_diff?x; actuator_diff!x)**
-Comms_isollete ::= @isollete_Conn_0 || @isollete_Conn_1
-isollete_Conn_0 ::= (babybox_boxTemp?x; heatSW_boxTemp!x; wait(0.2))**
-isollete_Conn_1 ::= (heatSW_heatCommand?x; babybox_heatCommand!x)**
+Comms_isolette ::= @isolette_Conn_0 || @isolette_Conn_1
+isolette_Conn_0 ::= (babybox_boxTemp?x; heatSW_boxTemp!x; wait(0.2))**
+isolette_Conn_1 ::= (heatSW_heatCommand?x; babybox_heatCommand!x)**
 actuator ::= @ACT_actuator || @COM_actuator
 ACT_actuator ::= (actuator_diff?diff; act_actuator!; actuator_data_diff!diff)**
 COM_actuator ::= state := "dispatch"; prior := 6; (if state == "dispatch" then act_actuator?; t := 0; InitFlag := 0; state := "ready" elif state == "ready" then tran_actuator!prior; <t_dot = 1 & t < 0.2> |> [] (run_actuator? --> state := "running"); t == 0.2 -> state := "dispatch" else InitFlag == 0 -> (c := 0; actuator_data_diff?diff; if diff > 0.0 then heatCommand := -1.0 else heatCommand := 1.0 endif; InitFlag := 1); InitFlag == 1 -> (<t_dot = 1, c_dot = 1 & c < 0.003 && t < 0.2> |> [] (busy_actuator? --> state := "ready"); t == 0.2 -> (free!; state := "dispatch"); c == 0.003 -> (actuator_heatCommand!heatCommand; free!; state := "dispatch")) endif)**
