@@ -75,7 +75,7 @@ void thread_actuator()
     }
 };
 
-void thread_controller()
+/*void thread_controller()
 {
     measuredTemp_sensor_controller = 0;
     float gain;
@@ -91,12 +91,23 @@ void thread_controller()
     }
 
     diff_controller_actuator = 1;
+};*/
+
+void thread_controller()
+{
+    measuredTemp_sensor_controller = 0;
+    float gain;
+    gain = 10.0;
+    
+    diff = gain*(measuredTemp-98.5);
+
+    diff_controller_actuator = 1;
 };
 
 void thread_sensor()
 {
     float e;
-    e = 1.0;
+    e = 0.0;
     measuredTemp = boxTemp+e;
 
     measuredTemp_sensor_controller = 1;
