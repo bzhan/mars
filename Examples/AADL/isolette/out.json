@@ -38,7 +38,7 @@
             {
                 "name": "Thread_Properties.Dispatch_Protocol",
                 "type": "NamedValue",
-                "value": "Sporadic"
+                "value": "Aperiodic"
             },
             {
                 "name": "Thread_Properties.Priority",
@@ -48,7 +48,7 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "1000"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Compute_Execution_Time",
@@ -124,7 +124,7 @@
             {
                 "name": "Thread_Properties.Dispatch_Protocol",
                 "type": "NamedValue",
-                "value": "Sporadic"
+                "value": "Aperiodic"
             },
             {
                 "name": "Thread_Properties.Priority",
@@ -134,12 +134,12 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "1000"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "1000"
+                "value": "200"
             }
         ]
     },
@@ -336,12 +336,12 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "1000"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "1000"
+                "value": "200"
             }
         ]
     }

@@ -37,7 +37,7 @@ end heatSW.impl;
 
 processor heatCPU
 	properties
-		Scheduling_Protocol => (RMS);
+		Scheduling_Protocol => (HPF);
 end heatCPU;
 
 memory heatRAM
@@ -65,8 +65,8 @@ thread implementation sensor.impl
 	properties
 		Dispatch_Protocol => Periodic;
 		Priority => 10;
-		Deadline => 20ms;
-		Period => 20ms;
+		Deadline => 200ms;
+		Period => 200ms;
 	annex BLESS {**
 		variables: e ;
 		states s : initial complete final state;
@@ -83,10 +83,9 @@ end controller;
 
 thread implementation controller.impl
 	properties
-		Dispatch_Protocol => Periodic;
+		Dispatch_Protocol => Aperiodic;
 		Priority => 10;
-		Deadline => 20ms;
-		Period => 20ms;
+		Deadline => 200ms;
 	annex BLESS {**
 		variables: gain ;
 		states s : initial complete final state;
@@ -105,9 +104,9 @@ end actuator;
 
 thread implementation actuator.impl
 	properties
-		Dispatch_Protocol => Sporadic;
+		Dispatch_Protocol => Aperiodic;
 		Priority => 10;
-		Deadline => 20ms;
+		Deadline => 200ms;
         Compute_Execution_Time => 3ms..5ms;
 	annex BLESS {**
 		states s : initial complete final state;

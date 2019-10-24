@@ -345,7 +345,7 @@ class Thread:
             act_hps = Sequence(OutputChannel('act_' + self.thread_name),
                                Wait(AConst(self.thread_period)))
 
-        elif self.thread_protocol == 'Sporadic':
+        elif self.thread_protocol == 'Aperiodic':
             temp_hps = [OutputChannel('act_' + self.thread_name)]
             for feature in self.thread_featureIn:
                 temp_hps.append(OutputChannel(self.thread_name + '_data_' + feature, AVar(str(feature))))
@@ -396,7 +396,7 @@ class Thread:
                 input_io = (in_hps, self._Discrete_Annex())
                 discrete_hps = Sequence(Assign('c', AConst(0)),ODE_Comm(eqs, constraint, [input_io, busy_io]))
 
-            elif self.thread_protocol == 'Sporadic':
+            elif self.thread_protocol == 'Aperiodic':
                 discrete_hps = [Assign('c', AConst(0))]
                 for feature in self.thread_featureIn:
                     discrete_hps.append(InputChannel(self.thread_name + '_data_' + feature, feature))
