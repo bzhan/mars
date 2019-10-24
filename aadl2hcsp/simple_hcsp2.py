@@ -179,7 +179,7 @@ class Process:
         self.lines.add('SCHEDULE_' + self.process_name, hps)
 
     def _preemptPriority(self, thread):
-        hps_con = InputChannel('tran_'+str(thread), 'prior')
+        hps_con = InputChannel('ready_'+str(thread), 'prior')
         con1 = RelExpr('>=', AVar('run_prior'), AVar('prior'))
         hp1 = Assign('run_queue', FunExpr('push', [AVar('run_queue'), ListExpr(AVar('prior'), AConst('"'+str(thread)+'"'))]))
         con2 = RelExpr('<', AVar('run_prior'), AVar('prior'))
@@ -193,7 +193,7 @@ class Process:
         return (hps_con ,hps)
 
     def _noPreemptSequence(self, thread):
-        hps_con = InputChannel('tran_' + str(thread))
+        hps_con = InputChannel('ready_' + str(thread))
         hps = Assign('run_queue', FunExpr('push', [AVar('run_queue'), AConst('"'+str(thread)+'"')]))
 
         return (hps_con, hps)
@@ -371,9 +371,9 @@ class Thread:
 
         ## ready state ##
         if int(self.thread_priority) > 0:
-            ready_hps = [OutputChannel('tran_' + self.thread_name, AVar('prior'))]
+            ready_hps = [OutputChannel('ready_' + self.thread_name, AVar('prior'))]
         else:
-            ready_hps = [OutputChannel('tran_' + self.thread_name)]
+            ready_hps = [OutputChannel('ready_' + self.thread_name)]
         eqs = [('t', AConst(1))]
         constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
         io_comms = [(InputChannel('run_' + self.thread_name),  # insert variable
