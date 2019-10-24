@@ -1,6 +1,5 @@
 package example
 public
-	with BLESS;
 	with Base_Types;
 
 system isollete
@@ -50,9 +49,7 @@ abstract babybox
 end babybox;
 
 abstract implementation babybox.impl
-	annex Simulink{**
-		
-	**};
+	annex Simulink{**  **};
 end babybox.impl;
 
 thread sensor
@@ -67,7 +64,7 @@ thread implementation sensor.impl
 		Priority => 10;
 		Deadline => 200ms;
 		Period => 200ms;
-	annex BLESS {**
+	annex Behavior_Specification {**
 		variables: e ;
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
@@ -86,7 +83,7 @@ thread implementation controller.impl
 		Dispatch_Protocol => Aperiodic;
 		Priority => 10;
 		Deadline => 200ms;
-	annex BLESS {**
+	annex Behavior_Specification {**
 		variables: gain ;
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
@@ -108,7 +105,7 @@ thread implementation actuator.impl
 		Priority => 10;
 		Deadline => 200ms;
         Compute_Execution_Time => 3ms..5ms;
-	annex BLESS {**
+	annex Behavior_Specification {**
 		states s : initial complete final state;
 		transitions t : s -[on dispatch]-> s
   	{ 
