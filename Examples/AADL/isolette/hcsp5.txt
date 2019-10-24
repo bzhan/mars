@@ -1,5 +1,5 @@
 heatSW ::= @sensor || @actuator || @controller || @Comms_heatSW
-isolette ::= @babybox || @heatSW || @Comms_isollete
+isolette ::= @babybox || @heatSW || @Comms_isolette
 Comms_heatSW ::= @heatSW_Conn_0 || @heatSW_Conn_1 || @heatSW_Conn_2 || @heatSW_Conn_3
 heatSW_Conn_0 ::= (heatSW_boxTemp?x; sensor_boxTemp!x)**
 heatSW_Conn_1 ::= (sensor_measuredTemp?x; controller_measuredTemp!x)**
