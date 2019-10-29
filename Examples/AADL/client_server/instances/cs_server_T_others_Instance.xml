@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="ASCII"?>
+<instance:SystemInstance xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aadl2="http://aadl.info/AADL/2.0" xmlns:instance="http://aadl.info/AADL/2.0/instance" name="server_T_others_Instance" category="thread">
+  <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+    <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Thread_Properties.aadl#Thread_Properties.Dispatch_Protocol"/>
+    <ownedValue>
+      <ownedValue xsi:type="aadl2:NamedValue">
+        <namedValue xsi:type="aadl2:EnumerationLiteral" href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.3/@ownedLiteral.1"/>
+      </ownedValue>
+    </ownedValue>
+    <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedPropertyAssociation.0"/>
+  </ownedPropertyAssociation>
+  <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+    <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Period"/>
+    <ownedValue>
+      <ownedValue xsi:type="aadl2:IntegerLiteral" value="10">
+        <unit href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
+      </ownedValue>
+    </ownedValue>
+    <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedPropertyAssociation.1"/>
+  </ownedPropertyAssociation>
+  <featureInstance name="aser" category="subprogramAccess" direction="in out">
+    <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+      <property href="../../../plugin/org.osate.ba.contrib/resources/properties/behavior_properties.aadl#Behavior_Properties.Subprogram_Call_Protocol"/>
+      <ownedValue>
+        <ownedValue xsi:type="aadl2:NamedValue">
+          <namedValue xsi:type="aadl2:EnumerationLiteral" href="../../../plugin/org.osate.ba.contrib/resources/properties/behavior_properties.aadl#/0/@ownedProperty.0/@ownedPropertyType/@ownedLiteral.2"/>
+        </ownedValue>
+      </ownedValue>
+      <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedSubprogramAccess.0/@ownedPropertyAssociation.0"/>
+    </ownedPropertyAssociation>
+    <feature xsi:type="aadl2:SubprogramAccess" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedSubprogramAccess.0"/>
+  </featureInstance>
+  <featureInstance name="hser" category="subprogramAccess" direction="in out">
+    <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+      <property href="../../../plugin/org.osate.ba.contrib/resources/properties/behavior_properties.aadl#Behavior_Properties.Subprogram_Call_Protocol"/>
+      <ownedValue>
+        <ownedValue xsi:type="aadl2:NamedValue">
+          <namedValue xsi:type="aadl2:EnumerationLiteral" href="../../../plugin/org.osate.ba.contrib/resources/properties/behavior_properties.aadl#/0/@ownedProperty.0/@ownedPropertyType/@ownedLiteral.0"/>
+        </ownedValue>
+      </ownedValue>
+      <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedSubprogramAccess.1/@ownedPropertyAssociation.0"/>
+    </ownedPropertyAssociation>
+    <feature xsi:type="aadl2:SubprogramAccess" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.6/@ownedSubprogramAccess.1"/>
+  </featureInstance>
+  <componentInstance name="op1" category="subprogram">
+    <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+      <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Compute_Execution_Time"/>
+      <ownedValue>
+        <ownedValue xsi:type="aadl2:RangeValue">
+          <minimum xsi:type="aadl2:IntegerLiteral" value="3">
+            <unit href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
+          </minimum>
+          <maximum xsi:type="aadl2:IntegerLiteral" value="3">
+            <unit href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
+          </maximum>
+        </ownedValue>
+      </ownedValue>
+      <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.8/@ownedPropertyAssociation.0"/>
+    </ownedPropertyAssociation>
+    <subcomponent xsi:type="aadl2:SubprogramSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedSubprogramSubcomponent.0"/>
+    <index>0</index>
+    <classifier xsi:type="aadl2:SubprogramType" href="../cs.aadl#cs.op1"/>
+  </componentInstance>
+  <componentInstance name="op2" category="subprogram">
+    <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
+      <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Compute_Execution_Time"/>
+      <ownedValue>
+        <ownedValue xsi:type="aadl2:RangeValue">
+          <minimum xsi:type="aadl2:IntegerLiteral" value="2">
+            <unit href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
+          </minimum>
+          <maximum xsi:type="aadl2:IntegerLiteral" value="2">
+            <unit href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
+          </maximum>
+        </ownedValue>
+      </ownedValue>
+      <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.9/@ownedPropertyAssociation.0"/>
+    </ownedPropertyAssociation>
+    <featureInstance name="x" category="parameter">
+      <feature xsi:type="aadl2:Parameter" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.9/@ownedParameter.0"/>
+    </featureInstance>
+    <featureInstance name="y" category="parameter" direction="out">
+      <feature xsi:type="aadl2:Parameter" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.9/@ownedParameter.1"/>
+    </featureInstance>
+    <subcomponent xsi:type="aadl2:SubprogramSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedSubprogramSubcomponent.1"/>
+    <index>0</index>
+    <classifier xsi:type="aadl2:SubprogramType" href="../cs.aadl#cs.op2"/>
+  </componentInstance>
+  <connectionInstance name="op1 -> aser" kind="accessConnection" destination="//@featureInstance.0" source="//@componentInstance.0">
+    <connectionReference context="/" source="//@componentInstance.0" destination="//@featureInstance.0">
+      <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAccessConnection.0"/>
+    </connectionReference>
+  </connectionInstance>
+  <connectionInstance name="op2 -> hser" kind="accessConnection" destination="//@featureInstance.1" source="//@componentInstance.1">
+    <connectionReference context="/" source="//@componentInstance.1" destination="//@featureInstance.1">
+      <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAccessConnection.1"/>
+    </connectionReference>
+  </connectionInstance>
+  <systemOperationMode name="No Modes"/>
+  <componentImplementation xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.server_T.others"/>
+</instance:SystemInstance>

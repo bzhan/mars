@@ -1,0 +1,101 @@
+package cs
+public
+	with HW;
+	with Ellidiss::Math::Int;
+	with Behavior_Properties;
+	renames Base_Types::ALL;
+
+SYSTEM client_server
+END client_server;
+
+SYSTEM IMPLEMENTATION client_server.others
+	SUBCOMPONENTS
+	  my_platform : SYSTEM HW::RMA_board.others;
+	  my_process : PROCESS my_process.others;
+	PROPERTIES
+	  Actual_Processor_Binding => ( reference(my_platform.cpu) )applies to my_process;
+END client_server.others;
+
+PROCESS my_process
+END my_process;
+
+PROCESS IMPLEMENTATION my_process.others
+	SUBCOMPONENTS
+	  client_T : THREAD client_T.others;
+	  server_T : THREAD server_T.others;
+	CONNECTIONS
+	  C1 : SUBPROGRAM ACCESS server_T.aser -> client_T.non_blocking;
+	  C2 : SUBPROGRAM ACCESS server_T.hser -> client_T.blocking;
+	  
+END my_process.others;
+	
+	
+THREAD client_T
+  FEATURES
+	  result : OUT DATA PORT int;
+	  non_blocking : REQUIRES SUBPROGRAM ACCESS op1;
+	  blocking : REQUIRES SUBPROGRAM ACCESS op2;
+END client_T;
+
+THREAD IMPLEMENTATION client_T.others
+	PROPERTIES
+	  Dispatch_Protocol => Periodic;
+	  Compute_Execution_Time => 6ms..6ms;
+	  Period => 20 ms;
+	 
+	ANNEX Behavior_Specification {**
+	VARIABLES v : int;
+	STATES s : INITIAL COMPLETE FINAL STATE;
+	TRANSITIONS t : s -[ ON DISPATCH ]-> s { 
+	  rand!(v); result := v; 
+	  COMPUTATION(1ms); 
+	  non_blocking!; 
+	  COMPUTATION(1ms);
+	  blocking!(v,result);
+	  COMPUTATION(2ms)
+	};
+	**};
+END client_T.others;
+
+THREAD server_T
+	FEATURES
+	  aser: PROVIDES SUBPROGRAM ACCESS op1 {Behavior_Properties::Subprogram_Call_Protocol => ASER;}; 
+	  hser: PROVIDES SUBPROGRAM ACCESS op2 {Behavior_Properties::Subprogram_Call_Protocol => HSER;};
+	PROPERTIES
+	  Dispatch_Protocol => Sporadic;
+	  Period => 10 ms;
+END server_T;
+
+THREAD IMPLEMENTATION server_T.others
+	SUBCOMPONENTS
+	  op1 : SUBPROGRAM op1;
+	  op2 : SUBPROGRAM op2;
+	CONNECTIONS
+	  C1 : SUBPROGRAM ACCESS op1 -> aser;
+	  C2 : SUBPROGRAM ACCESS op2 -> hser;
+END server_T.others;
+
+SUBPROGRAM op1
+	PROPERTIES
+	-- non blocking operation (Asynchronous Execution Request).
+	-- however, as the server has a higher priority, 
+	-- the client enters a "ready" state (pre-empted).
+	  Compute_Execution_Time => 3ms..3ms;
+	
+END op1;
+
+SUBPROGRAM op2
+	FEATURES
+	  x : IN PARAMETER int;
+	  y : OUT PARAMETER int;
+	PROPERTIES
+	-- blocking operation (Highly Synchronous Execution Request).
+	-- the client enters a "wait for return" state.
+	  Compute_Execution_Time => 2ms..2ms;
+	 
+	ANNEX Behavior_Specification {**
+	STATES s : INITIAL COMPLETE FINAL STATE;
+	TRANSITIONS t : s -[ ON DISPATCH ]-> s { y := x * 2 };
+	**};
+END op2;
+end cs;

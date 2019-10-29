@@ -68,6 +68,7 @@ def getConnections(connections):
     for connection in connections:
         conn = {}
         conn['name'] = connection.getAttribute('name')
+        conn['kind'] = connection.getAttribute('kind')
         src, dest = conn['name'].split('->')
         conn['source'] = src.strip()
         conn['destination'] = dest.strip()
