@@ -81,7 +81,7 @@ end controller;
 thread implementation controller.impl
 	properties
 		Dispatch_Protocol => Aperiodic;
-		Priority => 10;
+		Priority => 8;
 		Deadline => 200ms;
 	annex Behavior_Specification {**
 		variables: gain ;
@@ -102,7 +102,7 @@ end actuator;
 thread implementation actuator.impl
 	properties
 		Dispatch_Protocol => Aperiodic;
-		Priority => 10;
+		Priority => 6;
 		Deadline => 200ms;
         Compute_Execution_Time => 3ms..5ms;
 	annex Behavior_Specification {**

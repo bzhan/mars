@@ -46,12 +46,12 @@
             {
                 "name": "Thread_Properties.Priority",
                 "type": "IntegerLiteral",
-                "value": "10"
+                "value": "6"
             },
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Compute_Execution_Time",
@@ -61,7 +61,8 @@
                     "5"
                 ]
             }
-        ]
+        ],
+        "parent": "heatSW"
     },
     "babybox": {
         "Sim": [
@@ -82,7 +83,8 @@
                 "type": "DataPort"
             }
         ],
-        "opas": []
+        "opas": [],
+        "parent": "isollete"
     },
     "controller": {
         "Annex": {
@@ -134,19 +136,20 @@
             {
                 "name": "Thread_Properties.Priority",
                 "type": "IntegerLiteral",
-                "value": "10"
+                "value": "8"
             },
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "200"
             }
-        ]
+        ],
+        "parent": "heatSW"
     },
     "heatSW": {
         "category": "process",
@@ -195,7 +198,8 @@
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             }
-        ]
+        ],
+        "parent": "isollete"
     },
     "isollete": {
         "category": "system",
@@ -224,7 +228,8 @@
             }
         ],
         "features": [],
-        "opas": []
+        "opas": [],
+        "parent": ""
     },
     "sensor": {
         "Annex": {
@@ -281,13 +286,14 @@
             {
                 "name": "Timing_Properties.Deadline",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "200"
             },
             {
                 "name": "Timing_Properties.Period",
                 "type": "IntegerLiteral",
-                "value": "20"
+                "value": "200"
             }
-        ]
+        ],
+        "parent": "heatSW"
     }
 }

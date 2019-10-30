@@ -11,27 +11,27 @@ from ss2hcsp.hcsp.parser import hp_parser
 def createStructure(dic):
     process = HCSPProcess()
 
-    for category in dic.values():
-        if len(category['components']) > 0:
+    for category_name, category_content in dic.items():
+        if len(category_content['components']) > 0:
             hps = []
-            for com in category['components']:
-                hps.append(Var(com['name']))
+            for sub_com in category_content['components']:
+                hps.append(Var(sub_com['name']))
 
-            if len(category['connections']) >0:
-                hps.append(Var('Comms_' + category['name']))
+            if len(category_content['connections']) > 0:
+                hps.append(Var('Comms_' + category_name))
 
-            if len(category['category']) == 'Process':
-                hps.append(Var('SCHEDULE_' + category['name']))
+            if len(category_content['category']) == 'Process':
+                hps.append(Var('SCHEDULE_' + category_name))
 
             if len(hps) > 1:
                 hp2 = Parallel(*hps)
             else:
                 hp2 = hps[0]
 
-            process.add(category['name'], hp2)
+            process.add(category_name, hp2)
 
             # If name and name_impl does not agree, add new definition
-            for com in category['components']:
+            for com in category_content['components']:
                 if 'name_impl' in com:
                     hp2 = Var(com['name_impl'])
                     process.add(com['name'], hp2)
@@ -41,43 +41,36 @@ def createStructure(dic):
 def createConnections(dic):
     process = HCSPProcess()
 
-    for category in dic.values():
-        if len(category['connections']) > 0:
+    for category_name, category_content in dic.items():
+        if len(category_content['connections']) > 0:
             hps = []
-            for com in category['connections']:
-                if len(com['source'].strip().split('.')) == 2:
-                    hp_in = InputChannel(com['source'].strip().replace('.','_'), 'x')
-                elif len(com['source'].strip().split('.')) > 2:
-                    hp_in = InputChannel('_'.join([com['source'].strip().split('.')[0], com['source'].strip().split('.')[-1]]), 'x')
+            for com in category_content['connections']:
+                if category_content['category'] == 'system':
+                    hp_in = InputChannel(com['source'].strip().replace('.', '_'), 'x')
+                    hp_out = OutputChannel(com['destination'].strip().replace('.', '_'), AVar('x'))
                 else:
-                    hp_in = InputChannel(category['name'].strip() + '_' + com['source'].strip(), 'x')
+                    hp_in = InputChannel(category_name.strip() + '_' + com['source'].strip().replace('.', '_'), 'x')
+                    hp_out = OutputChannel(category_name.strip() + '_' + com['destination'].strip().replace('.', '_'), AVar('x'))
 
-                if len(com['destination'].strip().split('.')) == 2:
-                    hp_out = OutputChannel(com['destination'].strip().replace('.','_'), AVar('x'))
-                elif len(com['destination'].strip().split('.')) > 2:
-                    hp_out = OutputChannel('_'.join([com['destination'].strip().split('.')[0], com['destination'].strip().split('.')[-1]]), AVar('x'))
-                else:
-                    hp_out = OutputChannel(category['name'].strip() + '_' + com['destination'].strip(), AVar('x'))
-
-                hp = Loop(Sequence(*[hp_in,hp_out]))
+                hp = Loop(Sequence(*[hp_in, hp_out]))
                 hps.append(hp)
 
             if len(hps) > 1:
                 sub_comm, hp2=[],[]
                 for i in range(len(hps)):
-                   sub_comm.append((category['name']+'_Conn_'+str(i), hps[i]))
-                   hp2.append(Var(category['name']+'_Conn_'+str(i)))
-                process.add('Comms_'+ category['name'] , Parallel(*hp2))
+                   sub_comm.append((category_name +'_Conn_'+str(i), hps[i]))
+                   hp2.append(Var(category_name +'_Conn_'+str(i)))
+                process.add('Comms_'+category_name, Parallel(*hp2))
                 for (name, hp) in sub_comm:
                     process.add(name,hp)
             else:
-                process.add('Comms_'+category['name'], hps[0])
+                process.add('Comms_'+category_name, hps[0])
 
     return process
 
 class Abstract:
-    def __init__(self, abstract, annex= False, sim = False):
-        self.abstract_name = abstract['name']
+    def __init__(self, abstract_name, abstract, annex= False, sim = False):
+        self.abstract_name = abstract_name
         self.abstract_featureIn = []
         self.abstract_featureOut = []
         self.sim = sim
@@ -148,10 +141,10 @@ class Abstract:
 
 
 class Process:
-    def __init__(self, process, threadlines, protocol='HPF'):
+    def __init__(self, process_name, process, threadlines, protocol='HPF'):
         self.threadlines = threadlines
         self.protocol = protocol
-        self.process_name = process['name']
+        self.process_name = process_name
 
         self.lines = HCSPProcess()
         self._createSchedule()
@@ -258,9 +251,9 @@ class Process:
 
 
 class Thread:
-    def __init__(self, thread, annex=False, sim = False, resource_query=None):
-        self.thread_name = thread['name']
-
+    def __init__(self, thread_name, thread, annex=False, sim=False, resource_query=None):
+        self.thread_name = thread_name
+        self.parent_name = thread['parent']
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '0'
@@ -325,10 +318,10 @@ class Thread:
     ###  get io channels ###
         in_hps, out_hps = [], []
         for feature in self.thread_featureIn:
-            in_hps.append(InputChannel(self.thread_name + '_' + feature, feature))
+            in_hps.append(InputChannel(self.parent_name+'_'+self.thread_name + '_' + feature, feature))
 
         for feature in self.thread_featureOut:
-            out_hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(feature)))
+            out_hps.append(OutputChannel(self.parent_name+'_'+self.thread_name + '_' + feature, AVar(feature)))
 
         if len(in_hps) >= 2:
             in_hps = Sequence(*in_hps)
@@ -510,13 +503,13 @@ def convert_AADL(json_file):
     out.extend(createStructure(dic))
     out.extend(createConnections(dic))
 
-    for category in dic.values():
+    for name, category in dic.items():
         if category['category'] == 'process' and len(category['components']) > 0:
             threadlines = []
             for com in category['components']:
                 if com['category'] == 'thread':
                     threadlines.append(com['name'])
-            out.extend(Process(category, threadlines).lines)
+            out.extend(Process(name, category, threadlines).lines)
 
         elif category['category'] == 'thread':
             annex_flag, sim_flag = False, False
@@ -524,7 +517,7 @@ def convert_AADL(json_file):
                 annex_flag = True
             if 'Sim' in category.keys():
                 sim_flag = True
-            out.extend(Thread(category, annex=annex_flag, sim=sim_flag).lines)
+            out.extend(Thread(name, category, annex=annex_flag, sim=sim_flag).lines)
 
         elif category['category'] == 'abstract':
             annex_flag, sim_flag = False, False
@@ -532,7 +525,7 @@ def convert_AADL(json_file):
                 annex_flag = True
             if 'Sim' in category.keys():
                 sim_flag = True
-            out.extend(Abstract(category, annex=annex_flag, sim=sim_flag).lines)
+            out.extend(Abstract(name, category, annex=annex_flag, sim=sim_flag).lines)
 
 
     return out

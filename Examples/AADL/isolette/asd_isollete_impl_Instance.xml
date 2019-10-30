@@ -82,7 +82,7 @@
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Deadline"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="20">
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="200">
             <unit href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
           </ownedValue>
         </ownedValue>
@@ -91,7 +91,7 @@
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Period"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="20">
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="200">
             <unit href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
           </ownedValue>
         </ownedValue>
@@ -133,14 +133,14 @@
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Thread_Properties.aadl#Thread_Properties.Priority"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="10"/>
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="6"/>
         </ownedValue>
         <propertyAssociation href="../asd.aadl#/0/@ownedPublicSection/@ownedClassifier.13/@ownedPropertyAssociation.1"/>
       </ownedPropertyAssociation>
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Deadline"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="20">
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="200">
             <unit href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
           </ownedValue>
         </ownedValue>
@@ -196,14 +196,14 @@
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Thread_Properties.aadl#Thread_Properties.Priority"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="10"/>
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="8"/>
         </ownedValue>
         <propertyAssociation href="../asd.aadl#/0/@ownedPublicSection/@ownedClassifier.11/@ownedPropertyAssociation.1"/>
       </ownedPropertyAssociation>
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Deadline"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="20">
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="200">
             <unit href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
           </ownedValue>
         </ownedValue>
@@ -212,7 +212,7 @@
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Timing_Properties.aadl#Timing_Properties.Period"/>
         <ownedValue>
-          <ownedValue xsi:type="aadl2:IntegerLiteral" value="20">
+          <ownedValue xsi:type="aadl2:IntegerLiteral" value="200">
             <unit href="../../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/AADL_Project.aadl#/0/@ownedPropertyType.16/@ownedLiteral.3"/>
           </ownedValue>
         </ownedValue>
