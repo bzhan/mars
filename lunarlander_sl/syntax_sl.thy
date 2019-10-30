@@ -603,7 +603,7 @@ lemma chopfb:
 
 text \<open>chop (almost P \/ l = 0) (almost P \/ l = 0) ==> almost P \/ l = 0 \<close>
 lemma chopfor:
-  "chop (elE 0 [[|]] almost P) (elE 0 [[|]] almost P) h n nd \<Longrightarrow> (elE 0 [[|]] almost P) h n nd"
+  "chop (elE 0 [[\<or>]] almost P) (elE 0 [[\<or>]] almost P) h n nd \<Longrightarrow> (elE 0 [[\<or>]] almost P) h n nd"
   unfolding dOr_def
   apply (rule disjCI, auto)
   by (metis less_eq_real_def less_trans not_less)

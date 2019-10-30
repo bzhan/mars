@@ -1,5 +1,5 @@
 theory example_sl
-  imports syntax_sl
+  imports HHL_sl
 begin
 
 
@@ -63,7 +63,7 @@ lemma sumsqvalid:
       and "ode=ODE {VAR ''x'', VAR ''y''} (\<lambda>x. if x=VAR ''x'' then (\<lambda>s. s $ VAR ''y'') else if x=VAR ''y'' then (\<lambda>s. -s $ VAR ''x'') else undefined)"
       and "Inv=(\<lambda>s. sumsq s = 13)"
       and "b=(\<lambda>s. (s $ VAR ''x'')<3)"
-    shows "\<Turnstile> {p} <ode && Inv&b> {(Inv [&][\<not>]b); (almost (Inv [&]  b) [[|]] elE 0)}"
+    shows "\<Turnstile> {p} <ode && Inv&b> {(Inv [&][\<not>]b); (almost (Inv [&]  b) [[\<or>]] elE 0)}"
   apply(rule continTR)
     apply auto
   unfolding INV_def
