@@ -26,7 +26,7 @@ class AnnexParser(object):
             words = [w.strip() for w in line.split()]
             if ('THREAD' in words or 'thread' in words) and \
                     ('IMPLEMENTATION' in words or 'implementation' in words) and flag == 0:
-                thread_name = words[-1].replace('.', '_')+'_Instance'
+                thread_name = words[-1].split('.')[0]
                 flag = 1
             elif 'annex' in words and '{**' in words and flag == 1:
                 self.Annexs[thread_name] = {}

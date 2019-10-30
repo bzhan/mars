@@ -45,10 +45,11 @@ def getFeatures(features):
 
 def getComponents(components):
     """Interpret a list of components."""
-    Coms = []
+    Coms, subcom = [],[]
     for component in components:
         if component.getAttribute('category') in ['system', 'process', 'thread', 'abstract']:
             com = {}
+            subcom.append(component)
             com['category'] = component.getAttribute('category')
             com['name'] = component.getAttribute('name')
             #if component.getElementsByTagName('classifier'):
@@ -57,13 +58,11 @@ def getComponents(components):
                 if com['name'] != name_impl:
                     com['name_impl'] = name_impl
 
-            com['features'] = [node for node in component.childNodes if node.nodeName == 'featureInstance']
-            com['features'] = getFeatures(com['features'])
             Coms.append(com)
-    return Coms
+    return Coms, subcom
 
 def getConnections(connections):
-    """Interpret a list of connections."""
+    """Interpret a list of connections.(port, subprogram access)"""
     Conns = []
     for connection in connections:
         conn = {}
@@ -79,6 +78,10 @@ def getConnections(connections):
 
 def getOwnedPropertyAssociation(opas, category, name, *, protocol):
     """Interpret a list of owned property associations."""
+
+    #ameValue_list={ 'SC'
+
+    #}
     Opas = []
     for opa in opas:
         opass = {}
@@ -126,22 +129,34 @@ def simparser(simfile, dic):
         diagram.comp_inher_st()
         diagram.inherit_to_continuous()
         for block in dic.keys():
-            if dic[block]['name'] == model_name:
+            if block == model_name:
                 dic[block]['Sim'] = [str(hp) for _, hp in get_hcsp(*diagram.seperate_diagram()).hps]
 
 
-def parser(xmlfile, dic, *, protocol):
+def xmlparser(xmlfile, dic, protocol):
     """Parse the given XML file, add the read info into dic."""
     domobj = xmldom.parse(xmlfile)
     model = domobj.getElementsByTagName('instance:SystemInstance')[0]
-    category = model.getAttribute('category')
-    modelname = model.getAttribute('name')
-    features, components, connections, opas = parseModel(model)
-    dic[modelname] = {
-        'category': category,
-        'name': modelname.split('_')[0],
-        'features': getFeatures(features),
-        'components': getComponents(components),
-        'connections': getConnections(connections),
-        'opas': getOwnedPropertyAssociation(opas, category, modelname.split('_')[0], protocol=protocol)
-    }
+    model_list = [model]
+
+    while len(model_list) > 0:
+        new_model_list = []
+        for model in model_list:
+            category = model.getAttribute('category')
+            modelname = model.getAttribute('name').split('_')[0]
+            features, components, connections, opas = parseModel(model)
+            dic[modelname] = {
+                'category': category,
+                'features': getFeatures(features),
+                'components': getComponents(components)[0],
+                'connections': getConnections(connections),
+                'opas': getOwnedPropertyAssociation(opas, category, modelname.split('_')[0], protocol=protocol)
+            }
+            new_model_list += getComponents(components)[1]
+        model_list = new_model_list
+
+def parser(xmlfile, aadlfile, simfile, dic):
+    xmlparser(xmlfile, dic, protocol="Periodic")
+    aadlparser(aadlfile, dic)
+    simparser(simfile, dic)
+
