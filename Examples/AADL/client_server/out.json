@@ -1,5 +1,31 @@
 {
     "clientT": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "v := 1.0",
+                        "result := v",
+                        "wait(0.001)",
+                        "non_blocking!",
+                        "wait(0.001)",
+                        "blocking_out!v; blocking_in?result",
+                        "wait(0.002)"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": [
+                "v"
+            ]
+        },
         "category": "thread",
         "components": [],
         "connections": [],
@@ -142,6 +168,24 @@
         "parent": "serverT"
     },
     "op2": {
+        "Annex": {
+            "state": {
+                "s": [
+                    "initial",
+                    "complete",
+                    "final"
+                ]
+            },
+            "trans": {
+                "s": {
+                    "content": [
+                        "y := x*2.0"
+                    ],
+                    "distination": "s"
+                }
+            },
+            "var": []
+        },
         "category": "subprogram",
         "components": [],
         "connections": [],

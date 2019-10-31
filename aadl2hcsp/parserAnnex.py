@@ -6,8 +6,8 @@ import ply.lex as lex
 import ply.yacc as yacc
 import warnings
 
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, RelExpr, NegExpr
-from ss2hcsp.hcsp.hcsp import HCSP, Assign, Sequence, Condition, Loop, ITE
+from ss2hcsp.hcsp.expr import *
+from ss2hcsp.hcsp.hcsp import *
 
 warnings.filterwarnings("ignore")
 
@@ -24,21 +24,29 @@ class AnnexParser(object):
         while i < len(data):
             line = data[i].strip()
             words = [w.strip() for w in line.split()]
-            if ('THREAD' in words or 'thread' in words) and \
-                    ('IMPLEMENTATION' in words or 'implementation' in words) and flag == 0:
-                thread_name = words[-1].split('.')[0]
-                flag = 1
-            elif 'annex' in words and '{**' in words and flag == 1:
-                self.Annexs[thread_name] = {}
+            if 'end' in [w.lower() for w in words]:
+                flag = 0
+            if flag == 0:
+                if 'thread' in [w.lower() for w in words] and 'implementation' in [w.lower() for w in words]:
+                    name = words[-1].split('.')[0]
+                    flag = 1
+                elif 'subprogram' in [w.lower() for w in words]:
+                    name = words[-1]
+                    flag = 1
+
+            elif 'annex' in [w.lower() for w in words] and flag == 1:
+                self.Annexs[name] = {}
                 annex_cont = []
                 flag = 2
-            elif '**};' in words and flag == 2:
-                self.Annexs[thread_name]['Discrete'] = annex_cont
-                flag = 0
-            elif '**};' not in words and flag == 2:
-                annex_cont.append(line)
 
+            elif flag == 2:
+                if '**};' in words:
+                    self.Annexs[name]['Discrete'] = annex_cont
+                    flag = 1
+                else:
+                    annex_cont.append(line)
             i += 1
+
         return self.Annexs
 
     def createHCSP(self, state, trans):
@@ -82,7 +90,9 @@ class AnnexParser(object):
             'while': 'WHILE',
             'end': 'END',
             'for': 'FOR',
-            'in': 'IN'
+            'in': 'IN',
+            'computation':  'COMPUTATION',
+            'ms': 'TIME_MS'
         }
         tokens = ['NAME',
                   'NUMBER',
@@ -204,8 +214,8 @@ class AnnexParser(object):
                 p[0] = RelExpr('<=', p[1], p[3])
 
 
-        def p_expression_uminus(p):
-            """statement : expression '!' ';' """
+        def p_expression_boolean(p):
+            """statement : '!' expression ';' """
             p[0] = Assign(str(p[1]), AVar(str(p[1])))
 
         def p_expression_group(p):
@@ -246,24 +256,27 @@ class AnnexParser(object):
                 x=p[3]
             else:
                 x=p[2]
-            if isinstance(x,AVar):
+            if isinstance(x, AVar):
                 var.append(str(x))
-            elif isinstance(x,list):
+            elif isinstance(x, list):
                 for v in x:
                     var.append(v)
 
         def p_state_list(p):
-            """ state : state state
-                       | INITIAL
-                       | COMPLETE
-                       | FINAL"""
+            """ state_var : state_var state_var
+                           | INITIAL
+                           | COMPLETE
+                           | FINAL"""
             if len(p)== 3:
                 p[0]=p[1]+p[2]
             else:
                 p[0]=[p[1]]
 
+        def p_time_unit(p):
+            """ time_unit : TIME_MS """
+
         def p_define_state(p):
-            """statement : STATES NAME ':' state STATE  ';' """
+            """statement : STATES NAME ':' state_var STATE  ';' """
             state[p[2]] = p[4]
 
         def p_define_transtion(p):
@@ -324,6 +337,19 @@ class AnnexParser(object):
             final = RelExpr('<=', p[3], p[7])
             cur = Assign(str(p[3]), PlusExpr(['+', '+'], [p[3], AConst(1)]))
             p[0] = Sequence(init, Loop(Sequence(p[10], cur), final))
+
+        def p_computaion_statement(p):
+            """ statement : COMPUTATION '(' expression time_unit ')' ';' """
+            p[0] = Wait(AConst(p[3].value*0.001))
+
+        def p_communication_statement(p):
+            """ statement : expression '!' ';'
+                           | expression '!' '(' expression ',' expression ')' ';' """
+            if len(p)== 4:
+                p[0] = OutputChannel(str(p[1]))
+            else:
+                p[0] = Sequence(OutputChannel(str(p[1])+'_out', p[4]),
+                                InputChannel(str(p[1])+'_in', str(p[6])))
 
         def p_error(p):
             if p:

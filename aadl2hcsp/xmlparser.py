@@ -146,7 +146,7 @@ class Parser:
         Annexs = AP.getAnnex(aadlfile)
         for th in Annexs.keys():
             if isinstance(Annexs[th]['Discrete'], list) and th in self.dic.keys():
-                code = ' '.join(Annexs[th]['Discrete'])
+                code = ' '.join(Annexs[th]['Discrete']).lower()
                 var, state, trans = AP.createParser(code)
                 self.dic[th]['Annex'] = {}
                 self.dic[th]['Annex']['var'] = var

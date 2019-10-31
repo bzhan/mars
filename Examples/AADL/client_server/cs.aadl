@@ -47,12 +47,12 @@ THREAD IMPLEMENTATION clientT.others
 	VARIABLES v : int;
 	STATES s : INITIAL COMPLETE FINAL STATE;
 	TRANSITIONS t : s -[ ON DISPATCH ]-> s { 
-	  rand!(v); result := v; 
+	  v:=1; result := v;
 	  COMPUTATION(1ms); 
 	  non_blocking!; 
 	  COMPUTATION(1ms);
 	  blocking!(v,result);
-	  COMPUTATION(2ms)
+	  COMPUTATION(2ms);
 	};
 	**};
 END clientT.others;
@@ -95,7 +95,7 @@ SUBPROGRAM op2
 	 
 	ANNEX Behavior_Specification {**
 	STATES s : INITIAL COMPLETE FINAL STATE;
-	TRANSITIONS t : s -[ ON DISPATCH ]-> s { y := x * 2 };
+	TRANSITIONS t : s -[ ON DISPATCH ]-> s { y := x * 2; };
 	**};
 END op2;
 end cs;
