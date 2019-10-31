@@ -41,9 +41,13 @@ class Parser:
         Feas = []
         for feature in features:
             fea = {}
+            if feature.getAttribute('category'):
+                fea['category'] = feature.getAttribute('category')
             fea['name'] = feature.getAttribute('name')
             fea['direction'] = feature.getAttribute('direction')
             fea['type'] = feature.getElementsByTagName('feature')[0].getAttribute('xsi:type').split(':')[-1]
+            if fea['type'] == "SubprogramAccess":
+                fea['opas'] = self._getOwnedPropertyAssociation([node for node in feature.childNodes if node.nodeName == 'ownedPropertyAssociation'])
             Feas.append(fea)
         return Feas
 
@@ -51,7 +55,7 @@ class Parser:
         """Interpret a list of components."""
         Coms, subcom = [],[]
         for component in components:
-            if component.getAttribute('category') in ['system', 'process', 'thread', 'abstract']:
+            if component.getAttribute('category') in ['system', 'process', 'thread', 'abstract', 'processor', 'subprogram']:
                 com = {}
                 subcom.append(component)
                 com['category'] = component.getAttribute('category')
@@ -80,12 +84,29 @@ class Parser:
             Conns.append(conn)
         return Conns
 
-    def _getOwnedPropertyAssociation(self, opas, category, name, *, protocol):
+    def _getOwnedPropertyAssociation(self, opas):
         """Interpret a list of owned property associations."""
 
-        #ameValue_list={ 'SC'
-
-        #}
+        protocol_list ={ 'Thread_Properties.Dispatch_Protocol':{  '0':'Periodic',
+                                                                  '1':'Sporadic',
+                                                                  '2': 'Aperiodic',
+                                                                  '3': 'Timed',
+                                                                  '4': 'Hybrid',
+                                                                  '5': 'Background'},
+                         'Deployment_Properties.Scheduling_Protocol':{  '0':'FIFO', #Static
+                                                                        '1':'Round_Robin_Protocol',
+                                                                        '2':'HPF', #POSIX_1003_HIGHEST_PRIORITY_FIRDT_PROTOCOL
+                                                                        '3':'FixTimeline',
+                                                                        '4':'Cooperative',
+                                                                        '5':'RMS',
+                                                                        '6':'DMS',
+                                                                        '7':'EDF',
+                                                                        '8':'SporadicServer',
+                                                                        '9':'SlackServer',
+                                                                        '10':'ARINC653'},
+                         'Behavior_Properties.Subprogram_Call_Protocol':{'0':'HSER',
+                                                                         '1':'LSER',
+                                                                         '2':'ASER'}}
         Opas = []
         for opa in opas:
             opass = {}
@@ -93,13 +114,19 @@ class Parser:
             opass['type'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0] \
                 .getAttribute('xsi:type').split(':')[-1]
             if opass['type'] == 'NamedValue':
-                if category == 'process':
-                    assert protocol in ('HPF', 'FIFO', 'SJF'), "Wrong protocol for process."
-                    opass['value'] = protocol
+                index = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName('namedValue')[0] \
+                .getAttribute('href').split('.')[-1]
+                opass['value'] = protocol_list[opass['name']][index]
 
-                elif category == 'thread':
-                    assert protocol in ('Periodic', 'Sporadic'), "Wrong protocol for thread."
-                    opass['value'] = protocol
+            elif opass['type'] == 'ListValue':
+                try:
+                    index = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
+                        'ownedListElement')[0].getElementsByTagName('namedValue')[0].getAttribute('href').split('.')[-1]
+                    opass['value'] = protocol_list[opass['name']][index]
+                except:
+                    map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
+                        'ownedListElement')[0].getElementsByTagName('path')[0].getElementsByTagName('namedElement')[0].getAttribute('href').split('/')[-1]
+                    opass['map_id'] = map_id
 
             elif opass['type'] == 'IntegerLiteral':
                 opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
@@ -156,7 +183,7 @@ class Parser:
                         'features': self._getFeatures(features),
                         'components': self._getComponents(components)[0],
                         'connections': self._getConnections(connections),
-                        'opas': self._getOwnedPropertyAssociation(opas, category, modelname.split('_')[0], protocol=protocol)
+                        'opas': self._getOwnedPropertyAssociation(opas)
                     }
                     new_model_list[modelname] = self._getComponents(components)[1]
             model_list = new_model_list

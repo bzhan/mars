@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ASCII"?>
-<instance:SystemInstance xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aadl2="http://aadl.info/AADL/2.0" xmlns:instance="http://aadl.info/AADL/2.0/instance" name="client_server_others_Instance" category="system">
-  <componentInstance name="my_process" category="process">
+<instance:SystemInstance xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aadl2="http://aadl.info/AADL/2.0" xmlns:instance="http://aadl.info/AADL/2.0/instance" name="clientserver_others_Instance" category="system">
+  <componentInstance name="myprocess" category="process">
     <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
       <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Deployment_Properties.aadl#Deployment_Properties.Actual_Processor_Binding"/>
       <ownedValue>
@@ -17,7 +17,7 @@
       </ownedValue>
       <propertyAssociation href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedPropertyAssociation.0"/>
     </ownedPropertyAssociation>
-    <componentInstance name="client_T" category="thread">
+    <componentInstance name="clientT" category="thread">
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Deployment_Properties.aadl#Deployment_Properties.Actual_Processor_Binding"/>
         <ownedValue>
@@ -77,9 +77,9 @@
       </featureInstance>
       <subcomponent xsi:type="aadl2:ThreadSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedThreadSubcomponent.0"/>
       <index>0</index>
-      <classifier xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.client_T.others"/>
+      <classifier xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.clientT.others"/>
     </componentInstance>
-    <componentInstance name="server_T" category="thread">
+    <componentInstance name="serverT" category="thread">
       <ownedPropertyAssociation xsi:type="instance:PropertyAssociationInstance">
         <property href="../../../plugin/org.osate.workspace/resources/properties/Predeclared_Property_Sets/Deployment_Properties.aadl#Deployment_Properties.Actual_Processor_Binding"/>
         <ownedValue>
@@ -184,19 +184,19 @@
       </componentInstance>
       <subcomponent xsi:type="aadl2:ThreadSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedThreadSubcomponent.1"/>
       <index>0</index>
-      <classifier xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.server_T.others"/>
+      <classifier xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.serverT.others"/>
     </componentInstance>
-    <connectionInstance name="server_T.aser -> client_T.non_blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1" source="//@componentInstance.0/@componentInstance.1/@featureInstance.0">
+    <connectionInstance name="serverT.aser -> clientT.non_blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1" source="//@componentInstance.0/@componentInstance.1/@featureInstance.0">
       <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.1/@featureInstance.0" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedAccessConnection.0"/>
       </connectionReference>
     </connectionInstance>
-    <connectionInstance name="server_T.hser -> client_T.blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2" source="//@componentInstance.0/@componentInstance.1/@featureInstance.1">
+    <connectionInstance name="serverT.hser -> clientT.blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2" source="//@componentInstance.0/@componentInstance.1/@featureInstance.1">
       <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.1/@featureInstance.1" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedAccessConnection.1"/>
       </connectionReference>
     </connectionInstance>
-    <connectionInstance name="server_T.op1 -> client_T.non_blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1" source="//@componentInstance.0/@componentInstance.1/@componentInstance.0">
+    <connectionInstance name="serverT.op1 -> clientT.non_blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1" source="//@componentInstance.0/@componentInstance.1/@componentInstance.0">
       <connectionReference context="//@componentInstance.0/@componentInstance.1" source="//@componentInstance.0/@componentInstance.1/@componentInstance.0" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.0">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAccessConnection.0"/>
       </connectionReference>
@@ -204,7 +204,7 @@
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedAccessConnection.0"/>
       </connectionReference>
     </connectionInstance>
-    <connectionInstance name="server_T.op2 -> client_T.blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2" source="//@componentInstance.0/@componentInstance.1/@componentInstance.1">
+    <connectionInstance name="serverT.op2 -> clientT.blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2" source="//@componentInstance.0/@componentInstance.1/@componentInstance.1">
       <connectionReference context="//@componentInstance.0/@componentInstance.1" source="//@componentInstance.0/@componentInstance.1/@componentInstance.1" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.1">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.7/@ownedAccessConnection.1"/>
       </connectionReference>
@@ -214,9 +214,9 @@
     </connectionInstance>
     <subcomponent xsi:type="aadl2:ProcessSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedProcessSubcomponent.0"/>
     <index>0</index>
-    <classifier xsi:type="aadl2:ProcessImplementation" href="../cs.aadl#cs.my_process.others"/>
+    <classifier xsi:type="aadl2:ProcessImplementation" href="../cs.aadl#cs.myprocess.others"/>
   </componentInstance>
-  <componentInstance name="my_platform" category="system">
+  <componentInstance name="myplatform" category="system">
     <subcomponent xsi:type="aadl2:SystemSubcomponent" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.1/@ownedSystemSubcomponent.0"/>
     <index>0</index>
     <classifier xsi:type="aadl2:AbstractType" href="../cs.aadl#|::0.5.9.1.53.0::18::/6"/>
