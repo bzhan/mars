@@ -120,14 +120,14 @@
                 "destination": "serverT.aser",
                 "kind": "accessConnection",
                 "name": "clientT.non_blocking <-> serverT.aser",
-                "source": "clientT.non_blocking <"
+                "source": "clientT.non_blocking"
             },
             {
                 "bidirectional": "true",
                 "destination": "serverT.hser",
                 "kind": "accessConnection",
                 "name": "clientT.blocking <-> serverT.hser",
-                "source": "clientT.blocking <"
+                "source": "clientT.blocking"
             },
             {
                 "bidirectional": "",

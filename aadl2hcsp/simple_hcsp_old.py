@@ -45,83 +45,24 @@ def createConnections(dic):
         if len(category_content['connections']) > 0:
             hps = []
             for com in category_content['connections']:
-                if com['kind'] == 'portConnection':
-                    if com['bidirectional'] == 'true':
-                        if category_content['category'] == 'system':
-                            hp_in_1 = InputChannel(com['source'].strip().replace('.', '_')+'_1', 'x')
-                            hp_out_1 = OutputChannel(com['destination'].strip().replace('.', '_')+'_1', AVar('x'))
-                            hp_in_2 = InputChannel(com['destination'].strip().replace('.', '_')+'_2', 'x')
-                            hp_out_2 = OutputChannel(com['source'].strip().replace('.', '_')+'_2', AVar('x'))
-                        else:
-                            hp_in_1 = InputChannel(category_name.strip() + '_' + com['source'].strip().replace('.', '_')+'_1', 'x')
-                            hp_out_1 = OutputChannel(category_name.strip() + '_' + com['destination'].strip().replace('.', '_')+'_1', AVar('x'))
-                            hp_in_2 = InputChannel(
-                                category_name.strip() + '_' + com['destination'].strip().replace('.', '_')+'_2', 'x')
-                            hp_out_2 = OutputChannel(
-                                category_name.strip() + '_' + com['source'].strip().replace('.', '_')+'_2', AVar('x'))
+                if category_content['category'] == 'system':
+                    hp_in = InputChannel(com['source'].strip().replace('.', '_'), 'x')
+                    hp_out = OutputChannel(com['destination'].strip().replace('.', '_'), AVar('x'))
+                else:
+                    hp_in = InputChannel(category_name.strip() + '_' + com['source'].strip().replace('.', '_'), 'x')
+                    hp_out = OutputChannel(category_name.strip() + '_' + com['destination'].strip().replace('.', '_'), AVar('x'))
 
-                        hp_1 = Loop(Sequence(*[hp_in_1, hp_out_1]))
-                        hps.append(hp_1)
-                        hp_2 = Loop(Sequence(*[hp_in_2, hp_out_2]))
-                        hps.append(hp_2)
-
-                    else:
-                        if category_content['category'] == 'system':
-                            hp_in = InputChannel(com['source'].strip().replace('.', '_'), 'x')
-                            hp_out = OutputChannel(com['destination'].strip().replace('.', '_'), AVar('x'))
-                        else:
-                            hp_in = InputChannel(category_name.strip() + '_' + com['source'].strip().replace('.', '_'),
-                                                 'x')
-                            hp_out = OutputChannel(
-                                category_name.strip() + '_' + com['destination'].strip().replace('.', '_'), AVar('x'))
-
-                        hp = Loop(Sequence(*[hp_in, hp_out]))
-                        hps.append(hp)
-
-                elif com['kind'] == 'accessConnection':
-                    if com['bidirectional'] == 'true':
-                        if category_content['category'] == 'system':
-                            hp_in = InputChannel(com['source'].strip().replace('.', '_') + '_call', 'x')
-                            hp_out = OutputChannel(com['destination'].strip().replace('.', '_'), AVar('x'))
-
-                        else:
-                            hp_in = InputChannel(
-                                category_name.strip() + '_' + com['source'].strip().replace('.', '_') + '_call', 'x')
-                            hp_out = OutputChannel(
-                                category_name.strip() + '_' + com['destination'].strip().replace('.', '_'),
-                                AVar('x'))
-
-                        hp = Loop(Sequence(*[hp_in, hp_out]))
-                        hps.append(hp)
-
-                    else:
-                        if category_content['category'] == 'system':
-                            hp_in = InputChannel(com['source'].strip().replace('.', '_'), 'x')
-                            hp_out = OutputChannel(com['destination'].strip().replace('.', '_')+'_back', AVar('x'))
-
-                        else:
-                            hp_in = InputChannel(
-                                category_name.strip() + '_' + com['source'].strip().replace('.', '_'),
-                                'x')
-                            hp_out = OutputChannel(
-                                category_name.strip() + '_' + com['destination'].strip().replace('.', '_') + '_back',
-                                AVar('x'))
-
-                        hp = Loop(Sequence(*[hp_in, hp_out]))
-                        hps.append(hp)
-
-
-
-
+                hp = Loop(Sequence(*[hp_in, hp_out]))
+                hps.append(hp)
 
             if len(hps) > 1:
-                sub_comm, hp2=[], []
+                sub_comm, hp2=[],[]
                 for i in range(len(hps)):
                    sub_comm.append((category_name +'_Conn_'+str(i), hps[i]))
                    hp2.append(Var(category_name +'_Conn_'+str(i)))
                 process.add('Comms_'+category_name, Parallel(*hp2))
                 for (name, hp) in sub_comm:
-                    process.add(name, hp)
+                    process.add(name,hp)
             else:
                 process.add('Comms_'+category_name, hps[0])
 
@@ -200,7 +141,7 @@ class Abstract:
 
 
 class Process:
-    def __init__(self, process_name, process, threadlines, protocol='FIFO'):
+    def __init__(self, process_name, process, threadlines, protocol='HPF'):
         self.threadlines = threadlines
         self.protocol = protocol
         self.process_name = process_name
@@ -296,7 +237,7 @@ class Process:
 
         hps = [Assign('ready_num', FunExpr('len', [AVar('run_queue')]))]
         con1 = RelExpr('==', AVar('ready_num'), AConst(0))
-        hp1 = Assign('run_now', AConst(0))
+        hp1 = Assign('run_now', AConst(""))
 
         con2 = RelExpr('>', AVar('ready_num'), AConst(0))
         hp2 = Sequence(Assign('run_now', FunExpr('bottom', [AVar('run_queue')])),
@@ -313,6 +254,7 @@ class Thread:
     def __init__(self, thread_name, thread, annex=False, sim=False, resource_query=None):
         self.thread_name = thread_name
         self.parent_name = thread['parent']
+
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '0'
@@ -370,14 +312,8 @@ class Thread:
 
 
     def _createThread(self):
-        if self.annex:
-            hps = Parallel(Var('ACT_' + self.thread_name),
-                           Var('COM_' + self.thread_name),
-                           Var('ANNEX_' + self.thread_name))
-        else:
-            hps = Parallel(Var('ACT_' + self.thread_name),
-                           Var('COM_' + self.thread_name))
-
+        hps = Parallel(Var('ACT_' + self.thread_name),
+                       Var('COM_' + self.thread_name))
         self.lines.add(self.thread_name, hps)
 
     ###  get io channels ###
@@ -390,29 +326,13 @@ class Thread:
 
         if len(in_hps) >= 2:
             in_hps = Sequence(*in_hps)
-        elif len(in_hps) == 1:
+        else:
             in_hps = in_hps[0]
-
 
         if len(out_hps) >= 2:
             out_hps = Sequence(*out_hps)
-        elif len(out_hps) == 1:
+        else:
             out_hps = out_hps[0]
-
-        in_annex_hps, out_annex_hps = [], []
-        for feature in self.thread_featureOut:
-            in_annex_hps.append(InputChannel(self.thread_name + '_annex_' + feature, feature))
-            out_annex_hps.append(OutputChannel(self.thread_name + '_annex_' + feature, AVar(feature)))
-
-        if len(in_annex_hps) >= 2:
-            in_annex_hps = Sequence(*in_annex_hps)
-        elif len(in_annex_hps) == 1:
-            in_annex_hps = in_annex_hps[0]
-
-        if len(out_annex_hps) >= 2:
-            out_annex_hps = Sequence(*out_annex_hps)
-        elif len(out_annex_hps) == 1:
-            out_annex_hps = out_annex_hps[0]
 
     ### active process ###
         if self.thread_protocol == 'Periodic':
@@ -424,10 +344,6 @@ class Thread:
             for feature in self.thread_featureIn:
                 temp_hps.append(OutputChannel(self.thread_name + '_data_' + feature, AVar(str(feature))))
             act_hps = Sequence(in_hps, Sequence(*temp_hps))
-
-        elif self.thread_protocol == 'Sporadic':
-            act_hps = Sequence(OutputChannel('act_' + self.thread_name),
-                               Wait(AConst(self.thread_period)))
 
         self.lines.add('ACT_' + self.thread_name, Loop(act_hps))
 
@@ -467,16 +383,19 @@ class Thread:
 
         running_hps = []
         if self.annex:
-            eqs = [('t', AConst(1)),('c', AConst(1))]
-            constraint_1 = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
-            constraint_2 = RelExpr('<', AVar('c'), AConst(self.thread_max_time))
-            constraint = conj(constraint_1, constraint_2)
-            busyAnnex_io = (InputChannel('busy_Annex_' + self.thread_name), Assign('state', AConst(state[1])))
-            completeAnnex_io = (InputChannel('complete_Annex_'+self.thread_name),
-                                Sequence(in_annex_hps, Skip(), Assign('InitFlag', AConst(1))))
-            discrete_hps = Sequence(Assign('c', AConst(0)),
-                                    OutputChannel('run_Annex_'+self.thread_name),
-                                    ODE_Comm(eqs, constraint, [completeAnnex_io, busyAnnex_io]))
+            if self.thread_protocol == 'Periodic':
+                eqs = [('t', AConst(1))]
+                constraint = RelExpr('<', AVar('t'), AConst(self.thread_deadline))
+                busy_io = (InputChannel('busy_' + self.thread_name), Assign('state', AConst(state[1])))
+                input_io = (in_hps, self._Discrete_Annex())
+                discrete_hps = Sequence(Assign('c', AConst(0)),ODE_Comm(eqs, constraint, [input_io, busy_io]))
+
+            elif self.thread_protocol == 'Aperiodic':
+                discrete_hps = [Assign('c', AConst(0))]
+                for feature in self.thread_featureIn:
+                    discrete_hps.append(InputChannel(self.thread_name + '_data_' + feature, feature))
+                discrete_hps.append(self._Discrete_Annex())
+                discrete_hps = Sequence(*discrete_hps)
 
             running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), discrete_hps))
 
@@ -511,17 +430,9 @@ class Thread:
             temp_hps.append(delay_hps)
 
         temp_hps.append(Condition(RelExpr('==', AVar('t'), AConst(self.thread_deadline)), Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
-        if out_hps:
-            temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
-        else:
-            temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)),
-                                      Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
-
+        temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
         running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*temp_hps)))
-        if len(running_hps) >= 2:
-            running_hps = Sequence(*running_hps)
-        else:
-            running_hps = running_hps[0]
+        running_hps = Sequence(*running_hps)
 
 
         if self.resource_query:
@@ -550,20 +461,12 @@ class Thread:
                                       running_hps)))
 
         self.lines.add('COM_' + self.thread_name, Sequence(*com_hps))
-        if self.annex:
-            self.lines.add('ANNEX_'+self.thread_name, self._Annex_Block(in_hps, out_annex_hps))
 
 
 
 
-    def _Annex_Block(self, in_hps, out_annex_hps):
-        busy_io = InputChannel('busy_'+self.thread_name)
-        block_io = Sequence(OutputChannel('busy_Annex_'+self.thread_name), InputChannel('run_Annex_'+self.thread_name))
-        hps = [InputChannel('run_Annex_' + self.thread_name)]
-        if len(in_hps)>0:
-            hps.append(SelectComm([(in_hps, Skip()), (busy_io, block_io)]))
-
-
+    def _Discrete_Annex(self):
+        hps= []
         state, trans = self.annex_block['state'], self.annex_block['trans']
         for s in state.keys():
             if 'INITIAL' in state[s] or 'initial' in state[s]:
@@ -583,8 +486,7 @@ class Thread:
         #for feature in self.thread_featureOut:
             #hps.append(OutputChannel(self.thread_name + '_' + feature, AVar(str(feature))))
 
-        hps.append(OutputChannel('complete_Annex_'+self.thread_name))
-        hps.append(out_annex_hps)
+        hps.append(Assign('InitFlag', AConst(1)))
 
         if len(hps) >= 2:
             hps = Sequence(*hps)

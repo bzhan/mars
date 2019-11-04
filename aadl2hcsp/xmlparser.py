@@ -79,9 +79,14 @@ class Parser:
             src, dest = conn['name'].split('->')
             conn['source'] = src.strip()
             conn['destination'] = dest.strip()
+            try:
+                conn['bidirectional'] = connection.getAttribute('bidirectional')
+            except:
+                conn['bidirectional'] = 'false'
             if connection.getElementsByTagName('feature'):
                 conn['type'] = connection.getElementsByTagName('feature')[0].getAttribute('xsi:type').split(':')[-1]
             Conns.append(conn)
+
         return Conns
 
     def _getOwnedPropertyAssociation(self, opas):
@@ -147,7 +152,7 @@ class Parser:
         for th in Annexs.keys():
             if isinstance(Annexs[th]['Discrete'], list) and th in self.dic.keys():
                 code = ' '.join(Annexs[th]['Discrete']).lower()
-                var, state, trans = AP.createParser(code)
+                var, state, trans = AP.createParser(th, code)
                 self.dic[th]['Annex'] = {}
                 self.dic[th]['Annex']['var'] = var
                 self.dic[th]['Annex']['state'] = state

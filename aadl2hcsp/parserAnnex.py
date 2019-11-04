@@ -66,7 +66,8 @@ class AnnexParser(object):
         return hcsp
 
 
-    def createParser(self, code):
+    def createParser(self, thread_name, code):
+        self.thread_name = thread_name
         var=[]
         state={}
         trans={}
@@ -340,16 +341,25 @@ class AnnexParser(object):
 
         def p_computaion_statement(p):
             """ statement : COMPUTATION '(' expression time_unit ')' ';' """
-            p[0] = Wait(AConst(p[3].value*0.001))
+            delay = p[3].value*0.001
+            block_io = Sequence(OutputChannel('busy_Annex_' + thread_name),
+            busy_io = InputChannel('busy_' + thread_name)
+                                InputChannel('run_Annex_' + thread_name))
+
+            eqs = [('t', AConst(1))]
+            constraint = RelExpr('<', AVar('t'), AConst(delay))
+            p[0] = ODE_Comm(eqs, constraint, [(busy_io, block_io)])
 
         def p_communication_statement(p):
             """ statement : expression '!' ';'
                            | expression '!' '(' expression ',' expression ')' ';' """
             if len(p)== 4:
-                p[0] = OutputChannel(str(p[1]))
+                p[0] = OutputChannel(thread_name+ '_'+str(p[1])+'_call')
             else:
-                p[0] = Sequence(OutputChannel(str(p[1])+'_out', p[4]),
-                                InputChannel(str(p[1])+'_in', str(p[6])))
+                p[0] = Sequence(OutputChannel(thread_name+ '_'+str(p[1])+'_call'),
+                                OutputChannel(thread_name+'_data_'+str(p[1]), p[4]),
+                                OutputChannel('apply_Resource_'+thread_name),
+                                InputChannel(thread_name+'_data_'+str(p[1]), str(p[6])))
 
         def p_error(p):
             if p:

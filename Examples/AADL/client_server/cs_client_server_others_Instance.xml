@@ -186,13 +186,13 @@
       <index>0</index>
       <classifier xsi:type="aadl2:ThreadImplementation" href="../cs.aadl#cs.serverT.others"/>
     </componentInstance>
-    <connectionInstance name="serverT.aser -> clientT.non_blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1" source="//@componentInstance.0/@componentInstance.1/@featureInstance.0">
-      <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.1/@featureInstance.0" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.1">
+    <connectionInstance name="clientT.non_blocking &lt;-> serverT.aser" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.0" bidirectional="true" source="//@componentInstance.0/@componentInstance.0/@featureInstance.1">
+      <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.0/@featureInstance.1" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.0" reverse="true">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedAccessConnection.0"/>
       </connectionReference>
     </connectionInstance>
-    <connectionInstance name="serverT.hser -> clientT.blocking" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2" source="//@componentInstance.0/@componentInstance.1/@featureInstance.1">
-      <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.1/@featureInstance.1" destination="//@componentInstance.0/@componentInstance.0/@featureInstance.2">
+    <connectionInstance name="clientT.blocking &lt;-> serverT.hser" complete="true" kind="accessConnection" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.1" bidirectional="true" source="//@componentInstance.0/@componentInstance.0/@featureInstance.2">
+      <connectionReference context="//@componentInstance.0" source="//@componentInstance.0/@componentInstance.0/@featureInstance.2" destination="//@componentInstance.0/@componentInstance.1/@featureInstance.1" reverse="true">
         <connection xsi:type="aadl2:AccessConnection" href="../cs.aadl#/0/@ownedPublicSection/@ownedClassifier.3/@ownedAccessConnection.1"/>
       </connectionReference>
     </connectionInstance>
@@ -222,5 +222,5 @@
     <classifier xsi:type="aadl2:AbstractType" href="../cs.aadl#|::0.5.9.1.53.0::18::/6"/>
   </componentInstance>
   <systemOperationMode name="No Modes"/>
-  <componentImplementation xsi:type="aadl2:SystemImplementation" href="../cs.aadl#cs.client_server.others"/>
+  <componentImplementation xsi:type="aadl2:SystemImplementation" href="../cs.aadl#cs.clientserver.others"/>
 </instance:SystemInstance>
