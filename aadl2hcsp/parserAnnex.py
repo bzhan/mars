@@ -342,8 +342,8 @@ class AnnexParser(object):
         def p_computaion_statement(p):
             """ statement : COMPUTATION '(' expression time_unit ')' ';' """
             delay = p[3].value*0.001
-            block_io = Sequence(OutputChannel('busy_Annex_' + thread_name),
             busy_io = InputChannel('busy_' + thread_name)
+            block_io = Sequence(OutputChannel('busy_Annex_' + thread_name),
                                 InputChannel('run_Annex_' + thread_name))
 
             eqs = [('t', AConst(1))]
@@ -356,10 +356,12 @@ class AnnexParser(object):
             if len(p)== 4:
                 p[0] = OutputChannel(thread_name+ '_'+str(p[1])+'_call')
             else:
-                p[0] = Sequence(OutputChannel(thread_name+ '_'+str(p[1])+'_call'),
+                p[0] = Sequence(OutputChannel(thread_name + '_'+str(p[1])+'_call'),
                                 OutputChannel(thread_name+'_data_'+str(p[1]), p[4]),
-                                OutputChannel('apply_Resource_'+thread_name),
-                                InputChannel(thread_name+'_data_'+str(p[1]), str(p[6])))
+                                OutputChannel('applyResource_'+thread_name),
+                                InputChannel(thread_name+'_data_'+str(p[1])+'_back', str(p[6])),
+                                OutputChannel('haveResource_' + thread_name),
+                                InputChannel(thread_name + '_' + str(p[1]) + '_back'))
 
         def p_error(p):
             if p:

@@ -683,6 +683,7 @@ class HCSPInfo:
                     if comm_hp.var_name is None:
                         assert x is None
                     else:
+                        print(comm_hp)
                         assert x is not None
                         self.state[comm_hp.var_name] = x
                     self.pos += (i,) + start_pos(out_hp)

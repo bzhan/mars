@@ -14,9 +14,9 @@
                         "v := 1.0",
                         "result := v",
                         "<t_dot = 1 & t < 0.001> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)",
-                        "clientT_non_blocking!",
+                        "clientT_non_blocking_call!",
                         "<t_dot = 1 & t < 0.001> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)",
-                        "clientT_blocking!; clientT_data_blocking!v; apply_Resource_clientT!; clientT_data_blocking?result",
+                        "clientT_blocking_call!; clientT_data_blocking!v; applyResource_clientT!; clientT_data_blocking_back?result; haveResource_clientT!",
                         "<t_dot = 1 & t < 0.002> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)"
                     ],
                     "distination": "s"
@@ -26,6 +26,7 @@
                 "v"
             ]
         },
+        "block" : true ,
         "category": "thread",
         "components": [],
         "connections": [],
@@ -120,14 +121,14 @@
                 "destination": "serverT.aser",
                 "kind": "accessConnection",
                 "name": "clientT.non_blocking <-> serverT.aser",
-                "source": "clientT.non_blocking <"
+                "source": "clientT.non_blocking"
             },
             {
                 "bidirectional": "true",
                 "destination": "serverT.hser",
                 "kind": "accessConnection",
                 "name": "clientT.blocking <-> serverT.hser",
-                "source": "clientT.blocking <"
+                "source": "clientT.blocking"
             },
             {
                 "bidirectional": "",
@@ -224,13 +225,16 @@
         "components": [
             {
                 "category": "subprogram",
-                "name": "op1"
+                "name": "op1",
+                "access": "aser"
             },
             {
                 "category": "subprogram",
-                "name": "op2"
+                "name": "op2",
+                "access": "hser"
             }
         ],
+        "block": false ,
         "connections": [],
         "features": [
             {
