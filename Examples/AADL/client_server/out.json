@@ -16,7 +16,7 @@
                         "<t_dot = 1 & t < 0.001> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)",
                         "clientT_non_blocking_call!",
                         "<t_dot = 1 & t < 0.001> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)",
-                        "clientT_blocking_call!; clientT_data_blocking!v; applyResource_clientT!; clientT_data_blocking_back?result; haveResource_clientT!",
+                        "clientT_blocking_call!; clientT_data_blocking!v; applyResource_clientT!; clientT_data_blocking_back?result; haveResource_clientT!; run_Annex_clientT?",
                         "<t_dot = 1 & t < 0.002> |> [] (busy_clientT? --> busy_Annex_clientT!; run_Annex_clientT?)"
                     ],
                     "distination": "s"

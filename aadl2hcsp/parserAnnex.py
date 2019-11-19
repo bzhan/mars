@@ -361,7 +361,7 @@ class AnnexParser(object):
                                 OutputChannel('applyResource_'+thread_name),
                                 InputChannel(thread_name+'_data_'+str(p[1])+'_back', str(p[6])),
                                 OutputChannel('haveResource_' + thread_name),
-                                InputChannel(thread_name + '_' + str(p[1]) + '_back'))
+                                InputChannel('run_Annex_'+thread_name))
 
         def p_error(p):
             if p:

@@ -12,22 +12,22 @@ def createStructure(dic):
     process = HCSPProcess()
 
     for category_name, category_content in dic.items():
-        if len(category_content['components']) > 0:
-            hps = []
-            for sub_com in category_content['components']:
-                hps.append(Var(sub_com['name']))
+        if category_content['category'].lower() in ['system', 'process']:
+            if len(category_content['components']) > 0:
+                hps = []
+                for sub_com in category_content['components']:
+                    hps.append(Var(sub_com['name']))
 
-            if len(category_content['connections']) > 0:
-                hps.append(Var('Comms_' + category_name))
+                if len(category_content['connections']) > 0:
+                    hps.append(Var('Comms_' + category_name))
 
-            if len(category_content['category']) == 'Process':
-                hps.append(Var('SCHEDULE_' + category_name))
+                if category_content['category'].lower() == 'process':
+                    hps.append(Var('SCHEDULE_' + category_name))
 
-            if len(hps) > 1:
-                hp2 = Parallel(*hps)
-            else:
-                hp2 = hps[0]
-
+                if len(hps) > 1:
+                    hp2 = Parallel(*hps)
+                else:
+                    hp2 = hps[0]
             process.add(category_name, hp2)
 
             # If name and name_impl does not agree, add new definition
@@ -510,6 +510,7 @@ class Thread:
         ## dispatch state ##
         dis_hps = Sequence(InputChannel('act_' + self.thread_name),
                            Assign('t', AConst(0)),
+                           Assign('c', AConst(0)),
                            Assign('InitFlag', AConst(0)),
                            Assign('state', AConst(state[1])))
 
@@ -524,7 +525,7 @@ class Thread:
                      Assign('state', AConst(state[2])))]
         ready_hps.append(ODE_Comm(eqs, constraint, io_comms))
 
-        con = RelExpr('==', AVar('t'), AConst(self.thread_deadline))
+        con = RelExpr('>=', AVar('t'), AConst(self.thread_deadline))
         con_hp = Assign('state', AConst(state[0]))
         ready_hps.append(Condition(con, con_hp))
         ready_hps = Sequence(*ready_hps)
@@ -545,8 +546,7 @@ class Thread:
                 applyResource_io = (InputChannel('applyResource_' + self.thread_name),
                                     Sequence(Assign('state', AConst(state[3])), OutputChannel('free')))
                 ios.append(applyResource_io)
-            discrete_hps = Sequence(Assign('c', AConst(0)),
-                                    OutputChannel('run_Annex_'+self.thread_name),
+            discrete_hps = Sequence(OutputChannel('run_Annex_'+self.thread_name),
                                     ODE_Comm(eqs, constraint, ios))
 
             running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), discrete_hps))
@@ -595,8 +595,7 @@ class Thread:
                 sub_hp.append(ODE_Comm(eqs, constraint, [completeSub_io]))
                 sub_hps.append((sub_com, Sequence(*sub_hp)))
 
-            hps = Sequence(Assign('c', AConst(0)), SelectComm(*sub_hps))
-            running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(0)), hps))
+            running_hps.append(Condition(RelExpr('>=', AVar('InitFlag'), AConst(0)), SelectComm(*sub_hps)))
 
         if self.thread_min_time > 0:
             eqs = [('t', AConst(1)), ('c', AConst(1))]
@@ -608,11 +607,11 @@ class Thread:
             delay_hps = ODE_Comm(eqs, constraint, [(in_1, out_1)])
             temp_hps.append(delay_hps)
 
-        temp_hps.append(Condition(RelExpr('==', AVar('t'), AConst(self.thread_deadline)), Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
+        temp_hps.append(Condition(RelExpr('>=', AVar('t'), AConst(self.thread_deadline)), Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
         if out_hps:
-            temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
+            temp_hps.append(Condition(RelExpr('>=', AVar('c'), AConst(self.thread_min_time)), Sequence(out_hps, OutputChannel('free'), Assign('state', AConst(state[0])))))
         else:
-            temp_hps.append(Condition(RelExpr('==', AVar('c'), AConst(self.thread_min_time)),
+            temp_hps.append(Condition(RelExpr('>=', AVar('c'), AConst(self.thread_min_time)),
                                       Sequence(OutputChannel('free'), Assign('state', AConst(state[0])))))
 
         running_hps.append(Condition(RelExpr('==', AVar('InitFlag'), AConst(1)), Sequence(*temp_hps)))
@@ -734,7 +733,7 @@ class Subprogram:
                Assign('t', AConst(0))]
 
         for feature in self.subprogram_featureIn:
-            hps.append(InputChannel(self.subprogram_name+'_data', feature))
+            hps.append(InputChannel(self.parent_name+'_data', feature))
 
         if self.annex:
             state, trans = self.annex_block['state'], self.annex_block['trans']
