@@ -1,0 +1,650 @@
+{
+    "a1": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "name": "t1"
+            },
+            {
+                "category": "thread",
+                "name": "t2"
+            },
+            {
+                "category": "thread",
+                "name": "t3"
+            }
+        ],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            }
+        ],
+        "parent": "s"
+    },
+    "a2": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "name": "t1"
+            },
+            {
+                "category": "thread",
+                "name": "t2"
+            },
+            {
+                "category": "thread",
+                "name": "t3"
+            }
+        ],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            }
+        ],
+        "parent": "s"
+    },
+    "a3": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "name": "t1"
+            },
+            {
+                "category": "thread",
+                "name": "t2"
+            },
+            {
+                "category": "thread",
+                "name": "t3"
+            }
+        ],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            }
+        ],
+        "parent": "s"
+    },
+    "a4": {
+        "category": "process",
+        "components": [
+            {
+                "category": "thread",
+                "name": "t1"
+            },
+            {
+                "category": "thread",
+                "name": "t2"
+            },
+            {
+                "category": "thread",
+                "name": "t3"
+            }
+        ],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            }
+        ],
+        "parent": "s"
+    },
+    "p1": {
+        "category": "processor",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Scheduling_Protocol",
+                "type": "ListValue",
+                "value": "RMS"
+            }
+        ],
+        "parent": "s"
+    },
+    "p2": {
+        "category": "processor",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Scheduling_Protocol",
+                "type": "ListValue",
+                "value": "DMS"
+            }
+        ],
+        "parent": "s"
+    },
+    "p3": {
+        "category": "processor",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Scheduling_Protocol",
+                "type": "ListValue",
+                "value": "HPF"
+            }
+        ],
+        "parent": "s"
+    },
+    "p4": {
+        "category": "processor",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Scheduling_Protocol",
+                "type": "ListValue",
+                "value": "EDF"
+            }
+        ],
+        "parent": "s"
+    },
+    "s": {
+        "category": "system",
+        "components": [
+            {
+                "category": "process",
+                "name": "a1"
+            },
+            {
+                "category": "process",
+                "name": "a2"
+            },
+            {
+                "category": "process",
+                "name": "a3"
+            },
+            {
+                "category": "process",
+                "name": "a4"
+            },
+            {
+                "category": "processor",
+                "name": "p1"
+            },
+            {
+                "category": "processor",
+                "name": "p2"
+            },
+            {
+                "category": "processor",
+                "name": "p3"
+            },
+            {
+                "category": "processor",
+                "name": "p4"
+            }
+        ],
+        "connections": [],
+        "features": [],
+        "opas": [],
+        "parent": ""
+    },
+    "t1": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "18"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "18"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a1"
+    },
+    "t1_0": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "18"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a2"
+    },
+    "t1_1": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "3"
+            }
+        ],
+        "parent": "a3"
+    },
+    "t1_2": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "18"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a4"
+    },
+    "t2": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "19"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "19"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a1"
+    },
+    "t2_0": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "19"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a2"
+    },
+    "t2_1": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "2"
+            }
+        ],
+        "parent": "a3"
+    },
+    "t2_2": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "19"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a4"
+    },
+    "t3": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a1"
+    },
+    "t3_0": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a2"
+    },
+    "t3_1": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            },
+            {
+                "name": "Thread_Properties.Priority",
+                "type": "IntegerLiteral",
+                "value": "1"
+            }
+        ],
+        "parent": "a3"
+    },
+    "t3_2": {
+        "category": "thread",
+        "components": [],
+        "connections": [],
+        "features": [],
+        "opas": [
+            {
+                "name": "Deployment_Properties.Actual_Processor_Binding",
+                "type": "ListValue"
+            },
+            {
+                "name": "Timing_Properties.Period",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Timing_Properties.Deadline",
+                "type": "IntegerLiteral",
+                "value": "20"
+            },
+            {
+                "name": "Thread_Properties.Dispatch_Protocol",
+                "type": "NamedValue",
+                "value": "Periodic"
+            },
+            {
+                "name": "Timing_Properties.Compute_Execution_Time",
+                "type": "RangeValue",
+                "value": [
+                    "4",
+                    "4"
+                ]
+            }
+        ],
+        "parent": "a4"
+    }
+}

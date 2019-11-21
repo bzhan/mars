@@ -9,9 +9,9 @@ class XMLParserTest(unittest.TestCase):
         #out_file = './Examples/AADL/air_conditioner/out.json'
         #ref_file = './Examples/AADL/air_conditioner/out_ref.json'
 
-        path = './Examples/AADL/client_server'
-        xmlfile = 'cs_client_server_others_Instance.xml'
-        aadl_file = 'cs.aadl'
+        path = './Examples/AADL/scheduler'
+        xmlfile = 'scheduler_s_i_Instance.xml'
+        aadl_file = 'scheduler.aadl'
         sim_file = './Examples/isolette/babybox.xml'
 
         out_file = os.path.join(path, 'out.json')

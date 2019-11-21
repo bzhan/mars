@@ -125,13 +125,16 @@ class Parser:
 
             elif opass['type'] == 'ListValue':
                 try:
+
                     index = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
                         'ownedListElement')[0].getElementsByTagName('namedValue')[0].getAttribute('href').split('.')[-1]
                     opass['value'] = protocol_list[opass['name']][index]
+
                 except:
-                    map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
-                        'ownedListElement')[0].getElementsByTagName('path')[0].getElementsByTagName('namedElement')[0].getAttribute('href').split('/')[-1]
-                    opass['map_id'] = map_id
+                    pass
+                    #map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
+                    #    'ownedListElement')[0].getElementsByTagName('path')[0].getElementsByTagName('namedElement')[0].getAttribute('href').split('/')[-1]
+                    #opass['map_id'] = map_id
 
             elif opass['type'] == 'IntegerLiteral':
                 opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
@@ -182,14 +185,29 @@ class Parser:
                     category = model.getAttribute('category')
                     modelname = model.getAttribute('name').split('_')[0]
                     features, components, connections, opas = self._parseModel(model)
-                    self.dic[modelname] = {
-                        'category': category,
-                        'parent': parent,
-                        'features': self._getFeatures(features),
-                        'components': self._getComponents(components)[0],
-                        'connections': self._getConnections(connections),
-                        'opas': self._getOwnedPropertyAssociation(opas)
-                    }
+                    if modelname not in self.dic.keys():
+                        self.dic[modelname] = {
+                            'category': category,
+                            'parent': parent,
+                            'features': self._getFeatures(features),
+                            'components': self._getComponents(components)[0],
+                            'connections': self._getConnections(connections),
+                            'opas': self._getOwnedPropertyAssociation(opas)
+                        }
+                    else:
+                        index = 0
+                        while modelname+'_'+str(index) in self.dic.keys():
+                            index += 1
+                        self.dic[modelname+'_'+str(index)] = {
+                            'category': category,
+                            'parent': parent,
+                            'features': self._getFeatures(features),
+                            'components': self._getComponents(components)[0],
+                            'connections': self._getConnections(connections),
+                            'opas': self._getOwnedPropertyAssociation(opas)
+                        }
+                        index += 1
+
                     new_model_list[modelname] = self._getComponents(components)[1]
             model_list = new_model_list
 

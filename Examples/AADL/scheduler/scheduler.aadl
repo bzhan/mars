@@ -1,0 +1,71 @@
+PACKAGE scheduler
+PUBLIC
+
+SYSTEM s
+END s;
+
+SYSTEM IMPLEMENTATION s.i
+SUBCOMPONENTS
+  p1 : PROCESSOR cpu { Scheduling_Protocol => (RMS); };
+  p2 : PROCESSOR cpu { Scheduling_Protocol => (DMS); };
+  p3 : PROCESSOR cpu { Scheduling_Protocol => (Posix_1003_Highest_Priority_First_Protocol); };
+  p4 : PROCESSOR cpu { Scheduling_Protocol => (EDF); };
+  a1 : PROCESS app.i1;
+  a2 : PROCESS app.i2;
+  a3 : PROCESS app.i3;
+  a4 : PROCESS app.i4;
+
+PROPERTIES
+  Actual_Processor_Binding => ( REFERENCE(p1) ) APPLIES TO a1;
+  Actual_Processor_Binding => ( REFERENCE(p2) ) APPLIES TO a2;
+  Actual_Processor_Binding => ( REFERENCE(p3) ) APPLIES TO a3;
+  Actual_Processor_Binding => ( REFERENCE(p4) ) APPLIES TO a4;
+END s.i;
+
+PROCESSOR cpu
+END cpu;
+
+PROCESS app
+END app;
+
+PROCESS IMPLEMENTATION app.i1
+SUBCOMPONENTS
+-- use different periods to apply rate monotonic priority assignment
+  t1 : THREAD thr { Period => 18ms; Deadline => 18ms; };
+  t2 : THREAD thr { Period => 19ms; Deadline => 19ms; };
+  t3 : THREAD thr { Period => 20ms; Deadline => 20ms; };
+END app.i1;
+
+PROCESS IMPLEMENTATION app.i2
+SUBCOMPONENTS
+-- use different deadlines to apply deadline monotonic priority assignment
+  t1 : THREAD thr { Period => 20ms; Deadline => 18ms; };
+  t2 : THREAD thr { Period => 20ms; Deadline => 19ms; };
+  t3 : THREAD thr { Period => 20ms; Deadline => 20ms; };
+END app.i2;
+
+PROCESS IMPLEMENTATION app.i3
+SUBCOMPONENTS
+-- use different fixed priorities to apply highest priority first scheduling
+  t1 : THREAD thr { Period => 20ms; Deadline => 20ms; Priority => 3; };
+  t2 : THREAD thr { Period => 20ms; Deadline => 20ms; Priority => 2; };
+  t3 : THREAD thr { Period => 20ms; Deadline => 20ms; Priority => 1; };
+END app.i3;
+
+
+PROCESS IMPLEMENTATION app.i4
+SUBCOMPONENTS
+-- use different deadlines to apply earliest deadline first scheduling
+  t1 : THREAD thr { Period => 20ms; Deadline => 18ms; };
+  t2 : THREAD thr { Period => 20ms; Deadline => 19ms; };
+  t3 : THREAD thr { Period => 20ms; Deadline => 20ms; };
+END app.i4;
+
+THREAD thr
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Compute_Execution_Time => 4ms..4ms;
+END thr;
+
+END scheduler;
+
