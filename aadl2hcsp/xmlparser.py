@@ -25,6 +25,7 @@ from ss2hcsp.sl.get_hcsp import get_hcsp
 class Parser:
     def __init__(self):
         self.dic = {}
+        self.list = []
 
     def _parseModel(self, model):
         """Return instances of the model separated by type."""
@@ -54,10 +55,13 @@ class Parser:
     def _getComponents(self, components):
         """Interpret a list of components."""
         Coms, subcom = [],[]
+        idx = 0
         for component in components:
             if component.getAttribute('category') in ['system', 'process', 'thread', 'abstract', 'processor', 'subprogram']:
                 com = {}
                 subcom.append(component)
+                com['id'] = str(idx)
+                idx += 1
                 com['category'] = component.getAttribute('category')
                 com['name'] = component.getAttribute('name')
                 #if component.getElementsByTagName('classifier'):
@@ -125,16 +129,22 @@ class Parser:
 
             elif opass['type'] == 'ListValue':
                 try:
-
                     index = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
                         'ownedListElement')[0].getElementsByTagName('namedValue')[0].getAttribute('href').split('.')[-1]
                     opass['value'] = protocol_list[opass['name']][index]
 
                 except:
-                    pass
-                    #map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
-                    #    'ownedListElement')[0].getElementsByTagName('path')[0].getElementsByTagName('namedElement')[0].getAttribute('href').split('/')[-1]
-                    #opass['map_id'] = map_id
+                    #pass
+                    try:
+                        map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0].getElementsByTagName(
+                            'ownedListElement')[0].getElementsByTagName('path')[0].getElementsByTagName('namedElement')[0].getAttribute('href').split('.')[-1]
+                        opass['map_id'] = map_id
+                    except:
+                        map_id = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[
+                            0].getElementsByTagName(
+                            'ownedListElement')[0].getAttribute('referencedInstanceObject').split('.')[-1]
+                        opass['map_id'] = map_id
+
 
             elif opass['type'] == 'IntegerLiteral':
                 opass['value'] = opa.getElementsByTagName('ownedValue')[0].getElementsByTagName('ownedValue')[0]\
@@ -185,6 +195,7 @@ class Parser:
                     category = model.getAttribute('category')
                     modelname = model.getAttribute('name').split('_')[0]
                     features, components, connections, opas = self._parseModel(model)
+
                     if modelname not in self.dic.keys():
                         self.dic[modelname] = {
                             'category': category,

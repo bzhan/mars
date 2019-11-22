@@ -4,14 +4,17 @@
         "components": [
             {
                 "category": "thread",
+                "id": "0",
                 "name": "t1"
             },
             {
                 "category": "thread",
+                "id": "1",
                 "name": "t2"
             },
             {
                 "category": "thread",
+                "id": "2",
                 "name": "t3"
             }
         ],
@@ -19,6 +22,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "4",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             }
@@ -30,14 +34,17 @@
         "components": [
             {
                 "category": "thread",
+                "id": "0",
                 "name": "t1"
             },
             {
                 "category": "thread",
+                "id": "1",
                 "name": "t2"
             },
             {
                 "category": "thread",
+                "id": "2",
                 "name": "t3"
             }
         ],
@@ -45,6 +52,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "5",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             }
@@ -56,14 +64,17 @@
         "components": [
             {
                 "category": "thread",
+                "id": "0",
                 "name": "t1"
             },
             {
                 "category": "thread",
+                "id": "1",
                 "name": "t2"
             },
             {
                 "category": "thread",
+                "id": "2",
                 "name": "t3"
             }
         ],
@@ -71,6 +82,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "6",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             }
@@ -82,14 +94,17 @@
         "components": [
             {
                 "category": "thread",
+                "id": "0",
                 "name": "t1"
             },
             {
                 "category": "thread",
+                "id": "1",
                 "name": "t2"
             },
             {
                 "category": "thread",
+                "id": "2",
                 "name": "t3"
             }
         ],
@@ -97,6 +112,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "7",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             }
@@ -164,34 +180,42 @@
         "components": [
             {
                 "category": "process",
+                "id": "0",
                 "name": "a1"
             },
             {
                 "category": "process",
+                "id": "1",
                 "name": "a2"
             },
             {
                 "category": "process",
+                "id": "2",
                 "name": "a3"
             },
             {
                 "category": "process",
+                "id": "3",
                 "name": "a4"
             },
             {
                 "category": "processor",
+                "id": "4",
                 "name": "p1"
             },
             {
                 "category": "processor",
+                "id": "5",
                 "name": "p2"
             },
             {
                 "category": "processor",
+                "id": "6",
                 "name": "p3"
             },
             {
                 "category": "processor",
+                "id": "7",
                 "name": "p4"
             }
         ],
@@ -207,6 +231,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "4",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -243,6 +268,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "5",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -279,6 +305,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "6",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -320,6 +347,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "7",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -356,6 +384,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "4",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -392,6 +421,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "5",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -428,6 +458,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "6",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -469,6 +500,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "7",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -505,6 +537,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "4",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -541,6 +574,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "5",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -577,6 +611,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "6",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
@@ -618,6 +653,7 @@
         "features": [],
         "opas": [
             {
+                "map_id": "7",
                 "name": "Deployment_Properties.Actual_Processor_Binding",
                 "type": "ListValue"
             },
