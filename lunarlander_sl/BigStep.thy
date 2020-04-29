@@ -418,4 +418,105 @@ proof -
     using 1 2 by auto
 qed
 
+subsection \<open>Validity\<close>
+
+type_synonym assn = "trace \<Rightarrow> bool"
+
+definition Valid :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bool" where
+  "Valid P c Q \<longleftrightarrow> (\<forall>tr tr2. P tr \<longrightarrow> big_step c tr tr2 \<longrightarrow> Q tr2)"
+
+theorem Valid_union:
+  "\<forall>a\<in>S. Valid (P a) c (Q a) \<Longrightarrow> Valid (\<lambda>tr. \<exists>a\<in>S. P a tr) c (\<lambda>tr. \<exists>a\<in>S. Q a tr)"
+  unfolding Valid_def by auto
+
+inductive_cases sendE: "big_step (Cm (Send ch e)) tr tr2"
+thm sendE
+
+inductive_cases receiveE: "big_step (Cm (Receive ch var)) tr tr2"
+thm receiveE
+
+inductive_cases seqE: "big_step (Seq p1 p2) tr tr3"
+thm seqE
+
+inductive_cases waitE: "big_step (Wait d) tr tr2"
+thm waitE
+
+theorem Valid_send:
+  "Valid
+    (\<lambda>t. t = tr)
+    (Cm (Send ch e))
+    (\<lambda>t. \<exists>dly. t = extend_send ch e dly ({ch}, {}) tr)"
+  unfolding Valid_def by (auto elim: sendE)
+
+theorem Valid_receive:
+  "Valid
+    (\<lambda>t. t = tr)
+    (Cm (Receive ch var))
+    (\<lambda>t. \<exists>dly v. t = extend_receive ch var dly v ({}, {ch}) tr)"
+  unfolding Valid_def by (auto elim!: receiveE)
+
+theorem Valid_seq:
+  "Valid P c1 Q \<Longrightarrow> Valid Q c2 R \<Longrightarrow> Valid P (Seq c1 c2) R"
+  unfolding Valid_def by (auto elim!: seqE)
+
+theorem Valid_wait:
+  "Valid
+    (\<lambda>t. t = tr)
+    (Wait d)
+    (\<lambda>t. t = extend_trace tr (Block d (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
+  unfolding Valid_def by (auto elim!: waitE)
+
+subsection \<open>Validity for parallel processes\<close>
+
+type_synonym par_assn = "par_trace \<Rightarrow> bool"
+
+definition ParValid :: "par_assn \<Rightarrow> pproc \<Rightarrow> par_assn \<Rightarrow> bool" where
+  "ParValid P pc Q \<longleftrightarrow> (\<forall>par_tr par_tr2. P par_tr \<longrightarrow> par_big_step pc par_tr par_tr2 \<longrightarrow> Q par_tr2)"
+
+
+inductive_cases parE: "par_big_step (PProc ps) par_tr par_tr2"
+thm parE
+
+inductive_cases combine_blocksE1: "combine_blocks blkss []"
+thm combine_blocksE1
+
+lemma combine_par_trace_trivial:
+  "combine_par_trace tr (ParTrace par_st []) \<Longrightarrow> \<forall>i<length par_st. (tr ! i) = Trace (par_st ! i) []"
+  apply (auto elim!: combine_par_trace.cases)
+  apply (auto elim!: combine_blocksE1)
+  by (metis blocks_of_trace.simps start_of_trace.simps trace.exhaust)
+
+text \<open>Parallel rule\<close>
+
+theorem Valid_parallel:
+  assumes "length P = length ps"
+      "length Q = length ps"
+      "length par_st = length ps"
+      "\<forall>i<length ps. (P ! i) (Trace (par_st ! i) [])"
+      "\<forall>i<length ps. Valid (P ! i) (ps ! i) (Q ! i)"
+  shows "ParValid
+    (\<lambda>t. t = ParTrace par_st [])
+    (PProc ps)
+    (\<lambda>t. \<exists>tr2. (\<forall>i<length ps. (Q ! i) (tr2 ! i)) \<and> compat_rdy tr2 \<and> combine_par_trace tr2 t)"
+proof -
+  have 1: "\<forall>i<length ps. (Q ! i) (tr2 ! i)"
+    if "\<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i)"
+       "combine_par_trace tr (ParTrace par_st [])" for tr tr2
+  proof -
+    from that(2) have "\<forall>i<length ps. (tr ! i) = Trace (par_st ! i) []"
+      using combine_par_trace_trivial assms(3) by auto
+    then show ?thesis
+      using assms(4-5) that(1) unfolding Valid_def by auto
+  qed
+  show ?thesis
+    apply (auto simp add: ParValid_def)
+    apply (auto elim!: parE)
+    subgoal for par_tr2 tr tr2
+      apply (rule exI[where x=tr2])
+      by (auto simp add: assms 1)
+  done
+qed
+
+
+
 end
