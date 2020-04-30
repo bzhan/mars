@@ -23,7 +23,9 @@ type_synonym time = real
 text \<open>Variable names\<close>
 type_synonym var = string
 
-text \<open>Ready information\<close>
+text \<open>Ready information.
+  First component is set of channels that are ready to output.
+  Second component is set of channels that are ready to input.\<close>
 type_synonym rdy_info = "cname set \<times> cname set"
 
 text \<open>History at a time interval\<close>
@@ -62,12 +64,24 @@ fun compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
 | "compat (Out ch val) ev = (if ev = In ch val then True else False)"
 | "compat (IO ch val) ev = False"
 
+
+(*
+ch?1 to x at time 2, x := 2, ch!2 at 4
+
+[Block 2 (\<lambda>t. if t = 2 then (\<lambda>_. 0)(x := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''}),
+ Block 0 _ Tau ({}, {}),
+ Block 2 _ (Out ''ch'' 2) ({''ch''}, {})]
+
+[Block 2 _ ... (Out ''ch'' 1) ({''ch''}, {}),
+ ...]
+
+*)
 subsection \<open>Traces\<close>
 
 text \<open>First, we define the concept of traces\<close>
 
 text \<open>Time delay, ending state, and set of communications available at the interval\<close>
-datatype trace_block = Block time history event "cname set \<times> cname set"
+datatype trace_block = Block time history event rdy_info
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
@@ -106,13 +120,14 @@ text \<open>Now we define the ready set of a trace at any given time\<close>
 fun rdy_of_blocks :: "trace_block list \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_blocks [] t = ({}, {})"
 | "rdy_of_blocks ((Block dly _ _ rdy) # blks) t =
-    (if t > 0 \<and> t < dly then rdy
+    (if 0 < t \<and> t < dly then rdy
      else if t \<le> dly then ({}, {})
      else rdy_of_blocks blks (t - dly))"
 
 fun rdy_of_trace :: "trace \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_trace (Trace _ blks) t = rdy_of_blocks blks t"
 
+text \<open>Whether two rdy_infos from different processes are compatible.\<close>
 fun compat_rdy_pair :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> bool" where
   "compat_rdy_pair (r11, r12) (r21, r22) = (r11 \<inter> r22 = {} \<and> r12 \<inter> r21 = {})"
 
@@ -144,6 +159,7 @@ lemma compat_rdy_blocks2:
   apply (auto simp add: less_Suc_eq)
   using compat_rdy_block_pair_sym by auto
 
+text \<open>Main definition: compatibility between a list of traces.\<close>
 definition compat_rdy :: "trace list \<Rightarrow> bool" where
   "compat_rdy trs = (\<forall>i<length trs. \<forall>j<length trs. i \<noteq> j \<longrightarrow> compat_trace_pair (trs ! i) (trs ! j))"
 
@@ -152,13 +168,25 @@ subsection \<open>Traces of parallel processes\<close>
 
 datatype par_block = ParBlock time "history list" event
 
+text \<open>ParTrace st pblks:
+  st -- starting state for each process. Length is the number of processes.
+  pblks -- list of parallel blocks.\<close>
 datatype par_trace = ParTrace "state list" "par_block list"
 
+text \<open>Now we define how to combine a list of traces for individual processes
+  into a parallel trace.\<close>
+
 text \<open>Given a delay time t and a block with time interval at least t,
-  find the block starting at time t.\<close>
+  find the block starting at time t.
+
+  Examples:
+    wait_block 2 (In ''ch'' 1 after 5) = In ''ch'' 1 after 3.
+\<close>
 fun wait_block :: "time \<Rightarrow> trace_block \<Rightarrow> trace_block" where
   "wait_block t (Block dly s ev rdy) = Block (dly - t) (\<lambda>t'. s (t' + t)) ev rdy"
 
+text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
+  then the first block has length at least t.\<close>
 fun wait_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> trace_block list" where
   "wait_blocks t [] = []"
 | "wait_blocks t (blk # blks) = wait_block t blk # blks"
@@ -168,30 +196,46 @@ text \<open>Given a delay time t and a block with time interval at least t,
 fun start_block :: "time \<Rightarrow> trace_block \<Rightarrow> history" where
   "start_block t (Block dly s ev rdy) t' = (if t' \<le> t then s t' else s t)"
 
+text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
+  then the first block has length at least t.\<close>
 fun start_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> history" where
   "start_blocks t [] = (\<lambda>t'. undefined)"
 | "start_blocks t (blk # blks) = start_block t blk"
 
+text \<open>From a list of traces, delay every trace by t, and remove the first block
+  from i'th trace. We assume that each trace is either empty or its first block
+  has length at least t.\<close>
 definition remove_one :: "nat \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> trace_block list list" where
   "remove_one i t blkss = (
     let blkss' = map (wait_blocks t) blkss in
       blkss'[i := tl (blkss' ! i)])"
 
+text \<open>From a list of traces, delay every trace by t, and remove the first block
+  from i'th and j'th trace. We assume that each trace is either empty or its first
+  block has length at least t.\<close>
 definition remove_pair :: "nat \<Rightarrow> nat \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> trace_block list list" where
   "remove_pair i j t blkss = (
     let blkss' = map (wait_blocks t) blkss in
       blkss'[i := tl (blkss' ! i), j := tl (blkss' ! j)])"
 
+text \<open>Main definition: combining a list of block lists.
+  combine_blocks blkss pblks means the list of block lists blkss can be combined
+  together into pblks.\<close>
 inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list \<Rightarrow> bool" where
-  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks blkss []"
+  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks blkss []"  \<comment> \<open>empty case\<close>
+  \<comment> \<open>Internal action at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
+   \<comment> \<open>t \<ge> 0\<close>
+   \<comment> \<open>\<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t\<close>
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
    combine_blocks (remove_one i t blkss) pblks \<Longrightarrow>
    block0 = map (start_blocks t) blkss \<Longrightarrow>
    combine_blocks blkss ((ParBlock t block0 Tau) # pblks)"
+  \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
+   \<comment> \<open>t \<ge> 0\<close>
    \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow> blkss ! j \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
@@ -202,6 +246,7 @@ inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list 
    blockt = map (start_blocks t) blkss \<Longrightarrow>
    combine_blocks blkss ((ParBlock t blockt (IO c v)) # pblks)"
 
+text \<open>Use the previous definition to combine a list of traces into a parallel trace.\<close>
 inductive combine_par_trace :: "trace list \<Rightarrow> par_trace \<Rightarrow> bool" where
   "length trs = length sts \<Longrightarrow>
    \<forall>i<length trs. start_of_trace (trs ! i) = sts ! i \<Longrightarrow>
@@ -211,6 +256,7 @@ inductive combine_par_trace :: "trace list \<Rightarrow> par_trace \<Rightarrow>
 
 subsection \<open>External choice\<close>
 
+text \<open>Compute list of ready communications for an external choice.\<close>
 fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
   "rdy_of_echoice [] = ({}, {})"
 | "rdy_of_echoice ((Send ch e, _) # rest) = (
@@ -225,19 +271,29 @@ subsection \<open>Big-step semantics\<close>
 
 text \<open>Big-step semantics specifies for each command a mapping from trace to trace\<close>
 
+text \<open>Extend by a send block\<close>
 definition extend_send :: "cname \<Rightarrow> exp \<Rightarrow> time \<Rightarrow> rdy_info \<Rightarrow> trace \<Rightarrow> trace" where
   "extend_send ch e dly rdy tr =
     extend_trace tr (Block dly (\<lambda>t. end_of_trace tr) (Out ch (e (end_of_trace tr))) rdy)"
 
+text \<open>Extend by a receive block\<close>
 definition extend_receive :: "cname \<Rightarrow> var \<Rightarrow> time \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> trace \<Rightarrow> trace" where
   "extend_receive ch var dly v rdy tr =
     extend_trace tr (Block dly (\<lambda>t. if t \<ge> dly then (end_of_trace tr)(var := v) else end_of_trace tr)
                             (In ch v) ({}, {ch}))"
 
+text \<open>Big-step semantics.
+  big_step p tr tr2 means executing p starting at trace tr can end in trace tr2.
+  This should imply that tr is a prefix of tr2.\<close>
 inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> bool" where
+  \<comment> \<open>Send: dly \<ge> 0 is the amount of time waited at the current send.\<close>
   sendB: "big_step (Cm (Send ch e)) tr
+    \<comment> \<open>dly \<ge> 0\<close>
     (extend_send ch e dly ({ch}, {}) tr)"
+  \<comment> \<open>Receive: dly \<ge> 0 is the amount of time waited at the current receive.
+      v is the value received.\<close>
 | receiveB: "big_step (Cm (Receive ch var)) tr
+    \<comment> \<open>dly \<ge> 0\<close>
     (extend_receive ch var dly v ({}, {ch}) tr)"
 | skipB: "big_step Skip tr
     (extend_trace tr (Block 0 (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
@@ -253,6 +309,13 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
     (extend_trace tr (Block d (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
 | IChoiceB: "i < length ps \<Longrightarrow> big_step (ps ! i) tr tr2 \<Longrightarrow>
    big_step (IChoice ps) tr tr2"
+  \<comment> \<open>cs is a list of comm \<times> proc elements.\<close>
+(*
+Trace 1: [Block 4 _ (In ch 1) ({ch2}, {ch})]
+Trace 2: [Block 4 _ (Out ch 1) ({ch}, {})]     communicated with 1
+Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
+  then compat_rdy fails for time between 2 and 4.
+*)
 | EChoiceSendB: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
    big_step p2 (extend_send ch e dly (rdy_of_echoice cs) tr) tr3 \<Longrightarrow>
    big_step (EChoice cs) tr tr3"
@@ -260,12 +323,13 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
    big_step p2 (extend_receive ch var dly v (rdy_of_echoice cs) tr) tr3 \<Longrightarrow>
    big_step (EChoice cs) tr tr3"
 
+text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
-  parallelB: "length tr = length ps \<Longrightarrow> length tr2 = length ps \<Longrightarrow>
-   \<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i) \<Longrightarrow>
-   compat_rdy tr \<Longrightarrow> compat_rdy tr2 \<Longrightarrow>
-   combine_par_trace tr par_tr \<Longrightarrow>
-   combine_par_trace tr2 par_tr2 \<Longrightarrow>
+  parallelB: "length trs = length ps \<Longrightarrow> length trs2 = length ps \<Longrightarrow>
+   \<forall>i<length ps. big_step (ps ! i) (trs ! i) (trs2 ! i) \<Longrightarrow>
+   compat_rdy trs \<Longrightarrow> compat_rdy trs2 \<Longrightarrow>
+   combine_par_trace trs par_tr \<Longrightarrow>
+   combine_par_trace trs2 par_tr2 \<Longrightarrow>
    par_big_step (PProc ps) par_tr par_tr2"
 
 
@@ -520,6 +584,11 @@ lemma combine_par_trace_trivial:
 
 text \<open>Parallel rule\<close>
 
+text \<open>Hoare triple for parallel processes.
+  ps -- list of processes.
+  P -- list of pre-conditions of processes.
+  Q -- list of post-conditions of processes.
+\<close>
 theorem Valid_parallel:
   assumes "length P = length ps"
       "length Q = length ps"
@@ -527,9 +596,9 @@ theorem Valid_parallel:
       "\<forall>i<length ps. (P ! i) (Trace (par_st ! i) [])"
       "\<forall>i<length ps. Valid (P ! i) (ps ! i) (Q ! i)"
   shows "ParValid
-    (\<lambda>t. t = ParTrace par_st [])
+    (\<lambda>par_t. par_t = ParTrace par_st [])
     (PProc ps)
-    (\<lambda>t. \<exists>tr2. length tr2 = length ps \<and> (\<forall>i<length ps. (Q ! i) (tr2 ! i)) \<and> compat_rdy tr2 \<and> combine_par_trace tr2 t)"
+    (\<lambda>par_t. \<exists>tr2. length tr2 = length ps \<and> (\<forall>i<length ps. (Q ! i) (tr2 ! i)) \<and> compat_rdy tr2 \<and> combine_par_trace tr2 par_t)"
 proof -
   have 1: "\<forall>i<length ps. (Q ! i) (tr2 ! i)"
     if "\<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i)"
