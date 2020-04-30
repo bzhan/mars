@@ -225,15 +225,19 @@ void Scheduler(struct Process* process, int iterCount)
         threads[i]->state = "INITIAL";
     }
 
-    // Scheduling protocol will be selected depend on different algorithms
+    // Scheduling protocol will be selected
+    // depend on different algorithms
     if (strcmp(sched_pro, "RMS") == 0) {
-        sched_RMS(threads);
+        sched_RMS(threads, threadNum, iterCount);
     }
     else if (strcmp(sched_pro, "FCFS") == 0) {
-        sched_FCFS(threads);
+        sched_FCFS(threads, threadNum, iterCount);
     }
     else if (strcmp(sched_pro, "HPF") == 0) {
         sched_HPF(threads, threadNum, iterCount);
+    }
+    else if (strcmp(sched_pro, "EDF") == 0) {
+        sched_EDF(threads, threadNum, iterCount);
     }
     else {
         printf("No matching scheduling protocol, quit!\n");

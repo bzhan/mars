@@ -1,0 +1,5 @@
+
+processor HeatCPU
+	properties
+		Scheduling_Protocol => (FCFS);
+end HeatCPU;

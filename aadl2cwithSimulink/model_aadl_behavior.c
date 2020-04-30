@@ -66,11 +66,14 @@ void thread_Sensor()
 
 void thread_HeatCooler()
 {
+	
 	if (diff > 0.0) {
 		heatCommand = -1.0;
+	
 	}
 	else if (diff < 0.0) {
 		heatCommand = 1.0;
+
 	}
 	else {
 		heatCommand = 0.0;

@@ -1,0 +1,88 @@
+THREAD Regulator
+FEATURES
+  desiredTemp : IN DATA PORT Base_Types::Float;
+  measuredTemp : IN DATA PORT Base_Types::Float;
+  heaterCommand : OUT DATA PORT Base_Types::Float;
+END Regulator;
+
+
+THREAD IMPLEMENTATION Regulator.impl
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 8;
+  Deadline => 20ms;
+  Period => 20ms;
+
+ANNEX Behavior_Specification 
+{**
+  VARIABLES diff, gain : int;
+  STATES s : INITIAL COMPLETE FINAL STATE;
+  TRANSITIONS 
+    t : s -[ON DISPATCH]-> s 
+    { 
+      gain := 2;
+      diff :=  desiredTemp - measuredTemp; 
+      heaterCommand := diff * gain; 
+    };
+**};
+END Regulator.others;
+
+
+THREAD HeaterCooler
+FEATURES
+  command : IN DATA PORT Base_Types::Float;
+  temperature : OUT DATA PORT Base_Types::Float;
+  heating : OUT EVENT PORT Base_Types::Boolean;
+  cooling : OUT EVENT PORT Base_Types::Boolean;
+END HeaterCooler;
+
+
+THREAD IMPLEMENTATION HeaterCooler.impl
+SUBCOMPONENTS
+  Temp : DATA Base_Types::Int;
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 6;
+  Deadline => 20ms;
+  Period => 20ms;
+
+ANNEX Behavior_Specification 
+{**
+  STATES s : INITIAL COMPLETE FINAL STATE;
+  TRANSITIONS 
+    t : s -[ON DISPATCH]-> s 
+    { 
+      if (command >= 0) heating!; Temp := Temp + 1 end if; 
+      if (command < 0) cooling!; Temp := Temp - 1 end if;
+      temperature := Temp; 
+    };
+**};
+END HeaterCooler.impl;
+
+
+THREAD Sensor
+FEATURES
+  heaterTemp : IN DATA PORT Base_Types::Int;
+  measuredTemp : OUT DATA PORT Base_Types::Int;
+END Sensor;
+
+
+THREAD IMPLEMENTATION Sensor.impl
+PROPERTIES
+  Dispatch_Protocol => Periodic;
+  Priority => 10;
+  Deadline => 20ms;
+  Period => 10ms;
+
+ANNEX Behavior_Specification 
+{**
+  VARIABLES e : Base_Types::Float;
+  STATES s : INITIAL COMPLETE FINAL STATE;
+  TRANSITIONS 
+    t : s -[ON DISPATCH]-> s 
+    { 
+      err!(2,e); 
+      measuredTemp := heaterTemp + e;
+    };
+**};
+END Sensor.impl;

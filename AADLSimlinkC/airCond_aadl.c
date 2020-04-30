@@ -23,6 +23,17 @@ int thread_HeatCooler_cooling;
 int  thread_Sensor_measureTemp;
 int desired_temperature;
 
+
+//Process Port
+float process_HeaterSW_heatCooling;
+float process_HeaterSW_measuredTemp;
+
+//Thread Port
+float thread_Sensor_heatTemp;
+float thread_Sensor_measureTemp;
+
+
+
 int thread_Sensor(int  heaterTemp)
 {
 	printf("input : heaterTemp -> %d\n", heaterTemp);
@@ -34,11 +45,10 @@ int thread_Sensor(int  heaterTemp)
 	return measuredTemp;
 };
 
-
+//printf("input : command -> %d\n", command);
 //ÎÂ¿ØÏß³Ìº¯Êý
 int  *thread_HeatCooler(int command)
 {
-	printf("input : command -> %d\n", command);
 	int heating, cooling;
 
 	if (command > 0)
@@ -190,5 +200,27 @@ int air_system(int measureTemp, THREAD *thread_Sensor, THREAD *thread_Regulator,
 	}
 	return command;
 };
+
+
+
+
+void  thread_HeaterCooler()
+{
+	int Temp = 0;
+
+	if (command >= 0){
+		heating = 1;
+		cooling = 0;
+		Temp = Temp + 1;
+	}
+	if (command < 0){
+		cooling = 1;
+		heating = 0;
+		Temp = Temp - 1;
+	}
+	temperature = Temp;
+}
+
+
 
 

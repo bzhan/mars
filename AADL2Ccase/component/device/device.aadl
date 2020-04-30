@@ -1,0 +1,19 @@
+
+DEVICE LeadsInterface
+FEATURES
+  VentricleSense : OUT EVENT PORT Base_Types::Boolean;
+  VentriclePulse : IN EVENT PORT Base_Types::Boolean;
+  AtriumSense : OUT EVENT PORT Base_Types::Boolean;
+  AtriumPulse : IN EVENT PORT Base_Types::Boolean;
+END LeadsInterface;
+
+-- The device monitors and regulates a patient's heart rate.
+-- The device detects and provides therapy for bradycardia conditions.
+-- The device provides programmable, single- and dual-chamber, rate-adaptive
+--  pacing, both permanent and temporary.
+-- In adaptive rate modes, an accelerometer is used to measure physical activity
+--  resulting in a sensor indicated rate for pacing the heart.
+-- The device is programmed and interrogated via bi-directional telemetry from
+--  the Device Controller-Monitor (DCM). 
+-- This allows the physician to change the operating mode or parameters of
+--  the device non-invasively after implantation.

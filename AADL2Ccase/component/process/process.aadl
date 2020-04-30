@@ -1,0 +1,47 @@
+
+PROCESS calculator 
+FEATURES
+  operand1 : in DATA PORT Base_Types::Float;
+  operand2 : in DATA PORT Base_Types::Float;
+  add : in EVENT PORT Base_Types::Boolean;
+  sub : in EVENT PORT Base_Types::Boolean;
+  mul : in EVENT PORT Base_Types::Boolean;
+  div : in EVENT PORT Base_Types::Boolean;
+  mod : in EVENT PORT Base_Types::Boolean;
+  rem : in EVENT PORT Base_Types::Boolean;
+  rnd : in EVENT PORT Base_Types::Boolean;
+  fac : in EVENT PORT Base_Types::Boolean;
+  pow : in EVENT PORT Base_Types::Boolean;
+  ln : in EVENT PORT Base_Types::Boolean;
+  log : in EVENT PORT Base_Types::Boolean;
+  exp : in EVENT PORT Base_Types::Boolean;
+  sin : in EVENT PORT Base_Types::Boolean;
+  cos : in EVENT PORT Base_Types::Boolean;
+  tan : in EVENT PORT Base_Types::Boolean;
+  result : out DATA PORT Base_Types::Float;
+END calculator;
+
+PROCESS IMPLEMENTATION calculator.impl
+SUBCOMPONENTS
+  calc : THREAD calc.impl;
+CONNECTIONS
+  C1 : PORT operand1 -> calc.input1;
+  C2 : PORT operand2 -> calc.input2;
+  C3 : PORT calc.output -> result;
+  C4 : PORT add -> calc.e1;
+  C5 : PORT sub -> calc.e2;
+  C6 : PORT mul -> calc.e3;
+  C7 : PORT div -> calc.e4;
+  C8 : PORT mod -> calc.e5;
+  C9 : PORT rem -> calc.e6;
+  C10 : PORT rnd -> calc.e7;
+  C11 : PORT fac -> calc.e8;
+  C12 : PORT pow -> calc.e9;
+  C13 : PORT ln -> calc.e10;
+  C14 : PORT log -> calc.e11;
+  C15 : PORT exp -> calc.e12;
+  C16 : PORT sin -> calc.e13;
+  C17 : PORT cos -> calc.e14;
+  C18 : PORT tan -> calc.e15;
+END calculator.impl;
+

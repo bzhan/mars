@@ -95,7 +95,7 @@
                 "s": {
                     "content": [
                         "gain := 10.0",
-                        "if measuredTemp > 100.0 then diff := gain*(measuredTemp-100.0) elif measuredTemp < 97.0 then diff := gain*(measuredTemp-97.0) else diff := 0.0 endif"
+                        "diff := gain*(measuredTemp-98.5) "
                     ],
                     "distination": "s"
                 }

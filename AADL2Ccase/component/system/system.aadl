@@ -1,0 +1,25 @@
+
+SYSTEM HeatRegulator
+FEATURES
+  desiredTemp : IN DATA PORT Base_Types::Float;
+  heating : OUT EVENT PORT Base_Types::Boolean;
+  cooling : OUT EVENT PORT Base_Types::Boolean;
+  currentTemp : OUT DATA PORT Base_Types::Float;
+END HeatRegulator;
+
+SYSTEM IMPLEMENTATION HeatRegulator.impl
+SUBCOMPONENTS
+  HeaterSW : PROCESS HeaterSW.impl;
+  HeaterCPU : PROCESSOR HeaterCPU.impl;
+  HeaterRAM : MEMORY HeaterRAM.impl;
+
+CONNECTIONS
+  cnx_0 : PORT desiredTemp -> HeaterSW.desiredTemp;
+  cnx_1 : PORT HeaterSW.heating -> heating;
+  cnx_2 : PORT HeaterSW.cooling -> cooling;
+  cnx_3 : PORT HeaterSW.measuredTemp -> currentTemp;
+
+PROPERTIES
+  Actual_Processor_Binding => ( reference(HeaterCPU) ) applies to HeaterSW;
+  Actual_Memory_Binding => ( reference(HeaterRAM) ) applies to HeaterSW;
+END HeatRegulator.impl;

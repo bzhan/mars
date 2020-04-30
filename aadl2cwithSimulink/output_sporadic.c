@@ -294,7 +294,7 @@ int main()
     actuator->runCount = 0;
     actuator->threadName = "actuator"; 
     actuator->period = 0; 
-    actuator->priority = 6; 
+    actuator->priority = 10; 
     actuator->deadline = 10; 
     actuator->state = "HALTED"; 
     actuator->dispatch_protocol = "Sporadic"; 
@@ -307,7 +307,7 @@ int main()
     controller->runCount = 0;
     controller->threadName = "controller"; 
     controller->period = 0; 
-    controller->priority = 8; 
+    controller->priority = 10; 
     controller->deadline = 10; 
     controller->state = "HALTED"; 
     controller->dispatch_protocol = "Sporadic"; 
@@ -319,7 +319,7 @@ int main()
     sensor->event_flag = 0;
     sensor->runCount = 0;
     sensor->threadName = "sensor"; 
-    sensor->period = 10; 
+    sensor->period = 1; 
     sensor->priority = 10; 
     sensor->deadline = 10; 
     sensor->state = "HALTED"; 
@@ -336,5 +336,5 @@ int main()
     heatSW->threadGroup[0] = actuator;
     heatSW->threadGroup[1] = controller;
     heatSW->threadGroup[2] = sensor;
-    Scheduler(heatSW, 3000);
+    Scheduler(heatSW, 4000);
 }
