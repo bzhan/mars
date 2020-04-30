@@ -120,13 +120,29 @@ lemma compat_rdy_pair_sym:
   "compat_rdy_pair p1 p2 \<longleftrightarrow> compat_rdy_pair p2 p1"
   apply (cases p1) apply (cases p2) by auto
 
-definition compat_trace_pair :: "trace \<Rightarrow> trace \<Rightarrow> bool" where
-  "compat_trace_pair tr1 tr2 = (\<forall>t. compat_rdy_pair (rdy_of_trace tr1 t) (rdy_of_trace tr2 t))"
+definition compat_rdy_block_pair :: "trace_block list \<Rightarrow> trace_block list \<Rightarrow> bool" where
+  "compat_rdy_block_pair blks1 blks2 = (\<forall>t. compat_rdy_pair (rdy_of_blocks blks1 t) (rdy_of_blocks blks2 t))"
+
+lemma compat_rdy_block_pair_sym:
+  "compat_rdy_block_pair blks1 blks2 \<longleftrightarrow> compat_rdy_block_pair blks2 blks1"
+  unfolding compat_rdy_block_pair_def 
+  using compat_rdy_pair_sym by auto
+
+fun compat_trace_pair :: "trace \<Rightarrow> trace \<Rightarrow> bool" where
+  "compat_trace_pair (Trace _ blks1) (Trace _ blks2) = compat_rdy_block_pair blks1 blks2"
 
 lemma compat_trace_pair_sym:
   "compat_trace_pair tr1 tr2 \<longleftrightarrow> compat_trace_pair tr2 tr1"
-  unfolding compat_trace_pair_def
-  using compat_rdy_pair_sym by auto
+  by (metis compat_rdy_block_pair_sym compat_trace_pair.simps trace.exhaust)
+
+definition compat_rdy_blocks :: "trace_block list list \<Rightarrow> bool" where
+  "compat_rdy_blocks blkss = (\<forall>i<length blkss. \<forall>j<length blkss. i \<noteq> j \<longrightarrow> compat_rdy_block_pair (blkss ! i) (blkss ! j))"
+
+lemma compat_rdy_blocks2:
+  "compat_rdy_blocks [blks1, blks2] \<longleftrightarrow> compat_rdy_block_pair blks1 blks2"
+  unfolding compat_rdy_blocks_def
+  apply (auto simp add: less_Suc_eq)
+  using compat_rdy_block_pair_sym by auto
 
 definition compat_rdy :: "trace list \<Rightarrow> bool" where
   "compat_rdy trs = (\<forall>i<length trs. \<forall>j<length trs. i \<noteq> j \<longrightarrow> compat_trace_pair (trs ! i) (trs ! j))"
@@ -368,7 +384,7 @@ proof -
     by (rule 1)
   show ?thesis
     apply (rule parallelB2[OF test1a test2a])
-    apply (auto simp add: compat_trace_pair_def less_Suc_eq combine_par_trace.simps)
+    apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
     using 1 2 by auto
 qed
 
@@ -415,7 +431,7 @@ proof -
     by (rule 1)
   show ?thesis
     apply (rule parallelB2[OF test5 test2b])
-       apply (auto simp add: compat_trace_pair_def less_Suc_eq combine_par_trace.simps)
+       apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
     using 1 2 by auto
 qed
 
@@ -597,6 +613,41 @@ proof -
     apply (rule Valid_parallel'[where P="[P1,P2]" and Q="[Q1,Q2]"])
     by (auto simp add: less_Suc_eq assms 1)
 qed
+
+subsection \<open>More on combine_blocks\<close>
+
+lemma combine_blocks_IO2:
+  "combine_blocks blkss par_tr \<Longrightarrow>
+   compat_rdy_blocks blkss \<Longrightarrow>
+   blkss = [Block d1 f1 (Out ch1 v1) ({''ch''}, {}) # blks1,
+            Block d2 f2 (In ch2 v2) ({}, {''ch''}) # blks2] \<Longrightarrow>
+   d1 = 0 \<and> d2 = 0"
+proof (induct rule: combine_blocks.induct)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks block0)
+  have "i = 0 \<or> i = 1"
+    using 2(1) 2(9) by auto
+  then show ?case using 2 by auto
+next
+  case (3 i blkss j t c v pblks blockt)
+  have "length blkss = 2"
+    using 3(15) by auto
+  have "i = 0 \<or> i = 1" "j = 0 \<or> j = 1"
+    using 3(1,2,15) by auto
+  then have "i = 1" "j = 0"
+    using 3(1,2,9,10,15) by auto
+  then have "d1 = d2" "d1 = t" "d2 = t"
+    using 3(7,8,15) by auto
+  moreover have False if "t \<noteq> 0"
+    using 3(14) unfolding 3(15) compat_rdy_blocks2
+    unfolding compat_rdy_block_pair_def
+    sorry
+  ultimately show ?case
+    using 3(4) by (auto simp add: less_Suc_eq)
+qed
+
 
 subsection \<open>Examples\<close>
 
