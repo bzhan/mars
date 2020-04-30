@@ -245,7 +245,8 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
    big_step (EChoice cs) tr tr3"
 
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
-  parallelB: "\<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i) \<Longrightarrow>
+  parallelB: "length tr = length ps \<Longrightarrow> length tr2 = length ps \<Longrightarrow>
+   \<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i) \<Longrightarrow>
    compat_rdy tr \<Longrightarrow> compat_rdy tr2 \<Longrightarrow>
    combine_par_trace tr par_tr \<Longrightarrow>
    combine_par_trace tr2 par_tr2 \<Longrightarrow>
@@ -308,7 +309,7 @@ lemma parallelB2:
    "combine_par_trace [tr11, tr21] par_tr"
    "combine_par_trace [tr12, tr22] par_tr2"
   shows "par_big_step (PProc [ps1, ps2]) par_tr par_tr2"
-  apply (rule parallelB[OF _ _ _ assms(5,6)])
+  apply (rule parallelB[OF _ _ _ _ _ assms(5,6)])
   by (auto simp add: less_Suc_eq compat_rdy_def compat_trace_pair_sym assms)
 
 subsection \<open>Test of big-step semantics\<close>
@@ -429,6 +430,14 @@ theorem Valid_union:
   "\<forall>a\<in>S. Valid (P a) c (Q a) \<Longrightarrow> Valid (\<lambda>tr. \<exists>a\<in>S. P a tr) c (\<lambda>tr. \<exists>a\<in>S. Q a tr)"
   unfolding Valid_def by auto
 
+theorem Valid_pre:
+  "\<forall>tr. P tr \<longrightarrow> P' tr \<Longrightarrow> Valid P' c Q \<Longrightarrow> Valid P c Q"
+  unfolding Valid_def by auto
+
+theorem Valid_post:
+  "\<forall>tr. Q tr \<longrightarrow> Q' tr \<Longrightarrow> Valid P c Q \<Longrightarrow> Valid P c Q'"
+  unfolding Valid_def by auto
+
 inductive_cases sendE: "big_step (Cm (Send ch e)) tr tr2"
 thm sendE
 
@@ -473,6 +482,13 @@ type_synonym par_assn = "par_trace \<Rightarrow> bool"
 definition ParValid :: "par_assn \<Rightarrow> pproc \<Rightarrow> par_assn \<Rightarrow> bool" where
   "ParValid P pc Q \<longleftrightarrow> (\<forall>par_tr par_tr2. P par_tr \<longrightarrow> par_big_step pc par_tr par_tr2 \<longrightarrow> Q par_tr2)"
 
+theorem ParValid_pre:
+  "\<forall>tr. P tr \<longrightarrow> P' tr \<Longrightarrow> ParValid P' pc Q \<Longrightarrow> ParValid P pc Q"
+  unfolding ParValid_def by auto
+
+theorem ParValid_post:
+  "\<forall>tr. Q tr \<longrightarrow> Q' tr \<Longrightarrow> ParValid P pc Q \<Longrightarrow> ParValid P pc Q'"
+  unfolding ParValid_def by auto
 
 inductive_cases parE: "par_big_step (PProc ps) par_tr par_tr2"
 thm parE
@@ -497,7 +513,7 @@ theorem Valid_parallel:
   shows "ParValid
     (\<lambda>t. t = ParTrace par_st [])
     (PProc ps)
-    (\<lambda>t. \<exists>tr2. (\<forall>i<length ps. (Q ! i) (tr2 ! i)) \<and> compat_rdy tr2 \<and> combine_par_trace tr2 t)"
+    (\<lambda>t. \<exists>tr2. length tr2 = length ps \<and> (\<forall>i<length ps. (Q ! i) (tr2 ! i)) \<and> compat_rdy tr2 \<and> combine_par_trace tr2 t)"
 proof -
   have 1: "\<forall>i<length ps. (Q ! i) (tr2 ! i)"
     if "\<forall>i<length ps. big_step (ps ! i) (tr ! i) (tr2 ! i)"
@@ -517,6 +533,133 @@ proof -
   done
 qed
 
+subsection \<open>Other versions of Hoare triples\<close>
 
+theorem Valid_send2:
+  "\<forall>dly. Q (extend_send ch e dly ({ch}, {}) tr) \<Longrightarrow>
+   Valid
+    (\<lambda>t. t = tr)
+    (Cm (Send ch e))
+    Q"
+  using Valid_def sendE by blast
+
+theorem Valid_send3:
+  "\<forall>tr dly. P tr \<longrightarrow> Q (extend_send ch e dly ({ch}, {}) tr) \<Longrightarrow>
+    Valid P (Cm (Send ch e)) Q"
+  using Valid_def sendE by blast
+
+theorem Valid_receive2:
+  "\<forall>dly v. Q (extend_receive ch var dly v ({}, {ch}) tr) \<Longrightarrow>
+   Valid
+    (\<lambda>t. t = tr)
+    (Cm (Receive ch var))
+    Q"
+  using Valid_def receiveE by blast
+
+text \<open>Version of Valid_parallel with arbitrary post-condition\<close>
+theorem Valid_parallel':
+  "length P = length ps \<Longrightarrow>
+   length Q = length ps \<Longrightarrow>
+   length par_st = length ps \<Longrightarrow>
+   \<forall>i<length ps. (P ! i) (Trace (par_st ! i) []) \<Longrightarrow>
+   \<forall>i<length ps. Valid (P ! i) (ps ! i) (Q ! i) \<Longrightarrow>
+   (\<forall>par_t tr. length tr = length ps \<and> (\<forall>i<length ps. (Q ! i) (tr ! i)) \<and> compat_rdy tr \<and> combine_par_trace tr par_t \<longrightarrow> par_Q par_t) \<Longrightarrow>
+   ParValid (\<lambda>t. t = ParTrace par_st [])
+    (PProc ps)
+    par_Q"
+  using ParValid_post Valid_parallel by auto
+
+text \<open>Version for two processes\<close>
+theorem Valid_parallel2':
+  assumes "P1 (Trace st1 [])"
+    "P2 (Trace st2 [])"
+    "Valid P1 p1 Q1" "Valid P2 p2 Q2"
+    "(\<forall>par_t tr1 tr2. Q1 tr1 \<longrightarrow> Q2 tr2 \<longrightarrow> compat_trace_pair tr1 tr2 \<longrightarrow> combine_par_trace [tr1, tr2] par_t \<longrightarrow> par_Q par_t)"
+  shows "ParValid (\<lambda>t. t = ParTrace [st1, st2] [])
+    (PProc [p1, p2])
+    par_Q"
+proof -
+  have 1: "par_Q par_t" if
+    "length tr = length [p1, p2]" "(\<forall>i<length [p1, p2]. ([Q1, Q2] ! i) (tr ! i))" "compat_rdy tr" "combine_par_trace tr par_t"
+  for par_t tr
+  proof -
+    have "tr = [tr ! 0, tr ! 1]"
+      apply (rule nth_equalityI)
+      using that(1) by (auto simp add: less_Suc_eq)
+    then obtain tr1 tr2 where 2: "tr = [tr1, tr2]"
+      by auto
+    then have 3: "compat_trace_pair tr1 tr2"
+      using \<open>compat_rdy tr\<close> unfolding compat_rdy_def by (auto simp add: less_Suc_eq)
+    from assms show ?thesis
+      using that 3 unfolding 2 by (auto simp add: less_Suc_eq)
+  qed
+  show ?thesis
+    apply (rule Valid_parallel'[where P="[P1,P2]" and Q="[Q1,Q2]"])
+    by (auto simp add: less_Suc_eq assms 1)
+qed
+
+subsection \<open>Examples\<close>
+
+text \<open>Send 1\<close>
+lemma testHL1:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (Cm (Send ''ch'' (\<lambda>_. 1)))
+    (\<lambda>t. \<exists>dly. t = Trace (\<lambda>_. 0) [Block dly (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {})])"
+  apply (rule Valid_send2)
+  by (auto simp add: extend_send_def)
+
+text \<open>Send 1, then send 2\<close>
+lemma testHL2:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (Seq (Cm (Send ''ch'' (\<lambda>_. 1))) (Cm (Send ''ch'' (\<lambda>_. 2))))
+    (\<lambda>t. \<exists>dly dly2. t = Trace (\<lambda>_. 0) [Block dly (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {}),
+                                       Block dly2 (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 2) ({''ch''}, {})])"
+  apply (rule Valid_seq[OF testHL1])
+  apply (rule Valid_send3)
+  by (auto simp add: extend_send_def)
+
+text \<open>Receive from ch\<close>
+lemma testHL3:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Cm (Receive ''ch'' ''x''))
+    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [Block dly (\<lambda>t. if t \<ge> dly then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0))
+                                            (In ''ch'' v) ({}, {''ch''})])"
+  apply (rule Valid_receive2)
+  by (auto simp add: extend_receive_def)
+
+text \<open>Communication\<close>
+lemma testHL4:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' ''x'')])
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)]
+          [ParBlock 0 [(\<lambda>_. \<lambda>_. 0), (\<lambda>t. if t \<ge> 0 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] (IO ''ch'' 1)])"
+proof -
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParBlock 0 [\<lambda>_ _. 0, \<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)] (IO ''ch'' 1)]"
+    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [Block dly (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})]" and
+       ex2: "(\<exists>dly v.
+           tr2 = Trace (\<lambda>_. 0) [Block dly (\<lambda>t. if dly \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})])" and
+       rdy: "compat_trace_pair tr1 tr2" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t tr1 tr2
+  proof -
+    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [Block dly1 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})]"
+      using ex1 by auto
+    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [Block dly2 (\<lambda>t. if dly2 \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})]"
+      using ex2 by auto
+    have eq1: "dly1 = dly2 \<and> v = 1"
+      sorry
+    have eq2: "dly1 = 0"
+      sorry
+    show ?thesis
+      sorry
+  qed
+  show ?thesis
+    apply (rule Valid_parallel2'[OF _ _ testHL1 testHL3])
+    using 1 by auto
+qed
 
 end
