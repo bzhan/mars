@@ -166,7 +166,10 @@ definition compat_rdy :: "trace list \<Rightarrow> bool" where
 
 subsection \<open>Traces of parallel processes\<close>
 
-datatype par_block = ParBlock time "history list" event
+datatype par_block =
+    IOBlock nat nat cname real
+  | TauBlock int state
+  | WaitBlock real
 
 text \<open>ParTrace st pblks:
   st -- starting state for each process. Length is the number of processes.
@@ -213,10 +216,9 @@ definition remove_one :: "nat \<Rightarrow> time \<Rightarrow> trace_block list 
 text \<open>From a list of traces, delay every trace by t, and remove the first block
   from i'th and j'th trace. We assume that each trace is either empty or its first
   block has length at least t.\<close>
-definition remove_pair :: "nat \<Rightarrow> nat \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> trace_block list list" where
-  "remove_pair i j t blkss = (
-    let blkss' = map (wait_blocks t) blkss in
-      blkss'[i := tl (blkss' ! i), j := tl (blkss' ! j)])"
+definition remove_pair :: "nat \<Rightarrow> nat \<Rightarrow> trace_block list list \<Rightarrow> trace_block list list" where
+  "remove_pair i j blkss = (
+      blkss[i := tl (blkss ! i), j := tl (blkss ! j)])"
 
 text \<open>Main definition: combining a list of block lists.
   combine_blocks blkss pblks means the list of block lists blkss can be combined
@@ -232,19 +234,17 @@ inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list 
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
    combine_blocks (remove_one i t blkss) pblks \<Longrightarrow>
    block0 = map (start_blocks t) blkss \<Longrightarrow>
-   combine_blocks blkss ((ParBlock t block0 Tau) # pblks)"
+   combine_blocks blkss ((WaitBlock t) # pblks)"
   \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
-   \<comment> \<open>t \<ge> 0\<close>
-   \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow> blkss ! j \<noteq> [] \<Longrightarrow>
-   delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
-   delay_of_block (hd (blkss ! j)) = t \<Longrightarrow>
+   delay_of_block (hd (blkss ! i)) = 0 \<Longrightarrow>
+   delay_of_block (hd (blkss ! j)) = 0 \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = In c v \<Longrightarrow>
    event_of_block (hd (blkss ! j)) = Out c v \<Longrightarrow>
-   combine_blocks (remove_pair i j t blkss) pblks \<Longrightarrow>
-   blockt = map (start_blocks t) blkss \<Longrightarrow>
-   combine_blocks blkss ((ParBlock t blockt (IO c v)) # pblks)"
+   combine_blocks (remove_pair i j blkss) pblks \<Longrightarrow>
+   blockt = map (start_blocks 0) blkss \<Longrightarrow>
+   combine_blocks blkss ((IOBlock i j c v) # pblks)"
 
 text \<open>Use the previous definition to combine a list of traces into a parallel trace.\<close>
 inductive combine_par_trace :: "trace list \<Rightarrow> par_trace \<Rightarrow> bool" where
@@ -432,8 +432,7 @@ lemma test2b: "big_step (Cm (Receive ''ch'' ''x''))
 text \<open>Communication\<close>
 lemma test3: "par_big_step (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' ''x'')])
         (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-        (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)]
-          [ParBlock 0 [(\<lambda>_. \<lambda>_. 0), (\<lambda>t. if t \<ge> 0 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] (IO ''ch'' 1)])"
+        (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "combine_blocks [[], []] []"
     apply (rule combine_blocks.intros(1))
@@ -441,7 +440,8 @@ proof -
   have 2: "combine_blocks
      [[Block 0 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
       [Block 0 (\<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})]]
-     ((ParBlock 0 [\<lambda>_ _. 0, \<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)] (IO ''ch'' 1)) # [])"
+     [IOBlock 1 0 ''ch'' 1]"
+    thm combine_blocks.intros(3)
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
     apply (auto simp add: less_Suc_eq)
     unfolding remove_pair_def Let_def apply auto
@@ -473,9 +473,7 @@ lemma test6: "par_big_step (PProc [
   Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))),
   Cm (Receive ''ch'' ''x'')])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)]
-      [ParBlock 2 [(\<lambda>_. \<lambda>_. 0), (\<lambda>t. if t \<ge> 2 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] Tau,
-       ParBlock 0 [(\<lambda>_. \<lambda>_. 0), (\<lambda>t. if t \<ge> 0 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] (IO ''ch'' 1)])"
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [WaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "combine_blocks [[], []] []"
     apply (rule combine_blocks.intros(1))
@@ -483,13 +481,11 @@ proof -
   have 2: "combine_blocks
      [[Block 2 (\<lambda>_ _. 0) Tau ({}, {}), Block 0 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
       [Block 2 (\<lambda>t. if 2 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})]]
-     [ParBlock 2 [\<lambda>_ _. 0, (\<lambda>t. if t \<ge> 2 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] Tau,
-      ParBlock 0 [\<lambda>_ _. 0, \<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)] (IO ''ch'' 1)]"
-    thm combine_blocks.intros(2)
+     [WaitBlock 2, IOBlock 1 0 ''ch'' 1]"
     apply (rule combine_blocks.intros(2)[where i=0])
          apply (auto simp add: less_Suc_eq)
     unfolding remove_one_def Let_def apply auto
-     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
+     apply (rule combine_blocks.intros(3))
                 apply (auto simp add: less_Suc_eq)
     unfolding remove_pair_def Let_def apply auto
     by (rule 1)
@@ -685,37 +681,67 @@ qed
 
 subsection \<open>More on combine_blocks\<close>
 
+lemma combine_blocks_triv2:
+  "combine_blocks [[], []] par_blks \<Longrightarrow> par_blks = []"
+proof (induct rule: combine_blocks.cases)
+case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks block0)
+  have "i = 0 \<or> i = 1"
+    using 2(1,3,8) by auto
+  then show ?case using 2 by auto
+next
+  case (3 i blkss j c v pblks blockt)
+  have "i = 0 \<or> i = 1"
+    using 3(1,3,8) by auto
+  then show ?case using 3 by auto
+qed
+
 lemma combine_blocks_IO2:
-  "combine_blocks blkss par_tr \<Longrightarrow>
-   compat_rdy_blocks blkss \<Longrightarrow>
-   blkss = [Block d1 f1 (Out ch1 v1) ({''ch''}, {}) # blks1,
-            Block d2 f2 (In ch2 v2) ({}, {''ch''}) # blks2] \<Longrightarrow>
-   d1 = 0 \<and> d2 = 0"
-proof (induct rule: combine_blocks.induct)
+  "combine_blocks [Block d1 f1 (Out ch1 v1) ({''ch''}, {}) # blks1,
+                   Block d2 f2 (In ch2 v2) ({}, {''ch''}) # blks2] par_tr \<Longrightarrow>
+   (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
+           combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest)"
+proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
   case (2 i blkss t pblks block0)
   have "i = 0 \<or> i = 1"
-    using 2(1) 2(9) by auto
+    using 2(1,3,8) by auto
   then show ?case using 2 by auto
 next
-  case (3 i blkss j t c v pblks blockt)
+  case (3 i blkss j c v pblks blockt)
   have "length blkss = 2"
-    using 3(15) by auto
+    using 3(1,13) by auto
   have "i = 0 \<or> i = 1" "j = 0 \<or> j = 1"
-    using 3(1,2,15) by auto
-  then have "i = 1" "j = 0"
-    using 3(1,2,9,10,15) by auto
-  then have "d1 = d2" "d1 = t" "d2 = t"
-    using 3(7,8,15) by auto
-  moreover have False if "t \<noteq> 0"
-    using 3(14) unfolding 3(15) compat_rdy_blocks2
-    unfolding compat_rdy_block_pair_def
-    sorry
+    using 3(1,3,4,13) by auto
+  then have ij: "i = 1" "j = 0"
+    using 3(1,10,11,13) by auto
+  have "d1 = 0" "d2 = 0"
+    using 3(1,8,9,13) ij by auto
+  moreover have "v1 = v2" "ch1 = ch2" "v = v1" "c = ch1"
+    using 3(1,10,11,13) ij by auto
+  moreover have "\<exists>rest. combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest"
+    apply (rule exI[where x="pblks"])
+    using 3(2,12) unfolding ij \<open>v = v1\<close> \<open>c = ch1\<close> 3(1)[symmetric] 3(13)
+    by (auto simp add: remove_pair_def)
   ultimately show ?case
     using 3(4) by (auto simp add: less_Suc_eq)
 qed
+
+subsection \<open>More on combine_par_trace\<close>
+
+inductive_cases combine_par_traceE: "combine_par_trace trs par_tr"
+thm combine_par_traceE
+
+lemma combine_par_traceE2:
+  "combine_par_trace [Trace st1 blks1, Trace st2 blks2] par_tr \<Longrightarrow>
+   \<exists>par_blks. par_tr = ParTrace [st1, st2] par_blks \<and> combine_blocks [blks1, blks2] par_blks"
+  apply (elim combine_par_traceE)
+  apply auto
+  by (smt length_Cons less_Suc0 less_Suc_eq list.size(3) nth_Cons_0 nth_Cons_Suc nth_equalityI start_of_trace.simps)
 
 
 subsection \<open>Examples\<close>
@@ -750,15 +776,15 @@ lemma testHL3:
   apply (rule Valid_receive2)
   by (auto simp add: extend_receive_def)
 
+
 text \<open>Communication\<close>
 lemma testHL4:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' ''x'')])
-    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)]
-          [ParBlock 0 [(\<lambda>_. \<lambda>_. 0), (\<lambda>t. if t \<ge> 0 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0))] (IO ''ch'' 1)])"
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
-  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParBlock 0 [\<lambda>_ _. 0, \<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)] (IO ''ch'' 1)]"
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1]"
     if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [Block dly (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})]" and
        ex2: "(\<exists>dly v.
            tr2 = Trace (\<lambda>_. 0) [Block dly (\<lambda>t. if dly \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})])" and
@@ -770,12 +796,19 @@ proof -
       using ex1 by auto
     obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [Block dly2 (\<lambda>t. if dly2 \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})]"
       using ex2 by auto
-    have eq1: "dly1 = dly2 \<and> v = 1"
-      sorry
-    have eq2: "dly1 = 0"
-      sorry
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
+      2: "combine_blocks [
+              [Block dly1 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
+               [Block dly2 (\<lambda>t. if dly2 \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})]] par_blks"
+      using combine_par_traceE2 by blast
+    from 2 obtain rest where
+      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest" "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
+      using combine_blocks_IO2 by blast
+    from 3(4) have 4: "rest = []"
+      using combine_blocks_triv2 by auto
     show ?thesis
-      sorry
+      using 1 unfolding 3(5) 4 by auto
   qed
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL1 testHL3])
