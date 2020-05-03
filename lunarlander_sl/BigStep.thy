@@ -81,25 +81,32 @@ subsection \<open>Traces\<close>
 text \<open>First, we define the concept of traces\<close>
 
 text \<open>Time delay, ending state, and set of communications available at the interval\<close>
-datatype trace_block = Block time history event rdy_info
+datatype trace_block =
+  InBlock time cname var real rdy_info
+  | OutBlock time cname real rdy_info
+  | TauBlock state
+  | WaitBlock time
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
 
 fun delay_of_block :: "trace_block \<Rightarrow> time" where
-  "delay_of_block (Block dly _ _ _) = dly"
-
-fun history_of_block :: "trace_block \<Rightarrow> history" where
-  "history_of_block (Block _ s _ _) = s"
-
-fun end_of_block :: "trace_block \<Rightarrow> state" where
-  "end_of_block (Block dly s _ _) = s dly"
+  "delay_of_block (InBlock dly _ _ _ _) = dly"
+| "delay_of_block (OutBlock dly _ _ _) = dly"
+| "delay_of_block (TauBlock _) = 0"
+| "delay_of_block (WaitBlock dly) = dly"
 
 fun event_of_block :: "trace_block \<Rightarrow> event" where
-  "event_of_block (Block _ _ ev _) = ev"
+  "event_of_block (InBlock _ ch _ v _) = In ch v"
+| "event_of_block (OutBlock _ ch v _) = Out ch v"
+| "event_of_block (TauBlock _) = Tau"
+| "event_of_block (WaitBlock _) = Tau"
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
-  "rdy_of_block (Block _ _ _ rdy) = rdy"
+  "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
+| "rdy_of_block (OutBlock _ _ _ rdy) = rdy"
+| "rdy_of_block (TauBlock _) = ({}, {})"
+| "rdy_of_block (WaitBlock _) = ({}, {})"
 
 fun start_of_trace :: "trace \<Rightarrow> state" where
   "start_of_trace (Trace s _) = s"
@@ -107,9 +114,15 @@ fun start_of_trace :: "trace \<Rightarrow> state" where
 fun blocks_of_trace :: "trace \<Rightarrow> trace_block list" where
   "blocks_of_trace (Trace _ blks) = blks"
 
+fun end_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> state" where
+  "end_of_blocks s [] = s"
+| "end_of_blocks s ((InBlock _ _ var v _) # rest) = end_of_blocks (s(var := v)) rest"
+| "end_of_blocks s ((OutBlock _ _ _ _) # rest) = end_of_blocks s rest"
+| "end_of_blocks s ((TauBlock st) # rest) = end_of_blocks st rest"
+| "end_of_blocks s ((WaitBlock _) # rest) = end_of_blocks s rest"
+
 fun end_of_trace :: "trace \<Rightarrow> state" where
-  "end_of_trace (Trace s []) = s"
-| "end_of_trace (Trace s blks) = end_of_block (last blks)"
+  "end_of_trace (Trace s blks) = end_of_blocks s blks"
 
 fun extend_trace :: "trace \<Rightarrow> trace_block \<Rightarrow> trace" where
   "extend_trace (Trace s blks) blk = Trace s (blks @ [blk])"
@@ -119,10 +132,17 @@ text \<open>Now we define the ready set of a trace at any given time\<close>
 
 fun rdy_of_blocks :: "trace_block list \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_blocks [] t = ({}, {})"
-| "rdy_of_blocks ((Block dly _ _ rdy) # blks) t =
+| "rdy_of_blocks ((InBlock dly _ _ _ rdy) # blks) t =
     (if 0 < t \<and> t < dly then rdy
      else if t \<le> dly then ({}, {})
      else rdy_of_blocks blks (t - dly))"
+| "rdy_of_blocks ((OutBlock dly _ _ rdy) # blks) t =
+    (if 0 < t \<and> t < dly then rdy
+     else if t \<le> dly then ({}, {})
+     else rdy_of_blocks blks (t - dly))"
+| "rdy_of_blocks ((TauBlock _) # blks) t = rdy_of_blocks blks t"
+| "rdy_of_blocks ((WaitBlock d) # blks) t =
+    (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
 
 fun rdy_of_trace :: "trace \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_trace (Trace _ blks) t = rdy_of_blocks blks t"
@@ -168,8 +188,8 @@ subsection \<open>Traces of parallel processes\<close>
 
 datatype par_block =
     IOBlock nat nat cname real
-  | TauBlock int state
-  | WaitBlock real
+  | ParTauBlock int state
+  | ParWaitBlock real
 
 text \<open>ParTrace st pblks:
   st -- starting state for each process. Length is the number of processes.
@@ -186,7 +206,10 @@ text \<open>Given a delay time t and a block with time interval at least t,
     wait_block 2 (In ''ch'' 1 after 5) = In ''ch'' 1 after 3.
 \<close>
 fun wait_block :: "time \<Rightarrow> trace_block \<Rightarrow> trace_block" where
-  "wait_block t (Block dly s ev rdy) = Block (dly - t) (\<lambda>t'. s (t' + t)) ev rdy"
+  "wait_block t (InBlock dly ch var v rdy) = InBlock (dly - t) ch var v rdy"
+| "wait_block t (OutBlock dly ch v rdy) = OutBlock (dly - t) ch v rdy"
+| "wait_block t (TauBlock st) = TauBlock st"
+| "wait_block t (WaitBlock d) = WaitBlock (d - t)"
 
 text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
   then the first block has length at least t.\<close>
@@ -194,6 +217,7 @@ fun wait_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> trace_bloc
   "wait_blocks t [] = []"
 | "wait_blocks t (blk # blks) = wait_block t blk # blks"
 
+(*
 text \<open>Given a delay time t and a block with time interval at least t,
   find the history at and before t.\<close>
 fun start_block :: "time \<Rightarrow> trace_block \<Rightarrow> history" where
@@ -204,6 +228,7 @@ text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
 fun start_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> history" where
   "start_blocks t [] = (\<lambda>t'. undefined)"
 | "start_blocks t (blk # blks) = start_block t blk"
+*)
 
 text \<open>From a list of traces, delay every trace by t, and remove the first block
   from i'th trace. We assume that each trace is either empty or its first block
@@ -233,8 +258,7 @@ inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list 
    delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
    combine_blocks (remove_one i t blkss) pblks \<Longrightarrow>
-   block0 = map (start_blocks t) blkss \<Longrightarrow>
-   combine_blocks blkss ((WaitBlock t) # pblks)"
+   combine_blocks blkss ((ParWaitBlock t) # pblks)"
   \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow> blkss ! j \<noteq> [] \<Longrightarrow>
@@ -243,7 +267,6 @@ inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list 
    event_of_block (hd (blkss ! i)) = In c v \<Longrightarrow>
    event_of_block (hd (blkss ! j)) = Out c v \<Longrightarrow>
    combine_blocks (remove_pair i j blkss) pblks \<Longrightarrow>
-   blockt = map (start_blocks 0) blkss \<Longrightarrow>
    combine_blocks blkss ((IOBlock i j c v) # pblks)"
 
 text \<open>Use the previous definition to combine a list of traces into a parallel trace.\<close>
@@ -274,13 +297,12 @@ text \<open>Big-step semantics specifies for each command a mapping from trace t
 text \<open>Extend by a send block\<close>
 definition extend_send :: "cname \<Rightarrow> exp \<Rightarrow> time \<Rightarrow> rdy_info \<Rightarrow> trace \<Rightarrow> trace" where
   "extend_send ch e dly rdy tr =
-    extend_trace tr (Block dly (\<lambda>t. end_of_trace tr) (Out ch (e (end_of_trace tr))) rdy)"
+    extend_trace tr (OutBlock dly ch (e (end_of_trace tr)) rdy)"
 
 text \<open>Extend by a receive block\<close>
 definition extend_receive :: "cname \<Rightarrow> var \<Rightarrow> time \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> trace \<Rightarrow> trace" where
   "extend_receive ch var dly v rdy tr =
-    extend_trace tr (Block dly (\<lambda>t. if t \<ge> dly then (end_of_trace tr)(var := v) else end_of_trace tr)
-                            (In ch v) ({}, {ch}))"
+    extend_trace tr (InBlock dly ch var v ({}, {ch}))"
 
 text \<open>Big-step semantics.
   big_step p tr tr2 means executing p starting at trace tr can end in trace tr2.
@@ -296,9 +318,9 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
     \<comment> \<open>dly \<ge> 0\<close>
     (extend_receive ch var dly v ({}, {ch}) tr)"
 | skipB: "big_step Skip tr
-    (extend_trace tr (Block 0 (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
+    (extend_trace tr (TauBlock (end_of_trace tr)))"
 | assignB: "big_step (Assign var e) tr
-    (extend_trace tr (Block 0 (\<lambda>t. (end_of_trace tr)(var := e (end_of_trace tr))) Tau ({}, {})))"
+    (extend_trace tr (TauBlock ((end_of_trace tr)(var := e (end_of_trace tr)))))"
 | seqB: "big_step p1 tr tr2 \<Longrightarrow>
    big_step p2 tr2 tr3 \<Longrightarrow> big_step (Seq p1 p2) tr tr3"
 | condB1: "b (end_of_trace tr) \<Longrightarrow>
@@ -306,7 +328,7 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
 | condB2: "\<not> b (end_of_trace tr) \<Longrightarrow>
    big_step p2 tr tr2 \<Longrightarrow> big_step (Cond b p1 p2) tr tr2"
 | waitB: "big_step (Wait d) tr
-    (extend_trace tr (Block d (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
+    (extend_trace tr (WaitBlock d))"
 | IChoiceB: "i < length ps \<Longrightarrow> big_step (ps ! i) tr tr2 \<Longrightarrow>
    big_step (IChoice ps) tr tr2"
   \<comment> \<open>cs is a list of comm \<times> proc elements.\<close>
@@ -336,13 +358,10 @@ inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace
 subsection \<open>More convenient version of rules\<close>
 
 lemma sendB2:
-  assumes "blks' = blks @ [
-      Block dly (\<lambda>t. end_of_trace (Trace s blks)) (Out ch (e (end_of_trace (Trace s blks)))) ({ch}, {})]"
+  assumes "blks' = blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]"
   shows "big_step (Cm (Send ch e)) (Trace s blks) (Trace s blks')"
 proof -
-  have 1: "Trace s (blks @
-        [Block dly (\<lambda>t. end_of_trace (Trace s blks))
-          (Out ch (e (end_of_trace (Trace s blks)))) ({ch}, {})]) =
+  have 1: "Trace s (blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]) =
         extend_send ch e dly ({ch}, {}) (Trace s blks)"
     unfolding extend_send_def extend_trace.simps by auto
   show ?thesis
@@ -352,14 +371,10 @@ proof -
 qed
 
 lemma receiveB2:
-  assumes "blks' = blks @ [
-      Block dly (\<lambda>t. if t \<ge> dly then (end_of_trace (Trace s blks))(var := v) else end_of_trace (Trace s blks))
-                            (In ch v) ({}, {ch})]"
+  assumes "blks' = blks @ [InBlock dly ch var v ({}, {ch})]"
   shows "big_step (Cm (Receive ch var)) (Trace s blks) (Trace s blks')"
 proof -
-  have 1: "Trace s (blks @
-        [Block dly (\<lambda>t. if t \<ge> dly then (end_of_trace (Trace s blks))(var := v) else end_of_trace (Trace s blks))
-          (In ch v) ({}, {ch})]) =
+  have 1: "Trace s (blks @ [InBlock dly ch var v ({}, {ch})]) =
         extend_receive ch var dly v ({}, {ch}) (Trace s blks)"
     unfolding extend_receive_def extend_trace.simps by auto
   show ?thesis
@@ -369,11 +384,10 @@ proof -
 qed
 
 lemma waitB2:
-  assumes "blks' = blks @ [Block d (\<lambda>t. end_of_trace (Trace s blks)) Tau ({}, {})]"
+  assumes "blks' = blks @ [WaitBlock d]"
   shows "big_step (Wait d) (Trace s blks) (Trace s blks')"
 proof -
-  have 1: "Trace s (blks @ [Block d (\<lambda>t. end_of_trace (Trace s blks)) Tau ({}, {})]) =
-      (extend_trace (Trace s blks) (Block d (\<lambda>t. end_of_trace (Trace s blks)) Tau ({}, {})))"
+  have 1: "Trace s (blks @ [WaitBlock d]) = extend_trace (Trace s blks) (WaitBlock d)"
     by auto
   show ?thesis
     apply (subst assms(1))
@@ -397,35 +411,35 @@ subsection \<open>Test of big-step semantics\<close>
 text \<open>Send 1 immediately\<close>
 lemma test1a: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 0 (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {})])"
+        (Trace (\<lambda>_. 0) [OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
   by simp
 
 text \<open>Send x + 1 immediately\<close>
 lemma test1b: "big_step (Cm (Send ''ch'' (\<lambda>s. s ''x'' + 1)))
         (Trace ((\<lambda>_. 0)(''x'' := 1)) [])
-        (Trace ((\<lambda>_. 0)(''x'' := 1)) [Block 0 (\<lambda>_. ((\<lambda>_. 0)(''x'' := 1))) (Out ''ch'' 2) ({''ch''}, {})])"
+        (Trace ((\<lambda>_. 0)(''x'' := 1)) [OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
   apply (rule sendB2)
   by simp
 
 text \<open>Send 1 after delay 2\<close>
 lemma test1c: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 2 (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {})])"
+        (Trace (\<lambda>_. 0) [OutBlock 2 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
   by simp
 
 text \<open>Receive 1 immediately\<close>
 lemma test2a: "big_step (Cm (Receive ''ch'' ''x''))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 0 (\<lambda>t. if t \<ge> 0 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})])"
+        (Trace (\<lambda>_. 0) [InBlock 0 ''ch'' ''x'' 1 ({}, {''ch''})])"
   apply (rule receiveB2)
   by auto
 
 text \<open>Receive 1 after delay 2\<close>
 lemma test2b: "big_step (Cm (Receive ''ch'' ''x''))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 2 (\<lambda>t. if t \<ge> 2 then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})])"
+        (Trace (\<lambda>_. 0) [InBlock 2 ''ch'' ''x'' 1 ({}, {''ch''})])"
   apply (rule receiveB2)
   by auto
 
@@ -438,8 +452,8 @@ proof -
     apply (rule combine_blocks.intros(1))
     by (auto simp add: less_Suc_eq)
   have 2: "combine_blocks
-     [[Block 0 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
-      [Block 0 (\<lambda>t. if 0 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})]]
+     [[OutBlock 0 ''ch'' 1 ({''ch''}, {})],
+      [InBlock 0 ''ch'' ''x'' 1 ({}, {''ch''})]]
      [IOBlock 1 0 ''ch'' 1]"
     thm combine_blocks.intros(3)
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
@@ -455,15 +469,14 @@ qed
 text \<open>Wait\<close>
 lemma test4: "big_step (Wait 2)
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 2 (\<lambda>_. \<lambda>_. 0) Tau ({}, {})])"
+        (Trace (\<lambda>_. 0) [WaitBlock 2])"
   apply (rule waitB2)
   by auto
 
 text \<open>Seq\<close>
 lemma test5: "big_step (Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [Block 2 (\<lambda>_. \<lambda>_. 0) Tau ({}, {}),
-                        Block 0 (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {})])"
+        (Trace (\<lambda>_. 0) [WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule seqB[OF test4])
   apply (rule sendB2)
   by auto
@@ -473,15 +486,15 @@ lemma test6: "par_big_step (PProc [
   Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))),
   Cm (Receive ''ch'' ''x'')])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [WaitBlock 2, IOBlock 1 0 ''ch'' 1])"
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "combine_blocks [[], []] []"
     apply (rule combine_blocks.intros(1))
     by (auto simp add: less_Suc_eq)
   have 2: "combine_blocks
-     [[Block 2 (\<lambda>_ _. 0) Tau ({}, {}), Block 0 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
-      [Block 2 (\<lambda>t. if 2 \<le> t then (\<lambda>_. 0)(''x'' := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''})]]
-     [WaitBlock 2, IOBlock 1 0 ''ch'' 1]"
+     [[WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})],
+      [InBlock 2 ''ch'' ''x'' 1 ({}, {''ch''})]]
+     [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
     apply (rule combine_blocks.intros(2)[where i=0])
          apply (auto simp add: less_Suc_eq)
     unfolding remove_one_def Let_def apply auto
@@ -548,7 +561,7 @@ theorem Valid_wait:
   "Valid
     (\<lambda>t. t = tr)
     (Wait d)
-    (\<lambda>t. t = extend_trace tr (Block d (\<lambda>t. end_of_trace tr) Tau ({}, {})))"
+    (\<lambda>t. t = extend_trace tr (WaitBlock d))"
   unfolding Valid_def by (auto elim!: waitE)
 
 subsection \<open>Validity for parallel processes\<close>
@@ -687,45 +700,46 @@ proof (induct rule: combine_blocks.cases)
 case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks block0)
+  case (2 i blkss t pblks)
   have "i = 0 \<or> i = 1"
-    using 2(1,3,8) by auto
+    using 2(1,3,7) by auto
   then show ?case using 2 by auto
 next
-  case (3 i blkss j c v pblks blockt)
+  case (3 i blkss j c v pblks)
   have "i = 0 \<or> i = 1"
     using 3(1,3,8) by auto
   then show ?case using 3 by auto
 qed
 
 lemma combine_blocks_IO2:
-  "combine_blocks [Block d1 f1 (Out ch1 v1) ({''ch''}, {}) # blks1,
-                   Block d2 f2 (In ch2 v2) ({}, {''ch''}) # blks2] par_tr \<Longrightarrow>
+  "combine_blocks [OutBlock d1 ch1 v1 ({ch1}, {}) # blks1,
+                   InBlock d2 ch2 var v2 ({}, {ch1}) # blks2] par_tr \<Longrightarrow>
    (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
            combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest)"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks block0)
+  case (2 i blkss t pblks)
   have "i = 0 \<or> i = 1"
-    using 2(1,3,8) by auto
+    using 2(1,3,7) by auto
+  thm 2
   then show ?case using 2 by auto
 next
-  case (3 i blkss j c v pblks blockt)
+  case (3 i blkss j c v pblks)
   have "length blkss = 2"
-    using 3(1,13) by auto
+    using 3(1,12) by auto
   have "i = 0 \<or> i = 1" "j = 0 \<or> j = 1"
-    using 3(1,3,4,13) by auto
+    using 3(1,3,4,12) by auto
   then have ij: "i = 1" "j = 0"
-    using 3(1,10,11,13) by auto
+    using 3(1,9,10,11) by auto
   have "d1 = 0" "d2 = 0"
-    using 3(1,8,9,13) ij by auto
+    using 3(1,8,9,12) ij by auto
   moreover have "v1 = v2" "ch1 = ch2" "v = v1" "c = ch1"
-    using 3(1,10,11,13) ij by auto
+    using 3(1,10,11,12) ij by auto
   moreover have "\<exists>rest. combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest"
     apply (rule exI[where x="pblks"])
-    using 3(2,12) unfolding ij \<open>v = v1\<close> \<open>c = ch1\<close> 3(1)[symmetric] 3(13)
+    using 3(2,12) unfolding ij \<open>v = v1\<close> \<open>c = ch1\<close> 3(1)[symmetric] 3(12)
     by (auto simp add: remove_pair_def)
   ultimately show ?case
     using 3(4) by (auto simp add: less_Suc_eq)
@@ -751,7 +765,7 @@ lemma testHL1:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
     (Cm (Send ''ch'' (\<lambda>_. 1)))
-    (\<lambda>t. \<exists>dly. t = Trace (\<lambda>_. 0) [Block dly (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {})])"
+    (\<lambda>t. \<exists>dly. t = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})])"
   apply (rule Valid_send2)
   by (auto simp add: extend_send_def)
 
@@ -760,8 +774,8 @@ lemma testHL2:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
     (Seq (Cm (Send ''ch'' (\<lambda>_. 1))) (Cm (Send ''ch'' (\<lambda>_. 2))))
-    (\<lambda>t. \<exists>dly dly2. t = Trace (\<lambda>_. 0) [Block dly (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 1) ({''ch''}, {}),
-                                       Block dly2 (\<lambda>_. \<lambda>_. 0) (Out ''ch'' 2) ({''ch''}, {})])"
+    (\<lambda>t. \<exists>dly dly2. t = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {}),
+                                       OutBlock dly2 ''ch'' 2 ({''ch''}, {})])"
   apply (rule Valid_seq[OF testHL1])
   apply (rule Valid_send3)
   by (auto simp add: extend_send_def)
@@ -771,8 +785,7 @@ lemma testHL3:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
     (Cm (Receive ''ch'' ''x''))
-    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [Block dly (\<lambda>t. if t \<ge> dly then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0))
-                                            (In ''ch'' v) ({}, {''ch''})])"
+    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [InBlock dly ''ch'' ''x'' v ({}, {''ch''})])"
   apply (rule Valid_receive2)
   by (auto simp add: extend_receive_def)
 
@@ -785,22 +798,21 @@ lemma testHL4:
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1]"
-    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [Block dly (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})]" and
-       ex2: "(\<exists>dly v.
-           tr2 = Trace (\<lambda>_. 0) [Block dly (\<lambda>t. if dly \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})])" and
+    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
+       ex2: "(\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [InBlock dly ''ch'' ''x'' v ({}, {''ch''})])" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
      for par_t tr1 tr2
   proof -
-    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [Block dly1 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})]"
+    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
       using ex1 by auto
-    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [Block dly2 (\<lambda>t. if dly2 \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})]"
+    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]"
       using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [
-              [Block dly1 (\<lambda>_ _. 0) (Out ''ch'' 1) ({''ch''}, {})],
-               [Block dly2 (\<lambda>t. if dly2 \<le> t then (\<lambda>_. 0)(''x'' := v) else (\<lambda>_. 0)) (In ''ch'' v) ({}, {''ch''})]] par_blks"
+              [OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
+              [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
       3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest" "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
@@ -814,5 +826,6 @@ proof -
     apply (rule Valid_parallel2'[OF _ _ testHL1 testHL3])
     using 1 by auto
 qed
+
 
 end
