@@ -1,4 +1,3 @@
-"""Convert AADL model (in JSON format) to HCSP programs."""
 
 import json
 """
