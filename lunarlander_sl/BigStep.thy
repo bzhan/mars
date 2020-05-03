@@ -46,6 +46,7 @@ datatype proc =
 | Wait time  \<comment> \<open>Waiting for a specified amount of time\<close>
 | IChoice "proc list"  \<comment> \<open>Nondeterminism\<close>
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
+| Rep proc   \<comment> \<open>Nondeterministic repetition\<close>
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype pproc = PProc "proc list"
@@ -120,6 +121,14 @@ fun end_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> state" 
 | "end_of_blocks s ((OutBlock _ _ _ _) # rest) = end_of_blocks s rest"
 | "end_of_blocks s ((TauBlock st) # rest) = end_of_blocks st rest"
 | "end_of_blocks s ((WaitBlock _) # rest) = end_of_blocks s rest"
+
+theorem end_of_blocks_append:
+  "end_of_blocks st (blks1 @ blks2) = end_of_blocks (end_of_blocks st blks1) blks2"
+  apply (induction blks1 arbitrary: st rule: list.induct)
+   apply auto
+  subgoal for blk1 blk2 st
+    by (cases blk1, auto)
+  done
 
 fun end_of_trace :: "trace \<Rightarrow> state" where
   "end_of_trace (Trace s blks) = end_of_blocks s blks"
@@ -344,6 +353,10 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
 | EChoiceReceiveB: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
    big_step p2 (extend_receive ch var dly v (rdy_of_echoice cs) tr) tr3 \<Longrightarrow>
    big_step (EChoice cs) tr tr3"
+| RepetitionB1: "big_step (Rep p) tr tr"
+| RepetitionB2: "big_step p tr tr2 \<Longrightarrow> big_step (Rep p) tr2 tr3 \<Longrightarrow> 
+   big_step (Rep p) tr tr3"
+
 
 text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
@@ -455,7 +468,6 @@ proof -
      [[OutBlock 0 ''ch'' 1 ({''ch''}, {})],
       [InBlock 0 ''ch'' ''x'' 1 ({}, {''ch''})]]
      [IOBlock 1 0 ''ch'' 1]"
-    thm combine_blocks.intros(3)
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
     apply (auto simp add: less_Suc_eq)
     unfolding remove_pair_def Let_def apply auto
@@ -474,7 +486,7 @@ lemma test4: "big_step (Wait 2)
   by auto
 
 text \<open>Seq\<close>
-lemma test5: "big_step (Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))))
+lemma test5: "big_step (Wait 2; Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule seqB[OF test4])
@@ -483,7 +495,7 @@ lemma test5: "big_step (Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))))
 
 text \<open>Communication after delay 2\<close>
 lemma test6: "par_big_step (PProc [
-  Seq (Wait 2) (Cm (Send ''ch'' (\<lambda>_. 1))),
+  Wait 2; Cm (Send ''ch'' (\<lambda>_. 1)),
   Cm (Receive ''ch'' ''x'')])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
@@ -508,6 +520,40 @@ proof -
     using 1 2 by auto
 qed
 
+
+text \<open>Loop one time\<close>
+lemma test7: "big_step (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(''x'' := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
+  apply (rule RepetitionB2)
+   apply (rule seqB)
+    apply (rule assignB)
+  apply auto[1]
+   apply (rule sendB2)
+   apply auto
+  apply (rule RepetitionB1)
+  done
+
+text \<open>Loop two times\<close>
+lemma test8: "big_step (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(''x'' := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {}),
+                        TauBlock ((\<lambda>_. 0)(''x'' := 2)), OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
+  apply (rule RepetitionB2)
+  apply (rule seqB)
+  apply (rule assignB)
+   apply auto[1]
+  apply (rule sendB2)
+   apply auto
+  apply (rule RepetitionB2)
+   apply (rule seqB)
+  apply (rule assignB)
+   apply auto[1]
+   apply (rule sendB2)
+   apply auto
+  apply (rule RepetitionB1)
+  done
+
 subsection \<open>Validity\<close>
 
 type_synonym assn = "trace \<Rightarrow> bool"
@@ -527,6 +573,14 @@ theorem Valid_post:
   "\<forall>tr. Q tr \<longrightarrow> Q' tr \<Longrightarrow> Valid P c Q \<Longrightarrow> Valid P c Q'"
   unfolding Valid_def by auto
 
+theorem Valid_ex_pre:
+  "Valid (\<lambda>tr. \<exists>x. P x tr) c Q \<longleftrightarrow> (\<forall>x. Valid (P x) c Q)"
+  unfolding Valid_def by auto
+
+
+inductive_cases assignE: "big_step (Assign var e) tr tr2"
+thm assignE
+
 inductive_cases sendE: "big_step (Cm (Send ch e)) tr tr2"
 thm sendE
 
@@ -538,6 +592,16 @@ thm seqE
 
 inductive_cases waitE: "big_step (Wait d) tr tr2"
 thm waitE
+
+inductive_cases repE: "big_step (Rep p) tr tr2"
+thm repE
+
+theorem Valid_assign:
+  "Valid
+    (\<lambda>t. t = tr)
+    (Assign var e)
+    (\<lambda>t. t = extend_trace tr (TauBlock ((end_of_trace tr)(var := e (end_of_trace tr)))))"
+  unfolding Valid_def by (auto elim: assignE)
 
 theorem Valid_send:
   "Valid
@@ -563,6 +627,18 @@ theorem Valid_wait:
     (Wait d)
     (\<lambda>t. t = extend_trace tr (WaitBlock d))"
   unfolding Valid_def by (auto elim!: waitE)
+
+theorem Valid_rep:
+  assumes "Valid P c P"
+  shows "Valid P (Rep c) P"
+proof -
+  have 1: "big_step p tr tr2 \<Longrightarrow> p = Rep c \<Longrightarrow>
+        \<forall>tr tr2. P tr \<longrightarrow> big_step c tr tr2 \<longrightarrow> P tr2 \<Longrightarrow> P tr \<Longrightarrow> P tr2" for p tr tr2
+    by (induct rule: big_step.induct, auto)
+  show ?thesis
+    using assms 1 unfolding Valid_def by auto
+qed
+
 
 subsection \<open>Validity for parallel processes\<close>
 
@@ -628,6 +704,14 @@ proof -
 qed
 
 subsection \<open>Other versions of Hoare triples\<close>
+
+theorem Valid_assign2:
+  "Q (extend_trace tr (TauBlock ((end_of_trace tr)(var := e (end_of_trace tr))))) \<Longrightarrow>
+   Valid
+    (\<lambda>t. t = tr)
+    (Assign var e)
+    Q"
+  using Valid_def assignE by blast
 
 theorem Valid_send2:
   "\<forall>dly. Q (extend_send ch e dly ({ch}, {}) tr) \<Longrightarrow>
@@ -745,10 +829,10 @@ next
 qed
 
 lemma combine_blocks_OutW2:
-  "combine_blocks [OutBlock d1 ch1 1 ({ch1}, {}) # blks1,
+  "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
                    WaitBlock d2 # blks2] par_tr \<Longrightarrow>
    (\<exists>rest. d1 \<ge> d2 \<and>
-           combine_blocks [OutBlock (d1 - d2) ch1 1 ({ch1}, {}) # blks1, blks2] rest \<and>
+           combine_blocks [OutBlock (d1 - d2) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
            par_tr = ParWaitBlock d2 # rest)"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
@@ -800,7 +884,7 @@ text \<open>Send 1, then send 2\<close>
 lemma testHL2:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
-    (Seq (Cm (Send ''ch'' (\<lambda>_. 1))) (Cm (Send ''ch'' (\<lambda>_. 2))))
+    (Cm (Send ''ch'' (\<lambda>_. 1)); Cm (Send ''ch'' (\<lambda>_. 2)))
     (\<lambda>t. \<exists>dly dly2. t = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {}),
                                        OutBlock dly2 ''ch'' 2 ({''ch''}, {})])"
   apply (rule Valid_seq[OF testHL1])
@@ -860,7 +944,7 @@ text \<open>Delay followed by receive\<close>
 lemma testHL5:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Seq (Wait 2) (Cm (Receive ''ch'' ''x'')))
+    (Wait 2; Cm (Receive ''ch'' ''x''))
     (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' ''x'' v ({}, {''ch''})])"
   apply (rule Valid_seq)
    apply (rule Valid_wait)
@@ -871,7 +955,7 @@ text \<open>Delay followed by communication\<close>
 lemma testHL6:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Seq (Wait 2) (Cm (Receive ''ch'' ''x''))])
+    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Wait 2; Cm (Receive ''ch'' ''x'')])
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
@@ -908,6 +992,93 @@ proof -
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL1 testHL5])
     using 1 by auto
+qed
+
+
+text \<open>Repetition: count up and send\<close>
+
+text \<open>The invariant. Note the delays are in reverse order.\<close>
+fun count_blocks :: "real list \<Rightarrow> trace_block list" where
+  "count_blocks [] = []"
+| "count_blocks (dly # rest) = count_blocks rest @ [
+      TauBlock ((\<lambda>_. 0)(''x'' := Suc (length rest))), OutBlock dly ''ch'' (Suc (length rest)) ({''ch''}, {})]"
+
+lemma end_count_blocks:
+  "end_of_blocks (\<lambda>_. 0) (count_blocks dlys) = (\<lambda>_. 0)(''x'' := length dlys)"
+  apply (induct dlys)
+  by (auto simp add: end_of_blocks_append)
+
+lemma testHL7:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))"
+proof -
+  have 1: "Valid
+             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks dlys))
+             (''x'' ::= (\<lambda>s. s ''x'' + 1))
+             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := Suc (length dlys))) x))]))" for dlys
+    apply (rule Valid_assign2)
+    apply (rule exI[where x=dlys])
+    by (auto simp add: end_count_blocks)
+  have 2: "Valid
+             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock (\<lambda>x. real (if x = ''x'' then Suc (length dlys) else 0))]))
+             (Cm (''ch''[!](\<lambda>s. s ''x'')))
+             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))" for dlys
+    apply (rule Valid_send2)
+    apply auto
+    subgoal for dly
+      apply (rule exI[where x="dly # dlys"])
+      by (auto simp add: extend_send_def end_of_blocks_append)
+    done
+  have 3: "Valid
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))
+    (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))"
+    apply (rule Valid_rep)
+    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock ((\<lambda>_. 0)(''x'' := Suc (length dlys)))])"])
+    using 1 2 by (auto simp add: Valid_ex_pre)
+  show ?thesis
+    apply (rule Valid_pre[OF _ 3])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
+qed
+
+
+text \<open>Repetition: receive\<close>
+
+text \<open>The invariant. Note the delays are in reverse order.\<close>
+fun receive_blocks :: "(real \<times> real) list \<Rightarrow> trace_block list" where
+  "receive_blocks [] = []"
+| "receive_blocks ((dly, v) # rest) = receive_blocks rest @ [InBlock dly ''ch'' ''x'' v ({}, {''ch''})]"
+
+lemma testHL8:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Rep (Cm (Receive ''ch'' ''x'')))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
+proof -
+  have 2: "Valid
+             (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))
+             (Rep (Cm (''ch''[?]''x'')))
+             (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
+    apply (rule Valid_rep)
+    apply (subst Valid_ex_pre)
+    apply auto
+    subgoal for dlys
+      apply (rule Valid_receive2)
+      apply auto
+      subgoal for dly v
+        apply (rule exI[where x="(dly,v) # dlys"])
+        by (auto simp add: extend_receive_def)
+      done
+    done
+  show ?thesis
+    apply (rule Valid_pre[OF _ 2])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
 qed
 
 end
