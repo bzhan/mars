@@ -252,8 +252,8 @@ inductive combine_blocks :: "trace_block list list \<Rightarrow> par_block list 
   "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks blkss []"  \<comment> \<open>empty case\<close>
   \<comment> \<open>Internal action at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
-   \<comment> \<open>t \<ge> 0\<close>
-   \<comment> \<open>\<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t\<close>
+   t \<ge> 0 \<Longrightarrow>
+   \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
@@ -723,7 +723,6 @@ next
   case (2 i blkss t pblks)
   have "i = 0 \<or> i = 1"
     using 2(1,3,7) by auto
-  thm 2
   then show ?case using 2 by auto
 next
   case (3 i blkss j c v pblks)
@@ -744,6 +743,34 @@ next
   ultimately show ?case
     using 3(4) by (auto simp add: less_Suc_eq)
 qed
+
+lemma combine_blocks_OutW2:
+  "combine_blocks [OutBlock d1 ch1 1 ({ch1}, {}) # blks1,
+                   WaitBlock d2 # blks2] par_tr \<Longrightarrow>
+   (\<exists>rest. d1 \<ge> d2 \<and>
+           combine_blocks [OutBlock (d1 - d2) ch1 1 ({ch1}, {}) # blks1, blks2] rest \<and>
+           par_tr = ParWaitBlock d2 # rest)"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 1"
+    using 2(1,3,8) by (auto simp add: less_Suc_eq)
+  then have "t = d2"
+    using 2(1,7) by auto
+  then have "d1 \<ge> d2"
+    using 2(1,5) by auto
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 2(1,2,9) \<open>i = 1\<close> \<open>d1 \<ge> d2\<close> \<open>t = d2\<close>
+    by (auto simp add: remove_one_def Let_def)
+next
+  case (3 i blkss j c v pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
+qed
+
+  
 
 subsection \<open>More on combine_par_trace\<close>
 
@@ -815,7 +842,8 @@ proof -
               [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
-      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest" "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
+      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest"
+         "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
       using combine_blocks_IO2 by blast
     from 3(4) have 4: "rest = []"
       using combine_blocks_triv2 by auto
@@ -827,5 +855,59 @@ proof -
     using 1 by auto
 qed
 
+
+text \<open>Delay followed by receive\<close>
+lemma testHL5:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Seq (Wait 2) (Cm (Receive ''ch'' ''x'')))
+    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' ''x'' v ({}, {''ch''})])"
+  apply (rule Valid_seq)
+   apply (rule Valid_wait)
+  apply (rule Valid_receive2)
+  by (auto simp add: extend_receive_def)
+
+text \<open>Delay followed by communication\<close>
+lemma testHL6:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Seq (Wait 2) (Cm (Receive ''ch'' ''x''))])
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
+proof -
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
+    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
+       ex2: "\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' ''x'' v ({}, {''ch''})]" and
+       rdy: "compat_trace_pair tr1 tr2" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t tr1 tr2
+  proof -
+    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
+      using ex1 by auto
+    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]"
+      using ex2 by auto
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
+      2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
+                          [WaitBlock 2, InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] par_blks"
+      using combine_par_traceE2 by blast
+    from 2 obtain rest where
+      3: "dly1 \<ge> 2"
+      "combine_blocks [[OutBlock (dly1 - 2) ''ch'' 1 ({''ch''}, {})],
+                       [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] rest"
+      "par_blks = ParWaitBlock 2 # rest"
+      using combine_blocks_OutW2 by blast
+    from 3(2) obtain rest2 where
+      4: "dly1 - 2 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest2"
+         "rest = (IOBlock 1 0 ''ch'' 1) # rest2"
+      using combine_blocks_IO2 by blast
+    from 4(4) have 5: "rest2 = []"
+      using combine_blocks_triv2 by auto
+    show ?thesis
+      using 1 unfolding 3(3) 4(5) 5 by auto
+  qed
+  show ?thesis
+    apply (rule Valid_parallel2'[OF _ _ testHL1 testHL5])
+    using 1 by auto
+qed
 
 end
