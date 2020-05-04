@@ -6,7 +6,7 @@ begin
 subsection \<open>Syntax\<close>
 
 text \<open>State\<close>
-type_synonym state = "string \<Rightarrow> real"
+type_synonym state = "char \<Rightarrow> real"
 
 text \<open>Expressions\<close>
 type_synonym exp = "state \<Rightarrow> real"
@@ -21,7 +21,11 @@ text \<open>Time\<close>
 type_synonym time = real
 
 text \<open>Variable names\<close>
-type_synonym var = string
+type_synonym var = char
+
+text \<open>Some common variables\<close>
+definition X :: char where "X = CHR ''x''"
+
 
 text \<open>Ready information.
   First component is set of channels that are ready to output.
@@ -37,7 +41,7 @@ datatype comm =
 | Receive cname var     ("_[?]_" [110,108] 100)
 
 datatype ODE =
-  ODE "cname set" "cname \<Rightarrow> exp"
+  ODE "var set" "var \<Rightarrow> exp"
 
 text \<open>HCSP processes\<close>
 datatype proc =
@@ -313,10 +317,10 @@ fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
 subsection \<open>Definitions of ODEs\<close>
 
 text \<open>the value of vector field\<close>
-fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> state" where
-  "ODE2Vec (ODE S f) s = (\<lambda>a. if a \<in> S then f a s else 0)"
-
 (*
+fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> state" where
+  "ODE2Vec (ODE S f) s = (\<chi> a. if a \<in> S then f a s else 0)"
+
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> ((p has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
 *)
@@ -458,9 +462,9 @@ lemma test1a: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
   by simp
 
 text \<open>Send x + 1 immediately\<close>
-lemma test1b: "big_step (Cm (Send ''ch'' (\<lambda>s. s ''x'' + 1)))
-        (Trace ((\<lambda>_. 0)(''x'' := 1)) [])
-        (Trace ((\<lambda>_. 0)(''x'' := 1)) [OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
+lemma test1b: "big_step (Cm (Send ''ch'' (\<lambda>s. s X + 1)))
+        (Trace ((\<lambda>_. 0)(X := 1)) [])
+        (Trace ((\<lambda>_. 0)(X := 1)) [OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
   apply (rule sendB2)
   by simp
 
@@ -472,21 +476,21 @@ lemma test1c: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
   by simp
 
 text \<open>Receive 1 immediately\<close>
-lemma test2a: "big_step (Cm (Receive ''ch'' ''x''))
+lemma test2a: "big_step (Cm (Receive ''ch'' X))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [InBlock 0 ''ch'' ''x'' 1 ({}, {''ch''})])"
+        (Trace (\<lambda>_. 0) [InBlock 0 ''ch'' X 1 ({}, {''ch''})])"
   apply (rule receiveB2)
   by auto
 
 text \<open>Receive 1 after delay 2\<close>
-lemma test2b: "big_step (Cm (Receive ''ch'' ''x''))
+lemma test2b: "big_step (Cm (Receive ''ch'' X))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [InBlock 2 ''ch'' ''x'' 1 ({}, {''ch''})])"
+        (Trace (\<lambda>_. 0) [InBlock 2 ''ch'' X 1 ({}, {''ch''})])"
   apply (rule receiveB2)
   by auto
 
 text \<open>Communication\<close>
-lemma test3: "par_big_step (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' ''x'')])
+lemma test3: "par_big_step (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' X)])
         (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
         (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
@@ -495,7 +499,7 @@ proof -
     by (auto simp add: less_Suc_eq)
   have 2: "combine_blocks
      [[OutBlock 0 ''ch'' 1 ({''ch''}, {})],
-      [InBlock 0 ''ch'' ''x'' 1 ({}, {''ch''})]]
+      [InBlock 0 ''ch'' X 1 ({}, {''ch''})]]
      [IOBlock 1 0 ''ch'' 1]"
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
     apply (auto simp add: less_Suc_eq)
@@ -525,7 +529,7 @@ lemma test5: "big_step (Wait 2; Cm (Send ''ch'' (\<lambda>_. 1)))
 text \<open>Communication after delay 2\<close>
 lemma test6: "par_big_step (PProc [
   Wait 2; Cm (Send ''ch'' (\<lambda>_. 1)),
-  Cm (Receive ''ch'' ''x'')])
+  Cm (Receive ''ch'' X)])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
@@ -534,7 +538,7 @@ proof -
     by (auto simp add: less_Suc_eq)
   have 2: "combine_blocks
      [[WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})],
-      [InBlock 2 ''ch'' ''x'' 1 ({}, {''ch''})]]
+      [InBlock 2 ''ch'' X 1 ({}, {''ch''})]]
      [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
     apply (rule combine_blocks.intros(2)[where i=0])
          apply (auto simp add: less_Suc_eq)
@@ -551,9 +555,9 @@ qed
 
 
 text \<open>Loop one time\<close>
-lemma test7: "big_step (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+lemma test7: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<lambda>s. s X))))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(''x'' := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
+        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(X := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule RepetitionB2)
    apply (rule seqB)
     apply (rule assignB)
@@ -564,10 +568,10 @@ lemma test7: "big_step (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''
   done
 
 text \<open>Loop two times\<close>
-lemma test8: "big_step (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<lambda>s. s X))))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(''x'' := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {}),
-                        TauBlock ((\<lambda>_. 0)(''x'' := 2)), OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
+        (Trace (\<lambda>_. 0) [TauBlock ((\<lambda>_. 0)(X := 1)), OutBlock 0 ''ch'' 1 ({''ch''}, {}),
+                        TauBlock ((\<lambda>_. 0)(X := 2)), OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
   apply (rule RepetitionB2)
   apply (rule seqB)
   apply (rule assignB)
@@ -924,8 +928,8 @@ text \<open>Receive from ch\<close>
 lemma testHL3:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Cm (Receive ''ch'' ''x''))
-    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [InBlock dly ''ch'' ''x'' v ({}, {''ch''})])"
+    (Cm (Receive ''ch'' X))
+    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [InBlock dly ''ch'' X v ({}, {''ch''})])"
   apply (rule Valid_receive2)
   by (auto simp add: extend_receive_def)
 
@@ -934,25 +938,25 @@ text \<open>Communication\<close>
 lemma testHL4:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' ''x'')])
+    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' X)])
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1]"
     if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
-       ex2: "(\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [InBlock dly ''ch'' ''x'' v ({}, {''ch''})])" and
+       ex2: "(\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [InBlock dly ''ch'' X v ({}, {''ch''})])" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
      for par_t tr1 tr2
   proof -
     obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
       using ex1 by auto
-    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]"
+    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]"
       using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [
               [OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
-              [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] par_blks"
+              [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
       3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest"
@@ -973,8 +977,8 @@ text \<open>Delay followed by receive\<close>
 lemma testHL5:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Wait 2; Cm (Receive ''ch'' ''x''))
-    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' ''x'' v ({}, {''ch''})])"
+    (Wait 2; Cm (Receive ''ch'' X))
+    (\<lambda>tr. \<exists>dly v. tr = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' X v ({}, {''ch''})])"
   apply (rule Valid_seq)
    apply (rule Valid_wait)
   apply (rule Valid_receive2)
@@ -984,29 +988,29 @@ text \<open>Delay followed by communication\<close>
 lemma testHL6:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Wait 2; Cm (Receive ''ch'' ''x'')])
+    (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Wait 2; Cm (Receive ''ch'' X)])
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
     if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
-       ex2: "\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' ''x'' v ({}, {''ch''})]" and
+       ex2: "\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
      for par_t tr1 tr2
   proof -
     obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
       using ex1 by auto
-    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]"
+    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]"
       using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
-                          [WaitBlock 2, InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] par_blks"
+                          [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
       3: "dly1 \<ge> 2"
       "combine_blocks [[OutBlock (dly1 - 2) ''ch'' 1 ({''ch''}, {})],
-                       [InBlock dly2 ''ch'' ''x'' v ({}, {''ch''})]] rest"
+                       [InBlock dly2 ''ch'' X v ({}, {''ch''})]] rest"
       "par_blks = ParWaitBlock 2 # rest"
       using combine_blocks_OutW2 by blast
     from 3(2) obtain rest2 where
@@ -1034,18 +1038,18 @@ text \<open>Auxiliary definition for invariant.
 fun count_blocks :: "real \<Rightarrow> real list \<Rightarrow> trace_block list" where
   "count_blocks n [] = []"
 | "count_blocks n (dly # rest) =
-     TauBlock ((\<lambda>_. 0)(''x'' := n + 1)) # OutBlock dly ''ch'' (n + 1) ({''ch''}, {}) #
+     TauBlock ((\<lambda>_. 0)(X := n + 1)) # OutBlock dly ''ch'' (n + 1) ({''ch''}, {}) #
      count_blocks (n + 1) rest"
 
 lemma end_count_blocks:
-  "end_of_blocks ((\<lambda>_. 0)(''x'' := n)) (count_blocks n dlys) = (\<lambda>_. 0)(''x'' := n + length dlys)"
+  "end_of_blocks ((\<lambda>_. 0)(X := n)) (count_blocks n dlys) = (\<lambda>_. 0)(X := n + length dlys)"
   apply (induct dlys arbitrary: n)
   by auto
 
 lemma end_count_blocks_init:
-  "end_of_blocks (\<lambda>_. 0) (count_blocks 0 dlys) = (\<lambda>_. 0)(''x'' := length dlys)"
+  "end_of_blocks (\<lambda>_. 0) (count_blocks 0 dlys) = (\<lambda>_. 0)(X := length dlys)"
 proof -
-  have 1: "(\<lambda>_. 0) = (\<lambda>_. 0)(''x'' := 0)"
+  have 1: "(\<lambda>_. 0) = (\<lambda>_. 0)(X := 0)"
     by auto
   show ?thesis
     apply (subst 1)
@@ -1056,7 +1060,7 @@ qed
 lemma count_blocks_snoc:
   "count_blocks n (dlys @ [l]) = 
    count_blocks n dlys @ [
-     TauBlock ((\<lambda>_. 0)(''x'' := n + length dlys + 1)),
+     TauBlock ((\<lambda>_. 0)(X := n + length dlys + 1)),
      OutBlock l ''ch'' (n + length dlys + 1) ({''ch''}, {})]"
   apply (induct dlys arbitrary: n)
   by auto
@@ -1064,19 +1068,19 @@ lemma count_blocks_snoc:
 lemma testHL7:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+    (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<lambda>s. s X))))
     (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))"
 proof -
   have 1: "Valid
              (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))
-             (''x'' ::= (\<lambda>s. s ''x'' + 1))
-             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := length dlys + 1)) x))]))" for dlys
+             (X ::= (\<lambda>s. s X + 1))
+             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(X := length dlys + 1)) x))]))" for dlys
     apply (rule Valid_assign2)
     apply (rule exI[where x=dlys])
     by (auto simp add: end_count_blocks_init count_blocks_snoc)
   have 2: "Valid
-             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := length dlys + 1)) x))]))
-             (Cm (''ch''[!](\<lambda>s. s ''x'')))
+             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(X := length dlys + 1)) x))]))
+             (Cm (''ch''[!](\<lambda>s. s X)))
              (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))" for dlys
     apply (rule Valid_send2)
     apply auto
@@ -1086,10 +1090,10 @@ proof -
     done
   have 3: "Valid
     (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))
-    (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
+    (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<lambda>s. s X))))
     (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))"
     apply (rule Valid_rep)
-    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock ((\<lambda>_. 0)(''x'' := length dlys + 1))])"])
+    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock ((\<lambda>_. 0)(X := length dlys + 1))])"])
     using 1 2 by (auto simp add: Valid_ex_pre)
   show ?thesis
     apply (rule Valid_pre[OF _ 3])
@@ -1108,21 +1112,21 @@ text \<open>Auxiliary definition for invariant.
   Intended invariant is: \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs).\<close>
 fun receive_blocks :: "(real \<times> real) list \<Rightarrow> trace_block list" where
   "receive_blocks [] = []"
-| "receive_blocks ((dly, v) # rest) = InBlock dly ''ch'' ''x'' v ({}, {''ch''}) # receive_blocks rest"
+| "receive_blocks ((dly, v) # rest) = InBlock dly ''ch'' X v ({}, {''ch''}) # receive_blocks rest"
 
 lemma receive_blocks_snoc:
-  "receive_blocks (dlyvs @ [(dly, v)]) = receive_blocks dlyvs @ [InBlock dly ''ch'' ''x'' v ({}, {''ch''})]"
+  "receive_blocks (dlyvs @ [(dly, v)]) = receive_blocks dlyvs @ [InBlock dly ''ch'' X v ({}, {''ch''})]"
   apply (induct dlyvs) by auto
 
 lemma testHL8:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep (Cm (Receive ''ch'' ''x'')))
+    (Rep (Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
 proof -
   have 1: "Valid
              (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))
-             (Rep (Cm (''ch''[?]''x'')))
+             (Rep (Cm (''ch''[?]X)))
              (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
     apply (rule Valid_rep)
     apply (subst Valid_ex_pre)
@@ -1153,8 +1157,8 @@ fun comm_blocks :: "real \<Rightarrow> nat \<Rightarrow> par_block list" where
 lemma testHL9:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (PProc [Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))),
-            Rep (Cm (Receive ''ch'' ''x''))])
+    (PProc [Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<lambda>s. s X))),
+            Rep (Cm (Receive ''ch'' X))])
     (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (comm_blocks 0 n))"
 proof -
   have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks 0 n))"
