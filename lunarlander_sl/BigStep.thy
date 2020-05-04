@@ -36,6 +36,9 @@ datatype comm =
   Send cname exp         ("_[!]_" [110,108] 100)
 | Receive cname var     ("_[?]_" [110,108] 100)
 
+datatype ODE =
+  ODE "cname set" "cname \<Rightarrow> exp"
+
 text \<open>HCSP processes\<close>
 datatype proc =
   Cm comm
@@ -47,6 +50,7 @@ datatype proc =
 | IChoice "proc list"  \<comment> \<open>Nondeterminism\<close>
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
 | Rep proc   \<comment> \<open>Nondeterministic repetition\<close>
+| Cont ODE fform  \<comment> \<open>ODE with boundary\<close>
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype pproc = PProc "proc list"
@@ -87,6 +91,7 @@ datatype trace_block =
   | OutBlock time cname real rdy_info  \<comment> \<open>Delay time, channel name, value sent\<close>
   | TauBlock state   \<comment> \<open>Instantaneous update, keep new state\<close>
   | WaitBlock time   \<comment> \<open>Delay time\<close>
+  | ODEBlock time "real \<Rightarrow> state"   \<comment> \<open>Length of time interval, history\<close>
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
@@ -96,18 +101,21 @@ fun delay_of_block :: "trace_block \<Rightarrow> time" where
 | "delay_of_block (OutBlock dly _ _ _) = dly"
 | "delay_of_block (TauBlock _) = 0"
 | "delay_of_block (WaitBlock dly) = dly"
+| "delay_of_block (ODEBlock d h) = d"
 
 fun event_of_block :: "trace_block \<Rightarrow> event" where
   "event_of_block (InBlock _ ch _ v _) = In ch v"
 | "event_of_block (OutBlock _ ch v _) = Out ch v"
 | "event_of_block (TauBlock _) = Tau"
 | "event_of_block (WaitBlock _) = Tau"
+| "event_of_block (ODEBlock _ _) = Tau"
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
 | "rdy_of_block (OutBlock _ _ _ rdy) = rdy"
 | "rdy_of_block (TauBlock _) = ({}, {})"
 | "rdy_of_block (WaitBlock _) = ({}, {})"
+| "rdy_of_block (ODEBlock _ _) = ({}, {})"
 
 fun start_of_trace :: "trace \<Rightarrow> state" where
   "start_of_trace (Trace s _) = s"
@@ -121,6 +129,7 @@ fun end_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> state" 
 | "end_of_blocks s ((OutBlock _ _ _ _) # rest) = end_of_blocks s rest"
 | "end_of_blocks s ((TauBlock st) # rest) = end_of_blocks st rest"
 | "end_of_blocks s ((WaitBlock _) # rest) = end_of_blocks s rest"
+| "end_of_blocks s ((ODEBlock d h) # rest) = end_of_blocks (h d) rest"
 
 theorem end_of_blocks_append:
   "end_of_blocks st (blks1 @ blks2) = end_of_blocks (end_of_blocks st blks1) blks2"
@@ -151,6 +160,8 @@ fun rdy_of_blocks :: "trace_block list \<Rightarrow> time \<Rightarrow> rdy_info
      else rdy_of_blocks blks (t - dly))"
 | "rdy_of_blocks ((TauBlock _) # blks) t = rdy_of_blocks blks t"
 | "rdy_of_blocks ((WaitBlock d) # blks) t =
+    (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
+| "rdy_of_blocks ((ODEBlock d _) # blks) t =
     (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
 
 fun rdy_of_trace :: "trace \<Rightarrow> time \<Rightarrow> rdy_info" where
@@ -219,6 +230,7 @@ fun wait_block :: "time \<Rightarrow> trace_block \<Rightarrow> trace_block" whe
 | "wait_block t (OutBlock dly ch v rdy) = OutBlock (dly - t) ch v rdy"
 | "wait_block t (TauBlock st) = TauBlock st"
 | "wait_block t (WaitBlock d) = WaitBlock (d - t)"
+| "wait_block t (ODEBlock d h) = ODEBlock (d - t) (\<lambda>s. h (s + t))"
 
 text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
   then the first block has length at least t.\<close>
@@ -298,6 +310,16 @@ fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
     let rdy = rdy_of_echoice rest in
       (fst rdy, insert ch (snd rdy)))"
 
+subsection \<open>Definitions of ODEs\<close>
+
+text \<open>the value of vector field\<close>
+fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> state" where
+  "ODE2Vec (ODE S f) s = (\<lambda>a. if a \<in> S then f a s else 0)"
+
+(*
+definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
+  "ODEsol ode p d = (d \<ge> 0 \<and> ((p has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
+*)
 
 subsection \<open>Big-step semantics\<close>
 
@@ -356,7 +378,14 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
 | RepetitionB1: "big_step (Rep p) tr tr"
 | RepetitionB2: "big_step p tr tr2 \<Longrightarrow> big_step (Rep p) tr2 tr3 \<Longrightarrow> 
    big_step (Rep p) tr tr3"
-
+(*
+| ContB
+   "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+    (\<forall>t. (t \<ge> 0 \<and> t < d \<longrightarrow> b (p t))) \<Longrightarrow>
+    \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
+    tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
+    big_step (Cont ode b) tr tr2"
+*)
 
 text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
