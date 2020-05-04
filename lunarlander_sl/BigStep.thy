@@ -83,10 +83,10 @@ text \<open>First, we define the concept of traces\<close>
 
 text \<open>Time delay, ending state, and set of communications available at the interval\<close>
 datatype trace_block =
-  InBlock time cname var real rdy_info
-  | OutBlock time cname real rdy_info
-  | TauBlock state
-  | WaitBlock time
+  InBlock time cname var real rdy_info  \<comment> \<open>Delay time, channel name, variable name, value sent\<close>
+  | OutBlock time cname real rdy_info  \<comment> \<open>Delay time, channel name, value sent\<close>
+  | TauBlock state   \<comment> \<open>Instantaneous update, keep new state\<close>
+  | WaitBlock time   \<comment> \<open>Delay time\<close>
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
@@ -196,9 +196,9 @@ definition compat_rdy :: "trace list \<Rightarrow> bool" where
 subsection \<open>Traces of parallel processes\<close>
 
 datatype par_block =
-    IOBlock nat nat cname real
-  | ParTauBlock int state
-  | ParWaitBlock real
+    IOBlock nat nat cname real  \<comment> \<open>Receive process, Send process, channel name, value sent\<close>
+  | ParTauBlock int state       \<comment> \<open>Instantaneous update on one process to new state\<close>
+  | ParWaitBlock real   \<comment> \<open>Delay\<close>
 
 text \<open>ParTrace st pblks:
   st -- starting state for each process. Length is the number of processes.
@@ -997,7 +997,11 @@ qed
 
 text \<open>Repetition: count up and send\<close>
 
-text \<open>The invariant.\<close>
+text \<open>Auxiliary definition for invariant.
+  n is the starting value of x (needed for induction to work)
+  dlys is the list of delay times between send events.
+
+  Intended invariant is: \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys).\<close>
 fun count_blocks :: "real \<Rightarrow> real list \<Rightarrow> trace_block list" where
   "count_blocks n [] = []"
 | "count_blocks n (dly # rest) =
@@ -1068,7 +1072,11 @@ qed
 
 text \<open>Repetition: receive\<close>
 
-text \<open>The invariant.\<close>
+text \<open>Auxiliary definition for invariant.
+  dly is the delay of each receive.
+  v is the value of each receive.
+
+  Intended invariant is: \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs).\<close>
 fun receive_blocks :: "(real \<times> real) list \<Rightarrow> trace_block list" where
   "receive_blocks [] = []"
 | "receive_blocks ((dly, v) # rest) = InBlock dly ''ch'' ''x'' v ({}, {''ch''}) # receive_blocks rest"
@@ -1083,23 +1091,23 @@ lemma testHL8:
     (Rep (Cm (Receive ''ch'' ''x'')))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
 proof -
-  have 2: "Valid
+  have 1: "Valid
              (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))
              (Rep (Cm (''ch''[?]''x'')))
              (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs))"
     apply (rule Valid_rep)
     apply (subst Valid_ex_pre)
     apply auto
-    subgoal for dlys
+    subgoal for dlyvs
       apply (rule Valid_receive2)
       apply auto
       subgoal for dly v
-        apply (rule exI[where x="dlys @ [(dly, v)]"])
+        apply (rule exI[where x="dlyvs @ [(dly, v)]"])
         by (auto simp add: extend_receive_def receive_blocks_snoc)
       done
     done
   show ?thesis
-    apply (rule Valid_pre[OF _ 2])
+    apply (rule Valid_pre[OF _ 1])
     apply auto
     apply (rule exI[where x="[]"])
     by auto
@@ -1109,18 +1117,18 @@ qed
 text \<open>Repetition: communication\<close>
 
 text \<open>The invariant\<close>
-fun comm_blocks :: "nat \<Rightarrow> par_block list" where
-  "comm_blocks 0 = []"
-| "comm_blocks (Suc n) = comm_blocks n @ [IOBlock 1 0 ''ch'' (Suc n)]"
+fun comm_blocks :: "real \<Rightarrow> nat \<Rightarrow> par_block list" where
+  "comm_blocks x 0 = []"
+| "comm_blocks x (Suc n) = IOBlock 1 0 ''ch'' (x + 1) # comm_blocks (x + 1) n"
 
 lemma testHL9:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (PProc [Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))),
             Rep (Cm (Receive ''ch'' ''x''))])
-    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (comm_blocks n))"
+    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (comm_blocks 0 n))"
 proof -
-  have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks n))"
+  have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks 0 n))"
     if ex1: "\<exists>dlys. tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)" and
        ex2: "\<exists>dlyvs. tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)" and
        rdy: "compat_trace_pair tr1 tr2" and
@@ -1135,7 +1143,7 @@ proof -
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [count_blocks 0 dlys, receive_blocks dlyvs] par_blks"
       using combine_par_traceE2 by blast
-    from 2 have 3: "\<exists>n. par_blks = comm_blocks n"
+    from 2 have 3: "\<exists>n. par_blks = comm_blocks 0 n"
     proof (induct dlyvs arbitrary: dlys par_blks)
       case Nil
       note Nil1 = Nil
@@ -1167,7 +1175,7 @@ proof -
           sorry
       qed
     qed
-    then obtain n where 4: "par_blks = comm_blocks n"
+    then obtain n where 4: "par_blks = comm_blocks 0 n"
       by auto
     show ?thesis
       apply (rule exI[where x=n])
