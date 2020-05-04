@@ -997,46 +997,66 @@ qed
 
 text \<open>Repetition: count up and send\<close>
 
-text \<open>The invariant. Note the delays are in reverse order.\<close>
-fun count_blocks :: "real list \<Rightarrow> trace_block list" where
-  "count_blocks [] = []"
-| "count_blocks (dly # rest) = count_blocks rest @ [
-      TauBlock ((\<lambda>_. 0)(''x'' := Suc (length rest))), OutBlock dly ''ch'' (Suc (length rest)) ({''ch''}, {})]"
+text \<open>The invariant.\<close>
+fun count_blocks :: "real \<Rightarrow> real list \<Rightarrow> trace_block list" where
+  "count_blocks n [] = []"
+| "count_blocks n (dly # rest) =
+     TauBlock ((\<lambda>_. 0)(''x'' := n + 1)) # OutBlock dly ''ch'' (n + 1) ({''ch''}, {}) #
+     count_blocks (n + 1) rest"
 
 lemma end_count_blocks:
-  "end_of_blocks (\<lambda>_. 0) (count_blocks dlys) = (\<lambda>_. 0)(''x'' := length dlys)"
-  apply (induct dlys)
-  by (auto simp add: end_of_blocks_append)
+  "end_of_blocks ((\<lambda>_. 0)(''x'' := n)) (count_blocks n dlys) = (\<lambda>_. 0)(''x'' := n + length dlys)"
+  apply (induct dlys arbitrary: n)
+  by auto
+
+lemma end_count_blocks_init:
+  "end_of_blocks (\<lambda>_. 0) (count_blocks 0 dlys) = (\<lambda>_. 0)(''x'' := length dlys)"
+proof -
+  have 1: "(\<lambda>_. 0) = (\<lambda>_. 0)(''x'' := 0)"
+    by auto
+  show ?thesis
+    apply (subst 1)
+    apply (subst end_count_blocks)
+    by auto
+qed
+
+lemma count_blocks_snoc:
+  "count_blocks n (dlys @ [l]) = 
+   count_blocks n dlys @ [
+     TauBlock ((\<lambda>_. 0)(''x'' := n + length dlys + 1)),
+     OutBlock l ''ch'' (n + length dlys + 1) ({''ch''}, {})]"
+  apply (induct dlys arbitrary: n)
+  by auto
 
 lemma testHL7:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
     (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
-    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))"
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))"
 proof -
   have 1: "Valid
-             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks dlys))
+             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))
              (''x'' ::= (\<lambda>s. s ''x'' + 1))
-             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := Suc (length dlys))) x))]))" for dlys
+             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := length dlys + 1)) x))]))" for dlys
     apply (rule Valid_assign2)
     apply (rule exI[where x=dlys])
-    by (auto simp add: end_count_blocks)
+    by (auto simp add: end_count_blocks_init count_blocks_snoc)
   have 2: "Valid
-             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock (\<lambda>x. real (if x = ''x'' then Suc (length dlys) else 0))]))
+             (\<lambda>tr. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock (\<lambda>x. real (((\<lambda>_. 0)(''x'' := length dlys + 1)) x))]))
              (Cm (''ch''[!](\<lambda>s. s ''x'')))
-             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))" for dlys
+             (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))" for dlys
     apply (rule Valid_send2)
     apply auto
     subgoal for dly
-      apply (rule exI[where x="dly # dlys"])
-      by (auto simp add: extend_send_def end_of_blocks_append)
+      apply (rule exI[where x="dlys @ [dly]"])
+      by (auto simp add: extend_send_def end_count_blocks_init count_blocks_snoc end_of_blocks_append)
     done
   have 3: "Valid
-    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))
     (Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))))
-    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys))"
+    (\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys))"
     apply (rule Valid_rep)
-    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks dlys @ [TauBlock ((\<lambda>_. 0)(''x'' := Suc (length dlys)))])"])
+    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlys. tr = Trace (\<lambda>_. 0) (count_blocks 0 dlys @ [TauBlock ((\<lambda>_. 0)(''x'' := length dlys + 1))])"])
     using 1 2 by (auto simp add: Valid_ex_pre)
   show ?thesis
     apply (rule Valid_pre[OF _ 3])
@@ -1048,10 +1068,14 @@ qed
 
 text \<open>Repetition: receive\<close>
 
-text \<open>The invariant. Note the delays are in reverse order.\<close>
+text \<open>The invariant.\<close>
 fun receive_blocks :: "(real \<times> real) list \<Rightarrow> trace_block list" where
   "receive_blocks [] = []"
-| "receive_blocks ((dly, v) # rest) = receive_blocks rest @ [InBlock dly ''ch'' ''x'' v ({}, {''ch''})]"
+| "receive_blocks ((dly, v) # rest) = InBlock dly ''ch'' ''x'' v ({}, {''ch''}) # receive_blocks rest"
+
+lemma receive_blocks_snoc:
+  "receive_blocks (dlyvs @ [(dly, v)]) = receive_blocks dlyvs @ [InBlock dly ''ch'' ''x'' v ({}, {''ch''})]"
+  apply (induct dlyvs) by auto
 
 lemma testHL8:
   "Valid
@@ -1070,8 +1094,8 @@ proof -
       apply (rule Valid_receive2)
       apply auto
       subgoal for dly v
-        apply (rule exI[where x="(dly,v) # dlys"])
-        by (auto simp add: extend_receive_def)
+        apply (rule exI[where x="dlys @ [(dly, v)]"])
+        by (auto simp add: extend_receive_def receive_blocks_snoc)
       done
     done
   show ?thesis
@@ -1080,5 +1104,79 @@ proof -
     apply (rule exI[where x="[]"])
     by auto
 qed
+
+
+text \<open>Repetition: communication\<close>
+
+text \<open>The invariant\<close>
+fun comm_blocks :: "nat \<Rightarrow> par_block list" where
+  "comm_blocks 0 = []"
+| "comm_blocks (Suc n) = comm_blocks n @ [IOBlock 1 0 ''ch'' (Suc n)]"
+
+lemma testHL9:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [Rep (Assign ''x'' (\<lambda>s. s ''x'' + 1); Cm (Send ''ch'' (\<lambda>s. s ''x''))),
+            Rep (Cm (Receive ''ch'' ''x''))])
+    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (comm_blocks n))"
+proof -
+  have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks n))"
+    if ex1: "\<exists>dlys. tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)" and
+       ex2: "\<exists>dlyvs. tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)" and
+       rdy: "compat_trace_pair tr1 tr2" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t tr1 tr2
+  proof -
+    obtain dlys where tr1: "tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)"
+      using ex1 by auto
+    obtain dlyvs where tr2: "tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)"
+      using ex2 by auto
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
+      2: "combine_blocks [count_blocks 0 dlys, receive_blocks dlyvs] par_blks"
+      using combine_par_traceE2 by blast
+    from 2 have 3: "\<exists>n. par_blks = comm_blocks n"
+    proof (induct dlyvs arbitrary: dlys par_blks)
+      case Nil
+      note Nil1 = Nil
+      then show ?case
+      proof (cases dlys)
+        case Nil
+        show ?thesis
+          apply (rule exI[where x=0])
+          using Nil1[unfolded Nil] combine_blocks_triv2 by auto 
+      next
+        case (Cons a2 rest)
+        then show ?thesis
+          using Nil1 apply auto
+          sorry
+      qed
+    next
+      case (Cons a1 dlyvs)
+      note Cons1 = Cons
+      then show ?case
+      proof (cases dlys)
+        case Nil
+        then show ?thesis
+          using Cons1(2) apply auto
+          sorry
+      next
+        case (Cons a2 rest)
+        then show ?thesis 
+          thm Cons1 Cons
+          sorry
+      qed
+    qed
+    then obtain n where 4: "par_blks = comm_blocks n"
+      by auto
+    show ?thesis
+      apply (rule exI[where x=n])
+      using 1 unfolding 4 by auto
+  qed
+  show ?thesis
+    apply (rule Valid_parallel2'[OF _ _ testHL7 testHL8])
+    using 1 by auto
+qed
+
 
 end
