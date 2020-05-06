@@ -321,21 +321,33 @@ subsection \<open>Definitions of ODEs\<close>
 
 text \<open>the value of vector field\<close>
 
-abbreviation allvar:: "var set"
+(*abbreviation allvar:: "var set"
   where "allvar \<equiv> {x | x. True}"
 
 lemma allvar_finite [simp]: "finite(allvar)"
   by simp
+*)
+
+definition Vagree :: "state \<Rightarrow> state \<Rightarrow> var set \<Rightarrow> bool"
+  where "Vagree u v V == 
+     (\<forall> i.  i \<in> V \<longrightarrow>  u i =  v i)"
 
 type_synonym vec = "real^(var)"
 
 definition state2vec :: "state \<Rightarrow> vec" where
   "state2vec s = (\<chi> x. s x)"
 
-lemma mapstate2vec :"\<forall> x. \<exists> i. \<forall> s. s x = state2vec s $ i"
-  unfolding state2vec_def
+definition vec2state :: "vec \<Rightarrow> state" where
+  "(vec2state v) x = v $ x"
+
+lemma map1[simp]:"vec2state (state2vec s) = s"
+  unfolding vec2state_def state2vec_def
   by auto
 
+lemma map2[simp]:"state2vec (vec2state s) = s"
+  unfolding vec2state_def state2vec_def
+  by auto
+  
 fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
   "ODE2Vec (ODE S f) s = state2vec (\<lambda> a. if a \<in> S then (f a s) else 0)"
 
@@ -414,23 +426,41 @@ lemma mvt_vector:
   and "d\<ge>0"
   shows "\<forall>t\<in>{0 .. d}.p 0 v  = p t v"
 proof-
-  obtain i where map:"\<forall> s. s v = state2vec s $ i" using mapstate2vec 
-    by blast
-  have step1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. state2vec (p t) $ i) has_vector_derivative state2vec (q t) $ i) (at t within {0 .. d})" 
+  have step1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. state2vec (p t) $ v) has_vector_derivative state2vec (q t) $ v) (at t within {0 .. d})" 
     using assms 
     using proj[where p = "\<lambda>t. state2vec (p t)" and q = "\<lambda>t. state2vec (q t)"]
     by blast
-  have step2:"\<forall>t\<in>{0 .. d}.  state2vec (q t) $ i = 0" 
-    using assms map by auto
-  have step3:"\<forall>t\<in>{0 .. d}. state2vec (p 0) $ i = state2vec (p t) $ i"
+  have step2:"\<forall>t\<in>{0 .. d}.  state2vec (q t) $ v = 0" 
+    using assms  state2vec_def by auto
+  have step3:"\<forall>t\<in>{0 .. d}. state2vec (p 0) $ v = state2vec (p t) $ v"
     using assms step1 step2 unfolding has_vector_derivative_def 
-    using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ i" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ i)" and d="d"]
+    using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ v" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ v)" and d="d"]
     by auto
   then show ?thesis
-    using map by auto
+    using state2vec_def by auto
 qed
 
 
+lemma chainrule:
+  assumes "\<forall> x. ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x) ) (at x within UNIV)"
+      and "ODEsol ode p d"
+      and "t\<in>{0 .. d}"
+    shows "((\<lambda>t. g (p t)) has_derivative (\<lambda>s. g'(p t) (s*\<^sub>R(ODE2Vec ode (p t))))) (at t within {0 .. d}) "
+proof-
+  have step1:"(\<And>x. x \<in> UNIV \<Longrightarrow> ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x)) (at x))"
+    using assms(1) by auto
+  have step2:"0 \<le> t \<and> t \<le> d"
+    using assms(3) by auto
+  have step3:"((\<lambda>t. state2vec(p t)) has_derivative (\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))) (at t within {0..d})"
+    using step2 assms(2) unfolding ODEsol_def has_vderiv_on_def has_vector_derivative_def by auto
+  show ?thesis
+  using step1 step2 step3 has_derivative_in_compose2[of UNIV "(\<lambda>v. g (vec2state v))" "(\<lambda>v. g' (vec2state v))" "(\<lambda>t. state2vec (p t))" "{0 .. d}" t "(\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))"]
+  by auto
+qed
+
+
+definition INV :: " fform  \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
+"INV Inv p d  \<equiv>  ((d \<ge> 0) \<and> (\<forall>t. 0\<le>t\<and>t\<le>d \<longrightarrow> Inv (p t)))"
 
 subsection \<open>Big-step semantics\<close>
 
