@@ -320,13 +320,117 @@ fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
 subsection \<open>Definitions of ODEs\<close>
 
 text \<open>the value of vector field\<close>
-(*
-fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> state" where
-  "ODE2Vec (ODE S f) s = (\<chi> a. if a \<in> S then f a s else 0)"
+
+abbreviation allvar:: "var set"
+  where "allvar \<equiv> {x | x. True}"
+
+lemma allvar_finite [simp]: "finite(allvar)"
+  by simp
+
+type_synonym vec = "real^(var)"
+
+definition state2vec :: "state \<Rightarrow> vec" where
+  "state2vec s = (\<chi> x. s x)"
+
+lemma mapstate2vec :"\<forall> x. \<exists> i. \<forall> s. s x = state2vec s $ i"
+  unfolding state2vec_def
+  by auto
+
+fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
+  "ODE2Vec (ODE S f) s = state2vec (\<lambda> a. if a \<in> S then (f a s) else 0)"
 
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
-  "ODEsol ode p d = (d \<ge> 0 \<and> ((p has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
-*)
+  "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
+
+definition ODEstate :: "ODE \<Rightarrow> real \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool" where
+  "ODEstate ode d u v = (d\<ge>0 \<and> (\<exists> f . ODEsol ode f d \<and> u = f 0 \<and> v = f d ))"
+
+lemma veclim:"((\<lambda>y. v y) \<longlongrightarrow> 0) (at t within D) \<Longrightarrow> ((\<lambda>y. v y $ i) \<longlongrightarrow> 0) (at t within D)"
+  using tendsto_vec_nth by fastforce
+
+
+lemma proj:
+  assumes "(p has_vector_derivative q t) (at t within D) "
+  shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D) "
+  using assms unfolding has_vector_derivative_def has_derivative_def 
+  apply (simp add: bounded_linear_scaleR_left)
+  using veclim by fastforce
+  
+lemma mvt_real_eq:
+  fixes p :: "real \<Rightarrow>real"
+ assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
+  and "d\<ge>0"
+  and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
+  and "x\<in>{0 .. d}"
+  shows "p 0 = p x" 
+proof-
+  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
+    using assms 
+    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
+  then show ?thesis
+  using assms
+  using mvt_simple[of 0 x p q]
+  by force
+qed
+
+
+lemma mvt_real_ge:
+  fixes p :: "real \<Rightarrow>real"
+ assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
+  and "d\<ge>0"
+  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
+  and "x\<in>{0 .. d}"
+  shows "p 0 \<le> p x "
+  proof-
+  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
+    using assms 
+    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
+  then show ?thesis
+  using assms
+  using mvt_simple[of 0 x p q]
+  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+qed
+
+lemma mvt_real_le:
+  fixes p :: "real \<Rightarrow>real"
+ assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
+  and "d\<ge>0"
+  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
+    and "x\<in>{0 .. d}"
+  shows "p 0 \<ge> p x "
+  proof-
+  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
+    using assms 
+    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
+  then show ?thesis
+  using assms
+  using mvt_simple[of 0 x p q]
+  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+qed
+
+lemma mvt_vector:
+  fixes p :: "real \<Rightarrow> state"
+  assumes "\<forall>t\<in>{0 .. d}. (((\<lambda>t. state2vec (p t)) has_vector_derivative state2vec (q t)) (at t within {0 .. d}) \<and> q t v = 0)"
+  and "d\<ge>0"
+  shows "p 0 v  = p d v"
+proof-
+  obtain i where map:"\<forall> s. s v = state2vec s $ i" using mapstate2vec 
+    by blast
+  have step1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. state2vec (p t) $ i) has_vector_derivative state2vec (q t) $ i) (at t within {0 .. d})" 
+    using assms 
+    using proj[where p = "\<lambda>t. state2vec (p t)" and q = "\<lambda>t. state2vec (q t)"]
+    by blast
+  have step2:"\<forall>t\<in>{0 .. d}.  state2vec (q t) $ i = 0" 
+    using assms map by auto
+  have step3:"state2vec (p 0) $ i = state2vec (p d) $ i"
+    using assms step1 step2 unfolding has_vector_derivative_def 
+    using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ i" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ i)" and x="d" and d="d"]
+    by auto
+  then show ?thesis
+    using map by auto
+qed
+
+
 
 subsection \<open>Big-step semantics\<close>
 
