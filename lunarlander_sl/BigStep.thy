@@ -412,7 +412,7 @@ lemma mvt_vector:
   fixes p :: "real \<Rightarrow> state"
   assumes "\<forall>t\<in>{0 .. d}. (((\<lambda>t. state2vec (p t)) has_vector_derivative state2vec (q t)) (at t within {0 .. d}) \<and> q t v = 0)"
   and "d\<ge>0"
-  shows "p 0 v  = p d v"
+  shows "\<forall>t\<in>{0 .. d}.p 0 v  = p t v"
 proof-
   obtain i where map:"\<forall> s. s v = state2vec s $ i" using mapstate2vec 
     by blast
@@ -422,9 +422,9 @@ proof-
     by blast
   have step2:"\<forall>t\<in>{0 .. d}.  state2vec (q t) $ i = 0" 
     using assms map by auto
-  have step3:"state2vec (p 0) $ i = state2vec (p d) $ i"
+  have step3:"\<forall>t\<in>{0 .. d}. state2vec (p 0) $ i = state2vec (p t) $ i"
     using assms step1 step2 unfolding has_vector_derivative_def 
-    using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ i" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ i)" and x="d" and d="d"]
+    using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ i" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ i)" and d="d"]
     by auto
   then show ?thesis
     using map by auto
@@ -489,14 +489,12 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
 | RepetitionB1: "big_step (Rep p) tr tr"
 | RepetitionB2: "big_step p tr tr2 \<Longrightarrow> big_step (Rep p) tr2 tr3 \<Longrightarrow> 
    big_step (Rep p) tr tr3"
-(*
-| ContB
+| ContB:
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. (t \<ge> 0 \<and> t < d \<longrightarrow> b (p t))) \<Longrightarrow>
     \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
     tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
     big_step (Cont ode b) tr tr2"
-*)
 
 text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
