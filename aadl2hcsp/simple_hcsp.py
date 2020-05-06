@@ -16,7 +16,7 @@ def createStructure(dic):
             for com in category['components']:
                 hps.append(Var(com['name']))
 
-            if len(category['connections']) >0:
+            if len(category['connections']) > 0:
                 hps.append(Var('Comms_' + category['name']))
 
             if len(category['category']) == 'Process':
