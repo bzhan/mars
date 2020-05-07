@@ -321,13 +321,6 @@ subsection \<open>Definitions of ODEs\<close>
 
 text \<open>the value of vector field\<close>
 
-(*abbreviation allvar:: "var set"
-  where "allvar \<equiv> {x | x. True}"
-
-lemma allvar_finite [simp]: "finite(allvar)"
-  by simp
-*)
-
 definition Vagree :: "state \<Rightarrow> state \<Rightarrow> var set \<Rightarrow> bool"
   where "Vagree u v V = (\<forall>i. i \<in> V \<longrightarrow> u i = v i)"
 
@@ -460,8 +453,9 @@ proof -
 qed
 
 
-definition INV :: " fform  \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
+definition INV :: "fform \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "INV Inv p d = (d \<ge> 0 \<and> (\<forall>t. 0\<le>t\<and>t\<le>d \<longrightarrow> Inv (p t)))"
+
 
 subsection \<open>Big-step semantics\<close>
 
@@ -522,7 +516,7 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
    big_step (Rep p) tr tr3"
 | ContB:
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
-    (\<forall>t. (t \<ge> 0 \<and> t < d \<longrightarrow> b (p t))) \<Longrightarrow>
+    (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
     \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
     tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
     big_step (Cont ode b) tr tr2"
@@ -766,6 +760,19 @@ proof -
     using 1 2 by auto
 qed
 
+text \<open>ODE Example 1\<close>
+lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+  apply (rule ContB)
+  apply auto
+  apply (simp add: ODEsol_def state2vec_def)
+  apply (simp add: has_vderiv_on_def)
+  apply (simp add: has_vector_derivative_def)
+  apply (auto intro!: derivative_intros)
+  sorry
+
+
 subsection \<open>Validity\<close>
 
 type_synonym assn = "trace \<Rightarrow> bool"
@@ -810,6 +817,9 @@ thm repE
 
 inductive_cases echoiceE: "big_step (EChoice cs) tr tr2"
 thm echoiceE
+
+inductive_cases contE: "big_step (Cont ode b) tr tr2"
+thm contE
 
 theorem Valid_assign:
   "Valid
@@ -882,7 +892,41 @@ proof -
     unfolding Valid_def apply (auto elim!: echoiceE)
     using 1 2 by auto
 qed
-      
+
+text \<open>Hoare triple for ODE with unique solution\<close>
+theorem Valid_ode_solution:
+  assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
+  shows "Valid
+     (\<lambda>t. t = tr)
+     (Cont ode b)
+     (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
+  unfolding Valid_def using assms by (auto elim: contE)
+
+text \<open>Hoare triple for ODE with non-unique solutions\<close>
+theorem Valid_ode_all_solution:
+  assumes "\<forall>d p. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+      \<not> b (p d) \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow> Q d p"
+  shows "Valid
+    (\<lambda>t. t = tr)
+    (Cont ode b)
+    (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d p))"
+  unfolding Valid_def using assms by (metis contE)
+
+text \<open>Differential invariant rule\<close>
+(*
+lemma Valid_ode_invariant:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. (\<lambda>v. inv (vec2state v) has_derivative g' (vec2state x)) (at x within UNIV)"
+  shows "Valid
+    (\<lambda>t. t = tr)
+    (Cont ode b)
+    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d p))"
+  sorry
+*)
+
 subsection \<open>Validity for parallel processes\<close>
 
 type_synonym par_assn = "par_trace \<Rightarrow> bool"
@@ -984,6 +1028,18 @@ theorem Valid_wait2:
     (Wait d)
     Q"
   using Valid_def waitE by blast
+
+theorem Valid_ode_solution2:
+  assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
+    and "Q (extend_trace tr (ODEBlock d p))"
+  shows "Valid
+     (\<lambda>t. t = tr)
+     (Cont ode b)
+     Q"
+  unfolding Valid_def using assms by (auto elim: contE)
+
 
 text \<open>Version of Valid_parallel with arbitrary post-condition\<close>
 theorem Valid_parallel':
@@ -1577,6 +1633,28 @@ proof -
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL10 testHL3])
     using 1 2 by fastforce+
+qed
+
+
+text \<open>ODE with solution\<close>
+
+lemma testHL12:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+proof -
+  have 1: "p2 = fun_upd (\<lambda>_. 0) X \<and> d2 = 1"
+    if "0 \<le> d2"
+       "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p2 d2"
+       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X < 1"
+       "\<not> p2 d2 X < 1"
+       "p2 0 = (\<lambda>_. 0)"
+     for p2 d2
+    sorry
+  show ?thesis
+    apply (rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
+    using 1 by auto
 qed
 
 
