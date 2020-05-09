@@ -55,6 +55,7 @@ datatype proc =
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
 | Rep proc   \<comment> \<open>Nondeterministic repetition\<close>
 | Cont ODE fform  \<comment> \<open>ODE with boundary\<close>
+| Interrupt ODE "(comm \<times> proc) list"  \<comment> \<open>Interrupt\<close>
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype pproc = PProc "proc list"
@@ -95,7 +96,9 @@ datatype trace_block =
   | OutBlock time cname real rdy_info  \<comment> \<open>Delay time, channel name, value sent\<close>
   | TauBlock state   \<comment> \<open>Instantaneous update, keep new state\<close>
   | WaitBlock time   \<comment> \<open>Delay time\<close>
-  | ODEBlock time "real \<Rightarrow> state"   \<comment> \<open>Length of time interval, history\<close>
+  | ODEBlock time "real \<Rightarrow> state"  \<comment> \<open>Length of time interval, history\<close>
+  | ODEInBlock time "real \<Rightarrow> state" cname var real rdy_info
+  | ODEOutBlock time "real \<Rightarrow> state" cname real rdy_info
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
@@ -106,6 +109,8 @@ fun delay_of_block :: "trace_block \<Rightarrow> time" where
 | "delay_of_block (TauBlock _) = 0"
 | "delay_of_block (WaitBlock dly) = dly"
 | "delay_of_block (ODEBlock d h) = d"
+| "delay_of_block (ODEInBlock dly _ _ _ _ _) = dly"
+| "delay_of_block (ODEOutBlock dly _ _ _ _) = dly"
 
 fun event_of_block :: "trace_block \<Rightarrow> event" where
   "event_of_block (InBlock _ ch _ v _) = In ch v"
@@ -113,6 +118,9 @@ fun event_of_block :: "trace_block \<Rightarrow> event" where
 | "event_of_block (TauBlock _) = Tau"
 | "event_of_block (WaitBlock _) = Tau"
 | "event_of_block (ODEBlock _ _) = Tau"
+| "event_of_block (ODEInBlock _ _ ch _ v _) = In ch v"
+| "event_of_block (ODEOutBlock _ _ ch v _) = Out ch v"
+
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
@@ -120,6 +128,8 @@ fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
 | "rdy_of_block (TauBlock _) = ({}, {})"
 | "rdy_of_block (WaitBlock _) = ({}, {})"
 | "rdy_of_block (ODEBlock _ _) = ({}, {})"
+| "rdy_of_block (ODEInBlock _ _ _ _ _ rdy) = rdy"
+| "rdy_of_block (ODEOutBlock _ _ _ _ rdy) = rdy"
 
 fun start_of_trace :: "trace \<Rightarrow> state" where
   "start_of_trace (Trace s _) = s"
@@ -133,7 +143,9 @@ fun end_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> state" 
 | "end_of_blocks s ((OutBlock _ _ _ _) # rest) = end_of_blocks s rest"
 | "end_of_blocks s ((TauBlock st) # rest) = end_of_blocks st rest"
 | "end_of_blocks s ((WaitBlock _) # rest) = end_of_blocks s rest"
-| "end_of_blocks s ((ODEBlock d h) # rest) = end_of_blocks (h d) rest"
+| "end_of_blocks _ ((ODEBlock d h) # rest) = end_of_blocks (h d) rest"
+| "end_of_blocks _ ((ODEInBlock d h _ var v _) # rest) = end_of_blocks ((h d)(var := v)) rest"
+| "end_of_blocks _ ((ODEOutBlock d h _ _ _) # rest) = end_of_blocks (h d) rest"
 
 theorem end_of_blocks_append:
   "end_of_blocks st (blks1 @ blks2) = end_of_blocks (end_of_blocks st blks1) blks2"
@@ -155,18 +167,22 @@ text \<open>Now we define the ready set of a trace at any given time\<close>
 fun rdy_of_blocks :: "trace_block list \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_blocks [] t = ({}, {})"
 | "rdy_of_blocks ((InBlock dly _ _ _ rdy) # blks) t =
-    (if 0 < t \<and> t < dly then rdy
-     else if t \<le> dly then ({}, {})
+    (if 0 \<le> t \<and> t < dly then rdy
      else rdy_of_blocks blks (t - dly))"
 | "rdy_of_blocks ((OutBlock dly _ _ rdy) # blks) t =
-    (if 0 < t \<and> t < dly then rdy
-     else if t \<le> dly then ({}, {})
+    (if 0 \<le> t \<and> t < dly then rdy
      else rdy_of_blocks blks (t - dly))"
 | "rdy_of_blocks ((TauBlock _) # blks) t = rdy_of_blocks blks t"
 | "rdy_of_blocks ((WaitBlock d) # blks) t =
     (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
 | "rdy_of_blocks ((ODEBlock d _) # blks) t =
     (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
+| "rdy_of_blocks ((ODEInBlock d _ _ _ _ rdy) # blks) t =
+    (if 0 \<le> t \<and> t < d then rdy
+     else rdy_of_blocks blks (t - d))"
+| "rdy_of_blocks ((ODEOutBlock d _ _ _ rdy) # blks) t =
+    (if 0 \<le> t \<and> t < d then rdy
+     else rdy_of_blocks blks (t - d))"
 
 fun rdy_of_trace :: "trace \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_trace (Trace _ blks) t = rdy_of_blocks blks t"
@@ -235,6 +251,8 @@ fun wait_block :: "time \<Rightarrow> trace_block \<Rightarrow> trace_block" whe
 | "wait_block t (TauBlock st) = TauBlock st"
 | "wait_block t (WaitBlock d) = WaitBlock (d - t)"
 | "wait_block t (ODEBlock d h) = ODEBlock (d - t) (\<lambda>s. h (s + t))"
+| "wait_block t (ODEInBlock d h ch var v rdy) = ODEInBlock (d - t) (\<lambda>s. h (s + t)) ch var v rdy"
+| "wait_block t (ODEOutBlock d h ch v rdy) = ODEOutBlock (d - t) (\<lambda>s. h (s + t)) ch v rdy"
 
 lemma wait_block_0[simp]:
   "wait_block 0 blk = blk" by (cases blk, auto)
@@ -321,16 +339,8 @@ subsection \<open>Definitions of ODEs\<close>
 
 text \<open>the value of vector field\<close>
 
-(*abbreviation allvar:: "var set"
-  where "allvar \<equiv> {x | x. True}"
-
-lemma allvar_finite [simp]: "finite(allvar)"
-  by simp
-*)
-
 definition Vagree :: "state \<Rightarrow> state \<Rightarrow> var set \<Rightarrow> bool"
-  where "Vagree u v V == 
-     (\<forall> i.  i \<in> V \<longrightarrow>  u i =  v i)"
+  where "Vagree u v V = (\<forall>i. i \<in> V \<longrightarrow> u i = v i)"
 
 type_synonym vec = "real^(var)"
 
@@ -340,42 +350,43 @@ definition state2vec :: "state \<Rightarrow> vec" where
 definition vec2state :: "vec \<Rightarrow> state" where
   "(vec2state v) x = v $ x"
 
-lemma map1[simp]:"vec2state (state2vec s) = s"
+lemma vec_state_map1[simp]: "vec2state (state2vec s) = s"
   unfolding vec2state_def state2vec_def
   by auto
 
-lemma map2[simp]:"state2vec (vec2state s) = s"
+lemma vec_state_map2[simp]: "state2vec (vec2state s) = s"
   unfolding vec2state_def state2vec_def
   by auto
-  
+
+text \<open>Given ODE and a state, find the derivative vector.\<close>
 fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
-  "ODE2Vec (ODE S f) s = state2vec (\<lambda> a. if a \<in> S then (f a s) else 0)"
+  "ODE2Vec (ODE S f) s = state2vec (\<lambda>a. if a \<in> S then f a s else 0)"
 
+text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
 
+text \<open>Exists solution f to the ODE on time {0 .. d}, starting at u and ending at v.\<close>
 definition ODEstate :: "ODE \<Rightarrow> real \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool" where
-  "ODEstate ode d u v = (d\<ge>0 \<and> (\<exists> f . ODEsol ode f d \<and> u = f 0 \<and> v = f d ))"
+  "ODEstate ode d u v = (d \<ge> 0 \<and> (\<exists>f. ODEsol ode f d \<and> u = f 0 \<and> v = f d))"
 
-lemma veclim:"((\<lambda>y. v y) \<longlongrightarrow> 0) (at t within D) \<Longrightarrow> ((\<lambda>y. v y $ i) \<longlongrightarrow> 0) (at t within D)"
-  using tendsto_vec_nth by fastforce
-
-
-lemma proj:
+text \<open>Projection of has_vector_derivative onto components.\<close>
+lemma has_vector_derivative_proj:
   assumes "(p has_vector_derivative q t) (at t within D) "
   shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D) "
   using assms unfolding has_vector_derivative_def has_derivative_def 
   apply (simp add: bounded_linear_scaleR_left)
-  using veclim by fastforce
-  
+  using tendsto_vec_nth by fastforce
+
+text \<open>If the derivative is always 0, then the function is always 0.\<close>
 lemma mvt_real_eq:
-  fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-  and "d\<ge>0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
-  and "x\<in>{0 .. d}"
+  fixes p :: "real \<Rightarrow> real"
+  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
+    and "x \<in> {0 .. d}"
   shows "p 0 = p x" 
-proof-
+proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
     by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
@@ -385,15 +396,15 @@ proof-
   by force
 qed
 
-
+text \<open>If the derivative is always non-negative, then the function is increasing.\<close>
 lemma mvt_real_ge:
   fixes p :: "real \<Rightarrow>real"
  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-  and "d\<ge>0"
+  and "d \<ge> 0"
   and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
-  and "x\<in>{0 .. d}"
-  shows "p 0 \<le> p x "
-  proof-
+  and "x \<in> {0 .. d}"
+  shows "p 0 \<le> p x"
+proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
     by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
@@ -403,14 +414,15 @@ lemma mvt_real_ge:
   by (smt atLeastAtMost_iff greaterThanLessThan_iff)
 qed
 
+text \<open>If the derivative is always non-positive, then the function is decreasing.\<close>
 lemma mvt_real_le:
   fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-  and "d\<ge>0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
-    and "x\<in>{0 .. d}"
-  shows "p 0 \<ge> p x "
-  proof-
+  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
+    and "x \<in> {0 .. d}"
+  shows "p 0 \<ge> p x"
+proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
     by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
@@ -420,47 +432,48 @@ lemma mvt_real_le:
   by (smt atLeastAtMost_iff greaterThanLessThan_iff)
 qed
 
+text \<open>Mean value theorem (constant case) for vectors.\<close>
 lemma mvt_vector:
   fixes p :: "real \<Rightarrow> state"
   assumes "\<forall>t\<in>{0 .. d}. (((\<lambda>t. state2vec (p t)) has_vector_derivative state2vec (q t)) (at t within {0 .. d}) \<and> q t v = 0)"
-  and "d\<ge>0"
-  shows "\<forall>t\<in>{0 .. d}.p 0 v  = p t v"
-proof-
-  have step1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. state2vec (p t) $ v) has_vector_derivative state2vec (q t) $ v) (at t within {0 .. d})" 
+    and "d \<ge> 0"
+  shows "\<forall>t\<in>{0 .. d}. p 0 v = p t v"
+proof -
+  have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. state2vec (p t) $ v) has_vector_derivative state2vec (q t) $ v) (at t within {0 .. d})" 
     using assms 
-    using proj[where p = "\<lambda>t. state2vec (p t)" and q = "\<lambda>t. state2vec (q t)"]
+    using has_vector_derivative_proj[where p="\<lambda>t. state2vec (p t)" and q="\<lambda>t. state2vec (q t)"]
     by blast
-  have step2:"\<forall>t\<in>{0 .. d}.  state2vec (q t) $ v = 0" 
+  have 2: "\<forall>t\<in>{0 .. d}.  state2vec (q t) $ v = 0" 
     using assms  state2vec_def by auto
-  have step3:"\<forall>t\<in>{0 .. d}. state2vec (p 0) $ v = state2vec (p t) $ v"
-    using assms step1 step2 unfolding has_vector_derivative_def 
+  have 3: "\<forall>t\<in>{0 .. d}. state2vec (p 0) $ v = state2vec (p t) $ v"
+    using assms 1 2 unfolding has_vector_derivative_def 
     using mvt_real_eq[where p = "\<lambda>t. state2vec (p t) $ v" and q = "\<lambda>t. (\<lambda>x. x *\<^sub>R state2vec (q t) $ v)" and d="d"]
     by auto
   then show ?thesis
     using state2vec_def by auto
 qed
 
-
 lemma chainrule:
-  assumes "\<forall> x. ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x) ) (at x within UNIV)"
-      and "ODEsol ode p d"
-      and "t\<in>{0 .. d}"
-    shows "((\<lambda>t. g (p t)) has_derivative (\<lambda>s. g'(p t) (s*\<^sub>R(ODE2Vec ode (p t))))) (at t within {0 .. d}) "
-proof-
-  have step1:"(\<And>x. x \<in> UNIV \<Longrightarrow> ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x)) (at x))"
+  assumes "\<forall>x. ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x)) (at x within UNIV)"
+    and "ODEsol ode p d"
+    and "t \<in> {0 .. d}"
+  shows "((\<lambda>t. g (p t)) has_derivative (\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+proof -
+  have 1: "(\<And>x. x \<in> UNIV \<Longrightarrow> ((\<lambda>v. g (vec2state v)) has_derivative g' (vec2state x)) (at x))"
     using assms(1) by auto
-  have step2:"0 \<le> t \<and> t \<le> d"
+  have 2: "0 \<le> t \<and> t \<le> d"
     using assms(3) by auto
-  have step3:"((\<lambda>t. state2vec(p t)) has_derivative (\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))) (at t within {0..d})"
-    using step2 assms(2) unfolding ODEsol_def has_vderiv_on_def has_vector_derivative_def by auto
+  have 3: "((\<lambda>t. state2vec(p t)) has_derivative (\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))) (at t within {0..d})"
+    using 2 assms(2) unfolding ODEsol_def has_vderiv_on_def has_vector_derivative_def by auto
   show ?thesis
-  using step1 step2 step3 has_derivative_in_compose2[of UNIV "(\<lambda>v. g (vec2state v))" "(\<lambda>v. g' (vec2state v))" "(\<lambda>t. state2vec (p t))" "{0 .. d}" t "(\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))"]
+  using 1 2 3 has_derivative_in_compose2[of UNIV "(\<lambda>v. g (vec2state v))" "(\<lambda>v. g' (vec2state v))" "(\<lambda>t. state2vec (p t))" "{0 .. d}" t "(\<lambda>s. s *\<^sub>R ODE2Vec ode (p t))"]
   by auto
 qed
 
 
-definition INV :: " fform  \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
-"INV Inv p d  \<equiv>  ((d \<ge> 0) \<and> (\<forall>t. 0\<le>t\<and>t\<le>d \<longrightarrow> Inv (p t)))"
+definition INV :: "fform \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
+  "INV Inv p d = (d \<ge> 0 \<and> (\<forall>t. 0\<le>t\<and>t\<le>d \<longrightarrow> Inv (p t)))"
+
 
 subsection \<open>Big-step semantics\<close>
 
@@ -521,10 +534,23 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
    big_step (Rep p) tr tr3"
 | ContB:
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
-    (\<forall>t. (t \<ge> 0 \<and> t < d \<longrightarrow> b (p t))) \<Longrightarrow>
+    (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
     \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
     tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
     big_step (Cont ode b) tr tr2"
+| InterruptSendB:
+   "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+    p 0 = end_of_trace tr \<Longrightarrow>
+    i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step (Interrupt ode cs) tr tr3"
+| InterruptReceiveB:
+   "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+    p 0 = end_of_trace tr \<Longrightarrow>
+    i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step (Interrupt ode cs) tr tr3"
+
 
 text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
@@ -722,6 +748,95 @@ lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<
   apply (rule RepetitionB1)
   done
 
+text \<open>External choice 1\<close>
+lemma test9a: "big_step (EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)])
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [OutBlock 0 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1])"
+  apply (rule EChoiceSendB[where i=0])
+    apply (auto simp add: extend_send_def)
+  apply (rule waitB2)
+  by auto
+
+text \<open>External choice 2\<close>
+lemma test9b: "big_step (EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)])
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [OutBlock 0 ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2])"
+  apply (rule EChoiceSendB[where i=1])
+    apply (auto simp add: extend_send_def)
+  apply (rule waitB2)
+  by auto
+
+text \<open>Communication with external choice\<close>
+lemma test10: "par_big_step (PProc [
+  EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)],
+  Cm (Receive ''ch'' X)])
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1])"
+proof -
+  have 1: "combine_blocks [[], []] []"
+    apply (rule combine_blocks.intros(1))
+    by (auto simp add: less_Suc_eq)
+  have 2: "combine_blocks
+     [[OutBlock 0 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1],
+      [InBlock 0 ''ch'' X 1 ({}, {''ch''})]]
+     [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1]"
+    apply (rule combine_blocks.intros(3)[where i=1 and j=0])
+             apply (auto simp add: remove_pair_def)
+    apply (rule combine_blocks.intros(2)[where i=0])
+          apply (auto simp add: remove_one_def less_Suc_eq)
+    by (rule 1)
+  show ?thesis
+    apply (rule parallelB2[OF test9a test2a])
+    apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
+    using 1 2 by auto
+qed
+
+text \<open>ODE Example 1\<close>
+lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+  apply (rule ContB)
+  apply auto
+  apply (simp add: ODEsol_def state2vec_def fun_upd_def)
+  unfolding has_vderiv_on_def
+  unfolding has_vector_derivative_def
+  unfolding has_derivative_iff_norm
+  apply auto
+  subgoal premises pre for x
+    unfolding bounded_linear_def 
+    apply simp
+    unfolding bounded_linear_axioms_def
+    apply auto
+    done
+  subgoal premises pre for x
+  proof-
+    have 1:"\<forall>i.((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+            (y - x) *\<^sub>R
+            (\<chi> xa. if xa = X
+                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                   else 0) ) $ i= 0 " for y 
+      by auto
+    have 2:"(\<forall>i. (v:: vec)$i = 0) \<Longrightarrow> norm v = 0" for v
+      apply simp 
+      by (simp add: vec_eq_iff)
+    have 3:"norm
+           ((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+            (y - x) *\<^sub>R
+            (\<chi> xa. if xa = X
+                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                   else 0)) = 0" for y
+      using 1[of y]  2[of "((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+         (y - x) *\<^sub>R
+         (\<chi> xa. if xa = X
+                then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                else 0))"]
+      by auto
+    then show ?thesis using pre by auto
+  qed
+  done
+
+
+
 subsection \<open>Validity\<close>
 
 type_synonym assn = "trace \<Rightarrow> bool"
@@ -763,6 +878,15 @@ thm waitE
 
 inductive_cases repE: "big_step (Rep p) tr tr2"
 thm repE
+
+inductive_cases echoiceE: "big_step (EChoice cs) tr tr2"
+thm echoiceE
+
+inductive_cases contE: "big_step (Cont ode b) tr tr2"
+thm contE
+
+inductive_cases interruptE: "big_step (Interrupt ode cs) tr tr2"
+thm interruptE
 
 theorem Valid_assign:
   "Valid
@@ -806,6 +930,134 @@ proof -
   show ?thesis
     using assms 1 unfolding Valid_def by auto
 qed
+
+theorem Valid_echoice:
+  assumes "\<forall>i<length es.
+    case (es ! i) of
+      (Send ch e, p2) \<Rightarrow> \<forall>dly. Valid (\<lambda>t. t = extend_send ch e dly (rdy_of_echoice es) tr) p2 R
+    | (Receive ch var, p2) \<Rightarrow> \<forall>dly v. Valid (\<lambda>t. t = extend_receive ch var dly v (rdy_of_echoice es) tr) p2 R"
+  shows
+    "Valid (\<lambda>t. t = tr) (EChoice es) R"
+proof -
+  have 1: "R tr2" if "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 (extend_send ch e dly (rdy_of_echoice es) tr) tr2"
+    for tr2 i ch e p2 dly
+  proof -
+    have "Valid (\<lambda>t. t = extend_send ch e dly (rdy_of_echoice es) tr) p2 R"
+      using assms that by auto
+    then show ?thesis
+      unfolding Valid_def using that(3) by auto
+  qed
+  have 2: "R tr2" if "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (extend_receive ch var dly v (rdy_of_echoice es) tr) tr2"
+    for tr2 i ch var p2 dly v
+  proof -
+    have "Valid (\<lambda>t. t = extend_receive ch var dly v (rdy_of_echoice es) tr) p2 R"
+      using assms that by auto
+    then show ?thesis
+      unfolding Valid_def using that(3) by auto
+  qed
+  show ?thesis
+    unfolding Valid_def apply (auto elim!: echoiceE)
+    using 1 2 by auto
+qed
+
+text \<open>Hoare triple for ODE with unique solution\<close>
+theorem Valid_ode_solution:
+  assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
+  shows "Valid
+     (\<lambda>t. t = tr)
+     (Cont ode b)
+     (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
+  unfolding Valid_def using assms by (auto elim: contE)
+
+text \<open>Hoare triple for ODE with non-unique solutions\<close>
+theorem Valid_ode_all_solution:
+  assumes "\<forall>d p. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+      \<not> b (p d) \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow> Q d p"
+  shows "Valid
+    (\<lambda>t. t = tr)
+    (Cont ode b)
+    (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d p))"
+  unfolding Valid_def using assms by (metis contE)
+
+theorem Valid_interrupt:
+  assumes "\<forall>i<length es.
+    case (es ! i) of
+      (Send ch e, p2) \<Rightarrow>
+        \<forall>p d. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
+              Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R
+    | (Receive ch var, p2) \<Rightarrow>
+        \<forall>p d v. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
+              Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+  shows
+    "Valid (\<lambda>t. t = tr) (Interrupt ode es) R"
+proof -
+  have 1: "R tr2" if "0 \<le> d" "ODEsol ode p d"
+       "p 0 = end_of_trace tr"
+       "i < length es"
+       "es ! i = (ch[!]e, p2)" "big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) tr2"
+     for tr2 d p i ch e p2
+  proof -
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R"
+      using assms that(1-5) by auto
+    then show ?thesis
+      unfolding Valid_def using that(6) by auto
+  qed
+  have 2: "R tr2" if "0 \<le> d" "ODEsol ode p d"
+       "p 0 = end_of_trace tr"
+       "i < length es"
+       "es ! i = (ch[?]var, p2)" "big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) tr2"
+     for tr2 d p i ch var p2 v
+  proof -
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+      using assms that(1-5) by auto
+    then show ?thesis
+      unfolding Valid_def using that(6) by auto
+  qed
+  show ?thesis
+    unfolding Valid_def apply (auto elim!: interruptE)
+    using 1 2 by auto
+qed
+
+
+text \<open>Differential invariant rule\<close>
+
+lemma Valid_ode_invariant:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (vec2state x)) (at x within UNIV)"
+      and "\<forall>S. g' (S) (ODE2Vec ode (S)) = 0"
+  shows "Valid
+    (\<lambda>t. t = tr)
+    (Cont ode b)
+    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d p))"
+  apply(rule Valid_ode_all_solution)
+  apply auto
+  subgoal premises pre for d p t
+  proof-
+    have 1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv g' ode p d] 
+      by auto
+    have 2:"\<forall>s. g' (p t) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (1 *\<^sub>RODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using ran
+      using linear_iff[of "(\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3:"\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (ODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
+      using 2 3 ran by auto
+    have 5:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t))= 0"  if ran:"t\<in>{0 .. d}" for t
+      using 4 assms(2) ran by simp 
+    show ?thesis
+      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))" t]
+      using 1 5 pre by auto
+  qed
+  done
+
+      
+
 
 
 subsection \<open>Validity for parallel processes\<close>
@@ -902,6 +1154,26 @@ theorem Valid_receive2:
     Q"
   using Valid_def receiveE by blast
 
+theorem Valid_wait2:
+  "Q (extend_trace tr (WaitBlock d)) \<Longrightarrow>
+   Valid
+    (\<lambda>t. t = tr)
+    (Wait d)
+    Q"
+  using Valid_def waitE by blast
+
+theorem Valid_ode_solution2:
+  assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
+      (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
+    and "Q (extend_trace tr (ODEBlock d p))"
+  shows "Valid
+     (\<lambda>t. t = tr)
+     (Cont ode b)
+     Q"
+  unfolding Valid_def using assms by (auto elim: contE)
+
+
 text \<open>Version of Valid_parallel with arbitrary post-condition\<close>
 theorem Valid_parallel':
   "length P = length ps \<Longrightarrow>
@@ -964,8 +1236,8 @@ next
 qed
 
 lemma combine_blocks_IO2:
-  "combine_blocks [OutBlock d1 ch1 v1 ({ch1}, {}) # blks1,
-                   InBlock d2 ch2 var v2 ({}, {ch1}) # blks2] par_tr \<Longrightarrow>
+  "combine_blocks [OutBlock d1 ch1 v1 rdy1 # blks1,
+                   InBlock d2 ch2 var v2 rdy2 # blks2] par_tr \<Longrightarrow>
    (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
            combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest)"
 proof (induct rule: combine_blocks.cases)
@@ -1020,6 +1292,25 @@ next
 next
   case (3 i blkss j c v pblks)
   then show ?case by (auto simp add: less_Suc_eq)
+qed
+
+lemma combine_blocks_WaitNil2:
+  "combine_blocks [WaitBlock d # blks1, []] par_tr \<Longrightarrow>
+   \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock d # rest"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 0" "t = d"
+    using 2(1,3,6,7) by (auto simp add: less_Suc_eq)
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 2 \<open>i = 0\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+next
+  case (3 i blkss j c v pblks)
+  then show ?case
+    by (auto simp add: less_Suc_eq)
 qed
 
 lemma combine_blocks_TauNil2:
@@ -1124,16 +1415,12 @@ lemma testHL4:
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1]"
-    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
-       ex2: "(\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [InBlock dly ''ch'' X v ({}, {''ch''})])" and
+    if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]" and
+       tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
-     for par_t tr1 tr2
+     for par_t dly1 dly2 v tr1 tr2
   proof -
-    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
-      using ex1 by auto
-    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]"
-      using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [
@@ -1151,7 +1438,7 @@ proof -
   qed
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL1 testHL3])
-    using 1 by auto
+    using 1 by blast+
 qed
 
 
@@ -1174,16 +1461,12 @@ lemma testHL6:
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
 proof -
   have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
-    if ex1: "\<exists>dly. tr1 = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch''}, {})]" and
-       ex2: "\<exists>dly v. tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly ''ch'' X v ({}, {''ch''})]" and
+    if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]" and
+       tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
-     for par_t tr1 tr2
+     for par_t dly1 dly2 v tr1 tr2
   proof -
-    obtain dly1 where tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]"
-      using ex1 by auto
-    obtain dly2 v where tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]"
-      using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
@@ -1206,7 +1489,7 @@ proof -
   qed
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL1 testHL5])
-    using 1 by auto
+    using 1 by blast+
 qed
 
 
@@ -1398,17 +1681,13 @@ lemma testHL9:
             Rep (Cm (Receive ''ch'' X))])
     (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (comm_blocks 0 n))"
 proof -
-  have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks 0 n))"
-    if ex1: "\<exists>dlys. tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)" and
-       ex2: "\<exists>dlyvs. tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)" and
+  have 1: "\<exists>n. par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] (comm_blocks 0 n)"
+    if tr1: "tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)" and
+       tr2: "tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)" and
        rdy: "compat_trace_pair tr1 tr2" and
        par_trace: "combine_par_trace [tr1, tr2] par_t"
-     for par_t tr1 tr2
+     for par_t dlys dlyvs tr1 tr2
   proof -
-    obtain dlys where tr1: "tr1 = Trace (\<lambda>_. 0) (count_blocks 0 dlys)"
-      using ex1 by auto
-    obtain dlyvs where tr2: "tr2 = Trace (\<lambda>_. 0) (receive_blocks dlyvs)"
-      using ex2 by auto
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
       2: "combine_blocks [count_blocks 0 dlys, receive_blocks dlyvs] par_blks"
@@ -1421,6 +1700,93 @@ proof -
   qed
   show ?thesis
     apply (rule Valid_parallel2'[OF _ _ testHL7 testHL8])
+    using 1 by blast+
+qed
+
+
+text \<open>External choice\<close>
+
+lemma testHL10:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)])
+    (\<lambda>t. (\<exists>dly. t = Trace (\<lambda>_. 0) [OutBlock dly ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1]) \<or>
+         (\<exists>dly. t = Trace (\<lambda>_. 0) [OutBlock dly ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2]))"
+  apply (rule Valid_echoice)
+  apply (auto simp add: less_Suc_eq)
+  by (auto simp add: Valid_wait2 extend_send_def)
+
+text \<open>External choice with communication\<close>
+
+lemma testHL11:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)],
+            Cm (Receive ''ch'' X)])
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1])"
+proof -
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1]"
+    if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1]" and
+       tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
+       rdy: "compat_trace_pair tr1 tr2" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t dly1 dly2 v tr1 tr2
+  proof -
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
+      2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1],
+                          [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
+      using combine_par_traceE2 by blast
+    from 2 obtain rest where
+      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[WaitBlock 1], []] rest"
+         "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
+      using combine_blocks_IO2 by blast
+    from 3(4) obtain rest2 where
+      4: "combine_blocks [[], []] rest2" "rest = ParWaitBlock 1 # rest2"
+      using combine_blocks_WaitNil2 by blast
+    from 4(1) have 5: "rest2 = []"
+      using combine_blocks_triv2 by auto
+    show ?thesis
+      using 1 unfolding 3(5) 4(2) 5 by auto
+  qed
+  have 2: "False"
+    if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2]" and
+       tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t dly1 dly2 v tr1 tr2
+  proof -
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
+      2: "combine_blocks [[OutBlock dly1 ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2],
+                          [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
+      using combine_par_traceE2 by blast
+    from 2 show ?thesis
+      using combine_blocks_IO2 by blast
+  qed
+  show ?thesis
+    apply (rule Valid_parallel2'[OF _ _ testHL10 testHL3])
+    using 1 2 by fastforce+
+qed
+
+
+text \<open>ODE with solution\<close>
+
+lemma testHL12:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+proof -
+  have 1: "p2 = fun_upd (\<lambda>_. 0) X \<and> d2 = 1"
+    if "0 \<le> d2"
+       "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p2 d2"
+       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X < 1"
+       "\<not> p2 d2 X < 1"
+       "p2 0 = (\<lambda>_. 0)"
+     for p2 d2
+    sorry
+  show ?thesis
+    apply (rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
     using 1 by auto
 qed
 
