@@ -2,11 +2,6 @@ theory CTCS
   imports BigStep
 begin
 
-definition fTrue :: "fform" where "fTrue \<equiv> \<lambda>s. True"
-definition fFalse :: "fform" where "fFalse \<equiv> \<lambda>s. False"
-declare fTrue_def [simp]
-declare fFalse_def [simp]
-
 
 definition var2exp :: "var \<Rightarrow> exp" where
   "var2exp x = (\<lambda>s. s x)"
