@@ -766,11 +766,44 @@ lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lamb
         (Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
   apply (rule ContB)
   apply auto
-  apply (simp add: ODEsol_def state2vec_def)
-  apply (simp add: has_vderiv_on_def)
-  apply (simp add: has_vector_derivative_def)
-  apply (auto intro!: derivative_intros)
-  sorry
+  apply (simp add: ODEsol_def state2vec_def fun_upd_def)
+  unfolding has_vderiv_on_def
+  unfolding has_vector_derivative_def
+  unfolding has_derivative_iff_norm
+  apply auto
+  subgoal premises pre for x
+    unfolding bounded_linear_def 
+    apply simp
+    unfolding bounded_linear_axioms_def
+    apply auto
+    done
+  subgoal premises pre for x
+  proof-
+    have 1:"\<forall>i.((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+            (y - x) *\<^sub>R
+            (\<chi> xa. if xa = X
+                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                   else 0) ) $ i= 0 " for y 
+      by auto
+    have 2:"(\<forall>i. (v:: vec)$i = 0) \<Longrightarrow> norm v = 0" for v
+      apply simp 
+      by (simp add: vec_eq_iff)
+    have 3:"norm
+           ((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+            (y - x) *\<^sub>R
+            (\<chi> xa. if xa = X
+                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                   else 0)) = 0" for y
+      using 1[of y]  2[of "((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+         (y - x) *\<^sub>R
+         (\<chi> xa. if xa = X
+                then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                else 0))"]
+      by auto
+    then show ?thesis using pre by auto
+  qed
+  done
+
 
 
 subsection \<open>Validity\<close>
@@ -916,16 +949,42 @@ theorem Valid_ode_all_solution:
   unfolding Valid_def using assms by (metis contE)
 
 text \<open>Differential invariant rule\<close>
-(*
+
 lemma Valid_ode_invariant:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. (\<lambda>v. inv (vec2state v) has_derivative g' (vec2state x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (vec2state x)) (at x within UNIV)"
+      and "\<forall>S. g' (S) (ODE2Vec ode (S)) = 0"
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
     (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d p))"
-  sorry
-*)
+  apply(rule Valid_ode_all_solution)
+  apply auto
+  subgoal premises pre for d p t
+  proof-
+    have 1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv g' ode p d] 
+      by auto
+    have 2:"\<forall>s. g' (p t) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (1 *\<^sub>RODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using ran
+      using linear_iff[of "(\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3:"\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (ODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
+      using 2 3 ran by auto
+    have 5:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t))= 0"  if ran:"t\<in>{0 .. d}" for t
+      using 4 assms(2) ran by simp 
+    show ?thesis
+      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))" t]
+      using 1 5 pre by auto
+  qed
+  done
+
+      
+
+
 
 subsection \<open>Validity for parallel processes\<close>
 
