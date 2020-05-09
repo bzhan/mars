@@ -55,6 +55,7 @@ datatype proc =
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
 | Rep proc   \<comment> \<open>Nondeterministic repetition\<close>
 | Cont ODE fform  \<comment> \<open>ODE with boundary\<close>
+| Interrupt ODE "(comm \<times> proc) list"  \<comment> \<open>Interrupt\<close>
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype pproc = PProc "proc list"
@@ -95,7 +96,9 @@ datatype trace_block =
   | OutBlock time cname real rdy_info  \<comment> \<open>Delay time, channel name, value sent\<close>
   | TauBlock state   \<comment> \<open>Instantaneous update, keep new state\<close>
   | WaitBlock time   \<comment> \<open>Delay time\<close>
-  | ODEBlock time "real \<Rightarrow> state"   \<comment> \<open>Length of time interval, history\<close>
+  | ODEBlock time "real \<Rightarrow> state"  \<comment> \<open>Length of time interval, history\<close>
+  | ODEInBlock time "real \<Rightarrow> state" cname var real rdy_info
+  | ODEOutBlock time "real \<Rightarrow> state" cname real rdy_info
 
 text \<open>Starting state, blocks\<close>
 datatype trace = Trace state "trace_block list"
@@ -106,6 +109,8 @@ fun delay_of_block :: "trace_block \<Rightarrow> time" where
 | "delay_of_block (TauBlock _) = 0"
 | "delay_of_block (WaitBlock dly) = dly"
 | "delay_of_block (ODEBlock d h) = d"
+| "delay_of_block (ODEInBlock dly _ _ _ _ _) = dly"
+| "delay_of_block (ODEOutBlock dly _ _ _ _) = dly"
 
 fun event_of_block :: "trace_block \<Rightarrow> event" where
   "event_of_block (InBlock _ ch _ v _) = In ch v"
@@ -113,6 +118,9 @@ fun event_of_block :: "trace_block \<Rightarrow> event" where
 | "event_of_block (TauBlock _) = Tau"
 | "event_of_block (WaitBlock _) = Tau"
 | "event_of_block (ODEBlock _ _) = Tau"
+| "event_of_block (ODEInBlock _ _ ch _ v _) = In ch v"
+| "event_of_block (ODEOutBlock _ _ ch v _) = Out ch v"
+
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
@@ -120,6 +128,8 @@ fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
 | "rdy_of_block (TauBlock _) = ({}, {})"
 | "rdy_of_block (WaitBlock _) = ({}, {})"
 | "rdy_of_block (ODEBlock _ _) = ({}, {})"
+| "rdy_of_block (ODEInBlock _ _ _ _ _ rdy) = rdy"
+| "rdy_of_block (ODEOutBlock _ _ _ _ rdy) = rdy"
 
 fun start_of_trace :: "trace \<Rightarrow> state" where
   "start_of_trace (Trace s _) = s"
@@ -133,7 +143,9 @@ fun end_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> state" 
 | "end_of_blocks s ((OutBlock _ _ _ _) # rest) = end_of_blocks s rest"
 | "end_of_blocks s ((TauBlock st) # rest) = end_of_blocks st rest"
 | "end_of_blocks s ((WaitBlock _) # rest) = end_of_blocks s rest"
-| "end_of_blocks s ((ODEBlock d h) # rest) = end_of_blocks (h d) rest"
+| "end_of_blocks _ ((ODEBlock d h) # rest) = end_of_blocks (h d) rest"
+| "end_of_blocks _ ((ODEInBlock d h _ var v _) # rest) = end_of_blocks ((h d)(var := v)) rest"
+| "end_of_blocks _ ((ODEOutBlock d h _ _ _) # rest) = end_of_blocks (h d) rest"
 
 theorem end_of_blocks_append:
   "end_of_blocks st (blks1 @ blks2) = end_of_blocks (end_of_blocks st blks1) blks2"
@@ -155,18 +167,22 @@ text \<open>Now we define the ready set of a trace at any given time\<close>
 fun rdy_of_blocks :: "trace_block list \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_blocks [] t = ({}, {})"
 | "rdy_of_blocks ((InBlock dly _ _ _ rdy) # blks) t =
-    (if 0 < t \<and> t < dly then rdy
-     else if t \<le> dly then ({}, {})
+    (if 0 \<le> t \<and> t < dly then rdy
      else rdy_of_blocks blks (t - dly))"
 | "rdy_of_blocks ((OutBlock dly _ _ rdy) # blks) t =
-    (if 0 < t \<and> t < dly then rdy
-     else if t \<le> dly then ({}, {})
+    (if 0 \<le> t \<and> t < dly then rdy
      else rdy_of_blocks blks (t - dly))"
 | "rdy_of_blocks ((TauBlock _) # blks) t = rdy_of_blocks blks t"
 | "rdy_of_blocks ((WaitBlock d) # blks) t =
     (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
 | "rdy_of_blocks ((ODEBlock d _) # blks) t =
     (if t \<le> d then ({}, {}) else rdy_of_blocks blks (t - d))"
+| "rdy_of_blocks ((ODEInBlock d _ _ _ _ rdy) # blks) t =
+    (if 0 \<le> t \<and> t < d then rdy
+     else rdy_of_blocks blks (t - d))"
+| "rdy_of_blocks ((ODEOutBlock d _ _ _ rdy) # blks) t =
+    (if 0 \<le> t \<and> t < d then rdy
+     else rdy_of_blocks blks (t - d))"
 
 fun rdy_of_trace :: "trace \<Rightarrow> time \<Rightarrow> rdy_info" where
   "rdy_of_trace (Trace _ blks) t = rdy_of_blocks blks t"
@@ -235,6 +251,8 @@ fun wait_block :: "time \<Rightarrow> trace_block \<Rightarrow> trace_block" whe
 | "wait_block t (TauBlock st) = TauBlock st"
 | "wait_block t (WaitBlock d) = WaitBlock (d - t)"
 | "wait_block t (ODEBlock d h) = ODEBlock (d - t) (\<lambda>s. h (s + t))"
+| "wait_block t (ODEInBlock d h ch var v rdy) = ODEInBlock (d - t) (\<lambda>s. h (s + t)) ch var v rdy"
+| "wait_block t (ODEOutBlock d h ch v rdy) = ODEOutBlock (d - t) (\<lambda>s. h (s + t)) ch v rdy"
 
 lemma wait_block_0[simp]:
   "wait_block 0 blk = blk" by (cases blk, auto)
@@ -520,6 +538,19 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
     \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
     tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
     big_step (Cont ode b) tr tr2"
+| InterruptSendB:
+   "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+    p 0 = end_of_trace tr \<Longrightarrow>
+    i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step (Interrupt ode cs) tr tr3"
+| InterruptReceiveB:
+   "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
+    p 0 = end_of_trace tr \<Longrightarrow>
+    i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step (Interrupt ode cs) tr tr3"
+
 
 text \<open>Big-step semantics for parallel processes.\<close>
 inductive par_big_step :: "pproc \<Rightarrow> par_trace \<Rightarrow> par_trace \<Rightarrow> bool" where
@@ -854,6 +885,9 @@ thm echoiceE
 inductive_cases contE: "big_step (Cont ode b) tr tr2"
 thm contE
 
+inductive_cases interruptE: "big_step (Interrupt ode cs) tr tr2"
+thm interruptE
+
 theorem Valid_assign:
   "Valid
     (\<lambda>t. t = tr)
@@ -947,6 +981,46 @@ theorem Valid_ode_all_solution:
     (Cont ode b)
     (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d p))"
   unfolding Valid_def using assms by (metis contE)
+
+theorem Valid_interrupt:
+  assumes "\<forall>i<length es.
+    case (es ! i) of
+      (Send ch e, p2) \<Rightarrow>
+        \<forall>p d. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
+              Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R
+    | (Receive ch var, p2) \<Rightarrow>
+        \<forall>p d v. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
+              Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+  shows
+    "Valid (\<lambda>t. t = tr) (Interrupt ode es) R"
+proof -
+  have 1: "R tr2" if "0 \<le> d" "ODEsol ode p d"
+       "p 0 = end_of_trace tr"
+       "i < length es"
+       "es ! i = (ch[!]e, p2)" "big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) tr2"
+     for tr2 d p i ch e p2
+  proof -
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R"
+      using assms that(1-5) by auto
+    then show ?thesis
+      unfolding Valid_def using that(6) by auto
+  qed
+  have 2: "R tr2" if "0 \<le> d" "ODEsol ode p d"
+       "p 0 = end_of_trace tr"
+       "i < length es"
+       "es ! i = (ch[?]var, p2)" "big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) tr2"
+     for tr2 d p i ch var p2 v
+  proof -
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+      using assms that(1-5) by auto
+    then show ?thesis
+      unfolding Valid_def using that(6) by auto
+  qed
+  show ?thesis
+    unfolding Valid_def apply (auto elim!: interruptE)
+    using 1 2 by auto
+qed
+
 
 text \<open>Differential invariant rule\<close>
 
