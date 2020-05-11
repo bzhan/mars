@@ -1,6 +1,6 @@
 theory BigStep
   imports Complex_Main
-    Ordinary_Differential_Equations.ODE_Analysis
+    Ordinary_Differential_Equations.Flow
 begin
 
 subsection \<open>Syntax\<close>
@@ -970,6 +970,18 @@ theorem Valid_ode_solution:
      (Cont ode b)
      (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
   unfolding Valid_def using assms by (auto elim: contE)
+
+theorem Valid_ode_unique_solution:
+  assumes "d \<ge> 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
+      "\<not> b (p d)" "p 0 = end_of_trace tr"
+      \<comment> \<open>Some other constraints on ode\<close>
+    shows "Valid
+      (\<lambda>t. t = tr)
+      (Cont ode b)
+      (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
+  sorry
+
+thm continuous_on_TimesI
 
 text \<open>Hoare triple for ODE with non-unique solutions\<close>
 theorem Valid_ode_all_solution:
