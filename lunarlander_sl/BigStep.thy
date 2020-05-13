@@ -1,6 +1,6 @@
 theory BigStep
   imports Complex_Main
-    Ordinary_Differential_Equations.ODE_Analysis
+    Ordinary_Differential_Equations.Flow
 begin
 
 subsection \<open>Syntax\<close>
@@ -971,6 +971,18 @@ theorem Valid_ode_solution:
      (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
   unfolding Valid_def using assms by (auto elim: contE)
 
+theorem Valid_ode_unique_solution:
+  assumes "d \<ge> 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
+      "\<not> b (p d)" "p 0 = end_of_trace tr"
+      \<comment> \<open>Some other constraints on ode\<close>
+    shows "Valid
+      (\<lambda>t. t = tr)
+      (Cont ode b)
+      (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
+  sorry
+
+thm continuous_on_TimesI
+
 text \<open>Hoare triple for ODE with non-unique solutions\<close>
 theorem Valid_ode_all_solution:
   assumes "\<forall>d p. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow>
@@ -1776,19 +1788,39 @@ lemma testHL12:
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
     (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
-proof -
-  have 1: "p2 = fun_upd (\<lambda>_. 0) X \<and> d2 = 1"
+proof-
+  have main: "p2 = fun_upd (\<lambda>_. 0) X \<and> d2 = 1"
     if "0 \<le> d2"
        "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p2 d2"
        "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X < 1"
        "\<not> p2 d2 X < 1"
        "p2 0 = (\<lambda>_. 0)"
      for p2 d2
-    sorry
+  proof-
+    interpret loc:unique_on_strip "0" "{0 .. 1}" "(\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "1"
+      unfolding unique_on_strip_def
+      apply auto
+      subgoal
+        unfolding compact_interval_def interval_def is_interval_def apply simp
+        unfolding nonempty_set_def apply simp
+        unfolding compact_interval_axioms_def by simp
+      subgoal
+        unfolding fun_upd_def vec2state_def state2vec_def 
+        sorry
+      subgoal
+        unfolding global_lipschitz_def fun_upd_def state2vec_def vec2state_def lipschitz_on_def apply auto
+        sorry
+      subgoal 
+        unfolding unique_on_strip_axioms_def by auto
+      done
+    from loc.unique_solution have 2:"2=2"
+    show ?thesis
+      sorry
+  qed
+  
   show ?thesis
-    apply (rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
-    using 1 by auto
+    apply(rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
+    using main by auto
 qed
-
 
 end
