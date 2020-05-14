@@ -979,7 +979,7 @@ theorem Valid_ode_unique_solution:
     shows "Valid
       (\<lambda>t. t = tr)
       (Cont ode b)
-      (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
+      (\<lambda>t. t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
   sorry
 
 thm continuous_on_TimesI
@@ -1824,7 +1824,7 @@ proof-
    have step1:"((loc.flow 0 (state2vec(\<lambda>ch::char. 0))) usolves_ode (\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v)) from 0) (loc.existence_ivl 0 (state2vec(\<lambda>_. 0))) UNIV"
      using loc.flow_usolves_ode[of "(state2vec(\<lambda>_. 0))"]
      by auto
-   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..2} UNIV"
+   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..1} UNIV"
      unfolding solves_ode_def has_vderiv_on_def has_vector_derivative_def
      apply auto
      unfolding state2vec_def vec2state_def fun_upd_def
@@ -1862,12 +1862,12 @@ proof-
        then show ?thesis using pre by auto
      qed
      done
-   have step3:"{0..2} \<subseteq> loc.existence_ivl 0 (state2vec(\<lambda>_. 0))"
+   have step3:"{0..1} \<subseteq> loc.existence_ivl 0 (state2vec(\<lambda>_. 0))"
      apply(rule loc.existence_ivl_maximal_interval[of "(\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))"])
      using step2 unfolding state2vec_def by auto
-   have step4:"t\<in>{0..2} \<Longrightarrow>(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) t = (loc.flow 0 (state2vec(\<lambda>ch::char. 0))) t" for t 
+   have step4:"t\<in>{0..1} \<Longrightarrow>(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) t = (loc.flow 0 (state2vec(\<lambda>ch::char. 0))) t" for t 
      subgoal premises pre 
-     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec (\<lambda>ch. 0))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec (\<lambda>_. 0)))" "UNIV" "{0..2}" " (\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))" t])
+     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec (\<lambda>ch. 0))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec (\<lambda>_. 0)))" "UNIV" "{0..1}" " (\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))" t])
        subgoal using step1 by auto
        subgoal by auto
        subgoal by auto
