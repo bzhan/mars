@@ -536,7 +536,7 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
     \<not> b (p d) \<Longrightarrow> p 0 = end_of_trace tr \<Longrightarrow>
-    tr2 = extend_trace tr (ODEBlock d p) \<Longrightarrow>
+    tr2 = extend_trace tr (ODEBlock d (restrict p {0..d})) \<Longrightarrow>
     big_step (Cont ode b) tr tr2"
 | InterruptSendB:
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
@@ -794,7 +794,7 @@ qed
 text \<open>ODE Example 1\<close>
 lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+        (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
   apply (rule ContB)
   apply auto
   apply (simp add: ODEsol_def state2vec_def fun_upd_def)
@@ -964,12 +964,13 @@ text \<open>Hoare triple for ODE with unique solution\<close>
 theorem Valid_ode_solution:
   assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
       (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
-      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow>d2 = d \<and> (restrict p {0..d} = restrict p2 {0..d2})"
   shows "Valid
      (\<lambda>t. t = tr)
      (Cont ode b)
-     (\<lambda>t. t = extend_trace tr (ODEBlock d p))"
-  unfolding Valid_def using assms by (auto elim: contE)
+     (\<lambda>t. t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
+  unfolding Valid_def using assms 
+  by (metis contE)
 
 theorem Valid_ode_unique_solution:
   assumes "d \<ge> 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
@@ -991,7 +992,7 @@ theorem Valid_ode_all_solution:
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
-    (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d p))"
+    (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
   unfolding Valid_def using assms by (metis contE)
 
 theorem Valid_interrupt:
@@ -1043,7 +1044,7 @@ lemma Valid_ode_invariant:
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
-    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d p))"
+    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
   apply(rule Valid_ode_all_solution)
   apply auto
   subgoal premises pre for d p t
@@ -1177,13 +1178,13 @@ theorem Valid_wait2:
 theorem Valid_ode_solution2:
   assumes "\<forall>d2 p2. d2 \<ge> 0 \<longrightarrow> ODEsol ode p2 d2 \<longrightarrow>
       (\<forall>t. t \<ge> 0 \<and> t < d2 \<longrightarrow> b (p2 t)) \<longrightarrow>
-      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> p2 = p \<and> d2 = d"
-    and "Q (extend_trace tr (ODEBlock d p))"
+      \<not> b (p2 d2) \<longrightarrow> p2 0 = end_of_trace tr \<longrightarrow> d2 = d \<and> (restrict p {0..d} = restrict p2 {0..d2})"
+    and "Q (extend_trace tr (ODEBlock d (restrict p {0..d})))"
   shows "Valid
      (\<lambda>t. t = tr)
      (Cont ode b)
      Q"
-  unfolding Valid_def using assms by (auto elim: contE)
+  unfolding Valid_def using assms by (metis contE)
 
 
 text \<open>Version of Valid_parallel with arbitrary post-condition\<close>
@@ -1787,38 +1788,157 @@ lemma testHL12:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
     (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (\<lambda>t. (\<lambda>_. 0)(X := t))])"
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..1})])"
 proof-
-  have main: "p2 = fun_upd (\<lambda>_. 0) X \<and> d2 = 1"
-    if "0 \<le> d2"
+  have main: "restrict p2 {0..d2} = restrict (fun_upd (\<lambda>_. 0) X) {0..1}\<and> d2 = 1"
+    if cond:"0 \<le> d2"
        "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p2 d2"
        "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X < 1"
        "\<not> p2 d2 X < 1"
        "p2 0 = (\<lambda>_. 0)"
      for p2 d2
   proof-
-    interpret loc:unique_on_strip "0" "{0 .. 1}" "(\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "1"
-      unfolding unique_on_strip_def
+    interpret loc:ll_on_open_it  "{-1<..}" "(\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
+      apply standard
       apply auto
-      subgoal
-        unfolding compact_interval_def interval_def is_interval_def apply simp
-        unfolding nonempty_set_def apply simp
-        unfolding compact_interval_axioms_def by simp
-      subgoal
-        unfolding fun_upd_def vec2state_def state2vec_def 
-        sorry
-      subgoal
-        unfolding global_lipschitz_def fun_upd_def state2vec_def vec2state_def lipschitz_on_def apply auto
-        sorry
-      subgoal 
-        unfolding unique_on_strip_axioms_def by auto
-      done
-    from loc.unique_solution have 2:"2=2"
-    show ?thesis
-      sorry
+      unfolding local_lipschitz_def state2vec_def vec2state_def fun_upd_def lipschitz_on_def
+      apply auto
+     subgoal premises pre1 for x t
+       apply (rule exI[where x="1"])
+       apply auto
+       subgoal premises pre2 for ta
+         apply (rule exI[where x="1"])
+         apply auto
+         subgoal premises pre3 for xa y
+         proof-
+           have 1:"(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) xa) else 0) = (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) y) else 0)"
+             by auto
+           have 2:" dist (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) xa) else 0)
+     (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) y) else 0) = 0"
+             using 1 by simp
+           then show ?thesis  by (simp add: "2")
+         qed
+         done
+       done
+     done       
+   have step1:"((loc.flow 0 (state2vec(\<lambda>ch::char. 0))) usolves_ode (\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v)) from 0) (loc.existence_ivl 0 (state2vec(\<lambda>_. 0))) UNIV"
+     using loc.flow_usolves_ode[of "(state2vec(\<lambda>_. 0))"]
+     by auto
+   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..2} UNIV"
+     unfolding solves_ode_def has_vderiv_on_def has_vector_derivative_def
+     apply auto
+     unfolding state2vec_def vec2state_def fun_upd_def
+     unfolding has_derivative_iff_norm
+     apply auto
+     subgoal premises pre for x
+       unfolding bounded_linear_def 
+       apply simp
+       unfolding bounded_linear_axioms_def
+       apply auto
+       done
+     subgoal premises pre for x
+     proof-
+       have 1:"\<forall>i.((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+            (y - x) *\<^sub>R
+            (\<chi> xa. if xa = X
+                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                   else 0) ) $ i= 0 " for y 
+         by auto
+       have 2:"(\<forall>i. (v:: vec)$i = 0) \<Longrightarrow> norm v = 0" for v
+         apply simp 
+         by (simp add: vec_eq_iff)
+       have 3:"norm
+            ((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+              (y - x) *\<^sub>R
+              (\<chi> xa. if xa = X
+                    then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                     else 0)) = 0" for y
+         using 1[of y]  2[of "((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
+          (y - x) *\<^sub>R
+          (\<chi> xa. if xa = X
+                  then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
+                  else 0))"]
+         by auto
+       then show ?thesis using pre by auto
+     qed
+     done
+   have step3:"{0..2} \<subseteq> loc.existence_ivl 0 (state2vec(\<lambda>_. 0))"
+     apply(rule loc.existence_ivl_maximal_interval[of "(\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))"])
+     using step2 unfolding state2vec_def by auto
+   have step4:"t\<in>{0..2} \<Longrightarrow>(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) t = (loc.flow 0 (state2vec(\<lambda>ch::char. 0))) t" for t 
+     subgoal premises pre 
+     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec (\<lambda>ch. 0))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec (\<lambda>_. 0)))" "UNIV" "{0..2}" " (\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))" t])
+       subgoal using step1 by auto
+       subgoal by auto
+       subgoal by auto
+       subgoal using step3 by auto
+       subgoal using step2 by auto
+        defer 
+       subgoal using pre by auto
+       subgoal  
+       proof-
+         have "loc.flow 0 (state2vec (\<lambda>ch. 0)) 0  = (state2vec (\<lambda>ch. 0))"
+           using loc.flow_initial_time [of "(state2vec (\<lambda>ch. 0))"] by auto
+         then show ?thesis unfolding fun_upd_def by auto
+       qed
+       done
+     done
+   have step5:"((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..d2} UNIV"
+     using cond(2) unfolding ODEsol_def solves_ode_def by auto
+   have step6:"{0..d2} \<subseteq> loc.existence_ivl 0 (state2vec(\<lambda>_. 0))"
+     apply(rule loc.existence_ivl_maximal_interval[of "(\<lambda>t. state2vec (p2 t))"])
+     using step5 using cond unfolding state2vec_def by auto
+   have step7:"t\<in>{0..d2} \<Longrightarrow>(\<lambda>t. state2vec (p2 t)) t = (loc.flow 0 (state2vec(\<lambda>ch::char. 0))) t" for t 
+     subgoal premises pre 
+     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec (\<lambda>ch. 0))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec (\<lambda>_. 0)))" "UNIV" "{0..d2}" " (\<lambda>t. state2vec (p2 t))" t])
+       subgoal using step1 by auto
+       subgoal using cond by auto
+       subgoal by auto
+       subgoal using step6 by auto
+       subgoal using step5 by auto
+        defer 
+       subgoal using pre by auto
+       subgoal  
+       proof-
+         have "loc.flow 0 (state2vec (\<lambda>ch. 0)) 0  = (state2vec (\<lambda>ch. 0))"
+           using loc.flow_initial_time [of "(state2vec (\<lambda>ch. 0))"] by auto
+         then show ?thesis unfolding fun_upd_def cond by auto
+       qed
+       done
+     done
+   have step8:"1 \<le> d2" 
+    proof(rule ccontr)
+     assume 0:" \<not> (1 \<le> d2)"
+     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) d2 = (\<lambda>t. state2vec(p2 t)) d2"
+       using step4[of d2] step7[of d2] cond(1) by auto
+     from 1 have 2:"((\<lambda>_. 0)(X := d2)) = p2 d2"
+       unfolding state2vec_def by auto
+     from 2 have 3:"p2 d2 X < 1" using 0 
+       by (metis fun_upd_same less_eq_real_def linorder_neqE_linordered_idom)
+     have 4:"\<not> p2 d2 X < 1" using cond(4) by auto
+     then show "False" using 3 by auto
+   qed
+   have step9:"1 \<ge> d2"
+   proof(rule ccontr)
+     assume 0:"\<not> d2 \<le> 1" 
+     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) 1 = (\<lambda>t. state2vec(p2 t)) 1"
+       using step4[of "1"] step7[of "1"] cond(1) by auto
+     from 1 have 2:"((\<lambda>_. 0)(X := 1)) = p2 1"
+       unfolding state2vec_def by auto
+     have 3:"p2 1 X < 1" using cond 0 by auto
+     have 4:"p2 1 X = 1" using 2 unfolding fun_upd_def
+       by (metis "2" fun_upd_same)
+     show "False" using 3 and 4 by auto
+   qed
+   have step10:"d2 = 1" using step8 step9 by auto
+   have step11:"t\<in>{0..1} \<Longrightarrow> (p2 t) =  ((\<lambda>t. (\<lambda>_. 0)(X := t)) t)" for t
+     using step4 step7 step10
+     by (smt atLeastAtMost_iff atLeastatMost_empty_iff le_numeral_extra(2) one_le_numeral vec_state_map1)
+   have step12:"restrict p2 {0..d2} = restrict (fun_upd (\<lambda>_. 0) X) {0..1}"
+     using step10 step11 unfolding restrict_def by auto
+    show ?thesis using step10 step12 by auto
   qed
-  
-  show ?thesis
+   show ?thesis
     apply(rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
     using main by auto
 qed
