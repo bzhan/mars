@@ -228,14 +228,25 @@ subsection \<open>Traces of parallel processes\<close>
 
 
 datatype par_block =
-    IOBlock nat nat cname real  \<comment> \<open>Receive process, Send process, channel name, value sent\<close>
-  | ParTauBlock int state       \<comment> \<open>Instantaneous update on one process to new state\<close>
+    IOBlock nat nat cname var real  \<comment> \<open>Receive process, Send process, channel name, variable name, value sent\<close>
+  | ParTauBlock nat state       \<comment> \<open>Instantaneous update on one process to new state\<close>
   | ParWaitBlock real "real \<Rightarrow> state list"  \<comment> \<open>Delay\<close>
 
 text \<open>ParTrace st pblks:
   st -- starting state for each process. Length is the number of processes.
   pblks -- list of parallel blocks.\<close>
 datatype par_trace = ParTrace "state list" "par_block list"
+
+text \<open>Determine the end of state for a parallel trace\<close>
+fun end_of_par_blocks :: "state list \<Rightarrow> par_block list \<Rightarrow> state list" where
+  "end_of_par_blocks sts [] = sts"
+| "end_of_par_blocks sts ((IOBlock pin pout ch v x) # rest) =
+      end_of_par_blocks (sts[pin := (sts ! pin)(v := x)]) rest"
+| "end_of_par_blocks sts ((ParTauBlock ptau st) # rest) =
+      end_of_par_blocks (sts[ptau := st]) rest"
+| "end_of_par_blocks sts ((ParWaitBlock d hist) # rest) =
+      end_of_par_blocks (hist d) rest"
+
 
 text \<open>Now we define how to combine a list of traces for individual processes
   into a parallel trace.\<close>
