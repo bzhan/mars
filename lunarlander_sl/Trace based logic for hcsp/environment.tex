@@ -1,0 +1,40 @@
+\lstdefinelanguage{isa} {alsoletter={\#, \&, $},
+  mathescape=true,
+  basicstyle=\small,
+  escapechar=\@,
+  boxpos=c,
+  morekeywords= {and, axioms, axiomatization, Skip, Stop, type_synonym, theorem, lemma, apply, by, constdefs, definition, where,
+    infixl, types, consts, primrec, have, from, show, let,  proof, qed, is,
+    sorry, with, assume, fix, thus, hence, datatype, if, then, else, in, case,
+    of
+  },
+  emph={[2] real, int, char, bool, string, self, boolean, Ass, Send, Rec, Seq, Cond, Pref,
+                Join, Meet, Par, Rep, Cont, TOut, Inrp},
+  emphstyle={[2]\it},
+literate=
+  {->}{{$\rightarrow$}}2
+  {=>}{{$\Rightarrow$}}2
+  {-->}{{$\Rightarrow$}}2
+  {\\forall}{{$\forall$}}2
+  {\\exist}{{$\exists$}}2
+  {\\exists}{{$\exists$}}2
+  {AND}{{$\& \&$}}3
+  {ALL}{{$\forall$}}2
+  {EX}{{$\exists$}}2
+  {\%}{{$\lambda$}}1
+  {\\\/}{{$\sqcap$}}2
+  {|-}{{$\vdash$}}2
+  {==}{{$\equiv$}}2
+  {==>}{{$\Rightarrow$}}2
+  {~}{{$\neg$}}1
+  {~=}{{$\neq$}}2
+  {:=}{{\tt :=}}2
+  {;}{{\tt ;}}1
+  {$}{{\do}}1
+}
+
+\lstnewenvironment{isaenv} {
+  \lstset{extendedchars=true,columns=flexible}
+  \lstset{language=isa,deletestring=[b]', basicstyle=\footnotesize}%
+} {}
+\newcommand{\isa}[1]{{\lstinline[language=isa, basicstyle={\footnotesize \tt} ]+#1+}}

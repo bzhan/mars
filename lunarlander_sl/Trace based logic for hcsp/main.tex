@@ -1,0 +1,143 @@
+\documentclass{llncs}
+\pagestyle{plain}
+
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{stmaryrd}
+\usepackage{graphpap}
+\usepackage{color}
+\usepackage{listings}
+\newcommand{\mycomment}[1]{{\color{red}[#1]} }
+
+
+\input{environment}
+\input{userdef}
+\newcommand{\leadm}[1]{\xrightarrow{#1}}
+\newcommand{\seman}[1]{[\![#1 ]\!]}
+\newcommand{\updateh}[4]{#1 \langle #2, #3, #4 \rangle}
+\newcommand{\ommit}[1]{}
+
+\begin{document}
+
+\mainmatter
+
+\title{A Trace Based Logic for Hybrid CSP in Isabelle}
+\author{ }
+\institute{ }
+
+
+\maketitle
+
+ \section{The Syntax of HCSP}
+ 
+ The syntax of a subset of HCSP is given as follows:
+\[
+\begin{array}{lll}
+ P  & ::= & \pskip \mid x :=e  \mid ch?x \mid ch!e  \mid P;Q  \mid B \rightarrow P\mid  P \sqcup Q \mid P^*\\
+      && \mid \evo{s}{e}{B} \mid \exempt{\evon{s}{e}}{i\in I}{io_i}{Q_i}\\
+ S &::=& P \mid S\|S
+  \end{array}
+ \]
+where $P, Q, Q_i, S$ are HCSP processes, $x$ and $s$ stand for process variables,
+ $ch$ for channel name, $io_i$ for a communication event (either input $ch?x$ or output  $ch!e$),
+$B$ and $e$ for Boolean and arithmetic expressions,
+ and $I$ for a non-empty set of indices of communications, respectively.
+ A whole HCSP model $S$ is defined
+ as a sequential process or a parallel composition of several sequential processes at the top level.
+
+The intuitive meaning of the individual constructs is explained as follows:
+\begin{itemize}
+\item  $\pskip$, $x: = e$ are defined as usual.
+%terminates immediately having no effect on variables.
+%\item  $x: = e$ assigns the value of expression $e$ to $x$ and then terminates.
+\item The input $ch?x$ receives a value along channel $ch$ and assigns it to $x$, and output
+ $ch!e$ sends the value of $e$ along  $ch$.
+A communication takes place as soon as both the sending party (i.e. $ch!$) and the receiving party (i.e. $ch?$) are ready, and may cause one side to wait.
+\item The sequential composition $P; Q$ behaves as $P$ first, and if it terminates, as $Q$ afterwards.
+\item The conditional $B \rightarrow P$ behaves as $P$ if $B$ is true, otherwise it terminates immediately.
+\item The internal choice $P \sqcup Q$ behaves as either $P$ or $Q$, and the non-deterministic choice is made by the system itself.
+\item The repetition $P^*$ executes $P$ for some finite number of times.
+\item $\evo{s}{e}{B}$ is the continuous
+ evolution statement, where $s$ represents a vector of real variables and $\dot{s}$ the first-order derivative of $s$.
+ It forces  $s$  to evolve continuously according to  the differential equation  $\dot{s}=e$ as long
+ as $B$, which defines the
+{\em domain of $s$}, holds, and terminates when $B$ turns false. $\evo{s}{e}{B}$ is a boundary interruption.
+\item The communication interruption $\exempt{\evo{s}{e}{B}}{i\in I}{io_i}{Q_i}$ behaves like the continuous $\evo{s}{e}{B}$, except that it is preempted as soon as one of the communications $io_i$ takes place,
+and then is followed by the respective $Q_i$.
+% Notice that, if the continuous terminates before a communication from among $\{io_i\}_{i\in I}$  occurs, then the process terminates immediately without waiting for communication.
+\item $S_1\|S_2$ behaves as if $S_1$ and $S_2$ run independently except that all communications along the common channels connecting $S_1$ and $S_2$ are to be synchronized. $S_1$ and $S_2$ in parallel can neither share variables, nor input or output channels.
+\end{itemize}
+ 
+ \section{The Trace-based Semantics of HCSP}
+ 
+ \subsection{Trace Blocks}
+ 
+ To present the trace-based semantics of HCSP, we introduce some notations below. A state $s$ maps variables to values, and it keeps changing according to the execution of processes.
+ We define \isa{rdy} as  a pair of input and output channel names $(InC, OutC)$, meaning that the input events along channels in $InC$ and the output events along channels in $OutC$ become ready, but need to wait for their respective partner event for a synchronized communication.   Two ready sets $(In1, Out1)$ and $(In2, Out2)$ are compatible, iff
+ $In1 \cap Out2 = Out1 \cap In2 = \emptyset$, i.e. there will never be the case when an input and an output along a same channel both wait for a positive time interval. 
+ 
+ 
+ 
+ A trace block \isa{trace_block} defines the atomic execution behavior for different HCSP processes. It 
+ includes the following types: 
+ \begin{itemize}
+   \item \isa{InBlock d ch x v rdy} represents that the input event along channel $ch$ waits $d$ time units till the communication can occur, and at time $d$, the value $v$ sent from the partner is assigned to receiving variable $x$;  during the waiting time, the  channels in $rdy$ keep waiting. 
+  \item The output block \isa{OutBlock d ch v rdy} is similar as input, except that no receiving variable is recorded.
+  \item  \isa{TauBlock s} represents that an internal discrete action occurs, changing the state to $s$.
+  \item \isa{WaitBlock d} represents that a time progress of length $d$ occurs, with no variable being changed.
+  \item \isa{ODEBlock d h} represents a continuous time evolution for $d$ time units, resulting in an execution history $h$, which
+ maps each time in the interval $[0,d]$ to a state.
+ \item \isa{ODEInBlock d h ch x v rdy} represents an input communication interrupt  to an ODE, where $d$ is the evolution time and $h$ the corresponding execution history for ODE; $ch$ is the input channel, $x$ receiving variable, $v$ sent from outside, and $rdy$ the ready channels. 
+\item \isa{ODEOutBlock d h ch v rdy} represents an output communication interrupt to an ODE, similar as above case. 
+ 
+ \end{itemize}
+ 
+ With the definition of trace blocks, a trace is defined as a combination of an initial state and a sequence of trace blocks (implemented as a list in Isabelle). We use functions \isa{start_of_trace} and \isa{blocks_of_trace} to return them respectively. The behavior of each sequential process can be defined as a trace.
+ For manipulating trace blocks, we define several functions. Given a state \isa{s} and a trace block list \isa{blks}, we define function
+ \isa{end_of_blocks s blks} to represent the terminated state after the execution of \isa{blks} from state \isa{s}. This function can be defined recursively, for which the terminated state after executing each atomic trace block is defined clearly in their definitions.  Given a trace block list \isa{blks} and time $t$, function \isa{rdy_of_block blks t} returns the set of ready channels at time $t$. 
+ 
+  Above we define trace blocks for recording the trace behavior of sequential processes, next we introduce \isa{par_trace} to record the trace for parallel processes. Currently, we only consider closed parallel processes, for which no external communication is allowed. In general, we assume there are \isa{n} processes in parallel, denoted by \isa{1, 2, ..., n} respectively.
+ A parallel trace block \isa{par_block} includes three types: 
+ \begin{itemize}
+   \item \isa{InBlock i j ch x v} represents that process \isa{i} and \isa{j} perform a synchronized communication along channel \isa{ch} together, by assigning value \isa{v} to variable \isa{x}.
+       
+       \item \isa{ParTauBlock i s} represents that process \isa{i} preforms an internal discrete action, resulting its state in \isa{s}.
+           
+           \item \isa{ParWaitBlock d hh} represents that all the processes in parallel perform a continuous time evolution for \isa{d} time units and produce a history \isa{hh}. \isa{hh} maps each time in \isa{[0, d]} to a state list corresponding to the processes. 
+               
+  \end{itemize}
+ With the definition of parallel trace blocks, a parallel trace is defined as a combination of a sequence of initial states and a sequence of parallel trace blocks (both implemented as lists in Isabelle). The state list records the initial states for all the sub-processes in parallel.
+ 
+\oomit{ We define \isa{end_of_par_blocks sts pblks} to return the terminated state list after the execution of \isa{pblks} from state list  \isa{sts}.} 
+
+\paragraph{\textbf{\emph{Parallel Composition of Trace Blocks}}}
+For a sequential process, we can use an initial state \isa{s} and a trace block list \isa{blks} to represent its trace. 
+Now we define a function \isa{combine_blocks} for the parallel composition of traces, which takes a state list (i.e. the initial states for the sequential processes) and a list of trace block lists (i.e. the trace block list for the sequential processes) as input, and returns a parallel trace block list as output. At each time, the trace blocks for different processes are combined depending on their types. There are three cases:
+\begin{itemize}
+  \item For current time, when there is an available \isa{TauBlock} for some process \isa{i}, then a \isa{ParTauBlock} on \isa{i} executes. Then, the top internal block is removed from the trace block list of process \isa{i}, and the combination of the residual trace blocks is considered recursively.
+  \item When there are two  processes \isa{i} and \isa{j}, one with an input event being ready, and the other with an output event along the same channel being ready, then a communication block occurs on \isa{i} and \isa{j}. Then the top input and output blocks are removed from the trace block lists of \isa{i} and \isa{j}, and  the combination of the residual trace blocks is considered recursively.
+  \item When for all trace block lists, the top trace blocks have delay time greater than \isa{t}, then a \isa{ParWaitBlock} occurs on all the processes. In consequence, a wait block of length \isa{t} is removed from the trace block list of each process, then the combination of the residual trace blocks is considered recursively.
+\end{itemize}
+ 
+ 
+ 
+ \subsection{Semantics}
+ 
+ For a sequential process $P$, its semantics is defined as a mapping from traces to traces. We pick some rules to illustrate the semantics. 
+ 
+ For output event $ch!e$, its execution produces an outblock and it is attached to the tail of trace $tr$ as follows: 
+ \[(ch!e, tr)  \rightarrow tr \dagger \isa{OutBlock d ch v (\{ch\}, \{\})}\]
+ where $d \geq 0$ is an arbitrary delay time, $v$ is the value of $e$ under initial trace $tr$. During the delay time, 
+ only the input channel $ch$ is waiting in the ready set. 
+ 
+ 
+ For assignment $x:=e$, it produces an internal block:
+ 
+ \[(x:=e, tr)  \rightarrow tr \dagger \isa{TauBlock }\ s[x \mapsto v]\]
+ where $s$ is the state corresponding to $tr$ and $v$ is the value of $e$ at $s$. 
+ 
+
+ 
+ 
+  \section{Specification Logic and Inference Rules} 
+
+\end{document}
