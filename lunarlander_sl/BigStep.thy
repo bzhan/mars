@@ -1943,4 +1943,18 @@ proof-
     using main by auto
 qed
 
+lemma testHL13:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [ (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1)
+    ;Cm (Send ''ch'' (\<lambda>s. s X));Cm (Receive ''ch'' X)), (Cm (Receive ''ch'' X);Cm (Send ''ch'' (\<lambda>s. s X - 1)))] )
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 1, IOBlock 1 0 ''ch'' 1 , IOBlock 0 1 ''ch'' 0])"
+proof-
+  have 1:"Valid (\<lambda>t. t = Trace (\<lambda>_. 0) []) (Cm (Receive ''ch'' X);Cm (Send ''ch'' (\<lambda>s. s X - 1))) 
+(\<lambda>t. \<exists> dly. \<exists>v. \<exists> dly1. t = extend_send ''ch'' (\<lambda>s. s X - 1) dly1 ({''ch''}, {}) (extend_receive ''ch'' X dly v ({}, {''ch''}) (Trace (\<lambda>_. 0) [])))"
+    apply (rule Valid_seq [where Q = "(\<lambda>t. \<exists>dly v. t = extend_receive ''ch'' X dly v ({}, {''ch''}) (Trace (\<lambda>_. 0) []))"])
+    subgoal 
+      by(rule Valid_receive)
+    subgoal unfolding Valid_def 
+
 end
