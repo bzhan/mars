@@ -1588,7 +1588,7 @@ text \<open>Auxiliary definition for invariant.
   v is the value of each receive.
 
   Intended invariant is: \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (receive_blocks dlyvs).\<close>
-fun receive_blocks :: "(real \<times> real) list \<Rightarrow> trace_block list" where
+fun receive_blocks :: "(time \<times> real) list \<Rightarrow> trace_block list" where
   "receive_blocks [] = []"
 | "receive_blocks ((dly, v) # rest) = InBlock dly ''ch'' X v ({}, {''ch''}) # receive_blocks rest"
 
@@ -1943,18 +1943,97 @@ proof-
     using main by auto
 qed
 
+text \<open>Example with parallel, loop, and ODE\<close>
+
+fun right_blocks :: "(time \<times> real \<times> time) list \<Rightarrow> trace_block list" where
+  "right_blocks [] = []"
+| "right_blocks ((dly1, v, dly2) # rest) =
+      InBlock dly1 ''ch'' X v ({}, {''ch''}) #
+      OutBlock dly2 ''ch'' (v - 1) ({''ch''}, {}) # right_blocks rest"
+
+lemma right_blocks_snoc:
+  "right_blocks (dlys @ [(dly1, v, dly2)]) =
+   right_blocks dlys @ [
+      InBlock dly1 ''ch'' X v ({}, {''ch''}),
+      OutBlock dly2 ''ch'' (v - 1) ({''ch''}, {})]"
+  by (induct dlys, auto)
+
+lemma end_of_right_blocks:
+  "end_of_blocks ((\<lambda>_. 0)(X := a)) (right_blocks dlyvs @ [InBlock dly1 ''ch'' X v ({}, {''ch''})]) X = v"
+  by (induction dlyvs arbitrary: a, auto)
+
+lemma end_of_right_blocks_zero:
+  "end_of_blocks (\<lambda>_. 0) (right_blocks dlyvs @ [InBlock dly1 ''ch'' X v ({}, {''ch''})]) X = v"
+proof -
+  have 1: "(\<lambda>_. 0) = ((\<lambda>_. 0)(X := 0))"
+    by auto
+  show ?thesis
+    apply (subst 1)
+    by (auto simp add: end_of_right_blocks)
+qed
+
+lemma testHL13b:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Rep (Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs))"
+proof -
+  have 1: "Valid
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs))
+     (Cm (''ch''[?]X))
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs @ [InBlock dly1 ''ch'' X v ({}, {''ch''})]))"
+    apply (subst Valid_ex_pre)
+    apply auto
+    apply (rule Valid_receive2)
+    by (auto simp add: extend_receive_def)
+  have 2: "Valid
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs @ [InBlock dly1 ''ch'' X v ({}, {''ch''})]))
+     (Cm (''ch''[!](\<lambda>s. s X - 1)))
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs))"
+    apply (simp only: Valid_ex_pre)
+    apply auto
+    apply (rule Valid_send2)
+    apply (auto simp add: extend_send_def end_of_right_blocks_zero)
+    subgoal for dlyvs dly1 v dly2
+      apply (rule exI[where x="dlyvs @ [(dly1, v, dly2)]"])
+      by (auto simp add: right_blocks_snoc)
+    done
+  have 3: "Valid
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs))
+    (Rep (Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs))"
+    apply (rule Valid_rep)
+    apply (rule Valid_seq[where Q="\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (right_blocks dlyvs @ [InBlock dly1 ''ch'' X v ({}, {''ch''})])"])
+    using 1 2 by auto
+  show ?thesis
+    apply (rule Valid_pre[OF _ 3])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
+qed
+
 lemma testHL13:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (PProc [ (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1)
-    ;Cm (Send ''ch'' (\<lambda>s. s X));Cm (Receive ''ch'' X)), (Cm (Receive ''ch'' X);Cm (Send ''ch'' (\<lambda>s. s X - 1)))] )
+    (PProc [(Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+             Cm (Send ''ch'' (\<lambda>s. s X));
+             Cm (Receive ''ch'' X)),
+            (Cm (Receive ''ch'' X);
+             Cm (Send ''ch'' (\<lambda>s. s X - 1)))] )
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 1, IOBlock 1 0 ''ch'' 1 , IOBlock 0 1 ''ch'' 0])"
 proof-
-  have 1:"Valid (\<lambda>t. t = Trace (\<lambda>_. 0) []) (Cm (Receive ''ch'' X);Cm (Send ''ch'' (\<lambda>s. s X - 1))) 
-(\<lambda>t. \<exists> dly. \<exists>v. \<exists> dly1. t = extend_send ''ch'' (\<lambda>s. s X - 1) dly1 ({''ch''}, {}) (extend_receive ''ch'' X dly v ({}, {''ch''}) (Trace (\<lambda>_. 0) [])))"
-    apply (rule Valid_seq [where Q = "(\<lambda>t. \<exists>dly v. t = extend_receive ''ch'' X dly v ({}, {''ch''}) (Trace (\<lambda>_. 0) []))"])
-    subgoal 
-      by(rule Valid_receive)
-    subgoal unfolding Valid_def 
+  have 1: "Valid (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+             (Cm (Receive ''ch'' X);
+              Cm (Send ''ch'' (\<lambda>s. s X - 1)))
+           (\<lambda>t. \<exists>dly1 v dly2. t = Trace (\<lambda>_. 0) [InBlock dly1 ''ch'' X v ({}, {''ch''}),
+                                                 OutBlock dly2 ''ch'' (v - 1) ({''ch''}, {})])"
+    apply (rule Valid_seq)
+     apply (rule Valid_receive)
+    apply (simp only: Valid_ex_pre)
+    apply auto
+    subgoal for dly v
+      apply (rule Valid_send2)
+      by (auto simp add: extend_send_def extend_receive_def)
+
 
 end
