@@ -63,6 +63,7 @@ datatype pproc = PProc "proc list"
 text \<open>Events\<close>
 datatype event =
   Tau
+| WaitE real \<comment> \<open>add Wait because ParTau and ParWait are distinct\<close>
 | In cname real
 | Out cname real 
 | IO cname real 
@@ -70,6 +71,7 @@ datatype event =
 text \<open>Two events are compatible if they are In-Out pairs.\<close>
 fun compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
   "compat Tau ev = False"
+| "compat (WaitE val) ev = False"
 | "compat (In ch val) ev = (if ev = Out ch val then True else False)"
 | "compat (Out ch val) ev = (if ev = In ch val then True else False)"
 | "compat (IO ch val) ev = False"
@@ -116,11 +118,10 @@ fun event_of_block :: "trace_block \<Rightarrow> event" where
   "event_of_block (InBlock _ ch _ v _) = In ch v"
 | "event_of_block (OutBlock _ ch v _) = Out ch v"
 | "event_of_block (TauBlock _) = Tau"
-| "event_of_block (WaitBlock _) = Tau"
-| "event_of_block (ODEBlock _ _) = Tau"
+| "event_of_block (WaitBlock v) = WaitE v"
+| "event_of_block (ODEBlock v _) = WaitE v"
 | "event_of_block (ODEInBlock _ _ ch _ v _) = In ch v"
 | "event_of_block (ODEOutBlock _ _ ch v _) = Out ch v"
-
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
@@ -130,6 +131,16 @@ fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
 | "rdy_of_block (ODEBlock _ _) = ({}, {})"
 | "rdy_of_block (ODEInBlock _ _ _ _ _ rdy) = rdy"
 | "rdy_of_block (ODEOutBlock _ _ _ _ rdy) = rdy"
+
+fun var_of_block :: "trace_block \<Rightarrow> var set" where
+  "var_of_block (InBlock dly _ v _ _) = {v}"
+| "var_of_block (OutBlock dly _ _ _) = {}"
+| "var_of_block (TauBlock _) = {}"
+| "var_of_block (WaitBlock dly) = {}"
+| "var_of_block (ODEBlock d h) = {}"
+| "var_of_block (ODEInBlock dly _ _ v _ _) = {v}"
+| "var_of_block (ODEOutBlock dly _ _ _ _) = {}"
+
 
 fun start_of_trace :: "trace \<Rightarrow> state" where
   "start_of_trace (Trace s _) = s"
@@ -307,8 +318,7 @@ text \<open>the state of a trace at any given time\<close>
 fun state_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> time \<Rightarrow> state" where
   "state_of_blocks s [] t = s"
 | "state_of_blocks s ((InBlock dly _ var v _) # blks) t =
-    (if 0 \<le> t \<and> t < dly then s
-     else if t = dly then s(var := v)
+    (if 0 \<le> t \<and> t \<le>dly then s
      else state_of_blocks (s(var := v)) blks (t - dly))"
 | "state_of_blocks s ((OutBlock dly _ _ rdy) # blks) t =
     (if 0 \<le> t \<and> t \<le> dly then s
@@ -323,8 +333,11 @@ fun index_list :: "nat \<Rightarrow> nat list" where
   "index_list 0 = []"
 | "index_list (Suc n) = (index_list n) @ [n]"
 
-definition wait_block_state_list :: "state list \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> state list" where
-  "wait_block_state_list sts t trbl = map (\<lambda> i. state_of_blocks (sts ! i) (trbl ! i) t) (index_list (length sts))"
+fun wait_block_state_list :: "state list \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> state list" where
+  "wait_block_state_list [] t [] = []" 
+| "wait_block_state_list [] t (b # trbl) = []"
+| "wait_block_state_list (a # sts) t [] = (a # sts)"
+| "wait_block_state_list (a # sts) t (b # trbl) = (state_of_blocks a b t) # (wait_block_state_list sts t trbl)"
 
 
 text \<open>Main definition: combining a list of block lists.
@@ -336,7 +349,8 @@ inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Ri
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = 0 \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
-   combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_one i t blkss) pblks \<Longrightarrow>
+  \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> 0 \<Longrightarrow>
+   combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_one i 0 blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((ParTauBlock i (end_of_blocks (sts ! i) [hd (blkss ! i)])) # pblks)" 
   \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
@@ -345,20 +359,21 @@ inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Ri
    delay_of_block (hd (blkss ! j)) = 0 \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = In c v \<Longrightarrow>
    event_of_block (hd (blkss ! j)) = Out c v \<Longrightarrow>
+   var_of_block (hd (blkss !i)) = {x} \<Longrightarrow>
    combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_pair i j blkss) pblks \<Longrightarrow>
-   combine_blocks sts blkss ((IOBlock i j c v) # pblks)" 
+   combine_blocks sts blkss ((IOBlock i j c x v) # pblks)" 
  \<comment> \<open>Wait action at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
    t > 0 \<Longrightarrow>
    \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> t \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = t \<Longrightarrow>
-   event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
+   event_of_block (hd (blkss ! i)) = WaitE t \<Longrightarrow>
    combine_blocks (wait_block_state_list sts t blkss) (remove_one i t blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((ParWaitBlock 
                                   t
-                                 (\<lambda> d. (if (0 \<le> d \<and> d < t) then (wait_block_state_list sts d blkss)
-                                                       else [])))
+                                 (\<lambda> d. (if (0 \<le> d \<and> d \<le> t) then (wait_block_state_list sts d blkss)
+                                                       else undefined)))
                             # pblks)"
 
 
@@ -700,23 +715,26 @@ lemma test2b: "big_step (Cm (Receive ''ch'' X))
 text \<open>Communication\<close>
 lemma test3: "par_big_step (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' X)])
         (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-        (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
+        (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' X 1])"
 proof -
-  have 1: "combine_blocks [[], []] []"
+  have 1: "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] [[], []] []"
     apply (rule combine_blocks.intros(1))
     by (auto simp add: less_Suc_eq)
-  have 2: "combine_blocks
+  have 2: "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)]
      [[OutBlock 0 ''ch'' 1 ({''ch''}, {})],
       [InBlock 0 ''ch'' X 1 ({}, {''ch''})]]
-     [IOBlock 1 0 ''ch'' 1]"
+     [IOBlock 1 0 ''ch'' X 1]"
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
     apply (auto simp add: less_Suc_eq)
     unfolding remove_pair_def Let_def apply auto
     by (rule 1)
+  have 3: " combine_blocks [\<lambda>_. 0, \<lambda>_. 0] [[], []] []"
+    apply (rule combine_blocks.intros(1))
+    by (auto simp add: less_Suc_eq)
   show ?thesis
     apply (rule parallelB2[OF test1a test2a])
     apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
-    using 1 2 by auto
+    using 1 2 3 by auto
 qed
 
 text \<open>Wait\<close>
@@ -739,26 +757,44 @@ lemma test6: "par_big_step (PProc [
   Wait 2; Cm (Send ''ch'' (\<lambda>_. 1)),
   Cm (Receive ''ch'' X)])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2 ((\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then [\<lambda>_. 0, \<lambda>_. 0] else undefined)), 
+                                  IOBlock 1 0 ''ch'' X 1])"
 proof -
-  have 1: "combine_blocks [[], []] []"
+  have 1: "combine_blocks  [(\<lambda>_. 0), (\<lambda>_. 0)(X := 1)] [[], []] []"
     apply (rule combine_blocks.intros(1))
     by (auto simp add: less_Suc_eq)
-  have 2: "combine_blocks
+
+  have 11: "combine_blocks  [(\<lambda>_. 0), (\<lambda>_. 0)] [[], []] []"
+    apply (rule combine_blocks.intros(1))
+    by (auto simp add: less_Suc_eq)
+
+
+  have 2: "combine_blocks [\<lambda>_. 0, \<lambda>_. 0] [[OutBlock 0 ''ch'' 1 ({''ch''}, {})], [InBlock 0 ''ch'' X 1 ({}, {''ch''})]] [IOBlock 1 0 ''ch'' X 1]"
+    apply (rule combine_blocks.intros(3))
+     unfolding remove_pair_def Let_def apply auto
+     by (rule 1)
+
+   have 3: "(\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then wait_block_state_list [\<lambda>_. 0, \<lambda>_. 0] d 
+            [[WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})], [InBlock 2 ''ch'' X 1 ({}, {''ch''})]] 
+                                  else undefined)
+           = (\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then [\<lambda>_. 0, \<lambda>_. 0] else undefined)"
+     by auto
+    
+  have 4: "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)]
      [[WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})],
       [InBlock 2 ''ch'' X 1 ({}, {''ch''})]]
-     [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
-    apply (rule combine_blocks.intros(2)[where i=0])
-         apply (auto simp add: less_Suc_eq)
-    unfolding remove_one_def Let_def apply auto
-     apply (rule combine_blocks.intros(3))
-                apply (auto simp add: less_Suc_eq)
-    unfolding remove_pair_def Let_def apply auto
-    by (rule 1)
+     [ParWaitBlock 2 (\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then [(\<lambda>_. 0), (\<lambda>_. 0)] else undefined), IOBlock 1 0 ''ch'' X 1]"
+   using combine_blocks.intros(4)[of 0 "[[WaitBlock 2, OutBlock 0 ''ch'' 1 ({''ch''}, {})],
+      [InBlock 2 ''ch'' X 1 ({}, {''ch''})]]" 2
+     "[(\<lambda>_. 0), (\<lambda>_. 0)]"] 
+   apply (auto simp add: less_Suc_eq if_split)
+   unfolding remove_one_def Let_def apply auto
+   using 2 3 
+   by auto
   show ?thesis
     apply (rule parallelB2[OF test5 test2b])
        apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
-    using 1 2 by auto
+    using 11 4 by auto
 qed
 
 
@@ -813,29 +849,44 @@ lemma test9b: "big_step (EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send '
   apply (rule waitB2)
   by auto
 
+lemma ParWaitBlock_eq: "\<forall> x. f x = g x \<Longrightarrow> ParWaitBlock d f = ParWaitBlock d g"
+  by auto
+
 text \<open>Communication with external choice\<close>
 lemma test10: "par_big_step (PProc [
   EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)],
   Cm (Receive ''ch'' X)])
     (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
-    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1])"
+    (ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' X 1, 
+        ParWaitBlock 1 (\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] else undefined)])"
 proof -
-  have 1: "combine_blocks [[], []] []"
+  have 1: "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)] [[], []] []"
     apply (rule combine_blocks.intros(1))
     by (auto simp add: less_Suc_eq)
-  have 2: "combine_blocks
+
+  have 11:  "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)(X := 1)] [[], []] []"
+    apply (rule combine_blocks.intros(1))
+    by (auto simp add: less_Suc_eq)
+
+  have 2: "(\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then wait_block_state_list [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] 
+            d [[WaitBlock 1], []] else undefined)
+         = (\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] else undefined)"
+    by auto
+
+  have 3: "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)]
      [[OutBlock 0 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1],
       [InBlock 0 ''ch'' X 1 ({}, {''ch''})]]
-     [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1]"
+     [IOBlock 1 0 ''ch'' X 1, ParWaitBlock 1 ((\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] else undefined))]"
     apply (rule combine_blocks.intros(3)[where i=1 and j=0])
-             apply (auto simp add: remove_pair_def)
-    apply (rule combine_blocks.intros(2)[where i=0])
-          apply (auto simp add: remove_one_def less_Suc_eq)
-    by (rule 1)
+    apply (auto simp add: remove_pair_def)
+    using combine_blocks.intros(4)[where i=0 and t=1 and blkss="[[WaitBlock 1], []]" 
+            and sts="[\<lambda>_. 0, (\<lambda>_. 0)(X := 1)]"]
+    apply (auto simp add: remove_one_def less_Suc_eq)
+    using 11 2 by auto
   show ?thesis
     apply (rule parallelB2[OF test9a test2a])
     apply (auto simp add: compat_rdy_block_pair_def less_Suc_eq combine_par_trace.simps)
-    using 1 2 by auto
+    using 1 3 by auto
 qed
 
 text \<open>ODE Example 1\<close>
@@ -1138,7 +1189,7 @@ theorem ParValid_post:
 inductive_cases parE: "par_big_step (PProc ps) par_tr par_tr2"
 thm parE
 
-inductive_cases combine_blocksE1: "combine_blocks blkss []"
+inductive_cases combine_blocksE1: "combine_blocks sts blkss []"
 thm combine_blocksE1
 
 lemma combine_par_trace_trivial:
@@ -1279,98 +1330,114 @@ qed
 subsection \<open>More on combine_blocks\<close>
 
 lemma combine_blocks_triv2:
-  "combine_blocks [[], []] par_blks \<Longrightarrow> par_blks = []"
+  "combine_blocks sts [[], []] par_blks \<Longrightarrow> par_blks = []"
 proof (induct rule: combine_blocks.cases)
 case (1 blkss)
   then show ?case by auto
 next
   case (2 i blkss t pblks)
   have "i = 0 \<or> i = 1"
-    using 2(1,3,7) by auto
+    using 2  by auto
   then show ?case using 2 by auto
 next
   case (3 i blkss j c v pblks)
   have "i = 0 \<or> i = 1"
-    using 3(1,3,8) by auto
+    using 3  by auto
   then show ?case using 3 by auto
+next
+  case (4 i blkss t sts pblks)
+ have "i = 0 \<or> i = 1"
+    using 4  by auto
+  then show ?case using 4 by auto
 qed
 
 lemma combine_blocks_IO2:
-  "combine_blocks [OutBlock d1 ch1 v1 rdy1 # blks1,
+  "combine_blocks sts [OutBlock d1 ch1 v1 rdy1 # blks1,
                    InBlock d2 ch2 var v2 rdy2 # blks2] par_tr \<Longrightarrow>
    (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
-           combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest)"
+           combine_blocks (sts[1 := end_of_blocks (sts ! 1) [InBlock d2 ch2 var v2 rdy2]]) [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 var v1) # rest)"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
   case (2 i blkss t pblks)
   have "i = 0 \<or> i = 1"
-    using 2(1,3,7) by auto
+    using 2 by auto
   then show ?case using 2 by auto
 next
-  case (3 i blkss j c v pblks)
+  case (3 i blkss j c v x stsa pblks)
   have "length blkss = 2"
-    using 3(1,12) by auto
+    using 3  by auto
   have "i = 0 \<or> i = 1" "j = 0 \<or> j = 1"
-    using 3(1,3,4,12) by auto
+    using 3 by auto
   then have ij: "i = 1" "j = 0"
-    using 3(1,9,10,11) by auto
+    using 3  by auto
   have "d1 = 0" "d2 = 0"
-    using 3(1,8,9,12) ij by auto
+    using 3  ij by auto
   moreover have "v1 = v2" "ch1 = ch2" "v = v1" "c = ch1"
-    using 3(1,10,11,12) ij by auto
-  moreover have "\<exists>rest. combine_blocks [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 v1) # rest"
+    using 3  ij by auto
+  moreover have "\<exists>rest. combine_blocks (stsa[i := end_of_blocks (stsa ! i) [hd (blkss ! i)]]) [blks1, blks2] rest \<and> par_tr = (IOBlock 1 0 ch1 var v1) # rest"
     apply (rule exI[where x="pblks"])
-    using 3(2,12) unfolding ij \<open>v = v1\<close> \<open>c = ch1\<close> 3(1)[symmetric] 3(12)
+    using 3 ij
     by (auto simp add: remove_pair_def)
   ultimately show ?case
-    using 3(4) by (auto simp add: less_Suc_eq)
+    using 3 ij by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
+   have "i = 0 \<or> i = 1"
+    using 4 by auto
+  then show ?case using 4 by auto 
 qed
 
 lemma combine_blocks_OutW2:
-  "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
+  "combine_blocks sts [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
                    WaitBlock d2 # blks2] par_tr \<Longrightarrow>
-   \<exists>rest. d1 \<ge> d2 \<and>
-          combine_blocks [OutBlock (d1 - d2) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
-          par_tr = ParWaitBlock d2 # rest"
+   \<exists>rest st rst. d1 \<ge> d2 \<and>
+          combine_blocks st [OutBlock (d1 - d2) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
+          par_tr = ParWaitBlock d2 rst # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks)
-  have "i = 1"
-    using 2(1,3,8) by (auto simp add: less_Suc_eq)
-  then have "t = d2"
-    using 2(1,7) by auto
-  then have "d1 \<ge> d2"
-    using 2(1,5) by auto
-  show ?case
-    apply (rule exI[where x=pblks])
-    using 2(1,2,9) \<open>i = 1\<close> \<open>d1 \<ge> d2\<close> \<open>t = d2\<close>
-    by (auto simp add: remove_one_def Let_def)
+  case (2 i blkss stsa pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
 next
   case (3 i blkss j c v pblks)
   then show ?case by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
+  have "i = 1"
+    using 4  by (auto simp add: less_Suc_eq)
+  then have "t = d2"
+    using 4 by auto
+  then have "d1 \<ge> d2"
+    using 4 by auto
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 4  \<open>i = 1\<close> \<open>d1 \<ge> d2\<close> \<open>t = d2\<close>
+    by (auto simp add: remove_one_def Let_def)
 qed
 
 lemma combine_blocks_WaitNil2:
-  "combine_blocks [WaitBlock d # blks1, []] par_tr \<Longrightarrow>
-   \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock d # rest"
+  "combine_blocks sts [WaitBlock d # blks1, []] par_tr \<Longrightarrow>
+   \<exists>rest st rst. combine_blocks st [blks1, []] rest \<and> par_tr = ParWaitBlock d rst # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks)
-  have "i = 0" "t = d"
-    using 2(1,3,6,7) by (auto simp add: less_Suc_eq)
-  show ?case
-    apply (rule exI[where x=pblks])
-    using 2 \<open>i = 0\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+  case (2 i blkss sts pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
 next
   case (3 i blkss j c v pblks)
   then show ?case
     by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
+  have "i = 0" "t = d"
+    using 4 by (auto simp add: less_Suc_eq)
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 4 \<open>i = 0\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
 qed
 
 lemma combine_blocks_TauNil2:
