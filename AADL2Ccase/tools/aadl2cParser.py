@@ -24,6 +24,19 @@ header = """
 ------------------------------------------------------  
 **/
 
+typedef struct System
+{
+    
+
+} System;
+
+
+typedef struct Device
+{
+    
+
+} Device;
+
 typedef struct Thread 
 {
     int tid; /* The ID of a thread */
@@ -60,18 +73,241 @@ typedef struct Processor
 scheduler = """
 
 /************* RMS algorithm **************/
+/** rate-monotonic algorithm
+
 
 void sched_RMS(struct Thread** threads)
 {
-    return;
+     //Global clock
+    int globalCouont = 0;
+
+    //period propertiy of current running thread
+    int running_period = 100000; // very big number
+
+    //ID (in the array) of the running thread
+    int running_id = -1;
+
+    //Initialize simulink model
+    isolette_initialize();
+
+    while(globalCount < iterCount)
+    {
+        //Comminucate withsimulink model, print state.
+        isolette_U.In1 = $out_port;
+        printf("%f,%f\\n", isolette_U.In1, isolette_Y.Out1);
+
+        isolette_step();
+        $in_port = isolette_Y.Out1;
+
+        //Stage 1: check period_triger for each thread
+        for (int i = 0; i < threadNum; i++)
+        {
+            int temp_period = threads[i]->period;
+            if (globalCount % temp_period == 0)
+            {
+                threads[i]->state = "READY";
+                threads[i]->runCount = 0;
+            }
+        }
+
+        // Stage 2: find the next running thread
+        for (int i = 0; i < threadNum; i++) {
+            if (threads[i]->state == "READY" && threads[i]->period < running_period) {
+                running_period = threads[i]->period;
+                running_id = i;
+            }
+        }
+
+        if (running_id != -1) {
+            threads[running_id]->state = "RUNNING";
+        }
+
+        for (int i = 0; i < threadNum; i++)
+        {
+            // printf("%s state: %s\\n", threads[i]->threadName, threads[i]->state);
+        }
+
+        // Stage 3: perform the running state, check if it is running over.
+        for (int i = 0; i < threadNum; i++)
+        {
+            if (threads[i]->state == "RUNNING") //Running State
+            {
+                threads[i]->runCount += 1;
+                behaviorExecution(threads[i]->threadName);
+
+                if (threads[i]->runCount >= threads[i]->minExecutionTime) // Runnning Over
+                {
+                    threads[i]->state = "COMPLETE";
+                    running_period = 0;
+                    running_id = -1;
+                }
+                else // Not Running Over
+                {
+                    running_period = threads[i]->period;
+                    running_id = i;
+                }
+            }
+        } 
+        globalCount += 1;
+    }
 }
 
 /************* FIFO algorithm *************/
 
 void sched_FCFS(struct Thread** threads)
 {
-    return;
+     //Global clock
+    int globalCouont = 0;
+
+    //period propertiy of current running thread
+    int running_period = 0;
+
+    //ID (in the array) of the running thread
+    int running_id = -1;
+
+    //Initialize simulink model
+    isolette_initialize();
+
+    while(globalCount < iterCount)
+    {
+        //Comminucate withsimulink model, print state.
+        isolette_U.In1 = $out_port;
+        printf("%f,%f\\n", isolette_U.In1, isolette_Y.Out1);
+
+        isolette_step();
+        $in_port = isolette_Y.Out1;
+
+        //Stage 1: check period_triger for each thread
+        for (int i = 0; i < threadNum; i++)
+        {
+            int temp_period = threads[i]->period;
+            if (globalCount % temp_period == 0)
+            {
+                threads[i]->state = "READY";
+                threads[i]->runCount = 0;
+            }
+        }
+
+        // Stage 2: find the next running thread
+        for (int i = 0; i < threadNum; i++) {
+            if (threads[i]->state == "READY" && threads[i]->period > running_period) {
+                running_period = threads[i]->period;
+                running_id = i;
+            }
+        }
+
+        if (running_id != -1) {
+            threads[running_id]->state = "RUNNING";
+        }
+
+        for (int i = 0; i < threadNum; i++)
+        {
+            // printf("%s state: %s\\n", threads[i]->threadName, threads[i]->state);
+        }
+
+        // Stage 3: perform the running state, check if it is running over.
+        for (int i = 0; i < threadNum; i++)
+        {
+            if (threads[i]->state == "RUNNING") //Running State
+            {
+                threads[i]->runCount += 1;
+                behaviorExecution(threads[i]->threadName);
+
+                if (threads[i]->runCount >= threads[i]->minExecutionTime) // Runnning Over
+                {
+                    threads[i]->state = "COMPLETE";
+                    running_period = 0;
+                    running_id = -1;
+                }
+                else // Not Running Over
+                {
+                    running_period = threads[i]->period;
+                    running_id = i;
+                }
+            }
+        } 
+        globalCount += 1;
+    }
 }
+
+
+/************ EDF algorithm ***************/
+//Earlist deadline first algorithm
+void sched_EDF(struct Thread **threads, int threadNum, int iterCount)
+{
+    //Global clock
+    int globalCouont = 0;
+
+    //Deadline of current running thread
+    int running_ddl = 100000; //very big number
+
+    //ID (in the array) of the running thread
+    int running_id = -1;
+
+    //Initialize simulink model
+    isolette_initialize();
+
+    while(globalCount < iterCount)
+    {
+        //Comminucate withsimulink model, print state.
+        isolette_U.In1 = $out_port;
+        printf("%f,%f\\n", isolette_U.In1, isolette_Y.Out1);
+
+        isolette_step();
+        $in_port = isolette_Y.Out1;
+
+        //Stage 1: check period_triger foreachthread
+        for (int i = 0; i < threadNum; i++)
+        {
+            int temp_period = threads[i]->period;
+            if (globalCount % temp_period == 0)
+            {
+                threads[i]->state = "READY";
+                threads[i]->runCount = 0;
+            }
+        }
+
+        // Stage 2: find the next running thread
+        for (int i = 0; i < threadNum; i++) {
+            if (threads[i]->state == "READY" && threads[i]->deadline < running_ddl) {
+                running_ddl = threads[i]->deadline;
+                running_id = i;
+            }
+        }
+
+        if (running_id != -1) {
+            threads[running_id]->state = "RUNNING";
+        }
+
+        for (int i = 0; i < threadNum; i++)
+        {
+            // printf("%s state: %s\\n", threads[i]->threadName, threads[i]->state);
+        }
+
+        // Stage 3: perform the running state, check if it is running over.
+        for (int i = 0; i < threadNum; i++)
+        {
+            if (threads[i]->state == "RUNNING") //Running State
+            {
+                threads[i]->runCount += 1;
+                behaviorExecution(threads[i]->threadName);
+
+                if (threads[i]->runCount >= threads[i]->minExecutionTime) // Runnning Over
+                {
+                    threads[i]->state = "COMPLETE";
+                    running_ddl = 0;
+                    running_id = -1;
+                }
+                else // Not Running Over
+                {
+                    running_ddl = threads[i]->deadline;
+                    running_id = i;
+                }
+            }
+        } 
+        globalCount += 1;
+    }
+};
 
 /************ HPF algorithm **************/
 
@@ -208,11 +444,28 @@ threadTemplate = """
 processTemplate = """
     Process *$name = (Process *)malloc(sizeof(Process));
     $name->processNum = 1;
-	$name->numberOfThread = $num_thread;
-	$name->processName = "$name";
-	$name->scheduling_protocol = "HPF";
-	$name->threadGroup = (Thread **)malloc($num_thread * sizeof(Thread*));
+    $name->numberOfThread = $num_thread;
+    $name->processName = "$name";
+    $name->scheduling_protocol = "HPF";
+    $name->threadGroup = (Thread **)malloc($num_thread * sizeof(Thread*));
 """
+
+processorTemplate="""
+
+"""
+
+systemTemplate="""
+
+
+"""
+
+
+deviceTemplate="""
+
+
+"""
+
+
 
 def get_opas(data, name, *, default=None):
     for item in data:
