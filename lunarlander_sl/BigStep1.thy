@@ -328,6 +328,11 @@ fun state_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> time 
     (if t \<le> d then s else state_of_blocks s blks (t - d))"
 | "state_of_blocks s ((ODEBlock d h) # blks) t =
     (if t \<le> d then h t else state_of_blocks (h d) blks (t - d))"
+| "state_of_blocks s ((ODEInBlock d h _ var v _) # blks) t = 
+    (if t \<le> d then h t else state_of_blocks ((h d)(var := v)) blks (t - d))"
+| "state_of_blocks s ((ODEOutBlock d h _ _ _) # blks) t = 
+    (if t \<le> d then h t else state_of_blocks (h d) blks (t - d))"
+
 
 fun index_list :: "nat \<Rightarrow> nat list" where
   "index_list 0 = []"
@@ -335,7 +340,7 @@ fun index_list :: "nat \<Rightarrow> nat list" where
 
 fun wait_block_state_list :: "state list \<Rightarrow> time \<Rightarrow> trace_block list list \<Rightarrow> state list" where
   "wait_block_state_list [] t [] = []" 
-| "wait_block_state_list [] t (b # trbl) = []"
+| "wait_block_state_list [] t (b # trbl) = undefined"
 | "wait_block_state_list (a # sts) t [] = (a # sts)"
 | "wait_block_state_list (a # sts) t (b # trbl) = (state_of_blocks a b t) # (wait_block_state_list sts t trbl)"
 
@@ -1389,12 +1394,16 @@ next
   then show ?case using 4 by auto 
 qed
 
+definition sts_init :: "state list" where
+  "sts_init == [(\<lambda>_. 0), (\<lambda>_. 0)]"
+declare sts_init_def [simp]
+
 lemma combine_blocks_OutW2:
-  "combine_blocks sts [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
+  "combine_blocks sts_init [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
                    WaitBlock d2 # blks2] par_tr \<Longrightarrow>
-   \<exists>rest st rst. d1 \<ge> d2 \<and>
-          combine_blocks st [OutBlock (d1 - d2) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
-          par_tr = ParWaitBlock d2 rst # rest"
+   \<exists>rest. d1 \<ge> d2 \<and>
+          combine_blocks sts_init  [OutBlock (d1 - d2) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
+          par_tr = (ParWaitBlock d2 (\<lambda>d. if 0 \<le> d \<and> d \<le> d2 then sts_init else undefined)) # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
@@ -1408,9 +1417,9 @@ next
   case (4 i blkss t sts pblks)
   have "i = 1"
     using 4  by (auto simp add: less_Suc_eq)
-  then have "t = d2"
+  then have 1: "t = d2"
     using 4 by auto
-  then have "d1 \<ge> d2"
+  then have 2: "d1 \<ge> d2"
     using 4 by auto
   show ?case
     apply (rule exI[where x=pblks])
@@ -1419,8 +1428,9 @@ next
 qed
 
 lemma combine_blocks_WaitNil2:
-  "combine_blocks sts [WaitBlock d # blks1, []] par_tr \<Longrightarrow>
-   \<exists>rest st rst. combine_blocks st [blks1, []] rest \<and> par_tr = ParWaitBlock d rst # rest"
+  "combine_blocks [sl, sr] [WaitBlock d # blks1, []] par_tr \<Longrightarrow>
+   \<exists>rest. combine_blocks [sl, sr] [blks1, []] rest \<and> par_tr 
+         = (ParWaitBlock d (\<lambda>t. if 0 \<le> t \<and> t \<le> d then [sl, sr] else undefined)) # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
@@ -1435,57 +1445,68 @@ next
   case (4 i blkss t sts pblks)
   have "i = 0" "t = d"
     using 4 by (auto simp add: less_Suc_eq)
+  then have 5: "wait_block_state_list sts t blkss = sts"
+               "wait_block_state_list sts d blkss = sts"
+               "remove_one i t blkss = [blks1, []]"
+    using 4 remove_one_def by auto
   show ?case
     apply (rule exI[where x=pblks])
-    using 4 \<open>i = 0\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+    using 4 \<open>i = 0\<close> \<open>t = d\<close> 5  by auto
 qed
 
 lemma combine_blocks_TauNil2:
-  "combine_blocks [TauBlock st # blks1, []] par_tr \<Longrightarrow>
-   \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock 0 # rest"
+  "combine_blocks sts [TauBlock st # blks1, []] par_tr \<Longrightarrow>
+   \<exists>rest. combine_blocks (sts[0 := st]) [blks1, []] rest \<and> par_tr = ParTauBlock 0 st # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks)
-  have "i = 0" "t = 0"
-    using 2(1,3,6,7) by (auto simp add: less_Suc_eq)
+  case (2 i blkss sts pblks)
+  have "i = 0"  
+    using 2 by (auto simp add: less_Suc_eq)
   show ?case
     apply (rule exI[where x=pblks])
-    using 2 \<open>i = 0\<close> \<open>t = 0\<close> by (auto simp add: remove_one_def)
+    using 2 \<open>i = 0\<close> by (auto simp add: remove_one_def)
 next
-  case (3 i blkss j c v pblks)
+  case (3 i blkss j c v x sts pblks)
   then show ?case
+    by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
+  then show ?case 
     by (auto simp add: less_Suc_eq)
 qed
 
 lemma combine_blocks_TauIn2:
-  "combine_blocks [TauBlock st # blks1, blk2 # blks2] par_tr \<Longrightarrow>
+  "combine_blocks sts [TauBlock st # blks1, blk2 # blks2] par_tr \<Longrightarrow>
    event_of_block blk2 \<noteq> Tau \<Longrightarrow>
-   \<exists>rest. combine_blocks [blks1, blk2 # blks2] rest \<and> par_tr = ParWaitBlock 0 # rest"
+   \<exists>rest. combine_blocks (sts[0 := st]) [blks1, blk2 # blks2] rest \<and> par_tr = ParTauBlock 0 st # rest"
 proof (induct rule: combine_blocks.cases)
-  case (1 blkss)
+  case (1 blkss sts)
   then show ?case by auto
 next
-  case (2 i blkss t pblks)
-  have "i = 0" "t = 0"
+  case (2 i blkss sts pblks)
+  have "i = 0" 
     using 2 by (auto simp add: less_Suc_eq)
   show ?case
     apply (rule exI[where x=pblks])
-    using 2 \<open>i = 0\<close> \<open>t = 0\<close> by (auto simp add: remove_one_def)
+    using 2 \<open>i = 0\<close> by (auto simp add: remove_one_def)
 next
   case (3 i blkss j c v pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
   then show ?case by (auto simp add: less_Suc_eq)
 qed
 
 
 lemma combine_blocks_OutNil:
-  "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
+  "combine_blocks sts [OutBlock d1 ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
   apply (induct rule: combine_blocks.cases)
   by (auto simp add: less_Suc_eq)
 
 lemma combine_blocks_NilIn:
-  "combine_blocks [[], InBlock d2 ch2 var v2 ({}, {ch2}) # blks2] par_tr \<Longrightarrow> False"
+  "combine_blocks sts  [[], InBlock d2 ch2 var v2 ({}, {ch2}) # blks2] par_tr \<Longrightarrow> False"
   apply (induct rule: combine_blocks.cases)
   by (auto simp add: less_Suc_eq)
 
@@ -1496,9 +1517,10 @@ thm combine_par_traceE
 
 lemma combine_par_traceE2:
   "combine_par_trace [Trace st1 blks1, Trace st2 blks2] par_tr \<Longrightarrow>
-   \<exists>par_blks. par_tr = ParTrace [st1, st2] par_blks \<and> combine_blocks [blks1, blks2] par_blks"
+   \<exists>par_blks. par_tr = ParTrace [st1, st2] par_blks \<and> combine_blocks [st1, st2] [blks1, blks2] par_blks"
   apply (elim combine_par_traceE)
   apply auto
+  apply (smt length_Cons less_Suc0 less_Suc_eq list.size(3) nth_Cons_0 nth_Cons_Suc nth_equalityI start_of_trace.simps)
   by (smt length_Cons less_Suc0 less_Suc_eq list.size(3) nth_Cons_0 nth_Cons_Suc nth_equalityI start_of_trace.simps)
 
 
@@ -1539,9 +1561,9 @@ lemma testHL4:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Cm (Receive ''ch'' X)])
-    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1])"
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' X 1])"
 proof -
-  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1]"
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' X 1]"
     if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]" and
        tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
@@ -1550,14 +1572,16 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [
+      2: "combine_blocks [\<lambda>_. 0, \<lambda>_. 0] [
               [OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
               [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
-      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest"
-         "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
-      using combine_blocks_IO2 by blast
+      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X:=1)] [[], []] rest"
+         "par_blks = (IOBlock 1 0 ''ch'' X 1) # rest"
+      using combine_blocks_IO2[of "[\<lambda>_. 0, \<lambda>_. 0]" dly1 "''ch''" 1 "({''ch''}, {})" "[]"
+                                  dly2 "''ch''" X v "({}, {''ch''})" "[]" par_blks]
+      by auto
     from 3(4) have 4: "rest = []"
       using combine_blocks_triv2 by auto
     show ?thesis
@@ -1585,9 +1609,12 @@ lemma testHL6:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (PProc [Cm (Send ''ch'' (\<lambda>_. 1)), Wait 2; Cm (Receive ''ch'' X)])
-    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1])"
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] 
+        [ParWaitBlock 2 (\<lambda>t. if 0 \<le> t \<and> t \<le> 2 then [(\<lambda>_. 0), (\<lambda>_. 0)] else undefined), IOBlock 1 0 ''ch'' X 1])"
 proof -
-  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2, IOBlock 1 0 ''ch'' 1]"
+  let ?HH = "(\<lambda>t. if 0 \<le> t \<and> t \<le> 2 then [(\<lambda>_. 0), (\<lambda>_. 0)] else undefined)"
+  let ?sts = "[(\<lambda>_. 0), (\<lambda>_. 0)]"
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [ParWaitBlock 2 ?HH, IOBlock 1 0 ''ch'' X 1]"
     if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch''}, {})]" and
        tr2: "tr2 = Trace (\<lambda>_. 0) [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
@@ -1596,19 +1623,24 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
+      2: "combine_blocks ?sts [[OutBlock dly1 ''ch'' 1 ({''ch''}, {})],
                           [WaitBlock 2, InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
-    from 2 obtain rest where
+    have 22: "(\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then sts_init else undefined) = 
+          (\<lambda>d. if 0 \<le> d \<and> d \<le> 2 then [(\<lambda>_. 0), (\<lambda>_. 0)] else undefined)"
+      by auto
+    from 2 22 obtain rest where
       3: "dly1 \<ge> 2"
-      "combine_blocks [[OutBlock (dly1 - 2) ''ch'' 1 ({''ch''}, {})],
+      "combine_blocks ?sts [[OutBlock (dly1 - 2) ''ch'' 1 ({''ch''}, {})],
                        [InBlock dly2 ''ch'' X v ({}, {''ch''})]] rest"
-      "par_blks = ParWaitBlock 2 # rest"
-      using combine_blocks_OutW2 by blast
-    from 3(2) obtain rest2 where
-      4: "dly1 - 2 = 0" "dly2 = 0" "v = 1" "combine_blocks [[], []] rest2"
-         "rest = (IOBlock 1 0 ''ch'' 1) # rest2"
-      using combine_blocks_IO2 by blast
+      "par_blks = ParWaitBlock 2 ?HH # rest"
+      using combine_blocks_OutW2[of dly1 "''ch''" 1 "[]" 2 "[InBlock dly2 ''ch'' X v ({}, {''ch''})]" par_blks]
+      by auto 
+    from 3 obtain rest2 where
+      4: "dly1 - 2 = 0" "dly2 = 0" "v = 1" "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X:=1)] [[], []] rest2"
+         "rest = (IOBlock 1 0 ''ch'' X 1) # rest2"
+      using combine_blocks_IO2[of ?sts "dly1-2" "''ch''" 1 "({''ch''}, {})" "[]" dly2 "''ch''" X v "({}, {''ch''})" "[]" rest] 
+      by auto
     from 4(4) have 5: "rest2 = []"
       using combine_blocks_triv2 by auto
     show ?thesis
@@ -1744,12 +1776,12 @@ text \<open>Repetition: communication\<close>
 text \<open>The invariant\<close>
 fun comm_blocks :: "real \<Rightarrow> nat \<Rightarrow> par_block list" where
   "comm_blocks x 0 = []"
-| "comm_blocks x (Suc n) = ParWaitBlock 0 # IOBlock 1 0 ''ch'' (x + 1) # comm_blocks (x + 1) n"
+| "comm_blocks x (Suc n) = (ParTauBlock 0 ((\<lambda>_. 0)(X := (x+1))))# IOBlock 1 0 ''ch'' X (x + 1) # comm_blocks (x + 1) n"
 
 lemma testHL9_blocks:
-  "combine_blocks [count_blocks x dlys, receive_blocks dlyvs] par_blks \<Longrightarrow>
+  "combine_blocks sts[count_blocks x dlys, receive_blocks dlyvs] par_blks \<Longrightarrow>
    \<exists>n. par_blks = comm_blocks x n"
-proof (induct dlyvs arbitrary: dlys par_blks x)
+proof (induct dlyvs arbitrary: dlys par_blks x sts)
   case Nil
   note Nil1 = Nil
   then show ?case
@@ -1762,7 +1794,9 @@ proof (induct dlyvs arbitrary: dlys par_blks x)
     case (Cons d restd)
     then show ?thesis
       using Nil1 apply auto
-      using combine_blocks_TauNil2 combine_blocks_OutNil by blast
+      using combine_blocks_TauNil2[of sts "((\<lambda>_. 0)(X := x + 1))" "OutBlock d ''ch'' (x + 1) ({''ch''}, {}) # count_blocks (x + 1) restd" "par_blks"] 
+            combine_blocks_OutNil[of "(sts[0 := (\<lambda>_. 0)(X := x + 1)])" d "''ch''" "x+1" " count_blocks (x + 1) restd"]
+      by metis
   qed
 next
   case (Cons p dlyvs)
@@ -1771,29 +1805,44 @@ next
   proof (cases dlys)
     case Nil
     then show ?thesis
-      using Cons1(2) apply (cases p) apply auto
-      using combine_blocks_NilIn by blast
+      using Cons1 apply (cases p) apply auto
+      using combine_blocks_NilIn
+    by metis
   next
     case (Cons d restd)
-    have 1: "combine_blocks
+    have 1: "combine_blocks sts
         [TauBlock ((\<lambda>_. 0)(X := x + 1)) # OutBlock d ''ch'' (x + 1) ({''ch''}, {}) # count_blocks (x + 1) restd,
          InBlock (fst p) ''ch'' X (snd p) ({}, {''ch''}) # receive_blocks dlyvs]
         par_blks"
-      using Cons Cons1(2) apply (cases p) by auto
+      using Cons Cons1(2) apply (cases p) by auto 
     have 2: "event_of_block (InBlock (fst p) ''ch'' X (snd p) ({}, {''ch''})) \<noteq> Tau"
       by auto
     from 1 2 obtain rest where
-      3: "combine_blocks [OutBlock d ''ch'' (x + 1) ({''ch''}, {}) # count_blocks (x + 1) restd,
+      3: "combine_blocks (sts[0 := (\<lambda>_. 0)(X := x + 1)]) [OutBlock d ''ch'' (x + 1) ({''ch''}, {}) # count_blocks (x + 1) restd,
                           InBlock (fst p) ''ch'' X (snd p) ({}, {''ch''}) # receive_blocks dlyvs] rest"
-         "par_blks = ParWaitBlock 0 # rest"
+         "par_blks = ParTauBlock 0 ((\<lambda>_. 0)(X := x + 1)) # rest"
       using combine_blocks_TauIn2 by blast
-    from 3 obtain rest2 where
-      4: "d = 0" "fst p = 0" "x + 1 = snd p" "combine_blocks [count_blocks (x + 1) restd, receive_blocks dlyvs] rest2"
-         "rest = (IOBlock 1 0 ''ch'' (x + 1)) # rest2"
-      using combine_blocks_IO2 by blast
+    let ?sts0 = "sts[0 := (\<lambda>_. 0)(X := x + 1)]" and
+        ?sts1 = "(sts[0 := (\<lambda>_. 0)(X := x + 1)])[1 := (sts!1)(X := x + 1)]"
+    from 3 have "snd p = x + 1"
+      using combine_blocks_IO2[of ?sts0 d "''ch''" "x+1" "({''ch''}, {})" "count_blocks (x + 1) restd"
+                   "fst p" "''ch''" X "snd p" "({}, {''ch''})" "receive_blocks dlyvs" rest]
+      by auto
+    then have 31:"(sts[0 := (\<lambda>_. 0)(X := x + 1), 1 := end_of_blocks (sts[0 := (\<lambda>_. 0)(X := x + 1)] ! 1) 
+                 [InBlock (fst p) ''ch'' X (snd p) ({}, {''ch''})]])
+          = ?sts1"
+      by auto      
+    from 3 31 obtain rest2 where
+      4: "d = 0" "fst p = 0" "x + 1 = snd p" "combine_blocks ?sts1 [count_blocks (x + 1) restd, receive_blocks dlyvs] rest2"
+         "rest = (IOBlock 1 0 ''ch'' X (x + 1)) # rest2"
+         "(sts[0 := (\<lambda>_. 0)(X := x + 1), 1 := end_of_blocks (sts[0 := (\<lambda>_. 0)(X := x + 1)] ! 1) [InBlock (fst p) ''ch'' X (snd p) ({}, {''ch''})]])
+          = ?sts1"
+      using combine_blocks_IO2[of ?sts0 d "''ch''" "x+1" "({''ch''}, {})" "count_blocks (x + 1) restd"
+                   "fst p" "''ch''" X "snd p" "({}, {''ch''})" "receive_blocks dlyvs" rest] 
+      by auto
     obtain n where 5: "rest2 = comm_blocks (x + 1) n"
-      using 4(4) Cons1(1) by blast
-    then have 6: "par_blks = ParWaitBlock 0 # IOBlock 1 0 ''ch'' (x + 1) # comm_blocks (x + 1) n"
+      using 4  Cons1  by blast
+    then have 6: "par_blks = ParTauBlock 0 ((\<lambda>_. 0)(X := x + 1)) # IOBlock 1 0 ''ch'' X (x + 1) # comm_blocks (x + 1) n"
       using 3(2) unfolding 4(5) 4(3)[symmetric] by auto
     show ?thesis
       apply (rule exI[where x="Suc n"])
@@ -1817,8 +1866,9 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [count_blocks 0 dlys, receive_blocks dlyvs] par_blks"
-      using combine_par_traceE2 by blast
+      2: "combine_blocks sts_init [count_blocks 0 dlys, receive_blocks dlyvs] par_blks"
+      using combine_par_traceE2 sts_init_def 
+      by metis
     then obtain n where 3: "par_blks = comm_blocks 0 n"
       using testHL9_blocks by blast
     show ?thesis
@@ -1850,9 +1900,11 @@ lemma testHL11:
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
     (PProc [EChoice [(Send ''ch'' (\<lambda>_. 1), Wait 1), (Send ''ch2'' (\<lambda>_. 2), Wait 2)],
             Cm (Receive ''ch'' X)])
-    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1])"
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [IOBlock 1 0 ''ch'' X 1, ParWaitBlock 1 (\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] else undefined)])"
 proof -
-  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' 1, ParWaitBlock 1]"
+  let ?sts = "[(\<lambda>_. 0), (\<lambda>_. 0)]"
+  let ?HH = "(\<lambda>d. if 0 \<le> d \<and> d \<le> 1 then [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] else undefined)"
+  have 1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] [IOBlock 1 0 ''ch'' X 1, ParWaitBlock 1 ?HH]"
     if tr1: "tr1 = Trace (\<lambda>_. 0) [OutBlock dly1 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1]" and
        tr2: "tr2 = Trace (\<lambda>_. 0) [InBlock dly2 ''ch'' X v ({}, {''ch''})]" and
        rdy: "compat_trace_pair tr1 tr2" and
@@ -1861,15 +1913,16 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [[OutBlock dly1 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1],
+      2: "combine_blocks [\<lambda>_. 0, \<lambda>_. 0] [[OutBlock dly1 ''ch'' 1 ({''ch'', ''ch2''}, {}), WaitBlock 1],
                           [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 obtain rest where
-      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [[WaitBlock 1], []] rest"
-         "par_blks = (IOBlock 1 0 ''ch'' 1) # rest"
-      using combine_blocks_IO2 by blast
+      3: "dly1 = 0" "dly2 = 0" "v = 1" "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] [[WaitBlock 1], []] rest"
+         "par_blks = (IOBlock 1 0 ''ch'' X 1) # rest"
+      using combine_blocks_IO2[of "?sts" dly1 "''ch''" 1 " ({''ch'', ''ch2''}, {})" "[WaitBlock 1]" dly2 "''ch''" X v "({}, {''ch''})" "[]" par_blks]  
+      by auto
     from 3(4) obtain rest2 where
-      4: "combine_blocks [[], []] rest2" "rest = ParWaitBlock 1 # rest2"
+      4: "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] [[], []] rest2" "rest = ParWaitBlock 1 ?HH # rest2"
       using combine_blocks_WaitNil2 by blast
     from 4(1) have 5: "rest2 = []"
       using combine_blocks_triv2 by auto
@@ -1884,7 +1937,7 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [\<lambda>_. 0, \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [[OutBlock dly1 ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2],
+      2: "combine_blocks ?sts [[OutBlock dly1 ''ch2'' 2 ({''ch'', ''ch2''}, {}), WaitBlock 2],
                           [InBlock dly2 ''ch'' X v ({}, {''ch''})]] par_blks"
       using combine_par_traceE2 by blast
     from 2 show ?thesis
