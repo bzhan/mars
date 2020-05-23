@@ -372,11 +372,18 @@ definition ODEstate :: "ODE \<Rightarrow> real \<Rightarrow> state \<Rightarrow>
 
 text \<open>Projection of has_vector_derivative onto components.\<close>
 lemma has_vector_derivative_proj:
-  assumes "(p has_vector_derivative q t) (at t within D) "
-  shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D) "
+  assumes "(p has_vector_derivative q t) (at t within D)"
+  shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
   using assms unfolding has_vector_derivative_def has_derivative_def 
   apply (simp add: bounded_linear_scaleR_left)
   using tendsto_vec_nth by fastforce
+
+lemma has_vector_derivative_projI:
+  assumes "\<forall>i. ((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
+  shows "(p has_vector_derivative q t) (at t within D)"
+  using assms unfolding has_vector_derivative_def has_derivative_def
+  apply (auto simp add: bounded_linear_scaleR_left)
+  sorry
 
 text \<open>If the derivative is always 0, then the function is always 0.\<close>
 lemma mvt_real_eq:
@@ -1801,67 +1808,25 @@ proof-
     interpret loc:ll_on_open_it  "{-1<..}" "(\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
       apply standard
       apply auto
-      unfolding local_lipschitz_def state2vec_def vec2state_def fun_upd_def lipschitz_on_def
-      apply auto
-     subgoal premises pre1 for x t
-       apply (rule exI[where x="1"])
-       apply auto
-       subgoal premises pre2 for ta
-         apply (rule exI[where x="1"])
-         apply auto
-         subgoal premises pre3 for xa y
-         proof-
-           have 1:"(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) xa) else 0) = (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) y) else 0)"
-             by auto
-           have 2:" dist (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) xa) else 0)
-     (\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) y) else 0) = 0"
-             using 1 by simp
-           then show ?thesis  by (simp add: "2")
-         qed
-         done
-       done
-     done       
-   have step1:"((loc.flow 0 (state2vec(\<lambda>ch::char. 0))) usolves_ode (\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v)) from 0) (loc.existence_ivl 0 (state2vec(\<lambda>_. 0))) UNIV"
-     using loc.flow_usolves_ode[of "(state2vec(\<lambda>_. 0))"]
+      subgoal proof -
+        have 1: "(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v) else 0) = (\<chi> a. if a = X then 1 else 0)"
+          for v::vec
+          by auto
+        show ?thesis
+          unfolding state2vec_def vec2state_def fun_upd_def 1
+          by (rule local_lipschitz_constI)
+      qed
+      done
+    have step1: "(loc.flow 0 (state2vec (\<lambda>_. 0))
+                   usolves_ode
+                 (\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v)) from 0) (loc.existence_ivl 0 (state2vec(\<lambda>_. 0))) UNIV"
+     using loc.flow_usolves_ode[of "state2vec (\<lambda>_. 0)"]
      by auto
-   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..1} UNIV"
-     unfolding solves_ode_def has_vderiv_on_def has_vector_derivative_def
+   have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..1} UNIV"
+     unfolding solves_ode_def has_vderiv_on_def
      apply auto
-     unfolding state2vec_def vec2state_def fun_upd_def
-     unfolding has_derivative_iff_norm
-     apply auto
-     subgoal premises pre for x
-       unfolding bounded_linear_def 
-       apply simp
-       unfolding bounded_linear_axioms_def
-       apply auto
-       done
-     subgoal premises pre for x
-     proof-
-       have 1:"\<forall>i.((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-            (y - x) *\<^sub>R
-            (\<chi> xa. if xa = X
-                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                   else 0) ) $ i= 0 " for y 
-         by auto
-       have 2:"(\<forall>i. (v:: vec)$i = 0) \<Longrightarrow> norm v = 0" for v
-         apply simp 
-         by (simp add: vec_eq_iff)
-       have 3:"norm
-            ((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-              (y - x) *\<^sub>R
-              (\<chi> xa. if xa = X
-                    then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                     else 0)) = 0" for y
-         using 1[of y]  2[of "((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-          (y - x) *\<^sub>R
-          (\<chi> xa. if xa = X
-                  then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                  else 0))"]
-         by auto
-       then show ?thesis using pre by auto
-     qed
-     done
+     apply (rule has_vector_derivative_projI)
+     by (auto simp add: state2vec_def)
    have step3:"{0..1} \<subseteq> loc.existence_ivl 0 (state2vec(\<lambda>_. 0))"
      apply(rule loc.existence_ivl_maximal_interval[of "(\<lambda>t. state2vec((\<lambda>_. 0)(X := t)))"])
      using step2 unfolding state2vec_def by auto
