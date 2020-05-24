@@ -384,7 +384,7 @@ if __name__=='__main__':
         HP[th] = {}
         if isinstance(Annexs[th]['Discrete'], list):
             code = ' '.join(Annexs[th]['Discrete'])
-            var, state, trans = AP.createParser(code)
+            var, state, trans = AP.createParser(th, code)
             HP[th]['Discrete'] = str(AP.createHCSP(state, trans))
     print(HP)
 

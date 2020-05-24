@@ -205,7 +205,7 @@ class Process:
                Assign('run_now', AConst(0))]
 
         hps2 = []
-        if self.protocol == 'HPF':
+        if self.protocol == 'HPF'or self.protocol == 'RMS' or self.protocol == 'DMS':
             hps.append(Assign('run_prior', AConst(0)))
             if self.preempt:
                 for thread in self.threadlines:
@@ -214,6 +214,7 @@ class Process:
                 for thread in self.threadlines:
                     hps2.append(self._noPreemptPriority(thread))
             hps2.append((InputChannel('free'), self._changeActionPriority()))
+            hps2 = SelectComm(*hps2)
 
         elif self.protocol == 'FIFO':
             if self.preempt:
@@ -223,11 +224,53 @@ class Process:
                 for thread in self.threadlines:
                     hps2.append(self._noPreemptSequence(thread))
             hps2.append((InputChannel('free'), self._changeActionSequence()))
+            hps2 = SelectComm(*hps2)
 
-        hps2 = SelectComm(*hps2)
+        elif self.protocol == 'EDF':
+            hps2 = [Assign('t', AConst(10000))]
+            eqs = [('t', AConst(-1))]
+            constraint = RelExpr('>=', AVar('t'), AConst(0))
+            clock = ODE(eqs, constraint)
+            comms = []
+            for thread in self.threadlines:
+                comms.append(self._EDFscheduler(thread))
+            hps2.append((InputChannel('free'), self._changeActionEDF()))
+
+
+
         hps.append(Loop(hps2))
         hps = Sequence(*hps)
         self.lines.add('SCHEDULE_' + self.process_name, hps)
+
+
+    def _EDFscheduler(self, thread):
+        hps_con = InputChannel('ready_' + str(thread), 'new_t')
+        con1 = RelExpr('<=', AVar('t'), AVar('new_t'))
+        hp1 = Assign('run_queue',
+                     FunExpr('push', [AVar('run_queue'), ListExpr(AVar('new_t'), AConst('"' + str(thread) + '"'))]))
+        con2 = RelExpr('>', AVar('t'), AVar('new_t'))
+        hp2 = Sequence(self._BusyProcess(),
+                       Assign('run_now', AConst('"' + str(thread) + '"')),
+                       Assign('t', AVar('new_t')),
+                       OutputChannel('run_' + str(thread)))
+
+        hps = Sequence(Condition(con1, hp1), Condition(con2, hp2))
+
+        return (hps_con, hps)
+
+    def _changeActionEDF(self):
+        hps = [Assign('ready_num', FunExpr('len', [AVar('run_queue')]))]
+        con1 = RelExpr('==', AVar('ready_num'), AConst(0))
+        hp1 = Sequence(Assign('run_now', AConst(0)),
+                       Assign('t', AConst(10000)))
+
+        hp2 = Sequence(Assign(('t', 'run_now'), FunExpr('get_min', [AVar('run_queue')])),
+                       Assign('run_queue', FunExpr('pop_min', [AVar('run_queue')])),
+                       self._RunProcess())
+
+        hps.append(ITE([(con1, hp1)], hp2))
+        return Sequence(*hps)
+
 
     def _preemptPriority(self, thread):
         hps_con = InputChannel('ready_'+str(thread), 'prior')
@@ -338,9 +381,11 @@ class Process:
 
 
 class Thread:
-    def __init__(self, thread_name, thread, annex=False, sim=False,  resource_query=True):
+    def __init__(self, thread_name, thread, process_protocol, annex=False, sim=False,  resource_query=True):
         self.thread_name = thread_name
         self.parent_name = thread['parent']
+
+        self.process_protocol = process_protocol
         # Default parameters
         self.thread_protocol = 'Periodic'
         self.thread_priority = '0'
@@ -410,6 +455,18 @@ class Thread:
             elif feature['type'].lower() == 'parameter':
                 self.thread_parameter.append(feature['name'])
 
+        self.prior_parameter = 0
+        if self.process_protocol == 'FIFO':
+            self.prior_parameter = 0
+        elif self.process_protocol == 'HPF':
+            self.prior_parameter = int(self.thread_priority)
+        elif self.process_protocol == 'RMS':
+            self.prior_parameter = 1 / float(self.thread_period)
+        elif self.process_protocol == 'DMS':
+            self.prior_parameter = 1 / float(self.thread_deadline)
+        elif self.process_protocol == 'EDF':
+            self.prior_parameter = float(self.thread_deadline)
+
         # Create the process
         self.lines = HCSPProcess()
         self._createThread()
@@ -417,7 +474,7 @@ class Thread:
 
     def _createThread(self):
 
-        hps =[ Var('ACT_' + self.thread_name), Var('COM_' + self.thread_name)]
+        hps = [Var('ACT_' + self.thread_name), Var('COM_' + self.thread_name)]
         if self.annex:
             hps.append(Var('ANNEX_' + self.thread_name))
 
@@ -504,8 +561,8 @@ class Thread:
 
         com_hps = [Assign('state', AConst(state[0]))]
 
-        if int(self.thread_priority) > 0:
-            com_hps.append(Assign('prior', AConst(int(self.thread_priority))))
+        if self.prior_parameter > 0:
+            com_hps.append(Assign('prior', AConst(self.prior_parameter)))
 
         ## dispatch state ##
         dis_hps = Sequence(InputChannel('act_' + self.thread_name),
@@ -766,7 +823,7 @@ class Subprogram:
 
 def convert_AADL(json_file):
     out = HCSPProcess()
-
+    thr_proc ={}
     with open(json_file, 'r') as f:
         dic = json.load(f)
 
@@ -778,8 +835,22 @@ def convert_AADL(json_file):
             threadlines = []
             for com in category['components']:
                 if com['category'] == 'thread':
+                    if com['name'] not in thr_proc.keys():
+                        thr_proc[com['name']]=name
                     threadlines.append(com['name'])
-            out.extend(Process(name, category, threadlines).lines)
+            try:
+                for opa in category['opas']:
+                    if opa['name'] == "Deployment_Properties.Actual_Processor_Binding":
+                        map_id = opa['map_id']
+                        for component in dic[category['parent']]['components']:
+                            if component['id'] == map_id and component['category'] == 'processor':
+                                processor = component['name']
+                for opa in dic[processor]['opas']:
+                    if opa['name'] == "Deployment_Properties.Scheduling_Protocol":
+                        protocol = opa['value']
+                out.extend(Process(name, category, threadlines).lines, protocol=protocol)
+            except:
+                out.extend(Process(name, category, threadlines).lines)
 
         elif category['category'] == 'thread':
             annex_flag, sim_flag = False, False
@@ -788,10 +859,10 @@ def convert_AADL(json_file):
             if 'Sim' in category.keys():
                 sim_flag = True
             try:
-                block_flag = category ['block']
+                block_flag = category['block']
             except:
                 block_flag = False
-            out.extend(Thread(name, category, annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
+            out.extend(Thread(name, category, process_protocol=category['parent'], annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
 
         elif category['category'] == 'subprogram':
             annex_flag, sim_flag = False, False
