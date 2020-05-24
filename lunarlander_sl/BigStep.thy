@@ -28,6 +28,8 @@ definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 definition Z :: char where "Z = CHR ''z''"
 
+lemma vars_distinct: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z"
+  unfolding X_def Y_def Z_def by auto
 
 text \<open>Ready information.
   First component is set of channels that are ready to output.
@@ -805,44 +807,37 @@ lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lamb
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
   apply (rule ContB)
-  apply auto
-  apply (simp add: ODEsol_def state2vec_def fun_upd_def)
-  unfolding has_vderiv_on_def
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+  by (auto intro!: derivative_intros)
+
+text \<open>ODE Example 2\<close>
+lemma test11b: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+        (Trace (\<lambda>_. 0) [])
+        (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)) {0..1})])"
+  apply (rule ContB)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+   apply (auto simp: vars_distinct)
+  apply (rule has_vector_derivative_eq_rhs)
+     apply (auto intro!: derivative_intros)[1] apply simp
+  apply (rule has_vector_derivative_eq_rhs)
+    apply (auto intro!: derivative_intros)[1] apply simp
+  by (metis (full_types) less_1_mult less_eq_real_def mult_le_one mult_less_cancel_left1)
+
+text \<open>ODE Example 3\<close>
+lemma test11c: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+        (Trace ((\<lambda>_. 0)(X := 1)) [])
+        (Trace ((\<lambda>_. 0)(X := 1)) [ODEBlock (pi / 2) (restrict (\<lambda>t. (\<lambda>_. 0)(X := cos t, Y := sin t)) {0..pi / 2})])"
+  apply (rule ContB[where d="pi / 2"])
+       apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def vars_distinct)
+    apply (rule has_vector_derivative_projI)
+    apply (auto simp: vars_distinct)
+    apply (rule has_vector_derivative_eq_rhs)
   unfolding has_vector_derivative_def
-  unfolding has_derivative_iff_norm
-  apply auto
-  subgoal premises pre for x
-    unfolding bounded_linear_def 
-    apply simp
-    unfolding bounded_linear_axioms_def
-    apply auto
-    done
-  subgoal premises pre for x
-  proof-
-    have 1:"\<forall>i.((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-            (y - x) *\<^sub>R
-            (\<chi> xa. if xa = X
-                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                   else 0) ) $ i= 0 " for y 
-      by auto
-    have 2:"(\<forall>i. (v:: vec)$i = 0) \<Longrightarrow> norm v = 0" for v
-      apply simp 
-      by (simp add: vec_eq_iff)
-    have 3:"norm
-           ((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-            (y - x) *\<^sub>R
-            (\<chi> xa. if xa = X
-                   then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                   else 0)) = 0" for y
-      using 1[of y]  2[of "((\<chi> x. if x = X then y else 0) - (\<chi> xa. if xa = X then x else 0) -
-         (y - x) *\<^sub>R
-         (\<chi> xa. if xa = X
-                then (if xa = X then \<lambda>_. 1 else (\<lambda>_. 0)) (\<lambda>xa. if xa = X then x else 0)
-                else 0))"]
-      by auto
-    then show ?thesis using pre by auto
-  qed
-  done
+     apply (auto intro!: derivative_intros)[1] apply simp
+   apply (auto intro!: derivative_intros)[1]
+  sorry
 
 
 
@@ -1882,8 +1877,6 @@ proof -
         "p2 0 = (\<lambda>_. 0)"
       for p2 d2
   proof -
-    have "X \<noteq> Y"
-      unfolding X_def Y_def by auto
     interpret loc:ll_on_open_it "{-1<..}"
       "\<lambda>t v. ODE2Vec (ODE {X, Y} ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (vec2state v)" UNIV 0
       apply standard
@@ -1892,7 +1885,7 @@ proof -
         have 1: "(\<chi> a. if a = X \<or> a = Y then (if a = Y then \<lambda>s. s X else if a = X then (\<lambda>_. 2) else (\<lambda>_. 0)) (($) v) else 0) =
                  (\<chi> a. if a = X then 2 else if a = Y then v $ X else 0)"
           for v::vec
-          using \<open>X \<noteq> Y\<close> by auto
+          using vars_distinct by auto
         have 2: "bounded_linear ((\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"
           sorry
         show ?thesis
@@ -1909,7 +1902,7 @@ proof -
      unfolding solves_ode_def has_vderiv_on_def
      apply auto
      apply (rule has_vector_derivative_projI)
-     apply (auto simp add: state2vec_def \<open>X \<noteq> Y\<close>)
+     apply (auto simp add: state2vec_def vars_distinct)
      apply (rule has_vector_derivative_eq_rhs)
        apply (auto intro!: derivative_intros)[1]
      apply auto
