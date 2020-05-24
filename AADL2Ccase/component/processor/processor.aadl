@@ -32,4 +32,7 @@ SUBCOMPONENTS
     CACHE_PROPERTIES::SET_SIZE => 2;
     CACHE_PROPERTIES::CACHE_COHERENCY_PROTOCOL => Private_Invalid;
   };
+
+PROPERTIES
+  Scheduling_Protocol => EDF;
 END core.impl;
