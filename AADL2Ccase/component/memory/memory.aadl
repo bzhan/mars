@@ -1,11 +1,18 @@
 
-DEVICE LeadsInterface
-FEATURES
-  VentricleSense : OUT EVENT PORT Base_Types::Boolean;
-  VentriclePulse : IN EVENT PORT Base_Types::Boolean;
-  AtriumSense : OUT EVENT PORT Base_Types::Boolean;
-  AtriumPulse : IN EVENT PORT Base_Types::Boolean;
-END LeadsInterface;
+MEMORY l1_cache
+PROPERTIES
+	BYTE_COUNT => 8000;
+    LINE_SIZE => 32Bytes;
+    CACHE_TYPE => Instruction_Cache;
+    SET_ASSOCIATIVITY => Set_Associative;
+    WRITE_POLICY => No_Allocated_Write_Through;
+    REPLACEMENT_POLICY => LRR;
+    CACHE_LEVEL => 1;
+    SET_SIZE => 2;
+    CACHE_COHERENCY_PROTOCOL => Private_Invalid;
+
+END l1_cache;
+
 
 -- The device monitors and regulates a patient's heart rate.
 -- The device detects and provides therapy for bradycardia conditions.
