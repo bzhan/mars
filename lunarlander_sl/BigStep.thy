@@ -25,6 +25,8 @@ type_synonym var = char
 
 text \<open>Some common variables\<close>
 definition X :: char where "X = CHR ''x''"
+definition Y :: char where "Y = CHR ''y''"
+definition Z :: char where "Z = CHR ''z''"
 
 
 text \<open>Ready information.
@@ -1805,7 +1807,7 @@ proof-
        "p2 0 = (\<lambda>_. 0)"
      for p2 d2
   proof-
-    interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
+    interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
       apply standard
       apply auto
       subgoal proof -
@@ -1865,6 +1867,100 @@ proof-
     apply(rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
     using main by auto
 qed
+
+lemma testHL12b:
+  "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [])
+    (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) {0..1})])"
+proof -
+  have main: "restrict p2 {0..d2} = restrict (\<lambda>t. ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) {0..1} \<and> d2 = 1"
+    if cond: "0 \<le> d2"
+        "ODEsol (ODE {X, Y} ((\<lambda>_ _. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) p2 d2"
+        "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t Y < 1"
+        "\<not> p2 d2 Y < 1"
+        "p2 0 = (\<lambda>_. 0)"
+      for p2 d2
+  proof -
+    have "X \<noteq> Y"
+      unfolding X_def Y_def by auto
+    interpret loc:ll_on_open_it "{-1<..}"
+      "\<lambda>t v. ODE2Vec (ODE {X, Y} ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (vec2state v)" UNIV 0
+      apply standard
+      apply auto
+      subgoal proof -
+        have 1: "(\<chi> a. if a = X \<or> a = Y then (if a = Y then \<lambda>s. s X else if a = X then (\<lambda>_. 2) else (\<lambda>_. 0)) (($) v) else 0) =
+                 (\<chi> a. if a = X then 2 else if a = Y then v $ X else 0)"
+          for v::vec
+          using \<open>X \<noteq> Y\<close> by auto
+        have 2: "bounded_linear ((\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"
+          sorry
+        show ?thesis
+          unfolding state2vec_def vec2state_def fun_upd_def 1
+          apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"])
+             apply (auto simp add: bounded_linear_Blinfun_apply[OF 2])
+          subgoal premises pre for t x
+            sorry
+          done
+      qed
+      done
+    have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) solves_ode
+        ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X, Y} ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X)))(vec2state v)))) {0..1} UNIV"
+     unfolding solves_ode_def has_vderiv_on_def
+     apply auto
+     apply (rule has_vector_derivative_projI)
+     apply (auto simp add: state2vec_def \<open>X \<noteq> Y\<close>)
+     apply (rule has_vector_derivative_eq_rhs)
+       apply (auto intro!: derivative_intros)[1]
+     apply auto
+     apply (rule has_vector_derivative_eq_rhs)
+     apply (auto intro!: derivative_intros)[1]
+     by auto
+    have step4: "(loc.flow 0 (state2vec (\<lambda>_. 0))) t = (\<lambda>t. state2vec((\<lambda>_. 0)(X := 2 * t, Y := t * t))) t" if "t \<in> {0..1}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF step2])
+      using that by (auto simp add: state2vec_def)
+    have step5: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X, Y} ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X)))(vec2state v)))) {0..d2} UNIV"
+      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+    have step7: "loc.flow 0 (state2vec (\<lambda>_. 0)) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF step5])
+      using cond(1,5) that by auto
+    have step8: "1 \<le> d2"
+    proof (rule ccontr)
+      assume 0:" \<not> (1 \<le> d2)"
+      from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := 2 * t, Y := t * t))) d2 = (\<lambda>t. state2vec(p2 t)) d2"
+        using step4[of d2] step7[of d2] cond(1) by auto
+      from 1 have 2:"((\<lambda>_. 0)(X := 2 * d2, Y := d2 * d2)) = p2 d2"
+        unfolding state2vec_def by auto
+      have 3:"p2 d2 Y < 1" using 0 
+        unfolding 2[symmetric] apply simp using cond(1)
+        using mult_left_le_one_le by fastforce
+      have 4:"\<not> p2 d2 Y < 1" using cond(4) by auto
+      then show "False" using 3 by auto
+    qed
+    have step9: "1 \<ge> d2"
+    proof (rule ccontr)
+      assume 0:"\<not> d2 \<le> 1" 
+      from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := 2 * t, Y := t * t))) 1 = (\<lambda>t. state2vec(p2 t)) 1"
+        using step4[of "1"] step7[of "1"] cond(1) by auto
+      from 1 have 2:"((\<lambda>_. 0)(X := 2, Y := 1)) = p2 1"
+        unfolding state2vec_def by auto
+      have 3:"p2 1 Y < 1" using cond 0 by auto
+      have 4:"p2 1 Y = 1" using 2 unfolding fun_upd_def
+        by (metis 2 fun_upd_same)
+      show "False" using 3 and 4 by auto
+    qed
+    have step10: "d2 = 1" using step8 step9 by auto
+    have step11: "t\<in>{0..1} \<Longrightarrow> (p2 t) = ((\<lambda>_. 0)(X := 2 * t, Y := t * t))" for t
+      using step4 step7 step10 by (metis vec_state_map1)
+    have step12: "restrict p2 {0..d2} = restrict (\<lambda>t. ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) {0..1}"
+      using step10 step11 unfolding restrict_def by auto
+    show ?thesis using step10 step12 by auto
+  qed
+  show ?thesis
+    apply (rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)"])
+    using main by auto
+qed
+
 
 text \<open>Example with parallel, loop, and ODE\<close>
 
