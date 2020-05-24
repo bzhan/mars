@@ -814,15 +814,15 @@ lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lamb
 text \<open>ODE Example 2\<close>
 lemma test11b: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace (\<lambda>_. 0) [])
-        (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)) {0..1})])"
+        (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t ^ 2)) {0..1})])"
   apply (rule ContB)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
   apply (rule has_vector_derivative_projI)
    apply (auto simp: vars_distinct)
   apply (rule has_vector_derivative_eq_rhs)
      apply (auto intro!: derivative_intros)[1] apply simp
-  apply (rule has_vector_derivative_eq_rhs)
-    apply (auto intro!: derivative_intros)[1] apply simp
+   apply (rule has_vector_derivative_eq_rhs)
+    unfolding power2_eq_square apply (auto intro!: derivative_intros)[1] apply simp
   by (metis (full_types) less_1_mult less_eq_real_def mult_le_one mult_less_cancel_left1)
 
 text \<open>ODE Example 3\<close>
@@ -1889,6 +1889,7 @@ proof -
         show ?thesis
           unfolding state2vec_def vec2state_def fun_upd_def 1
           apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"])
+          (* function maps (x, y) to (2, x) *)
              apply (auto simp add: bounded_linear_Blinfun_apply[OF 2])
           subgoal premises pre for t x
             sorry
@@ -1957,10 +1958,20 @@ lemma testHL12inv:
   "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
     (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
-    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y) \<and> t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})))"
+    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y) \<and>
+               t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})))"
   apply (rule Valid_ode_invariant)
-  apply (auto simp add: vec2state_def)[1]
+   apply (auto simp add: vec2state_def)[1]
   sorry
+
+lemma "((\<lambda>x. x * x) has_vector_derivative (2 * x)) (at x)"
+  apply (rule has_vector_derivative_eq_rhs)
+   apply (auto intro!: derivative_intros)[1]
+  by simp
+
+schematic_goal "((\<lambda>v. v $ X * v $ X + v $ Y * v $ Y) has_derivative ?g') (at x)"
+  sorry
+
 
 text \<open>Example with parallel, loop, and ODE\<close>
 
