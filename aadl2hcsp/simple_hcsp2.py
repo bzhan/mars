@@ -455,6 +455,7 @@ class Thread:
             elif feature['type'].lower() == 'parameter':
                 self.thread_parameter.append(feature['name'])
 
+        self.prior_parameter = 0
         if self.process_protocol == 'FIFO':
             self.prior_parameter = 0
         elif self.process_protocol == 'HPF':
@@ -822,7 +823,7 @@ class Subprogram:
 
 def convert_AADL(json_file):
     out = HCSPProcess()
-
+    thr_proc ={}
     with open(json_file, 'r') as f:
         dic = json.load(f)
 
@@ -834,6 +835,8 @@ def convert_AADL(json_file):
             threadlines = []
             for com in category['components']:
                 if com['category'] == 'thread':
+                    if com['name'] not in thr_proc.keys():
+                        thr_proc[com['name']]=name
                     threadlines.append(com['name'])
             try:
                 for opa in category['opas']:
@@ -859,7 +862,7 @@ def convert_AADL(json_file):
                 block_flag = category['block']
             except:
                 block_flag = False
-            out.extend(Thread(name, category, annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
+            out.extend(Thread(name, category, process_protocol=category['parent'], annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
 
         elif category['category'] == 'subprogram':
             annex_flag, sim_flag = False, False
