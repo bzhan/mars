@@ -986,7 +986,6 @@ theorem Valid_ode_unique_solution:
       (\<lambda>t. t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
   sorry
 
-thm continuous_on_TimesI
 
 text \<open>Hoare triple for ODE with non-unique solutions\<close>
 theorem Valid_ode_all_solution:
@@ -1044,7 +1043,7 @@ text \<open>Differential invariant rule\<close>
 lemma Valid_ode_invariant:
   fixes inv :: "state \<Rightarrow> real"
   assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (vec2state x)) (at x within UNIV)"
-      and "\<forall>S. g' (S) (ODE2Vec ode (S)) = 0"
+      and "\<forall>S. g' S (ODE2Vec ode S) = 0"
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
@@ -1053,22 +1052,21 @@ lemma Valid_ode_invariant:
   apply auto
   subgoal premises pre for d p t
   proof-
-    have 1:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))) (at t within {0 .. d})"
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
       using pre assms
       using chainrule[of inv g' ode p d] 
       by auto
-    have 2:"\<forall>s. g' (p t) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (1 *\<^sub>RODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
+    have 2: "\<forall>s. g' (p t) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
       using 1 unfolding has_derivative_def bounded_linear_def 
-      using ran
-      using linear_iff[of "(\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      using that linear_iff[of "(\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))"]
       by blast
-    have 3:"\<forall>s. (s *\<^sub>R 1) = s" by simp
-    have 4:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (ODE2Vec ode (p t))" if ran:"t\<in>{0 .. d}" for t
-      using 2 3 ran by auto
-    have 5:"\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t))= 0"  if ran:"t\<in>{0 .. d}" for t
-      using 4 assms(2) ran by simp 
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 .. d}" for t
+      using 4 assms(2) that by simp 
     show ?thesis
-      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (p t) (s *\<^sub>RODE2Vec ode (p t)))" t]
+      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))" t]
       using 1 5 pre by auto
   qed
   done
@@ -1954,6 +1952,15 @@ proof -
     using main by auto
 qed
 
+
+lemma testHL12inv:
+  "Valid
+    (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
+    (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y) \<and> t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})))"
+  apply (rule Valid_ode_invariant)
+  apply (auto simp add: vec2state_def)[1]
+  sorry
 
 text \<open>Example with parallel, loop, and ODE\<close>
 
