@@ -6,8 +6,7 @@
 #include <time.h>
 #include <string.h>
 #include <math.h>
-#include "isolette.h"
-#include "rtwtypes.h"
+
 
 /** type struct definition of components 
 ------------------------------------------------------
@@ -26,19 +25,36 @@ typedef struct Process
     Thread** threadGroup;
 } Process;
 
+//GLobal Port Management
+float process_calculator_operand1;
+float process_calculator_operand2;
+bool process_calculator_add;
+bool process_calculator_sub;
+bool process_calculator_mul;
+bool process_calculator_div;
+bool process_calculator_mod;
+bool process_calculator_rem;
+bool process_calculator_rnd;
+bool process_calculator_fac;
+bool process_calculator_pow;
+bool process_calculator_ln;
+bool process_calculator_log;
+bool process_calculator_exp;
+bool process_calculator_sin;
+bool process_calculator_cos;
+bool process_calculator_tan;
+float process_calculator_result;
+
 
 
 int main()
 {
-    Process *heatSW = (Process *)malloc(sizeof(Process));
-    heatSW->processNum = 1;
-    heatSW->numberOfThread = 3;
-    heatSW->processName = "heatSW";
-    heatSW->scheduling_protocol = "HPF";
-    heatSW->threadGroup = (Thread **)malloc(3 * sizeof(Thread*));
-    heatSW->threadGroup[0] = actuator;
-    heatSW->threadGroup[1] = controller;
-    heatSW->threadGroup[2] = sensor;
-
+    Process *calculator = (Process *)malloc(sizeof(Process));
+    calculator->processNum = 1;
+    calculator->numberOfThread = 1;
+    calculator->processName = "calculator";
+    calculator->scheduling_protocol = "HPF";
+    calculator->threadGroup = (Thread **)malloc(1 * sizeof(Thread*));
+    calculator->threadGroup[0] = calc;
 
 }
