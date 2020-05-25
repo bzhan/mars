@@ -191,7 +191,7 @@ class Abstract:
 
 
 class Process:
-    def __init__(self, process_name, process, threadlines, protocol='FIFO', preempt=True, preempt_threads=["serverT"]):
+    def __init__(self, process_name, process, threadlines, protocol='', preempt=True, preempt_threads=["serverT"]):
         self.threadlines = threadlines
         self.protocol = protocol
         self.process_name = process_name
@@ -205,7 +205,7 @@ class Process:
                Assign('run_now', AConst(0))]
 
         hps2 = []
-        if self.protocol == 'HPF'or self.protocol == 'RMS' or self.protocol == 'DMS':
+        if self.protocol == 'HPF' or self.protocol == 'RMS' or self.protocol == 'DMS':
             hps.append(Assign('run_prior', AConst(0)))
             if self.preempt:
                 for thread in self.threadlines:
@@ -227,16 +227,14 @@ class Process:
             hps2 = SelectComm(*hps2)
 
         elif self.protocol == 'EDF':
-            hps2 = [Assign('t', AConst(10000))]
+            hps.append(Assign('t', AConst(10000)))
             eqs = [('t', AConst(-1))]
             constraint = RelExpr('>=', AVar('t'), AConst(0))
-            clock = ODE(eqs, constraint)
             comms = []
             for thread in self.threadlines:
                 comms.append(self._EDFscheduler(thread))
-            hps2.append((InputChannel('free'), self._changeActionEDF()))
-
-
+            comms.append((InputChannel('free'), self._changeActionEDF()))
+            hps2 = ODE_Comm(eqs,constraint, comms)
 
         hps.append(Loop(hps2))
         hps = Sequence(*hps)
@@ -255,7 +253,6 @@ class Process:
                        OutputChannel('run_' + str(thread)))
 
         hps = Sequence(Condition(con1, hp1), Condition(con2, hp2))
-
         return (hps_con, hps)
 
     def _changeActionEDF(self):
@@ -263,11 +260,10 @@ class Process:
         con1 = RelExpr('==', AVar('ready_num'), AConst(0))
         hp1 = Sequence(Assign('run_now', AConst(0)),
                        Assign('t', AConst(10000)))
-
-        hp2 = Sequence(Assign(('t', 'run_now'), FunExpr('get_min', [AVar('run_queue')])),
-                       Assign('run_queue', FunExpr('pop_min', [AVar('run_queue')])),
-                       self._RunProcess())
-
+        hp2 = [Assign(('t', 'run_now'), FunExpr('get_min', [AVar('run_queue')])),
+               Assign('run_queue', FunExpr('pop_min', [AVar('run_queue')]))]
+        hp2.append(self._RunProcess())
+        hp2=Sequence(*hp2)
         hps.append(ITE([(con1, hp1)], hp2))
         return Sequence(*hps)
 
@@ -423,7 +419,7 @@ class Thread:
                     self.thread_deadline = opa['value']
 
                 elif opa['name'] == 'Timing_Properties.Period':
-                    self.thread_period = opa['value']
+                    self.thread_period = float(opa['value'])
 
                 elif opa['name'] == 'Timing_Properties.Compute_Execution_Time':
                     self.thread_min_time = opa['value'][0]
@@ -435,8 +431,8 @@ class Thread:
             self.thread_max_time = 0.001*float(self.thread_max_time)
         else:
             self.thread_min_time = 0
-            self.thread_max_time = 0.001 * float(self.thread_period)
-        self.thread_period = 0.001 * float(self.thread_period)
+            self.thread_max_time = 0.001* self.thread_period
+        self.thread_period = self.thread_period/1000
         self.thread_deadline = max(0.001*float(self.thread_deadline), self.thread_period)
 
 
@@ -455,16 +451,17 @@ class Thread:
             elif feature['type'].lower() == 'parameter':
                 self.thread_parameter.append(feature['name'])
 
+        self.prior_parameter = 0
         if self.process_protocol == 'FIFO':
             self.prior_parameter = 0
         elif self.process_protocol == 'HPF':
-            self.prior_parameter = int(self.thread_priority)
+            self.prior_parameter = round(float(self.thread_priority),5)
         elif self.process_protocol == 'RMS':
-            self.prior_parameter = 1 / float(self.thread_period)
+            self.prior_parameter = round(1.0 / float(self.thread_period),5)
         elif self.process_protocol == 'DMS':
-            self.prior_parameter = 1 / float(self.thread_deadline)
+            self.prior_parameter = round(1.0 / float(self.thread_deadline),5)
         elif self.process_protocol == 'EDF':
-            self.prior_parameter = float(self.thread_deadline)
+            self.prior_parameter = round(float(self.thread_deadline),5)
 
         # Create the process
         self.lines = HCSPProcess()
@@ -472,7 +469,6 @@ class Thread:
 
 
     def _createThread(self):
-
         hps = [Var('ACT_' + self.thread_name), Var('COM_' + self.thread_name)]
         if self.annex:
             hps.append(Var('ANNEX_' + self.thread_name))
@@ -571,7 +567,7 @@ class Thread:
                            Assign('state', AConst(state[1])))
 
         ## ready state ##
-        if int(self.thread_priority) > 0:
+        if self.prior_parameter > 0:
             ready_hps = [OutputChannel('ready_' + self.thread_name, AVar('prior'))]
         else:
             ready_hps = [OutputChannel('ready_' + self.thread_name)]
@@ -822,7 +818,7 @@ class Subprogram:
 
 def convert_AADL(json_file):
     out = HCSPProcess()
-
+    thr_proc ={}
     with open(json_file, 'r') as f:
         dic = json.load(f)
 
@@ -834,6 +830,8 @@ def convert_AADL(json_file):
             threadlines = []
             for com in category['components']:
                 if com['category'] == 'thread':
+                    if com['name'] not in thr_proc.keys():
+                        thr_proc[com['name']]=name
                     threadlines.append(com['name'])
             try:
                 for opa in category['opas']:
@@ -845,9 +843,12 @@ def convert_AADL(json_file):
                 for opa in dic[processor]['opas']:
                     if opa['name'] == "Deployment_Properties.Scheduling_Protocol":
                         protocol = opa['value']
-                out.extend(Process(name, category, threadlines).lines, protocol=protocol)
-            except:
-                out.extend(Process(name, category, threadlines).lines)
+                out.extend(Process(name, category, threadlines, protocol=protocol).lines)
+
+            except Exception as e:
+                print(e)
+                #out.extend(Process(name, category, threadlines).lines)
+
 
         elif category['category'] == 'thread':
             annex_flag, sim_flag = False, False
@@ -859,7 +860,21 @@ def convert_AADL(json_file):
                 block_flag = category['block']
             except:
                 block_flag = False
-            out.extend(Thread(name, category, annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
+            try:
+                for opa in dic[category['parent']]['opas']:
+                    if opa['name'] == "Deployment_Properties.Actual_Processor_Binding":
+                        map_id = opa['map_id']
+                        for component in dic[dic[category['parent']]['parent']]['components']:
+                            if component['id'] == map_id and component['category'] == 'processor':
+                                processor = component['name']
+                for opa in dic[processor]['opas']:
+                    if opa['name'] == "Deployment_Properties.Scheduling_Protocol":
+                        protocol = opa['value']
+            except Exception as e:
+                pass
+
+            out.extend(Thread(name, category, process_protocol=protocol,\
+                              annex=annex_flag, sim=sim_flag, resource_query= block_flag).lines)
 
         elif category['category'] == 'subprogram':
             annex_flag, sim_flag = False, False
