@@ -1195,7 +1195,23 @@ theorem Valid_ode_solution3:
      (\<lambda>t. t = tr)
      (Cont ode b)
      Q"
-  sorry
+proof-
+  have main: "restrict p2 {0..d2} = restrict (\<lambda>t. end_of_trace tr) {0..0} \<and> d2 = 0"
+    if cond: "0 \<le> d2"
+       "ODEsol ode p2 d2"
+       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t)"
+       "\<not> b (p2 d2)"
+       "p2 0 = (end_of_trace tr)"
+     for p2 d2
+  proof-
+    have "d2\<le>0" using cond(3) cond(5) assms(1) by auto
+    then have "d2=0" using cond(1) by auto
+    then show ?thesis using cond(5) by auto
+  qed
+  show ?thesis 
+    apply(rule Valid_ode_solution2[where d=0 and p="(\<lambda>t. end_of_trace tr)"]) 
+    using main assms by auto
+qed
 
 text \<open>Version of Valid_parallel with arbitrary post-condition\<close>
 theorem Valid_parallel':
@@ -1871,7 +1887,7 @@ qed
 
 
 lemma testHL12':
-  assumes d1:"v<1"
+  assumes d1:"(v::real) < 1"
       and d2:"end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
@@ -1912,7 +1928,7 @@ proof-
    have step1:"((loc.flow 0 (state2vec((\<lambda>_. 0)(X := v)))) usolves_ode (\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v)) from 0) (loc.existence_ivl 0 (state2vec((\<lambda>_. 0)(X := v)))) UNIV"
      using loc.flow_usolves_ode[of "(state2vec((\<lambda>_. 0)(X := v)))"]
      by auto
-   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..1} UNIV"
+   have step2:"((\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..} UNIV"
      unfolding solves_ode_def has_vderiv_on_def has_vector_derivative_def
      apply auto
      unfolding state2vec_def vec2state_def fun_upd_def
@@ -1950,12 +1966,12 @@ proof-
        then show ?thesis using pre by auto
      qed
      done
-   have step3:"{0..1} \<subseteq> loc.existence_ivl 0 (state2vec((\<lambda>_. 0)(X :=v)))"
+   have step3:"{0..} \<subseteq> loc.existence_ivl 0 (state2vec((\<lambda>_. 0)(X :=v)))"
      apply(rule loc.existence_ivl_maximal_interval[of "(\<lambda>t. state2vec((\<lambda>_. 0)(X :=v+t)))"])
      using step2 unfolding state2vec_def d1 by auto
-   have step4:"t\<in>{0..1} \<Longrightarrow>(\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) t = (loc.flow 0 (state2vec((\<lambda>_. 0)(X :=v)))) t" for t 
+   have step4:"t\<in>{0..} \<Longrightarrow>(\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) t = (loc.flow 0 (state2vec((\<lambda>_. 0)(X :=v)))) t" for t 
      subgoal premises pre 
-     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec((\<lambda>_. 0)(X :=v)))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec ((\<lambda>_. 0)(X:=v))))" "UNIV" "{0..1}" " (\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t)))" t])
+     apply (rule usolves_odeD(4)[of "loc.flow 0 (state2vec((\<lambda>_. 0)(X :=v)))" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "0" "(loc.existence_ivl 0 (state2vec ((\<lambda>_. 0)(X:=v))))" "UNIV" "{0..}" " (\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t)))" t])
        subgoal using step1 by auto
        subgoal by auto
        subgoal by auto
@@ -1994,41 +2010,55 @@ proof-
        qed
        done
      done
-   have step8:"1 \<le> d2" 
+   have step8:"1-v \<le> d2" 
     proof(rule ccontr)
-     assume 0:" \<not> (1 \<le> d2)"
-     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) d2 = (\<lambda>t. state2vec(p2 t)) d2"
-       using step4[of d2] step7[of d2] cond(1) 
-     from 1 have 2:"((\<lambda>_. 0)(X := d2)) = p2 d2"
+     assume 0:" \<not> (1-v \<le> d2)"
+     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) d2 = (\<lambda>t. state2vec(p2 t)) d2"
+       using step4[of d2] step7[of d2] cond(1) by auto 
+     from 1 have 2:"((\<lambda>_. 0)(X := v+d2)) = p2 d2"
        unfolding state2vec_def by auto
      from 2 have 3:"p2 d2 X < 1" using 0 
-       by (metis fun_upd_same less_eq_real_def linorder_neqE_linordered_idom)
+       by (smt fun_upd_apply)
      have 4:"\<not> p2 d2 X < 1" using cond(4) by auto
      then show "False" using 3 by auto
    qed
-   have step9:"1 \<ge> d2"
+   have step9:"1-v \<ge> d2"
    proof(rule ccontr)
-     assume 0:"\<not> d2 \<le> 1" 
-     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := t))) 1 = (\<lambda>t. state2vec(p2 t)) 1"
-       using step4[of "1"] step7[of "1"] cond(1) by auto
-     from 1 have 2:"((\<lambda>_. 0)(X := 1)) = p2 1"
+     assume 0:"\<not> d2 \<le> 1-v" 
+     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := v+t))) (1-v) = (\<lambda>t. state2vec(p2 t)) (1-v)"
+       using step4[of "1-v"] step7[of "1-v"] cond(1) d1 by auto
+     from 1 have 2:"((\<lambda>_. 0)(X := 1)) = p2 (1-v)"
        unfolding state2vec_def by auto
-     have 3:"p2 1 X < 1" using cond 0 by auto
-     have 4:"p2 1 X = 1" using 2 unfolding fun_upd_def
+     have 3:"p2 (1-v) X < 1" using cond 0 d1 by auto
+     have 4:"p2 (1-v) X = 1" using 2 unfolding fun_upd_def
        by (metis "2" fun_upd_same)
      show "False" using 3 and 4 by auto
    qed
-   have step10:"d2 = 1" using step8 step9 by auto
-   have step11:"t\<in>{0..1} \<Longrightarrow> (p2 t) =  ((\<lambda>t. (\<lambda>_. 0)(X := t)) t)" for t
+   have step10:"d2 = 1-v" using step8 step9 by auto
+   have step11:"t\<in>{0..1-v} \<Longrightarrow> (p2 t) =  ((\<lambda>t. (\<lambda>_. 0)(X := t+v)) t)" for t
      using step4 step7 step10
-     sorry
-   have step12:"restrict p2 {0..d2} = restrict (fun_upd (\<lambda>_. 0) X) {0..1}"
+     by (smt atLeastAtMost_iff atLeast_iff vec_state_map1)
+   have step12:"restrict p2 {0..d2} = restrict (\<lambda>t. (\<lambda>_. 0)(X := t+v)) {0..1-v}"
      using step10 step11 unfolding restrict_def by auto
     show ?thesis using step10 step12 by auto
   qed
-   show ?thesis
-    apply(rule Valid_ode_solution2[where d=1 and p="\<lambda>t. (\<lambda>_. 0)(X := t)"])
-     sorry
+  have main1: "restrict p2 {0..d2} = restrict(\<lambda>t. (\<lambda>_. 0)(X := v+t)){0..1-v}\<and> d2 = 1-v"
+    if cond:"0 \<le> d2"
+       "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p2 d2"
+       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X < 1"
+       "\<not> p2 d2 X < 1"
+       "p2 0 = end_of_trace (Trace (\<lambda>_. 0) list)"
+     for p2 d2
+  proof-
+    have "p2 0 = (\<lambda>_. 0)(X:=v)" using cond d2 by auto
+    then show ?thesis using main[of d2 p2] cond
+      by (smt restrict_ext)
+  qed
+  show ?thesis
+    apply(rule Valid_ode_solution2[where d="1-v" and p="\<lambda>t. (\<lambda>_. 0)(X := v+t)"])
+    subgoal using main1  d1 by auto
+    unfolding fun_upd_def apply auto
+    by (meson add.commute)   
  qed
 
 
@@ -2222,6 +2252,24 @@ else  ODEBlock 0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := x)){0..0}) #
       OutBlock dly1 ''ch'' x ({''ch''}, {}) # 
       InBlock dly2 ''ch'' X v ({}, {''ch''}) #left_blocks v rest)"
 
+lemma left_blocks_snoc: 
+  assumes "length dlys > 0"
+      and "x = fst(snd(last dlys))"
+    shows "left_blocks n (dlys @ [(dly1, v, dly2)]) = left_blocks n dlys @ (if x<1 then
+      [ODEBlock (1-x) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..1-x}),
+      OutBlock dly1 ''ch'' 1 ({''ch''}, {}), 
+      InBlock dly2 ''ch'' X v ({}, {''ch''})]
+else  [ODEBlock 0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := x)){0..0}),
+      OutBlock dly1 ''ch'' x ({''ch''}, {}), 
+      InBlock dly2 ''ch'' X v ({}, {''ch''})])"
+  using assms
+  apply auto
+  subgoal
+    apply(induct dlys arbitrary:n)
+    by auto
+  apply(induct dlys arbitrary:n)
+  by auto
+
 lemma end_left_blocks:
   "end_of_blocks ((\<lambda>_. 0)(X := v)) (left_blocks v dlys) = (if length dlys = 0 then (\<lambda>_. 0)(X := v) else (\<lambda>_. 0)(X := fst (snd (last dlys))))" 
   apply (induct dlys arbitrary: v)
@@ -2237,7 +2285,21 @@ proof -
     apply (subst end_left_blocks)
     by auto
 qed
+lemma end_left_blocks_1:
+  "end_of_blocks ((\<lambda>_. 0)(X := v)) ((left_blocks v dlys)@[ODEBlock d (restrict p {0..d})]) = restrict p {0..d} d" 
+  apply (induct dlys arbitrary: v)
+  by auto
 
+lemma end_left_blocks_1_init:
+  "end_of_blocks ((\<lambda>_. 0)) ((left_blocks 0 dlys)@[ODEBlock d (restrict p {0..d})]) = restrict p {0..d} d" 
+proof-  
+  have 1: "(\<lambda>_. 0) = (\<lambda>_. 0)(X := 0)"
+    by auto
+  show ?thesis
+    apply (subst 1)
+    apply (subst end_left_blocks_1)
+    by auto
+qed
 lemma cond:
   assumes "b \<Longrightarrow> Valid P c Q1"
       and "\<not>b \<Longrightarrow> Valid P c Q2"
@@ -2252,7 +2314,7 @@ lemma testHL13a:
     (Rep ((Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks  0 dlyvs))"
 proof -
-  have 3:"Valid
+  have main:"Valid
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
     (Rep ((Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))"
@@ -2308,19 +2370,139 @@ proof -
       have 2:"Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 x))
     (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))" if cond1:"v<1"
-        sorry
+    (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))" 
+        if cond1:"v<1"
+        using testHL12' cond1 ini end_left_blocks_init c2 by auto
+      have 3:"Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))
+    (Cm (Send ''ch'' (\<lambda>s. s X )))
+    (\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v}),OutBlock dly1 ''ch'' 1 ({''ch''}, {})]))"
+        if cond1:"v<1"
+        apply(rule Valid_send2)
+        apply auto
+        subgoal for dly
+          apply(rule exI[where x="dly"])
+          unfolding extend_send_def apply auto
+          using cond1 end_left_blocks_1_init by auto
+        done
+      have 4:"Valid
+      (\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v}),OutBlock dly1 ''ch'' 1 ({''ch''}, {})]))
+      (Cm (Receive ''ch'' X))
+      (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
+        if cond1:"v<1"
+        apply(simp only:Valid_ex_pre)
+        apply auto
+        subgoal for dly1
+          apply(rule Valid_receive2)
+          apply auto
+          subgoal for dly va 
+            apply(rule exI[where x= "x@[(dly1,va,dly)]"])
+            using c2 ini cond1 left_blocks_snoc[of x v 0 dly1 va dly]
+            unfolding extend_receive_def by auto
+          done
+        done
+      have 5:" Valid (\<lambda>tr. tr = Trace (\<lambda>_. 0) (left_blocks 0 x))
+     ((Cont (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
+        (\<lambda>s. s X < 1); Cm (''ch''[!](\<lambda>s. s X))); Cm (''ch''[?]X))
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
+        if cond1:"v<1"
+        apply(rule Valid_seq[where Q="(\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v}),OutBlock dly1 ''ch'' 1 ({''ch''}, {})]))"])
+         defer
+        subgoal using 4 cond1 by auto
+        apply(rule Valid_seq[where Q="(\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))"])
+        using 2 3 cond1 by auto
+     have 6:"Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 x))
+    (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0})]))" 
+       if cond2:"v\<ge>1"
+       apply(rule Valid_ode_solution3) 
+       using cond2 ini end_left_blocks_init c2 by auto
+     have 7:"Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0})]))
+    (Cm (Send ''ch'' (\<lambda>s. s X )))
+    (\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0}),OutBlock dly1 ''ch'' v ({''ch''}, {})]))"
+       if cond2:"v\<ge>1"
+       apply(rule Valid_send2)
+       apply auto
+       subgoal for dly
+         apply(rule exI[where x="dly"])
+         unfolding extend_send_def apply auto
+         using cond2 end_left_blocks_1_init[of x 0 "(\<lambda>t\<in>{0}. (\<lambda>_. 0)(X := v))"] by auto
+       done
+      have 8:"Valid
+      (\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0}),OutBlock dly1 ''ch'' v ({''ch''}, {})]))
+      (Cm (Receive ''ch'' X))
+      (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
+        if cond2:"v\<ge>1"
+        apply(simp only:Valid_ex_pre)
+        apply auto
+        subgoal for dly1
+          apply(rule Valid_receive2)
+          apply auto
+          subgoal for dly va 
+            apply(rule exI[where x= "x@[(dly1,va,dly)]"])
+            using c2 ini cond2 left_blocks_snoc[of x v 0 dly1 va dly]
+            unfolding extend_receive_def by auto
+          done
+        done
+      have 9:" Valid (\<lambda>tr. tr = Trace (\<lambda>_. 0) (left_blocks 0 x))
+     ((Cont (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
+        (\<lambda>s. s X < 1); Cm (''ch''[!](\<lambda>s. s X))); Cm (''ch''[?]X))
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
+        if cond2:"v\<ge>1"
+        apply(rule Valid_seq[where Q="(\<lambda>t. \<exists>dly1. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0}),OutBlock dly1 ''ch'' v ({''ch''}, {})]))"])
+         defer
+        subgoal using 8 cond2 by auto
+        apply(rule Valid_seq[where Q="(\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 x)@[ODEBlock  0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0})]))"])
+        using 6 7 cond2 by auto
       show ?thesis
-        sorry
+        using 5 9 by linarith
     qed
     done
   show ?thesis
-    sorry
-qed
-       
- 
+    apply (rule Valid_pre[OF _ main])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
+qed       
 
 
+fun tot_blocks :: "nat \<Rightarrow> par_block list" where
+  "tot_blocks 0 = []"
+| "tot_blocks (Suc n) = ParWaitBlock 1 # IOBlock 1 0 ''ch'' 1 # IOBlock 0 1 ''ch'' 0 # tot_blocks  n"
+
+lemma testHL13_blocks:
+  "combine_blocks [left_blocks 0 dlys, right_blocks dlyvs] par_blks \<Longrightarrow>
+   \<exists>n. par_blks = tot_blocks n"
+proof(induct dlyvs arbitrary: dlys par_blks)
+  case Nil
+  note Nil1 = Nil
+  then show ?case
+  proof(cases dlys)
+     case Nil
+     show ?thesis 
+       apply (rule exI[where x=0])
+       using Nil1[unfolded Nil]  combine_blocks_triv2 by auto
+   next
+     case (Cons a list)
+     then show ?thesis 
+       using Nil1 apply auto
+       using combine_blocks_TauNil2 combine_blocks_OutNil by blast
+   qed
+ next
+   case (Cons a dlyvs)
+   note Cons1 = Cons
+   then show ?case
+    proof (cases dlys)
+      case Nil
+      then show ?thesis 
+        using Cons1(2) apply (cases a) apply auto
+        using combine_blocks_NilIn by blast
+    next
+      case (Cons b list)
+      then show ?thesis sorry
+    qed
 
 
 (*lemma testHL13:
