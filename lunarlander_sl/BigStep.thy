@@ -864,6 +864,10 @@ theorem Valid_ex_pre:
   "Valid (\<lambda>tr. \<exists>x. P x tr) c Q \<longleftrightarrow> (\<forall>x. Valid (P x) c Q)"
   unfolding Valid_def by auto
 
+theorem Valid_and_pre:
+  "Valid (\<lambda>t. P t \<and> P2) c Q \<longleftrightarrow> (P2 \<longrightarrow> (Valid P c Q))"
+  unfolding Valid_def by auto
+
 
 inductive_cases assignE: "big_step (Assign var e) tr tr2"
 thm assignE

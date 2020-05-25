@@ -5,10 +5,6 @@ theory BouncingBall
 begin
 
 
-theorem Valid_and_pre:
-  "Valid (\<lambda>t. P t \<and> P2) c Q \<longleftrightarrow> (P2 \<longrightarrow> (Valid P c Q))"
-  unfolding Valid_def by auto
-
 text \<open>From Derivs in AFP/Green.\<close>
 lemma has_vector_derivative_divide[derivative_intros]:
   fixes a :: "'a::real_normed_field"
@@ -157,7 +153,7 @@ inductive valid_blocks :: "real \<Rightarrow> trace_block list \<Rightarrow> boo
    d \<ge> 0 \<Longrightarrow>
    p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) blks) \<Longrightarrow>
    (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv (p t) = Inv (p 0)) \<Longrightarrow>
-   valid_blocks v0 (blks @ [ODEBlock d (restrict p {0..d}), TauBlock ((p d)(V := - (c * p d V)))])"
+   valid_blocks v0 (blks @ [ODEBlock d (restrict p {0..d}), TauBlock ((p d)(V := - c * p d V))])"
 
 
 lemma bouncingBall:
@@ -175,46 +171,38 @@ proof -
              t = Trace ((\<lambda>_. 0)(V := v0)) (blks @ [ODEBlock d (restrict p {0..d})]) \<and>
              valid_blocks v0 blks \<and> d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) blks) \<and>
              (\<forall>t. 0 \<le> t \<and> t \<le> d \<longrightarrow> Inv (p t) = Inv (p 0)))"
-    apply (subst Valid_ex_pre) apply clarify
-    subgoal for blks
-      apply (subst Valid_and_pre) apply clarify
-      subgoal premises pre
-        apply (rule Valid_post)
-        prefer 2
-         apply (rule Valid_ode_invariant[where inv=Inv])
-          prefer 3 apply clarify
-        subgoal for blks2 d p
-          apply (rule exI[where x=blks]) apply (rule exI[where x=d]) apply (rule exI[where x=p])
-          using pre by fastforce
-        sorry
-      done
+    apply (simp only: Valid_ex_pre Valid_and_pre, clarify)
+    subgoal premises pre for blks
+      apply (rule Valid_post)
+      prefer 2
+       apply (rule Valid_ode_invariant[where inv=Inv])
+        prefer 3 apply clarify
+      subgoal for blks2 d p
+        apply (rule exI[where x=blks]) apply (rule exI[where x=d]) apply (rule exI[where x=p])
+        using pre by fastforce
+      sorry
     done
   have 2: "Valid
      (\<lambda>t. \<exists>blks d p.
              t = Trace ((\<lambda>_. 0)(V := v0)) (blks @ [ODEBlock d (restrict p {0..d})]) \<and>
              valid_blocks v0 blks \<and> d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) blks) \<and>
              (\<forall>t. 0 \<le> t \<and> t \<le> d \<longrightarrow> Inv (p t) = Inv (p 0)))
-     (V ::= (\<lambda>s. - c * s V))
+     (V ::= (\<lambda>s. - (c * s V)))
      (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)"
-    apply (simp only: Valid_ex_pre) apply clarify
-    subgoal for blks d p
-      apply (subst Valid_and_pre) apply clarify
-      subgoal premises pre
-        apply (rule Valid_assign2)
-        apply auto
-        using valid_blocks.intros(2)[of v0 blks d p, OF pre]
-        by (auto simp add: pre(2) end_of_blocks_append)
-      done
+    apply (simp only: Valid_ex_pre Valid_and_pre, clarify)
+    subgoal premises pre for blks d p
+      apply (rule Valid_assign2)
+      using valid_blocks.intros(2)[of v0 blks d p, OF pre]
+      by (auto simp add: pre(2) end_of_blocks_append)
     done
   have 3: "Valid
       (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)
       (Rep (Cont (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V); V ::= (\<lambda>s. - c * s V)))
       (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)"
-    apply (rule Valid_rep)
-    apply (rule Valid_seq)
+    apply (auto intro!: Valid_rep Valid_seq)
     using 1 2 by auto
   show ?thesis
-    apply (rule Valid_pre[where P'="\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks"])
+    apply (rule Valid_pre)
     using 3 valid_blocks.intros(1) assms by auto
 qed
 
@@ -262,5 +250,7 @@ lemma bouncingBallFinal:
   apply (rule Valid_post[OF _ bouncingBall])
   using valid_blocks_prop assms by auto
 
+
+end  (* locale bouncing_ball *)
 
 end
