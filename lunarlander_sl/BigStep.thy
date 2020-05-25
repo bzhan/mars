@@ -864,6 +864,10 @@ theorem Valid_ex_pre:
   "Valid (\<lambda>tr. \<exists>x. P x tr) c Q \<longleftrightarrow> (\<forall>x. Valid (P x) c Q)"
   unfolding Valid_def by auto
 
+theorem Valid_and_pre:
+  "Valid (\<lambda>t. P t \<and> P2) c Q \<longleftrightarrow> (P2 \<longrightarrow> (Valid P c Q))"
+  unfolding Valid_def by auto
+
 
 inductive_cases assignE: "big_step (Assign var e) tr tr2"
 thm assignE
@@ -995,7 +999,7 @@ theorem Valid_ode_all_solution:
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
-    (\<lambda>t. \<exists>d p. Q d p \<and> t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
+    (\<lambda>t. \<exists>d p. t = extend_trace tr (ODEBlock d (restrict p {0..d})) \<and> d \<ge> 0 \<and> p 0 = end_of_trace tr \<and> Q d p)"
   unfolding Valid_def using assms by (metis contE)
 
 theorem Valid_interrupt:
@@ -1047,7 +1051,9 @@ lemma Valid_ode_invariant:
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
-    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)) \<and> t = extend_trace tr (ODEBlock d (restrict p {0..d})))"
+    (\<lambda>t. \<exists>d p. t = extend_trace tr (ODEBlock d (restrict p {0..d})) \<and>
+               d \<ge> 0 \<and> p 0 = end_of_trace tr \<and>
+               (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> inv (p t) = inv (p 0)))"
   apply(rule Valid_ode_all_solution)
   apply auto
   subgoal premises pre for d p t
@@ -1070,9 +1076,6 @@ lemma Valid_ode_invariant:
       using 1 5 pre by auto
   qed
   done
-
-      
-
 
 
 subsection \<open>Validity for parallel processes\<close>
@@ -2158,8 +2161,9 @@ lemma testHL12inv:
   "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
     (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
-    (\<lambda>t. \<exists>d p. (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y) \<and>
-               t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})))"
+    (\<lambda>t. \<exists>d p. t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})) \<and>
+               d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(X := 1)) []) \<and>
+               (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y))"
   apply (rule Valid_ode_invariant)
    apply (auto simp add: vec2state_def)[1]
   sorry
