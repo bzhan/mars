@@ -1310,6 +1310,39 @@ next
     using 3(4) by (auto simp add: less_Suc_eq)
 qed
 
+lemma combine_blocks_IO2':
+  "combine_blocks [InBlock d2 ch2 var v2 rdy2 # blks2,
+                   OutBlock d1 ch1 v1 rdy1 # blks1] par_tr \<Longrightarrow>
+   (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
+           combine_blocks [blks2, blks1] rest \<and> par_tr = (IOBlock 0 1 ch1 v1) # rest)"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 0 \<or> i = 1"
+    using 2(1,3,7) by auto
+  then show ?case using 2 by auto
+next
+  case (3 i blkss j c v pblks)
+  have "length blkss = 2"
+    using 3(1,12) by auto
+  have "i = 0 \<or> i = 1" "j = 0 \<or> j = 1"
+    using 3(1,3,4,12) by auto
+  then have ij: "i = 0" "j = 1"
+    using 3(1,9,10,11) by auto
+  have "d1 = 0" "d2 = 0"
+    using 3(1,8,9,12) ij by auto
+  moreover have "v1 = v2" "ch1 = ch2" "v = v1" "c = ch1"
+    using 3(1,10,11,12) ij by auto
+  moreover have "\<exists>rest. combine_blocks [blks2, blks1] rest \<and> par_tr = (IOBlock 0 1 ch1 v1) # rest"
+    apply (rule exI[where x="pblks"])
+    using 3(2,12) unfolding ij \<open>v = v1\<close> \<open>c = ch1\<close> 3(1)[symmetric] 3(12)
+    by (auto simp add: remove_pair_def)
+  ultimately show ?case
+    using 3(4) by (auto simp add: less_Suc_eq)
+qed
+
 lemma combine_blocks_OutW2:
   "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
                    WaitBlock d2 # blks2] par_tr \<Longrightarrow>
@@ -1374,6 +1407,25 @@ next
     by (auto simp add: less_Suc_eq)
 qed
 
+lemma combine_blocks_ODENil2:
+  "combine_blocks [ODEBlock d p # blks1, []] par_tr \<Longrightarrow>
+   \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock d # rest"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 0" "t = d"
+    using 2 by (auto simp add: less_Suc_eq)
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 2 \<open>i = 0\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+next
+  case (3 i blkss j c v pblks)
+  then show ?case
+    by (auto simp add: less_Suc_eq)
+qed
+
 lemma combine_blocks_TauIn2:
   "combine_blocks [TauBlock st # blks1, blk2 # blks2] par_tr \<Longrightarrow>
    event_of_block blk2 \<noteq> Tau \<Longrightarrow>
@@ -1393,6 +1445,23 @@ next
   then show ?case by (auto simp add: less_Suc_eq)
 qed
 
+lemma combine_blocks_ODEIn2:
+  "combine_blocks [ODEBlock d1 p # blks1, InBlock d2 ch1 x v ({}, {ch1}) # blks2] par_tr \<Longrightarrow>
+   \<exists>rest. d1 \<le> d2 \<and> combine_blocks [blks1, InBlock (d2 - d1) ch1 x v ({}, {ch1}) # blks2] rest \<and> par_tr = ParWaitBlock d1 # rest"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 0" "t = d1"
+    using 2 by (auto simp add: less_Suc_eq)
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 2 \<open>i = 0\<close> \<open>t = d1\<close> by (auto simp add: remove_one_def)
+next
+  case (3 i blkss j c v pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
+qed
 
 lemma combine_blocks_OutNil:
   "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
