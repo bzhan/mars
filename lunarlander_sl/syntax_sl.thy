@@ -288,9 +288,9 @@ proof-
   by auto
 qed
 
-lemma derivconst:"\<forall>x. ((\<lambda>t. c) has_derivative (\<lambda>t. 0)) (at x)"
+lemma derivconst:"((\<lambda>t. c) has_derivative (\<lambda>t. 0)) (at x)"
   unfolding has_derivative_def by auto
-lemma derivcoord:"\<forall>x. ((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
+lemma derivcoord:"((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
   unfolding has_derivative_def by auto
 
 
