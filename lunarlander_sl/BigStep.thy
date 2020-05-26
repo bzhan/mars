@@ -1046,8 +1046,8 @@ text \<open>Differential invariant rule\<close>
 
 lemma Valid_ode_invariant:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (vec2state x)) (at x within UNIV)"
-      and "\<forall>S. g' S (ODE2Vec ode S) = 0"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+      and "\<forall>S. g' (state2vec S) (ODE2Vec ode S) = 0"
   shows "Valid
     (\<lambda>t. t = tr)
     (Cont ode b)
@@ -1058,21 +1058,21 @@ lemma Valid_ode_invariant:
   apply auto
   subgoal premises pre for d p t
   proof-
-    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
       using pre assms
-      using chainrule[of inv g' ode p d] 
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
       by auto
-    have 2: "\<forall>s. g' (p t) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
       using 1 unfolding has_derivative_def bounded_linear_def 
-      using that linear_iff[of "(\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
       by blast
     have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-    have 4: "\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (p t) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
       using 2 3 that by auto
-    have 5: "\<forall>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 .. d}" for t
+    have 5: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 .. d}" for t
       using 4 assms(2) that by simp 
     show ?thesis
-      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (p t) (s *\<^sub>R ODE2Vec ode (p t)))" t]
+      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" t]
       using 1 5 pre by auto
   qed
   done
@@ -2228,6 +2228,11 @@ proof -
     using main by auto
 qed
 
+lemma derivconst[simp,derivative_intros]:"((\<lambda>t. c) has_derivative (\<lambda>t. 0)) (at x)"
+  unfolding has_derivative_def by auto
+lemma derivcoord[simp,derivative_intros]:"((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
+  unfolding has_derivative_def by auto
+
 lemma testHL12inv:
   "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
@@ -2237,7 +2242,11 @@ lemma testHL12inv:
                (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y))"
   apply (rule Valid_ode_invariant)
    apply (auto simp add: vec2state_def)[1]
-  sorry
+   apply (auto intro!: derivative_intros)[1]
+  apply(simp add:state2vec_def)
+  using vars_distinct
+  by auto
+
 
 lemma "((\<lambda>x. x * x) has_vector_derivative (2 * x)) (at x)"
   apply (rule has_vector_derivative_eq_rhs)
