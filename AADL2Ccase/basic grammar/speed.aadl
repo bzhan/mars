@@ -197,7 +197,7 @@ property set AADL_Project is
 							GByte => MByte * 1000, TByte => GByte * 1000);
 	
 --- The type <b>Time_Units</b> defines a measurement of time that is available for use in other property definitions.
---- Users may append to this type
+--- Users may append to this type                                                                                          
 	
 	Time_Units: type units (ps, ns => ps * 1000, us => ns * 1000, ms => us * 1000, sec => ms * 1000, min => sec * 60, hr => min * 60);
 
