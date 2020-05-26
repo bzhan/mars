@@ -1311,8 +1311,9 @@ next
 qed
 
 lemma combine_blocks_IO2':
-  "combine_blocks [InBlock d2 ch2 var v2 rdy2 # blks2,OutBlock d1 ch1 v1 rdy1 # blks1] par_tr \<Longrightarrow>
-   (\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
+"combine_blocks [InBlock d2 ch2 var v2 rdy2 # blks2,
+                   OutBlock d1 ch1 v1 rdy1 # blks1] par_tr \<Longrightarrow>
+(\<exists>rest. d1 = 0 \<and> d2 = 0 \<and> ch1 = ch2 \<and> v1 = v2 \<and>
            combine_blocks [blks2, blks1] rest \<and> par_tr = (IOBlock 0 1 ch1 v1) # rest)"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
@@ -1341,7 +1342,6 @@ next
   ultimately show ?case
     using 3(4) by (auto simp add: less_Suc_eq)
 qed
-
 
 lemma combine_blocks_OutW2:
   "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1,
@@ -1411,7 +1411,7 @@ lemma combine_blocks_ODENil2:
   "combine_blocks [ODEBlock d p # blks1, []] par_tr \<Longrightarrow>
    \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock d # rest"
 proof (induct rule: combine_blocks.cases)
-case (1 blkss)
+  case (1 blkss)
   then show ?case by auto
 next
   case (2 i blkss t pblks)
@@ -1425,7 +1425,6 @@ next
   then show ?case
     by (auto simp add: less_Suc_eq)
 qed
-
 
 lemma combine_blocks_TauIn2:
   "combine_blocks [TauBlock st # blks1, blk2 # blks2] par_tr \<Longrightarrow>
@@ -1450,6 +1449,7 @@ lemma combine_blocks_ODEIn2:
   "combine_blocks [ODEBlock d p # blks1, blk2 # blks2] par_tr \<Longrightarrow>
    event_of_block blk2 \<noteq> Tau \<Longrightarrow>
    \<exists>rest. combine_blocks [blks1, wait_block d blk2 # blks2] rest \<and> par_tr = ParWaitBlock d # rest"
+
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
@@ -1464,7 +1464,6 @@ next
   case (3 i blkss j c v pblks)
   then show ?case by (auto simp add: less_Suc_eq)
 qed
-
 
 lemma combine_blocks_OutNil:
   "combine_blocks [OutBlock d1 ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
