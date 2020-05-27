@@ -142,8 +142,11 @@ lemma bouncingBallInv:
 proof -
   show ?thesis
     apply (rule Valid_ode_invariant)
-   apply (auto simp add: vec2state_def)[1]
-  sorry
+    unfolding Inv_def 
+     apply (auto simp add: vec2state_def)[1]
+     apply (auto intro!: derivative_intros)[1]
+    apply (auto simp add: vec2state_def state2vec_def)
+    using vars_distinct by auto
 qed
 
 
