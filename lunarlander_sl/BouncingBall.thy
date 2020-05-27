@@ -48,8 +48,9 @@ proof -
       apply standard
       apply auto
       subgoal proof -
-        have bounded: "bounded_linear (\<lambda>y. \<chi> a. if a = X then y $ V else 0)"
-          sorry
+        have bounded: "bounded_linear (\<lambda>(y::vec). \<chi> a. if a = X then y $ V else 0)"
+          apply (rule bounded_linearI')
+          using vec_lambda_unique by fastforce+
         show ?thesis
           unfolding state2vec_def vec2state_def fun_upd_def
           apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = X then y $ V else 0))"])

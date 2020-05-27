@@ -79,7 +79,9 @@ proof -
       subgoal for blks2 d p
         apply (rule exI[where x=blks]) apply (rule exI[where x=d]) apply (rule exI[where x=p])
         using pre by fastforce
-      sorry
+      apply (auto simp add: vec2state_def Inv_def)[1]
+      apply (auto intro!: derivative_intros)[1]
+      by (auto simp add: state2vec_def vars_distinct)
     done
   have 2: "Valid
      (\<lambda>t. \<exists>blks d p.
