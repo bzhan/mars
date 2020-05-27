@@ -22,7 +22,7 @@ begin
 
 definition V :: char where "V = CHR ''v''"
 
-lemma vars_distinct: "X \<noteq> V"
+lemma vars_distinct: "X \<noteq> V" "V \<noteq> X"
   unfolding X_def V_def by auto
 
 subsection \<open>Single run\<close>
@@ -48,9 +48,17 @@ proof -
       apply standard
       apply auto
       subgoal proof -
+        have bounded: "bounded_linear (\<lambda>y. \<chi> a. if a = X then y $ V else 0)"
+          sorry
         show ?thesis
           unfolding state2vec_def vec2state_def fun_upd_def
-          sorry
+          apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = X then y $ V else 0))"])
+          apply (auto simp add: bounded_linear_Blinfun_apply[OF bounded])
+          subgoal premises pre for t x
+            unfolding has_derivative_def apply (auto simp add: bounded)
+            apply (rule vec_tendstoI)
+            by (auto simp add: vars_distinct)
+          done
       qed
       done
     have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)))
@@ -183,7 +191,9 @@ proof -
       subgoal for blks2 d p
         apply (rule exI[where x=blks]) apply (rule exI[where x=d]) apply (rule exI[where x=p])
         using pre by fastforce
-      sorry
+      apply (auto simp add: vec2state_def Inv_def)[1]
+      apply (auto intro!: derivative_intros)[1]
+      by (auto simp add: state2vec_def vars_distinct)
     done
   have 2: "Valid
      (\<lambda>t. \<exists>blks d p.

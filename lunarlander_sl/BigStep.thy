@@ -387,7 +387,7 @@ lemma has_vector_derivative_projI:
   shows "(p has_vector_derivative q t) (at t within D)"
   using assms unfolding has_vector_derivative_def has_derivative_def
   apply (auto simp add: bounded_linear_scaleR_left)
-  sorry
+  by (auto intro: vec_tendstoI)
 
 text \<open>If the derivative is always 0, then the function is always 0.\<close>
 lemma mvt_real_eq:
@@ -2133,8 +2133,7 @@ proof-
     subgoal using main1  d1 by auto
     unfolding fun_upd_def apply auto
     by (meson add.commute)   
- qed
-
+qed
 
 lemma testHL12b:
   "Valid
@@ -2155,19 +2154,16 @@ proof -
       apply standard
       apply auto
       subgoal proof -
-        have 1: "(\<chi> a. if a = X \<or> a = Y then (if a = Y then \<lambda>s. s X else if a = X then (\<lambda>_. 2) else (\<lambda>_. 0)) (($) v) else 0) =
-                 (\<chi> a. if a = X then 2 else if a = Y then v $ X else 0)"
-          for v::vec
-          using vars_distinct by auto
-        have 2: "bounded_linear ((\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"
+        have bounded: "bounded_linear ((\<lambda>y. \<chi> a. if a = Y then y $ X else 0))"
           sorry
         show ?thesis
-          unfolding state2vec_def vec2state_def fun_upd_def 1
-          apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y'. \<chi> a. if a = Y then y' $ X else 0))"])
-          (* function maps (x, y) to (2, x) *)
-             apply (auto simp add: bounded_linear_Blinfun_apply[OF 2])
+          unfolding state2vec_def vec2state_def fun_upd_def
+          apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = Y then y $ X else 0))"])
+             apply (auto simp add: bounded_linear_Blinfun_apply[OF bounded])
           subgoal premises pre for t x
-            sorry
+            unfolding has_derivative_def apply (auto simp add: bounded)
+            apply (rule vec_tendstoI)
+            by (auto simp add: vars_distinct)
           done
       qed
       done
@@ -2228,8 +2224,6 @@ proof -
     using main by auto
 qed
 
-lemma derivconst[simp,derivative_intros]:"((\<lambda>t. c) has_derivative (\<lambda>t. 0)) (at x)"
-  unfolding has_derivative_def by auto
 lemma derivcoord[simp,derivative_intros]:"((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
   unfolding has_derivative_def by auto
 
@@ -2243,18 +2237,7 @@ lemma testHL12inv:
   apply (rule Valid_ode_invariant)
    apply (auto simp add: vec2state_def)[1]
    apply (auto intro!: derivative_intros)[1]
-  apply(simp add:state2vec_def)
-  using vars_distinct
-  by auto
-
-
-lemma "((\<lambda>x. x * x) has_vector_derivative (2 * x)) (at x)"
-  apply (rule has_vector_derivative_eq_rhs)
-   apply (auto intro!: derivative_intros)[1]
-  by simp
-
-schematic_goal "((\<lambda>v. v $ X * v $ X + v $ Y * v $ Y) has_derivative ?g') (at x)"
-  sorry
+  by (auto simp add: state2vec_def vars_distinct)
 
 
 text \<open>Example with parallel, loop, and ODE\<close>
