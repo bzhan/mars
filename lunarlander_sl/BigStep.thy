@@ -1538,24 +1538,31 @@ next
 qed
 
 lemma combine_blocks_NilWait2:
-  "combine_blocks [[],WaitBlock d # blks1] par_tr \<Longrightarrow>
-   \<exists>rest. combine_blocks [[],blks1] rest \<and> par_tr = ParWaitBlock d # rest"
+  "combine_blocks [sl, sr] [[],(WaitBlock d) # blks1] par_tr \<Longrightarrow>
+    \<exists>rest. combine_blocks [sl, sr] [[],blks1] rest \<and> par_tr 
+         = (ParWaitBlock d (\<lambda>t. if 0 \<le> t \<and> t \<le> d then [sl, sr] else undefined)) # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
 next
-  case (2 i blkss t pblks)
-  have "i = 1" "t = d"
-    using 2(1,3,6,7) by (auto simp add: less_Suc_eq)
-  show ?case
-    apply (rule exI[where x=pblks])
-    using 2 \<open>i = 1\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+  case (2 i blkss sts pblks)
+  then show ?case by (auto simp add: less_Suc_eq)
 next
   case (3 i blkss j c v pblks)
   then show ?case
     by (auto simp add: less_Suc_eq)
+next
+  case (4 i blkss t sts pblks)
+  have "i = 1" "t = d"
+    using 4 by (auto simp add: less_Suc_eq)
+  then have 5: "wait_block_state_list sts t blkss = sts"
+               "wait_block_state_list sts d blkss = sts"
+               "remove_one i t blkss = [[],blks1]"
+    using 4 remove_one_def by auto
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 4 \<open>i = 1\<close> \<open>t = d\<close> 5  by auto
 qed
-
 lemma combine_blocks_TauNil2:
   "combine_blocks sts [TauBlock st # blks1, []] par_tr \<Longrightarrow>
    \<exists>rest. combine_blocks (sts[0 := st]) [blks1, []] rest \<and> par_tr = ParTauBlock 0 st # rest"
@@ -1680,7 +1687,7 @@ lemma combine_blocks_NilIn:
   by (auto simp add: less_Suc_eq)
 
 lemma combine_blocks_OOutNil:
-  "combine_blocks [ODEOutBlock d1 p ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
+  "combine_blocks sts [ODEOutBlock d1 p ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
   apply (induct rule: combine_blocks.cases)
   by (auto simp add: less_Suc_eq)
 
@@ -3170,7 +3177,7 @@ qed
 
 
 lemma testHL14_blocks:
-  "combine_blocks [ileft_blocks 0 dlys, iright_blocks dlyvs] par_blks \<Longrightarrow>
+  "combine_blocks [(\<lambda>_ . 0),(\<lambda>_ . 0)][ileft_blocks 0 dlys, iright_blocks dlyvs] par_blks \<Longrightarrow>
    \<exists>n. par_blks = tot_blocks n"
 proof(induct dlyvs arbitrary: dlys par_blks)
   case Nil
@@ -3202,7 +3209,7 @@ proof(induct dlyvs arbitrary: dlys par_blks)
         using combine_blocks_NilWait2 combine_blocks_NilIn by blast
     next
       case (Cons b list)
-      have 1: "combine_blocks
+      have 1: "combine_blocks [(\<lambda>_ . 0),(\<lambda>_ . 0)]
         [ODEOutBlock (fst b) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..(fst b)}) ''ch'' ((fst b)) ({''ch''}, {}) # 
         TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
         InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
@@ -3213,6 +3220,9 @@ proof(induct dlyvs arbitrary: dlys par_blks)
         iright_blocks dlyvs]
         par_blks"
         using Cons Cons1(2) apply(cases a) apply(cases b) by auto
+      show ?thesis
+        sorry
+    qed
       
 lemma testHL14:
   "ParValid
