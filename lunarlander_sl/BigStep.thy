@@ -553,13 +553,13 @@ Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     p 0 = end_of_trace tr \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
-    big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEOutBlock d (restrict p {0..d}) ch (e (p d)) (rdy_of_echoice cs))) tr3 \<Longrightarrow>
     big_step (Interrupt ode cs) tr tr3"
 | InterruptReceiveB:
    "d \<ge> 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     p 0 = end_of_trace tr \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
-    big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice cs))) tr3 \<Longrightarrow>
+    big_step p2 (extend_trace tr (ODEInBlock d (restrict p {0..d}) ch var v (rdy_of_echoice cs))) tr3 \<Longrightarrow>
     big_step (Interrupt ode cs) tr tr3"
 
 
@@ -868,6 +868,8 @@ theorem Valid_and_pre:
   "Valid (\<lambda>t. P t \<and> P2) c Q \<longleftrightarrow> (P2 \<longrightarrow> (Valid P c Q))"
   unfolding Valid_def by auto
 
+inductive_cases skipE :"big_step Skip tr tr2"
+thm skipE
 
 inductive_cases assignE: "big_step (Assign var e) tr tr2"
 thm assignE
@@ -895,6 +897,13 @@ thm contE
 
 inductive_cases interruptE: "big_step (Interrupt ode cs) tr tr2"
 thm interruptE
+
+theorem Valid_skip:
+  "Valid
+    (\<lambda>t. t = tr)
+    (Skip)
+    (\<lambda>t. t = extend_trace tr (TauBlock (end_of_trace tr)))"
+  unfolding Valid_def by (auto elim: skipE)
 
 theorem Valid_assign:
   "Valid
@@ -1007,20 +1016,20 @@ theorem Valid_interrupt:
     case (es ! i) of
       (Send ch e, p2) \<Rightarrow>
         \<forall>p d. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
-              Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R
+              Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d (restrict p {0..d}) ch (e (p d)) (rdy_of_echoice es))) p2 R
     | (Receive ch var, p2) \<Rightarrow>
         \<forall>p d v. d \<ge> 0 \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = end_of_trace tr \<longrightarrow>
-              Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+              Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d (restrict p {0..d}) ch var v (rdy_of_echoice es))) p2 R"
   shows
     "Valid (\<lambda>t. t = tr) (Interrupt ode es) R"
 proof -
   have 1: "R tr2" if "0 \<le> d" "ODEsol ode p d"
        "p 0 = end_of_trace tr"
        "i < length es"
-       "es ! i = (ch[!]e, p2)" "big_step p2 (extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) tr2"
+       "es ! i = (ch[!]e, p2)" "big_step p2 (extend_trace tr (ODEOutBlock d (restrict p {0..d}) ch (e (p d)) (rdy_of_echoice es))) tr2"
      for tr2 d p i ch e p2
   proof -
-    have "Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d p ch (e (p d)) (rdy_of_echoice es))) p2 R"
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEOutBlock d (restrict p {0..d}) ch (e (p d)) (rdy_of_echoice es))) p2 R"
       using assms that(1-5) by auto
     then show ?thesis
       unfolding Valid_def using that(6) by auto
@@ -1028,10 +1037,10 @@ proof -
   have 2: "R tr2" if "0 \<le> d" "ODEsol ode p d"
        "p 0 = end_of_trace tr"
        "i < length es"
-       "es ! i = (ch[?]var, p2)" "big_step p2 (extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) tr2"
+       "es ! i = (ch[?]var, p2)" "big_step p2 (extend_trace tr (ODEInBlock d (restrict p {0..d}) ch var v (rdy_of_echoice es))) tr2"
      for tr2 d p i ch var p2 v
   proof -
-    have "Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d p ch var v (rdy_of_echoice es))) p2 R"
+    have "Valid (\<lambda>t. t = extend_trace tr (ODEInBlock d (restrict p {0..d}) ch var v (rdy_of_echoice es))) p2 R"
       using assms that(1-5) by auto
     then show ?thesis
       unfolding Valid_def using that(6) by auto
@@ -1142,6 +1151,14 @@ proof -
 qed
 
 subsection \<open>Other versions of Hoare triples\<close>
+
+theorem Valid_skip2:
+  "Q (extend_trace tr (TauBlock (end_of_trace tr))) \<Longrightarrow>
+   Valid
+    (\<lambda>t. t = tr)
+    (Skip)
+    Q"
+  using Valid_def skipE by blast
 
 theorem Valid_assign2:
   "Q (extend_trace tr (TauBlock ((end_of_trace tr)(var := e (end_of_trace tr))))) \<Longrightarrow>
@@ -1388,6 +1405,25 @@ next
     by (auto simp add: less_Suc_eq)
 qed
 
+lemma combine_blocks_NilWait2:
+  "combine_blocks [[],WaitBlock d # blks1] par_tr \<Longrightarrow>
+   \<exists>rest. combine_blocks [[],blks1] rest \<and> par_tr = ParWaitBlock d # rest"
+proof (induct rule: combine_blocks.cases)
+  case (1 blkss)
+  then show ?case by auto
+next
+  case (2 i blkss t pblks)
+  have "i = 1" "t = d"
+    using 2(1,3,6,7) by (auto simp add: less_Suc_eq)
+  show ?case
+    apply (rule exI[where x=pblks])
+    using 2 \<open>i = 1\<close> \<open>t = d\<close> by (auto simp add: remove_one_def)
+next
+  case (3 i blkss j c v pblks)
+  then show ?case
+    by (auto simp add: less_Suc_eq)
+qed
+
 lemma combine_blocks_TauNil2:
   "combine_blocks [TauBlock st # blks1, []] par_tr \<Longrightarrow>
    \<exists>rest. combine_blocks [blks1, []] rest \<and> par_tr = ParWaitBlock 0 # rest"
@@ -1474,6 +1510,13 @@ lemma combine_blocks_NilIn:
   "combine_blocks [[], InBlock d2 ch2 var v2 ({}, {ch2}) # blks2] par_tr \<Longrightarrow> False"
   apply (induct rule: combine_blocks.cases)
   by (auto simp add: less_Suc_eq)
+
+lemma combine_blocks_OOutNil:
+  "combine_blocks [ODEOutBlock d1 p ch1 v ({ch1}, {}) # blks1, []] par_tr \<Longrightarrow> False"
+  apply (induct rule: combine_blocks.cases)
+  by (auto simp add: less_Suc_eq)
+
+
 
 subsection \<open>More on combine_par_trace\<close>
 
@@ -2647,4 +2690,327 @@ proof-
     using 1 by auto
 qed
 
+
+fun ileft_blocks :: "real \<Rightarrow> (time \<times> real \<times> time) list \<Rightarrow> trace_block list" where
+  "ileft_blocks x [] = []"
+| "ileft_blocks x  ((dly1, v, dly2) # rest) = 
+      ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..dly1}) ''ch'' (dly1+x) ({''ch''}, {}) # TauBlock ((\<lambda>_. 0)(X := dly1+x)) # 
+      InBlock dly2 ''ch'' X v ({}, {''ch''}) #ileft_blocks v rest "
+
+
+lemma ileft_blocks_snoc: 
+  assumes "length dlys > 0"
+      and "x = fst(snd(last dlys))"
+    shows "ileft_blocks n (dlys @ [(dly1, v, dly2)]) = ileft_blocks n dlys @ 
+      [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..dly1}) ''ch'' (dly1+x) ({''ch''}, {}), TauBlock ((\<lambda>_. 0)(X := dly1+x)),
+      InBlock dly2 ''ch'' X v ({}, {''ch''})]"
+  using assms
+  apply auto
+  apply(induct dlys arbitrary:n)
+  by auto
+
+lemma testHL14o:
+  assumes "end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
+    shows "Valid
+    (\<lambda>t. t = Trace (\<lambda>_. 0) list)
+    (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+             ((Send ''ch'' (\<lambda>s. s X)),Skip)])
+    (\<lambda>t. \<exists>d. t = Trace (\<lambda>_. 0) (list@[ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := d+v))]))"
+  apply(rule Valid_interrupt)
+  apply auto
+  subgoal premises pre for p d
+  proof-
+    have 1:"restrict p {0..d} = restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}"
+    proof-
+      interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
+        apply standard
+        apply auto
+        subgoal proof -
+        have 1: "(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v) else 0) = (\<chi> a. if a = X then 1 else 0)"
+          for v::vec
+          by auto
+        show ?thesis
+          unfolding state2vec_def vec2state_def fun_upd_def 1
+          by (rule local_lipschitz_constI)
+        qed
+        done
+     have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := t+v))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..} UNIV"
+     unfolding solves_ode_def has_vderiv_on_def
+     apply auto
+     apply (rule has_vector_derivative_projI)
+     apply (auto simp add: state2vec_def)
+     apply (rule has_vector_derivative_eq_rhs)
+      apply (auto intro!: derivative_intros)[1]
+     by auto
+    have step4: "(loc.flow 0 (state2vec ((\<lambda>_. 0)(X := v)))) t = (\<lambda>t. state2vec((\<lambda>_. 0)(X := t+v))) t" if "t \<in> {0..}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF step2])
+      using that by (auto simp add: state2vec_def)
+    have step5: "((\<lambda>t. state2vec(p t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..d} UNIV"
+      using pre unfolding ODEsol_def solves_ode_def by auto
+    have step6: "loc.flow 0 (state2vec ((\<lambda>_. 0)(X := v))) t = state2vec (p t)" if "t\<in>{0..d}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF step5])
+      using assms that pre by auto
+    have step7:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := t+v))) t =  state2vec (p t)" if "t\<in>{0..d}" for t
+      using step4 step6 that by auto
+    then show ?thesis 
+      unfolding restrict_def state2vec_def by auto
+  qed
+  show ?thesis
+    apply(rule Valid_skip2)
+    apply(rule exI[where x="d"])
+    using 1 apply auto
+    subgoal unfolding restrict_def using pre 
+      by (metis atLeastAtMost_iff fun_upd_same order_refl)
+    using pre(1)
+    by (simp add: end_of_blocks_append)
+qed
+  done
+    
+lemma end_ileft_blocks:
+  "end_of_blocks ((\<lambda>_. 0)(X := v)) (ileft_blocks v dlys) = (if length dlys = 0 then (\<lambda>_. 0)(X := v) else (\<lambda>_. 0)(X := fst (snd (last dlys))))" 
+  apply (induct dlys arbitrary: v)
+   by auto
+
+lemma end_ileft_blocks_init:
+  "end_of_blocks (\<lambda>_. 0) (ileft_blocks 0 dlys) = (if length dlys = 0 then (\<lambda>_. 0)(X := 0) else (\<lambda>_. 0)(X := fst (snd (last dlys))))"
+proof -
+  have 1: "(\<lambda>_. 0) = (\<lambda>_. 0)(X := 0)"
+    by auto
+  show ?thesis
+    apply (subst 1)
+    apply (subst end_ileft_blocks)
+    by auto
+qed
+
+lemma testHL14a:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+             ((Send ''ch'' (\<lambda>s. s X)),Skip)];
+             Cm (Receive ''ch'' X)))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks  0 dlyvs))"
+proof-
+  have main:"Valid
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks  0 dlyvs))
+    (Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+             ((Send ''ch'' (\<lambda>s. s X)),Skip)];
+             Cm (Receive ''ch'' X)))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks  0 dlyvs))"
+    apply(rule Valid_rep)
+    apply(subst Valid_ex_pre)
+    apply auto
+    subgoal for x
+    proof cases
+      assume c1:"length x = 0"
+      have 1:"ileft_blocks 0 x = []"
+        using c1 by auto
+      have 2:" Valid 
+     (\<lambda>tr. tr = Trace (\<lambda>_. 0) (ileft_blocks 0 x))
+     (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
+     (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1))])"
+        using testHL14o[of "[]" "0"] end_ileft_blocks_init[of "[]"] 1 by auto
+      have 3:"Valid
+      (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1))])
+      (Cm (Receive ''ch'' X))
+      ((\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks  0 dlyvs)))"
+        apply(subst Valid_ex_pre)
+        apply auto
+        subgoal for x
+          apply(rule Valid_receive2)
+          apply auto
+          subgoal for dly v
+            apply(rule exI[where x = "[(x,v,dly)]"])
+            unfolding extend_receive_def
+            by auto
+          done
+        done
+      show ?thesis
+        apply (rule Valid_seq[where Q=" (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1))])"])
+        using 2 3 by auto
+    next
+      assume c2:"length x \<noteq> 0"
+      obtain v where ini:"v=fst (snd (last x))" by auto
+      have 1:"end_of_trace (Trace (\<lambda>_. 0) (ileft_blocks 0 x)) = (\<lambda>_. 0)(X := v)"
+        using end_ileft_blocks_init c2 ini by auto
+      have 2:"Valid
+      (\<lambda>t. t = Trace (\<lambda>_. 0) (ileft_blocks 0 x))
+      (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
+      (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) ((ileft_blocks 0 x)@[ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1+v))]))"
+        using testHL14o[of "(ileft_blocks 0 x)" "v"] 1 by auto
+      have 3:"Valid
+      (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) ((ileft_blocks 0 x)@[ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1+v))]))
+      (Cm (Receive ''ch'' X))
+      (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks 0 dlyvs))"
+        apply(subst Valid_ex_pre)
+        apply auto
+        subgoal for xa
+          apply(rule Valid_receive2)
+          apply auto 
+          subgoal for dly va
+            apply(rule exI[where x ="x@[(xa,va,dly)]"])
+            unfolding extend_receive_def
+            using ileft_blocks_snoc[of x v 0 xa va dly] ini c2 by auto
+          done
+        done
+      show ?thesis
+        apply(rule Valid_seq[where Q="(\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) ((ileft_blocks 0 x)@[ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1+v))]))"])
+        using 2 3 by auto
+    qed
+    done
+  show ?thesis
+    apply(rule Valid_pre[OF _ main])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
+qed  
+
+fun iright_blocks :: "(time \<times> real \<times> time) list \<Rightarrow> trace_block list" where
+  "iright_blocks [] = []"
+| "iright_blocks ((dly1, v, dly2) # rest) = WaitBlock 1 #
+      InBlock dly1 ''ch'' X v ({}, {''ch''}) #
+      OutBlock dly2 ''ch'' (v - 1) ({''ch''}, {}) # iright_blocks rest"
+
+lemma iright_blocks_snoc:
+  "iright_blocks (dlys @ [(dly1, v, dly2)]) =
+   iright_blocks dlys @ [ WaitBlock 1,
+      InBlock dly1 ''ch'' X v ({}, {''ch''}),
+      OutBlock dly2 ''ch'' (v - 1) ({''ch''}, {})]"
+  by (induct dlys, auto)
+
+lemma end_of_iright_blocks:
+  "end_of_blocks ((\<lambda>_. 0)(X := a)) (iright_blocks dlyvs @ [WaitBlock 1,InBlock dly1 ''ch'' X v ({}, {''ch''})]) X = v"
+  by (induction dlyvs arbitrary: a, auto)
+
+lemma end_of_iright_blocks_zero:
+  "end_of_blocks (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1,InBlock dly1 ''ch'' X v ({}, {''ch''})]) X = v"
+proof -
+  have 1: "(\<lambda>_. 0) = ((\<lambda>_. 0)(X := 0))"
+    by auto
+  show ?thesis
+    apply (subst 1)
+    by (auto simp add: end_of_iright_blocks)
+qed
+
+
+lemma testHL14b:
+  "Valid
+    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (Rep (Wait 1;Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+proof-
+  have 1:"Valid (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs)) (Wait 1)
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1]))"
+    apply(simp only: Valid_ex_pre)
+    apply auto
+    subgoal for dlyvs
+      apply(rule Valid_wait2)
+      apply(rule exI[where x="dlyvs"])
+      by auto
+    done
+  have 2:"Valid 
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1])) 
+     (Cm (''ch''[?]X))
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))"
+    apply(simp only:Valid_ex_pre)
+    apply auto
+    subgoal for dlyvs
+      apply(rule Valid_receive2)
+      apply auto
+      subgoal for dly v
+        apply(rule exI[where x="dlyvs"])
+        apply(rule exI[where x="dly"])
+        apply(rule exI[where x="v"])
+        unfolding extend_receive_def
+        by auto
+      done
+    done
+  have 3:"Valid
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))
+     (Cm (''ch''[!](\<lambda>s. s X - 1))) 
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+    apply(simp only:Valid_ex_pre)
+    apply auto
+    subgoal for dlyvs dly1 v
+      apply(rule Valid_send2)
+      apply auto
+      subgoal for dly
+        apply (rule exI[where x="dlyvs @ [(dly1, v, dly)]"])
+        unfolding extend_send_def
+        using end_of_iright_blocks_zero[of dlyvs dly1 v] iright_blocks_snoc[of dlyvs dly1 v dly] by auto
+      done
+    done
+have 4:"Valid
+  (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))
+  (Rep (Wait 1;Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
+  (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+    apply(rule Valid_rep)
+    apply(rule Valid_seq[where Q="(\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) ((iright_blocks dlyvs)@[WaitBlock 1]))"])
+    subgoal using 1 by auto
+    apply(rule Valid_seq[where Q="(\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) ((iright_blocks dlyvs)@[WaitBlock 1,InBlock dly1 ''ch'' X v ({}, {''ch''})]))"])
+    subgoal using 2 by auto
+    using 3 by auto
+  show ?thesis
+    apply (rule Valid_pre[OF _ 4])
+    apply auto
+    apply (rule exI[where x="[]"])
+    by auto
+qed
+
+
+lemma testHL14_blocks:
+  "combine_blocks [ileft_blocks 0 dlys, iright_blocks dlyvs] par_blks \<Longrightarrow>
+   \<exists>n. par_blks = tot_blocks n"
+proof(induct dlyvs arbitrary: dlys par_blks)
+  case Nil
+  note Nil1 = Nil
+  then show ?case
+  proof(cases dlys)
+     case Nil
+     show ?thesis 
+       apply (rule exI[where x=0])
+       using Nil1[unfolded Nil]  combine_blocks_triv2 by auto
+   next
+     case (Cons a list)
+     then show ?thesis 
+       using Nil1 apply auto
+       apply(cases a) apply auto
+       subgoal for aa b c
+       using combine_blocks_OOutNil  
+       by blast
+     done
+   qed
+ next
+   case (Cons a dlyvs)
+   note Cons1 = Cons
+   then show ?case
+    proof (cases dlys)
+      case Nil
+      then show ?thesis 
+        using Cons1(2) apply (cases a) apply auto
+        using combine_blocks_NilWait2 combine_blocks_NilIn by blast
+    next
+      case (Cons b list)
+      have 1: "combine_blocks
+        [ODEOutBlock (fst b) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..(fst b)}) ''ch'' ((fst b)) ({''ch''}, {}) # 
+        TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
+        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
+        ileft_blocks (fst(snd b)) list,
+        WaitBlock 1 #
+        InBlock (fst a) ''ch'' X (fst(snd a)) ({}, {''ch''}) #
+        OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
+        iright_blocks dlyvs]
+        par_blks"
+        using Cons Cons1(2) apply(cases a) apply(cases b) by auto
+      
+lemma testHL14:
+  "ParValid
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (PProc [Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+             ((Send ''ch'' (\<lambda>s. s X)),Skip)];
+             Cm (Receive ''ch'' X)),
+            Rep(Wait 1;(Cm (Receive ''ch'' X);
+             Cm (Send ''ch'' (\<lambda>s. s X - 1))))] )
+    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (tot_blocks n))"
+  sorry
+  
 end
