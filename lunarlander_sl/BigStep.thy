@@ -572,8 +572,7 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
 | receiveB: "big_step (Cm (Receive ch var)) tr
     \<comment> \<open>dly \<ge> 0\<close>
     (extend_receive ch var dly v ({}, {ch}) tr)"
-| skipB: "big_step Skip tr
-    (extend_trace tr (TauBlock (end_of_trace tr)))"
+| skipB: "big_step Skip tr tr"
 | assignB: "big_step (Assign var e) tr
     (extend_trace tr (TauBlock ((end_of_trace tr)(var := e (end_of_trace tr)))))"
 | seqB: "big_step p1 tr tr2 \<Longrightarrow>
@@ -999,7 +998,7 @@ theorem Valid_skip:
   "Valid
     (\<lambda>t. t = tr)
     (Skip)
-    (\<lambda>t. t = extend_trace tr (TauBlock (end_of_trace tr)))"
+    (\<lambda>t. t = tr)"
   unfolding Valid_def by (auto elim: skipE)
 
 theorem Valid_assign:
@@ -1250,7 +1249,7 @@ qed
 subsection \<open>Other versions of Hoare triples\<close>
 
 theorem Valid_skip2:
-  "Q (extend_trace tr (TauBlock (end_of_trace tr))) \<Longrightarrow>
+  "Q tr \<Longrightarrow>
    Valid
     (\<lambda>t. t = tr)
     (Skip)
@@ -1544,11 +1543,11 @@ next
 qed
 
 lemma combine_blocks_ODEOutW2:
-  "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)] [ODEOutBlock d1 h ch1 v ({ch1}, {}) # blks1,
+  "combine_blocks [(\<lambda>_. 0), (\<lambda>_. 0)(X := 1)] [ODEOutBlock d1 h ch1 v ({ch1}, {}) # blks1,
                             WaitBlock d2 # blks2] par_tr \<Longrightarrow>
    \<exists>rest. d1 \<ge> d2 \<and>
-          combine_blocks [h d2, \<lambda>_. 0] [ODEOutBlock (d1 - d2) (\<lambda>s. h (s + d2)) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
-          par_tr = (ParWaitBlock d2 (\<lambda>d. if 0 \<le> d \<and> d \<le> d2 then [h d, \<lambda>_. 0] else undefined)) # rest"
+          combine_blocks [h d2, (\<lambda>_. 0)(X := 1)] [ODEOutBlock (d1 - d2) (\<lambda>s. h (s + d2)) ch1 v ({ch1}, {}) # blks1, blks2] rest \<and>
+          par_tr = (ParWaitBlock d2 (\<lambda>d. if 0 \<le> d \<and> d \<le> d2 then [h d, (\<lambda>_. 0)(X := 1)] else undefined)) # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss)
   then show ?case by auto
@@ -2965,7 +2964,6 @@ fun ileft_blocks :: "real \<Rightarrow> (time \<times> real \<times> time) list 
   "ileft_blocks x [] = []"
 | "ileft_blocks x ((dly1, v, dly2) # rest) = 
       ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..dly1}) ''ch'' (dly1+x) ({''ch''}, {}) #
-      TauBlock ((\<lambda>_. 0)(X := dly1+x)) # 
       InBlock dly2 ''ch'' X v ({}, {''ch''}) # ileft_blocks v rest"
 
 
@@ -2973,7 +2971,7 @@ lemma ileft_blocks_snoc:
   assumes "length dlys > 0"
       and "x = fst(snd(last dlys))"
     shows "ileft_blocks n (dlys @ [(dly1, v, dly2)]) = ileft_blocks n dlys @ 
-      [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..dly1}) ''ch'' (dly1+x) ({''ch''}, {}), TauBlock ((\<lambda>_. 0)(X := dly1+x)),
+      [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+x)){0..dly1}) ''ch'' (dly1+x) ({''ch''}, {}),
       InBlock dly2 ''ch'' X v ({}, {''ch''})]"
   using assms
   apply (induct dlys arbitrary: n) by auto
@@ -2983,8 +2981,8 @@ lemma testHL14o:
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
     (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
-             ((Send ''ch'' (\<lambda>s. s X)),Skip)])
-    (\<lambda>t. \<exists>d. t = Trace (\<lambda>_. 0) (list@[ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := d+v))]))"
+             ((Send ''ch'' (\<lambda>s. s X)), Skip)])
+    (\<lambda>t. \<exists>d. t = Trace (\<lambda>_. 0) (list@[ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {})]))"
   apply (rule Valid_interrupt)
   apply auto
   subgoal premises pre for p d
@@ -3025,20 +3023,18 @@ lemma testHL14o:
       unfolding restrict_def state2vec_def by auto
   qed
   show ?thesis
-    apply(rule Valid_skip2)
-    apply(rule exI[where x="d"])
     using 1 apply auto
-    subgoal unfolding restrict_def using pre 
-      by (metis atLeastAtMost_iff fun_upd_same order_refl)
-    using pre(1)
-    by (simp add: end_of_blocks_append)
+    apply (rule Valid_skip2)
+    apply (rule exI[where x=d]) apply (auto simp add: restrict_def)
+    by (metis fun_upd_same order_refl pre(1))
 qed
   done
     
 lemma end_ileft_blocks:
-  "end_of_blocks ((\<lambda>_. 0)(X := v)) (ileft_blocks v dlys) = (if length dlys = 0 then (\<lambda>_. 0)(X := v) else (\<lambda>_. 0)(X := fst (snd (last dlys))))" 
+  "end_of_blocks ((\<lambda>_. 0)(X := v)) (ileft_blocks v dlys) =
+    (if length dlys = 0 then (\<lambda>_. 0)(X := v) else (\<lambda>_. 0)(X := fst (snd (last dlys))))" 
   apply (induct dlys arbitrary: v)
-  by auto
+  apply auto sorry
 
 lemma end_ileft_blocks_init:
   "end_of_blocks (\<lambda>_. 0) (ileft_blocks 0 dlys) = (if length dlys = 0 then (\<lambda>_. 0)(X := 0) else (\<lambda>_. 0)(X := fst (snd (last dlys))))"
@@ -3076,12 +3072,12 @@ proof-
       have 2: "Valid 
                 (\<lambda>tr. tr = Trace (\<lambda>_. 0) (ileft_blocks 0 x))
                 (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
-                (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1))])"
+                (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {})])"
         using testHL14o[of "[]" "0"] end_ileft_blocks_init[of "[]"] 1 by auto
       have 3: "Valid
-                (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {}),TauBlock ((\<lambda>_. 0)(X := dly1))])
+                (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) [ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..dly1}) ''ch'' (dly1) ({''ch''}, {})])
                 (Cm (Receive ''ch'' X))
-                ((\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks  0 dlyvs)))"
+                ((\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks 0 dlyvs)))"
         apply(subst Valid_ex_pre)
         apply auto
         subgoal for x
@@ -3089,8 +3085,7 @@ proof-
           apply auto
           subgoal for dly v
             apply(rule exI[where x = "[(x,v,dly)]"])
-            unfolding extend_receive_def
-            by auto
+            by (auto simp add: extend_receive_def )
           done
         done
       show ?thesis
@@ -3104,13 +3099,11 @@ proof-
                 (\<lambda>t. t = Trace (\<lambda>_. 0) (ileft_blocks 0 x))
                 (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
                 (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) ((ileft_blocks 0 x)@[
-                  ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {}),
-                  TauBlock ((\<lambda>_. 0)(X := dly1+v))]))"
+                  ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {})]))"
         using testHL14o[of "(ileft_blocks 0 x)" "v"] 1 by auto
       have 3: "Valid
                 (\<lambda>tr. \<exists>dly1. tr = Trace (\<lambda>_. 0) ((ileft_blocks 0 x)@[
-                  ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {}),
-                  TauBlock ((\<lambda>_. 0)(X := dly1+v))]))
+                  ODEOutBlock dly1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..dly1}) ''ch'' (dly1+v) ({''ch''}, {})]))
                 (Cm (Receive ''ch'' X))
                 (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (ileft_blocks 0 dlyvs))"
         apply(subst Valid_ex_pre)
@@ -3225,7 +3218,7 @@ qed
 
 
 lemma testHL14_blocks:
-  "combine_blocks [(\<lambda>_ . 0),(\<lambda>_ . 0)][ileft_blocks 0 dlys, iright_blocks dlyvs] par_blks \<Longrightarrow>
+  "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] [ileft_blocks 0 dlys, iright_blocks dlyvs] par_blks \<Longrightarrow>
    \<exists>n. par_blks = tot_blocks n"
 proof(induct dlyvs arbitrary: dlys par_blks)
   case Nil
@@ -3235,7 +3228,7 @@ proof(induct dlyvs arbitrary: dlys par_blks)
     case Nil
     show ?thesis 
       apply (rule exI[where x=0])
-      using Nil1[unfolded Nil]  combine_blocks_triv2 by auto
+      using Nil1[unfolded Nil] combine_blocks_triv2 by auto
   next
     case (Cons a list)
     then show ?thesis 
@@ -3255,9 +3248,8 @@ next
       using combine_blocks_NilWait2 combine_blocks_NilIn by blast
   next
     case (Cons b list)
-    have 1: "combine_blocks [(\<lambda>_ . 0),(\<lambda>_ . 0)]
+    have 1: "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)]
       [ODEOutBlock (fst b) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b}) ''ch'' (fst b) ({''ch''}, {}) # 
-       TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
        ileft_blocks (fst(snd b)) list,
        WaitBlock 1 #
@@ -3265,42 +3257,40 @@ next
        OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
        iright_blocks dlyvs]
        par_blks"
-      using Cons Cons1(2) apply(cases a) apply(cases b) by auto
+      using Cons Cons1(2) apply(cases a) apply(cases b)
+      by (auto simp add: fun_upd_def)
 
     from 1 obtain rest where 2:
       "fst b \<ge> 1"
-      "combine_blocks [(restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b}) 1, \<lambda>_. 0]
+      "combine_blocks [(restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b}) 1, (\<lambda>_. 0)(X := 1)]
       [ODEOutBlock (fst b - 1) ((\<lambda>s. restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b} (s + 1))) ''ch'' (fst b) ({''ch''}, {}) # 
-       TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
        ileft_blocks (fst(snd b)) list,
        InBlock (fst a) ''ch'' X (fst(snd a)) ({}, {''ch''}) #
        OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
        iright_blocks dlyvs]
        rest"
-      "par_blks = (ParWaitBlock 1 (\<lambda>d. if 0\<le>d \<and> d\<le>1 then [(restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b}) d, \<lambda>_. 0] else undefined)) # rest"
+      "par_blks = (ParWaitBlock 1 (\<lambda>d. if 0\<le>d \<and> d\<le>1 then [(restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b}) d, (\<lambda>_. 0)(X := 1)] else undefined)) # rest"
       using combine_blocks_ODEOutW2 by blast
 
     from 2 have 21:
-      "combine_blocks [(\<lambda>_. 0)(X := 1), \<lambda>_. 0]
+      "combine_blocks [(\<lambda>_. 0)(X := 1), (\<lambda>_. 0)(X := 1)]
       [ODEOutBlock (fst b - 1) ((\<lambda>s. restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..fst b} (s + 1))) ''ch'' (fst b) ({''ch''}, {}) # 
-       TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
        ileft_blocks (fst(snd b)) list,
        InBlock (fst a) ''ch'' X (fst(snd a)) ({}, {''ch''}) #
        OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
        iright_blocks dlyvs]
        rest"
-      "par_blks = (ParWaitBlock 1 (\<lambda>d. if 0\<le>d \<and> d\<le>1 then [(\<lambda>_. 0)(X := d), \<lambda>_. 0] else undefined)) # rest"
+      "par_blks = (ParWaitBlock 1 (\<lambda>d. if 0\<le>d \<and> d\<le>1 then [(\<lambda>_. 0)(X := d), (\<lambda>_. 0)(X := 1)] else undefined)) # rest"
       by auto
 
-    let ?sts = "[(\<lambda>_. 0)(X := 1), \<lambda>_. 0]"
+    let ?sts = "[(\<lambda>_. 0)(X := 1), (\<lambda>_. 0)(X := 1)]"
     from 21(1) obtain rest2 where 3:
       "fst b - 1 = 0" "fst a = 0" "fst b = fst (snd a)"
       "combine_blocks (?sts[1 := end_of_blocks (?sts ! 1)
           [InBlock (fst a) ''ch'' X (fst(snd a)) ({}, {''ch''})]])
-       [TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
-        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
+       [InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
         ileft_blocks (fst(snd b)) list,
         OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
         iright_blocks dlyvs] rest2"
@@ -3309,18 +3299,33 @@ next
 
     from 3(4) have 31:
       "combine_blocks ([(\<lambda>_. 0)(X := 1), (\<lambda>_. 0)(X := fst (snd a))])
-       [TauBlock ((\<lambda>_. 0)(X := (fst b))) # 
-        InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
+       [InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''}) # 
         ileft_blocks (fst(snd b)) list,
         OutBlock (snd(snd a)) ''ch'' ((fst(snd a)) - 1) ({''ch''}, {}) # 
         iright_blocks dlyvs] rest2"
       by auto
 
     let ?sts2 = "[(\<lambda>_. 0)(X := 1), (\<lambda>_. 0)(X := fst (snd a))]"
-    
+    from 31 obtain rest3 where 4:
+      "snd (snd b) = 0" "snd (snd a) = 0" "fst (snd a) - 1 = fst (snd b)"
+      "combine_blocks (?sts2[0 := end_of_blocks (?sts2 ! 0) [InBlock (snd(snd b)) ''ch'' X (fst(snd b)) ({}, {''ch''})]])
+       [ileft_blocks (fst(snd b)) list, iright_blocks dlyvs] rest3"
+      "rest2 = IOBlock 0 1 ''ch'' X (fst (snd a) - 1) # rest3"
+      using combine_blocks_IO2' by blast
+
+    from 3(1) have 5: "fst b = 1" "(\<lambda>_. 0)(X := 0) = (\<lambda>_. 0)" by auto
+
+    from 4(4) have 41:
+      "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)]
+       [ileft_blocks 0 list, iright_blocks dlyvs] rest3"
+      by (auto simp add: 4(3)[symmetric] 3(3)[symmetric] 5)
+
+    obtain n where 6: "rest3 = tot_blocks n"
+      using Cons1(1) 41 by blast
 
     show ?thesis
-      sorry
+      apply (rule exI[where x="Suc n"])
+      by (auto simp add: 21(2) 3(5) 4(5) 5 6 3(3)[symmetric])
   qed
 qed
 
