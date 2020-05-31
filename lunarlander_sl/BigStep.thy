@@ -919,17 +919,30 @@ text \<open>ODE Example 3\<close>
 lemma test11c: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace ((\<lambda>_. 0)(X := 1)) [])
         (Trace ((\<lambda>_. 0)(X := 1)) [ODEBlock (pi / 2) (restrict (\<lambda>t. (\<lambda>_. 0)(X := cos t, Y := sin t)) {0..pi / 2})])"
-  apply (rule ContB[where d="pi / 2"])
-       apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def vars_distinct)
-    apply (rule has_vector_derivative_projI)
-    apply (auto simp: vars_distinct)
-    apply (rule has_vector_derivative_eq_rhs)
-  unfolding has_vector_derivative_def
-     apply (auto intro!: derivative_intros)[1] apply simp
-   apply (auto intro!: derivative_intros)[1]
-  sorry
-
-
+proof -
+  have 1: "sin t < 1" if "0 \<le> t" "t * 2 < pi" for t
+  proof (cases "t = 0")
+    case True
+    then show ?thesis by auto
+  next
+    case False
+    have "0 < cos t"
+      apply (rule cos_gt_zero) using that False by auto
+    then show ?thesis
+      using sin_cos_squared_add[of t, unfolded power2_eq_square]
+      using less_eq_real_def by fastforce
+  qed
+  show ?thesis
+    apply (rule ContB[where d="pi / 2"])
+         apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def vars_distinct)
+      apply (rule has_vector_derivative_projI)
+      apply (auto simp: vars_distinct)
+      apply (rule has_vector_derivative_eq_rhs)
+    unfolding has_vector_derivative_def
+       apply (auto intro!: derivative_intros)[1] apply simp
+     apply (auto intro!: derivative_intros)[1]
+    by (auto intro: 1)
+qed
 
 subsection \<open>Validity\<close>
 
