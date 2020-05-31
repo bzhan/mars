@@ -27,7 +27,6 @@ lemma vars_distinct: "X \<noteq> V" "V \<noteq> X"
 
 subsection \<open>Single run\<close>
 
-
 lemma bouncingBallOne:
   assumes "v0 > 0"
   shows "Valid
@@ -36,105 +35,52 @@ lemma bouncingBallOne:
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0))
         [ODEBlock (2 * v0/g) (restrict (\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)) {0..2 * v0/g})])"
 proof -
-  have main: "restrict p2 {0..d2} = restrict (\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)) {0..2 * v0/g} \<and> d2 = 2 * v0/g"
-    if cond: "0 \<le> d2"
-       "ODEsol (ODE {X, V} ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) p2 d2"
-       "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> p2 t X > 0 \<or> p2 t V > 0"
-       "\<not> (p2 d2 X > 0 \<or> p2 d2 V > 0)"
-       "p2 0 = ((\<lambda>_. 0)(V := v0))"
-     for p2 d2
-  proof -
-    interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t v. ODE2Vec (ODE {X, V} ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (vec2state v))" "UNIV" "0"
-      apply standard
-      apply auto
-      subgoal proof -
-        have bounded: "bounded_linear (\<lambda>(y::vec). \<chi> a. if a = X then y $ V else 0)"
-          apply (rule bounded_linearI')
-          using vec_lambda_unique by fastforce+
-        show ?thesis
-          unfolding state2vec_def vec2state_def fun_upd_def
-          apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = X then y $ V else 0))"])
-          apply (auto simp add: bounded_linear_Blinfun_apply[OF bounded])
-          subgoal premises pre for t x
-            unfolding has_derivative_def apply (auto simp add: bounded)
-            apply (rule vec_tendstoI)
-            by (auto simp add: vars_distinct)
-          done
-      qed
-      done
-    have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)))
-                    solves_ode
-                 ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X, V} ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (vec2state v)))) {0..2 * v0/g} UNIV"
-     unfolding solves_ode_def has_vderiv_on_def
-     apply auto
-     apply (rule has_vector_derivative_projI)
-     apply (auto simp add: vars_distinct state2vec_def)
-      apply (rule has_vector_derivative_eq_rhs)
-     unfolding power2_eq_square apply (fast intro!: derivative_intros) apply simp
+  have 1: "ODEsol (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>t. (\<lambda>_. 0)(X := v0 * t - g * t\<^sup>2 / 2, V := v0 - g * t)) (2 * v0 / g)"
+    unfolding ODEsol_def solves_ode_def has_vderiv_on_def
+    apply auto using assms pos_g apply simp
+    apply (rule has_vector_derivative_projI)
+    apply (auto simp add: vars_distinct state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
-      apply (fast intro!: derivative_intros) apply simp
-     done
-   have step4: "(loc.flow 0 (state2vec ((\<lambda>_. 0)(V := v0)))) t = (\<lambda>t. state2vec ((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t))) t" if "t \<in> {0..2 * v0/g}" for t
-     apply (rule loc.maximal_existence_flow(2)[OF step2])
-     using that by (auto simp add: state2vec_def)
-   have step5: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X, V} ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g))))(vec2state v)))) {0..d2} UNIV"
-     using cond(2) unfolding ODEsol_def solves_ode_def by auto
-   have step7: "loc.flow 0 (state2vec ((\<lambda>_. 0)(V := v0))) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
-     apply (rule loc.maximal_existence_flow(2)[OF step5])
-     using cond(1,5) that by auto
-   have step8: "2 * v0 / g \<le> d2"
-   proof (rule ccontr)
-     assume 0:" \<not> (2 * v0 / g \<le> d2)"
-     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t))) d2 = (\<lambda>t. state2vec(p2 t)) d2"
-       using step4[of d2] step7[of d2] cond(1) by auto
-     from 1 have 2:"((\<lambda>_. 0)(X := v0 * d2 - g * d2\<^sup>2 / 2, V := v0 - g * d2)) = p2 d2"
-       unfolding state2vec_def by auto
-     have arith: "g * d2\<^sup>2 < v0 * d2 * 2" if "\<not> 2 * v0 / g \<le> d2" "d2 > 0"
-     proof -
-       have "2 * v0 / g > d2" using that by arith
-       then have "2 * v0 > d2 * g" using pos_g
-         using pos_less_divide_eq by auto
-       moreover have "d2 * g \<ge> 0" using pos_g cond(1) by auto
-       ultimately have "2 * v0 * d2 > d2 * g * d2" using \<open>d2 > 0\<close> by simp  
-       then show ?thesis
-         unfolding power2_eq_square by (auto simp add: algebra_simps)
-     qed
-     have 3: "p2 d2 X > 0 \<or> p2 d2 V > 0"
-     proof (cases "d2 > 0")
-       case True
-       then show ?thesis
-         unfolding 2[symmetric] apply (auto simp add: vars_distinct)
-         using True arith 0 by auto
-     next
-       case False
-       have "d2 = 0" using False cond(1) by auto 
-       then show ?thesis
-         unfolding 2[symmetric] using assms by auto
-     qed
-     then show "False" using 3 cond(4) by auto
-   qed
-   have step9: "2 * v0 / g \<ge> d2"
-   proof (rule ccontr)
-     assume 0:"\<not> d2 \<le> 2 * v0 / g" 
-     from 0 have 1:"(\<lambda>t. state2vec((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t))) (2 * v0 / g) = (\<lambda>t. state2vec(p2 t)) (2 * v0 / g)"
-       using step4[of "2 * v0 / g"] step7[of "2 * v0 / g"] assms pos_g by auto
-     from 1 have 2:"((\<lambda>_. 0)(X := 0, V := - v0)) = p2 (2 * v0 / g)"
-       unfolding state2vec_def using pos_g by (auto simp add: power2_eq_square algebra_simps)
-     have 3:"p2 (2 * v0 / g) X > 0 \<or> p2 (2 * v0 / g) V > 0" using cond(1,3) 0
-       using assms pos_g by auto
-     show False using 3
-       using assms by (auto simp add: 2[symmetric] vars_distinct)
-   qed
-   have step10: "d2 = 2 * v0 / g" using step8 step9 by auto
-   have step11: "t\<in>{0..2 * v0 / g} \<Longrightarrow> (p2 t) = ((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t))" for t
-     using step4 step7 step10 by (metis vec_state_map1)
-   have step12: "restrict p2 {0..d2} = restrict (\<lambda>t. ((\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t))) {0..2 * v0 / g}"
-     using step10 step11 unfolding restrict_def by auto
-    show ?thesis using step10 step12 by auto
+    unfolding power2_eq_square apply (fast intro!: derivative_intros) apply simp
+    apply (rule has_vector_derivative_eq_rhs)
+     apply (fast intro!: derivative_intros) apply simp
+    done
+  have 2: "local_lipschitz {- (1::real)<..} UNIV
+     (\<lambda>t v. state2vec (\<lambda>a. if a = X \<or> a = V then ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g)) a (vec2state v) else 0))"
+  proof -
+    have bounded: "bounded_linear (\<lambda>(y::vec). \<chi> a. if a = X then y $ V else 0)"
+      apply (rule bounded_linearI')
+      using vec_lambda_unique by fastforce+
+    show ?thesis
+      unfolding state2vec_def vec2state_def fun_upd_def
+      apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = X then y $ V else 0))"])
+      apply (auto simp add: bounded_linear_Blinfun_apply[OF bounded])
+      subgoal premises pre for t x
+        unfolding has_derivative_def apply (auto simp add: bounded)
+        apply (rule vec_tendstoI)
+        by (auto simp add: vars_distinct)
+      done
   qed
+  have 3: "g * t\<^sup>2 < v0 * t * 2" if "t < 2 * v0 / g" "\<not> g * t < v0" "0 \<le> t" for t
+  proof -
+    have "t \<noteq> 0"
+      using that(2) assms by auto
+    then have "t > 0"
+      using that(3) by auto
+    have "2 * v0 / g > t" using that by arith
+    then have "2 * v0 > t * g" using pos_g
+      using pos_less_divide_eq by auto
+    moreover have "t * g \<ge> 0" using pos_g that(3) by auto
+    ultimately have "2 * v0 * t > t * g * t" using \<open>t > 0\<close> by simp  
+    then show ?thesis
+      unfolding power2_eq_square by (auto simp add: algebra_simps)
+  qed
+  have 4: "g * (2 * v0 / g)\<^sup>2 < 4 * (v0 * v0) / g \<Longrightarrow> False"
+    apply (auto simp add: power2_eq_square)
+    using pos_g by auto
   show ?thesis
-    apply(rule Valid_ode_solution2[where d="2 * v0 / g" and p="\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)"])
-    using main by auto
+    apply (rule Valid_ode_unique_solution[of "2 * v0/g" _ "\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)"])
+    using assms vars_distinct pos_g 1 2 3 4 by auto
 qed
 
 definition Inv :: "state \<Rightarrow> real" where
