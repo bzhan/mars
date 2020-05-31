@@ -3158,12 +3158,12 @@ qed
 
 lemma testHL14b:
   "Valid
-    (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
+    (\<lambda>tr. tr = Trace ((\<lambda>_. 0)(X := 1)) [])
     (Rep (Wait 1; Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
-    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs))"
 proof-
-  have 1:"Valid (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs)) (Wait 1)
-     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1]))"
+  have 1:"Valid (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs)) (Wait 1)
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs @ [WaitBlock 1]))"
     apply(simp only: Valid_ex_pre)
     apply auto
     subgoal for dlyvs
@@ -3172,9 +3172,9 @@ proof-
       by auto
     done
   have 2:"Valid 
-     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1])) 
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs @ [WaitBlock 1])) 
      (Cm (''ch''[?]X))
-     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))"
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))"
     apply(simp only:Valid_ex_pre)
     apply auto
     subgoal for dlyvs
@@ -3189,9 +3189,9 @@ proof-
       done
     done
   have 3:"Valid
-     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))
+     (\<lambda>tr. \<exists>dlyvs dly1 v. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs @ [WaitBlock 1, InBlock dly1 ''ch'' X v ({}, {''ch''})]))
      (Cm (''ch''[!](\<lambda>s. s X - 1))) 
-     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+     (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs))"
     apply(simp only:Valid_ex_pre)
     apply auto
     subgoal for dlyvs dly1 v
@@ -3200,13 +3200,13 @@ proof-
       subgoal for dly
         apply (rule exI[where x="dlyvs @ [(dly1, v, dly)]"])
         unfolding extend_send_def
-        using end_of_iright_blocks_zero[of dlyvs dly1 v] iright_blocks_snoc[of dlyvs dly1 v dly] by auto
+        using end_of_iright_blocks iright_blocks_snoc by auto
       done
     done
   have 4:"Valid
-    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs))
     (Rep (Wait 1;Cm (Receive ''ch'' X); Cm (Send ''ch'' (\<lambda>s. s X - 1))))
-    (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (iright_blocks dlyvs))"
+    (\<lambda>tr. \<exists>dlyvs. tr = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs))"
     apply(rule Valid_rep)
     using 1 2 3 by (auto intro: Valid_seq)
   show ?thesis
@@ -3332,14 +3332,35 @@ qed
 
 lemma testHL14:
   "ParValid
-    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] [])
+    (\<lambda>t. t = ParTrace [(\<lambda>_. 0), ((\<lambda>_. 0)(X := 1))] [])
     (PProc [Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)),
             Rep(Wait 1;(Cm (Receive ''ch'' X);
              Cm (Send ''ch'' (\<lambda>s. s X - 1))))] )
-    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)] (tot_blocks n))"
-  sorry
+    (\<lambda>t. \<exists>n. t = ParTrace [(\<lambda>_. 0), ((\<lambda>_. 0)(X := 1))] (tot_blocks n))"
+proof -
+  have 1: "(\<exists>n. par_t = ParTrace [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] (tot_blocks n))"
+    if tr1: "tr1 = Trace (\<lambda>_. 0) (ileft_blocks 0 dlyvs1)" and
+       tr2: "tr2 = Trace ((\<lambda>_. 0)(X := 1)) (iright_blocks dlyvs2)" and
+       rdy: "compat_trace_pair tr1 tr2" and
+       par_trace: "combine_par_trace [tr1, tr2] par_t"
+     for par_t dlyvs1 dlyvs2 tr1 tr2
+  proof -
+    from par_trace[unfolded tr1 tr2] obtain par_blks where
+      1: "par_t = ParTrace [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] par_blks" and
+      2: "combine_blocks [\<lambda>_. 0, (\<lambda>_. 0)(X := 1)] [ileft_blocks 0 dlyvs1, iright_blocks dlyvs2] par_blks"
+      using combine_par_traceE2 by blast
+    then obtain n where 3: "par_blks = tot_blocks n"
+      using testHL14_blocks by blast
+    show ?thesis
+      apply (rule exI[where x=n])
+      using 1 unfolding 3 by auto
+  qed
+  show ?thesis
+    apply (rule Valid_parallel2'[OF _ _ testHL14a testHL14b])
+    using 1 by auto
+qed
 
 
 end
