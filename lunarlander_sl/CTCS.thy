@@ -215,9 +215,9 @@ definition Init :: fform where
  
 text \<open>The continuous part\<close>
 definition Move :: proc where
-  "Move = Cont (ODE {sf, vel} (\<lambda> x. if x = sf then (var2exp vel)
-                              else if x = vel then (var2exp acc)
-                              else (\<lambda>_. 0))) B"
+  "Move = Cont (ODE (\<lambda> x. if x = sf then (var2exp vel)
+                          else if x = vel then (var2exp acc)
+                          else (\<lambda>_. 0))) B"
  
 definition Train :: proc where
   "Train = Move; (IF B3 b3 ::= (\<lambda>_. 0)  b3 ::= (\<lambda>_. 1)); Cm (ch_T2R [!] (\<lambda> s. s b3));

@@ -1,6 +1,5 @@
 theory BigStep
-  imports Complex_Main
-    Ordinary_Differential_Equations.Flow
+  imports Analysis_More
 begin
 
 subsection \<open>Syntax\<close>
@@ -45,7 +44,7 @@ datatype comm =
 | Receive cname var     ("_[?]_" [110,108] 100)
 
 datatype ODE =
-  ODE "var set" "var \<Rightarrow> exp"
+  ODE "var \<Rightarrow> exp"
 
 text \<open>HCSP processes\<close>
 datatype proc =
@@ -73,26 +72,6 @@ datatype event =
 | IO cname real 
 
 
-text \<open>Two events are compatible if they are In-Out pairs.\<close>
-fun compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
-  "compat Tau ev = False"
-| "compat (WaitE val) ev = False"
-| "compat (In ch val) ev = (if ev = Out ch val then True else False)"
-| "compat (Out ch val) ev = (if ev = In ch val then True else False)"
-| "compat (IO ch val) ev = False"
-
-
-(*
-ch?1 to x at time 2, x := 2, ch!2 at 4
-
-[Block 2 (\<lambda>t. if t = 2 then (\<lambda>_. 0)(x := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''}),
- Block 0 _ Tau ({}, {}),
- Block 2 _ (Out ''ch'' 2) ({''ch''}, {})]
-
-[Block 2 _ ... (Out ''ch'' 1) ({''ch''}, {}),
- ...]
-
-*)
 subsection \<open>Traces\<close>
 
 text \<open>First, we define the concept of traces\<close>
@@ -127,7 +106,6 @@ fun event_of_block :: "trace_block \<Rightarrow> event" where
 | "event_of_block (ODEBlock v _) = WaitE v"
 | "event_of_block (ODEInBlock _ _ ch _ v _) = In ch v"
 | "event_of_block (ODEOutBlock _ _ ch v _) = Out ch v"
-
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
@@ -290,19 +268,6 @@ fun wait_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> trace_bloc
   "wait_blocks t [] = []"
 | "wait_blocks t (blk # blks) = wait_block t blk # blks"
 
-(*
-text \<open>Given a delay time t and a block with time interval at least t,
-  find the history at and before t.\<close>
-fun start_block :: "time \<Rightarrow> trace_block \<Rightarrow> history" where
-  "start_block t (Block dly s ev rdy) t' = (if t' \<le> t then s t' else s t)"
-
-text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
-  then the first block has length at least t.\<close>
-fun start_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> history" where
-  "start_blocks t [] = (\<lambda>t'. undefined)"
-| "start_blocks t (blk # blks) = start_block t blk"
-*)
-
 text \<open>From a list of traces, delay every trace by t, and remove the first block
   from i'th trace. We assume that each trace is either empty or its first block
   has length at least t.\<close>
@@ -348,14 +313,17 @@ text \<open>Main definition: combining a list of block lists.
   combine_blocks blkss pblks means the list of block lists blkss can be combined
   together into pblks.\<close>
 inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Rightarrow> par_block list \<Rightarrow> bool" where
-  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks sts blkss []"  \<comment> \<open>empty case\<close>
+  \<comment> \<open>empty case\<close>
+  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks sts blkss []"
+
+  \<comment> \<open>Tau step at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = 0 \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
-  \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> 0 \<Longrightarrow>
    combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_one i 0 blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((ParTauBlock i (end_of_blocks (sts ! i) [hd (blkss ! i)])) # pblks)" 
+
   \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow> blkss ! j \<noteq> [] \<Longrightarrow>
@@ -366,6 +334,7 @@ inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Ri
    var_of_block (hd (blkss !i)) = {x} \<Longrightarrow>
    combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_pair i j blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((IOBlock i j c x v) # pblks)" 
+
  \<comment> \<open>Wait action at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
    t > 0 \<Longrightarrow>
@@ -402,9 +371,6 @@ fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
 
 subsection \<open>Definitions of ODEs\<close>
 
-definition Vagree :: "state \<Rightarrow> state \<Rightarrow> var set \<Rightarrow> bool"
-  where "Vagree u v V = (\<forall>i. i \<in> V \<longrightarrow> u i = v i)"
-
 type_synonym vec = "real^(var)"
 
 text \<open>Conversion between state and vector\<close>
@@ -422,89 +388,11 @@ lemma vec_state_map2[simp]: "state2vec (vec2state s) = s"
 
 text \<open>Given ODE and a state, find the derivative vector.\<close>
 fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
-  "ODE2Vec (ODE S f) s = state2vec (\<lambda>a. if a \<in> S then f a s else 0)"
+  "ODE2Vec (ODE f) s = state2vec (\<lambda>a. f a s)"
 
 text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
-
-text \<open>Exists solution f to the ODE on time {0 .. d}, starting at u and ending at v.\<close>
-definition ODEstate :: "ODE \<Rightarrow> real \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool" where
-  "ODEstate ode d u v = (d \<ge> 0 \<and> (\<exists>f. ODEsol ode f d \<and> u = f 0 \<and> v = f d))"
-
-text \<open>Projection of has_vector_derivative onto components.\<close>
-lemma has_vector_derivative_proj:
-  assumes "(p has_vector_derivative q t) (at t within D)"
-  shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
-  using assms unfolding has_vector_derivative_def has_derivative_def 
-  apply (simp add: bounded_linear_scaleR_left)
-  using tendsto_vec_nth by fastforce
-
-lemma has_vector_derivative_projI:
-  assumes "\<forall>i. ((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
-  shows "(p has_vector_derivative q t) (at t within D)"
-  using assms unfolding has_vector_derivative_def has_derivative_def
-  apply (auto simp add: bounded_linear_scaleR_left)
-  by (auto intro: vec_tendstoI)
-
-lemma has_derivative_coords [simp,derivative_intros]:
-  "((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
-  unfolding has_derivative_def by auto
-
-
-text \<open>If the derivative is always 0, then the function is always 0.\<close>
-lemma mvt_real_eq:
-  fixes p :: "real \<Rightarrow> real"
-  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-    and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
-    and "x \<in> {0 .. d}"
-  shows "p 0 = p x" 
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by force
-qed
-
-text \<open>If the derivative is always non-negative, then the function is increasing.\<close>
-lemma mvt_real_ge:
-  fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-  and "d \<ge> 0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
-  and "x \<in> {0 .. d}"
-  shows "p 0 \<le> p x"
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
-qed
-
-text \<open>If the derivative is always non-positive, then the function is decreasing.\<close>
-lemma mvt_real_le:
-  fixes p :: "real \<Rightarrow>real"
-  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-    and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
-    and "x \<in> {0 .. d}"
-  shows "p 0 \<ge> p x"
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
-qed
 
 text \<open>Mean value theorem (constant case) for vectors.\<close>
 lemma mvt_vector:
@@ -563,14 +451,10 @@ text \<open>Big-step semantics.
   big_step p tr tr2 means executing p starting at trace tr can end in trace tr2.
   This should imply that tr is a prefix of tr2.\<close>
 inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> bool" where
-  \<comment> \<open>Send: dly \<ge> 0 is the amount of time waited at the current send.\<close>
-  sendB: "big_step (Cm (Send ch e)) tr
-    \<comment> \<open>dly \<ge> 0\<close>
-    (extend_send ch e dly ({ch}, {}) tr)"
-  \<comment> \<open>Receive: dly \<ge> 0 is the amount of time waited at the current receive.
-      v is the value received.\<close>
-| receiveB: "big_step (Cm (Receive ch var)) tr
-    \<comment> \<open>dly \<ge> 0\<close>
+  \<comment> \<open>dly: amount of time waited at the current send.\<close>
+  sendB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Send ch e)) tr (extend_send ch e dly ({ch}, {}) tr)"
+  \<comment> \<open>dly: amount of time waited at the current receive, v: the value received.\<close>
+| receiveB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Receive ch var)) tr
     (extend_receive ch var dly v ({}, {ch}) tr)"
 | skipB: "big_step Skip tr tr"
 | assignB: "big_step (Assign var e) tr
@@ -585,13 +469,6 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
     (extend_trace tr (WaitBlock d))"
 | IChoiceB: "i < length ps \<Longrightarrow> big_step (ps ! i) tr tr2 \<Longrightarrow>
    big_step (IChoice ps) tr tr2"
-  \<comment> \<open>cs is a list of comm \<times> proc elements.\<close>
-(*
-Trace 1: [Block 4 _ (In ch 1) ({ch2}, {ch})]
-Trace 2: [Block 4 _ (Out ch 1) ({ch}, {})]     communicated with 1
-Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
-  then compat_rdy fails for time between 2 and 4.
-*)
 | EChoiceSendB: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
    big_step p2 (extend_send ch e dly (rdy_of_echoice cs) tr) tr3 \<Longrightarrow>
    big_step (EChoice cs) tr tr3"
@@ -635,6 +512,7 @@ subsection \<open>More convenient version of rules\<close>
 
 lemma sendB2:
   assumes "blks' = blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]"
+    and "dly \<ge> 0"
   shows "big_step (Cm (Send ch e)) (Trace s blks) (Trace s blks')"
 proof -
   have 1: "Trace s (blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]) =
@@ -643,11 +521,12 @@ proof -
   show ?thesis
     apply (subst assms(1))
     apply (subst 1)
-    by (rule sendB)
+    using assms(2) by (rule sendB)
 qed
 
 lemma receiveB2:
   assumes "blks' = blks @ [InBlock dly ch var v ({}, {ch})]"
+    and "dly \<ge> 0"
   shows "big_step (Cm (Receive ch var)) (Trace s blks) (Trace s blks')"
 proof -
   have 1: "Trace s (blks @ [InBlock dly ch var v ({}, {ch})]) =
@@ -656,7 +535,7 @@ proof -
   show ?thesis
     apply (subst assms(1))
     apply (subst 1)
-    by (rule receiveB)
+    using assms(2) by (rule receiveB)
 qed
 
 lemma waitB2:
@@ -689,21 +568,21 @@ lemma test1a: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Send x + 1 immediately\<close>
 lemma test1b: "big_step (Cm (Send ''ch'' (\<lambda>s. s X + 1)))
         (Trace ((\<lambda>_. 0)(X := 1)) [])
         (Trace ((\<lambda>_. 0)(X := 1)) [OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Send 1 after delay 2\<close>
 lemma test1c: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [OutBlock 2 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Receive 1 immediately\<close>
 lemma test2a: "big_step (Cm (Receive ''ch'' X))
@@ -812,7 +691,7 @@ lemma test7: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<
    apply (rule seqB)
     apply (rule assignB)
   apply auto[1]
-   apply (rule sendB2)
+   apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB1)
   done
@@ -826,13 +705,13 @@ lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<
   apply (rule seqB)
   apply (rule assignB)
    apply auto[1]
-  apply (rule sendB2)
+  apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB2)
    apply (rule seqB)
   apply (rule assignB)
    apply auto[1]
-   apply (rule sendB2)
+   apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB1)
   done
@@ -893,7 +772,7 @@ proof -
 qed
 
 text \<open>ODE Example 1\<close>
-lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
   apply (rule ContB)
@@ -902,7 +781,7 @@ lemma test11: "big_step (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lamb
   by (auto intro!: derivative_intros)
 
 text \<open>ODE Example 2\<close>
-lemma test11b: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+lemma test11b: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t ^ 2)) {0..1})])"
   apply (rule ContB)
@@ -916,7 +795,7 @@ lemma test11b: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<
   by (metis (full_types) less_1_mult less_eq_real_def mult_le_one mult_less_cancel_left1)
 
 text \<open>ODE Example 3\<close>
-lemma test11c: "big_step (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+lemma test11c: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace ((\<lambda>_. 0)(X := 1)) [])
         (Trace ((\<lambda>_. 0)(X := 1)) [ODEBlock (pi / 2) (restrict (\<lambda>t. (\<lambda>_. 0)(X := cos t, Y := sin t)) {0..pi / 2})])"
 proof -
@@ -2266,21 +2145,21 @@ text \<open>ODE with solution\<close>
 lemma testHL12:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
-    (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
 proof -
-  have 1: "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (fun_upd (\<lambda>_. 0) X) 1"
+  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (fun_upd (\<lambda>_. 0) X) 1"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
      apply auto
      apply (rule has_vector_derivative_projI)
      by (auto simp add: state2vec_def)
-  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. state2vec (\<lambda>a. if a = X then ((\<lambda>_ _. 0)(X := \<lambda>_. 1)) a (vec2state v) else 0))"
+  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))"
   proof -
-    have eq: "(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v) else 0) = (\<chi> a. if a = X then 1 else 0)"
-      for v::vec
+    have eq: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)" for v::vec
       by auto
     show ?thesis
-      unfolding state2vec_def vec2state_def fun_upd_def eq
+      unfolding fun_upd_def vec2state_def
+      apply (auto simp add: state2vec_def eq)
       by (rule local_lipschitz_constI)
   qed
   show ?thesis
@@ -2295,10 +2174,10 @@ lemma testHL12':
       and d2: "end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
-    (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) (list@[ODEBlock (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))"
 proof -
-  have 1: "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + v)) (1 - v)"
+  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + v)) (1 - v)"
     unfolding ODEsol_def has_vderiv_on_def
     apply auto using d1 apply simp
     apply (rule has_vector_derivative_projI)
@@ -2306,13 +2185,14 @@ proof -
     apply (rule has_vector_derivative_eq_rhs)
     apply (auto intro!: derivative_intros)[1]
     by auto
-  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. state2vec (\<lambda>a. if a = X then ((\<lambda>_ _. 0)(X := \<lambda>_. 1)) a (vec2state v) else 0))"
+  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))"
   proof -
-    have 1: "(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v) else 0) = (\<chi> a. if a = X then 1 else 0)"
+    have 1: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)"
       for v::vec
       by auto
     show ?thesis
-      unfolding state2vec_def vec2state_def fun_upd_def 1
+      unfolding fun_upd_def vec2state_def
+      apply (auto simp add: state2vec_def 1)
       by (rule local_lipschitz_constI)
   qed
   show ?thesis
@@ -2323,10 +2203,10 @@ qed
 lemma testHL12b:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
-    (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) {0..1})])"
 proof -
-  have 1: "ODEsol (ODE {X, Y} ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)) 1"
+  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)) 1"
     unfolding ODEsol_def has_vderiv_on_def
     apply auto
     apply (rule has_vector_derivative_projI)
@@ -2337,14 +2217,13 @@ proof -
     apply (rule has_vector_derivative_eq_rhs)
     apply (auto intro!: derivative_intros)[1]
     by auto
-  have 2: "local_lipschitz {- (1::real)<..} UNIV
-     (\<lambda>t v. state2vec (\<lambda>a. if a = X \<or> a = Y then ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X)) a (vec2state v) else 0))"
+  have 2: "local_lipschitz {- (1::real)<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (vec2state v))"
   proof -
     have bounded: "bounded_linear ((\<lambda>(y::vec). \<chi> a. if a = Y then y $ X else 0))"
       apply (rule bounded_linearI')
       using vec_lambda_unique by fastforce+
     show ?thesis
-      unfolding state2vec_def vec2state_def fun_upd_def
+      unfolding state2vec_def vec2state_def fun_upd_def ODE2Vec.simps
       apply (rule c1_implies_local_lipschitz[where f'="(\<lambda>(t,y). Blinfun(\<lambda>y. \<chi> a. if a = Y then y $ X else 0))"])
          apply (auto simp add: bounded_linear_Blinfun_apply[OF bounded])
       subgoal premises pre for t x
@@ -2363,7 +2242,7 @@ qed
 lemma testHL12inv:
   "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
-    (Cont (ODE {X, Y} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
     (\<lambda>t. \<exists>d p. t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})) \<and>
                d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(X := 1)) []) \<and>
                (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y))"
@@ -2508,12 +2387,12 @@ qed
 lemma testHL13a:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep ((Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
+    (Rep ((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks  0 dlyvs))"
 proof -
   have main: "Valid
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-    (Rep ((Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
+    (Rep ((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))"
     apply (rule Valid_rep)
     apply (subst Valid_ex_pre)
@@ -2525,7 +2404,7 @@ proof -
         using end_left_blocks_init c1 by auto
       have 2: "Valid
                 (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-                (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+                (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                 (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..1})])"
         using testHL12 1 by auto
       have 3: "Valid
@@ -2560,7 +2439,7 @@ proof -
         using end_left_blocks_init c2 ini by auto
       have 2: "Valid
                 (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-                (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+                (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                 (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 dlyvs)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))" 
         if cond1:"v<1"
         using testHL12' cond1 ini end_left_blocks_init c2 by auto
@@ -2594,14 +2473,14 @@ proof -
           done
         done
       have 5: "Valid (\<lambda>tr. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-                ((Cont (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
+                ((Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
                 (\<lambda>s. s X < 1); Cm (''ch''[!](\<lambda>s. s X))); Cm (''ch''[?]X))
                 (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
         if cond1:"v<1"
         using 2 3 4 cond1 by (auto intro: Valid_seq)
      have 6: "Valid
                (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-               (Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+               (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 dlyvs)@[ODEBlock 0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0})]))" 
        if cond2:"v\<ge>1"
        apply(rule Valid_ode_solution3) 
@@ -2637,7 +2516,7 @@ proof -
           done
         done
      have 9: "Valid (\<lambda>tr. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-               ((Cont (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
+               ((Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
                (\<lambda>s. s X < 1); Cm (''ch''[!](\<lambda>s. s X))); Cm (''ch''[?]X))
                (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))" 
        if cond2:"v\<ge>1"
@@ -2752,7 +2631,7 @@ qed
 lemma testHL13:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)(X := 1)] [])
-    (PProc [Rep(((Cont (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+    (PProc [Rep(((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
              Cm (Send ''ch'' (\<lambda>s. s X)));
              Cm (Receive ''ch'' X))),
             Rep((Cm (Receive ''ch'' X);
@@ -2844,24 +2723,24 @@ lemma testHL14o:
   assumes "end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
-    (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)), Skip)])
     (\<lambda>t. \<exists>d. t = Trace (\<lambda>_. 0) (list@[ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {})])
               \<and> d \<ge> 0)"
 proof -
   have main: "ODEOutBlock d (restrict p {0..d}) ''ch'' (p d X) ({''ch''}, {}) =
               ODEOutBlock d (\<lambda>t\<in>{0..d}. (\<lambda>_. 0)(X := t + v)) ''ch'' (d + v) ({''ch''}, {})"
-    if pre: "0 \<le> d" "ODEsol (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p d"
+    if pre: "0 \<le> d" "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) p d"
        "p 0 = end_of_blocks (\<lambda>_. 0) list"
      for p d
   proof-
     have 1: "restrict p {0..d} = restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}"
     proof -
-      interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
+      interpret loc:ll_on_open_it "{-1<..}" "(\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))" "UNIV" "0"
         apply standard
         apply auto
         subgoal proof -
-        have 1: "(\<chi> a. if a = X then (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v) else 0) = (\<chi> a. if a = X then 1 else 0)"
+        have 1: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)"
           for v::vec
           by auto
         show ?thesis
@@ -2869,7 +2748,7 @@ proof -
           by (rule local_lipschitz_constI)
         qed
         done
-      have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := t+v))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..} UNIV"
+      have step2: "((\<lambda>t. state2vec ((\<lambda>_. 0)(X := t+v))) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..} UNIV"
         unfolding solves_ode_def has_vderiv_on_def
         apply auto
         apply (rule has_vector_derivative_projI)
@@ -2880,7 +2759,7 @@ proof -
       have step4: "(loc.flow 0 (state2vec ((\<lambda>_. 0)(X := v)))) t = (\<lambda>t. state2vec((\<lambda>_. 0)(X := t+v))) t" if "t \<in> {0..}" for t
         apply (rule loc.maximal_existence_flow(2)[OF step2])
         using that by (auto simp add: state2vec_def)
-      have step5: "((\<lambda>t. state2vec(p t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..d} UNIV"
+      have step5: "((\<lambda>t. state2vec(p t)) solves_ode ((\<lambda>t. \<lambda>v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))(vec2state v)))) {0..d} UNIV"
         using pre unfolding ODEsol_def solves_ode_def by auto
       have step6: "loc.flow 0 (state2vec ((\<lambda>_. 0)(X := v))) t = state2vec (p t)" if "t\<in>{0..d}" for t
         apply (rule loc.maximal_existence_flow(2)[OF step5])
@@ -2904,14 +2783,14 @@ qed
 lemma testHL14a:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)"
 proof -
   have 1: "Valid
      (\<lambda>tr. tr = Trace (\<lambda>_. 0) blks)
-     (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
+     (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))
       [(''ch''[!](\<lambda>s. s X), Skip)];
       Cm (''ch''[?]X))
      (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)"
@@ -2923,7 +2802,7 @@ proof -
       by auto
     have 2: "Valid
               (\<lambda>t. t = Trace (\<lambda>_. 0) blks)
-              (Interrupt (ODE {X} ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
+              (Interrupt (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1)))[(''ch''[!](\<lambda>s. s X), Skip)])
               (\<lambda>tr. \<exists>d. tr = Trace (\<lambda>_. 0) (blks @ [
                 ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {})]) \<and> d \<ge> 0)"
       apply (rule testHL14o[of blks "v"])
@@ -2950,7 +2829,7 @@ proof -
   qed
   have main: "Valid
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)
-    (Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)"
@@ -3161,7 +3040,7 @@ qed
 lemma testHL14:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), ((\<lambda>_. 0)(X := 1))] [])
-    (PProc [Rep (Interrupt (ODE {X} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (PProc [Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)),
             Rep(Wait 1;(Cm (Receive ''ch'' X);

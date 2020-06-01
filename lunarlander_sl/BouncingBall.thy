@@ -31,11 +31,11 @@ lemma bouncingBallOne:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0))
         [ODEBlock (2 * v0/g) (restrict (\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)) {0..2 * v0/g})])"
 proof -
-  have 1: "ODEsol (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>t. (\<lambda>_. 0)(X := v0 * t - g * t\<^sup>2 / 2, V := v0 - g * t)) (2 * v0 / g)"
+  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>t. (\<lambda>_. 0)(X := v0 * t - g * t\<^sup>2 / 2, V := v0 - g * t)) (2 * v0 / g)"
     unfolding ODEsol_def solves_ode_def has_vderiv_on_def
     apply auto using assms pos_g apply simp
     apply (rule has_vector_derivative_projI)
@@ -45,8 +45,7 @@ proof -
     apply (rule has_vector_derivative_eq_rhs)
      apply (fast intro!: derivative_intros) apply simp
     done
-  have 2: "local_lipschitz {- (1::real)<..} UNIV
-     (\<lambda>t v. state2vec (\<lambda>a. if a = X \<or> a = V then ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g)) a (vec2state v) else 0))"
+  have 2: "local_lipschitz {- (1::real)<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (vec2state v))"
   proof -
     have bounded: "bounded_linear (\<lambda>(y::vec). \<chi> a. if a = X then y $ V else 0)"
       apply (rule bounded_linearI')
@@ -58,7 +57,7 @@ proof -
       subgoal premises pre for t x
         unfolding has_derivative_def apply (auto simp add: bounded)
         apply (rule vec_tendstoI)
-        by (auto simp add: vars_distinct)
+        by (auto simp add: vars_distinct state2vec_def)
       done
   qed
   have 3: "g * t\<^sup>2 < v0 * t * 2" if "t < 2 * v0 / g" "\<not> g * t < v0" "0 \<le> t" for t
@@ -90,7 +89,7 @@ lemma bouncingBallInv:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
     (\<lambda>t. \<exists>d p. t = extend_trace (Trace ((\<lambda>_. 0)(V := v0)) []) (ODEBlock d (restrict p {0..d})) \<and>
                d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) []) \<and>
                (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv (p t) = Inv (p 0)))"
@@ -118,13 +117,13 @@ lemma bouncingBall:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Assign V (\<lambda>s. - c * s V)))
     (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)"
 proof -
   have 1: "Valid
      (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)
-     (Cont (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V))
+     (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V))
      (\<lambda>t. \<exists>blks d p.
              t = Trace ((\<lambda>_. 0)(V := v0)) (blks @ [ODEBlock d (restrict p {0..d})]) \<and>
              valid_blocks v0 blks \<and> d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) blks) \<and>
@@ -157,7 +156,7 @@ proof -
     done
   have 3: "Valid
       (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)
-      (Rep (Cont (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V); V ::= (\<lambda>s. - c * s V)))
+      (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V); V ::= (\<lambda>s. - c * s V)))
       (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)"
     apply (auto intro!: Valid_rep Valid_seq)
     using 1 2 by auto
@@ -204,7 +203,7 @@ lemma bouncingBallFinal:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Assign V (\<lambda>s. - c * s V)))
     (\<lambda>t. Inv (end_of_trace t) \<le> v0 ^ 2)"
   apply (rule Valid_post[OF _ bouncingBall])
