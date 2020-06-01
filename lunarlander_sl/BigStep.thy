@@ -73,15 +73,6 @@ datatype event =
 | IO cname real 
 
 
-text \<open>Two events are compatible if they are In-Out pairs.\<close>
-fun compat :: "event \<Rightarrow> event \<Rightarrow> bool" where
-  "compat Tau ev = False"
-| "compat (WaitE val) ev = False"
-| "compat (In ch val) ev = (if ev = Out ch val then True else False)"
-| "compat (Out ch val) ev = (if ev = In ch val then True else False)"
-| "compat (IO ch val) ev = False"
-
-
 (*
 ch?1 to x at time 2, x := 2, ch!2 at 4
 
@@ -428,10 +419,6 @@ text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
 
-text \<open>Exists solution f to the ODE on time {0 .. d}, starting at u and ending at v.\<close>
-definition ODEstate :: "ODE \<Rightarrow> real \<Rightarrow> state \<Rightarrow> state \<Rightarrow> bool" where
-  "ODEstate ode d u v = (d \<ge> 0 \<and> (\<exists>f. ODEsol ode f d \<and> u = f 0 \<and> v = f d))"
-
 text \<open>Projection of has_vector_derivative onto components.\<close>
 lemma has_vector_derivative_proj:
   assumes "(p has_vector_derivative q t) (at t within D)"
@@ -564,13 +551,10 @@ text \<open>Big-step semantics.
   This should imply that tr is a prefix of tr2.\<close>
 inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> bool" where
   \<comment> \<open>Send: dly \<ge> 0 is the amount of time waited at the current send.\<close>
-  sendB: "big_step (Cm (Send ch e)) tr
-    \<comment> \<open>dly \<ge> 0\<close>
-    (extend_send ch e dly ({ch}, {}) tr)"
+  sendB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Send ch e)) tr (extend_send ch e dly ({ch}, {}) tr)"
   \<comment> \<open>Receive: dly \<ge> 0 is the amount of time waited at the current receive.
       v is the value received.\<close>
-| receiveB: "big_step (Cm (Receive ch var)) tr
-    \<comment> \<open>dly \<ge> 0\<close>
+| receiveB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Receive ch var)) tr
     (extend_receive ch var dly v ({}, {ch}) tr)"
 | skipB: "big_step Skip tr tr"
 | assignB: "big_step (Assign var e) tr
@@ -635,6 +619,7 @@ subsection \<open>More convenient version of rules\<close>
 
 lemma sendB2:
   assumes "blks' = blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]"
+    and "dly \<ge> 0"
   shows "big_step (Cm (Send ch e)) (Trace s blks) (Trace s blks')"
 proof -
   have 1: "Trace s (blks @ [OutBlock dly ch (e (end_of_trace (Trace s blks))) ({ch}, {})]) =
@@ -643,11 +628,12 @@ proof -
   show ?thesis
     apply (subst assms(1))
     apply (subst 1)
-    by (rule sendB)
+    using assms(2) by (rule sendB)
 qed
 
 lemma receiveB2:
   assumes "blks' = blks @ [InBlock dly ch var v ({}, {ch})]"
+    and "dly \<ge> 0"
   shows "big_step (Cm (Receive ch var)) (Trace s blks) (Trace s blks')"
 proof -
   have 1: "Trace s (blks @ [InBlock dly ch var v ({}, {ch})]) =
@@ -656,7 +642,7 @@ proof -
   show ?thesis
     apply (subst assms(1))
     apply (subst 1)
-    by (rule receiveB)
+    using assms(2) by (rule receiveB)
 qed
 
 lemma waitB2:
@@ -689,21 +675,21 @@ lemma test1a: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [OutBlock 0 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Send x + 1 immediately\<close>
 lemma test1b: "big_step (Cm (Send ''ch'' (\<lambda>s. s X + 1)))
         (Trace ((\<lambda>_. 0)(X := 1)) [])
         (Trace ((\<lambda>_. 0)(X := 1)) [OutBlock 0 ''ch'' 2 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Send 1 after delay 2\<close>
 lemma test1c: "big_step (Cm (Send ''ch'' (\<lambda>_. 1)))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [OutBlock 2 ''ch'' 1 ({''ch''}, {})])"
   apply (rule sendB2)
-  by simp
+  by auto
 
 text \<open>Receive 1 immediately\<close>
 lemma test2a: "big_step (Cm (Receive ''ch'' X))
@@ -812,7 +798,7 @@ lemma test7: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<
    apply (rule seqB)
     apply (rule assignB)
   apply auto[1]
-   apply (rule sendB2)
+   apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB1)
   done
@@ -826,13 +812,13 @@ lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (Send ''ch'' (\<
   apply (rule seqB)
   apply (rule assignB)
    apply auto[1]
-  apply (rule sendB2)
+  apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB2)
    apply (rule seqB)
   apply (rule assignB)
    apply auto[1]
-   apply (rule sendB2)
+   apply (rule sendB2[where dly=0])
    apply auto
   apply (rule RepetitionB1)
   done
