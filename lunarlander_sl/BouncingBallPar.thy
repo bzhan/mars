@@ -191,13 +191,13 @@ qed
 
 inductive valid_blocks_par :: "par_block list \<Rightarrow> bool" where
   "valid_blocks_par []"
-| "valid_blocks_par pblks \<Longrightarrow>
-   valid_blocks_par (ParWaitBlock t # IOBlock 1 0 ''ch1'' v # IOBlock 0 1 ''ch2'' (- (c * v)) # pblks)"
+| "valid_blocks_par pblks \<Longrightarrow> d \<ge> 0 \<Longrightarrow>  (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv ((p t)!0) = Inv ((p 0)!0)) \<Longrightarrow>
+   valid_blocks_par (ParWaitBlock d (restrict p {0..d}) # IOBlock 1 0 ''ch1''V v # IOBlock 0 1 ''ch2'' V (- (c * v)) # pblks)"
 
 lemma bouncingBallBlocks:
   "valid_blocks_plant st blks1 \<Longrightarrow>
    valid_blocks_ctrl blks2 \<Longrightarrow>
-   combine_blocks [blks1, blks2] par_blks \<Longrightarrow>
+   combine_blocks [st, sr] [blks1, blks2] par_blks \<Longrightarrow>
    valid_blocks_par par_blks"
 proof (induct arbitrary: blks2 par_blks rule: valid_blocks_plant.induct)
   case (1 st)
@@ -230,30 +230,46 @@ next
       using combine_blocks_ODENil2 combine_blocks_OutNil by blast
   next
     case (2 blks2' dly21 v dly22)
-    note ctrl2 = 2
+    note ctrl2 = 2  
+    have 21: "restrict p {0..d} d = p d" using plant2(3) by auto
+    have 22: "(\<lambda>t\<in>{0..d}. [restrict p {0..d} t, sr]) = (\<lambda>t\<in>{0..d}. [p t, sr])"
+      using plant2(3) by auto
     obtain rest where s1: "d \<le> dly21"
-      "combine_blocks
+      "combine_blocks [p d, sr]
        [OutBlock dly11 ''ch1'' (p d V) ({''ch1''}, {}) # InBlock dly12 ''ch2'' V v1 ({}, {''ch2''}) # blks,
         InBlock (dly21 - d) ''ch1'' V v ({}, {''ch1''}) # OutBlock dly22 ''ch2'' (- (c * v)) ({''ch2''}, {}) # blks2']
        rest"
-      "par_blks = ParWaitBlock d # rest"
-      using plant2(7) unfolding ctrl2(1)
-      using combine_blocks_ODEIn2 by blast
-    obtain rest2 where s2:
+      "par_blks = ParWaitBlock d (restrict (\<lambda>t. [p t, sr]) {0..d}) # rest"
+      using plant2(3, 7) unfolding ctrl2(1)
+      using combine_blocks_ODEIn2[of st sr d "(restrict p {0..d})"
+        "OutBlock dly11 ''ch1'' (p d V) ({''ch1''}, {}) # InBlock dly12 ''ch2'' V v1 ({}, {''ch2''}) # blks"
+       dly21 "''ch1''" V v "({}, {''ch1''})" "OutBlock dly22 ''ch2'' (- (c * v)) ({''ch2''}, {}) # blks2'" par_blks
+       ] 21 22 by auto   
+    have 23: "[p d, sr][1 := end_of_blocks ([p d, sr] ! 1) [InBlock (dly21 - d) ''ch1'' V v ({}, {''ch1''})]]
+            = [p d, sr (V:=v)]"
+      by auto
+     obtain rest2 where s2:
       "dly11 = 0" "dly21 - d = 0" "p d V = v"
-      "combine_blocks [InBlock dly12 ''ch2'' V v1 ({}, {''ch2''}) # blks,
+      "combine_blocks [p d, sr(V:=v)] [InBlock dly12 ''ch2'' V v1 ({}, {''ch2''}) # blks,
                        OutBlock dly22 ''ch2'' (- (c * v)) ({''ch2''}, {}) # blks2'] rest2"
-      "rest = IOBlock 1 0 ''ch1'' (p d V) # rest2"
-      using combine_blocks_IO2[OF s1(2)] by blast
+      "rest = IOBlock 1 0 ''ch1'' V (p d V) # rest2"
+       using combine_blocks_IO2[OF s1(2)] 23  by auto
+     have 24: "([p d, sr(V := v)][0 := end_of_blocks ([p d, sr(V := v)] ! 0) [InBlock dly12 ''ch2'' V v1 ({}, {''ch2''})]])
+              =  [(p d)(V := v1), sr(V := v)]" by auto
     obtain rest3 where s3:
       "dly22 = 0" "dly12 = 0" "- (c * v) = v1"
-      "combine_blocks [blks, blks2'] rest3" "rest2 = IOBlock 0 1 ''ch2'' (- (c * v)) # rest3"
-      using combine_blocks_IO2'[OF s2(4)] by blast
+      "combine_blocks [(p d)(V:=v1), sr(V:=v)] [blks, blks2'] rest3" "rest2 = IOBlock 0 1 ''ch2'' V (- (c * v)) # rest3"
+      using combine_blocks_IO2'[OF s2(4)] 24 by auto
     have s4: "valid_blocks_par rest3"
-      by (rule plant2(2)[OF ctrl2(2) s3(4)])
+      using plant2(2)[of blks2'] ctrl2(2) s3(4) sorry
+    have "d \<ge> 0" using plant2(3) by auto 
+    have 26: "\<forall>t. 0 \<le> t \<and> t \<le> d \<longrightarrow> Inv (p t) = Inv (p 0)" 
+      sorry
+    have 27: " \<forall>t. 0 \<le> t \<and> t \<le> d \<longrightarrow> Inv([p t, sr] ! 0) = Inv(p t)" by auto
+    have 28: " \<forall>t. 0 \<le> t \<and> t \<le> d \<longrightarrow> Inv([p 0, sr] ! 0) = Inv(p 0)" by auto
     show ?case
       unfolding s1(3) s2(5) s3(5) s2(3)
-      using s4 by (rule valid_blocks_par.intros(2))
+      using s4 valid_blocks_par.intros(2)[of rest3 d "\<lambda> t. [p t, sr]" v] \<open>d\<ge>0\<close>  26 27 28 sorry
   qed
 qed
 
@@ -275,7 +291,7 @@ proof -
   proof -
     from par_trace[unfolded tr1 tr2] obtain par_blks where
       1: "par_t = ParTrace [(\<lambda>_. 0)(V := v0), \<lambda>_. 0] par_blks" and
-      2: "combine_blocks [blks1, blks2] par_blks"
+      2: "combine_blocks  [((\<lambda>_. 0)(V := v0)), (\<lambda>_. 0)]  [blks1, blks2] par_blks"
       using combine_par_traceE2 by blast
     then have 3: "valid_blocks_par par_blks"
       using bouncingBallBlocks[OF tr1(2) tr2(2) 2] by auto

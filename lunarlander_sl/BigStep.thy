@@ -1768,9 +1768,9 @@ next
 qed
 
 lemma combine_blocks_ODEIn2:
-  "combine_blocks [sl, sr] [ODEBlock d p # blks1, (InBlock dly ch X r rdy) # blks2] par_tr \<Longrightarrow>
+  "combine_blocks [sl, sr] [ODEBlock d p # blks1, (InBlock dly ch x r rdy) # blks2] par_tr \<Longrightarrow>
     \<exists>rest. dly \<ge> d \<and>
-     combine_blocks [p d, sr] [blks1, wait_block d (InBlock dly ch X r rdy) # blks2] rest \<and> par_tr = 
+     combine_blocks [p d, sr] [blks1, wait_block d (InBlock dly ch x r rdy) # blks2] rest \<and> par_tr = 
        (ParWaitBlock d (restrict (\<lambda>t. [p t, sr]) {0..d})) # rest"
 proof (induct rule: combine_blocks.cases)
   case (1 blkss sts)
@@ -1795,7 +1795,7 @@ next
     using 4 by auto
   have 42: "(wait_block_state_list sts t blkss) = [p d, sr]"
     using 4 41 by auto
-  have 43: "remove_one i t blkss = [blks1, wait_block d (InBlock dly ch X r rdy) # blks2]"
+  have 43: "remove_one i t blkss = [blks1, wait_block d (InBlock dly ch x r rdy) # blks2]"
     using 4(2) 41 40 unfolding remove_one_def Let_def by auto
   have 44: "(\<lambda>d. if 0 \<le> d \<and> d \<le> t then wait_block_state_list sts d blkss else undefined)
           = (\<lambda>t\<in>{0..d}. [p t, sr])" 
@@ -2720,7 +2720,7 @@ next
          "par_blks = ParWaitBlock 1 (restrict (\<lambda>t. [(\<lambda>_. 0)(X := t), (\<lambda>_. 0)(X := 1)]) {0..1::real})  # rest"
       using combine_blocks_ODEIn2[of "(\<lambda>_. 0)" "(\<lambda>_. 0)(X := 1)" 1 "(restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..1::real})"
               "OutBlock (fst b) ''ch'' 1 ({''ch''}, {}) # InBlock (snd (snd b)) ''ch'' X (fst (snd b)) ({}, {''ch''}) # left_blocks (fst (snd b)) list"
-              "fst a" "''ch''" "(fst (snd a))" "({}, {''ch''})" "OutBlock (snd (snd a)) ''ch'' (fst (snd a) - 1) ({''ch''}, {}) # right_blocks dlyvs"
+              "fst a" "''ch''" X "(fst (snd a))" "({}, {''ch''})" "OutBlock (snd (snd a)) ''ch'' (fst (snd a) - 1) ({''ch''}, {}) # right_blocks dlyvs"
               "par_blks"] 21 22 by auto
 
     from 3(1) obtain rest1 where
