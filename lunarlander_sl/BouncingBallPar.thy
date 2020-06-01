@@ -59,13 +59,13 @@ lemma bouncingBallPlant:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Cm (Send ''ch1'' (\<lambda>s. s V)); Cm (Receive ''ch2'' V)))
     (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks)"
 proof -
   have 1: "Valid
      (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks)
-     (Cont (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V))
+     (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g))) (\<lambda>s. 0 < s X \<or> 0 < s V))
      (\<lambda>t. \<exists>blks d p.
              t = Trace ((\<lambda>_. 0)(V := v0)) (blks @ [ODEBlock d (restrict p {0..d})]) \<and>
              valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks \<and> d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) blks) \<and>
@@ -120,7 +120,7 @@ proof -
     done
   have 4: "Valid
      (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks)
-     (Rep (Cont (ODE {X, V} ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g)))
+     (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s V, V := \<lambda>_. - g)))
             (\<lambda>s. 0 < s X \<or> 0 < s V); Cm (''ch1''[!](\<lambda>s. s V)); Cm (''ch2''[?]V)))
      (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks)"
     by (auto intro!: Valid_rep Valid_seq 1 2 3)
@@ -278,7 +278,7 @@ lemma bouncingBall:
   assumes "v0 > 0"
   shows "ParValid
     (\<lambda>t. t = ParTrace [((\<lambda>_. 0)(V := v0)), (\<lambda>_. 0)] [])
-    (PProc [Rep (Cont (ODE {X, V} ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (PProc [Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
             Cm (Send ''ch1'' (\<lambda>s. s V)); Cm (Receive ''ch2'' V)),
             Rep (Cm (Receive ''ch1'' V); Cm (Send ''ch2'' (\<lambda>s. - (c * s V))))])
     (\<lambda>t. \<exists>pblks. t = ParTrace [((\<lambda>_. 0)(V := v0)), (\<lambda>_. 0)] pblks \<and> valid_blocks_par pblks)"
