@@ -235,21 +235,7 @@ definition Train :: proc where
 definition CTCS :: pproc where
   "CTCS = PProc [Rep Train, Rep Driver, Rep TCC_ma, Rep RBC_ma, Rep RBC_lu]"
 
-text \<open>the state of a trace at any given time\<close>
-fun state_of_blocks :: "state \<Rightarrow> trace_block list \<Rightarrow> time \<Rightarrow> state" where
-  "state_of_blocks s [] t = s"
-| "state_of_blocks s ((InBlock dly _ var v _) # blks) t =
-    (if 0 \<le> t \<and> t < dly then s
-     else if t = dly then s(var := v)
-     else state_of_blocks (s(var := v)) blks (t - dly))"
-| "state_of_blocks s ((OutBlock dly _ _ rdy) # blks) t =
-    (if 0 \<le> t \<and> t \<le> dly then s
-     else state_of_blocks s blks (t - dly))"
-| "state_of_blocks s ((TauBlock _) # blks) t = state_of_blocks s blks t"
-| "state_of_blocks s ((WaitBlock d) # blks) t =
-    (if t \<le> d then s else state_of_blocks s blks (t - d))"
-| "state_of_blocks s ((ODEBlock d h) # blks) t =
-    (if t \<le> d then h t else state_of_blocks (h d) blks (t - d))"
+
 
 fun state_of_trace :: "trace \<Rightarrow> time \<Rightarrow> state" where
   "state_of_trace (Trace s blks) t = state_of_blocks s blks t"
