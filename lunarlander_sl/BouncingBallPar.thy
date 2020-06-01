@@ -59,7 +59,7 @@ lemma bouncingBallPlant:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Cm (Send ''ch1'' (\<lambda>s. s V)); Cm (Receive ''ch2'' V)))
     (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks_plant ((\<lambda>_. 0)(V := v0)) blks)"
 proof -
@@ -278,7 +278,7 @@ lemma bouncingBall:
   assumes "v0 > 0"
   shows "ParValid
     (\<lambda>t. t = ParTrace [((\<lambda>_. 0)(V := v0)), (\<lambda>_. 0)] [])
-    (PProc [Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (PProc [Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
             Cm (Send ''ch1'' (\<lambda>s. s V)); Cm (Receive ''ch2'' V)),
             Rep (Cm (Receive ''ch1'' V); Cm (Send ''ch2'' (\<lambda>s. - (c * s V))))])
     (\<lambda>t. \<exists>pblks. t = ParTrace [((\<lambda>_. 0)(V := v0)), (\<lambda>_. 0)] pblks \<and> valid_blocks_par pblks)"

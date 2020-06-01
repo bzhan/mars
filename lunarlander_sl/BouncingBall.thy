@@ -31,7 +31,7 @@ lemma bouncingBallOne:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0))
         [ODEBlock (2 * v0/g) (restrict (\<lambda>t. (\<lambda>_. 0)(X := v0*t-g*t^2/2, V := v0-g*t)) {0..2 * v0/g})])"
 proof -
@@ -89,7 +89,7 @@ lemma bouncingBallInv:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0))
     (\<lambda>t. \<exists>d p. t = extend_trace (Trace ((\<lambda>_. 0)(V := v0)) []) (ODEBlock d (restrict p {0..d})) \<and>
                d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(V := v0)) []) \<and>
                (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv (p t) = Inv (p 0)))"
@@ -117,7 +117,7 @@ lemma bouncingBall:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Assign V (\<lambda>s. - c * s V)))
     (\<lambda>t. \<exists>blks. t = Trace ((\<lambda>_. 0)(V := v0)) blks \<and> valid_blocks v0 blks)"
 proof -
@@ -203,7 +203,7 @@ lemma bouncingBallFinal:
   assumes "v0 > 0"
   shows "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(V := v0)) [])
-    (Rep (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. s V), V := (\<lambda>_. -g)))) (\<lambda>s. s X > 0 \<or> s V > 0);
           Assign V (\<lambda>s. - c * s V)))
     (\<lambda>t. Inv (end_of_trace t) \<le> v0 ^ 2)"
   apply (rule Valid_post[OF _ bouncingBall])

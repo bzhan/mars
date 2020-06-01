@@ -772,7 +772,7 @@ proof -
 qed
 
 text \<open>ODE Example 1\<close>
-lemma test11: "big_step (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
   apply (rule ContB)
@@ -781,7 +781,7 @@ lemma test11: "big_step (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_
   by (auto intro!: derivative_intros)
 
 text \<open>ODE Example 2\<close>
-lemma test11b: "big_step (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+lemma test11b: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace (\<lambda>_. 0) [])
         (Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t ^ 2)) {0..1})])"
   apply (rule ContB)
@@ -795,7 +795,7 @@ lemma test11b: "big_step (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>
   by (metis (full_types) less_1_mult less_eq_real_def mult_le_one mult_less_cancel_left1)
 
 text \<open>ODE Example 3\<close>
-lemma test11c: "big_step (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+lemma test11c: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
         (Trace ((\<lambda>_. 0)(X := 1)) [])
         (Trace ((\<lambda>_. 0)(X := 1)) [ODEBlock (pi / 2) (restrict (\<lambda>t. (\<lambda>_. 0)(X := cos t, Y := sin t)) {0..pi / 2})])"
 proof -
@@ -2145,7 +2145,7 @@ text \<open>ODE with solution\<close>
 lemma testHL12:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. (\<lambda>_. 0)(X := t)) {0..1})])"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (fun_upd (\<lambda>_. 0) X) 1"
@@ -2174,7 +2174,7 @@ lemma testHL12':
       and d2: "end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) (list@[ODEBlock (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + v)) (1 - v)"
@@ -2203,7 +2203,7 @@ qed
 lemma testHL12b:
   "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) [])
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 2), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
     (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict (\<lambda>t. ((\<lambda>_. 0)(X := 2 * t, Y := t * t))) {0..1})])"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 2, Y := \<lambda>s. s X))) (\<lambda>t. (\<lambda>_. 0)(X := 2 * t, Y := t * t)) 1"
@@ -2242,7 +2242,7 @@ qed
 lemma testHL12inv:
   "Valid
     (\<lambda>t. t = Trace ((\<lambda>_. 0)(X := 1)) [])
-    (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>s. - s Y), Y := (\<lambda>s. s X)))) (\<lambda>s. s Y < 1))
     (\<lambda>t. \<exists>d p. t = extend_trace (Trace ((\<lambda>_. 0)(X := 1)) []) (ODEBlock d (restrict p {0..d})) \<and>
                d \<ge> 0 \<and> p 0 = end_of_trace (Trace ((\<lambda>_. 0)(X := 1)) []) \<and>
                (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> p t X * p t X + p t Y * p t Y = p 0 X * p 0 X + p 0 Y * p 0 Y))"
@@ -2387,12 +2387,12 @@ qed
 lemma testHL13a:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep ((Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
+    (Rep ((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks  0 dlyvs))"
 proof -
   have main: "Valid
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-    (Rep ((Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
+    (Rep ((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1); Cm (Send ''ch'' (\<lambda>s. s X )));Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>dlyvs. tr = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))"
     apply (rule Valid_rep)
     apply (subst Valid_ex_pre)
@@ -2404,7 +2404,7 @@ proof -
         using end_left_blocks_init c1 by auto
       have 2: "Valid
                 (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-                (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+                (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                 (\<lambda>t. t = Trace (\<lambda>_. 0) [ODEBlock 1 (restrict(\<lambda>t. (\<lambda>_. 0)(X := t)){0..1})])"
         using testHL12 1 by auto
       have 3: "Valid
@@ -2439,7 +2439,7 @@ proof -
         using end_left_blocks_init c2 ini by auto
       have 2: "Valid
                 (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-                (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+                (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                 (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 dlyvs)@[ODEBlock  (1-v) (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..1-v})]))" 
         if cond1:"v<1"
         using testHL12' cond1 ini end_left_blocks_init c2 by auto
@@ -2480,7 +2480,7 @@ proof -
         using 2 3 4 cond1 by (auto intro: Valid_seq)
      have 6: "Valid
                (\<lambda>t. t = Trace (\<lambda>_. 0) (left_blocks 0 dlyvs))
-               (Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+               (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
                (\<lambda>t. t = Trace (\<lambda>_. 0) ((left_blocks 0 dlyvs)@[ODEBlock 0 (restrict(\<lambda>t. (\<lambda>_. 0)(X := v)){0..0})]))" 
        if cond2:"v\<ge>1"
        apply(rule Valid_ode_solution3) 
@@ -2631,7 +2631,7 @@ qed
 lemma testHL13:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), (\<lambda>_. 0)(X := 1)] [])
-    (PProc [Rep(((Cont (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+    (PProc [Rep(((Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
              Cm (Send ''ch'' (\<lambda>s. s X)));
              Cm (Receive ''ch'' X))),
             Rep((Cm (Receive ''ch'' X);
@@ -2723,7 +2723,7 @@ lemma testHL14o:
   assumes "end_of_trace (Trace (\<lambda>_. 0) list) = (\<lambda>_. 0)(X := v)"
     shows "Valid
     (\<lambda>t. t = Trace (\<lambda>_. 0) list)
-    (Interrupt (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)), Skip)])
     (\<lambda>t. \<exists>d. t = Trace (\<lambda>_. 0) (list@[ODEOutBlock d (restrict(\<lambda>t. (\<lambda>_. 0)(X := t+v)){0..d}) ''ch'' (d+v) ({''ch''}, {})])
               \<and> d \<ge> 0)"
@@ -2783,7 +2783,7 @@ qed
 lemma testHL14a:
   "Valid
     (\<lambda>tr. tr = Trace (\<lambda>_. 0) [])
-    (Rep (Interrupt (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)"
@@ -2829,7 +2829,7 @@ proof -
   qed
   have main: "Valid
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)
-    (Rep (Interrupt (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)))
     (\<lambda>tr. \<exists>blks. tr = Trace (\<lambda>_. 0) blks \<and> ileft_blocks 0 blks)"
@@ -3040,7 +3040,7 @@ qed
 lemma testHL14:
   "ParValid
     (\<lambda>t. t = ParTrace [(\<lambda>_. 0), ((\<lambda>_. 0)(X := 1))] [])
-    (PProc [Rep (Interrupt (ODE ((\<lambda>_. \<lambda>_. 0)(X := (\<lambda>_. 1)))) [
+    (PProc [Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) [
              ((Send ''ch'' (\<lambda>s. s X)),Skip)];
              Cm (Receive ''ch'' X)),
             Rep(Wait 1;(Cm (Receive ''ch'' X);
