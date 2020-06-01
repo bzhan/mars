@@ -1,6 +1,5 @@
 theory BigStep
-  imports Complex_Main
-    Ordinary_Differential_Equations.Flow
+  imports Analysis_More
 begin
 
 subsection \<open>Syntax\<close>
@@ -73,17 +72,6 @@ datatype event =
 | IO cname real 
 
 
-(*
-ch?1 to x at time 2, x := 2, ch!2 at 4
-
-[Block 2 (\<lambda>t. if t = 2 then (\<lambda>_. 0)(x := 1) else (\<lambda>_. 0)) (In ''ch'' 1) ({}, {''ch''}),
- Block 0 _ Tau ({}, {}),
- Block 2 _ (Out ''ch'' 2) ({''ch''}, {})]
-
-[Block 2 _ ... (Out ''ch'' 1) ({''ch''}, {}),
- ...]
-
-*)
 subsection \<open>Traces\<close>
 
 text \<open>First, we define the concept of traces\<close>
@@ -118,7 +106,6 @@ fun event_of_block :: "trace_block \<Rightarrow> event" where
 | "event_of_block (ODEBlock v _) = WaitE v"
 | "event_of_block (ODEInBlock _ _ ch _ v _) = In ch v"
 | "event_of_block (ODEOutBlock _ _ ch v _) = Out ch v"
-
 
 fun rdy_of_block :: "trace_block \<Rightarrow> rdy_info" where
   "rdy_of_block (InBlock _ _ _ _ rdy) = rdy"
@@ -281,19 +268,6 @@ fun wait_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> trace_bloc
   "wait_blocks t [] = []"
 | "wait_blocks t (blk # blks) = wait_block t blk # blks"
 
-(*
-text \<open>Given a delay time t and a block with time interval at least t,
-  find the history at and before t.\<close>
-fun start_block :: "time \<Rightarrow> trace_block \<Rightarrow> history" where
-  "start_block t (Block dly s ev rdy) t' = (if t' \<le> t then s t' else s t)"
-
-text \<open>Operate on a list of blocks. We assume that if the list is nonempty,
-  then the first block has length at least t.\<close>
-fun start_blocks :: "time \<Rightarrow> trace_block list \<Rightarrow> history" where
-  "start_blocks t [] = (\<lambda>t'. undefined)"
-| "start_blocks t (blk # blks) = start_block t blk"
-*)
-
 text \<open>From a list of traces, delay every trace by t, and remove the first block
   from i'th trace. We assume that each trace is either empty or its first block
   has length at least t.\<close>
@@ -339,14 +313,17 @@ text \<open>Main definition: combining a list of block lists.
   combine_blocks blkss pblks means the list of block lists blkss can be combined
   together into pblks.\<close>
 inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Rightarrow> par_block list \<Rightarrow> bool" where
-  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks sts blkss []"  \<comment> \<open>empty case\<close>
+  \<comment> \<open>empty case\<close>
+  "\<forall>i<length blkss. blkss ! i = [] \<Longrightarrow> combine_blocks sts blkss []"
+
+  \<comment> \<open>Tau step at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow>
    delay_of_block (hd (blkss ! i)) = 0 \<Longrightarrow>
    event_of_block (hd (blkss ! i)) = Tau \<Longrightarrow>
-  \<forall>k<length blkss. blkss ! k \<noteq> [] \<longrightarrow> delay_of_block (hd (blkss ! k)) \<ge> 0 \<Longrightarrow>
    combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_one i 0 blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((ParTauBlock i (end_of_blocks (sts ! i) [hd (blkss ! i)])) # pblks)" 
+
   \<comment> \<open>Communication between i'th and j'th process\<close>
 | "i < length blkss \<Longrightarrow> j < length blkss \<Longrightarrow> i \<noteq> j \<Longrightarrow>
    blkss ! i \<noteq> [] \<Longrightarrow> blkss ! j \<noteq> [] \<Longrightarrow>
@@ -357,6 +334,7 @@ inductive combine_blocks :: "state list \<Rightarrow> trace_block list list \<Ri
    var_of_block (hd (blkss !i)) = {x} \<Longrightarrow>
    combine_blocks (sts[i := (end_of_blocks (sts ! i) [hd (blkss ! i)])]) (remove_pair i j blkss) pblks \<Longrightarrow>
    combine_blocks sts blkss ((IOBlock i j c x v) # pblks)" 
+
  \<comment> \<open>Wait action at i'th process\<close>
 | "i < length blkss \<Longrightarrow>
    t > 0 \<Longrightarrow>
@@ -393,9 +371,6 @@ fun rdy_of_echoice :: "(comm \<times> proc) list \<Rightarrow> rdy_info" where
 
 subsection \<open>Definitions of ODEs\<close>
 
-definition Vagree :: "state \<Rightarrow> state \<Rightarrow> var set \<Rightarrow> bool"
-  where "Vagree u v V = (\<forall>i. i \<in> V \<longrightarrow> u i = v i)"
-
 type_synonym vec = "real^(var)"
 
 text \<open>Conversion between state and vector\<close>
@@ -418,80 +393,6 @@ fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
 text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
-
-text \<open>Projection of has_vector_derivative onto components.\<close>
-lemma has_vector_derivative_proj:
-  assumes "(p has_vector_derivative q t) (at t within D)"
-  shows "((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
-  using assms unfolding has_vector_derivative_def has_derivative_def 
-  apply (simp add: bounded_linear_scaleR_left)
-  using tendsto_vec_nth by fastforce
-
-lemma has_vector_derivative_projI:
-  assumes "\<forall>i. ((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
-  shows "(p has_vector_derivative q t) (at t within D)"
-  using assms unfolding has_vector_derivative_def has_derivative_def
-  apply (auto simp add: bounded_linear_scaleR_left)
-  by (auto intro: vec_tendstoI)
-
-lemma has_derivative_coords [simp,derivative_intros]:
-  "((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
-  unfolding has_derivative_def by auto
-
-
-text \<open>If the derivative is always 0, then the function is always 0.\<close>
-lemma mvt_real_eq:
-  fixes p :: "real \<Rightarrow> real"
-  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-    and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
-    and "x \<in> {0 .. d}"
-  shows "p 0 = p x" 
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by force
-qed
-
-text \<open>If the derivative is always non-negative, then the function is increasing.\<close>
-lemma mvt_real_ge:
-  fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-  and "d \<ge> 0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
-  and "x \<in> {0 .. d}"
-  shows "p 0 \<le> p x"
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
-qed
-
-text \<open>If the derivative is always non-positive, then the function is decreasing.\<close>
-lemma mvt_real_le:
-  fixes p :: "real \<Rightarrow>real"
-  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
-    and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
-    and "x \<in> {0 .. d}"
-  shows "p 0 \<ge> p x"
-proof -
-  have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
-    using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
-qed
 
 text \<open>Mean value theorem (constant case) for vectors.\<close>
 lemma mvt_vector:
@@ -550,10 +451,9 @@ text \<open>Big-step semantics.
   big_step p tr tr2 means executing p starting at trace tr can end in trace tr2.
   This should imply that tr is a prefix of tr2.\<close>
 inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> bool" where
-  \<comment> \<open>Send: dly \<ge> 0 is the amount of time waited at the current send.\<close>
+  \<comment> \<open>dly: amount of time waited at the current send.\<close>
   sendB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Send ch e)) tr (extend_send ch e dly ({ch}, {}) tr)"
-  \<comment> \<open>Receive: dly \<ge> 0 is the amount of time waited at the current receive.
-      v is the value received.\<close>
+  \<comment> \<open>dly: amount of time waited at the current receive, v: the value received.\<close>
 | receiveB: "dly \<ge> 0 \<Longrightarrow> big_step (Cm (Receive ch var)) tr
     (extend_receive ch var dly v ({}, {ch}) tr)"
 | skipB: "big_step Skip tr tr"
@@ -569,13 +469,6 @@ inductive big_step :: "proc \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow
     (extend_trace tr (WaitBlock d))"
 | IChoiceB: "i < length ps \<Longrightarrow> big_step (ps ! i) tr tr2 \<Longrightarrow>
    big_step (IChoice ps) tr tr2"
-  \<comment> \<open>cs is a list of comm \<times> proc elements.\<close>
-(*
-Trace 1: [Block 4 _ (In ch 1) ({ch2}, {ch})]
-Trace 2: [Block 4 _ (Out ch 1) ({ch}, {})]     communicated with 1
-Trace 3: [Delay 2, Block 2 _ (In ch2 2) ({}, {ch2})]    should communicate first
-  then compat_rdy fails for time between 2 and 4.
-*)
 | EChoiceSendB: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
    big_step p2 (extend_send ch e dly (rdy_of_echoice cs) tr) tr3 \<Longrightarrow>
    big_step (EChoice cs) tr tr3"

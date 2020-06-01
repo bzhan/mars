@@ -191,7 +191,7 @@ qed
 
 inductive valid_blocks_par :: "par_block list \<Rightarrow> bool" where
   "valid_blocks_par []"
-| "valid_blocks_par pblks \<Longrightarrow> d \<ge> 0 \<Longrightarrow>  (\<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv ((p t)!0) = Inv ((p 0)!0)) \<Longrightarrow>
+| "valid_blocks_par pblks \<Longrightarrow> d \<ge> 0 \<Longrightarrow> \<forall>t. 0\<le>t \<and> t\<le>d \<longrightarrow> Inv ((p t)!0) = Inv ((p 0)!0) \<Longrightarrow>
    valid_blocks_par (ParWaitBlock d (restrict p {0..d}) # IOBlock 1 0 ''ch1''V v # IOBlock 0 1 ''ch2'' V (- (c * v)) # pblks)"
 
 lemma bouncingBallBlocks:
