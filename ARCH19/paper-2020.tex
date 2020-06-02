@@ -35,29 +35,17 @@
 \paragraph{Description of the system.}
 
 HHL prover~\cite{WZZ15} is an interactive theorem prover for verifying
-hybrid systems modelled by Hybrid CSP (HCSP)~\cite{He94,ZWR96}. HCSP is an extension of CSP by introducing differential equations for modeling continuous evolutions and interrupts for modeling interaction between continuous and discrete dynamics.  HHL prover
-implements the Hybrid Hoare Logic (HHL)~\cite{LLQZ10}, a Hoare style specification
-logic for HCSP, in the proof assistant
-Isabelle/HOL~\cite{isabelle}. However,  as the HHL defined in~\cite{LLQZ10} is not compositional with respect to 
-parallel composition, HHL prover can only handle restricted forms of parallel processes. 
+hybrid systems modelled by Hybrid CSP (HCSP)~\cite{He94,ZWR96}. HCSP is an extension of CSP by introducing differential equations for modeling continuous evolutions and interrupts for modeling interaction between continuous and discrete dynamics.  HHL prover implements the Hybrid Hoare Logic (HHL)~\cite{LLQZ10}, a Hoare style specification logic for HCSP, in the proof assistant Isabelle/HOL~\cite{isabelle}. However, as the HHL defined in~\cite{LLQZ10} is not compositional with respect to 
+parallel composition, HHL prover can only handle restricted forms of parallel processes. \emph{This version of the HHL prover is used for the nonlinear models, Roller coaster, and the lunar lander control program benchmarks.}
 
-Recently, HHL prover implements a compositional trace-based specification logic for HCSP, and has
-been used for verifying some examples involved with communications, parallel composition, repetition, and so on. 
-In the trace logic, the behavior of a HCSP process $P$ is specified by predicates on traces,
-\[Valid\  \{P\}~ c ~\{Q\} \Leftrightarrow (\forall tr, tr'. P\ tr \rightarrow Bigstep \ c \ tr\ tr' \rightarrow Q\ tr') \]
-saying that, if precondition $P$ holds for initial trace $tr$, and if the execution of $c$ terminates and  changes $tr$ to $tr'$, then the postcondition $Q$ holds for $tr'$. The trace of both sequential and parallel HCSP processes here is a list of atomic trace blocks. For sequential processes, there are three different types of trace blocks: the Tau block specifies discrete internal actions such as skip, assignment, that are executed in zero time; the input and output blocks specify the readiness and the value transmitted of corresponding communication events; the ODE blocks specifies the time duration and the trajectory for the ODE continuous evolution. Especially, the communication interrupt to continuous evolution can be specified by combining the last two types of trace blocks.   
- For parallel processes of HCSP, the trace can be defined as the combination  of the traces of their sub-processes. The combined trace considers the time and value synchronization of communication events, the interleaving of discrete actions occurring at the same time, and the conjunction of ODE trajectories throughout the common time intervals. Based on the trace notations, HHL defines the inference rules for all HCSP processes in a compositional way.
- 
+Recently, we implemented in HHL prover a compositional trace-based specification logic for HCSP, and used it to verify some examples involving combinations of ODE, interrupt, repetition, and parallel composition. Traces for both sequential and parallel HCSP processes consist of lists of trace blocks, and describe executions of a sequential or parallel process. For sequential processes, there are three types of trace blocks: $\tau$-blocks for internal actions, input and output blocks for communication, and ODE blocks. For parallel processes, the trace blocks are $\tau$-blocks for internal action on a single process, IO blocks for communication between two processes, and wait blocks that allow waiting or ODE evolution on each process. A list of sequential traces can be combined into a parallel trace, considering the time and value synchronization of communication events, the interleaving of discrete actions occurring at the same time, and the conjunction of ODE trajectories.
+
+A big-step semantics is defined for sequential processes, where $(c,tr)\Rightarrow tr'$ means executing process $c$ with starting trace $tr$ may terminate with the final trace $tr'$. Hoare triples (for partial correctness) is then defined as follows:
+\[\{P\}~ c ~\{Q\} \Longleftrightarrow \forall tr\ tr'.\ P(r) \longrightarrow (c,tr)\Rightarrow tr' \longrightarrow Q(tr') \]
+
+We defined inference rules for Hoare triples based on traces. This is intended to be a part of a complete system for reasoning about HCSP processes in a compositional way. \emph{The new system is tested on a benchmark consisting of small HCSP programs involving combinations of ODE, interrupt, repetition, and parallel composition.}
  
 
-
-
-
-
-
- 
- 
- 
 
 \paragraph{Example: design shapes and nonlinear continuous models.}
 
@@ -69,8 +57,7 @@ interrupted by a communication). Also, there is no assignment to an
 arbitrary value ($x := *$) in HCSP. As a result, some of the examples
 cannot be translated naturally. For those examples that can be
 translated naturally, we proved some of them in Isabelle, with the
-help of invariant checking using Redlog (details to be completed by
-Mar 24).
+help of invariant checking using Redlog.
 
 \paragraph{Example: Roller coaster.}
 
@@ -103,6 +90,9 @@ with respect to the user-defined invariant template, and then the
 SOS-based invariant generator is invoked on these constraints to
 synthesize a satisfying invariant.
 
+\paragraph{Example: benchmarks for trace-based logic}
+
+We choose some relatively simple examples of sequential and parallel processes involving combinations of ODE, interrupt, repetition, and parallel composition, and verified their properties using the trace-based logic for HCSP in Isabelle.
 
 \bibliographystyle{splncs04}
 \bibliography{main}
