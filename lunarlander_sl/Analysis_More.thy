@@ -11,6 +11,12 @@ lemma has_vector_derivative_proj:
   apply (simp add: bounded_linear_scaleR_left)
   using tendsto_vec_nth by fastforce
 
+lemma has_vderiv_on_proj:
+  assumes "(p has_vderiv_on q) D"
+  shows "((\<lambda>t. p t $ i) has_vderiv_on (\<lambda>t. q t $ i)) D"
+  using assms unfolding has_vderiv_on_def 
+  by (simp add: has_vector_derivative_proj)
+
 lemma has_vector_derivative_projI:
   assumes "\<forall>i. ((\<lambda>t. p t $ i) has_vector_derivative q t $ i) (at t within D)"
   shows "(p has_vector_derivative q t) (at t within D)"
