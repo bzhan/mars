@@ -42,7 +42,7 @@ definition model :: pproc where
 
 text \<open>Invariant for plant at start of loop\<close>
 definition Inv1 :: "state \<Rightarrow> bool" where
-  "Inv1 s \<longleftrightarrow> (s H \<ge> 0.3 \<and> s H \<le> 0.6 \<and> (s H \<le> 0.31 \<longrightarrow> s V = 1) \<and> (s H \<ge> 0.59 \<longrightarrow> s V = 0))"
+  "Inv1 s \<longleftrightarrow> (s H \<ge> 0.3 \<and> s H \<le> 0.6 \<and> (s H \<le> 0.31 \<longrightarrow> s V = 1) \<and> (s H \<ge> 0.59 \<longrightarrow> s V = 0)\<and>(s V\<in>{0,1}))"
 
 text \<open>Invariant for plant after running the ODE\<close>
 definition Inv2 :: "state \<Rightarrow> bool" where
@@ -51,6 +51,44 @@ definition Inv2 :: "state \<Rightarrow> bool" where
 
 thm contE
 
+
+lemma INV:
+  assumes "\<forall>t\<in>{0..d}. ((f :: real \<Rightarrow> real) has_derivative (\<lambda>s. s * f' t)) (at t within {0..d})"
+    and "\<forall>t\<in>{0..d}. f t = c \<longrightarrow> f' t < 0"
+    and "d>0"
+    and "f 0 \<le> c"
+  shows "\<forall>t\<in>{0..d}. f t \<le> c"
+proof-
+  assume "\<not> (\<forall>t\<in>{0..d}. f t \<le> c)"
+  then obtain s where s:"f s > c" "s\<in>{0..d}"
+    unfolding not_def assms(3) by force
+  then have 1:"s>0 \<and> s\<le>d"
+    using assms(4) 
+    using atLeastAtMost_iff by fastforce
+  have 2:"continuous_on {0..d} f"
+    using assms(1)
+    using has_derivative_continuous_on by fastforce
+  then have 3:"continuous_on {0..s} f"
+    using 1
+    using continuous_on_subset by fastforce
+  then obtain D where D:"D = vimage f {..c} \<inter> {0..s}"
+    by auto
+  then have 4:"D \<noteq> {}" using assms(4) 
+    using "1" by auto
+  have 5:"closed D"
+    using closed_vimage_Int[of "{..c}" "{0..s}" f] D 3 by auto
+  then have 6:"compact D"
+    using compact_Int_closed[of "{0..s}" D] D 
+    by (metis compact_Icc inf.idem inf_left_commute)
+  obtain i where i:"i\<in>D" "\<forall>x\<in>D. x\<le>i" "{0..i}\<subseteq>{0..s}"
+         using compact_attains_sup[of "D"] D 4 6 
+         by (metis Int_iff atLeastAtMost_iff atLeastatMost_subset_iff less_eq_real_def)
+  then have 7:"i<s" using D s 
+    using less_eq_real_def by auto
+
+  then show "False"
+    
+  
 lemma Valid_of_ODE:
   assumes "Inv1 (end_of_trace (tr)) \<and> end_of_trace (tr) T = 0"
     shows "Valid
@@ -119,7 +157,26 @@ proof-
         unfolding vec2state_def apply simp unfolding state2vec_def apply auto
         using vars_distinct by auto
       have 205:"\<forall>t\<in>{0 .. d}. (((\<lambda>t. (p t) H) has_derivative (\<lambda>s. s * ((\<lambda>s. s V * Qmax - pi * r^2 * sqrt(2 * g * s H)) (p t)))) (at t within {0 .. d}))"
-
+        using 203 204 by auto
+      have 206:"\<forall>t\<in>{0 .. d}. (p 0) V  = (p t) V"
+        using cond(1) unfolding ODEsol_def apply simp unfolding has_vderiv_on_def
+        using mvt_vector[of d p "\<lambda>x. (\<lambda>a. (if a = T then \<lambda>_. 1
+                else ((\<lambda>_ _. 0)(H := \<lambda>s. s V * Qmax - pi * r\<^sup>2 * sqrt (2 * g * s H))) a)
+                (p x))" "V"]
+        using vars_distinct by auto
+      have 207:"\<forall>t\<in>{0 .. d}. (p t) H - 0.6 * (p t) T \<le> 0"
+         
+         
+         
+         show ?thesis
+        sorry
+    qed
+show ?thesis unfolding Valid_def apply auto
+  subgoal for tr2
+    using contE
 end
 
+thm continuous_image_closed_interval
+thm open_vimage
+thm closed_vimage
 end
