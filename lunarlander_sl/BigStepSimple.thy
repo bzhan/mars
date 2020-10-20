@@ -84,6 +84,8 @@ datatype trace_block =
 
 type_synonym trace = "trace_block list"
 
+type_synonym tassn = "trace \<Rightarrow> bool"
+
 text \<open>Combining two lists of blocks\<close>
 
 text \<open>Whether two rdy_infos from different processes are compatible.\<close>
@@ -669,7 +671,7 @@ qed
 
 subsection \<open>Validity for parallel programs\<close>
 
-definition ParValid :: "(state \<Rightarrow> bool) \<Rightarrow> pproc \<Rightarrow> assn \<Rightarrow> bool" where
+definition ParValid :: "fform \<Rightarrow> pproc \<Rightarrow> assn \<Rightarrow> bool" where
   "ParValid P c Q \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
 
 
@@ -737,7 +739,7 @@ lemma testHL1:
   "Valid
     (\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
             (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({''ch''}, {}), OutBlock ''ch'' 1])))
-    (Cm (Send ''ch'' (\<lambda>_. 1)))
+    (Cm (''ch''[!](\<lambda>_. 1)))
     Q"
   by (rule Valid_send)
 
@@ -805,6 +807,133 @@ lemma testHL4:
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
                   combine_blocks_elim2e combine_blocks_elim4a) 
 
+subsection \<open>Standard assertions\<close>
+
+definition entails_tassn :: "tassn \<Rightarrow> tassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>t" 25) where
+  "(P \<Longrightarrow>\<^sub>t Q) \<longleftrightarrow> (\<forall>tr. P tr \<longrightarrow> Q tr)"
+
+lemma entails_tassn_trans:
+  "(P \<Longrightarrow>\<^sub>t Q) \<Longrightarrow> (Q \<Longrightarrow>\<^sub>t R) \<Longrightarrow> (P \<Longrightarrow>\<^sub>t R)"
+  unfolding entails_tassn_def by auto
+
+definition emp_assn :: "tassn" ("emp\<^sub>A") where
+  "emp\<^sub>A = (\<lambda>tr. tr = [])"
+
+definition join_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "@\<^sub>t" 65) where
+  "P @\<^sub>t Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> tr = tr1 @ tr2)"
+
+definition magic_wand_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "@-" 65) where
+  "Q @- P = (\<lambda>tr. \<forall>tr1. Q tr1 \<longrightarrow> P (tr @ tr1))"
+
+definition all_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<forall>\<^sub>A" 10) where
+  "(\<forall>\<^sub>A v. P v) = (\<lambda>tr. \<forall>v. P v tr)"
+
+inductive out_assn :: "state \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> tassn" ("Out\<^sub>A") where
+  "Out\<^sub>A s ch e [OutBlock ch (e s)]"
+| "d > 0 \<Longrightarrow> Out\<^sub>A s ch e [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({ch}, {}), OutBlock ch (e s)]"
+
+inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("In\<^sub>A") where
+  "In\<^sub>A s ch v [InBlock ch v]"
+| "d > 0 \<Longrightarrow> In\<^sub>A s ch v [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({}, {ch}), InBlock ch v]"
+
+lemma entails_mp_emp:
+  "emp\<^sub>A \<Longrightarrow>\<^sub>t P @- P"
+  unfolding entails_tassn_def emp_assn_def magic_wand_assn_def by auto
+
+lemma entails_mp:
+  "Q \<Longrightarrow>\<^sub>t P @- Q @\<^sub>t P"
+  unfolding entails_tassn_def magic_wand_assn_def join_assn_def by auto
+
+lemma magic_wand_mono:
+  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> (R @- P) \<Longrightarrow>\<^sub>t (R @- Q)"
+  unfolding entails_tassn_def magic_wand_assn_def by auto
+
+theorem Valid_send':
+  "Valid
+    (\<lambda>s. ((Out\<^sub>A s ch e) @- P s))
+    (Cm (ch[!]e))
+    P"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_send)
+  unfolding entails_def magic_wand_assn_def
+  by (auto intro: out_assn.intros)
+
+theorem Valid_receive':
+  "Valid
+    (\<lambda>s. \<forall>\<^sub>A v. ((In\<^sub>A s ch v) @- P (s(var := Some v))))
+    (Cm (ch[?]var))
+    P"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_receive)
+  unfolding entails_def magic_wand_assn_def all_assn_def
+  by (auto intro: in_assn.intros)
+
+subsection \<open>Simple examples redo\<close>
+
+text \<open>Send 1\<close>
+lemma testHL1s:
+  "Valid
+    (\<lambda>s. ((Out\<^sub>A s ''ch'' (\<lambda>_. 1)) @- P s))
+    (Cm (''ch''[!](\<lambda>_. 1)))
+    P"
+  by (rule Valid_send')
+
+text \<open>Strongest postcondition form\<close>
+lemma testHL1s':
+  "Valid
+    (\<lambda>s tr. s = Map.empty \<and> emp\<^sub>A tr)
+    (Cm (''ch''[!](\<lambda>_. 1)))
+    (\<lambda>s tr. s = Map.empty \<and> Out\<^sub>A s ''ch'' (\<lambda>_. 1) tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule testHL1s)
+  unfolding entails_def apply simp
+  unfolding entails_tassn_def[symmetric]
+  by (auto simp add: entails_mp_emp)
+
+text \<open>Send 1, then send 2\<close>
+lemma testHL2s:
+  "Valid
+    (\<lambda>s. Out\<^sub>A s ''ch'' (\<lambda>_. 1) @- Out\<^sub>A s ''ch'' (\<lambda>_. 2) @- P s)
+    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
+    P"
+  apply (rule Valid_seq)
+    prefer 2 apply (rule Valid_send')
+  by (rule Valid_send')
+
+text \<open>Strongest postcondition form\<close>
+lemma testHL2s':
+  "Valid
+    (\<lambda>s tr. s = Map.empty \<and> emp\<^sub>A tr)
+    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
+    (\<lambda>s tr. s = Map.empty \<and> ((Out\<^sub>A s ''ch'' (\<lambda>_. 1)) @\<^sub>t (Out\<^sub>A s ''ch'' (\<lambda>_. 2))) tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule testHL2s)
+  unfolding entails_def apply simp
+  unfolding entails_tassn_def[symmetric]
+  apply (rule entails_tassn_trans)
+   prefer 2 
+   apply (rule magic_wand_mono)
+  apply (rule entails_mp) by (rule entails_mp_emp)
+
+text \<open>Receive from ch\<close>
+lemma testHL3s:
+  "Valid
+    (\<lambda>s. \<forall>\<^sub>Av. In\<^sub>A s ''ch'' v @- P (s(X \<mapsto> v)))
+    (Cm (''ch''[?]X))
+    P"
+  by (rule Valid_receive')
+
+text \<open>Strongest postcondition form\<close>
+lemma testHL3s':
+  "Valid
+    (\<lambda>s tr. s = Map.empty \<and> emp\<^sub>A tr)
+    (Cm (''ch''[?]X))
+    (\<lambda>s tr. \<exists>v. s = [X \<mapsto> v] \<and> (In\<^sub>A (Map.empty) ''ch'' v tr))"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule testHL3s)
+  unfolding entails_def
+  by (auto simp add: all_assn_def magic_wand_assn_def emp_assn_def)
+
 
 subsection \<open>Test cases for external choice\<close>
 
@@ -818,7 +947,8 @@ lemma echoice_test1:
     (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
     Q"
   apply (rule Valid_echoice_InIn)
-    apply (rule Valid_skip) by (rule Valid_skip)
+   apply (rule Valid_skip)
+  by (rule Valid_skip)
 
 
 end
