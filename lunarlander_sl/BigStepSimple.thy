@@ -62,7 +62,7 @@ datatype proc =
 
 text \<open>Parallel of several HCSP processes\<close>
 datatype pproc =
-  Single proc
+  Single "var set" proc
 | Parallel pproc "cname set" pproc
 
 text \<open>Events\<close>
@@ -164,45 +164,66 @@ thm combine_blocksE1
 inductive_cases combine_blocksE2: "combine_blocks comms blks1 blks2 (IOBlock ch v # blks)"
 thm combine_blocksE2
 
+text \<open>Empty case\<close>
 lemma combine_blocks_elim1:
   "combine_blocks comms [] [] blks \<Longrightarrow> blks = []"
-  apply (induct rule: combine_blocks.cases)
-  by auto
+  by (induct rule: combine_blocks.cases, auto)
 
+text \<open>IO cases\<close>
 lemma combine_blocks_elim2:
-  "combine_blocks comms (InBlock ch v # blks1) (OutBlock ch v # blks2) blks \<Longrightarrow>
+  "combine_blocks comms (InBlock ch v # blks1) (OutBlock ch w # blks2) blks \<Longrightarrow>
    ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. blks = IOBlock ch v # blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow>
-   P"
-  apply (induct rule: combine_blocks.cases)
-  by auto
+   (\<And>blks'. w = v \<Longrightarrow> blks = IOBlock ch v # blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim2a:
+  "combine_blocks comms (OutBlock ch v # blks1) (InBlock ch w # blks2) blks \<Longrightarrow>
+   ch \<in> comms \<Longrightarrow>
+   (\<And>blks'. w = v \<Longrightarrow> blks = IOBlock ch v # blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2b:
+  "combine_blocks comms (OutBlock ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2c:
+  "combine_blocks comms (InBlock ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2d:
+  "combine_blocks comms (WaitBlock d p rdy # blks1) (OutBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2e:
+  "combine_blocks comms (WaitBlock d p rdy # blks1) (InBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+text \<open>IO cases, unpaired\<close>
 lemma combine_blocks_elim3:
   "combine_blocks comms (InBlock ch1 v # blks1) (OutBlock ch2 w # blks2) blks \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow>
    ch2 \<notin> comms \<Longrightarrow>
    (\<And>blks'. blks = InBlock ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 (OutBlock ch2 w # blks2) blks' \<Longrightarrow> P) \<Longrightarrow>
-   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms (InBlock ch1 v # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow>
-   P"
-  apply (induct rule: combine_blocks.cases)
-  by auto
+   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms (InBlock ch1 v # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim3a:
   "combine_blocks comms (InBlock ch1 v # blks1) [] blks \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = InBlock ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 [] blks' \<Longrightarrow> P) \<Longrightarrow>
-   P"
-  apply (induct rule: combine_blocks.cases)
-  by auto
+   (\<And>blks'. blks = InBlock ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 [] blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim3b:
   "combine_blocks comms [] (OutBlock ch2 w # blks2) blks \<Longrightarrow>
    ch2 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms [] blks2 blks' \<Longrightarrow> P) \<Longrightarrow>
-   P"
-  apply (induct rule: combine_blocks.cases)
-  by auto
+   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms [] blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
+text \<open>Wait cases\<close>
+lemma combine_blocks_elim4a:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
+   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
 subsection \<open>Tests for combine_blocks\<close>
 
@@ -302,11 +323,20 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 
 text \<open>Big-step semantics for parallel processes.\<close>
 
+fun vars_of_pproc :: "pproc \<Rightarrow> var set" where
+  "vars_of_pproc (Single vars _) = vars"
+| "vars_of_pproc (Parallel p1 chs p2) = vars_of_pproc p1 \<union> vars_of_pproc p2"
+
+
 inductive par_big_step :: "pproc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow> state \<Rightarrow> bool" where
-  SingleB: "big_step p s1 tr s2 \<Longrightarrow> par_big_step (Single p) s1 tr s2"
-| ParallelB: "par_big_step p1 s11 tr1 s12 \<Longrightarrow> par_big_step p2 s21 tr2 s22 \<Longrightarrow>
-    combine_blocks chs tr1 tr2 tr \<Longrightarrow>
-    par_big_step (Parallel p1 chs p2) (s11 ++ s21) tr (s12 ++ s22)"
+  SingleB: "big_step p s1 tr s2 \<Longrightarrow> par_big_step (Single vars p) s1 tr s2"
+| ParallelB:
+    "par_big_step p1 (restrict_map s1 (vars_of_pproc p1)) tr1 s12 \<Longrightarrow>
+     par_big_step p2 (restrict_map s1 (vars_of_pproc p2)) tr2 s22 \<Longrightarrow>
+     combine_blocks chs tr1 tr2 tr \<Longrightarrow>
+     s12 = restrict_map s2 (vars_of_pproc p1) \<Longrightarrow>
+     s22 = restrict_map s2 (vars_of_pproc p2) \<Longrightarrow>
+     par_big_step (Parallel p1 chs p2) s1 tr s2"
 
 subsection \<open>More convenient version of rules\<close>
 
@@ -321,16 +351,6 @@ lemma seqB':
     and "tr = tr1 @ tr2"
   shows "big_step (p1; p2) s1 tr s3"
   unfolding assms(3) using assms(1-2) by (rule seqB)
-
-lemma ParallelB':
-  assumes "big_step p1 s11 tr1 s12"
-    and "big_step p2 s21 tr2 s22"
-    and "combine_blocks chs tr1 tr2 tr"
-    and "s1 = s11 ++ s21"
-    and "s2 = s12 ++ s22"
-  shows "par_big_step (Parallel (Single p1) chs (Single p2)) s1 tr s2"
-  unfolding assms(4,5)
-  using assms(1-3) by (auto intro: ParallelB SingleB)
 
 subsection \<open>Test of big-step semantics\<close>
 
@@ -363,11 +383,13 @@ lemma test2b: "big_step (Cm (''ch''[?]X))
 
 text \<open>Communication\<close>
 lemma test3: "par_big_step (
-  Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
-           (Single (Cm (''ch''[?]X))))
+  Parallel (Single {} (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+           (Single {X} (Cm (''ch''[?]X))))
   Map.empty [IOBlock ''ch'' 1] ([X \<mapsto> 1])"
-  apply (rule ParallelB'[OF test1a test2a])
-  by (intro combine_blocks.intros, auto)
+  apply (rule ParallelB)
+     apply auto apply (rule SingleB[OF test1a])
+    apply (rule SingleB[OF test2a])
+  by (auto intro: combine_blocks.intros)
 
 text \<open>Wait\<close>
 lemma test4: "big_step (Wait 2)
@@ -381,14 +403,15 @@ lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
 
 text \<open>Communication after delay 2\<close>
 lemma test6: "par_big_step (
-  Parallel (Single (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
-           (Single (Cm (''ch''[?]X))))
+  Parallel (Single {} (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+           (Single {X} (Cm (''ch''[?]X))))
   Map.empty [WaitBlock 2 (restrict (\<lambda>_. Map.empty) {0..2}) ({}, {''ch''}), IOBlock ''ch'' 1] ([X \<mapsto> 1])"
-  apply (rule ParallelB'[OF test5 test2b])
+  apply (rule ParallelB)
+     apply auto apply (rule SingleB[OF test5])
+    apply (rule SingleB[OF test2b])
   by (auto intro!: combine_blocks.intros)
 
 text \<open>Loop one time\<close>
-
 lemma test7: "big_step (Rep (Assign X (\<lambda>s. the (s X) + 1); Cm (''ch''[!](\<lambda>s. the (s X)))))
   ([X \<mapsto> 0]) [OutBlock ''ch'' 1] ([X \<mapsto> 1])"
   apply (rule RepetitionB2)
@@ -422,13 +445,15 @@ lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
 
 text \<open>Communication with external choice\<close>
 lemma test10: "par_big_step (
-  Parallel (Single (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
+  Parallel (Single {} (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                              (''ch2''[!](\<lambda>_. 2), Wait 2)])) {''ch1'', ''ch2''}
-           (Single (Cm (''ch1''[?]X); Wait 1)))
+           (Single {X} (Cm (''ch1''[?]X); Wait 1)))
   Map.empty [IOBlock ''ch1'' 1, WaitBlock 1 (restrict (\<lambda>_. [X \<mapsto> 1]) {0..1}) ({}, {})] [X \<mapsto> 1]"
-  apply (rule ParallelB'[OF test9a])
-     apply (rule seqB) apply (rule receiveB1) apply (rule waitB)
-    apply auto
+  apply (rule ParallelB)
+     apply auto apply (rule SingleB[OF test9a])
+    apply (rule SingleB)
+    apply (rule seqB) apply (rule receiveB1) apply (rule waitB)
+   apply auto
   by (intro combine_blocks.intros, auto)
 
 subsection \<open>Validity\<close>
@@ -641,5 +666,159 @@ proof -
     apply (rule exI[where x=Q2])
     by (auto simp add: assms entails_def)
 qed
+
+subsection \<open>Validity for parallel programs\<close>
+
+definition ParValid :: "(state \<Rightarrow> bool) \<Rightarrow> pproc \<Rightarrow> assn \<Rightarrow> bool" where
+  "ParValid P c Q \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
+
+
+inductive_cases SingleE: "par_big_step (Single vars p) s1 tr s2"
+thm SingleE
+
+inductive_cases ParallelE: "par_big_step (Parallel p1 ch p2) s1 tr s2"
+thm ParallelE
+
+lemma ParValid_Single:
+  assumes "Valid P c Q"
+  shows "ParValid (\<lambda>s. P s []) (Single vars c) Q"
+  using assms unfolding ParValid_def Valid_def
+  by (metis SingleE append.left_neutral)
+
+lemma ParValid_Parallel:
+  assumes "ParValid P1 p1 Q1"
+    and "ParValid P2 p2 Q2"
+  shows "ParValid (\<lambda>s. P1 (restrict_map s (vars_of_pproc p1)) \<and>
+                       P2 (restrict_map s (vars_of_pproc p2)))
+          (Parallel p1 chs p2)
+         (\<lambda>s tr. \<exists>tr1 tr2. Q1 (restrict_map s (vars_of_pproc p1)) tr1 \<and>
+                           Q2 (restrict_map s (vars_of_pproc p2)) tr2 \<and>
+                           combine_blocks chs tr1 tr2 tr)"
+proof -
+  have *: "\<exists>tr1 tr2a. Q1 (s2 |` vars_of_pproc p1) tr1 \<and> Q2 (s2 |` vars_of_pproc p2) tr2a \<and> combine_blocks chs tr1 tr2a ([] @ tr2)"
+    if "P1 (s1 |` vars_of_pproc p1)"
+       "P2 (s1 |` vars_of_pproc p2)"
+       "par_big_step p1 (s1 |` vars_of_pproc p1) tr1a (s2 |` vars_of_pproc p1)"
+       "par_big_step p2 (s1 |` vars_of_pproc p2) tr2a (s2 |` vars_of_pproc p2)"
+       "combine_blocks chs tr1a tr2a tr2" for s1 s2 tr2 tr1a tr2a
+  proof -
+    have 1: "Q1 (s2 |` vars_of_pproc p1) tr1a"
+      using that(1,3) assms(1) unfolding ParValid_def by force
+    have 2: "Q2 (s2 |` vars_of_pproc p2) tr2a"
+      using that(2,4) assms(2) unfolding ParValid_def by force
+    show ?thesis
+      apply (rule exI[where x=tr1a])
+      apply (rule exI[where x=tr2a])
+      by (auto simp add: that(5) 1 2)
+  qed
+  show ?thesis
+    unfolding ParValid_def apply clarify
+    apply (elim ParallelE)
+    using * by auto
+qed
+
+lemma ParValid_Parallel':
+  assumes "ParValid P1 p1 Q1"
+    and "ParValid P2 p2 Q2"
+    and "\<And>s. P s \<Longrightarrow> P1 (restrict_map s (vars_of_pproc p1)) \<and>
+                     P2 (restrict_map s (vars_of_pproc p2))"
+    and "(\<lambda>s tr. \<exists>tr1 tr2. Q1 (restrict_map s (vars_of_pproc p1)) tr1 \<and>
+                           Q2 (restrict_map s (vars_of_pproc p2)) tr2 \<and>
+                           combine_blocks chs tr1 tr2 tr) \<Longrightarrow>\<^sub>A Q"
+  shows "ParValid P (Parallel p1 chs p2) Q"
+  using ParValid_Parallel[OF assms(1,2)]
+  by (smt ParValid_def assms(3) assms(4) entails_def)
+
+
+subsection \<open>Simple examples\<close>
+
+text \<open>Send 1\<close>
+lemma testHL1:
+  "Valid
+    (\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
+            (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({''ch''}, {}), OutBlock ''ch'' 1])))
+    (Cm (Send ''ch'' (\<lambda>_. 1)))
+    Q"
+  by (rule Valid_send)
+
+text \<open>This implies the strongest postcondition form\<close>
+lemma testHL1':
+  "Valid
+    (\<lambda>s tr. s = Map.empty \<and> tr = [])
+    (Cm (''ch''[!](\<lambda>_. 1)))
+    (\<lambda>s tr. s = Map.empty \<and>
+            (tr = [OutBlock ''ch'' 1] \<or>
+             (\<exists>d>0. tr = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. Map.empty) ({''ch''}, {}), OutBlock ''ch'' 1])))"
+  apply (rule Valid_weaken_pre)
+   prefer 2
+   apply (rule Valid_send)
+  unfolding entails_def by auto
+
+text \<open>Send 1, then send 2\<close>
+lemma testHL2:
+  "Valid
+    (\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
+             (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
+            (\<forall>d>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
+             (\<forall>da>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
+                           [WaitBlock da (\<lambda>\<tau>\<in>{0..da}. s) ({''ch''}, {}), OutBlock ''ch'' 2]))))
+    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
+    Q"
+  apply (rule Valid_seq)
+    prefer 2 apply (rule Valid_send)
+  by (rule Valid_send)
+
+text \<open>Receive from ch\<close>
+lemma testHL3:
+  "Valid
+    (\<lambda>s tr.
+        (\<forall>v. Q (s(X \<mapsto> v)) (tr @ [InBlock ''ch'' v])) \<and>
+        (\<forall>d>0. \<forall>v. Q (s(X \<mapsto> v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({}, {''ch''}), InBlock ''ch'' v])))
+    (Cm (''ch''[?]X))
+    Q"
+  by (rule Valid_receive)
+
+text \<open>Strongest postcondition form\<close>
+lemma testHL3':
+  "Valid
+    (\<lambda>s tr. s = Map.empty \<and> tr = [])
+    (Cm (''ch''[?]X))
+    (\<lambda>s tr. (\<exists>v. s = [X \<mapsto> v] \<and>
+              (tr = [InBlock ''ch'' v]) \<or>
+               (\<exists>d>0. tr = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. Map.empty) ({}, {''ch''}), InBlock ''ch'' v])))"
+  apply (rule Valid_weaken_pre)
+   prefer 2
+   apply (rule testHL3)
+  unfolding entails_def by auto
+
+text \<open>Communication\<close>
+lemma testHL4:
+  "ParValid
+    (\<lambda>s. s = Map.empty)
+    (Parallel (Single {} (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+              (Single {X} (Cm (''ch''[?]X))))
+    (\<lambda>s tr. s |` {X} = [X \<mapsto> 1] \<and> tr = [IOBlock ''ch'' 1])"
+  apply (rule ParValid_Parallel')
+     apply (rule ParValid_Single[OF testHL1'])
+    apply (rule ParValid_Single[OF testHL3'])
+   apply (auto simp add: entails_def)
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
+                  combine_blocks_elim2e combine_blocks_elim4a) 
+
+
+subsection \<open>Test cases for external choice\<close>
+
+lemma echoice_test1:
+  "Valid
+    (\<lambda>s tr.
+        (\<forall>v. Q (s(X \<mapsto> v)) (tr @ [InBlock ''ch1'' v])) \<and>
+        (\<forall>d>0. \<forall>v. Q (s(X \<mapsto> v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({}, {''ch1'', ''ch2''}), InBlock ''ch1'' v])) \<and>
+        (\<forall>v. Q (s(X \<mapsto> v)) (tr @ [InBlock ''ch2'' v])) \<and>
+        (\<forall>d>0. \<forall>v. Q (s(X \<mapsto> v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. s) ({}, {''ch1'', ''ch2''}), InBlock ''ch2'' v])))
+    (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
+    Q"
+  apply (rule Valid_echoice_InIn)
+    apply (rule Valid_skip) by (rule Valid_skip)
+
 
 end
