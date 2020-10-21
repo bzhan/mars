@@ -340,16 +340,16 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
      \<not>b (p d) \<Longrightarrow> p 0 = s1 \<Longrightarrow>
      big_step (Cont ode b) s1 [WaitBlock d (restrict (\<lambda>\<tau>. State (p \<tau>)) {0..d}) ({}, {})] (p d)"
 | InterruptSendB1: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
-    big_step p2 s1 tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode cs) s1 (OutBlock ch (e s) # tr2) s2"
+    big_step p2 s tr2 s2 \<Longrightarrow>
+    big_step (Interrupt ode cs) s (OutBlock ch (e s) # tr2) s2"
 | InterruptSendB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     big_step p2 (p d) tr2 s2 \<Longrightarrow>
     big_step (Interrupt ode cs) s1 (WaitBlock d (restrict (\<lambda>\<tau>. State (p \<tau>)) {0..d}) (rdy_of_echoice cs) #
-                                    OutBlock ch (e s) # tr) s2"
+                                    OutBlock ch (e (p d)) # tr2) s2"
 | InterruptReceiveB1: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
-    big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode cs) s1 (InBlock ch v # tr2) s2"
+    big_step p2 (s(var := v)) tr2 s2 \<Longrightarrow>
+    big_step (Interrupt ode cs) s (InBlock ch v # tr2) s2"
 | InterruptReceiveB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 ((p d)(var := v)) tr2 s2 \<Longrightarrow>
@@ -599,87 +599,108 @@ theorem Valid_ichoice:
 
 theorem Valid_echoice:
   assumes "\<forall>i<length es.
-    case (es ! i) of
+    case es ! i of
       (ch[!]e, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. 
-            Q s (tr @ [OutBlock ch (e s)]) \<and>
-            (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))))
+        (\<exists>Q. Valid Q p2 R \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))))
     | (ch[?]var, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr.
-            (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-            (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))))"
+        (\<exists>Q. Valid Q p2 R \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))))"
   shows "Valid P (EChoice es) R"
 proof -
-  have a: "R s2 (tr1 @ tr2)" if *: "P s1 tr1" "tr2 = OutBlock ch (e s1) # tr2a" "i < length es" "es ! i = (ch[!]e, p2)"
-        "big_step p2 s1 tr2a s2"
-      for s1 tr1 s2 tr2 i ch e p2 tr2a
+  have a: "R s2 (tr1 @ (OutBlock ch (e s1) # tr2))"
+    if *: "P s1 tr1"
+          "i < length es"
+          "es ! i = (ch[!]e, p2)"
+          "big_step p2 s1 tr2 s2" for s1 tr1 s2 i ch e p2 tr2
   proof -
     from assms obtain Q where 1:
       "Valid Q p2 R"
-      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and> (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))"
-      using *(3,4) by fastforce
+      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
+      using *(2,3) by fastforce
     have 2: "Q s1 (tr1 @ [OutBlock ch (e s1)])"
       using 1(2) *(1) unfolding entails_def by auto
-    have 3: "R s2 (tr1 @ [OutBlock ch (e s1)] @ tr2a)"
-      using *(5) 1(1) 2 unfolding Valid_def by fastforce
     then show ?thesis
-      using *(2) by auto
+      using *(4) 1(1) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ tr2)" if *: "P s1 tr1" "tr2 = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2a"
-      "0 < d" "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 s1 tr2a s2"
-    for s1 tr1 s2 tr2 d i ch e p2 tr2a
+  have b: "R s2 (tr1 @ (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2))"
+    if *: "P s1 tr1"
+          "0 < d"
+          "i < length es"
+          "es ! i = (ch[!]e, p2)"
+          "big_step p2 s1 tr2 s2" for s1 tr1 s2 d i ch e p2 tr2
   proof -
-    from assms obtain Q where 1:
+    obtain Q where 1:
       "Valid Q p2 R"
-      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-                     (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))"
-      using *(4,5) by fastforce
+      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
+      using *(3,4) assms by fastforce
     have 2: "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
-      using 1(2) *(1,3) unfolding entails_def by auto
-    have 3: "R s2 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)] @ tr2a)"
-      using *(6) 1(1) 2 unfolding Valid_def by fastforce
+      using 1(2) *(1,2) unfolding entails_def by auto
     then show ?thesis
-      using *(2) by auto
+      using *(5) 1(1) unfolding Valid_def by fastforce
   qed
-  have c: "R s2 (tr1 @ tr2)" if *: "P s1 tr1" "tr2 = InBlock ch v # tr2a" "i < length es" "es ! i = (ch[?]var, p2)"
-      "big_step p2 (s1(var := v)) tr2a s2"
-    for s1 tr1 s2 tr2 i ch var p2 v tr2a
+  have c: "R s2 (tr1 @ (InBlock ch v # tr2))"
+    if *: "P s1 tr1"
+          "i < length es"
+          "es ! i = (ch[?]var, p2)"
+          "big_step p2 (s1(var := v)) tr2 s2" for s1 tr1 s2 i ch var p2 v tr2
   proof -
     from assms obtain Q where 1:
       "Valid Q p2 R"
-      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-                      (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))"
-      using *(3,4) by fastforce
+      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
+      using *(2,3) by fastforce
     have 2: "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
       using 1(2) *(1) unfolding entails_def by auto
-    have 3: "R s2 (tr1 @ [InBlock ch v] @ tr2a)"
-      using *(5) 1(1) 2 unfolding Valid_def by fastforce
     then show ?thesis
-      using *(2) by auto
+      using *(4) 1(1) unfolding Valid_def by fastforce
   qed
-  have d: "R s2 (tr1 @ tr2)" if *: "P s1 tr1" "tr2 = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2a"
-      "0 < d" "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (s1(var := v)) tr2a s2"
-    for s1 tr1 s2 tr2 d i ch var p2 v tr2a
+  have d: "R s2 (tr1 @ (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2))"
+    if *: "P s1 tr1"
+          "0 < d"
+          "i < length es"
+          "es ! i = (ch[?]var, p2)"
+          "big_step p2 (s1(var := v)) tr2 s2" for s1 tr1 s2 d i ch var p2 v tr2
   proof -
     from assms obtain Q where 1:
       "Valid Q p2 R"
-      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-                      (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))"
-      using *(4,5) by fastforce
+      "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
+      using *(3,4) by fastforce
     have 2: "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
-      using 1(2) *(1,3) unfolding entails_def by auto
-    have 3: "R s2 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v] @ tr2a)"
-      using *(6) 1(1) 2 unfolding Valid_def by fastforce
+      using 1(2) *(1,2) unfolding entails_def by auto
     then show ?thesis
-      using *(2) by auto
+      using *(5) 1(1) unfolding Valid_def by fastforce
   qed
   show ?thesis
     unfolding Valid_def apply auto
-    apply (elim echoiceE) using a b c d by auto
+    apply (auto elim!: echoiceE) using a b c d by auto
 qed
 
 
 text \<open>Some special cases of EChoice\<close>
+
+lemma InIn_lemma:
+  assumes "Q ch1 var1 p1"
+    and "Q ch2 var2 p2"
+  shows "\<forall>i<length [(ch1[?]var1, p1), (ch2[?]var2, p2)].
+           case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
+            (ch[!]e, p1) \<Rightarrow> P ch e p1
+          | (ch[?]var, p1) \<Rightarrow> Q ch var p1"
+proof -
+  have "case comm of ch[!]e \<Rightarrow> P ch e p | ch[?]var \<Rightarrow> Q ch var p"
+    if "i < Suc (Suc 0)"
+       "[(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i = (comm, p)" for comm p i
+  proof -
+    have "i = 0 \<or> i = 1"
+      using that(1) by auto
+    then show ?thesis
+      apply (rule disjE)
+      using that(2) assms by auto
+  qed
+  then show ?thesis by auto
+qed
+
 theorem Valid_echoice_InIn:
   assumes "Valid Q1 p1 R"
     and "Valid Q2 p2 R"
@@ -690,32 +711,13 @@ theorem Valid_echoice_InIn:
             (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch2 v])))
       (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
     R"
-proof -
-  have 0: "\<forall>i<length [(ch1[?]var1, p1), (ch2[?]var2, p2)].
-       case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
-         (ch[!]e, p1) \<Rightarrow> P ch e p1
-       | (ch[?]var, p1) \<Rightarrow> Q ch var p1" if assm0: "Q ch1 var1 p1" "Q ch2 var2 p2" for P Q
-  proof -
-    have "case comm of ch[!]e \<Rightarrow> P ch e p | ch[?]var \<Rightarrow> Q ch var p"
-      if "i < Suc (Suc 0)" "[(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i = (comm, p)" for comm p i
-    proof -
-      have "i = 0 \<or> i = 1"
-        using that(1) by auto
-      then show ?thesis
-        apply (rule disjE)
-        using that(2) assm0 by auto
-    qed
-    then show ?thesis
-      by auto
-  qed
-  show ?thesis
-    apply (rule Valid_echoice)
-    apply (rule 0)
-    subgoal apply (rule exI[where x=Q1])
-      by (auto simp add: assms entails_def)
-    apply (rule exI[where x=Q2])
+  apply (rule Valid_echoice)
+  apply (rule InIn_lemma)
+  subgoal apply (rule exI[where x=Q1])
     by (auto simp add: assms entails_def)
-qed
+  apply (rule exI[where x=Q2])
+  by (auto simp add: assms entails_def)
+
 
 subsection \<open>Validity for parallel programs\<close>
 
@@ -1178,7 +1180,5 @@ lemma ichoice_test1':
     apply (rule exI[where x=tr])
     by auto
   done
-
-
 
 end
