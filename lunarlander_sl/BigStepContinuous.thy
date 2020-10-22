@@ -8,7 +8,7 @@ subsection \<open>Hoare rules for ODE\<close>
 inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
 thm contE
 
-inductive_cases interruptE: "big_step (Interrupt ode cs) s1 tr s2"
+inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
 thm interruptE
 
 text \<open>Weakest precondition form\<close>
@@ -124,15 +124,21 @@ theorem Valid_interrupt:
         (\<exists>Q. Valid Q p2 R \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                        (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                         Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                                        OutBlock ch (e (p d))]))))
     | (ch[?]var, p2) \<Rightarrow>
         (\<exists>Q. Valid Q p2 R \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                        (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                         Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                                                    InBlock ch v]))))"
-  shows "Valid P (Interrupt ode cs) R"
+    and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<not>b s \<longrightarrow> R s tr)"
+    and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                   (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                   R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)])))"
+  shows "Valid P (Interrupt ode b cs) R"
 proof -
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2)"
     if *: "P s1 tr1"
@@ -153,6 +159,7 @@ proof -
     if *: "P (p 0) tr1"
           "0 < d"
           "ODEsol ode p d"
+          "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)"
           "i < length cs"
           "cs ! i = (ch[!]e, p2)"
           "big_step p2 (p d) tr2 s2" for tr1 s2 d p i ch e p2 tr2
@@ -160,14 +167,15 @@ proof -
     from assms obtain Q where 1:
       "Valid Q p2 R"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                  Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                                 OutBlock ch (e (p d))]))"
-      using *(4,5) by fastforce
+      using *(5,6) by fastforce
     have "Q (p d) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                           OutBlock ch (e (p d))])"
-      using 1(2) *(1-3) unfolding entails_def by auto
+      using 1(2) *(1-4) unfolding entails_def by auto
     then show ?thesis
-      using *(6) 1(1) unfolding Valid_def by fastforce
+      using *(7) 1(1) unfolding Valid_def by fastforce
   qed
   have c: "R s2 (tr1 @ InBlock ch v # tr2)"
     if *: "P s1 tr1"
@@ -188,6 +196,7 @@ proof -
     if *: "P (p 0) tr1"
           "0 < d"
           "ODEsol ode p d"
+          "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)"
           "i < length cs"
           "cs ! i = (ch[?]var, p2)"
           "big_step p2 ((p d)(var := v)) tr2a s2" for tr1 s2 d p i ch var p2 v tr2a
@@ -195,17 +204,19 @@ proof -
     from assms obtain Q where 1:
       "Valid Q p2 R"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                  Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                                             InBlock ch v]))"
-      using *(4,5) by fastforce
+      using *(5,6) by fastforce
     have "Q ((p d)(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v])"
-      using 1(2) *(1-3) unfolding entails_def by auto
+      using 1(2) *(1-4) unfolding entails_def by auto
     then show ?thesis
-      using *(6) 1(1) unfolding Valid_def by fastforce
+      using *(7) 1(1) unfolding Valid_def by fastforce
   qed
   show ?thesis
     unfolding Valid_def
-    apply (auto elim!: interruptE) using a b c d by auto
+    apply (auto elim!: interruptE)
+    using a b c d assms(2-3) unfolding entails_def by auto
 qed
 
 theorem Valid_interrupt_InIn:
@@ -214,20 +225,26 @@ theorem Valid_interrupt_InIn:
   shows "Valid
     (\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                 Q1 ((p d)(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
                                              InBlock ch1 v])) \<and>
             (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                 Q2 ((p d)(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
-                                             InBlock ch2 v])))
-      (Interrupt ode [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+                                             InBlock ch2 v])) \<and>
+            (\<not>b s \<longrightarrow> R s tr) \<and>
+            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2})])))
+      (Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)])
     R"
   apply (rule Valid_interrupt)
   apply (rule InIn_lemma)
   subgoal apply (rule exI[where x=Q1])
     by (auto simp add: assms entails_def)
   apply (rule exI[where x=Q2])
-  by (auto simp add: assms entails_def)
+  unfolding entails_def using assms by auto  
 
 
 subsection \<open>Tests for ODE\<close>
