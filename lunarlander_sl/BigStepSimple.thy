@@ -1019,7 +1019,7 @@ subsection \<open>Simple examples redone\<close>
 text \<open>Send 1\<close>
 lemma testHL1s:
   "Valid
-    (\<lambda>s. ((Out\<^sub>A s ''ch'' 1) @- P s))
+    (\<lambda>s. Out\<^sub>A s ''ch'' 1 @- P s)
     (Cm (''ch''[!](\<lambda>_. 1)))
     P"
   by (rule Valid_send')

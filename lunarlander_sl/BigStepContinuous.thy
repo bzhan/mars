@@ -23,7 +23,7 @@ theorem Valid_ode:
   by (auto elim!: contE)
 
 text \<open>Strongest postcondition form\<close>
-theorem Valid_ode':
+theorem Valid_ode_sp:
   assumes "b st"
   shows "Valid
     (\<lambda>s t. s = st \<and> t = tr)
@@ -268,6 +268,139 @@ theorem Valid_interrupt_InIn:
   apply (rule exI[where x=Q2])
   unfolding entails_def using assms by auto  
 
+subsection \<open>Assertions for ODEs\<close>
+
+text \<open>ODE without interrupt\<close>
+inductive ode_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> tassn" ("ODE\<^sub>A") where
+  "\<not>b s \<Longrightarrow> ODE\<^sub>A s ode b s []"
+| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow> \<not>b (p d) \<Longrightarrow>
+     ODE\<^sub>A s ode b (p d) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
+
+text \<open>ODE interrupted by communication\<close>
+inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEin\<^sub>A") where
+  "ODEin\<^sub>A s ode b (s(var := v)) ch v rdy [InBlock ch v]"
+| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+    \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
+    ODEin\<^sub>A s ode b ((p d)(var := v)) ch v rdy
+      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, InBlock ch v]"
+
+text \<open>ODE with interrupt, but reached boundary\<close>
+inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODErdy\<^sub>A") where
+  "\<not>b s \<Longrightarrow> ODErdy\<^sub>A s ode b s rdy []"
+| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+    \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow> \<not>b (p d) \<Longrightarrow>
+    ODErdy\<^sub>A s ode b (p d) rdy
+      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy]"
+
+subsection \<open>Restate previous rules in simpler form\<close>
+
+theorem Valid_ode':
+  "Valid
+    (\<lambda>s tr. \<forall>s'. (ODE\<^sub>A s ode b s' @- Q s') tr)
+    (Cont ode b)
+    Q"
+proof -
+  have 1: "Q s tr"
+    if "\<forall>s'. (ODE\<^sub>A s ode b s' @- Q s') tr" "\<not> b s" for s tr
+  proof -
+    have "(ODE\<^sub>A s ode b s @- Q s) tr"
+      using that(1) by auto
+    moreover have "ODE\<^sub>A s ode b s []"
+      using that(2) by (auto intro: ode_assn.intros)
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 2: "Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})])"
+    if "\<forall>s'. (ODE\<^sub>A (p 0) ode b s' @- Q s') tr"
+       "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for p d tr
+  proof -
+    have "(ODE\<^sub>A (p 0) ode b (p d) @- Q (p d)) tr"
+      using that(1) by auto
+    moreover have "ODE\<^sub>A (p 0) ode b (p d) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
+      apply (rule ode_assn.intros)
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  show ?thesis
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_ode)
+    unfolding entails_def using 1 2 by auto
+qed
+
+theorem Valid_ode_sp':
+  assumes "b st"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> Q tr)
+    (Cont ode b)
+    (\<lambda>s tr. (Q @\<^sub>t ODE\<^sub>A st ode b s) tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_ode')
+  apply (auto simp add: entails_def)
+  using entails_mp by (simp add: entails_tassn_def)
+
+theorem Valid_interrupt_In':
+  assumes "Valid Q p R"
+  shows "Valid
+    (\<lambda>s tr. (\<forall>s' v. (ODEin\<^sub>A s ode b s' ch v ({}, {ch}) @- Q s') tr) \<and>
+            (\<forall>s'. (ODErdy\<^sub>A s ode b s' ({}, {ch}) @- R s') tr))
+      (Interrupt ode b [(ch[?]var, p)])
+    R"
+proof -
+  have 1: "Q (s(var := v)) (tr @ [InBlock ch v])"
+    if "\<forall>s'. (ODEin\<^sub>A s ode b s' ch v ({}, {ch}) @- Q s') tr" for s tr v
+  proof -
+    have "(ODEin\<^sub>A s ode b (s(var := v)) ch v ({}, {ch}) @- Q (s(var := v))) tr"
+      using that(1) by auto
+    moreover have "ODEin\<^sub>A s ode b (s(var := v)) ch v ({}, {ch}) [InBlock ch v]"
+      by (auto intro: ode_in_assn.intros)
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 2: "Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}), InBlock ch v])"
+    if "\<forall>s' v. (ODEin\<^sub>A (p 0) ode b s' ch v ({}, {ch}) @- Q s') tr"
+       "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" for tr d p v
+  proof -
+    have "(ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch v ({}, {ch}) @- Q ((p d)(var := v))) tr"
+      using that(1) by auto
+    moreover have "ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch v ({}, {ch})
+                    [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}), InBlock ch v]"
+      apply (rule ode_in_assn.intros)
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 3: "R s tr"
+    if "\<forall>s'. (ODErdy\<^sub>A s ode b s' ({}, {ch}) @- R s') tr" "\<not> b s" for s tr
+  proof -
+    have "(ODErdy\<^sub>A s ode b s ({}, {ch}) @- R s) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A s ode b s ({}, {ch}) []"
+      apply (rule ode_rdy_assn.intros)
+      using that(2) by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 4: "R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})])"
+    if "\<forall>s'. (ODErdy\<^sub>A (p 0) ode b s' ({}, {ch}) @- R s') tr"
+       "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for tr d p
+  proof -
+    have "(ODErdy\<^sub>A (p 0) ode b (p d) ({}, {ch}) @- R (p d)) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A (p 0) ode b (p d) ({}, {ch})
+                    [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})]"
+      thm ode_rdy_assn.intros(2)
+      apply (rule ode_rdy_assn.intros(2))
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  show ?thesis
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_interrupt_In[OF assms])
+    apply (auto simp add: entails_def)
+    using 1 2 3 4 by auto
+qed
 
 subsection \<open>Tests for ODE\<close>
 
