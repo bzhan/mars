@@ -29,7 +29,7 @@ theorem Valid_ode':
     (\<lambda>s t. s = st \<and> t = tr)
     (Cont ode b)
     (\<lambda>s t. (\<exists>d p. 0 < d \<and> ODEsol ode p d \<and> p 0 = st \<and> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<and> \<not>b (p d) \<and>
-                   s = p d \<and> t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]))"
+                  s = p d \<and> t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]))"
   apply (rule Valid_weaken_pre)
   prefer 2 apply (rule Valid_ode)
   by (auto simp add: entails_def assms)
@@ -218,6 +218,28 @@ proof -
     apply (auto elim!: interruptE)
     using a b c d assms(2-3) unfolding entails_def by auto
 qed
+
+text \<open>Simpler versions with one input/output\<close>
+
+theorem Valid_interrupt_In:
+  assumes "Valid Q p R"
+  shows "Valid
+    (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
+            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}),
+                                           InBlock ch v])) \<and>
+            (\<not>b s \<longrightarrow> R s tr) \<and>
+            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})])))
+      (Interrupt ode b [(ch[?]var, p)])
+    R"
+  apply (rule Valid_interrupt)
+  apply auto apply (rule exI[where x=Q])
+  by (auto simp add: assms entails_def)
+
+text \<open>Versions with two communications\<close>
 
 theorem Valid_interrupt_InIn:
   assumes "Valid Q1 p1 R"

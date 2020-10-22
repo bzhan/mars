@@ -345,8 +345,9 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | InterruptSendB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+    rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 (p d) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) #
+    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy #
                                       OutBlock ch (e (p d)) # tr2) s2"
 | InterruptReceiveB1: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 (s(var := v)) tr2 s2 \<Longrightarrow>
@@ -354,14 +355,16 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | InterruptReceiveB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
     i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+    rdy = rdy_of_echoice cs \<Longrightarrow>
     big_step p2 ((p d)(var := v)) tr2 s2 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) #
+    big_step (Interrupt ode b cs) s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy #
                                       InBlock ch v # tr2) s2"
 | InterruptB1: "\<not>b s \<Longrightarrow> big_step (Interrupt ode b cs) s [] s"
 | InterruptB2: "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
     (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
-    \<not>b (p d) \<Longrightarrow> p 0 = s1 \<Longrightarrow>
-    big_step (Interrupt ode b cs) s1 [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)] (p d)"
+    \<not>b (p d) \<Longrightarrow> p 0 = s1 \<Longrightarrow> p d = s2 \<Longrightarrow>
+    rdy = rdy_of_echoice cs \<Longrightarrow>
+    big_step (Interrupt ode b cs) s1 [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy] s2"
 
 text \<open>Big-step semantics for parallel processes.\<close>
 
@@ -374,6 +377,11 @@ inductive par_big_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace \<Righ
      par_big_step (Parallel p1 chs p2) (ParState s11 s12) tr (ParState s12 s22)"
 
 subsection \<open>More convenient version of rules\<close>
+
+lemma assignB':
+  assumes "s2 = s1(var := e s1)"
+  shows "big_step (Assign var e) s1 [] s2"
+  unfolding assms by (rule assignB)
 
 lemma sendB1':
   assumes "blks = [OutBlock ch (e s)]"
@@ -496,6 +504,55 @@ lemma test10: "par_big_step (
    apply (rule seqB) apply (rule receiveB1) apply (rule waitB)
   apply auto
   by (intro combine_blocks.intros, auto)
+
+text \<open>ODE Example 1\<close>
+lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
+  (\<lambda>_. 0) [WaitBlock 1 (\<lambda>t\<in>{0..1}. State ((\<lambda>_. 0)(X := t))) ({}, {})] ((\<lambda>_. 0)(X := 1))"
+  apply (rule ContB2)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+  by (auto intro!: derivative_intros)
+
+text \<open>Interrupt examples\<close>
+
+text \<open>Exit through boundary\<close>
+lemma test_interrupt1:
+  "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 0))])
+    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>t\<in>{0..2}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {})] ((\<lambda>_. 0)(X := 2))"
+  apply (rule InterruptB2)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+  by (auto intro!: derivative_intros)
+
+text \<open>Immediate communication\<close>
+lemma test_interrupt2:
+  "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 3))])
+    (\<lambda>_. 0) [OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
+  apply (rule InterruptSendB1)
+    apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule assignB') by auto
+
+text \<open>Communication in the middle\<close>
+lemma test_interrupt3:
+  "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 3))])
+    (\<lambda>_. 0) [WaitBlock 1 (\<lambda>t\<in>{0..1}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
+             OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
+  apply (rule InterruptSendB2)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+  apply (auto intro!: derivative_intros)
+  apply (rule assignB') by auto
+
+text \<open>Note with current definition, communication at the end is also possible\<close>
+lemma test_interrupt4:
+  "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 3))])
+    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>t\<in>{0..2}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
+             OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
+  apply (rule InterruptSendB2)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply (rule has_vector_derivative_projI)
+  apply (auto intro!: derivative_intros)
+  apply (rule assignB') by auto
 
 subsection \<open>Validity\<close>
 
@@ -812,11 +869,11 @@ lemma testHL1:
 text \<open>This implies the strongest postcondition form\<close>
 lemma testHL1':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
+    (\<lambda>s t. s = st \<and> t = tr)
     (Cm (''ch''[!](\<lambda>_. 1)))
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and>
-            (tr = [OutBlock ''ch'' 1] \<or>
-             (\<exists>d>0. tr = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (\<lambda>_. 0)) ({''ch''}, {}), OutBlock ''ch'' 1])))"
+    (\<lambda>s t. s = st \<and>
+           (t = tr @ [OutBlock ''ch'' 1] \<or>
+             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1])))"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule Valid_send)
@@ -849,11 +906,11 @@ lemma testHL3:
 text \<open>Strongest postcondition form\<close>
 lemma testHL3':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
+    (\<lambda>s t. s = st \<and> t = tr)
     (Cm (''ch''[?]X))
-    (\<lambda>s tr. (\<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and>
-              (tr = [InBlock ''ch'' v]) \<or>
-               (\<exists>d>0. tr = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (\<lambda>_. 0)) ({}, {''ch''}), InBlock ''ch'' v])))"
+    (\<lambda>s t. (\<exists>v. s = st(X := v) \<and>
+             (t = tr @ [InBlock ''ch'' v]) \<or>
+               (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({}, {''ch''}), InBlock ''ch'' v])))"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule testHL3)
@@ -862,17 +919,17 @@ lemma testHL3':
 text \<open>Communication\<close>
 lemma testHL4:
   "ParValid
-    (pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = (\<lambda>_. 0)))
+    (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
     (Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
               (Single (Cm (''ch''[?]X))))
-    (\<lambda>s tr. pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = ((\<lambda>_. 0)(X := 1))) s \<and> tr = [IOBlock ''ch'' 1])"
+    (\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1])"
   apply (rule ParValid_Parallel')
      apply (rule ParValid_Single[OF testHL1'])
     apply (rule ParValid_Single[OF testHL3'])
    apply (auto simp add: entails_def pair_assn_def par_assn_def sing_assn_def)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
                   combine_blocks_elim2e combine_blocks_elim4a)
-  
+
 
 subsection \<open>Standard assertions\<close>
 
@@ -970,9 +1027,9 @@ lemma testHL1s:
 text \<open>Strongest postcondition form\<close>
 lemma testHL1s':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[!](\<lambda>_. 1)))
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> (P @\<^sub>t Out\<^sub>A s ''ch'' 1) tr)"
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A s ''ch'' 1) tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule testHL1s)
   unfolding entails_def apply simp
@@ -992,9 +1049,9 @@ lemma testHL2s:
 text \<open>Strongest postcondition form\<close>
 lemma testHL2s':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' 1) @\<^sub>t (Out\<^sub>A s ''ch'' 2)) tr)"
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' 1) @\<^sub>t (Out\<^sub>A s ''ch'' 2)) tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule testHL2s)
   unfolding entails_def apply simp
@@ -1015,9 +1072,9 @@ lemma testHL3s:
 text \<open>Strongest postcondition form\<close>
 lemma testHL3s':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and> (P @\<^sub>t In\<^sub>A (\<lambda>_. 0) ''ch'' v) tr)"
+    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v) tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule testHL3s)
   unfolding entails_def
@@ -1038,9 +1095,9 @@ lemma testHL3a:
 text \<open>Strongest postcondition form\<close>
 lemma testHL3a':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X); Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v w. s = ((\<lambda>_. 0)(X := w)) \<and> (P @\<^sub>t In\<^sub>A (\<lambda>_. 0) ''ch'' v @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := v)) ''ch'' w) tr)"
+    (\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v @\<^sub>t In\<^sub>A (st(X := v)) ''ch'' w) tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_seq)
     prefer 2 apply (rule Valid_receive')
@@ -1052,10 +1109,10 @@ lemma testHL3a':
 text \<open>Communication\<close>
 lemma testHL4s:
   "ParValid
-    (pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = (\<lambda>_. 0)))
+    (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
     (Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
               (Single (Cm (''ch''[?]X))))
-    (\<lambda>s tr. pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = ((\<lambda>_. 0)(X := 1))) s \<and> tr = [IOBlock ''ch'' 1])"
+    (\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1])"
   apply (rule ParValid_Parallel')
      apply (rule ParValid_Single[OF testHL1s'[where P="emp\<^sub>A"]])
     apply (rule ParValid_Single[OF testHL3s'[where P="emp\<^sub>A"]])
@@ -1145,10 +1202,10 @@ lemma echoice_test1:
 text \<open>Strongest postcondition form\<close>
 lemma echoice_test1':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
-    (\<lambda>s tr. (\<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and> (P @\<^sub>t Inrdy\<^sub>A (\<lambda>_. 0) ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
-            (\<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and> (P @\<^sub>t Inrdy\<^sub>A (\<lambda>_. 0) ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
+    (\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t Inrdy\<^sub>A st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
+            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t Inrdy\<^sub>A st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule echoice_test1)
   apply (auto simp add: entails_def and_assn_def magic_wand_assn_def join_assn_def all_assn_def)
@@ -1174,10 +1231,10 @@ lemma ichoice_test1:
 text \<open>Strongest postcondition form\<close>
 lemma ichoice_test1':
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P tr)
     (IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X)))
-    (\<lambda>s tr. (\<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and> (P @\<^sub>t In\<^sub>A (\<lambda>_. 0) ''ch1'' v) tr) \<or>
-            (\<exists>v. s = ((\<lambda>_. 0)(X := v)) \<and> (P @\<^sub>t In\<^sub>A (\<lambda>_. 0) ''ch2'' v) tr))"
+    (\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>A st ''ch1'' v) tr) \<or>
+            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>A st ''ch2'' v) tr))"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule ichoice_test1)
   apply (auto simp add: entails_def and_assn_def magic_wand_assn_def join_assn_def all_assn_def)
