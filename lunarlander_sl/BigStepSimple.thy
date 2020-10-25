@@ -177,7 +177,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
    combine_blocks comms (WaitBlock t hist1 rdy1 # blks1) (WaitBlock t hist2 rdy2 # blks2)
                   (WaitBlock t hist rdy # blks)"
 | combine_blocks_wait2:
-  "combine_blocks comms blks1 (WaitBlock (t2 - t1) (\<lambda>\<tau>. hist2 (\<tau> - t1)) rdy2 # blks2) blks \<Longrightarrow>
+  "combine_blocks comms blks1 (WaitBlock (t2 - t1) (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 < t2 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
@@ -185,7 +185,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
                   (WaitBlock t1 hist rdy # blks)"
 | combine_blocks_wait3:
-  "combine_blocks comms (WaitBlock (t1 - t2) (\<lambda>\<tau>. hist1 (\<tau> - t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
+  "combine_blocks comms (WaitBlock (t1 - t2) (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 > t2 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t2}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
@@ -372,9 +372,9 @@ inductive par_big_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace \<Righ
   SingleB: "big_step p s1 tr s2 \<Longrightarrow> par_big_step (Single p) (State s1) tr (State s2)"
 | ParallelB:
     "par_big_step p1 s11 tr1 s12 \<Longrightarrow>
-     par_big_step p2 s12 tr2 s22 \<Longrightarrow>
+     par_big_step p2 s21 tr2 s22 \<Longrightarrow>
      combine_blocks chs tr1 tr2 tr \<Longrightarrow>
-     par_big_step (Parallel p1 chs p2) (ParState s11 s12) tr (ParState s12 s22)"
+     par_big_step (Parallel p1 chs p2) (ParState s11 s21) tr (ParState s12 s22)"
 
 subsection \<open>More convenient version of rules\<close>
 
@@ -394,6 +394,14 @@ lemma seqB':
     and "tr = tr1 @ tr2"
   shows "big_step (p1; p2) s1 tr s3"
   unfolding assms(3) using assms(1-2) by (rule seqB)
+
+lemma receiveB2':
+  assumes "d > 0"
+    and "blks = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}),
+                 InBlock ch v]"
+    and "s' = s(var := v)"
+  shows "big_step (Cm (ch[?]var)) s blks s'"
+  unfolding assms(2-3) using assms(1) by (rule receiveB2)
 
 subsection \<open>Test of big-step semantics\<close>
 
@@ -553,6 +561,73 @@ lemma test_interrupt4:
   apply (rule has_vector_derivative_projI)
   apply (auto intro!: derivative_intros)
   apply (rule assignB') by auto
+
+text \<open>Some tests with internal and external choice\<close>
+lemma test_internal:
+  "big_step (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))
+    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>\<tau>\<in>{0..2}. State (\<lambda>_. 0)) ({''ch2''}, {}),
+             OutBlock ''ch2'' 2,
+             OutBlock ''ch1'' 1] (\<lambda>_. 0)"
+  apply (rule RepetitionB2)
+    apply (rule IChoiceB2)
+    apply (rule sendB2[where d=2]) apply auto[1]
+  apply (rule RepetitionB2)
+  apply (rule IChoiceB1)
+     apply (rule sendB1) apply (rule RepetitionB1)
+  by auto
+
+lemma test_internal_other:
+  "par_big_step (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
+                          (Single (Wait 2; Cm (''ch2''[?]X))))
+    (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
+    [WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {}),
+     WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch1''}),
+     InBlock ''ch2'' 2,
+     InBlock ''ch1'' 1]
+    (ParState (State ((\<lambda>_. 0)(X := 1))) (State ((\<lambda>_. 0)(X := 2))))"
+proof -
+  have left: "big_step (Wait 1; Cm (''ch1''[?]X)) (\<lambda>_. 0)
+    [WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {}),
+     WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {''ch1''}),
+     InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
+    apply (rule seqB') apply (rule waitB)
+     apply (rule receiveB2'[where d=1]) by auto
+  have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
+    [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}),
+     InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
+    apply (rule seqB') apply (rule waitB)
+     apply (rule receiveB1) by auto
+  show ?thesis
+    apply (rule ParallelB)
+      apply (rule SingleB[OF left])
+     apply (rule SingleB[OF right])
+    apply (rule combine_blocks_wait2) apply auto
+    apply (rule combine_blocks_wait1) apply auto
+     apply (rule combine_blocks_unpair3) apply auto
+     apply (rule combine_blocks_unpair1) apply auto
+    by (rule combine_blocks_empty)
+qed
+
+lemma test_internal_parallel:
+  "par_big_step (Parallel
+    (Single (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))) {''ch1'', ''ch2''}
+    (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
+                          (Single (Wait 2; Cm (''ch2''[?]X)))))
+    (ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))))
+    [WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {}),
+     WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {''ch1''}),
+     IOBlock ''ch2'' 2,
+     IOBlock ''ch1'' 1]
+    (ParState (State (\<lambda>_. 0))
+              (ParState (State ((\<lambda>_. 0)(X := 1))) (State ((\<lambda>_. 0)(X := 2)))))"
+  apply (rule ParallelB)
+    apply (rule SingleB[OF test_internal])
+  apply (rule test_internal_other)
+  apply (rule combine_blocks_wait3) apply auto
+  apply (rule combine_blocks_wait1) apply auto
+  apply (rule combine_blocks_pair2) apply auto
+  apply (rule combine_blocks_pair2) apply auto
+  by (rule combine_blocks_empty)
 
 subsection \<open>Validity\<close>
 
@@ -1186,13 +1261,12 @@ fun count_up_inv :: "nat \<Rightarrow> tassn" where
 
 lemma testLoop1:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> count_up_inv a tr)
+    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
     (Rep (Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 1)))
-    (\<lambda>s tr. \<exists>n. n \<ge> a \<and> s = ((\<lambda>_. 0)(X := n)) \<and> count_up_inv n tr)"
+    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := n)) \<and> count_up_inv n tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
-   apply (rule Valid_and_pre)
   subgoal for n
     apply (rule Valid_ex_post) apply (rule exI[where x="Suc n"])
   apply (rule Valid_seq)
@@ -1200,7 +1274,9 @@ lemma testLoop1:
   apply (rule Valid_strengthen_post) prefer 2
     apply (rule Valid_assign_sp)
     by (auto simp add: entails_def)
-  by (auto simp add: entails_def)
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x=0])
+  by (auto simp add: emp_assn_def)
 
 text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
 fun count_up3_inv1 :: "nat \<Rightarrow> tassn" where
@@ -1209,22 +1285,24 @@ fun count_up3_inv1 :: "nat \<Rightarrow> tassn" where
 
 lemma testLoop2:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 3 * a)) \<and> count_up3_inv1 a tr)
+    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
     (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 2)))
-    (\<lambda>s tr. \<exists>n. n \<ge> a \<and> s = ((\<lambda>_. 0)(X := 3 * n)) \<and> count_up3_inv1 n tr)"
+    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := 3 * n)) \<and> count_up3_inv1 n tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
-  apply (rule Valid_weaken_pre)
-    prefer 2 apply (rule Valid_seq)
-     prefer 2 apply (rule Valid_seq)
-      prefer 2 apply (rule Valid_assign)
-     apply (rule Valid_send') apply (rule Valid_assign)
-   apply (auto simp add: entails_def magic_wand_assn_def)
-  subgoal for tr n tr'
-    apply (rule exI[where x="Suc n"])
-    by (auto simp add: join_assn_def)
-  done
-
+   apply (rule Valid_ex_pre)
+  subgoal for n
+    apply (rule Valid_ex_post) apply (rule exI[where x="Suc n"])
+    apply (rule Valid_seq)
+     apply (rule Valid_assign_sp)
+    apply (rule Valid_seq)
+     apply (rule Valid_send_sp)
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_assign_sp)
+    by (auto simp add: entails_def)
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x=0])
+  by (auto simp add: emp_assn_def)
 
 subsection \<open>Test cases for external choice\<close>
 
