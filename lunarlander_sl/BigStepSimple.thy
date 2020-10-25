@@ -564,6 +564,22 @@ definition Valid :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bo
 definition entails :: "assn \<Rightarrow> assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
 
+lemma entails_trans:
+  "(P \<Longrightarrow>\<^sub>A Q) \<Longrightarrow> (Q \<Longrightarrow>\<^sub>A R) \<Longrightarrow> (P \<Longrightarrow>\<^sub>A R)"
+  unfolding entails_def by auto
+
+lemma Valid_ex_pre:
+  "(\<And>v. Valid (P v) c Q) \<Longrightarrow> Valid (\<lambda>s t. \<exists>v. P v s t) c Q"
+  unfolding Valid_def by auto
+
+lemma Valid_ex_post:
+  "\<exists>v. Valid P c (Q v) \<Longrightarrow> Valid P c (\<lambda>s t. \<exists>v. Q v s t)"
+  unfolding Valid_def by blast
+
+lemma Valid_and_pre:
+  "(P1 \<Longrightarrow> Valid P c Q) \<Longrightarrow> Valid (\<lambda>s t. P1 \<and> P s t) c Q"
+  unfolding Valid_def by auto
+
 inductive_cases skipE: "big_step Skip s1 tr s2"
 thm skipE
 
@@ -662,7 +678,7 @@ theorem Valid_ichoice:
   using assms unfolding Valid_def by (auto elim: ichoiceE)
 
 theorem Valid_echoice:
-  assumes "\<forall>i<length es.
+  assumes "\<And>i. i<length es \<Longrightarrow>
     case es ! i of
       (ch[!]e, p2) \<Rightarrow>
         (\<exists>Q. Valid Q p2 R \<and>
@@ -747,8 +763,8 @@ text \<open>Some special cases of EChoice\<close>
 lemma InIn_lemma:
   assumes "Q ch1 var1 p1"
     and "Q ch2 var2 p2"
-  shows "\<forall>i<length [(ch1[?]var1, p1), (ch2[?]var2, p2)].
-           case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
+    and "i < length [(ch1[?]var1, p1), (ch2[?]var2, p2)]"
+  shows "case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
             (ch[!]e, p1) \<Rightarrow> P ch e p1
           | (ch[?]var, p1) \<Rightarrow> Q ch var p1"
 proof -
@@ -762,7 +778,8 @@ proof -
       apply (rule disjE)
       using that(2) assms by auto
   qed
-  then show ?thesis by auto
+  then show ?thesis
+    using assms(3) by auto
 qed
 
 theorem Valid_echoice_InIn:
@@ -963,6 +980,9 @@ inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow>
   "In\<^sub>A s ch v [InBlock ch v]"
 | "d > 0 \<Longrightarrow> In\<^sub>A s ch v [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v]"
 
+inductive wait_assn :: "state \<Rightarrow> real \<Rightarrow> tassn" ("Wait\<^sub>A") where
+  "Wait\<^sub>A s d [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"
+
 lemma emp_unit_left [simp]:
   "(emp\<^sub>A @\<^sub>t P) = P"
   unfolding join_assn_def emp_assn_def by auto
@@ -985,9 +1005,9 @@ lemma magic_wand_mono:
 
 theorem Valid_send':
   "Valid
-    (\<lambda>s. ((Out\<^sub>A s ch (e s)) @- P s))
+    (\<lambda>s. Out\<^sub>A s ch (e s) @- Q s)
     (Cm (ch[!]e))
-    P"
+    Q"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send)
   unfolding entails_def magic_wand_assn_def
@@ -995,13 +1015,60 @@ theorem Valid_send':
 
 theorem Valid_receive':
   "Valid
-    (\<lambda>s. \<forall>\<^sub>A v. ((In\<^sub>A s ch v) @- P (s(var := v))))
+    (\<lambda>s. \<forall>\<^sub>A v. In\<^sub>A s ch v @- Q (s(var := v)))
     (Cm (ch[?]var))
-    P"
+    Q"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_receive)
   unfolding entails_def magic_wand_assn_def all_assn_def
   by (auto intro: in_assn.intros)
+
+theorem Valid_wait':
+  "Valid
+    (\<lambda>s. Wait\<^sub>A s d @- Q s)
+    (Wait d)
+    Q"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_wait)
+  unfolding entails_def magic_wand_assn_def
+  by (auto intro: wait_assn.intros)
+
+theorem Valid_assign_sp:
+  "Valid
+    (\<lambda>s t. s = st \<and> P s t)
+    (Assign x e)
+    (\<lambda>s t. s = st(x := e st) \<and> P st t)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_assign)
+  by (auto simp add: entails_def)
+
+theorem Valid_send_sp:
+  "Valid
+    (\<lambda>s t. s = st \<and> P s t)
+    (Cm (ch[!]e))
+    (\<lambda>s t. s = st \<and> (P s @\<^sub>t Out\<^sub>A s ch (e s)) t)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_send')
+  by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
+
+theorem Valid_receive_sp:
+  "Valid
+    (\<lambda>s t. s = st \<and> P s t)
+    (Cm (ch[?]var))
+    (\<lambda>s t. \<exists>v. s = st(var := v) \<and> (P st @\<^sub>t In\<^sub>A st ch v) t)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_receive)
+  unfolding entails_def
+  apply (auto simp add: all_assn_def magic_wand_assn_def emp_assn_def join_assn_def)
+  subgoal for tr v
+    apply (rule exI[where x=v])
+    apply auto apply (rule exI[where x=tr])
+    by (simp add: in_assn.intros)
+  subgoal for tr d v
+    apply (rule exI[where x=v])
+    apply auto apply (rule exI[where x=tr])
+    by (simp add: in_assn.intros)
+  done
 
 lemma combine_assn_elim2:
   "combine_blocks comms tr1 tr2 tr \<Longrightarrow>
@@ -1019,8 +1086,8 @@ subsection \<open>Simple examples redone\<close>
 text \<open>Send 1\<close>
 lemma testHL1s:
   "Valid
-    (\<lambda>s. Out\<^sub>A s ''ch'' 1 @- P s)
-    (Cm (''ch''[!](\<lambda>_. 1)))
+    (\<lambda>s. Out\<^sub>A s ''ch'' (s X) @- P s)
+    (Cm (''ch''[!](\<lambda>s. s X)))
     P"
   by (rule Valid_send')
 
@@ -1028,19 +1095,15 @@ text \<open>Strongest postcondition form\<close>
 lemma testHL1s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[!](\<lambda>_. 1)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A s ''ch'' 1) tr)"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule testHL1s)
-  unfolding entails_def apply simp
-  unfolding entails_tassn_def[symmetric]
-  by (auto simp add: entails_mp)
+    (Cm (''ch''[!](\<lambda>s. s X)))
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A s ''ch'' (s X)) tr)"
+  by (rule Valid_send_sp)
 
 text \<open>Send 1, then send 2\<close>
 lemma testHL2s:
   "Valid
-    (\<lambda>s. Out\<^sub>A s ''ch'' 1 @- Out\<^sub>A s ''ch'' 2 @- P s)
-    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
+    (\<lambda>s. Out\<^sub>A s ''ch'' (s X) @- Out\<^sub>A s ''ch'' (s Y) @- P s)
+    (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
     P"
   apply (rule Valid_seq)
     prefer 2 apply (rule Valid_send')
@@ -1050,16 +1113,11 @@ text \<open>Strongest postcondition form\<close>
 lemma testHL2s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' 1) @\<^sub>t (Out\<^sub>A s ''ch'' 2)) tr)"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule testHL2s)
-  unfolding entails_def apply simp
-  unfolding entails_tassn_def[symmetric]
-  apply (rule entails_tassn_trans)
-   prefer 2 
-   apply (rule magic_wand_mono)
-  apply (rule entails_mp) by (rule entails_mp)
+    (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' (s X)) @\<^sub>t (Out\<^sub>A s ''ch'' (s Y))) tr)"
+  apply (rule Valid_seq)
+  apply (rule Valid_send_sp)
+  by (rule Valid_send_sp)
 
 text \<open>Receive from ch\<close>
 lemma testHL3s:
@@ -1075,10 +1133,7 @@ lemma testHL3s':
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X))
     (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v) tr)"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule testHL3s)
-  unfolding entails_def
-  by (auto simp add: all_assn_def magic_wand_assn_def emp_assn_def join_assn_def)
+  by (rule Valid_receive_sp)
 
 text \<open>Receive two values in a row\<close>
 lemma testHL3a:
@@ -1098,21 +1153,23 @@ lemma testHL3a':
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X); Cm (''ch''[?]X))
     (\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v @\<^sub>t In\<^sub>A (st(X := v)) ''ch'' w) tr)"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule Valid_seq)
-    prefer 2 apply (rule Valid_receive')
-  apply (rule Valid_receive')
-  unfolding entails_def
-  by (fastforce simp add: all_assn_def emp_assn_def magic_wand_assn_def join_assn_def)
-
+  apply (rule Valid_seq)
+   apply (rule Valid_receive_sp)
+  apply (rule Valid_ex_pre)
+  subgoal for v apply (rule Valid_ex_post)
+    apply (rule exI[where x=v])
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_receive_sp)
+    by (auto simp add: entails_def)
+  done
 
 text \<open>Communication\<close>
 lemma testHL4s:
   "ParValid
     (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
-    (Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+    (Parallel (Single (Cm (''ch''[!](\<lambda>s. s X)))) {''ch''}
               (Single (Cm (''ch''[?]X))))
-    (\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1])"
+    (\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := st1 X)) s \<and> tr = [IOBlock ''ch'' (st1 X)])"
   apply (rule ParValid_Parallel')
      apply (rule ParValid_Single[OF testHL1s'[where P="emp\<^sub>A"]])
     apply (rule ParValid_Single[OF testHL3s'[where P="emp\<^sub>A"]])
@@ -1134,16 +1191,16 @@ lemma testLoop1:
     (\<lambda>s tr. \<exists>n. n \<ge> a \<and> s = ((\<lambda>_. 0)(X := n)) \<and> count_up_inv n tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
-   apply (rule Valid_weaken_pre)
-  prefer 2
-   apply (rule Valid_seq)
-    prefer 2 apply (rule Valid_assign)
-  apply (rule Valid_send')
-  unfolding entails_def apply (auto simp add: magic_wand_assn_def)
-  subgoal for tr n tr'
-    apply (rule exI[where x="Suc n"])
-    by (auto simp add: join_assn_def)
-  done
+  apply (rule Valid_ex_pre)
+   apply (rule Valid_and_pre)
+  subgoal for n
+    apply (rule Valid_ex_post) apply (rule exI[where x="Suc n"])
+  apply (rule Valid_seq)
+    apply (rule Valid_send_sp)
+  apply (rule Valid_strengthen_post) prefer 2
+    apply (rule Valid_assign_sp)
+    by (auto simp add: entails_def)
+  by (auto simp add: entails_def)
 
 text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
 fun count_up3_inv1 :: "nat \<Rightarrow> tassn" where
@@ -1175,7 +1232,58 @@ inductive inrdy_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarr
   "Inrdy\<^sub>A s ch v rdy [InBlock ch v]"
 | "d > 0 \<Longrightarrow> Inrdy\<^sub>A s ch v rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) rdy, InBlock ch v]"
 
+inductive outrdy_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("Outrdy\<^sub>A") where
+  "Outrdy\<^sub>A s ch v rdy [OutBlock ch v]"
+| "d > 0 \<Longrightarrow> Outrdy\<^sub>A s ch v rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) rdy, OutBlock ch v]"
+
 text \<open>First, we restate the rule for Valid_echoice in simpler form\<close>
+
+theorem Valid_echoice':
+  assumes "\<forall>i<length es.
+    case es ! i of
+      (ch[!]e, p2) \<Rightarrow>
+        (\<exists>Q. Valid Q p2 R \<and>
+            (P \<Longrightarrow>\<^sub>A (\<lambda>s. Outrdy\<^sub>A s ch (e s) (rdy_of_echoice es) @- Q s)))
+    | (ch[?]var, p2) \<Rightarrow>
+        (\<exists>Q. Valid Q p2 R \<and>
+            (P \<Longrightarrow>\<^sub>A (\<lambda>s. \<forall>\<^sub>Av. Inrdy\<^sub>A s ch v (rdy_of_echoice es) @- Q (s(var := v)))))"
+  shows "Valid P (EChoice es) R"
+proof -
+  have 1: "\<exists>Q. Valid Q p R \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))"
+    if *: "i < length es" "es ! i = (ch[!]e, p)" for i ch e p
+  proof -
+    from assms obtain Q where
+      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. Outrdy\<^sub>A s ch (e s) (rdy_of_echoice es) @- Q s))"
+      using * by fastforce
+    show ?thesis
+      apply (rule exI[where x=Q])
+      using Q by (auto simp add: entails_def magic_wand_assn_def
+                       intro: outrdy_assn.intros)
+  qed
+  have 2: "\<exists>Q. Valid Q p R \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))"
+    if *: "i < length es" "es ! i = (ch[?]var, p)" for i ch var p
+  proof -
+    from assms obtain Q where
+      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. \<forall>\<^sub>Av. Inrdy\<^sub>A s ch v (rdy_of_echoice es) @- Q (s(var := v))))"
+      using * by fastforce
+    show ?thesis
+      apply (rule exI[where x=Q])
+      using Q by (auto simp add: entails_def magic_wand_assn_def
+                                 all_assn_def inrdy_assn.intros)
+  qed
+  show ?thesis
+    apply (rule Valid_echoice)
+    subgoal for i apply (cases "es ! i")
+      subgoal for ch p apply (cases ch) apply auto
+        using 1 2 by auto
+      done
+    done
+qed
+
 theorem Valid_echoice_InIn':
   assumes "Valid Q1 p1 R"
     and "Valid Q2 p2 R"

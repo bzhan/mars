@@ -118,7 +118,7 @@ subsection \<open>Hoare rules for ODE\<close>
 
 text \<open>Weakest precondition form\<close>
 theorem Valid_interrupt:
-  assumes "\<forall>i<length cs.
+  assumes "\<And>i. i < length cs \<Longrightarrow>
     case cs ! i of
       (ch[!]e, p2) \<Rightarrow>
         (\<exists>Q. Valid Q p2 R \<and>
@@ -239,6 +239,24 @@ theorem Valid_interrupt_In:
   apply auto apply (rule exI[where x=Q])
   by (auto simp add: assms entails_def)
 
+theorem Valid_interrupt_Out:
+  assumes "Valid Q p R"
+  shows "Valid
+    (\<lambda>s tr. (Q s (tr @ [OutBlock ch (e s)])) \<and>
+            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {}),
+                               OutBlock ch (e (p d))])) \<and>
+            (\<not>b s \<longrightarrow> R s tr) \<and>
+            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})])))
+      (Interrupt ode b [(ch[!]e, p)])
+    R"
+  apply (rule Valid_interrupt)
+  apply auto apply (rule exI[where x=Q])
+  by (auto simp add: assms entails_def)
+
 text \<open>Versions with two communications\<close>
 
 theorem Valid_interrupt_InIn:
@@ -277,12 +295,19 @@ inductive ode_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow>
      ODE\<^sub>A s ode b (p d) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
 
 text \<open>ODE interrupted by communication\<close>
-inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEin\<^sub>A") where
-  "ODEin\<^sub>A s ode b (s(var := v)) ch v rdy [InBlock ch v]"
+inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> var \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEin\<^sub>A") where
+  "ODEin\<^sub>A s ode b (s(var := v)) ch var rdy [InBlock ch v]"
 | "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
-    ODEin\<^sub>A s ode b ((p d)(var := v)) ch v rdy
+    ODEin\<^sub>A s ode b ((p d)(var := v)) ch var rdy
       [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, InBlock ch v]"
+
+inductive ode_out_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEout\<^sub>A") where
+  "ODEout\<^sub>A s ode b s ch e rdy [OutBlock ch (e s)]"
+| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+    \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
+    ODEout\<^sub>A s ode b (p d) ch e rdy
+      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
 
 text \<open>ODE with interrupt, but reached boundary\<close>
 inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODErdy\<^sub>A") where
@@ -339,31 +364,113 @@ theorem Valid_ode_sp':
   apply (auto simp add: entails_def)
   using entails_mp by (simp add: entails_tassn_def)
 
+theorem Valid_interrupt':
+  assumes "\<And>i. i < length cs \<Longrightarrow>
+    case cs ! i of
+      (ch[!]e, p2) \<Rightarrow>
+        (\<exists>Q. Valid Q p2 R \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEout\<^sub>A s ode b s' ch e (rdy_of_echoice cs) @- Q s') tr)))
+    | (ch[?]var, p2) \<Rightarrow>
+        (\<exists>Q. Valid Q p2 R \<and>
+             (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEin\<^sub>A s ode b s' ch var (rdy_of_echoice cs) @- Q s') tr)))"
+    and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODErdy\<^sub>A s ode b s' (rdy_of_echoice cs) @- R s') tr)"
+  shows "Valid P (Interrupt ode b cs) R"
+proof -
+  have 1: "\<exists>Q. Valid Q p R \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
+           (P \<Longrightarrow>\<^sub>A
+            (\<lambda>s tr.
+                \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
+                          p 0 = s \<longrightarrow>
+                          (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                          Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), OutBlock ch (e (p d))])))"
+    if *: "i < length cs" "cs ! i = (ch[!]e, p)" for i ch e p
+  proof -
+    from assms(1) obtain Q where
+      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEout\<^sub>A s ode b s' ch e (rdy_of_echoice cs) @- Q s') tr))"
+      using * by fastforce
+    show ?thesis
+      apply (rule exI[where x=Q])
+      using Q by (auto simp add: entails_def magic_wand_assn_def ode_out_assn.intros)
+  qed
+  have 2: "\<exists>Q. Valid Q p R \<and>
+           (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
+           (P \<Longrightarrow>\<^sub>A
+            (\<lambda>s tr.
+                \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
+                          p 0 = s \<longrightarrow>
+                          (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                          (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v]))))"
+    if *: "i < length cs" "cs ! i = (ch[?]var, p)" for i ch var p
+  proof -
+    from assms(1) obtain Q where
+      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEin\<^sub>A s ode b s' ch var (rdy_of_echoice cs) @- Q s') tr))"
+      using * by fastforce
+    show ?thesis
+      apply (rule exI[where x=Q])
+      using Q by (auto simp add: entails_def magic_wand_assn_def ode_in_assn.intros)
+  qed
+  have 3: "R s tr"
+    if "\<forall>s'. (ODErdy\<^sub>A s ode b s' (rdy_of_echoice cs) @- R s') tr" "\<not> b s" for s tr
+  proof -
+    have "(ODErdy\<^sub>A s ode b s (rdy_of_echoice cs) @- R s) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A s ode b s (rdy_of_echoice cs) []"
+      using that(2) by (auto intro: ode_rdy_assn.intros)
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 4: "R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)])"
+    if "\<forall>s'. (ODErdy\<^sub>A (p 0) ode b s' (rdy_of_echoice cs) @- R s') tr"
+       "0 < d" "ODEsol ode p d"
+       "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for p d tr
+  proof -
+    have "(ODErdy\<^sub>A (p 0) ode b (p d) (rdy_of_echoice cs) @- R (p d)) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A (p 0) ode b (p d) (rdy_of_echoice cs) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)]"
+      apply (rule ode_rdy_assn.intros)
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  show ?thesis
+    apply (rule Valid_interrupt)
+    subgoal for i apply (cases "cs ! i")
+      subgoal for ch p apply (cases ch)
+        using 1 2 by auto
+      done
+    subgoal apply (rule entails_trans[OF assms(2)])
+      by (auto simp add: entails_def 3)
+    subgoal apply (rule entails_trans[OF assms(2)])
+      by (auto simp add: entails_def 4)
+    done
+qed
+
 theorem Valid_interrupt_In':
   assumes "Valid Q p R"
   shows "Valid
-    (\<lambda>s tr. (\<forall>s' v. (ODEin\<^sub>A s ode b s' ch v ({}, {ch}) @- Q s') tr) \<and>
+    (\<lambda>s tr. (\<forall>s'. (ODEin\<^sub>A s ode b s' ch var ({}, {ch}) @- Q s') tr) \<and>
             (\<forall>s'. (ODErdy\<^sub>A s ode b s' ({}, {ch}) @- R s') tr))
       (Interrupt ode b [(ch[?]var, p)])
     R"
 proof -
   have 1: "Q (s(var := v)) (tr @ [InBlock ch v])"
-    if "\<forall>s'. (ODEin\<^sub>A s ode b s' ch v ({}, {ch}) @- Q s') tr" for s tr v
+    if "\<forall>s'. (ODEin\<^sub>A s ode b s' ch var ({}, {ch}) @- Q s') tr" for s tr v
   proof -
-    have "(ODEin\<^sub>A s ode b (s(var := v)) ch v ({}, {ch}) @- Q (s(var := v))) tr"
+    have "(ODEin\<^sub>A s ode b (s(var := v)) ch var ({}, {ch}) @- Q (s(var := v))) tr"
       using that(1) by auto
-    moreover have "ODEin\<^sub>A s ode b (s(var := v)) ch v ({}, {ch}) [InBlock ch v]"
+    moreover have "ODEin\<^sub>A s ode b (s(var := v)) ch var ({}, {ch}) [InBlock ch v]"
       by (auto intro: ode_in_assn.intros)
     ultimately show ?thesis
       by (auto simp add: magic_wand_assn_def)
   qed
   have 2: "Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}), InBlock ch v])"
-    if "\<forall>s' v. (ODEin\<^sub>A (p 0) ode b s' ch v ({}, {ch}) @- Q s') tr"
+    if "\<forall>s'. (ODEin\<^sub>A (p 0) ode b s' ch var ({}, {ch}) @- Q s') tr"
        "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" for tr d p v
   proof -
-    have "(ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch v ({}, {ch}) @- Q ((p d)(var := v))) tr"
+    have "(ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch var ({}, {ch}) @- Q ((p d)(var := v))) tr"
       using that(1) by auto
-    moreover have "ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch v ({}, {ch})
+    moreover have "ODEin\<^sub>A (p 0) ode b ((p d)(var := v)) ch var ({}, {ch})
                     [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}), InBlock ch v]"
       apply (rule ode_in_assn.intros)
       using that by auto
@@ -389,7 +496,6 @@ proof -
       using that(1) by auto
     moreover have "ODErdy\<^sub>A (p 0) ode b (p d) ({}, {ch})
                     [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})]"
-      thm ode_rdy_assn.intros(2)
       apply (rule ode_rdy_assn.intros(2))
       using that by auto
     ultimately show ?thesis
@@ -398,6 +504,68 @@ proof -
   show ?thesis
     apply (rule Valid_weaken_pre)
      prefer 2 apply (rule Valid_interrupt_In[OF assms])
+    apply (auto simp add: entails_def)
+    using 1 2 3 4 by auto
+qed
+
+theorem Valid_interrupt_Out':
+  assumes "Valid Q p R"
+  shows "Valid
+    (\<lambda>s tr. (\<forall>s'. (ODEout\<^sub>A s ode b s' ch e ({ch}, {}) @- Q s') tr) \<and>
+            (\<forall>s'. (ODErdy\<^sub>A s ode b s' ({ch}, {}) @- R s') tr))
+      (Interrupt ode b [(ch[!]e, p)])
+    R"
+proof -
+  have 1: "Q s (tr @ [OutBlock ch (e s)])"
+    if "\<forall>s'. (ODEout\<^sub>A s ode b s' ch e ({ch}, {}) @- Q s') tr" for s tr
+  proof -
+    have "(ODEout\<^sub>A s ode b s ch e ({ch}, {}) @- Q s) tr"
+      using that(1) by auto
+    moreover have "ODEout\<^sub>A s ode b s ch e ({ch}, {}) [OutBlock ch (e s)]"
+      by (auto intro: ode_out_assn.intros)
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 2: "Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))])"
+    if "\<forall>s'. (ODEout\<^sub>A (p 0) ode b s' ch e ({ch}, {}) @- Q s') tr"
+       "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" for tr d p
+  proof -
+    have "(ODEout\<^sub>A (p 0) ode b (p d) ch e ({ch}, {}) @- Q (p d)) tr"
+      using that(1) by auto
+    moreover have "ODEout\<^sub>A (p 0) ode b (p d) ch e ({ch}, {})
+                    [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))]"
+      apply (rule ode_out_assn.intros)
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 3: "R s tr"
+    if "\<forall>s'. (ODErdy\<^sub>A s ode b s' ({ch}, {}) @- R s') tr" "\<not> b s" for s tr
+  proof -
+    have "(ODErdy\<^sub>A s ode b s ({ch}, {}) @- R s) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A s ode b s ({ch}, {}) []"
+      apply (rule ode_rdy_assn.intros)
+      using that(2) by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  have 4: "R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})])"
+    if "\<forall>s'. (ODErdy\<^sub>A (p 0) ode b s' ({ch}, {}) @- R s') tr"
+       "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for tr d p
+  proof -
+    have "(ODErdy\<^sub>A (p 0) ode b (p d) ({ch}, {}) @- R (p d)) tr"
+      using that(1) by auto
+    moreover have "ODErdy\<^sub>A (p 0) ode b (p d) ({ch}, {})
+                    [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})]"
+      apply (rule ode_rdy_assn.intros(2))
+      using that by auto
+    ultimately show ?thesis
+      by (auto simp add: magic_wand_assn_def)
+  qed
+  show ?thesis
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_interrupt_Out[OF assms])
     apply (auto simp add: entails_def)
     using 1 2 3 4 by auto
 qed
