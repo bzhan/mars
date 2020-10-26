@@ -27,7 +27,7 @@ definition X :: char where "X = CHR ''x''"
 definition Y :: char where "Y = CHR ''y''"
 definition Z :: char where "Z = CHR ''z''"
 
-lemma vars_distinct: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z"
+lemma vars_distinct [simp]: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z" "Y \<noteq> X" "Z \<noteq> X" "Z \<noteq> Y"
   unfolding X_def Y_def Z_def by auto
 
 text \<open>Ready information.
@@ -1147,6 +1147,18 @@ theorem Valid_assign_sp:
    prefer 2 apply (rule Valid_assign)
   by (auto simp add: entails_def)
 
+theorem Valid_assign_sp':
+  "Valid
+    (\<lambda>s t. \<exists>v. s = st v \<and> P v s t)
+    (Assign x e)
+    (\<lambda>s t. \<exists>v. s = (st v)(x := e (st v)) \<and> P v (st v) t)"
+  apply (rule Valid_ex_pre)
+  subgoal for v
+    apply (rule Valid_ex_post)
+    apply (rule exI[where x=v])
+    by (rule Valid_assign_sp)
+  done
+
 theorem Valid_send_sp:
   "Valid
     (\<lambda>s t. s = st \<and> P s t)
@@ -1451,6 +1463,49 @@ lemma testLoop3:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
+text \<open>Example that repeated receives, and add the input values\<close>
+
+text \<open>Here a is the starting value of X, b is the starting value of Y\<close>
+fun receive_add_inv :: "real \<Rightarrow> real \<Rightarrow> real list \<Rightarrow> tassn" where
+  "receive_add_inv a b [] = emp\<^sub>A"
+| "receive_add_inv a b (x # xs) = In\<^sub>A ((\<lambda>_. 0)(X := a, Y := b)) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
+
+fun last_add_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_add_val a [] = a"
+| "last_add_val a (x # xs) = last_add_val (a + x) xs"
+
+lemma receive_add_inv_snoc:
+  "receive_add_inv a b (xs @ [v]) = receive_add_inv a b xs @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) ''ch'' v"
+  apply (induct xs arbitrary: a b)
+  by (auto simp add: join_assoc)
+
+lemma last_add_val_snoc [simp]:
+  "last_add_val a (xs @ [v]) = last_add_val a xs + v"
+  by (induct xs arbitrary: a, auto)
+
+lemma testLoop4:
+  "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a, Y := b)) \<and> tr = [])
+    (Rep (Cm (''ch''[?]Y); X ::= (\<lambda>s. s X + s Y)))
+    (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) \<and> receive_add_inv a b xs tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+  apply (rule Valid_ex_pre)
+  subgoal for xs
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_seq)
+      apply (rule Valid_receive_sp)
+    apply (rule Valid_assign_sp')
+    apply (auto simp add: entails_def)
+    subgoal for tr v
+      apply (rule exI[where x="xs@[v]"])
+      by (auto simp add: receive_add_inv_snoc)
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+
 text \<open>Parallel version\<close>
 inductive count_up_io_inv :: "nat \<Rightarrow> trace \<Rightarrow> bool" where
   "count_up_io_inv n []"
@@ -1544,7 +1599,7 @@ next
   qed
 qed
 
-lemma testLoop4:
+lemma testLoopPar:
   "ParValid
     (pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = (\<lambda>_. 0)))
     (Parallel (Single (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))) {''ch''}
