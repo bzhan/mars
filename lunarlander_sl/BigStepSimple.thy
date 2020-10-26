@@ -233,6 +233,23 @@ lemma combine_blocks_elim2e:
   "combine_blocks comms (WaitBlock d p rdy # blks1) (InBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim2f:
+  "combine_blocks comms [] (InBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2g:
+  "combine_blocks comms [] (OutBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2h:
+  "combine_blocks comms (InBlock ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2i:
+  "combine_blocks comms (OutBlock ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+
 text \<open>IO cases, unpaired\<close>
 lemma combine_blocks_elim3:
   "combine_blocks comms (InBlock ch1 v # blks1) (OutBlock ch2 w # blks2) blks \<Longrightarrow>
@@ -259,6 +276,15 @@ lemma combine_blocks_elim4a:
   "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
    \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4b:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) [] blks \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4c:
+  "combine_blocks comms [] (WaitBlock d1 p1 rdy1 # blks1) blks \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 
 subsection \<open>Tests for combine_blocks\<close>
 
@@ -1066,6 +1092,10 @@ lemma emp_unit_right [simp]:
   "(P @\<^sub>t emp\<^sub>A) = P"
   unfolding join_assn_def emp_assn_def by auto
 
+lemma join_assoc:
+  "(P @\<^sub>t Q) @\<^sub>t R = P @\<^sub>t (Q @\<^sub>t R)"
+  unfolding join_assn_def by fastforce
+
 lemma entails_mp_emp:
   "emp\<^sub>A \<Longrightarrow>\<^sub>t P @- P"
   unfolding entails_tassn_def emp_assn_def magic_wand_assn_def by auto
@@ -1150,11 +1180,31 @@ lemma combine_assn_elim2:
    Out\<^sub>A s1 ch v tr1 \<Longrightarrow>
    In\<^sub>A s2 ch w tr2 \<Longrightarrow>
    ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch v] \<Longrightarrow> P) \<Longrightarrow> P"
+   (w = v \<Longrightarrow> tr = [IOBlock ch v] \<Longrightarrow> P) \<Longrightarrow> P"
   apply (simp only: out_assn.simps in_assn.simps)
   apply (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
                      combine_blocks_elim2e combine_blocks_elim4a )
   by (simp add: combine_blocks_elim1)
+
+lemma combine_assn_elim2a:
+  "combine_blocks comms (tr1 @ tr1') (tr2 @ tr2') tr \<Longrightarrow>
+   Out\<^sub>A s1 ch v tr1 \<Longrightarrow>
+   In\<^sub>A s2 ch w tr2 \<Longrightarrow>
+   ch \<in> comms \<Longrightarrow>
+   (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch w] @ blks' \<Longrightarrow> combine_blocks comms tr1' tr2' blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (simp only: out_assn.simps in_assn.simps)
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
+                  combine_blocks_elim2e combine_blocks_elim4a)
+
+lemma combine_assn_elim2b:
+  "combine_blocks comms [] (tr1 @ tr2) tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> In\<^sub>A s ch a tr1 \<Longrightarrow> P"
+  apply (simp only: in_assn.simps)
+  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
+
+lemma combine_assn_elim2c:
+  "combine_blocks comms (tr1 @ tr2) [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> Out\<^sub>A s ch a tr1 \<Longrightarrow> P"
+  apply (simp only: out_assn.simps)
+  by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
 
 subsection \<open>Simple examples redone\<close>
 
@@ -1251,28 +1301,85 @@ lemma testHL4s:
    apply (auto simp add: entails_def pair_assn_def par_assn_def sing_assn_def)
   by (auto simp add: emp_assn_def elim!: combine_assn_elim2)
 
+subsection \<open>Alternative rule for repetition\<close>
+
+theorem Valid_frame:
+  assumes "Valid (\<lambda>s tr. P s \<and> tr = []) c (\<lambda>s tr. Q s \<and> R tr)"
+  shows "Valid (\<lambda>s tr. P s \<and> R' tr) c (\<lambda>s tr. Q s \<and> (R' @\<^sub>t R) tr)"
+  using assms unfolding Valid_def
+  by (auto simp add: join_assn_def)
+
+theorem Valid_loop2:
+  assumes "\<And>a tr1 tr2. Q a tr1 \<Longrightarrow> P (f a) tr2 \<Longrightarrow> P a (tr1 @ tr2)"
+    and "\<And>a. Valid (\<lambda>s tr. R a s \<and> tr = []) c (\<lambda>s tr. R (f a) s \<and> Q a tr)"
+  shows "Valid (\<lambda>s tr. \<exists>b. R b s \<and> (P b @- P a) tr) c (\<lambda>s tr. \<exists>b. R b s \<and> (P b @- P a) tr)"
+  apply (rule Valid_ex_pre)
+  subgoal for b
+    apply (rule Valid_ex_post) apply (rule exI[where x="f b"])
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_frame[OF assms(2)])
+    apply (auto simp add: entails_def)
+    using assms(1) by (auto simp add: join_assn_def magic_wand_assn_def)
+  done
+
+theorem Valid_loop3:
+  assumes "\<And>a. P a []"
+  assumes "\<And>a tr1 tr2. Q a tr1 \<Longrightarrow> P (f a) tr2 \<Longrightarrow> P a (tr1 @ tr2)"
+    and "\<And>a. Valid (\<lambda>s tr. R a s \<and> tr = []) c (\<lambda>s tr. R (f a) s \<and> Q a tr)"
+  shows "Valid (\<lambda>s tr. R a s \<and> tr = []) (Rep c) (\<lambda>s tr. \<exists>b. R b s \<and> P a tr)"
+  apply (rule Valid_weaken_pre)
+  prefer 2 apply (rule Valid_strengthen_post)
+    prefer 2 apply (rule Valid_rep[where P="\<lambda>s tr. \<exists>b. R b s \<and> (P b @- P a) tr"])
+    apply (rule Valid_loop2[of Q P f])
+  using assms apply auto
+  using assms(1) apply (auto simp add: entails_def magic_wand_assn_def)
+  by fastforce
+
+subsection \<open>Combination on assertions\<close>
+
+definition false_assn :: "tassn" ("false\<^sub>A") where
+  "false_assn tr = False"
+
+definition combine_assn :: "cname set \<Rightarrow> tassn \<Rightarrow> tassn \<Rightarrow> tassn" where
+  "combine_assn chs P Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> combine_blocks chs tr1 tr2 tr)"
+
+lemma combine_assn_elim1' [simp]:
+  "combine_assn chs emp\<^sub>A emp\<^sub>A = emp\<^sub>A"
+  unfolding combine_assn_def
+  apply (rule ext)
+  apply (auto simp add: emp_assn_def)
+   apply (elim combine_blocks_elim1)
+  by (rule combine_blocks_empty)
+
+lemma combine_assn_elim2a':
+  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>A (In\<^sub>A s ch v @\<^sub>t P) = false\<^sub>A"
+  unfolding combine_assn_def
+  apply (rule ext)
+  apply (auto simp add: false_assn_def emp_assn_def join_assn_def)
+  apply (elim in_assn.cases)
+  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
 
 subsection \<open>Examples for loops\<close>
 
 text \<open>First example simply counts up variable X.\<close>
 fun count_up_inv :: "nat \<Rightarrow> tassn" where
   "count_up_inv 0 = emp\<^sub>A"
-| "count_up_inv (Suc n) = count_up_inv n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := real n)) ''ch'' n"
+| "count_up_inv (Suc n) = count_up_inv n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := real n + 1)) ''ch'' (real n + 1)"
 
 lemma testLoop1:
   "Valid
     (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
-    (Rep (Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 1)))
+    (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))
     (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := n)) \<and> count_up_inv n tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
   subgoal for n
     apply (rule Valid_ex_post) apply (rule exI[where x="Suc n"])
-  apply (rule Valid_seq)
-    apply (rule Valid_send_sp)
-  apply (rule Valid_strengthen_post) prefer 2
+    apply (rule Valid_seq)
     apply (rule Valid_assign_sp)
+  apply (rule Valid_strengthen_post) prefer 2
+     apply (rule Valid_send_sp)
     by (auto simp add: entails_def)
   apply (auto simp add: entails_def)
   apply (rule exI[where x=0])
@@ -1303,6 +1410,152 @@ lemma testLoop2:
   apply (auto simp add: entails_def)
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
+
+text \<open>Example that repeatedly receives on X\<close>
+
+text \<open>Here a is the starting value of X\<close>
+fun receive_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
+  "receive_inv a [] = emp\<^sub>A"
+| "receive_inv a (x # xs) = In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch'' x @\<^sub>t receive_inv x xs"
+
+fun last_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_val a [] = a"
+| "last_val a (x # xs) = last_val x xs"
+
+lemma receive_inv_snoc:
+  "receive_inv a (xs @ [v]) = receive_inv a xs @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := last_val a xs)) ''ch'' v"
+  apply (induct xs arbitrary: a)
+  by (auto simp add: join_assoc)
+
+lemma last_val_snoc [simp]:
+  "last_val a (xs @ [v]) = v"
+  by (induct xs arbitrary: a, auto)
+
+lemma testLoop3:
+  "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> tr = [])
+    (Rep (Cm (''ch''[?]X)))
+    (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(X := last_val a xs)) \<and> receive_inv a xs tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+  apply (rule Valid_ex_pre)
+  subgoal for xs
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_receive_sp)
+    apply (auto simp add: entails_def)
+    subgoal for tr v
+      apply (rule exI[where x="xs@[v]"])
+      by (auto simp add: receive_inv_snoc)
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+text \<open>Parallel version\<close>
+inductive count_up_io_inv :: "nat \<Rightarrow> trace \<Rightarrow> bool" where
+  "count_up_io_inv n []"
+| "count_up_io_inv (Suc n) tr \<Longrightarrow> count_up_io_inv n (IOBlock ''ch'' (Suc n) # tr)"
+
+inductive count_up_inv' :: "nat \<Rightarrow> tassn" where
+  "count_up_inv' a []"
+| "Out\<^sub>A ((\<lambda>_. 0)(X := real a + 1)) ''ch'' (real a + 1) tr1 \<Longrightarrow> count_up_inv' (Suc a) tr2 \<Longrightarrow> count_up_inv' a (tr1 @ tr2)"
+
+lemma testLoop1':
+  "Valid
+    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> tr = [])
+    (Rep (X ::= (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))
+    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := real n)) \<and> count_up_inv' 0 tr)"
+proof -
+  have inv: "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := real a)) \<and> tr = [])
+    (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)))
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1 + real a)) \<and> Out\<^sub>A ((\<lambda>_. 0)(X := real a + 1)) ''ch'' (real a + 1) tr)" for a::nat
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_seq)
+      prefer 2 apply (rule Valid_send')
+     apply (rule Valid_assign)
+    by (auto simp add: entails_def magic_wand_assn_def)
+  note loop = Valid_loop3[
+      where P="count_up_inv'" and
+            Q="\<lambda>a tr. Out\<^sub>A ((\<lambda>_. 0)(X := real a + 1)) ''ch'' (real a + 1) tr" and
+            R="\<lambda>a s. s = ((\<lambda>_. 0)(X := real a))" and
+            f="\<lambda>a. a + 1" and a=0]
+  show ?thesis
+    apply (rule Valid_weaken_pre)
+    prefer 2 apply (rule loop)
+    by (auto simp add: count_up_inv'.intros inv entails_def)
+qed
+
+lemma combine_count_up:
+  "count_up_inv' v tr1 \<Longrightarrow>
+   receive_inv z xs tr2 \<Longrightarrow>
+   combine_blocks {''ch''} tr1 tr2 tr \<Longrightarrow>
+   count_up_io_inv v tr"
+proof (induct arbitrary: z xs tr tr2 rule: count_up_inv'.induct)
+  case (1 a)
+  then show ?case
+  proof (cases xs)
+    case Nil
+    then show ?thesis
+      using 1 apply (auto simp add: emp_assn_def)
+      apply (drule combine_blocks_elim1)
+      by (auto intro: count_up_io_inv.intros)
+  next
+    case (Cons a list)
+    then show ?thesis
+      using 1 apply (auto simp add: join_assn_def)
+      by (auto elim!: combine_assn_elim2b)
+  qed
+next
+  case (2 a tr1' tr2')
+  then show ?case
+  proof (cases xs)
+    case Nil
+    have "tr2 = []"
+      using Nil 2(4) by (simp add: emp_assn_def)
+    show ?thesis
+      using 2(1,5) unfolding \<open>tr2 = []\<close>
+      by (auto elim!: combine_assn_elim2c)
+  next
+    case (Cons x xs')
+    have 1: "count_up_io_inv a tr"
+      if *: "Out\<^sub>A ((\<lambda>_. 0)(X := real a + 1)) ''ch'' (real a + 1) tr1'"
+         "count_up_inv' (Suc a) tr2'"
+         "(\<And>z xs tr2 tr. receive_inv z xs tr2 \<Longrightarrow> combine_blocks {''ch''} tr2' tr2 tr \<Longrightarrow> count_up_io_inv (Suc a) tr)"
+         "combine_blocks {''ch''} (tr1' @ tr2') (tr1'' @ tr2'') tr"
+         "In\<^sub>A ((\<lambda>_. 0)(X := z)) ''ch'' x tr1''"
+         "receive_inv x xs' tr2''"
+         "tr2 = tr1'' @ tr2''" for tr1'' tr2''
+    proof -
+      have ***: "count_up_io_inv a (IOBlock ''ch'' (real (Suc a)) # blks')"
+        if **: "x = real (Suc a)"
+           "combine_blocks {''ch''} tr2' tr2'' blks'" for blks'
+        apply (rule count_up_io_inv.intros)
+        apply (rule 2(3)) apply (rule *(6)[unfolded **(1)])
+        by (rule **(2))
+      show ?thesis
+        apply (rule combine_assn_elim2a[OF that(4,1,5)])
+        apply simp
+        by (metis "***" add.commute append.left_neutral append_Cons of_nat_Suc)
+      qed
+    show ?thesis
+      using Cons 2 apply (auto simp add: join_assn_def)
+      using 1 by blast
+  qed
+qed
+
+lemma testLoop4:
+  "ParValid
+    (pair_assn (\<lambda>s. s = (\<lambda>_. 0)) (\<lambda>s. s = (\<lambda>_. 0)))
+    (Parallel (Single (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))) {''ch''}
+              (Single (Rep (Cm (''ch''[?]X)))))
+    (\<lambda>s tr. count_up_io_inv 0 tr)"
+  apply (rule ParValid_Parallel')
+     apply (rule ParValid_Single[OF testLoop1'])
+    apply (rule ParValid_Single[OF testLoop3])
+   apply (auto simp add: pair_assn_def par_assn_def sing_assn_def)
+  using combine_count_up by auto
+
 
 subsection \<open>Test cases for external choice\<close>
 
