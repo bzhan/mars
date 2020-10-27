@@ -665,6 +665,10 @@ definition Valid :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bo
 definition entails :: "assn \<Rightarrow> assn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>A" 25) where
   "(P \<Longrightarrow>\<^sub>A Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
 
+lemma entails_refl [simp]:
+  "P \<Longrightarrow>\<^sub>A P"
+  unfolding entails_def by auto
+
 lemma entails_trans:
   "(P \<Longrightarrow>\<^sub>A Q) \<Longrightarrow> (Q \<Longrightarrow>\<^sub>A R) \<Longrightarrow> (P \<Longrightarrow>\<^sub>A R)"
   unfolding entails_def by auto
@@ -1185,6 +1189,30 @@ theorem Valid_receive_sp:
     apply (rule exI[where x=v])
     apply auto apply (rule exI[where x=tr])
     by (simp add: in_assn.intros)
+  done
+
+theorem Valid_send_sp':
+  "Valid
+    (\<lambda>s t. \<exists>a. s = st a \<and> P a s t)
+    (Cm (ch[!]e))
+    (\<lambda>s t. \<exists>a. s = st a \<and> (P a s @\<^sub>t Out\<^sub>A s ch (e s)) t)"
+  apply (rule Valid_ex_pre)
+  subgoal for a
+    apply (rule Valid_ex_post)
+    apply (rule exI[where x=a])
+    by (rule Valid_send_sp)
+  done
+
+theorem Valid_receive_sp':
+  "Valid
+    (\<lambda>s t. \<exists>a. s = st a \<and> P a s t)
+    (Cm (ch[?]var))
+    (\<lambda>s t. \<exists>a v. s = (st a)(var := v) \<and> (P a (st a) @\<^sub>t In\<^sub>A (st a) ch v) t)"
+  apply (rule Valid_ex_pre)
+  subgoal for a
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_receive_sp)
+    by (auto simp add: entails_def)
   done
 
 lemma combine_assn_elim2:
