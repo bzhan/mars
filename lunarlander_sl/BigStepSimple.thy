@@ -1093,6 +1093,9 @@ definition all_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder 
 definition conj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<and>\<^sub>t" 35) where
   "(P \<and>\<^sub>t Q) = (\<lambda>tr. P tr \<and> Q tr)"
 
+definition disj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<or>\<^sub>t" 25) where
+  "(P \<or>\<^sub>t Q) = (\<lambda>tr. P tr \<or> Q tr)"
+
 definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
   "\<up>b = (\<lambda>_. b)"
 
@@ -1779,7 +1782,7 @@ lemma testLoopPar:
   done
 
 
-subsection \<open>Test cases for external choice\<close>
+subsection \<open>Rules for internal and external choice\<close>
 
 inductive inrdy_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("Inrdy\<^sub>A") where
   "Inrdy\<^sub>A s ch v rdy [InBlock ch v]"
@@ -1792,7 +1795,7 @@ inductive outrdy_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightar
 text \<open>First, we restate the rule for Valid_echoice in simpler form\<close>
 
 theorem Valid_echoice':
-  assumes "\<forall>i<length es.
+  assumes "\<And>i. i<length es \<Longrightarrow>
     case es ! i of
       (ch[!]e, p2) \<Rightarrow>
         (\<exists>Q. Valid Q p2 R \<and>
@@ -1860,23 +1863,6 @@ lemma echoice_test1:
    apply (rule Valid_skip)
   by (rule Valid_skip)
 
-text \<open>Strongest postcondition form\<close>
-lemma echoice_test1':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
-    (\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t Inrdy\<^sub>A st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
-            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t Inrdy\<^sub>A st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule echoice_test1)
-  apply (auto simp add: entails_def and_assn_def magic_wand_assn_def join_assn_def all_assn_def)
-  subgoal for tr v tr'
-    apply (rule exI[where x=v])
-    apply auto
-    apply (rule exI[where x=tr])
-    by auto
-  done
-
 text \<open>Contrast this with the case of internal choice\<close>
 lemma ichoice_test1:
   "Valid
@@ -1905,5 +1891,129 @@ lemma ichoice_test1':
     apply (rule exI[where x=tr])
     by auto
   done
+
+theorem Valid_echoice_sp:
+  assumes "\<And>i. i<length es \<Longrightarrow>
+    case es ! i of
+      (ch[!]e, p2) \<Rightarrow>
+        Valid (\<lambda>s tr. s = st \<and> (P s @\<^sub>t Outrdy\<^sub>A s ch (e s) (rdy_of_echoice es)) tr) p2 Q
+    | (ch[?]var, p2) \<Rightarrow>
+        Valid (\<lambda>s tr. (\<exists>v. s = st(var := v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ch v (rdy_of_echoice es)) tr)) p2 Q"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (EChoice es)
+    Q"
+  apply (rule Valid_echoice')
+  subgoal for i
+    apply (cases "es ! i") apply auto
+    subgoal for comm p2
+      apply (cases comm)
+      subgoal for ch e
+        apply auto
+        apply (rule exI[where x="\<lambda>s tr. s = st \<and> (P s @\<^sub>t Outrdy\<^sub>A s ch (e s) (rdy_of_echoice es)) tr"])
+        apply auto
+        using assms apply fastforce
+        by (auto simp add: entails_def join_assn_def magic_wand_assn_def)
+      subgoal for ch var
+        apply auto
+        apply (rule exI[where x="\<lambda>s tr. (\<exists>v. s = st(var := v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ch v (rdy_of_echoice es)) tr)"])
+        apply auto
+        using assms apply fastforce
+        by (auto simp add: entails_def magic_wand_assn_def join_assn_def all_assn_def)
+      done
+    done
+  done
+
+theorem Valid_echoice_InIn_sp:
+  assumes "Valid (\<lambda>s tr. (\<exists>v. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ch1 v ({}, {ch1, ch2})) tr)) p1 Q1"
+    and "Valid (\<lambda>s tr. (\<exists>v. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ch2 v ({}, {ch1, ch2})) tr)) p2 Q2"
+  shows
+   "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+    (\<lambda>s tr. Q1 s tr \<or> Q2 s tr)"
+  apply (rule Valid_echoice_sp)
+  apply (rule InIn_lemma)
+  using assms by (auto simp add: Valid_def)
+
+
+subsection \<open>Test for external choice\<close>
+
+text \<open>Strongest postcondition form\<close>
+lemma testEChoice1:
+  "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))])
+    (\<lambda>s tr. (\<exists>v. s = st(X := v, Y := st Y + v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
+            (\<exists>v. s = st(X := v, Y := st Y - v) \<and> (P st @\<^sub>t Inrdy\<^sub>A st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
+  apply (rule Valid_strengthen_post)
+  prefer 2
+   apply (rule Valid_echoice_InIn_sp)
+    apply (rule Valid_assign_sp')
+   apply (rule Valid_assign_sp')
+  by auto
+
+datatype dir = CH1 | CH2
+
+fun echoice_ex_inv :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> tassn" where
+  "echoice_ex_inv st [] = emp\<^sub>A"
+| "echoice_ex_inv st ((CH1, v) # rest) =
+    Inrdy\<^sub>A st ''ch1'' v ({}, {''ch1'', ''ch2''}) @\<^sub>t echoice_ex_inv (st(X := v, Y := st Y + v)) rest"
+| "echoice_ex_inv st ((CH2, v) # rest) =
+    Inrdy\<^sub>A st ''ch2'' v ({}, {''ch1'', ''ch2''}) @\<^sub>t echoice_ex_inv (st(X := v, Y := st Y - v)) rest"
+
+fun last_echoice_ex :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> state" where
+  "last_echoice_ex st [] = st"
+| "last_echoice_ex st ((CH1, v) # rest) = last_echoice_ex (st(X := v, Y := st Y + v)) rest"
+| "last_echoice_ex st ((CH2, v) # rest) = last_echoice_ex (st(X := v, Y := st Y - v)) rest"
+
+lemma echoice_ex_inv_snoc [simp]:
+  "echoice_ex_inv st (ins @ [(CH1, v)]) =
+    echoice_ex_inv st ins @\<^sub>t Inrdy\<^sub>A (last_echoice_ex st ins) ''ch1'' v ({}, {''ch1'', ''ch2''}) \<and>
+   echoice_ex_inv st (ins @ [(CH2, v)]) =
+    echoice_ex_inv st ins @\<^sub>t Inrdy\<^sub>A (last_echoice_ex st ins) ''ch2'' v ({}, {''ch1'', ''ch2''})"
+  apply (induct ins arbitrary: st)
+  subgoal by auto
+  apply auto subgoal for dir v ins st
+    apply (cases dir)
+    by (auto simp add: join_assoc)
+  subgoal for dir v ins st
+    apply (cases dir)
+    by (auto simp add: join_assoc)
+  done
+
+lemma last_echoice_ex_snoc [simp]:
+  "last_echoice_ex st (ins @ [(CH1, v)]) = (last_echoice_ex st ins)(X := v, Y := last_echoice_ex st ins Y + v) \<and>
+   last_echoice_ex st (ins @ [(CH2, v)]) = (last_echoice_ex st ins)(X := v, Y := last_echoice_ex st ins Y - v)"
+  apply (induct ins arbitrary: st)
+  apply auto
+  by (metis (full_types) dir.exhaust last_echoice_ex.simps(2) last_echoice_ex.simps(3))+
+
+lemma testEChoice:
+  "Valid
+    (\<lambda>s tr. s = st \<and> tr = [])
+    (Rep (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]))
+    (\<lambda>s tr. \<exists>ins. s = last_echoice_ex st ins \<and> echoice_ex_inv st ins tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+   apply (rule Valid_ex_pre)
+  subgoal for ins
+    apply (rule Valid_strengthen_post)
+    prefer 2
+     apply (rule Valid_echoice_InIn_sp)
+    apply (rule Valid_assign_sp')
+     apply (rule Valid_assign_sp')
+    apply (auto simp add: entails_def)
+    subgoal for tr v
+      apply (rule exI[where x="ins@[(CH1,v)]"])
+      by auto
+    subgoal for tr v
+      apply (rule exI[where x="ins@[(CH2,v)]"])
+      by auto
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
 
 end

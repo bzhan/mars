@@ -531,6 +531,8 @@ proof -
     using assms by (auto simp add: entails_def)
 qed
 
+subsection \<open>Test with ODE, loop and parallel\<close>
+
 lemma testHL13a':
   assumes "a < 1"
   shows "Valid
@@ -771,6 +773,16 @@ lemma testHL13:
     apply (rule combine_assn_mono)
     by (auto simp add: entails_tassn_def)
   done
+
+subsection \<open>Test with interrupt, loop and parallel\<close>
+
+lemma testHL14o:
+  "Valid
+    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> Q tr)
+    (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
+              [(''ch''[!](\<lambda>s. s X), Skip)])
+    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := a + d) \<and> (Q @\<^sub>t WaitS\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := t + a)) ''ch'' (t + a)) tr)"
+  sorry
 
 
 end
