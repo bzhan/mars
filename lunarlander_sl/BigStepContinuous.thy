@@ -238,10 +238,6 @@ inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightar
     ODErdy\<^sub>A s ode b (p d) rdy
       [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy]"
 
-text \<open>ODE with unique solution\<close>
-inductive ode_unique_sol_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> tassn" ("ODESol\<^sub>A") where
-  "ODESol\<^sub>A d p [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
-
 
 subsection \<open>Restate previous rules in simpler form\<close>
 
@@ -399,12 +395,12 @@ theorem Valid_ode_unique_solution_aux:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "ODE\<^sub>A st ode b st' tr"
   shows
-    "st' = p d \<and> ODESol\<^sub>A d p tr"
+    "st' = p d \<and> WaitS\<^sub>A d p tr"
 proof -
   have "b st"
     using assms(1,3,5) by auto
   have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
-              ODESol\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+              WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
@@ -454,10 +450,10 @@ proof -
       using s7 s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
-    have s11: "ODESol\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+    have s11: "WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
       apply (subst s9[symmetric])
       apply (subst s7[symmetric])
-      by (rule ode_unique_sol_assn.intros)
+      by (rule wait_assn.intros)
     show ?thesis using s7 s9 s10 s11 by auto
   qed
   show ?thesis
@@ -480,17 +476,27 @@ theorem Valid_ode_unique_solution':
   shows "Valid
     (\<lambda>s tr. s = st \<and> Q tr)
     (Cont ode b)
-    (\<lambda>s tr. s = p d \<and> (Q @\<^sub>t ODESol\<^sub>A d p) tr)"
+    (\<lambda>s tr. s = p d \<and> (Q @\<^sub>t WaitS\<^sub>A d p) tr)"
 proof -
   have "b st"
     using assms(1,3,5) by auto
-  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> ODESol\<^sub>A d p tr2" for s tr2
+  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>A d p tr2" for s tr2
     using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
   show ?thesis
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_ode_sp')
     by (auto simp add: \<open>b st\<close> entails_def join_assn_def *)
 qed
+
+theorem Valid_ode_exit:
+  assumes "\<not> b st"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> Q tr)
+    (Cont ode b)
+    (\<lambda>s tr. s = st \<and> Q tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_ode)
+  using assms by (auto simp add: entails_def)
 
 
 subsection \<open>Tests for ODE\<close>
@@ -500,7 +506,7 @@ lemma testHL12:
   shows "Valid
     (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
     (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t ODESol\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a))) tr)"
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a))) tr)"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -525,22 +531,26 @@ proof -
     using assms by (auto simp add: entails_def)
 qed
 
-lemma testHL13a:
-  "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0) \<and> Q tr)
+lemma testHL13a':
+  assumes "a < 1"
+  shows "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
     (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
      Cm (''ch1''[!](\<lambda>s. s X));
      Cm (''ch2''[?]X))
     (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t ODESol\<^sub>A 1 (fun_upd (\<lambda>_. 0) X)
+            (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a))
                @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
                @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr)"
 proof -
-  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t)) 1"
-    unfolding ODEsol_def solves_ode_def has_vderiv_on_def
-    apply auto
-    apply (rule has_vector_derivative_projI)
-    by (auto simp add: state2vec_def)
+  have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
+     unfolding ODEsol_def solves_ode_def has_vderiv_on_def
+     using assms apply auto
+     apply (rule has_vector_derivative_projI)
+     apply (auto simp add: state2vec_def)
+     apply (rule has_vector_derivative_eq_rhs)
+      apply (auto intro!: derivative_intros)[1]
+     by simp
   have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))"
   proof -
     have eq: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)" for v::vec
@@ -553,11 +563,191 @@ proof -
   show ?thesis
     apply (rule Valid_seq)
      apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
-        apply auto apply (rule Valid_seq)
+        using assms apply auto apply (rule Valid_seq)
      apply (rule Valid_send_sp)
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_receive_sp)
-    by (auto simp add: entails_def)
+    by (auto simp add: entails_def join_assoc)
+qed
+
+lemma testHL13a'':
+  assumes "\<not>a < 1"
+  shows "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
+    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+     Cm (''ch1''[!](\<lambda>s. s X));
+     Cm (''ch2''[?]X))
+    (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
+            (Q @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch1'' a
+               @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr)"
+  apply (rule Valid_seq)
+   apply (rule Valid_ode_exit)
+  using assms apply auto[1]
+  apply (rule Valid_seq)
+  apply (rule Valid_send_sp)
+  apply (rule Valid_strengthen_post)
+   prefer 2 apply (rule Valid_receive_sp)
+  by (auto simp add: entails_def join_assoc)
+
+
+text \<open>a is the initial value of X\<close>
+fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
+  "left_blocks a [] = emp\<^sub>A"
+| "left_blocks a (v # rest) =
+    (if a < 1 then
+       WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) @\<^sub>t
+       Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
+       In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v @\<^sub>t left_blocks v rest
+     else
+       Out\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch1'' a @\<^sub>t
+       In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch2'' v @\<^sub>t left_blocks v rest)"
+
+fun last_left_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_left_blocks a [] = a"
+| "last_left_blocks a (v # rest) = last_left_blocks v rest"
+
+lemma left_blocks_snoc:
+  "left_blocks a (vs @ [v]) =
+    (if last_left_blocks a vs < 1 then
+      left_blocks a vs @\<^sub>t
+      WaitS\<^sub>A (1 - last_left_blocks a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_left_blocks a vs)) @\<^sub>t
+      Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
+      In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v
+    else
+      left_blocks a vs @\<^sub>t
+      Out\<^sub>A ((\<lambda>_. 0)(X := last_left_blocks a vs)) ''ch1'' (last_left_blocks a vs) @\<^sub>t
+      In\<^sub>A ((\<lambda>_. 0)(X := last_left_blocks a vs)) ''ch2'' v)"
+  apply (induct vs arbitrary: a)
+  by (auto simp add: join_assoc)
+
+lemma last_left_blocks_snoc [simp]:
+  "last_left_blocks a (vs @ [v]) = v"
+  apply (induct vs arbitrary: a) by auto 
+
+lemma testHL13a:
+  "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> tr = [])
+    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+          Cm (''ch1''[!](\<lambda>s. s X));
+          Cm (''ch2''[?]X)))
+    (\<lambda>s tr. \<exists>vs. s = ((\<lambda>_. 0)(X := last_left_blocks a vs)) \<and> left_blocks a vs tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+  apply (rule Valid_ex_pre)
+  subgoal for vs
+    apply (cases "last_left_blocks a vs < 1")
+    apply (rule Valid_strengthen_post)
+      prefer 2 apply (rule testHL13a') apply auto[1]
+    subgoal apply (auto simp add: entails_def)
+      subgoal for tr v apply (rule exI[where x="vs@[v]"])
+        by (auto simp add: left_blocks_snoc)
+      done
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule testHL13a'') apply auto[1]
+    apply (auto simp add: entails_def)
+    subgoal for tr v apply (rule exI[where x="vs@[v]"])
+      by (auto simp add: left_blocks_snoc)
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+
+fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
+  "right_blocks a [] = emp\<^sub>A"
+| "right_blocks a (v # rest) =
+    In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
+    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t
+    right_blocks v rest"
+
+fun last_right_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_right_blocks a [] = a"
+| "last_right_blocks a (v # rest) = last_right_blocks v rest"
+
+lemma right_blocks_snoc:
+  "right_blocks a (vs @ [v]) =
+    right_blocks a vs @\<^sub>t
+    In\<^sub>A ((\<lambda>_. 0)(Y := last_right_blocks a vs)) ''ch1'' v @\<^sub>t
+    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+  apply (induct vs arbitrary: a)
+  by (auto simp add: join_assoc)
+
+lemma last_right_blocks_snoc [simp]:
+  "last_right_blocks a (vs @ [v]) = v"
+  apply (induct vs arbitrary: a) by auto
+
+lemma testHL13b:
+  "Valid
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> tr = [])
+    (Rep (Cm (''ch1''[?]Y);
+          Cm (''ch2''[!](\<lambda>s. s Y - 1))))
+    (\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_right_blocks a ws)) \<and> right_blocks a ws tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+  apply (rule Valid_ex_pre)
+  subgoal for ws
+    apply (rule Valid_seq)
+    apply (rule Valid_receive_sp)
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_send_sp')
+    apply (auto simp add: entails_def)
+    subgoal for tr w
+      apply (rule exI[where x="ws@[w]"])
+      by (auto simp add: right_blocks_snoc join_assoc)
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+fun tot_blocks :: "nat \<Rightarrow> trace" where
+  "tot_blocks 0 = []"
+| "tot_blocks (Suc n) = (
+    WaitBlock 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({}, {}) #
+    IOBlock ''ch1'' 1 #
+    IOBlock ''ch2'' 0 #
+    tot_blocks n)"
+
+lemma combine_assn_elim2d:
+  "combine_blocks comms tr1 [] tr \<Longrightarrow> (WaitS\<^sub>A d p @\<^sub>t Q) tr1 \<Longrightarrow> P"
+  apply (simp only: wait_assn.simps join_assn_def)
+  by (auto elim!: combine_blocks_elim4b)
+
+lemma combineHL13:
+  "left_blocks 0 vs tr1 \<Longrightarrow>
+   right_blocks 1 ws tr2 \<Longrightarrow>
+   combine_blocks {''ch1'', ''ch2''} tr1 tr2 tr \<Longrightarrow>
+   \<exists>n. tr = tot_blocks n"
+proof (induct vs arbitrary: tr ws)
+  case Nil
+  note Nil1 = Nil
+  then show ?case
+  proof (cases ws)
+    case Nil
+    show ?thesis
+      apply (rule exI[where x=0])
+      using Nil1[unfolded Nil]
+      by (auto simp add: emp_assn_def combine_blocks_elim1)
+  next
+    case (Cons a list)
+    then show ?thesis
+      using Nil1 apply (auto simp add: emp_assn_def)
+      using combine_assn_elim2b join_assoc by fastforce
+  qed
+next
+  case (Cons a vs)
+  note Cons1 = Cons
+  then show ?case
+  proof (cases ws)
+    case Nil
+    then show ?thesis
+      using Cons1(2) apply auto
+      by (metis Cons1(3) Cons1(4) combine_assn_elim2d emp_assn_def right_blocks.simps(1))
+  next
+    case (Cons b list)
+    show ?thesis
+      using Cons1[unfolded Cons]
+      apply auto sorry
+  qed
 qed
 
 

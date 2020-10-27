@@ -272,6 +272,13 @@ lemma combine_blocks_elim3b:
   by (induct rule: combine_blocks.cases, auto)
 
 text \<open>Wait cases\<close>
+lemma combine_blocks_elim4:
+  "combine_blocks comms (WaitBlock d p1 rdy1 # blks1) (WaitBlock d p2 rdy2 # blks2) blks \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>blks'. blks = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
+            combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 lemma combine_blocks_elim4a:
   "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
    \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
@@ -1068,7 +1075,7 @@ definition and_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "
 definition emp_assn :: "tassn" ("emp\<^sub>A") where
   "emp\<^sub>A = (\<lambda>tr. tr = [])"
 
-definition join_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixl "@\<^sub>t" 65) where
+definition join_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "@\<^sub>t" 65) where
   "P @\<^sub>t Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> tr = tr1 @ tr2)"
 
 definition magic_wand_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "@-" 65) where
@@ -1076,6 +1083,12 @@ definition magic_wand_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (i
 
 definition all_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<forall>\<^sub>A" 10) where
   "(\<forall>\<^sub>A v. P v) = (\<lambda>tr. \<forall>v. P v tr)"
+
+definition conj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<and>\<^sub>t" 35) where
+  "(P \<and>\<^sub>t Q) = (\<lambda>tr. P tr \<and> Q tr)"
+
+definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
+  "\<up>b = (\<lambda>_. b)"
 
 inductive out_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("Out\<^sub>A") where
   "Out\<^sub>A s ch v [OutBlock ch v]"
@@ -1085,8 +1098,13 @@ inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow>
   "In\<^sub>A s ch v [InBlock ch v]"
 | "d > 0 \<Longrightarrow> In\<^sub>A s ch v [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v]"
 
-inductive wait_assn :: "state \<Rightarrow> real \<Rightarrow> tassn" ("Wait\<^sub>A") where
-  "Wait\<^sub>A s d [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"
+inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> tassn" ("IO\<^sub>A") where
+  "IO\<^sub>A ch v [IOBlock ch v]"
+
+inductive wait_assn :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> tassn" ("Wait\<^sub>A") where
+  "Wait\<^sub>A d p [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) ({}, {})]"
+
+abbreviation "WaitS\<^sub>A d p \<equiv> Wait\<^sub>A d (\<lambda>t. State (p t))"
 
 lemma emp_unit_left [simp]:
   "(emp\<^sub>A @\<^sub>t P) = P"
@@ -1134,7 +1152,7 @@ theorem Valid_receive':
 
 theorem Valid_wait':
   "Valid
-    (\<lambda>s. Wait\<^sub>A s d @- Q s)
+    (\<lambda>s. WaitS\<^sub>A d (\<lambda>_. s) @- Q s)
     (Wait d)
     Q"
   apply (rule Valid_weaken_pre)
@@ -1237,13 +1255,13 @@ lemma combine_assn_elim2a:
                   combine_blocks_elim2e combine_blocks_elim4a)
 
 lemma combine_assn_elim2b:
-  "combine_blocks comms [] (tr1 @ tr2) tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> In\<^sub>A s ch a tr1 \<Longrightarrow> P"
-  apply (simp only: in_assn.simps)
+  "combine_blocks comms [] tr2 tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (In\<^sub>A s ch a @\<^sub>t Q) tr2 \<Longrightarrow> P"
+  apply (simp only: in_assn.simps join_assn_def)
   by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
 
 lemma combine_assn_elim2c:
-  "combine_blocks comms (tr1 @ tr2) [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> Out\<^sub>A s ch a tr1 \<Longrightarrow> P"
-  apply (simp only: out_assn.simps)
+  "combine_blocks comms tr1 [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (Out\<^sub>A s ch a @\<^sub>t Q) tr1 \<Longrightarrow> P"
+  apply (simp only: out_assn.simps join_assn_def)
   by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
 
 subsection \<open>Simple examples redone\<close>
@@ -1281,8 +1299,10 @@ lemma testHL2s':
     (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
     (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' (s X)) @\<^sub>t (Out\<^sub>A s ''ch'' (s Y))) tr)"
   apply (rule Valid_seq)
-  apply (rule Valid_send_sp)
-  by (rule Valid_send_sp)
+   apply (rule Valid_send_sp)
+  apply (rule Valid_strengthen_post)
+   prefer 2 apply (rule Valid_send_sp)
+  by (auto simp add: entails_def join_assoc)
 
 text \<open>Receive from ch\<close>
 lemma testHL3s:
@@ -1325,7 +1345,7 @@ lemma testHL3a':
     apply (rule exI[where x=v])
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_receive_sp)
-    by (auto simp add: entails_def)
+    by (auto simp add: entails_def join_assoc)
   done
 
 text \<open>Communication\<close>
@@ -1383,7 +1403,7 @@ definition false_assn :: "tassn" ("false\<^sub>A") where
 definition combine_assn :: "cname set \<Rightarrow> tassn \<Rightarrow> tassn \<Rightarrow> tassn" where
   "combine_assn chs P Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
-lemma combine_assn_elim1' [simp]:
+lemma combine_assn_emp [simp]:
   "combine_assn chs emp\<^sub>A emp\<^sub>A = emp\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
@@ -1391,13 +1411,83 @@ lemma combine_assn_elim1' [simp]:
    apply (elim combine_blocks_elim1)
   by (rule combine_blocks_empty)
 
-lemma combine_assn_elim2a':
+lemma combine_assn_emp_in:
   "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>A (In\<^sub>A s ch v @\<^sub>t P) = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def)
   apply (elim in_assn.cases)
   by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
+
+lemma combine_assn_emp_out:
+  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>A (Out\<^sub>A s ch v @\<^sub>t P) = false\<^sub>A"
+  unfolding combine_assn_def
+  apply (rule ext)
+  apply (auto simp add: false_assn_def emp_assn_def join_assn_def)
+  apply (elim out_assn.cases)
+  by (auto elim!: combine_blocks_elim2g combine_blocks_elim4c)
+
+lemma combine_assn_in_out:
+  "ch \<in> chs \<Longrightarrow>
+   combine_assn chs (Out\<^sub>A s1 ch v @\<^sub>t P) (In\<^sub>A s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
+    apply (auto elim!: combine_assn_elim2a)
+  subgoal for tr1 tr2 tr1' tr2' tr
+    apply (rule exI[where x=tr2])
+    by auto
+  done
+
+lemma combine_assn_wait:
+  "combine_assn chs (Wait\<^sub>A d p @\<^sub>t P) (Wait\<^sub>A d q @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (q t)) @\<^sub>t combine_assn chs P Q)"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def wait_assn.simps)
+  apply (auto elim!: combine_blocks_elim4) by auto
+
+lemma combine_assn_wait_in:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (Wait\<^sub>A d p @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
+proof -
+  have *: "\<exists>tr1. P tr1 \<and> (\<exists>tr2. (\<exists>tr1. In\<^sub>A s ch v tr1 \<and> (\<exists>tr2a. Q tr2a \<and> tr2 = tr1 @ tr2a)) \<and> combine_blocks chs tr1 tr2 (tl tr))"
+       "tr = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) ({}, {}) # tl tr"
+    if "combine_blocks chs (WaitBlock d (restrict p {0..d}) ({}, {}) # tr1'') (tr2' @ tr2'') tr"
+       "In\<^sub>A s ch v tr2'"
+       "P tr1''"
+       "Q tr2''" for tr tr2' tr1'' tr2''
+  proof -
+    show "\<exists>tr1. P tr1 \<and> (\<exists>tr2. (\<exists>tr1. In\<^sub>A s ch v tr1 \<and> (\<exists>tr2a. Q tr2a \<and> tr2 = tr1 @ tr2a)) \<and> combine_blocks chs tr1 tr2 (tl tr))"
+      apply (rule exI[where x=tr1''])
+      apply (auto simp add: that(3))
+      sorry
+    show "tr = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) ({}, {}) # tl tr"
+      sorry
+  qed
+  show ?thesis
+    unfolding combine_assn_def
+    apply (auto simp add: entails_tassn_def)
+    subgoal for tr tr1 tr2
+      apply (auto simp add: join_assn_def)
+      subgoal for tr1' tr2' tr1'' tr2''
+        apply (rule exI[where x="[WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) ({}, {})]"])
+        apply (auto simp add: wait_assn.simps)[1]
+        apply (rule exI[where x="tl tr"])
+        using * by auto
+      done
+    done
+qed
+
+(*
+  apply (auto simp add: entails_tassn_def join_assn_def wait_assn.simps in_assn.simps)
+  using assms apply (auto elim!: combine_blocks_elim2e)
+  subgoal for tr tr2 tr2' d'
+    apply (rule exI[where x=tr2'])
+    apply auto
+     apply (rule exI[where x=tr2])
+    apply auto
+*)
 
 subsection \<open>Examples for loops\<close>
 
@@ -1586,8 +1676,7 @@ proof (induct arbitrary: z xs tr tr2 rule: count_up_inv'.induct)
   next
     case (Cons a list)
     then show ?thesis
-      using 1 apply (auto simp add: join_assn_def)
-      by (auto elim!: combine_assn_elim2b)
+      using 1 by (auto elim!: combine_assn_elim2b)
   qed
 next
   case (2 a tr1' tr2')
@@ -1598,7 +1687,7 @@ next
       using Nil 2(4) by (simp add: emp_assn_def)
     show ?thesis
       using 2(1,5) unfolding \<open>tr2 = []\<close>
-      by (auto elim!: combine_assn_elim2c)
+      by (auto elim!: combine_assn_elim2c[unfolded join_assn_def])
   next
     case (Cons x xs')
     have 1: "count_up_io_inv a tr"
