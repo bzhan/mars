@@ -1508,6 +1508,18 @@ lemma combine_assn_in_out:
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
    apply (auto elim!: combine_assn_elim2a') by auto
 
+lemma combine_assn_wait_emp:
+  "combine_assn chs (Wait\<^sub>A d p @\<^sub>t P) emp\<^sub>A \<Longrightarrow>\<^sub>t false\<^sub>A"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
+  by (auto elim!: combine_blocks_elim4b)
+
+lemma combine_assn_emp_wait:
+  "combine_assn chs emp\<^sub>A (Wait\<^sub>A d p @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
+  by (auto elim!: combine_blocks_elim4c)
+
 lemma combine_assn_wait:
   "combine_assn chs (Wait\<^sub>A d p @\<^sub>t P) (Wait\<^sub>A d q @\<^sub>t Q) \<Longrightarrow>\<^sub>t
    (Wait\<^sub>A d (\<lambda>t. ParState (p t) (q t)) @\<^sub>t combine_assn chs P Q)"
@@ -1518,7 +1530,7 @@ lemma combine_assn_wait:
 lemma combine_assn_wait_in:
   assumes "ch \<in> chs"
   shows "combine_assn chs (Wait\<^sub>A d p @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
+   (Wait\<^sub>A d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
 proof -
   have *: "\<exists>tr1. P tr1 \<and> (\<exists>tr2. (\<exists>tr1. In\<^sub>A s ch v tr1 \<and> (\<exists>tr2a. Q tr2a \<and> tr2 = tr1 @ tr2a)) \<and> combine_blocks chs tr1 tr2 (tl tr))"
        "tr = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) ({}, {}) # tl tr"

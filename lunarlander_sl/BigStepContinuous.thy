@@ -652,7 +652,6 @@ lemma testHL13a:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
-
 fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "right_blocks a [] = emp\<^sub>A"
 | "right_blocks a (v # rest) =
@@ -699,39 +698,25 @@ lemma testHL13b:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
-fun tot_blocks :: "nat \<Rightarrow> trace" where
-  "tot_blocks 0 = []"
+fun tot_blocks :: "nat \<Rightarrow> tassn" where
+  "tot_blocks 0 = emp\<^sub>A"
 | "tot_blocks (Suc n) = (
-    WaitBlock 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({}, {}) #
-    IOBlock ''ch1'' 1 #
-    IOBlock ''ch2'' 0 #
-    tot_blocks n)"
-
-lemma combine_assn_elim2d:
-  "combine_blocks comms tr1 [] tr \<Longrightarrow> (WaitS\<^sub>A d p @\<^sub>t Q) tr1 \<Longrightarrow> P"
-  apply (simp only: wait_assn.simps join_assn_def)
-  by (auto elim!: combine_blocks_elim4b)
+    Wait\<^sub>A 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) @\<^sub>t
+    IO\<^sub>A ''ch1'' 1 @\<^sub>t IO\<^sub>A ''ch2'' 0 @\<^sub>t tot_blocks n)"
 
 lemma combineHL13:
-  "left_blocks 0 vs tr1 \<Longrightarrow>
-   right_blocks 1 ws tr2 \<Longrightarrow>
-   combine_blocks {''ch1'', ''ch2''} tr1 tr2 tr \<Longrightarrow>
-   \<exists>n. tr = tot_blocks n"
-proof (induct vs arbitrary: tr ws)
+  "combine_assn {''ch1'', ''ch2''} (left_blocks 0 vs) (right_blocks 1 ws) \<Longrightarrow>\<^sub>t
+   tot_blocks (length vs)"
+proof (induct vs arbitrary: ws)
   case Nil
-  note Nil1 = Nil
   then show ?case
   proof (cases ws)
     case Nil
-    show ?thesis
-      apply (rule exI[where x=0])
-      using Nil1[unfolded Nil]
-      by (auto simp add: emp_assn_def combine_blocks_elim1)
+    then show ?thesis by auto
   next
-    case (Cons a list)
+    case (Cons w ws')
     then show ?thesis
-      using Nil1 apply (auto simp add: emp_assn_def)
-      using combine_assn_elim2b join_assoc by fastforce
+      by (auto simp add: combine_assn_emp_in)
   qed
 next
   case (Cons a vs)
@@ -740,15 +725,52 @@ next
   proof (cases ws)
     case Nil
     then show ?thesis
-      using Cons1(2) apply auto
-      by (metis Cons1(3) Cons1(4) combine_assn_elim2d emp_assn_def right_blocks.simps(1))
+      apply auto
+      apply (rule entails_tassn_trans)
+       apply (rule combine_assn_wait_emp)
+      by (rule false_assn_entails)
   next
     case (Cons b list)
     show ?thesis
-      using Cons1[unfolded Cons]
-      apply auto sorry
+      apply (auto simp add: Cons)
+      apply (rule entails_tassn_trans)
+       apply (rule combine_assn_wait_in)
+       apply auto[1]
+      apply (rule entails_tassn_cancel_left)
+      apply (rule entails_tassn_trans)
+       apply (rule combine_assn_out_in)
+       apply auto apply (rule entails_tassn_cancel_left)
+      apply (rule entails_tassn_trans)
+       apply (rule combine_assn_in_out)
+       apply auto apply (rule entails_tassn_cancel_left)
+      by (rule Cons1)
   qed
 qed
+
+lemma testHL13:
+  "ParValid
+    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1))))
+    (Parallel
+       (Single (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+                Cm (''ch1''[!](\<lambda>s. s X));
+                Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
+       (Single (Rep (Cm (''ch1''[?]Y);
+                Cm (''ch2''[!](\<lambda>s. s Y - 1))))))
+    (\<lambda>s tr. \<exists>n. tot_blocks n tr)"
+  apply (rule ParValid_Parallel'')
+  apply (rule ParValid_Single[OF testHL13a])
+  apply (rule ParValid_Single[OF testHL13b])
+   apply (auto simp add: pair_assn_def par_assn_def sing_assn_def)
+  apply (rule combine_assn_ex_pre_left)
+  apply (rule combine_assn_ex_pre_right)
+  subgoal for s vs ws
+    apply (rule entails_tassn_ex_post)
+    apply (rule exI[where x="length vs"])
+    apply (rule entails_tassn_trans)
+     prefer 2 apply (rule combineHL13)
+    apply (rule combine_assn_mono)
+    by (auto simp add: entails_tassn_def)
+  done
 
 
 end
