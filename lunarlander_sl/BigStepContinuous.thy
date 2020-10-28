@@ -22,18 +22,6 @@ theorem Valid_ode:
   unfolding Valid_def
   by (auto elim!: contE)
 
-text \<open>Strongest postcondition form\<close>
-theorem Valid_ode_sp:
-  assumes "b st"
-  shows "Valid
-    (\<lambda>s t. s = st \<and> t = tr)
-    (Cont ode b)
-    (\<lambda>s t. (\<exists>d p. 0 < d \<and> ODEsol ode p d \<and> p 0 = st \<and> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<and> \<not>b (p d) \<and>
-                  s = p d \<and> t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]))"
-  apply (rule Valid_weaken_pre)
-  prefer 2 apply (rule Valid_ode)
-  by (auto simp add: entails_def assms)
-
 
 subsection \<open>Hoare rules for ODE\<close>
 
@@ -275,12 +263,12 @@ proof -
     unfolding entails_def using 1 2 by auto
 qed
 
-theorem Valid_ode_sp':
+theorem Valid_ode_sp:
   assumes "b st"
   shows "Valid
-    (\<lambda>s tr. s = st \<and> Q tr)
+    (\<lambda>s tr. s = st \<and> Q s tr)
     (Cont ode b)
-    (\<lambda>s tr. (Q @\<^sub>t ODE\<^sub>A st ode b s) tr)"
+    (\<lambda>s tr. \<exists>s'. s = s' \<and> (Q st @\<^sub>t ODE\<^sub>A st ode b s') tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_ode')
   apply (auto simp add: entails_def)
@@ -380,7 +368,7 @@ proof -
     using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
   show ?thesis
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_ode_sp')
+     prefer 2 apply (rule Valid_ode_sp)
     by (auto simp add: \<open>b st\<close> entails_def join_assn_def *)
 qed
 
@@ -656,9 +644,9 @@ theorem Valid_ode_out_unique_solution:
   assumes
     "ODEsolInf ode p" "\<forall>t\<ge>0. b (p t)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-    "Valid (\<lambda>s tr. \<exists>d. s = p d \<and> (P @\<^sub>t WaitOut\<^sub>A d p ch e ({ch}, {})) tr) p2 Q"
+    "Valid (\<lambda>s tr. \<exists>d. s = p d \<and> (P st @\<^sub>t WaitOut\<^sub>A d p ch e ({ch}, {})) tr) p2 Q"
   shows "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
+    (\<lambda>s tr. s = st \<and> P s tr)
     (Interrupt ode b [(ch[!]e, p2)])
     Q"
 proof -
@@ -870,14 +858,17 @@ lemma testHL13b:
   apply (rule Valid_ex_pre)
   subgoal for ws
     apply (rule Valid_seq)
-    apply (rule Valid_receive_sp)
+     apply (rule Valid_receive_sp)
+    apply (rule Valid_ex_pre)
+    subgoal for w
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_send_sp')
+     prefer 2 apply (rule Valid_send_sp)
     apply (auto simp add: entails_def)
-    subgoal for tr w
+    subgoal for tr
       apply (rule exI[where x="ws@[w]"])
       by (auto simp add: right_blocks_snoc join_assoc)
     done
+  done
   apply (auto simp add: entails_def)
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
@@ -1022,15 +1013,18 @@ lemma testHL14a:
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
   subgoal for ps
-  apply (rule Valid_strengthen_post)
-    prefer 2 apply (rule Valid_seq)
+    apply (rule Valid_seq)
      apply (rule testHL14o)
-    apply (rule Valid_receive_sp')
-   apply (auto simp add: entails_def)
-  subgoal for tr d v
-    apply (rule exI[where x="ps@[(d,v)]"])
-    by (auto simp add: ileft_blocks_snoc join_assoc)
-  done
+    apply (rule Valid_ex_pre)
+    subgoal for d
+      apply (rule Valid_strengthen_post)
+       prefer 2 apply (rule Valid_receive_sp)
+      apply (auto simp add: entails_def)
+      subgoal for tr v
+        apply (rule exI[where x="ps@[(d,v)]"])
+        by (auto simp add: ileft_blocks_snoc join_assoc)
+      done
+    done
   apply (auto simp add: entails_def)
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)

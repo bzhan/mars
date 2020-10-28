@@ -1223,7 +1223,7 @@ theorem Valid_send_sp:
   "Valid
     (\<lambda>s t. s = st \<and> P s t)
     (Cm (ch[!]e))
-    (\<lambda>s t. s = st \<and> (P s @\<^sub>t Out\<^sub>A s ch (e s)) t)"
+    (\<lambda>s t. s = st \<and> (P st @\<^sub>t Out\<^sub>A st ch (e st)) t)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send')
   by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
@@ -1245,30 +1245,6 @@ theorem Valid_receive_sp:
     apply (rule exI[where x=v])
     apply auto apply (rule exI[where x=tr])
     by (simp add: in_assn.intros)
-  done
-
-theorem Valid_send_sp':
-  "Valid
-    (\<lambda>s t. \<exists>a. s = st a \<and> P a s t)
-    (Cm (ch[!]e))
-    (\<lambda>s t. \<exists>a. s = st a \<and> (P a s @\<^sub>t Out\<^sub>A s ch (e s)) t)"
-  apply (rule Valid_ex_pre)
-  subgoal for a
-    apply (rule Valid_ex_post)
-    apply (rule exI[where x=a])
-    by (rule Valid_send_sp)
-  done
-
-theorem Valid_receive_sp':
-  "Valid
-    (\<lambda>s t. \<exists>a. s = st a \<and> P a s t)
-    (Cm (ch[?]var))
-    (\<lambda>s t. \<exists>a v. s = (st a)(var := v) \<and> (P a (st a) @\<^sub>t In\<^sub>A (st a) ch v) t)"
-  apply (rule Valid_ex_pre)
-  subgoal for a
-    apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_receive_sp)
-    by (auto simp add: entails_def)
   done
 
 lemma combine_assn_elim2:
@@ -1327,7 +1303,7 @@ lemma testHL1s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[!](\<lambda>s. s X)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A s ''ch'' (s X)) tr)"
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A st ''ch'' (st X)) tr)"
   by (rule Valid_send_sp)
 
 text \<open>Send 1, then send 2\<close>
@@ -1408,6 +1384,33 @@ lemma testHL4s:
     apply (rule ParValid_Single[OF testHL3s'[where P="emp\<^sub>A"]])
    apply (auto simp add: entails_def pair_assn_def par_assn_def sing_assn_def)
   by (auto simp add: emp_assn_def elim!: combine_assn_elim2)
+
+text \<open>Receive then send\<close>
+lemma testHL5:
+  "Valid
+    (\<lambda>s. \<forall>\<^sub>Av. In\<^sub>A s ''ch1'' v @- Out\<^sub>A (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v)))
+    (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
+    Q"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_seq)
+    prefer 2 apply (rule Valid_send')
+   apply (rule Valid_receive')
+  by auto
+
+text \<open>Receive then send, strongest postcondition version\<close>
+lemma testHL5sp:
+  "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
+    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>A st ''ch1'' v) @\<^sub>t Out\<^sub>A (st(X := v)) ''ch2'' (v + 1)) tr)"
+  apply (rule Valid_seq)
+   apply (rule Valid_receive_sp)
+  apply (rule Valid_ex_pre)
+  subgoal for v
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_send_sp)
+    by (auto simp add: entails_def)
+  done
 
 subsection \<open>Alternative rule for repetition\<close>
 
@@ -1622,21 +1625,15 @@ lemma testLoop1:
   by (auto simp add: emp_assn_def)
 
 text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
-fun count_up3_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
-  "count_up3_inv a 0 = emp\<^sub>A"
-| "count_up3_inv a (Suc n) = Out\<^sub>A ((\<lambda>_. 0)(X := a + 1)) ''ch'' (a + 1) @\<^sub>t count_up3_inv (a + 3) n"
-
-lemma count_up3_inv_Suc:
-  "count_up3_inv a (Suc n) = count_up3_inv a n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := a + 3 * real n + 1)) ''ch'' (a + 3 * real n + 1)"
-  apply (induct n arbitrary: a)
-   apply (auto simp add: join_assoc)
-  by (smt join_assoc)
+fun count_up3_inv :: "nat \<Rightarrow> tassn" where
+  "count_up3_inv 0 = emp\<^sub>A"
+| "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := 3 * real n + 1)) ''ch'' (3 * real n + 1)"
 
 lemma testLoop2:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> tr = [])
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 0)) \<and> tr = [])
     (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 2)))
-    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := a + 3 * n)) \<and> count_up3_inv a n tr)"
+    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := 3 * real n)) \<and> count_up3_inv n tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
@@ -1649,8 +1646,8 @@ lemma testLoop2:
      prefer 2 apply (rule Valid_assign_sp)
     apply (auto simp add: entails_def)
     apply (rule exI[where x="Suc n"])
-    by (auto simp add: count_up3_inv_Suc simp del: count_up3_inv.simps)
-  apply (auto simp add: entails_def)
+    by auto
+    apply (auto simp add: entails_def)
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
 
