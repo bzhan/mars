@@ -239,7 +239,7 @@ inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightar
       [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy]"
 
 
-subsection \<open>Restate previous rules in simpler form\<close>
+subsection \<open>Simpler rules for ODE\<close>
 
 theorem Valid_ode':
   "Valid
@@ -285,6 +285,116 @@ theorem Valid_ode_sp':
    prefer 2 apply (rule Valid_ode')
   apply (auto simp add: entails_def)
   using entails_mp by (simp add: entails_tassn_def)
+
+theorem Valid_ode_unique_solution_aux:
+  assumes
+    "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
+    "\<not> b (p d)" "p 0 = st"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    "ODE\<^sub>A st ode b st' tr"
+  shows
+    "st' = p d \<and> WaitS\<^sub>A d p tr"
+proof -
+  have "b st"
+    using assms(1,3,5) by auto
+  have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
+              WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+    if cond: "0 < d2"
+       "ODEsol ode p2 d2"
+       "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
+       "\<not> b (p2 d2)"
+       "p2 0 = st" for p2 d2
+  proof -
+    interpret loc:ll_on_open_it "{-1<..}"
+      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+      apply standard
+      using assms(6) by auto
+    have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
+      using assms(2) unfolding ODEsol_def solves_ode_def by auto
+    have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s1])
+      using that by (auto simp add: state2vec_def assms(1,5))
+    have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+    have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s3])
+      using cond(1,5) that by auto
+    have s5: "d \<le> d2"
+    proof (rule ccontr)
+      assume 0: "\<not>(d \<le> d2)"
+      from 0 have 1: "(\<lambda>t. state2vec (p t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
+        using s2[of d2] s4[of d2] cond(1) by auto
+      from 1 have "p d2 = p2 d2"
+        by (auto simp add: state2vec_def)
+      show False
+        using "0" \<open>p d2 = p2 d2\<close> assms(3) that(1) that(4)
+        using less_eq_real_def by auto
+    qed
+    have s6: "d2 \<le> d"
+    proof (rule ccontr)
+      assume 0: "\<not>(d2 \<le> d)"
+      from 0 have 1: "(\<lambda>t. state2vec (p t)) d = (\<lambda>t. state2vec (p2 t)) d"
+        using s2[of d] s4[of d] assms(1) by auto
+      from 1 have "p d = p2 d"
+        by (auto simp add: state2vec_def)
+      show False
+        using "0" \<open>p d = p2 d\<close> assms(1) assms(4) that(3) by auto
+    qed
+    have s7: "d = d2" using s5 s6 by auto
+    have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
+      using s2 s4 s7 by (metis vec_state_map1)
+    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+      using s7 s8 unfolding restrict_def by auto
+    have s10: "p d = p2 d"
+      using s8 by (simp add: assms(1) less_eq_real_def)
+    have s11: "WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+      apply (subst s9[symmetric])
+      apply (subst s7[symmetric])
+      by (rule wait_assn.intros)
+    show ?thesis using s7 s9 s10 s11 by auto
+  qed
+  show ?thesis
+    using assms(7) apply (auto simp add: ode_assn.simps)
+    subgoal using \<open>b st\<close> by auto
+    subgoal using \<open>b st\<close> by auto
+    subgoal for d1 p1
+      using main[of d1 p1] by auto
+    subgoal for d1 p1
+      using main[of d1 p1] by auto
+    done
+qed
+
+theorem Valid_ode_unique_solution':
+  assumes
+    "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
+    "\<not> b (p d)" "p 0 = st"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> Q tr)
+    (Cont ode b)
+    (\<lambda>s tr. s = p d \<and> (Q @\<^sub>t WaitS\<^sub>A d p) tr)"
+proof -
+  have "b st"
+    using assms(1,3,5) by auto
+  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>A d p tr2" for s tr2
+    using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
+  show ?thesis
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_ode_sp')
+    by (auto simp add: \<open>b st\<close> entails_def join_assn_def *)
+qed
+
+theorem Valid_ode_exit:
+  assumes "\<not> b st"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> Q tr)
+    (Cont ode b)
+    (\<lambda>s tr. s = st \<and> Q tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_ode)
+  using assms by (auto simp add: entails_def)
+
+subsection \<open>Simpler rules for interrupt\<close>
 
 theorem Valid_interrupt':
   assumes "\<And>i. i < length cs \<Longrightarrow>
@@ -388,115 +498,186 @@ theorem Valid_interrupt_Out':
   apply (rule Valid_interrupt')
   using assms by (auto simp add: entails_def)
 
-theorem Valid_ode_unique_solution_aux:
+theorem Valid_interrupt_sp:
+  assumes "\<And>i. i < length cs \<Longrightarrow>
+    case cs ! i of
+      (ch[!]e, p2) \<Rightarrow>
+        Valid (\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>A st ode b s ch e (rdy_of_echoice cs)) tr) p2 Q
+    | (ch[?]var, p2) \<Rightarrow>
+        Valid (\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>A st ode b s ch var (rdy_of_echoice cs)) tr) p2 Q"
+  assumes "(\<lambda>s tr. (P st @\<^sub>t (ODErdy\<^sub>A st ode b s (rdy_of_echoice cs))) tr) \<Longrightarrow>\<^sub>A Q"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (Interrupt ode b cs)
+    Q"
+  apply (rule Valid_interrupt')
+  subgoal for i
+    apply (cases "cs ! i") apply auto
+    subgoal for comm p2
+      apply (cases comm)
+      subgoal for ch e
+        apply auto
+        apply (rule exI[where x="\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>A st ode b s ch e (rdy_of_echoice cs)) tr"])
+        using assms(1)[of i]
+        by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
+      subgoal for ch var
+        apply auto
+        apply (rule exI[where x="\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>A st ode b s ch var (rdy_of_echoice cs)) tr"])
+        using assms(1)[of i]
+        by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
+      done
+    done
+  using assms(2) apply (auto simp add: entails_def magic_wand_assn_def)
+  using join_assn_def by fastforce
+
+theorem Valid_interrupt_In_sp:
+  assumes "Valid (\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>A st ode b s ch var ({}, {ch})) tr) p Q"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (Interrupt ode b [(ch[?]var, p)])
+    (\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>A st ode b s ({}, {ch}))) tr)"
+  apply (rule Valid_interrupt_sp)
+  using assms by (auto simp add: Valid_def entails_def)
+
+theorem Valid_interrupt_Out_sp:
+  assumes "Valid (\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>A st ode b s ch e ({ch}, {})) tr) p Q"
+  shows "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (Interrupt ode b [(ch[!]e, p)])
+    (\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>A st ode b s ({ch}, {}))) tr)"
+  apply (rule Valid_interrupt_sp)
+  using assms by (auto simp add: Valid_def entails_def)
+
+
+inductive wait_in_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("WaitIn\<^sub>A") where
+  "WaitIn\<^sub>A 0 p ch v rdy [InBlock ch v]"
+| "d > 0 \<Longrightarrow> WaitIn\<^sub>A d p ch v rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, InBlock ch v]"
+
+inductive wait_out_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> rdy_info \<Rightarrow> tassn" ("WaitOut\<^sub>A") where
+  "WaitOut\<^sub>A 0 p ch e rdy [OutBlock ch (e (p 0))]"
+| "d > 0 \<Longrightarrow> WaitOut\<^sub>A d p ch e rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
+
+theorem Valid_ode_out_unique_solution_aux:
   assumes
-    "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
-    "\<not> b (p d)" "p 0 = st"
+    "ODEsolInf ode p" "\<forall>t\<ge>0. b (p t)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-    "ODE\<^sub>A st ode b st' tr"
+    "ODEout\<^sub>A st ode b st' ch e rdy tr"
   shows
-    "st' = p d \<and> WaitS\<^sub>A d p tr"
+    "\<exists>d. st' = p d \<and> WaitOut\<^sub>A d p ch e rdy tr"
 proof -
-  have "b st"
-    using assms(1,3,5) by auto
-  have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
-              WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
-    if cond: "0 < d2"
-       "ODEsol ode p2 d2"
-       "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
-       "\<not> b (p2 d2)"
-       "p2 0 = st"
-     for p2 d2
+  have main: "p2 d = p d \<and> (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>))"
+    if cond: "0 < d"
+       "ODEsol ode p2 d"
+       "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p2 t)"
+       "p2 0 = st" for d p2
   proof -
     interpret loc:ll_on_open_it "{-1<..}"
       "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
       apply standard
-      using assms(6) by auto
-    have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
-      using assms(2) unfolding ODEsol_def solves_ode_def by auto
+      using assms(4) by auto
+    have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
+      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
-      using that by (auto simp add: state2vec_def assms(1,5))
-    have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
+      using that by (auto simp add: state2vec_def assms(3))
+    have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
       using cond(2) unfolding ODEsol_def solves_ode_def by auto
-    have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
+    have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
-      using cond(1,5) that by auto
-    have s5: "d \<le> d2"
-    proof (rule ccontr)
-      assume 0: "\<not>(d \<le> d2)"
-      from 0 have 1: "(\<lambda>t. state2vec (p t)) d2 = (\<lambda>t. state2vec (p2 t)) d2"
-        using s2[of d2] s4[of d2] cond(1) by auto
-      from 1 have "p d2 = p2 d2"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p d2 = p2 d2\<close> assms(3) that(1) that(4)
-        using less_eq_real_def by auto
-    qed
-    have s6: "d2 \<le> d"
-    proof (rule ccontr)
-      assume 0: "\<not>(d2 \<le> d)"
-      from 0 have 1: "(\<lambda>t. state2vec (p t)) d = (\<lambda>t. state2vec (p2 t)) d"
-        using s2[of d] s4[of d] assms(1) by auto
-      from 1 have "p d = p2 d"
-        by (auto simp add: state2vec_def)
-      show False
-        using "0" \<open>p d = p2 d\<close> assms(1) assms(4) that(3) by auto
-    qed
-    have s7: "d = d2" using s5 s6 by auto
+      using cond that by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
-      using s2 s4 s7 by (metis vec_state_map1)
-    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
-      using s7 s8 unfolding restrict_def by auto
+      using s2 s4 by (metis vec_state_map1)
+    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>))"
+      using s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
-      using s8 by (simp add: assms(1) less_eq_real_def)
-    have s11: "WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
-      apply (subst s9[symmetric])
-      apply (subst s7[symmetric])
-      by (rule wait_assn.intros)
-    show ?thesis using s7 s9 s10 s11 by auto
+      using s8 that(1) by auto
+    show ?thesis using s9 s10 by auto
   qed
   show ?thesis
-    using assms(7) apply (elim ode_assn.cases)
+    using assms(5) apply (elim ode_out_assn.cases)
      apply auto
-    subgoal using \<open>b st\<close> by auto
-    subgoal using \<open>b st\<close> by auto
-    subgoal for d1 p1
-      using main[of d1 p1] by auto
-    subgoal for d1 p1
-      using main[of d1 p1] by auto
+     apply (rule exI[where x=0])
+    subgoal for rdy1 rdy2
+      by (auto simp add: assms(3) wait_out_assn.simps)
+    subgoal for d p2 rdy1 rdy2
+      apply (rule exI[where x=d])
+      apply (auto simp add: wait_out_assn.simps)
+      using main[of d p2] by auto
     done
 qed
 
-theorem Valid_ode_unique_solution':
+theorem Valid_ode_rdy_unique_solution_aux:
   assumes
-    "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
-    "\<not> b (p d)" "p 0 = st"
+    "ODEsolInf ode p" "\<forall>t\<ge>0. b (p t)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> Q tr)
-    (Cont ode b)
-    (\<lambda>s tr. s = p d \<and> (Q @\<^sub>t WaitS\<^sub>A d p) tr)"
+    "ODErdy\<^sub>A st ode b st' rdy tr"
+  shows
+    "False"
 proof -
   have "b st"
-    using assms(1,3,5) by auto
-  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>A d p tr2" for s tr2
-    using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
+    using assms(2,3) by auto
+  have main: "False"
+    if cond: "0 < d1"
+       "ODEsol ode p1 d1"
+       "st = p1 0"
+       "\<forall>t. 0 \<le> t \<and> t < d1 \<longrightarrow> b (p1 t)"
+       "\<not> b (p1 d1)" for d1 p1
+  proof -
+    interpret loc:ll_on_open_it "{-1<..}"
+      "\<lambda>t v. ODE2Vec ode (vec2state v)" UNIV 0
+      apply standard
+      using assms(4) by auto
+    have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
+      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
+    have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d1}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s1])
+      using that by (auto simp add: state2vec_def assms(3))
+    have s3: "((\<lambda>t. state2vec(p1 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d1} UNIV"
+      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+    have s4: "loc.flow 0 (state2vec st) t = state2vec (p1 t)" if "t\<in>{0..d1}" for t
+      apply (rule loc.maximal_existence_flow(2)[OF s3])
+      using cond that by auto
+    have s8: "t\<in>{0..d1} \<Longrightarrow> p1 t = p t" for t
+      using s2 s4 by (metis vec_state_map1)
+    have s10: "p d1 = p1 d1"
+      using s8 that(1) by auto
+    show ?thesis using assms(2) cond(1,5) s10
+      using less_eq_real_def by auto
+  qed    
   show ?thesis
-    apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_ode_sp')
-    by (auto simp add: \<open>b st\<close> entails_def join_assn_def *)
+    using assms(5) apply (auto simp add: ode_rdy_assn.simps)
+    subgoal using \<open>b st\<close> by auto
+    subgoal for d1 p1
+      using main by auto
+    done
 qed
 
-theorem Valid_ode_exit:
-  assumes "\<not> b st"
+theorem Valid_ode_out_unique_solution:
+  assumes
+    "ODEsolInf ode p" "\<forall>t\<ge>0. b (p t)" "p 0 = st"
+    "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+    "Valid (\<lambda>s tr. \<exists>d. s = p d \<and> (P @\<^sub>t WaitOut\<^sub>A d p ch e ({ch}, {})) tr) p2 Q"
   shows "Valid
-    (\<lambda>s tr. s = st \<and> Q tr)
-    (Cont ode b)
-    (\<lambda>s tr. s = st \<and> Q tr)"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule Valid_ode)
-  using assms by (auto simp add: entails_def)
+    (\<lambda>s tr. s = st \<and> P tr)
+    (Interrupt ode b [(ch[!]e, p2)])
+    Q"
+proof -
+  have *: "ODEout\<^sub>A st ode b s ch e ({ch}, {}) tr2 \<Longrightarrow>
+           \<exists>d. s = p d \<and> WaitOut\<^sub>A d p ch e ({ch}, {}) tr2" for s tr2
+    using Valid_ode_out_unique_solution_aux[OF assms(1-4)] by auto
+  have **: "ODErdy\<^sub>A st ode b s ({ch}, {}) tr2 \<Longrightarrow> False" for s tr2
+    using Valid_ode_rdy_unique_solution_aux[OF assms(1-4)] by auto
+  show ?thesis
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_interrupt_Out_sp[where Q=Q])
+    subgoal
+      apply (auto simp add: Valid_def join_assn_def)
+      apply (drule *)
+      using assms(5) apply (auto simp add: Valid_def join_assn_def join_assoc)
+      by fastforce
+    apply (auto simp add: entails_def join_assn_def)
+    using ** by auto
+qed
 
 
 subsection \<open>Tests for ODE\<close>
@@ -530,6 +711,7 @@ proof -
      prefer 2 apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
     using assms by (auto simp add: entails_def)
 qed
+
 
 subsection \<open>Test with ODE, loop and parallel\<close>
 
@@ -778,11 +960,35 @@ subsection \<open>Test with interrupt, loop and parallel\<close>
 
 lemma testHL14o:
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> Q tr)
+    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr)
     (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-              [(''ch''[!](\<lambda>s. s X), Skip)])
-    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := a + d) \<and> (Q @\<^sub>t WaitS\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := t + a)) ''ch'' (t + a)) tr)"
-  sorry
+               [(''ch''[!](\<lambda>s. s X), Skip)])
+    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch'' (\<lambda>s. s X) ({''ch''}, {})) tr)"
+proof -
+  have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
+     unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
+     apply auto
+     apply (rule has_vector_derivative_projI)
+     apply (auto simp add: state2vec_def)
+     apply (rule has_vector_derivative_eq_rhs)
+      apply (auto intro!: derivative_intros)[1]
+     by simp
+  have 2: "local_lipschitz {- 1<..} UNIV (\<lambda>t v. ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (vec2state v))"
+  proof -
+    have eq: "(\<chi> a. (if a = X then \<lambda>_. 1 else (\<lambda>_. 0)) (($) v)) = (\<chi> a. if a = X then 1 else 0)" for v::vec
+      by auto
+    show ?thesis
+      unfolding fun_upd_def vec2state_def
+      apply (auto simp add: state2vec_def eq)
+      by (rule local_lipschitz_constI)
+  qed
+  show ?thesis
+    apply (rule Valid_strengthen_post)
+     prefer 2 apply (rule Valid_ode_out_unique_solution[OF 1 _ _ 2])
+    apply auto
+     apply (rule Valid_skip) by auto
+qed
+
 
 
 end

@@ -71,6 +71,11 @@ text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
   "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
 
+text \<open>History p on time {0 ..} is a solution to ode.\<close>
+definition ODEsolInf :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> bool" where
+  "ODEsolInf ode p = (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 ..})"
+
+
 text \<open>HCSP processes\<close>
 datatype proc =
   Cm comm
