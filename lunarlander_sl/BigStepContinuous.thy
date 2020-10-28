@@ -962,8 +962,8 @@ lemma testHL14o:
   "Valid
     (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr)
     (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-               [(''ch''[!](\<lambda>s. s X), Skip)])
-    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch'' (\<lambda>s. s X) ({''ch''}, {})) tr)"
+               [(''ch1''[!](\<lambda>s. s X), Skip)])
+    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {})) tr)"
 proof -
   have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
@@ -989,6 +989,195 @@ proof -
      apply (rule Valid_skip) by auto
 qed
 
+fun ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
+  "ileft_blocks a [] = emp\<^sub>A"
+| "ileft_blocks a ((d, v) # rest) =
+   WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
+   In\<^sub>A ((\<lambda>_. 0)(X := a + d)) ''ch2'' v @\<^sub>t
+   ileft_blocks v rest"
+
+fun last_ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> real" where
+  "last_ileft_blocks a [] = a"
+| "last_ileft_blocks a ((d, v) # rest) = last_ileft_blocks v rest"
+
+lemma ileft_blocks_snoc:
+  "ileft_blocks a (ps @ [(d, v)]) =
+   ileft_blocks a ps @\<^sub>t
+     WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + last_ileft_blocks a ps)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
+     In\<^sub>A ((\<lambda>_. 0)(X := d + last_ileft_blocks a ps)) ''ch2'' v"
+  apply (induct ps arbitrary: a)
+  by (auto simp add: join_assoc add.commute)
+
+lemma last_ileft_blocks_snoc [simp]:
+  "last_ileft_blocks a (ps @ [(d, v)]) = v"
+  apply (induct ps arbitrary: a) by auto
+
+lemma testHL14a:
+  "Valid
+    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> tr = [])
+    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
+          Cm (''ch2''[?]X)))
+    (\<lambda>s tr. \<exists>ps. s = (\<lambda>_. 0)(X := last_ileft_blocks a ps) \<and> ileft_blocks a ps tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+   apply (rule Valid_ex_pre)
+  subgoal for ps
+  apply (rule Valid_strengthen_post)
+    prefer 2 apply (rule Valid_seq)
+     apply (rule testHL14o)
+    apply (rule Valid_receive_sp')
+   apply (auto simp add: entails_def)
+  subgoal for tr d v
+    apply (rule exI[where x="ps@[(d,v)]"])
+    by (auto simp add: ileft_blocks_snoc join_assoc)
+  done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+fun iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
+  "iright_blocks a [] = emp\<^sub>A"
+| "iright_blocks a (v # rest) =
+   WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) @\<^sub>t
+   In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
+   Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
+
+fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_iright_blocks a [] = a"
+| "last_iright_blocks a (v # rest) = last_iright_blocks v rest"
+
+lemma iright_blocks_snoc:
+  "iright_blocks a (vs @ [v]) =
+   iright_blocks a vs @\<^sub>t WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) @\<^sub>t
+   In\<^sub>A ((\<lambda>_. 0)(Y := last_iright_blocks a vs)) ''ch1'' v @\<^sub>t
+   Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+  apply (induct vs arbitrary: a)
+  by (auto simp add: join_assoc)
+
+lemma last_iright_blocks_snoc [simp]:
+  "last_iright_blocks a (vs @ [v]) = v"
+  apply (induct vs arbitrary: a) by auto
+
+lemma testHL14b:
+  "Valid
+    (\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> tr = [])
+    (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))
+    (\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+   apply (rule Valid_ex_pre)
+  subgoal for vs
+    apply (rule Valid_seq)
+    apply (rule Valid_wait_sp)
+    apply (rule Valid_seq)
+     apply (rule Valid_receive_sp)
+    apply (rule Valid_ex_pre)
+    subgoal for v
+      apply (rule Valid_strengthen_post)
+       prefer 2 apply (rule Valid_send_sp)
+      apply (auto simp add: entails_def)
+      apply (rule exI[where x="vs@[v]"])
+      by (auto simp add: iright_blocks_snoc join_assoc)
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
+lemma combine_assn_waitout_emp:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) emp\<^sub>A \<Longrightarrow>\<^sub>t false\<^sub>A"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
+  using assms by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
+
+lemma combine_assn_waitout_wait:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (Wait\<^sub>A d2 p2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>A d2 (\<lambda>t\<in>{0..d2}. ParState (State (p t)) (p2 t)) @\<^sub>t
+                        combine_assn chs (WaitOut\<^sub>A (d - d2) (\<lambda>t\<in>{0..d-d2}. p (t + d2)) ch e rdy @\<^sub>t P) Q))"
+  sorry
+
+lemma combine_assn_waitout_in:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d = 0) \<and>\<^sub>t \<up>(v = e (p 0)) \<and>\<^sub>t
+          (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
+  sorry
+
+lemma combineHL14:
+  "combine_assn {''ch1'', ''ch2''} (ileft_blocks 0 ps) (iright_blocks 1 ws) \<Longrightarrow>\<^sub>t
+   tot_blocks (length ps)"
+proof (induct ps arbitrary: ws)
+  case Nil
+  then show ?case
+  proof (cases ws)
+    case Nil
+    then show ?thesis by auto
+  next
+    case (Cons w ws')
+    then show ?thesis
+      apply auto
+      apply (rule entails_tassn_trans)
+      apply (rule combine_assn_emp_wait)
+      by (rule false_assn_entails)
+  qed
+next
+  case (Cons p ps')
+  note Cons1 = Cons
+  then show ?case
+  proof (cases p)
+    case (Pair d v)
+    then show ?thesis
+    proof (cases ws)
+      case Nil
+      then show ?thesis
+        apply (auto simp add: Pair)
+        apply (rule entails_tassn_trans)
+        apply (rule combine_assn_waitout_emp)
+        by auto
+    next
+      case (Cons a list)
+      then show ?thesis
+        apply (auto simp add: Pair)
+        apply (rule entails_tassn_trans)
+        apply (rule combine_assn_waitout_wait)
+         apply auto
+        apply (rule entails_tassn_cancel_left)
+        apply (rule entails_tassn_trans)
+        apply (rule combine_assn_waitout_in)
+        apply auto
+        apply (rule entails_tassn_cancel_left)
+        apply (rule entails_tassn_trans)
+         apply (rule combine_assn_in_out)
+         apply auto
+        apply (rule entails_tassn_cancel_left)
+        by (rule Cons1)
+    qed
+  qed
+qed
+
+lemma testHL14:
+  "ParValid
+    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1))))
+    (Parallel
+      (Single (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
+               Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
+      (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))))
+    (\<lambda>s tr. \<exists>n. tot_blocks n tr)"
+  apply (rule ParValid_Parallel'')
+  apply (rule ParValid_Single[OF testHL14a])
+  apply (rule ParValid_Single[OF testHL14b])
+  apply (auto simp add: pair_assn_def par_assn_def sing_assn_def)
+  apply (rule combine_assn_ex_pre_left)
+  apply (rule combine_assn_ex_pre_right)
+  subgoal for s ps vs
+    apply (rule entails_tassn_ex_post)
+    apply (rule exI[where x="length ps"])
+    apply (rule entails_tassn_trans)
+    prefer 2 apply (rule combineHL14)
+    apply (rule combine_assn_mono)
+    by (auto simp add: entails_tassn_def)
+  done
 
 
 end

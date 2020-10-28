@@ -1189,6 +1189,15 @@ theorem Valid_wait':
   unfolding entails_def magic_wand_assn_def
   by (auto intro: wait_assn.intros)
 
+theorem Valid_wait_sp:
+  "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (Wait d)
+    (\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>A d (\<lambda>_. st)) tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_wait')
+  by (auto simp add: entails_def join_assn_def magic_wand_assn_def)
+
 theorem Valid_assign_sp:
   "Valid
     (\<lambda>s t. s = st \<and> P s t)
