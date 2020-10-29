@@ -358,9 +358,9 @@ theorem Valid_ode_unique_solution':
     "\<not> b (p d)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
   shows "Valid
-    (\<lambda>s tr. s = st \<and> Q tr)
+    (\<lambda>s tr. s = st \<and> Q s tr)
     (Cont ode b)
-    (\<lambda>s tr. s = p d \<and> (Q @\<^sub>t WaitS\<^sub>A d p) tr)"
+    (\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>A d p) tr)"
 proof -
   have "b st"
     using assms(1,3,5) by auto
@@ -774,27 +774,19 @@ fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
        Out\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch1'' a @\<^sub>t
        In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch2'' v @\<^sub>t left_blocks v rest)"
 
-fun last_left_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
-  "last_left_blocks a [] = a"
-| "last_left_blocks a (v # rest) = last_left_blocks v rest"
-
 lemma left_blocks_snoc:
   "left_blocks a (vs @ [v]) =
-    (if last_left_blocks a vs < 1 then
+    (if last_val a vs < 1 then
       left_blocks a vs @\<^sub>t
-      WaitS\<^sub>A (1 - last_left_blocks a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_left_blocks a vs)) @\<^sub>t
+      WaitS\<^sub>A (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) @\<^sub>t
       Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
       In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v
     else
       left_blocks a vs @\<^sub>t
-      Out\<^sub>A ((\<lambda>_. 0)(X := last_left_blocks a vs)) ''ch1'' (last_left_blocks a vs) @\<^sub>t
-      In\<^sub>A ((\<lambda>_. 0)(X := last_left_blocks a vs)) ''ch2'' v)"
+      Out\<^sub>A ((\<lambda>_. 0)(X := last_val a vs)) ''ch1'' (last_val a vs) @\<^sub>t
+      In\<^sub>A ((\<lambda>_. 0)(X := last_val a vs)) ''ch2'' v)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
-
-lemma last_left_blocks_snoc [simp]:
-  "last_left_blocks a (vs @ [v]) = v"
-  apply (induct vs arbitrary: a) by auto 
 
 lemma testHL13a:
   "Valid
@@ -802,12 +794,12 @@ lemma testHL13a:
     (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
           Cm (''ch1''[!](\<lambda>s. s X));
           Cm (''ch2''[?]X)))
-    (\<lambda>s tr. \<exists>vs. s = ((\<lambda>_. 0)(X := last_left_blocks a vs)) \<and> left_blocks a vs tr)"
+    (\<lambda>s tr. \<exists>vs. s = ((\<lambda>_. 0)(X := last_val a vs)) \<and> left_blocks a vs tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
   subgoal for vs
-    apply (cases "last_left_blocks a vs < 1")
+    apply (cases "last_val a vs < 1")
     apply (rule Valid_strengthen_post)
       prefer 2 apply (rule testHL13a') apply auto[1]
     subgoal apply (auto simp add: entails_def)
@@ -831,28 +823,20 @@ fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
     Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t
     right_blocks v rest"
 
-fun last_right_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
-  "last_right_blocks a [] = a"
-| "last_right_blocks a (v # rest) = last_right_blocks v rest"
-
 lemma right_blocks_snoc:
   "right_blocks a (vs @ [v]) =
     right_blocks a vs @\<^sub>t
-    In\<^sub>A ((\<lambda>_. 0)(Y := last_right_blocks a vs)) ''ch1'' v @\<^sub>t
+    In\<^sub>A ((\<lambda>_. 0)(Y := last_val a vs)) ''ch1'' v @\<^sub>t
     Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
-
-lemma last_right_blocks_snoc [simp]:
-  "last_right_blocks a (vs @ [v]) = v"
-  apply (induct vs arbitrary: a) by auto
 
 lemma testHL13b:
   "Valid
     (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> tr = [])
     (Rep (Cm (''ch1''[?]Y);
           Cm (''ch2''[!](\<lambda>s. s Y - 1))))
-    (\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_right_blocks a ws)) \<and> right_blocks a ws tr)"
+    (\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_val a ws)) \<and> right_blocks a ws tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
