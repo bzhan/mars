@@ -5,8 +5,6 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
-
-
 class SfTest(unittest.TestCase):
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
@@ -67,12 +65,12 @@ class SfTest(unittest.TestCase):
     def test_statelessWriter2_1(self):
         location = "./Examples/Stateflow/dds/statelessWriter2_1.xml"
         diagram = SL_Diagram(location=location)
-        _ = diagram.parse_xml()
+         _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
+        print(process)
 
         res = [
             ("P", "a := 0; cansend := 0; flag := 0; heartbeat := 0; heartbeatPeriod := 0; i := 0; a_S1 := 0; "
@@ -197,7 +195,26 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
-
+    def testJunctionPriority(self):
+        location = "./Examples/Stateflow/junction_priority/junction_priority.xml"
+        diagram = SL_Diagram(location)
+        _ = diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+    def testhis_junction(self):
+        location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
 
 if __name__ == "__main__":
     unittest.main()

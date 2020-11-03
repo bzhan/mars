@@ -82,7 +82,7 @@ class SL_Diagram:
 
         # XML data structure
         self.model = None
-
+        
         # Parsed model of the XML file
         if location:
             with open(location) as f:
@@ -118,7 +118,8 @@ class SL_Diagram:
                     _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                        src=src_ssid, dst=dst_ssid)
             return _tran_dict
-
+#历史节点修改
+        all_out_trans=dict()
         def get_children(block):
             """Get lists of children states and junctions of the current
             block.
@@ -130,6 +131,7 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
+            
             _states, _junctions, _functions = list(), list(), list()
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
@@ -139,6 +141,7 @@ class SL_Diagram:
             assert len(children) == 1
             # Get outgoing transitions from states in children
             out_trans_dict = get_transitions(children[0].childNodes)
+            
             # The number of default transitions is less than 1 at each hierarchy
             assert len([tran for tran in out_trans_dict.values() if tran.src is None]) <= 1
             # Add out_trans and inner_trans to each state
@@ -184,15 +187,19 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    for tran in out_trans_dict.values():
+                    dictMerged2 = dict( out_trans_dict)
+                    dictMerged2.update( all_out_trans )
+                   
+                    for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
                         if src is None and dst == ssid:  # it is a default transition
                             default_tran = tran
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
+                        else:
+                            all_out_trans[tran.ssid]=tran
                     out_trans.sort(key=operator.attrgetter("order"))
-
-                    # Get inner_trans
+                    # Get inner_trans     #有问题
                     inner_trans = list()
                     grandchildren = [grandchild for grandchild in child.childNodes if grandchild.nodeName == "Children"]
                     assert len(grandchildren) <= 1
@@ -203,7 +210,6 @@ class SL_Diagram:
                             if src == ssid:
                                 inner_trans.append(tran)
                     inner_trans.sort(key=operator.attrgetter("order"))
-
                     # Create a state object
                     state_type = get_attribute_value(child, "type")
                     if state_type == "AND_STATE":
@@ -224,11 +230,17 @@ class SL_Diagram:
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
+                        if isinstance(_child ,Junction) and _child.type == "HISTORY_JUNCTION":
+                            if isinstance(_state , OR_State):
+                                _state.has_history_junc=True
+
                     if _state.children and isinstance(_state.children[0], AND_State):
                         _state.children.sort(key=operator.attrgetter("order"))
                     _states.append(_state)
+                    
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
+                    junc_type=get_attribute_value(block=child, attribute="type")
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
@@ -240,7 +252,8 @@ class SL_Diagram:
                             out_trans.append(tran)
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
-                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans))
+                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type))
+                
             return _states, _junctions, _functions
 
         # Create charts
@@ -369,7 +382,7 @@ class SL_Diagram:
 
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
-                if sf_block_type == "Chart":
+                if sf_block_type == "Chart":     #char 名称必须是Chart改成其他名字九九不能用了
                     assert block_name in self.chart_parameters
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)

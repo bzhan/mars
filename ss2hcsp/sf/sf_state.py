@@ -81,7 +81,7 @@ class SF_State:
 
         return result
 
-    def init(self):
+    def init(self):               #初始化时所有的状态都为退出状态
         hps = list()
         hps.append(self._exit())  # turn off
         for child in self.children:
@@ -89,42 +89,72 @@ class SF_State:
                 hps.extend(child.init())
         return hps
 
+
+#_activate和activated的区别
+
+
+
     def _activate(self):  # turn on
         time_process = "state_time := 0; " if isinstance(self, OR_State) and self.has_aux_var("state_time") else ""
-        activate_process = "a_" + self.name + " := 1"
-        return hp_parser.parse(time_process + activate_process)
+        activate_process = "a_" + self.name + " := 1" #等于1表示该状态处于活动状态
+        return hp_parser.parse(time_process + activate_process)    #？？？？？
         # return hp_parser.parse("a_" + self.name + " := 1")
 
     def _exit(self):
-        return hp_parser.parse("a_" + self.name + " := 0")
+        return hp_parser.parse("a_" + self.name + " := 0")#等于0表示该状态退出，不在处于活动状态
 
     def activated(self):
         return bexpr_parser.parse("a_" + self.name + " == 1")
-
+#历史节点需修改
     def activate(self):  # return a list of hps
         hps = list()
-        # if isinstance(self, OR_State):
-        hps.append(self._activate())  # turn on
+        hps.append(self._activate())
         if self.en:
             hps.extend(self.en)
-        # Activate children
-        for child in self.children:
-            if isinstance(child, AND_State):
-                # hps.append(child._activate())
-                hps.extend(child.activate())
-            elif isinstance(child, OR_State) and child.default_tran:
-                # Activate the state with default transition
-                if child.default_tran.cond_acts:
-                    hps.extend(child.default_tran.cond_acts)
-                if child.default_tran.tran_acts:
-                    hps.extend(child.default_tran.tran_acts)
-                hps.extend(child.activate())
-                break
-            elif isinstance(child, Junction):
-                pass
+        if isinstance(self, OR_State) and self.has_history_junc == True and self.acth != None:   
+                    
+                for child in self.children:
+                    if isinstance(child,(AND_State,OR_State)):
+                        child_hps=list()
+                        if isinstance(child, AND_State):
+                                # hps.append(child._activate())
+                            child_hps.extend(child.activate())
+                        elif isinstance(child, OR_State):
+                                # Activate the state with default transition
+                                
+                            if child.default_tran:
+                                if child.default_tran.cond_acts:
+                                    child_hps.extend(child.default_tran.cond_acts)
+                                if child.default_tran.tran_acts:
+                                    child_hps.extend(child.default_tran.tran_acts)
+                                child_hps.extend(child.activate())
+                            else:
+                                child_hps.extend(child.activate())
+                                
+                        elif isinstance(child, Junction):
+                            pass
+                        hps.append((bexpr_parser.parse(self.name+"_"+"acth" +' == "' +"a_"+ child.name + '"'), child_hps))
+                    
+        else:
+                # Activate children
+                for child in self.children:
+                    if isinstance(child, AND_State):
+                        # hps.append(child._activate())
+                        hps.extend(child.activate())
+                    elif isinstance(child, OR_State) and child.default_tran:
+                        # Activate the state with default transition
+                        
+                        if child.default_tran.cond_acts:
+                            hps.extend(child.default_tran.cond_acts)
+                        if child.default_tran.tran_acts:
+                            hps.extend(child.default_tran.tran_acts)
+                        hps.extend(child.activate())
+                        break
+                    elif isinstance(child, Junction):
+                        pass
         hps = [_hp for _hp in hps if _hp]  # delete Nones
         return hps
-
+#历史节点修改
     def all_descendant_exit(self):  # return a list hps
         hps = list()
         for child in self.children[::-1]:  # the AND_state with the lowest priority exits first
@@ -133,14 +163,19 @@ class SF_State:
                 if child.ex:
                     hps.extend(child.ex)
                 hps.append(child._exit())
-            elif isinstance(child, OR_State):
+            elif isinstance(child, OR_State):               
                 child_exit_hps = child.all_descendant_exit()
+             
                 if child.ex:
-                    child_exit_hps.extend(child.ex)
+                    child_exit_hps.extend(child.ex)   
                 child_exit_hps.append(child._exit())  # turn off
+                if child.father.has_history_junc == True:
+                    child.father.acth =child.name
+                    child_exit_hps.append(hp_parser.parse(child.fathe.name+"_"+"acth" +' := "' +"a_"+ child.name + '"'))   
                 hps.append((child.activated(), child_exit_hps))
-        return hps
 
+        return hps
+#历史节点修改
     def exit_to(self, ancestor):  # return a list of hps
         assert isinstance(self, (OR_State, AND_State))
         assert isinstance(ancestor, (AND_State, OR_State))
@@ -149,11 +184,19 @@ class SF_State:
             return hps
         if self.ex:
             hps.extend(self.ex)
+        
         hps.append(self._exit())  # turn off
+        if self.father ==ancestor and isinstance(self, OR_State) and isinstance(ancestor, OR_State) and ancestor.has_history_junc == True :
+                self.father.acth = self.name
+                hps.append(hp_parser.parse(self.father.name+"_"+"acth" +' := "' +"a_"+ self.name + '"'))
         if self.father != ancestor:
+            
+            if self.father.has_history_junc == True :
+                self.father.acth = self.name
+                hps.append(hp_parser.parse(self.father.name+"_"+"acth" +' := "' +"a_"+ self.name + '"'))
             hps.extend(self.father.exit_to(ancestor))
         return hps
-
+#历史节点修改
     def enter_into(self, descendant):  # return a list of hps
         assert isinstance(self, (AND_State, OR_State))
         # assert isinstance(descendant, (AND_State, OR_State))
@@ -169,7 +212,10 @@ class SF_State:
         hps = []
         for state in ancestor_chain[:-1]:
             assert isinstance(state, OR_State)
-            hps.append(self._activate())  # turn on
+            hps.append(self._activate())  # turn on    
+            # if state.father.has_history_junc == True and state.father.acth != None:
+            #     hps.append(bexpr_parser.parse(state.father.name+"_"+"acth" +' == "' +"a_"+ state.name + '"'))
+            #     state=state.father.acth
             if state.en:
                 hps.extend(state.en)
         if isinstance(descendant, OR_State):
@@ -188,7 +234,7 @@ class SF_State:
                 descendants.update(child_descendants)
         return descendants
 
-    def get_fun_dict(self):
+    def get_fun_dict(self):                         
         fun_dict = dict()
         if self.funs:
             for fun in self.funs:
@@ -212,9 +258,9 @@ class SF_State:
             assert isinstance(act, hp.HCSP)
             if isinstance(act, (hp.Assign, hp.Sequence)):
                 var_set = var_set.union(act.get_vars())
-        for tran in self.inner_trans:
+        for tran in self.inner_trans:                         #并行状态中只能有内部转换，or状态中3种转换都可以有
             var_set = var_set.union(tran.get_vars())
-        if isinstance(self, OR_State):
+        if isinstance(self, OR_State):                           
             for tran in self.out_trans:
                 var_set = var_set.union(tran.get_vars())
             if self.default_tran:
@@ -249,6 +295,9 @@ class OR_State(SF_State):
         super(OR_State, self).__init__(ssid, inner_trans, name, en, du, ex)
         self.out_trans = out_trans
         self.default_tran = default_tran  # The default transition to this state
+       #个人新添加的历史节点内容
+        self.has_history_junc=False  #The history junction to this state
+        self.acth=None              # the latest state
 
     def has_aux_var(self, var_name):
         # return if the state has the auxiliary variable var_name
@@ -266,12 +315,13 @@ class AND_State(SF_State):
 
 
 class Junction:
-    def __init__(self, ssid, out_trans, name=""):
+    def __init__(self, ssid, out_trans, name="",junc_type=""):
         self.ssid = ssid
         self.out_trans = out_trans
         self.name = name
         self.father = None
         self.visited = False
+        self.type=junc_type
         self.processes = list()
         self.tran_acts = list()  # the queue to store transition actions
 
@@ -310,5 +360,5 @@ class Function:
         assert re.match(pattern="function \\w+", string=acts[0])
         hps = [hp_parser.parse(act) for act in acts[1:]]
         assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
+        result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]    #？？？？？
         return result_hp
