@@ -21,7 +21,8 @@ from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 
-from xml.dom.minidom import parse
+from xml.dom.minidom import parse, Element
+from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
 import re
@@ -99,6 +100,8 @@ class SL_Diagram:
             mapping from ID to a transition.
             
             """
+            assert type(blocks) is NodeList
+
             _tran_dict = dict()
             for block in blocks:
                 if block.nodeName == "transition":
@@ -130,6 +133,8 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
+            assert type(block) is Element
+
             _states, _junctions, _functions = list(), list(), list()
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]

@@ -42,6 +42,7 @@ class SF_State:
         return self.ssid == other.ssid
 
     def __str__(self):
+        assert isinstance(self, (OR_State, AND_State))
         # Header: ID and name
         if isinstance(self, OR_State):
             result = "OR"
@@ -81,6 +82,7 @@ class SF_State:
 
         return result
 
+    # At the beginning, the state and its descendants should be inactivated.
     def init(self):
         hps = list()
         hps.append(self._exit())  # turn off
@@ -101,7 +103,8 @@ class SF_State:
     def activated(self):
         return bexpr_parser.parse("a_" + self.name + " == 1")
 
-    def activate(self):  # return a list of hps
+    # Return a list of hps for activating the state and it descendants
+    def activate(self):
         hps = list()
         # if isinstance(self, OR_State):
         hps.append(self._activate())  # turn on
