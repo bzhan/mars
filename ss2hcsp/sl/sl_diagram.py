@@ -121,8 +121,10 @@ class SL_Diagram:
                     _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                        src=src_ssid, dst=dst_ssid)
             return _tran_dict
-#历史节点修改
-        all_out_trans=dict()
+
+        #  历史节点修改
+        all_out_trans = dict()
+
         def get_children(block):
             """Get lists of children states and junctions of the current
             block.
@@ -191,8 +193,8 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    dictMerged2 = dict( out_trans_dict)
-                    dictMerged2.update( all_out_trans )
+                    dictMerged2 = dict(out_trans_dict)
+                    dictMerged2.update(all_out_trans)
                    
                     for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
@@ -201,7 +203,7 @@ class SL_Diagram:
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
                         else:
-                            all_out_trans[tran.ssid]=tran
+                            all_out_trans[tran.ssid] = tran
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Get inner_trans     #有问题
                     inner_trans = list()
@@ -234,9 +236,9 @@ class SL_Diagram:
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
-                        if isinstance(_child ,Junction) and _child.type == "HISTORY_JUNCTION":
-                            if isinstance(_state , OR_State):
-                                _state.has_history_junc=True
+                        if isinstance(_child, Junction) and _child.type == "HISTORY_JUNCTION":
+                            if isinstance(_state, OR_State):
+                                _state.has_history_junc = True
 
                     if _state.children and isinstance(_state.children[0], AND_State):
                         _state.children.sort(key=operator.attrgetter("order"))
@@ -244,7 +246,7 @@ class SL_Diagram:
                     
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
-                    junc_type=get_attribute_value(block=child, attribute="type")
+                    junc_type = get_attribute_value(block=child, attribute="type")
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()

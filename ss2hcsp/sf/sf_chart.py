@@ -36,7 +36,7 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
-            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"): #BR收到子图发来的消息广播申请
+            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):  # BR收到子图发来的消息广播申请
                 # For example, hps[i].expr.name = E_S1
                 state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
                 ch_expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # AConst("e")
@@ -259,7 +259,7 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-        return self.fun_dict[longest_path]       #为什莫要是路径最长的
+        return self.fun_dict[longest_path]       # 为什莫要是路径最长的
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -371,14 +371,14 @@ class SF_Chart(Subsystem):
                                                             tran_act_Q=current_tran_act_Q)
                     assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     dst_state.processes.append((process_name, process))
-                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    dst_state.visited = False      # ？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                         + enter_into_dst + ([] if process == hp.Skip() else [process])
                 else:  # visited in this round
                     process_name = dst_state.processes[-1][0]
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                         + enter_into_dst + [hp.Var(process_name)]
-            if_hps.append((cond, get_hcsp(hps)))    #？？？？
+            if_hps.append((cond, get_hcsp(hps)))    # ？？？？
 
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
@@ -521,6 +521,7 @@ class SF_Chart(Subsystem):
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 ##########
+
         # Add VIn! after BR! in an hcsp list of state
         def add_VIn_after_BR_in_list(_num, _hps, _modified_vars):
             _vin = vin(_num, _modified_vars)
