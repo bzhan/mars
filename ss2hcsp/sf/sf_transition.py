@@ -40,7 +40,7 @@ class Transition:
         conditions = re.findall(pattern=cond_pattern, string=label)
         assert len(conditions) <= 1
         if conditions:
-            condition = conditions[0].strip("[]")
+            condition = conditions[0].strip("[]")    #删除开头和结尾的[]
             if re.match(pattern="after\\(.*?,.*?\\)", string=condition):
                 # Parse after(number, event) condition
                 # print(condition)
@@ -48,7 +48,7 @@ class Transition:
                 number, event = [e.strip() for e in condition[6:-1].split(",")]
                 if event == "sec":
                     special_var = "state_time"
-                    self.condition = bexpr_parser.parse(special_var + " >= " + number)
+                    self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
                     self.cond_vars.add(special_var)
             else:
                 self.condition = bexpr_parser.parse(condition)
@@ -80,7 +80,7 @@ class Transition:
         # Delete condition action
         # print(self.cond_acts)
         label = re.sub(pattern=cond_act_pattern, repl="", string=label)
-
+        #没处理完条件或条件操作或转换操作将其置为空
         # Get event
         assert all(symbol not in label for symbol in "[]{}/;")
         self.event = label
@@ -90,11 +90,11 @@ class Transition:
             assert self.condition is None and self.event == ""
 
     def get_vars(self):
-        var_set = set()
+        var_set = set()       #无序不重复
         # Get variables in condition
         if self.condition:
             assert isinstance(self.condition, BExpr)
-            var_set = var_set.union(self.condition.get_vars())
+            var_set = var_set.union(self.condition.get_vars())    #返回两个集合的交集
         # Get variables in actions
         for act in list(self.cond_acts) + list(self.tran_acts):
             assert isinstance(act, hp.HCSP)

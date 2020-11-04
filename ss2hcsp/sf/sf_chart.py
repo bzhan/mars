@@ -36,7 +36,7 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
-            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):
+            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"): #BR收到子图发来的消息广播申请
                 # For example, hps[i].expr.name = E_S1
                 state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
                 ch_expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # AConst("e")
@@ -51,6 +51,11 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
                                              hp=get_hcsp(hps[j + 1:])))
                 break
             else:
+                if isinstance(hps[i], tuple):
+                    assert len(hps[i]) == 2
+                    cond = hps[i][0]
+                    assert isinstance(cond, BExpr)
+                    _hps.append(hp.Condition(cond=cond, hp=get_hcsp(hps[i][1])))
                 _hps.append(hps[i])
         elif isinstance(hps[i], tuple):
             assert len(hps[i]) == 2
@@ -172,7 +177,7 @@ class SF_Chart(Subsystem):
         """
         def find_root_recursively(_state):
             if isinstance(_state, (AND_State, OR_State)) and _state.father:
-                _state.root = _state.father.root
+                _state.root = _state.father.root             
                 for _child in _state.children:
                     find_root_recursively(_child)
 
@@ -254,7 +259,7 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-        return self.fun_dict[longest_path]
+        return self.fun_dict[longest_path]       #为什莫要是路径最长的
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -264,7 +269,7 @@ class SF_Chart(Subsystem):
 
         # Transfer an object into a Condition if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
         def to_Condition(obj):
-            if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip():
+            if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip():   
                 return hp.Condition(cond=obj.if_hps[0][0], hp=obj.if_hps[0][1])
             return obj
 
@@ -366,14 +371,14 @@ class SF_Chart(Subsystem):
                                                             tran_act_Q=current_tran_act_Q)
                     assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     dst_state.processes.append((process_name, process))
-                    dst_state.visited = False
+                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                         + enter_into_dst + ([] if process == hp.Skip() else [process])
                 else:  # visited in this round
                     process_name = dst_state.processes[-1][0]
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                         + enter_into_dst + [hp.Var(process_name)]
-            if_hps.append((cond, get_hcsp(hps)))
+            if_hps.append((cond, get_hcsp(hps)))    #？？？？
 
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
@@ -403,7 +408,7 @@ class SF_Chart(Subsystem):
                 out_channels.append(ch_name + "!" + out_var)
         out_channels.sort()
 
-        # Variable Initialisation
+        # Variable Initialisation    num为当前并发进程的序号
         init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
         init_vars.append(hp.Assign("num", AConst(0)))
         init_vars = hp.Sequence(*init_vars) if len(init_vars) >= 2 else init_vars[0]
@@ -427,7 +432,7 @@ class SF_Chart(Subsystem):
         in_channels = "; ".join(in_channels) + "; " if in_channels else ""
         out_channels = "; ".join(out_channels) + "; " if out_channels else ""
 
-        # Get M_main process
+        # Get M_main process      BC为当前的广播事件的通道，BR为新的事件的广播申请，BO为广播结束
         hp_M_main = hp_parser.parse("num == 0 -> (" + in_channels + 'E := ""; EL := [""]; NL := [1]; num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
@@ -483,7 +488,7 @@ class SF_Chart(Subsystem):
             return _s_du, _p_diag, _p_diag_name
 
         # Analyse P_diag recursively
-        def analyse_P_diag(_p_diag, _processes):
+        def analyse_P_diag(_p_diag, _processes): 
             for proc in _p_diag:
                 # _state_name = proc.hp.name if isinstance(proc, hp.Condition) else proc.name
                 _state_name = proc.name if isinstance(proc, hp.Var) else proc[1].name
@@ -515,7 +520,7 @@ class SF_Chart(Subsystem):
             if not _vars:
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
-
+##########
         # Add VIn! after BR! in an hcsp list of state
         def add_VIn_after_BR_in_list(_num, _hps, _modified_vars):
             _vin = vin(_num, _modified_vars)
@@ -644,7 +649,7 @@ class SF_Chart(Subsystem):
 
         # Add Junction processes
         for state in self.all_states.values():
-            if isinstance(state, Junction):
+            if isinstance(state, Junction) and state.type != "HISTORY_JUNCTION":
                 assert state.processes
                 for process_name, process in state.processes:
                     processes.add(process_name, process)
@@ -732,7 +737,7 @@ class SF_Chart(Subsystem):
 
         # Add Junction processes
         for state in self.all_states.values():
-            if isinstance(state, Junction):
+            if isinstance(state, Junction) and state.type != "HISTORY_JUNCTION":
                 assert state.processes
                 for process_name, process in state.processes:
                     processes.add(process_name, process)
