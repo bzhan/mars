@@ -195,17 +195,20 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
-    def testJunctionPriority(self):
-        location = "./Examples/Stateflow/junction_priority/junction_priority.xml"
-        diagram = SL_Diagram(location)
-        _ = diagram.parse_xml()
-        diagram.delete_subsystems()
-        diagram.comp_inher_st()
-        diagram.inherit_to_continuous()
-        diagram.add_buffers()
-        diagram.add_line_name()
-        process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
+
+    # To be implemented
+    # def testJunctionPriority(self):
+    #     location = "./Examples/Stateflow/junction_priority/junction_priority.xml"
+    #     diagram = SL_Diagram(location)
+    #     _ = diagram.parse_xml()
+    #     diagram.delete_subsystems()
+    #     diagram.comp_inher_st()
+    #     diagram.inherit_to_continuous()
+    #     diagram.add_buffers()
+    #     diagram.add_line_name()
+    #     process = get_hcsp(*diagram.seperate_diagram())
+    #     print(process)
+
     def testhis_junction(self):
         location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
         diagram = SL_Diagram(location=location)
