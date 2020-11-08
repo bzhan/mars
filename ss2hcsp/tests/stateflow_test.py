@@ -65,7 +65,7 @@ class SfTest(unittest.TestCase):
     def test_statelessWriter2_1(self):
         location = "./Examples/Stateflow/dds/statelessWriter2_1.xml"
         diagram = SL_Diagram(location=location)
-         _ = diagram.parse_xml()
+        _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
