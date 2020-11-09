@@ -535,7 +535,8 @@ class SL_Diagram:
             # Give name to each group of outgoing lines (if no
             # name is given already).
             for i, lines in enumerate(block.src_lines):
-                if lines[0].name == "?":
+
+                if len(lines) != 0 and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1

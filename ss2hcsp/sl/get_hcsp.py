@@ -39,7 +39,7 @@ def translate_continuous(diagram):
             assert isinstance(out_vars, set) and len(out_vars) == 1
             out_var = out_vars.pop()
             ode_eqs.append((out_var, AConst(0)))
-    assert init_hps
+    #assert init_hps
 
     # Delete integrator blocks
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]

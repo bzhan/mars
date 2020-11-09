@@ -231,7 +231,7 @@ class Sequence(HCSP):
         """hps is a list of hybrid programs."""
         self.type = "sequence"
         assert all(isinstance(hp, HCSP) for hp in hps)
-        assert len(hps) >= 2
+        #assert len(hps) >= 2
         self.hps = []
         for hp in hps:
             if isinstance(hp, Sequence):
