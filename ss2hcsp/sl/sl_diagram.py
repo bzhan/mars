@@ -8,6 +8,8 @@ from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
 from ss2hcsp.sl.MathOperations.add import Add
 from ss2hcsp.sl.MathOperations.my_abs import Abs
+from ss2hcsp.sl.MathOperations.sqrt import Sqrt
+from ss2hcsp.sl.MathOperations.square import Square
 from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
@@ -345,6 +347,12 @@ class SL_Diagram:
                 self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
+            elif block_type == "Sqrt":
+                sqrt_operator = get_attribute_value(block, "Operator")
+                self.add_block(Sqrt(name=block_name, operator=sqrt_operator, st=sample_time))
+            elif block_type == "Math":
+                math_operator = get_attribute_value(block, "Operator")
+                self.add_block(Square(name=block_name, operator=math_operator, st=sample_time))
             elif block_type == "Sum":
                 inputs = get_attribute_value(block, "Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "++"

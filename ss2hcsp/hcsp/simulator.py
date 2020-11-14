@@ -107,6 +107,9 @@ def eval_expr(expr, state):
                 raise e
 
             return tuple(b)
+        elif expr.fun_name == "sqrt":
+            assert len(args) == 1 and args[0] > 0
+            return math.sqrt(args[0])
         else:
             raise NotImplementedError
 
