@@ -5,6 +5,11 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
+
+def printTofile(self,path,content):
+  f = open(path, "w")    # 打开文件以便写入
+  print(content, file=f)
+  f.close()  #  关闭文件
 class SfTest(unittest.TestCase):
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
@@ -218,6 +223,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
+        #printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
 
 if __name__ == "__main__":
     unittest.main()
