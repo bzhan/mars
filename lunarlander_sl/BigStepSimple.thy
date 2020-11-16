@@ -715,6 +715,11 @@ thm echoiceE
 inductive_cases ichoiceE: "big_step (IChoice p1 p2) s1 tr s2"
 thm ichoiceE
 
+inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
+thm contE
+
+inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
+thm interruptE
 
 theorem Valid_weaken_pre:
   "P \<Longrightarrow>\<^sub>A P' \<Longrightarrow> Valid P' c Q \<Longrightarrow> Valid P c Q"
