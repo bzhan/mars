@@ -3,6 +3,16 @@ theory SmallStep
 begin
 
 
+subsection \<open>Further results in analysis\<close>
+
+lemma ODEsol_merge:
+  assumes "ODEsol ode p d"
+    and "ODEsol ode p2 d2"
+    and "p2 0 = p d"
+  shows "ODEsol ode (\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)) (d + d2)"
+  sorry
+
+
 subsection \<open>Small-step semantics\<close>
 
 text \<open>small_step p s1 a p' s2 means executing p one step starting from
@@ -67,22 +77,22 @@ inductive small_step_closure :: "proc \<Rightarrow> state \<Rightarrow> trace \<
 text \<open>Further, we define equivalence between two traces\<close>
 
 inductive equiv_trace :: "trace \<Rightarrow> trace \<Rightarrow> bool" where
+  equiv_trace_empty: "equiv_trace [] []"
+| equiv_trace_merge: "p1 d1 = p2 0 \<Longrightarrow>
+   equiv_trace [WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) rdy, WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy]
+               [WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy]"
+| equiv_trace_sym: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace tr2 tr1"
+| equiv_trace_cons: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (ev # tr1) (ev # tr2)"
+| equiv_trace_append: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (tr1 @ tr3) (tr2 @ tr3)"
+| equiv_trace_trans: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace tr2 tr3 \<Longrightarrow> equiv_trace tr1 tr3"
+
+lemma equiv_trace_refl [simp]:
   "equiv_trace tr tr"
-| "p1 d1 = p2 0 \<Longrightarrow>
-   equiv_trace tr1 tr2 \<Longrightarrow>
-   equiv_trace (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) rdy # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy # tr1)
-               (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d}. if \<tau> \<le> d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr2)"
+  apply (induct tr) by (auto intro: equiv_trace.intros)
 
-declare equiv_trace.intros(1)[simp]
-
-lemma equiv_trace1:
-  "equiv_trace [WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {}), WaitBlock (d - d1) (\<lambda>\<tau>\<in>{0..d - d1}. State s) ({}, {})]
-   [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"
-  sorry
-
-lemma equiv_trace_tl:
-  "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (ev # tr2) tr3 \<Longrightarrow> equiv_trace (ev # tr1) tr3"
-  sorry
+lemma equiv_trace_append_left:
+  "equiv_trace tr2 tr3 \<Longrightarrow> equiv_trace (tr1 @ tr2) (tr1 @ tr3)"
+  apply (induct tr1) by (auto intro: equiv_trace.intros)
 
 lemma small_step_closure_single_None:
   "small_step p s None p2 s2 \<Longrightarrow> small_step_closure p s [] p2 s2"
@@ -363,30 +373,33 @@ lemma small1_big_continue2:
   "small_step p1 s1 evt p2 s2 \<Longrightarrow> evt = Some ev \<Longrightarrow> big_step p2 s2 tr2 s3 \<Longrightarrow>
    \<exists>tr2'. equiv_trace (ev # tr2) tr2' \<and> big_step p1 s1 tr2' s3"
 proof (induction arbitrary: tr2 s3 rule: small_step.induct)
-  case (assignB var e s)
-  then show ?case by auto
-next
-  case (seqS1 p1 s ev p1' s2 p2)
-  then show ?case sorry
-next
-  case (seqS2 p s)
-  then show ?case by auto
-next
-  case (condS1 b s p1 p2)
-  then show ?case by auto
-next
-  case (condS2 b s p1 p2)
-  then show ?case by auto
+  case (seqS1 p1 s ev2 p1' s2 p2)
+  obtain tr21 s2' tr22 where
+    a: "tr2 = tr21 @ tr22" "big_step p1' s2 tr21 s2'" "big_step p2 s2' tr22 s3"
+    using seqE[OF seqS1(4)] by metis
+  obtain tr2' where
+    b: "equiv_trace (ev # tr21) tr2'" "big_step p1 s tr2' s2'"
+    using seqS1(2)[OF seqS1(3) a(2)] by blast
+  show ?case
+    apply (rule exI[where x="tr2' @ tr22"])
+    apply auto
+    unfolding a(1)
+    using b(1) equiv_trace.intros(5) apply fastforce
+    by (rule seqB[OF b(2) a(3)])
 next
   case (waitS1 d1 d s)
   have a: "tr2 = [WaitBlock (d - d1) (\<lambda>\<tau>\<in>{0..d - d1}. State s) ({}, {})]" "s3 = s" "0 < d - d1"
     using waitE[OF waitS1(4)] by auto
   have b: "ev = WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {})"
     using waitS1(3) by auto
+  have c: "WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {}) =
+           WaitBlock (d1 + (d - d1)) (\<lambda>\<tau>\<in>{0..d1+(d-d1)}. if \<tau> < d1 then State s else State s) ({}, {})"
+    by auto
   show ?case
     apply (rule exI[where x="[WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"])
     unfolding a b apply auto
-     apply (rule equiv_trace1) apply (rule waitB)
+    unfolding c apply (rule equiv_trace_merge) apply auto
+     apply (rule waitB)
     using waitS1 by auto
 next
   case (waitS2 d s)
@@ -418,6 +431,17 @@ next
   case (sendS2 d ch e s)
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {})"
     using sendS2(2) by auto
+  have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({ch}, {}), OutBlock ch (e s)]
+           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({ch}, {}), OutBlock ch (e s)]" (is "equiv_trace ?lhs ?rhs") for d2
+  proof -
+    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({ch}, {})] @ [OutBlock ch (e s)]"
+      by auto
+    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({ch}, {})] @ [OutBlock ch (e s)]"
+      by auto
+    show ?thesis
+      unfolding b1 b2 apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge) by auto
+  qed
   show ?case
     using sendS2(3) apply (elim sendE)
     subgoal
@@ -427,7 +451,7 @@ next
     subgoal for d2
       apply (rule exI[where x="[WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State s) ({ch}, {}), OutBlock ch (e s)]"])
       apply (auto simp add: a)
-      subgoal sorry
+      subgoal by (rule b)
       apply (rule sendB2) using sendS2(1) by auto
     done
 next
@@ -441,11 +465,22 @@ next
   show ?case
     unfolding a b c
     apply (rule exI[where x="[InBlock ch v]"])
-    using equiv_trace.intros(1) receiveB1 by blast
+    using equiv_trace_refl receiveB1 by blast
 next
   case (receiveS2 d ch var s)
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch})"
     using receiveS2(2) by auto
+  have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}), InBlock ch v]
+           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({}, {ch}), InBlock ch v]" (is "equiv_trace ?lhs ?rhs") for v d2
+  proof -
+    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch})] @ [InBlock ch v]"
+      by auto
+    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({}, {ch})] @ [InBlock ch v]"
+      by auto
+    show ?thesis
+      unfolding b1 b2 apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge) by auto
+  qed
   show ?case
     using receiveS2(3) apply (elim receiveE)
     subgoal for v
@@ -456,20 +491,46 @@ next
     subgoal for d2 v
       apply (rule exI[where x="[WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State s) ({}, {ch}), InBlock ch v]"])
       apply (auto simp add: a)
-      subgoal sorry
+      subgoal by (rule b)
       apply (subst fun_upd_def[symmetric])
       apply (rule receiveB2) using receiveS2(1) by auto
     done
 next
-  case (IChoiceS1 p1 p2 s)
-  then show ?case by auto
-next
-  case (IChoiceS2 p1 p2 s)
-  then show ?case by auto
-next
   case (EChoiceS1 d cs s)
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs)"
     using EChoiceS1(2) by auto
+  have b: "equiv_trace
+     (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs) #
+      WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')"
+    (is "equiv_trace ?lhs ?rhs") for d2 ch e tr2'
+  proof -
+    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs)]
+                @ (OutBlock ch (e s) # tr2')"
+      by auto
+    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs)]
+                @ (OutBlock ch (e s) # tr2')"
+      by auto
+    show ?thesis
+      unfolding b1 b2 apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge) by auto
+  qed
+  have c: "equiv_trace
+     (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs) #
+      WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')"
+    (is "equiv_trace ?lhs ?rhs") for d2 ch v tr2'
+  proof -
+    have c1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs)]
+                @ (InBlock ch v # tr2')"
+      by auto
+    have c2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs)] @ (InBlock ch v # tr2')"
+      by auto
+    show ?thesis
+      unfolding c1 c2
+      apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge) by auto
+  qed
   show ?case
     using EChoiceS1(3) apply (elim echoiceE)
     subgoal for i ch e p2 tr2'
@@ -478,7 +539,7 @@ next
       by (auto simp add: EChoiceS1)
     subgoal for d2 i ch e p2 tr2'
       apply (rule exI[where x="WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2'"])
-      unfolding a apply auto subgoal sorry
+      unfolding a apply auto subgoal by (rule b)
       apply (rule EChoiceSendB2)
          apply (auto simp add: EChoiceS1)
       using EChoiceS1(1) by auto
@@ -488,7 +549,7 @@ next
       by (auto simp add: EChoiceS1)
     subgoal for d2 i ch var p2 v tr2'
       apply (rule exI[where x="WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2'"])
-      unfolding a apply auto subgoal sorry
+      unfolding a apply auto subgoal by (rule c)
       apply (rule EChoiceReceiveB2)
          apply (auto simp add: EChoiceS1)
       using EChoiceS1(1) by auto
@@ -512,21 +573,33 @@ next
     apply auto
     by (rule EChoiceReceiveB1[OF EChoiceS3(1,2,4)])
 next
-  case (RepetitionS1 p s)
-  then show ?case by auto
-next
-  case (RepetitionS2 p s)
-  then show ?case by auto
-next
   case (ContS1 d ode p b s)
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})"
     using ContS1(5) by auto
-  have "big_step (Cont ode b) s [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if d \<le> \<tau> then p \<tau> else p (\<tau> - d))) ({}, {})] (p2 d2)"
-    for p2 d2
+  have b: "big_step (Cont ode b) s [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})] (p2 d2)"
+    if "d2 > 0" "ODEsol ode p2 d2" "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t)" "\<not> b (p2 d2)" "p2 0 = p d" for p2 d2
   proof -
-    let ?p3="\<lambda>\<tau>. State (if d \<le> \<tau> then p \<tau> else p2 (\<tau> - d))"
+    let ?p3="\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)"
+    have c: "p2 d2 = ?p3 (d + d2)"
+      using that by auto
     show ?thesis
-      sorry
+      unfolding c apply (rule ContB2)
+      subgoal using ContS1(1) that by auto
+      subgoal using ContS1(2) that(2,5) by (rule ODEsol_merge)
+      subgoal using ContS1(1,3) that(1,3) by auto
+      subgoal using that(1,4) by auto
+      subgoal using ContS1(1,4) by auto
+      done
+  qed
+  have c: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]
+     [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})]"
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2       
+  proof -
+    have c1: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) ({}, {})]"
+      by auto
+    show ?thesis
+      unfolding c1 apply (rule equiv_trace_merge)
+      using that by auto
   qed
   show ?case
     using ContS1(6) apply (elim contE)
@@ -535,20 +608,143 @@ next
       unfolding a apply auto
       apply (rule ContB2) using ContS1 by auto
     subgoal for d2 p2
-      apply (rule exI[where x="[WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State (if \<tau> \<ge> d then p \<tau> else p (\<tau> - d))) ({}, {})]"])
+      apply (rule exI[where x="[WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})]"])
       unfolding a apply auto
-      subgoal sorry
-      sorry
+      subgoal by (rule c)
+      using b by auto
     done
 next
-  case (ContS2 b s ode)
-  then show ?case by auto
-next
   case (InterruptS1 d ode p b s cs)
-  then show ?case sorry
-next
-  case (InterruptS2 b s ode cs)
-  then show ?case by auto
+  have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)"
+    using InterruptS1(5) by auto
+  have b: "big_step (Interrupt ode b cs) s
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2') s3"
+    if "d2 > 0" "ODEsol ode p2 d2" "p2 0 = p d" "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t)"
+       "i < length cs" "cs ! i = (ch[!]e, p3)" "big_step p3 (p2 d2) tr2' s3" for d2 p2 ch e tr2' i p3
+  proof -
+    let ?p3="\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)"
+    have b1: "p2 d2 = ?p3 (d + d2)"
+      using that by auto
+    show ?thesis
+      unfolding b1 apply (rule InterruptSendB2[OF _ _ _ _ that(5,6)])
+      subgoal using that(1) InterruptS1(1) by auto
+      subgoal using InterruptS1(2) that(2,3) by (rule ODEsol_merge)
+      subgoal using InterruptS1(1,4) by auto
+      subgoal using that(4) InterruptS1(3) by auto
+      subgoal by simp
+      subgoal using that(1,7) by auto
+      done 
+  qed
+  have c: "big_step (Interrupt ode b cs) s
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # InBlock ch v # tr2') s3"
+    if "0 < d2" "ODEsol ode p2 d2" "p2 0 = p d" "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t)"
+       "i < length cs" "cs ! i = (ch[?]var, p3)" "big_step p3 ((p2 d2)(var := v)) tr2' s3" for d2 p2 ch v tr2' i var p3
+  proof -
+    let ?p3="\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)"
+    have c1: "p2 d2 = ?p3 (d + d2)"
+      using that by auto
+    show ?thesis
+      unfolding c1 apply (rule InterruptReceiveB2[OF _ _ _ _ that(5,6)])
+      subgoal using that(1) InterruptS1(1) by auto
+      subgoal using InterruptS1(2) that(2,3) by (rule ODEsol_merge)
+      subgoal using InterruptS1(1,4) by auto
+      subgoal using that(4) InterruptS1(3) by auto
+      subgoal by simp
+      subgoal using that(1,7) by auto
+      done
+  qed
+  have d: "big_step (Interrupt ode b cs) s
+     [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)] (p2 d2)"
+    if "0 < d2" "ODEsol ode p2 d2" "\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t)" "\<not> b (p2 d2)" "p2 0 = p d" for d2 p2
+  proof -
+    let ?p3="\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)"
+    have d1: "p2 d2 = ?p3 (d + d2)"
+      using that by auto
+    show ?thesis
+      unfolding d1 apply (rule InterruptB2)
+      subgoal using that(1) InterruptS1(1) by auto
+      subgoal using InterruptS1(2) that(2,5) by (rule ODEsol_merge)
+      subgoal using that(3) InterruptS1(3) by auto
+      subgoal using that(1,4) by auto
+      subgoal using InterruptS1(1,4) by auto
+      by auto
+  qed
+  have e: "equiv_trace
+     (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) #
+      WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')"
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch e tr2'
+  proof -
+    have e1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
+                @ (OutBlock ch (e (p2 d2)) # tr2')"
+      by auto
+    have e2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]
+                @ (OutBlock ch (e (p2 d2)) # tr2')"
+      by auto
+    show ?thesis
+      unfolding e1 e2 apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge)
+      using that by auto
+  qed
+  have f: "equiv_trace
+     (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2')
+     (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # InBlock ch v # tr2')"
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch v tr2'
+  proof -
+    have f1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
+                @ (InBlock ch v # tr2')"
+      by auto
+    have f2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]
+                @ (InBlock ch v # tr2')"
+      by auto
+    show ?thesis
+      unfolding f1 f2 apply (rule equiv_trace_append)
+      apply (rule equiv_trace_merge)
+      using that by auto
+  qed
+  have g: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
+     [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)]"
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2
+  proof -
+    have g1: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]"
+      by auto
+    show ?thesis
+      unfolding g1 apply (rule equiv_trace_merge)
+      using that by auto
+  qed
+  show ?case
+    using InterruptS1(6) apply (elim interruptE)
+    subgoal for i ch e p2 tr2'
+      apply (rule exI[where x="WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p d)) # tr2'"])
+      unfolding a apply auto apply (rule InterruptSendB2)
+      by (auto simp add: InterruptS1)
+    subgoal for d2 p2 i ch e p3 tr2'
+      apply (rule exI[where x="WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) #
+                               OutBlock ch (e (p2 d2)) # tr2'"])
+      unfolding a apply auto
+      subgoal by (rule e)
+      using b by auto
+    subgoal for i ch var p2 v tr2'
+      apply (rule exI[where x="WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2'"])
+      unfolding a apply auto apply (rule InterruptReceiveB2)
+      by (auto simp add: InterruptS1)
+    subgoal for d2 p2 i ch var p3 v tr2'
+      apply (rule exI[where x="WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) #
+                               InBlock ch v # tr2'"])
+      unfolding a apply auto
+      subgoal by (rule f)
+      using c by auto
+    subgoal
+      apply (rule exI[where x="[WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)]"])
+      unfolding a apply auto
+      apply (rule InterruptB2)
+      by (auto simp add: InterruptS1)
+    subgoal for d2 p2
+      apply (rule exI[where x="[WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d+d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)]"])
+      unfolding a apply auto
+      subgoal by (rule g)
+      using d by auto
+    done
 next
   case (InterruptS3 i cs ch e p2 ode b s)
   have a: "ev = OutBlock ch (e s)"
@@ -567,7 +763,7 @@ next
     apply (rule exI[where x="InBlock ch v # tr2"])
     apply auto
     by (rule InterruptReceiveB1[OF InterruptS4(1,2,4)])
-qed
+qed (auto)
 
 
 theorem small_to_big:
@@ -589,7 +785,8 @@ next
     using small1_big_continue2[OF 3(1) _ tr(2)] by auto
   show ?case
     apply (rule exI[where x=tr2'])
-    apply auto apply (rule equiv_trace_tl[OF tr(1) tr2(1)])
+    apply auto
+    using equiv_trace_cons equiv_trace_trans tr(1) tr2(1) apply blast
     by (rule tr2(2))    
 qed
 
