@@ -20,10 +20,10 @@ state s1, results in action a, remaining program p', and state s2.\<close>
 
 inductive small_step :: "proc \<Rightarrow> state \<Rightarrow> trace_block option \<Rightarrow> proc \<Rightarrow> state \<Rightarrow> bool" where
   assignB: "small_step (var ::= e) s None Skip (s(var := e s))"
-| seqS1: "small_step p1 s ev p1' s2 \<Longrightarrow> small_step (Seq p1 p2) s ev (Seq p1' p2) s2"
-| seqS2: "small_step (Seq Skip p) s None p s"
-| condS1: "b s \<Longrightarrow> small_step (Cond b p1 p2) s None p1 s"
-| condS2: "\<not>b s \<Longrightarrow> small_step (Cond b p1 p2) s None p2 s"
+| seqS1: "small_step c1 s ev c1' s2 \<Longrightarrow> small_step (Seq c1 c2) s ev (Seq c1' c2) s2"
+| seqS2: "small_step (Seq Skip c) s None c s"
+| condS1: "b s \<Longrightarrow> small_step (Cond b c1 c2) s None c1 s"
+| condS2: "\<not>b s \<Longrightarrow> small_step (Cond b c1 c2) s None c2 s"
 | waitS1: "d1 > 0 \<Longrightarrow> d1 < d \<Longrightarrow> small_step (Wait d) s (Some (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {})))
                                  (Wait (d - d1)) s"
 | waitS2: "d > 0 \<Longrightarrow> small_step (Wait d) s (Some (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {}))) Skip s"
@@ -57,12 +57,6 @@ inductive small_step :: "proc \<Rightarrow> state \<Rightarrow> trace_block opti
     small_step (Interrupt ode b cs) s (Some (OutBlock ch (e s))) p2 s"
 | InterruptS4: "i < length cs \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     small_step (Interrupt ode b cs) s (Some (InBlock ch v)) p2 (s(var := v))"
-
-text \<open>Small step semantics for parallel processes.\<close>
-
-inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_block option \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
-  SingleS: "small_step p s1 ev p' s2 \<Longrightarrow> par_small_step (Single p) (State s1) ev (Single p') (State s2)"
-(* Add parallel steps *)
 
 
 subsection \<open>Equivalence between big-step and small-step semantics\<close>
@@ -788,6 +782,455 @@ next
     apply auto
     using equiv_trace_cons equiv_trace_trans tr(1) tr2(1) apply blast
     by (rule tr2(2))    
+qed
+
+
+subsection \<open>Small step under equivalence\<close>
+
+lemma restrict_ext_inv:
+  assumes "(\<lambda>x\<in>S. p x) = (\<lambda>x\<in>S. q x)"
+    and "a \<in> S"
+  shows "p a = q a"
+proof -
+  have "(\<lambda>x\<in>S. p x) a = (\<lambda>x\<in>S. q x) a"
+    using assms(1) by auto
+  then show ?thesis
+    using assms(2) by auto
+qed
+
+lemma wait_block_split:
+  fixes p :: "real \<Rightarrow> state"
+  assumes "(\<lambda>\<tau>\<in>{0..d1+d2}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then State (p1 \<tau>) else State (p2 (\<tau> - d1)))"
+    and "d1 > 0"
+    and "d2 > 0"
+    and "p1 d1 = p2 0"
+  shows "(\<lambda>\<tau>\<in>{0..d1}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>))"
+        "(\<lambda>\<tau>\<in>{0..d2}. State (p (\<tau> + d1))) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+proof -
+  have a: "p \<tau> = (if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1))" if "\<tau>\<in>{0..d1+d2}" for \<tau>
+    using restrict_ext_inv[OF assms(1) that] by auto
+  have "p \<tau> = p1 \<tau>" if "\<tau>\<in>{0..d1}" for \<tau>
+  proof (cases "\<tau> < d1")
+    case True
+    have b: "\<tau> \<in> {0..d1+d2}"
+      using True assms(3) that by auto
+    show ?thesis
+      using a[OF b] by (simp add: True)
+  next
+    case False
+    have eq: "\<tau> = d1"
+      using False that by auto
+    have b: "\<tau> \<in> {0..d1+d2}"
+      using assms(3) that by auto
+    show ?thesis
+      using a[OF b] by (simp add: eq False assms(4))
+  qed
+  then show "(\<lambda>\<tau>\<in>{0..d1}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>))"
+    by auto
+  have "p (\<tau> + d1) = p2 \<tau>" if "\<tau>\<in>{0..d2}" for \<tau>
+  proof -
+    have b: "\<tau> + d1 \<in> {0..d1+d2}"
+      using assms(2) that by auto
+    show ?thesis
+      using a[of "\<tau>+d1"] b that by auto
+  qed
+  then show "(\<lambda>\<tau>\<in>{0..d2}. State (p (\<tau> + d1))) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+    by auto
+qed
+
+
+text \<open>We show a key lemma stating that if tr1 is equivalent to tr2,
+  then tr1 is a small-step trace if and only if tr2 is.\<close>
+
+lemma small_step_equiv_merge_aux:
+  "small_step c1 s1 tr c2 s2 \<Longrightarrow>
+   tr = Some (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then State (p1 \<tau>) else State (p2 (\<tau> - d1))) rdy) \<Longrightarrow>
+   d1 > 0 \<Longrightarrow> d2 > 0 \<Longrightarrow> p1 d1 = p2 0 \<Longrightarrow>
+   small_step_closure c1 s1 [WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>)) rdy, WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) rdy] c2 s2"
+proof (induct rule: small_step.induct)
+  case (seqS1 c1 s ev c1' s2 c2)
+  have "small_step_closure c1 s [WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>)) rdy, WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) rdy] c1' s2"
+    using seqS1(2)[OF seqS1(3-6)] by blast
+  then show ?case
+    using small_step_closure_seq by blast
+next
+  case (waitS1 d3 d s)
+  have b: "d3 = d1 + d2" "rdy = ({}, {})"
+          "(\<lambda>\<tau>\<in>{0..d1+d2}. State s) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then State (p1 \<tau>) else State (p2 (\<tau> - d1)))"
+    using waitS1(3) by auto
+  have c: "(\<lambda>\<tau>\<in>{0..d1}. State s) = (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>))"
+          "(\<lambda>\<tau>\<in>{0..d2}. State s) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+    using wait_block_split[OF b(3) waitS1(4-6)] by auto
+  have d: "small_step (Wait d) s (Some (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {}))) (Wait (d - d1)) s"
+    apply (rule small_step.waitS1) using waitS1 by auto
+  have e: "small_step (Wait (d - d1)) s (Some (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {}))) (Wait (d - d1 - d2)) s"
+    apply (rule small_step.waitS1) using waitS1 by auto
+  have f: "d - d1 - d2 = d - d3"
+    using b by auto
+  show ?case
+    unfolding b(2) apply (rule small_step_closure.intros(3))
+     apply (rule d[unfolded c(1)])
+    apply (rule small_step_closure_single_Some)
+    by (rule e[unfolded c(2) f])
+next
+  case (waitS2 d s)
+  have b: "d = d1 + d2" "rdy = ({}, {})"
+          "(\<lambda>\<tau>\<in>{0..d1+d2}. State s) = (\<lambda>\<tau>\<in>{0..d1 + d2}. if \<tau> < d1 then State (p1 \<tau>) else State (p2 (\<tau> - d1)))"
+    using waitS2(2) by auto
+  have c: "(\<lambda>\<tau>\<in>{0..d1}. State s) = (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>))"
+          "(\<lambda>\<tau>\<in>{0..d2}. State s) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+    using wait_block_split[OF b(3) waitS2(3-5)] by auto
+  have d: "small_step (Wait d) s (Some (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {}))) (Wait (d - d1)) s"
+    apply (rule small_step.waitS1) using waitS2 by auto
+  have e: "small_step (Wait d2) s (Some (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {}))) Skip s"
+    apply (rule small_step.waitS2) using waitS2 by auto
+  have f: "d - d1 = d2"
+    using b by auto
+  show ?case
+    unfolding b(2) apply (rule small_step_closure.intros(3))
+     apply (rule d[unfolded c(1)])
+    apply (rule small_step_closure_single_Some)
+    apply (subst f) by (rule e[unfolded c(2)])
+next
+  case (sendS2 d ch e s)
+  then show ?case sorry
+next
+  case (receiveS2 d ch var s)
+  then show ?case sorry
+next
+  case (EChoiceS1 d cs s)
+  then show ?case sorry
+next
+  case (ContS1 d ode p b s)
+  have b: "d = d1 + d2" "rdy = ({}, {})"
+          "(\<lambda>\<tau>\<in>{0..d1+d2}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then State (p1 \<tau>) else State (p2 (\<tau> - d1)))"
+    using ContS1(5) by auto
+  have c: "(\<lambda>\<tau>\<in>{0..d1}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>))"
+          "(\<lambda>\<tau>\<in>{0..d2}. State (p (\<tau> + d1))) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
+    using wait_block_split[OF b(3) ContS1(6-8)] by auto
+  have c1: "p \<tau> = p1 \<tau>" if "\<tau> \<in> {0..d1}" for \<tau>
+    using c(1) by (meson gstate.inject(1) restrict_ext_inv that)
+  have c2: "p (\<tau> + d1) = p2 \<tau>" if "\<tau> \<in> {0..d2}" for \<tau>
+    using c(2) by (meson gstate.inject(1) restrict_ext_inv that)
+  have d: "small_step (Cont ode b) s (Some (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State (p1 \<tau>)) ({}, {}))) (Cont ode b) (p1 d1)"
+    apply (rule small_step.ContS1[OF ContS1(6)])
+    subgoal sorry
+    subgoal using c1 ContS1.hyps(3) ContS1.prems(3) b(1) by auto
+    subgoal using ContS1.hyps(4) ContS1.prems(2) c1 by auto
+    done
+  have e: "small_step (Cont ode b) (p1 d1) (Some (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {}))) (Cont ode b) (p2 d2)"
+    apply (rule small_step.ContS1[OF ContS1(7)])
+    subgoal sorry
+    subgoal sorry
+    subgoal using ContS1(8) by auto
+    done
+  have f: "p2 d2 = p d"
+    using c2[of d2] unfolding b(1)
+    by (simp add: ContS1.prems(3) add.commute less_eq_real_def)
+  show ?case
+    unfolding b(2) apply (rule small_step_closure.intros(3))
+     apply (rule d) apply (rule small_step_closure_single_Some)
+    by (rule e[unfolded f])
+next
+  case (InterruptS1 d ode p b s cs)
+  then show ?case sorry
+qed (auto)
+
+
+subsection \<open>Parallel case\<close>
+
+text \<open>Small step semantics for parallel processes.\<close>
+
+inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_block option \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
+  SingleS: "small_step p s1 ev p' s2 \<Longrightarrow> par_small_step (Single p) (State s1) ev (Single p') (State s2)"
+| ParDelayS:
+    "compat_rdy rdy1 rdy2 \<Longrightarrow>
+     hist = (\<lambda>\<tau>\<in>{0..t}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+     rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+     par_small_step p1 s1 (Some (WaitBlock t hist1 rdy1)) p2 s2 \<Longrightarrow>
+     par_small_step p3 s3 (Some (WaitBlock t hist2 rdy2)) p4 s4 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (WaitBlock t hist rdy)) (Parallel p2 chs p4) (ParState s2 s4)"
+| ParTauS1:
+    "par_small_step p1 s1 None p2 s2 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) None (Parallel p2 chs p3) (ParState s2 s3)"
+| ParTauS2:
+    "par_small_step p2 s2 None p3 s3 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p2) (ParState s1 s2) None (Parallel p1 chs p3) (ParState s1 s3)"
+| ParPairS1:
+    "ch \<in> chs \<Longrightarrow>
+     par_small_step p1 s1 (Some (InBlock ch v)) p2 s2 \<Longrightarrow>
+     par_small_step p3 s3 (Some (OutBlock ch v)) p4 s4 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p4) (ParState s2 s4)"
+| ParPairS2:
+    "ch \<in> chs \<Longrightarrow>
+     par_small_step p1 s1 (Some (OutBlock ch v)) p2 s2 \<Longrightarrow>
+     par_small_step p3 s3 (Some (InBlock ch v)) p4 s4 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p4) (ParState s2 s4)"
+| ParUnpairS1:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p1 s1 (Some (InBlock ch v)) p2 s2 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (InBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
+| ParUnpairS2:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p1 s1 (Some (OutBlock ch v)) p2 s2 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (OutBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
+| ParUnpairS3:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p1 s1 (Some (IOBlock ch v)) p2 s2 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
+| ParUnpairS4:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p2 s2 (Some (InBlock ch v)) p3 s3 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (InBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
+| ParUnpairS5:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p2 s2 (Some (OutBlock ch v)) p3 s3 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (OutBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
+| ParUnpairS6:
+    "ch \<notin> chs \<Longrightarrow>
+     par_small_step p2 s2 (Some (IOBlock ch v)) p3 s3 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (IOBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
+
+
+text \<open>Transitive closure of small step semantics\<close>
+inductive par_small_step_closure :: "pproc \<Rightarrow> gstate \<Rightarrow> trace \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
+  "par_small_step_closure p s [] p s"
+| "par_small_step p s None p2 s2 \<Longrightarrow> par_small_step_closure p2 s2 evs p3 s3 \<Longrightarrow> par_small_step_closure p s evs p3 s3"
+| "par_small_step p s (Some ev) p2 s2 \<Longrightarrow> par_small_step_closure p2 s2 evs p3 s3 \<Longrightarrow> par_small_step_closure p s (ev # evs) p3 s3"
+
+lemma par_small_step_closure_trans:
+  "par_small_step_closure p1 s1 tr1 p2 s2 \<Longrightarrow>
+   par_small_step_closure p2 s2 tr2 p3 s3 \<Longrightarrow>
+   par_small_step_closure p1 s1 (tr1 @ tr2) p3 s3"
+  apply (induction rule: par_small_step_closure.induct)
+  apply simp
+  using par_small_step_closure.intros(2) apply blast
+  by (simp add: par_small_step_closure.intros(3))
+
+
+text \<open>Definition of reachable through a sequence of tau steps\<close>
+inductive par_small_step_tau_closure :: "pproc \<Rightarrow> gstate \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
+  "par_small_step_tau_closure p s p s"
+| "par_small_step p s None p2 s2 \<Longrightarrow> par_small_step_tau_closure p2 s2 p3 s3 \<Longrightarrow> par_small_step_tau_closure p s p3 s3"
+
+
+lemma par_small_step_closure_empty_to_tau [simp]:
+  assumes "par_small_step_closure p1 s1 [] p2 s2"
+  shows "par_small_step_tau_closure p1 s1 p2 s2"
+proof -
+  have "par_small_step_closure p1 s1 tr p2 s2 \<Longrightarrow> tr = [] \<Longrightarrow> par_small_step_tau_closure p1 s1 p2 s2" for tr
+    apply (induct rule: par_small_step_closure.induct)
+    by (auto intro: par_small_step_tau_closure.intros)
+  then show ?thesis
+    using assms by auto
+qed
+
+lemma par_small_step_closure_cons_to_tau:
+  "par_small_step_closure p1 s1 (ev # evs) p2 s2 \<Longrightarrow>
+   \<exists>p1' s1' p1'' s1''.
+     par_small_step_tau_closure p1 s1 p1' s1' \<and> par_small_step p1' s1' (Some ev) p1'' s1'' \<and>
+     par_small_step_closure p1'' s1'' evs p2 s2"
+proof (induct p1 s1 "ev # evs" p2 s2 rule: par_small_step_closure.induct)
+  case (2 p s p2 s2 p3 s3)
+  obtain p1' s1' p1'' s1'' where a:
+    "par_small_step_tau_closure p2 s2 p1' s1'" "par_small_step p1' s1' (Some ev) p1'' s1''" "par_small_step_closure p1'' s1'' evs p3 s3"
+    using 2(3) by auto
+  show ?case
+    apply (rule exI[where x=p1']) apply (rule exI[where x=s1'])
+    apply (rule exI[where x=p1'']) apply (rule exI[where x=s1''])
+    apply auto
+    apply (rule par_small_step_tau_closure.intros(2)[OF 2(1) a(1)])
+    using a by auto  
+next
+  case (3 p s p2 s2 p3 s3)
+  show ?case
+    apply (rule exI[where x=p]) apply (rule exI[where x=s])
+    apply (rule exI[where x=p2]) apply (rule exI[where x=s2])
+    by (auto intro: par_small_step_tau_closure.intros 3(1,2))
+qed
+
+lemma par_small_step_closure_left:
+  "par_small_step_tau_closure p1 s1 p2 s2 \<Longrightarrow>
+   par_small_step_closure (Parallel p1 chs p3) (ParState s1 s3) [] (Parallel p2 chs p3) (ParState s2 s3)"
+proof (induct rule: par_small_step_tau_closure.induct)
+  case (1 p s)
+  then show ?case
+    by (auto intro: par_small_step_closure.intros)
+next
+  case (2 p s p2 s2 p2' s2')
+  show ?case
+    apply (rule par_small_step_closure.intros(2))
+     apply (rule ParTauS1[OF 2(1)])
+    by (rule 2(3))
+qed
+
+lemma par_small_step_closure_right:
+  "par_small_step_tau_closure p3 s3 p4 s4 \<Longrightarrow>
+   par_small_step_closure (Parallel p2 chs p3) (ParState s2 s3) [] (Parallel p2 chs p4) (ParState s2 s4)"
+proof (induct rule: par_small_step_tau_closure.induct)
+  case (1 p s)
+  then show ?case
+    by (auto intro: par_small_step_closure.intros)
+next
+  case (2 p s p2 s2 p3 s3)
+  show ?case 
+    apply (rule par_small_step_closure.intros(2))
+     apply (rule ParTauS2[OF 2(1)])
+    by (rule 2(3))
+qed
+
+lemma par_small_step_closure_merge:
+  assumes "par_small_step_tau_closure p1 s1 p2 s2"
+   and "par_small_step_tau_closure p3 s3 p4 s4"
+  shows "par_small_step_closure (Parallel p1 chs p3) (ParState s1 s3) [] (Parallel p2 chs p4) (ParState s2 s4)"
+  using par_small_step_closure_left[OF assms(1)] par_small_step_closure_right[OF assms(2)]
+        par_small_step_closure_trans by fastforce
+
+lemma small_step_to_par_small_step_closure:
+  "small_step_closure p1 s1 tr p2 s2 \<Longrightarrow> par_small_step_closure (Single p1) (State s1) tr (Single p2) (State s2)"
+proof (induct rule: small_step_closure.induct)
+  case (1 p s)
+  then show ?case
+    by (rule par_small_step_closure.intros)
+next
+  case (2 p s p2 s2 evs p3 s3)
+  show ?case
+    apply (rule par_small_step_closure.intros(2))
+     apply (rule SingleS[OF 2(1)])
+    by (rule 2(3))
+next
+  case (3 p s ev p2 s2 evs p3 s3)
+  show ?case
+    apply (rule par_small_step_closure.intros(3))
+     apply (rule SingleS[OF 3(1)])
+    by (rule 3(3))
+qed
+
+inductive is_skip :: "pproc \<Rightarrow> bool" where
+  "is_skip (Single Skip)"
+| "is_skip p1 \<Longrightarrow> is_skip p2 \<Longrightarrow> is_skip (Parallel p1 chs p2)"
+
+lemma combine_blocks_to_par_small_step:
+  "combine_blocks chs tr1 tr2 tr \<Longrightarrow>
+   par_small_step_closure p1 s11 tr1 p3 s12 \<Longrightarrow>
+   par_small_step_closure p2 s21 tr2 p4 s22 \<Longrightarrow>
+   par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) tr (Parallel p3 chs p4) (ParState s12 s22)"
+proof (induction arbitrary: p1 p2 s11 s21 rule: combine_blocks.induct)
+  case (combine_blocks_empty chs)
+  have a: "par_small_step_tau_closure p1 s11 p3 s12"
+    using combine_blocks_empty(1) by simp
+  have b: "par_small_step_tau_closure p2 s21 p4 s22"
+    using combine_blocks_empty(2) by simp
+  show ?case
+    by (rule par_small_step_closure_merge[OF a b])
+next
+  case (combine_blocks_pair1 ch chs blks1 blks2 blks v)
+  obtain p1' s1' p1'' s1'' where a:
+    "par_small_step_tau_closure p1 s11 p1' s1'"
+    "par_small_step p1' s1' (Some (InBlock ch v)) p1'' s1''"
+    "par_small_step_closure p1'' s1'' blks1 p3 s12"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_pair1(4)] by auto
+  obtain p2' s2' p2'' s2'' where b:
+    "par_small_step_tau_closure p2 s21 p2' s2'"
+    "par_small_step p2' s2' (Some (OutBlock ch v)) p2'' s2''"
+    "par_small_step_closure p2'' s2'' blks2 p4 s22"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_pair1(5)] by auto
+  have c: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2') (ParState s1' s2')"
+    by (rule par_small_step_closure_merge[OF a(1) b(1)])
+  have d: "par_small_step (Parallel p1' chs p2') (ParState s1' s2') (Some (IOBlock ch v)) (Parallel p1'' chs p2'') (ParState s1'' s2'')"
+    by (rule ParPairS1[OF combine_blocks_pair1(1) a(2) b(2)])
+  have e: "par_small_step_closure (Parallel p1'' chs p2'') (ParState s1'' s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
+    by (rule combine_blocks_pair1(3)[OF a(3) b(3)])
+  show ?case
+    using c d e par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
+next
+  case (combine_blocks_pair2 ch chs blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_unpair1 ch chs blks1 blks2 blks v)
+  obtain p1' s1' p1'' s1'' where a:
+    "par_small_step_tau_closure p1 s11 p1' s1'"
+    "par_small_step p1' s1' (Some (InBlock ch v)) p1'' s1''"
+    "par_small_step_closure p1'' s1'' blks1 p3 s12"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair1(4)] by auto
+  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
+    by (rule par_small_step_closure_left[OF a(1)])
+  have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (InBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
+    by (rule ParUnpairS1[OF combine_blocks_unpair1(1) a(2)])
+  have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
+    by (rule combine_blocks_unpair1(3)[OF a(3) combine_blocks_unpair1(5)])
+  show ?case
+    using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
+next
+  case (combine_blocks_unpair2 ch comms blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_unpair3 ch comms blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_unpair4 ch comms blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_unpair5 ch comms blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_unpair6 ch comms blks1 blks2 blks v)
+  then show ?case sorry
+next
+  case (combine_blocks_wait1 chs blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 t rdy)
+  obtain p1' s1' p1'' s1'' where a:
+    "par_small_step_tau_closure p1 s11 p1' s1'"
+    "par_small_step p1' s1' (Some (WaitBlock t hist1 rdy1)) p1'' s1''"
+    "par_small_step_closure p1'' s1'' blks1 p3 s12"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_wait1(6)] by auto
+  obtain p2' s2' p2'' s2'' where b:
+    "par_small_step_tau_closure p2 s21 p2' s2'"
+    "par_small_step p2' s2' (Some (WaitBlock t hist2 rdy2)) p2'' s2''"
+    "par_small_step_closure p2'' s2'' blks2 p4 s22"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_wait1(7)] by auto
+  have c: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2') (ParState s1' s2')"
+    by (rule par_small_step_closure_merge[OF a(1) b(1)])
+  have d: "par_small_step (Parallel p1' chs p2') (ParState s1' s2') (Some (WaitBlock t hist rdy))
+           (Parallel p1'' chs p2'') (ParState s1'' s2'')"
+    apply (rule ParDelayS)
+    using combine_blocks_wait1 a(2) b(2) by auto
+  have e: "par_small_step_closure (Parallel p1'' chs p2'') (ParState s1'' s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
+    by (rule combine_blocks_wait1(5)[OF a(3) b(3)])
+  show ?case
+    using c d e par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
+next
+  case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy)
+  then show ?case
+    sorry
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
+  then show ?case sorry
+qed
+
+
+theorem big_to_small_par:
+  "par_big_step p1 s1 tr s2 \<Longrightarrow> \<exists>p2. is_skip p2 \<and> par_small_step_closure p1 s1 tr p2 s2"
+proof (induction rule: par_big_step.induct)
+  case (SingleB p s1 tr s2)
+  show ?case
+    apply (rule exI[where x="Single Skip"])
+    apply (auto intro: is_skip.intros)
+    apply (rule small_step_to_par_small_step_closure)
+    apply (rule big_to_small)
+    by (rule SingleB)
+next
+  case (ParallelB p1 s11 tr1 s12 p2 s21 tr2 s22 chs tr)
+  obtain p3 where p3: "is_skip p3" "par_small_step_closure p1 s11 tr1 p3 s12"
+    using ParallelB(4) by auto
+  obtain p4 where p4: "is_skip p4" "par_small_step_closure p2 s21 tr2 p4 s22"
+    using ParallelB(5) by auto
+  have skip: "is_skip (Parallel p3 chs p4)"
+    by (auto intro: is_skip.intros p3 p4)
+  show ?case
+    apply (rule exI[where x="Parallel p3 chs p4"])
+    apply (auto simp add: skip)
+    apply (rule combine_blocks_to_par_small_step)
+    using ParallelB(3) p3 p4 by auto
 qed
 
 
