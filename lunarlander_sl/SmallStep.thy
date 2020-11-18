@@ -941,6 +941,10 @@ subsection \<open>Parallel case\<close>
 
 text \<open>Small step semantics for parallel processes.\<close>
 
+inductive wf_pair :: "pproc \<Rightarrow> gstate \<Rightarrow> bool" where
+  "wf_pair (Single p) (State s)"
+| "wf_pair p1 s1 \<Longrightarrow> wf_pair p2 s2 \<Longrightarrow> wf_pair (Parallel p1 chs p2) (ParState s1 s2)"
+
 inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_block option \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
   SingleS: "small_step p s1 ev p' s2 \<Longrightarrow> par_small_step (Single p) (State s1) ev (Single p') (State s2)"
 | ParDelayS:
@@ -951,10 +955,12 @@ inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_bloc
      par_small_step p3 s3 (Some (WaitBlock t hist2 rdy2)) p4 s4 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (WaitBlock t hist rdy)) (Parallel p2 chs p4) (ParState s2 s4)"
 | ParTauS1:
-    "par_small_step p1 s1 None p2 s2 \<Longrightarrow>
+    "wf_pair p3 s3 \<Longrightarrow>
+     par_small_step p1 s1 None p2 s2 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) None (Parallel p2 chs p3) (ParState s2 s3)"
 | ParTauS2:
-    "par_small_step p2 s2 None p3 s3 \<Longrightarrow>
+    "wf_pair p1 s1 \<Longrightarrow>
+     par_small_step p2 s2 None p3 s3 \<Longrightarrow>
      par_small_step (Parallel p1 chs p2) (ParState s1 s2) None (Parallel p1 chs p3) (ParState s1 s3)"
 | ParPairS1:
     "ch \<in> chs \<Longrightarrow>
@@ -967,36 +973,55 @@ inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_bloc
      par_small_step p3 s3 (Some (InBlock ch v)) p4 s4 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p4) (ParState s2 s4)"
 | ParUnpairS1:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p3 s3 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p1 s1 (Some (InBlock ch v)) p2 s2 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (InBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
 | ParUnpairS2:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p3 s3 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p1 s1 (Some (OutBlock ch v)) p2 s2 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (OutBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
 | ParUnpairS3:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p1 s1 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p2 s2 (Some (InBlock ch v)) p3 s3 \<Longrightarrow>
      par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (InBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
 | ParUnpairS4:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p1 s1 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p2 s2 (Some (OutBlock ch v)) p3 s3 \<Longrightarrow>
      par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (OutBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
 | ParUnpairS5:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p3 s3 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p1 s1 (Some (IOBlock ch v)) p2 s2 \<Longrightarrow>
      par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
 | ParUnpairS6:
-    "ch \<notin> chs \<Longrightarrow>
+    "wf_pair p1 s1 \<Longrightarrow>
+     ch \<notin> chs \<Longrightarrow>
      par_small_step p2 s2 (Some (IOBlock ch v)) p3 s3 \<Longrightarrow>
      par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (IOBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
 
 
 text \<open>Transitive closure of small step semantics\<close>
+
+lemma par_small_step_wf_pair:
+  "par_small_step p s ev p2 s2 \<Longrightarrow> wf_pair p s \<and> wf_pair p2 s2"
+  apply (induct rule: par_small_step.induct)
+  by (auto intro: wf_pair.intros)
+
 inductive par_small_step_closure :: "pproc \<Rightarrow> gstate \<Rightarrow> trace \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
-  "par_small_step_closure p s [] p s"
+  "wf_pair p s \<Longrightarrow> par_small_step_closure p s [] p s"
 | "par_small_step p s None p2 s2 \<Longrightarrow> par_small_step_closure p2 s2 evs p3 s3 \<Longrightarrow> par_small_step_closure p s evs p3 s3"
 | "par_small_step p s (Some ev) p2 s2 \<Longrightarrow> par_small_step_closure p2 s2 evs p3 s3 \<Longrightarrow> par_small_step_closure p s (ev # evs) p3 s3"
+
+lemma par_small_step_closure_wf_pair:
+  "par_small_step_closure p s ev p2 s2 \<Longrightarrow> wf_pair p s \<and> wf_pair p2 s2"
+  apply (induct rule: par_small_step_closure.induct)
+  apply auto
+  apply (simp add: par_small_step_wf_pair)
+  using par_small_step_wf_pair by blast
 
 lemma par_small_step_closure_trans:
   "par_small_step_closure p1 s1 tr1 p2 s2 \<Longrightarrow>
@@ -1010,9 +1035,14 @@ lemma par_small_step_closure_trans:
 
 text \<open>Definition of reachable through a sequence of tau steps\<close>
 inductive par_small_step_tau_closure :: "pproc \<Rightarrow> gstate \<Rightarrow> pproc \<Rightarrow> gstate \<Rightarrow> bool" where
-  "par_small_step_tau_closure p s p s"
+  "wf_pair p s \<Longrightarrow> par_small_step_tau_closure p s p s"
 | "par_small_step p s None p2 s2 \<Longrightarrow> par_small_step_tau_closure p2 s2 p3 s3 \<Longrightarrow> par_small_step_tau_closure p s p3 s3"
 
+lemma par_small_step_tau_closure_wf_pair:
+  "par_small_step_tau_closure p s p2 s2 \<Longrightarrow> wf_pair p s \<and> wf_pair p2 s2"
+  apply (induct rule: par_small_step_tau_closure.induct)
+  apply auto
+  using par_small_step_wf_pair by blast
 
 lemma par_small_step_closure_empty_to_tau [simp]:
   assumes "par_small_step_closure p1 s1 [] p2 s2"
@@ -1046,52 +1076,68 @@ next
   show ?case
     apply (rule exI[where x=p]) apply (rule exI[where x=s])
     apply (rule exI[where x=p2]) apply (rule exI[where x=s2])
-    by (auto intro: par_small_step_tau_closure.intros 3(1,2))
+    using 3(1,2) apply auto
+    apply (rule par_small_step_tau_closure.intros(1))
+    using par_small_step_wf_pair by auto
 qed
 
 lemma par_small_step_closure_left:
   "par_small_step_tau_closure p1 s1 p2 s2 \<Longrightarrow>
+   wf_pair p3 s3 \<Longrightarrow>
    par_small_step_closure (Parallel p1 chs p3) (ParState s1 s3) [] (Parallel p2 chs p3) (ParState s2 s3)"
 proof (induct rule: par_small_step_tau_closure.induct)
   case (1 p s)
   then show ?case
-    by (auto intro: par_small_step_closure.intros)
+    by (simp add: par_small_step_closure.intros(1) wf_pair.intros(2))
 next
   case (2 p s p2 s2 p2' s2')
   show ?case
     apply (rule par_small_step_closure.intros(2))
-     apply (rule ParTauS1[OF 2(1)])
-    by (rule 2(3))
+     apply (rule ParTauS1[OF _ 2(1)])
+    using 2 by auto
 qed
 
 lemma par_small_step_closure_right:
   "par_small_step_tau_closure p3 s3 p4 s4 \<Longrightarrow>
+   wf_pair p2 s2 \<Longrightarrow>
    par_small_step_closure (Parallel p2 chs p3) (ParState s2 s3) [] (Parallel p2 chs p4) (ParState s2 s4)"
 proof (induct rule: par_small_step_tau_closure.induct)
   case (1 p s)
   then show ?case
-    by (auto intro: par_small_step_closure.intros)
+    by (simp add: par_small_step_closure_left par_small_step_tau_closure.intros(1))
 next
   case (2 p s p2 s2 p3 s3)
   show ?case 
     apply (rule par_small_step_closure.intros(2))
-     apply (rule ParTauS2[OF 2(1)])
-    by (rule 2(3))
+     apply (rule ParTauS2[OF _ 2(1)])
+    using 2 by auto
 qed
 
 lemma par_small_step_closure_merge:
   assumes "par_small_step_tau_closure p1 s1 p2 s2"
    and "par_small_step_tau_closure p3 s3 p4 s4"
   shows "par_small_step_closure (Parallel p1 chs p3) (ParState s1 s3) [] (Parallel p2 chs p4) (ParState s2 s4)"
-  using par_small_step_closure_left[OF assms(1)] par_small_step_closure_right[OF assms(2)]
-        par_small_step_closure_trans by fastforce
+proof -
+  have a: "wf_pair p1 s1"
+    using assms(1) par_small_step_tau_closure_wf_pair by auto
+  have b: "wf_pair p3 s3"
+    using assms(2) par_small_step_tau_closure_wf_pair by auto
+  have c: "([]::trace) = [] @ []"
+    by auto
+  show ?thesis
+    apply (subst c)
+    apply (rule par_small_step_closure_trans)
+     apply (rule par_small_step_closure_left[OF assms(1) b])
+    apply (rule par_small_step_closure_right[OF assms(2)])
+    using assms(1) par_small_step_tau_closure_wf_pair by auto
+qed
 
 lemma small_step_to_par_small_step_closure:
   "small_step_closure p1 s1 tr p2 s2 \<Longrightarrow> par_small_step_closure (Single p1) (State s1) tr (Single p2) (State s2)"
 proof (induct rule: small_step_closure.induct)
   case (1 p s)
   then show ?case
-    by (rule par_small_step_closure.intros)
+    by (simp add: par_small_step_closure.intros(1) wf_pair.intros(1))
 next
   case (2 p s p2 s2 evs p3 s3)
   show ?case
@@ -1213,9 +1259,11 @@ next
     "par_small_step_closure p1'' s1'' blks1 p3 s12"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair1(4)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
-    by (rule par_small_step_closure_left[OF a(1)])
+    apply (rule par_small_step_closure_left[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair1(5) by auto
   have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (InBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
-    by (rule ParUnpairS1[OF combine_blocks_unpair1(1) a(2)])
+    apply (rule ParUnpairS1[OF _ combine_blocks_unpair1(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair1(5) by auto
   have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair1(3)[OF a(3) combine_blocks_unpair1(5)])
   show ?case
@@ -1228,9 +1276,11 @@ next
     "par_small_step_closure p1'' s1'' blks1 p3 s12"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair2(4)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
-    by (rule par_small_step_closure_left[OF a(1)])
+    apply (rule par_small_step_closure_left[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair2(5) by auto
   have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (OutBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
-    by (rule ParUnpairS2[OF combine_blocks_unpair2(1) a(2)])
+    apply (rule ParUnpairS2[OF _ combine_blocks_unpair2(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair2(5) by auto
   have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair2(3)[OF a(3) combine_blocks_unpair2(5)])
   show ?case
@@ -1243,9 +1293,11 @@ next
     "par_small_step_closure p2'' s2'' blks2 p4 s22"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair3(5)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    by (rule par_small_step_closure_right[OF a(1)])
+    apply (rule par_small_step_closure_right[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair3(4) by auto
   have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (InBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    by (rule ParUnpairS3[OF combine_blocks_unpair3(1) a(2)])
+    apply (rule ParUnpairS3[OF _ combine_blocks_unpair3(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair3(4) by auto
   have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair3(3)[OF combine_blocks_unpair3(4) a(3)])
   show ?case
@@ -1258,9 +1310,11 @@ next
     "par_small_step_closure p2'' s2'' blks2 p4 s22"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair4(5)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    by (rule par_small_step_closure_right[OF a(1)])
+    apply (rule par_small_step_closure_right[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair4(4) by auto
   have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (OutBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    by (rule ParUnpairS4[OF combine_blocks_unpair4(1) a(2)])
+    apply (rule ParUnpairS4[OF _ combine_blocks_unpair4(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair4(4) by auto
   have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair4(3)[OF combine_blocks_unpair4(4) a(3)])
   show ?case
@@ -1273,9 +1327,11 @@ next
     "par_small_step_closure p1'' s1'' blks1 p3 s12"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair5(4)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
-    by (rule par_small_step_closure_left[OF a(1)])
+    apply (rule par_small_step_closure_left[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair5(5) by auto
   have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (IOBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
-    by (rule ParUnpairS5[OF combine_blocks_unpair5(1) a(2)])
+    apply (rule ParUnpairS5[OF _ combine_blocks_unpair5(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair5(5) by auto
   have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair5(3)[OF a(3) combine_blocks_unpair5(5)])
   show ?case
@@ -1288,9 +1344,11 @@ next
     "par_small_step_closure p2'' s2'' blks2 p4 s22"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair6(5)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    by (rule par_small_step_closure_right[OF a(1)])
+    apply (rule par_small_step_closure_right[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair6(4) by auto
   have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (IOBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    by (rule ParUnpairS6[OF combine_blocks_unpair6(1) a(2)])
+    apply (rule ParUnpairS6[OF _ combine_blocks_unpair6(1) a(2)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair6(4) by auto
   have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
     by (rule combine_blocks_unpair6(3)[OF combine_blocks_unpair6(4) a(3)])
   show ?case
@@ -1400,6 +1458,25 @@ next
     apply (rule combine_blocks_to_par_small_step)
     using ParallelB(3) p3 p4 by auto
 qed
+
+
+theorem small_to_big_par:
+  "par_small_step_closure p s1 tr q s2 \<Longrightarrow>
+   is_skip q \<Longrightarrow> 
+   \<exists>tr'. equiv_trace tr tr' \<and> par_big_step p s1 tr s2"
+proof (induction rule: par_small_step_closure.induct)
+  case (1 p s)
+  show ?case
+    apply (rule exI[where x="[]"])
+    sorry
+next
+  case (2 p s p2 s2 evs p3 s3)
+  then show ?case sorry
+next
+  case (3 p s ev p2 s2 evs p3 s3)
+  then show ?case sorry
+qed
+
 
 
 end
