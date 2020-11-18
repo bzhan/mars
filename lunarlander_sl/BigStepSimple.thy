@@ -184,7 +184,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_wait2:
   "combine_blocks comms blks1 (WaitBlock (t2 - t1) (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   t1 < t2 \<Longrightarrow>
+   t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
@@ -192,7 +192,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_wait3:
   "combine_blocks comms (WaitBlock (t1 - t2) (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   t1 > t2 \<Longrightarrow>
+   t1 > t2 \<Longrightarrow> t2 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t2}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
