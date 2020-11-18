@@ -80,11 +80,9 @@ text \<open>Further, we define equivalence between two traces\<close>
 inductive equiv_trace :: "trace \<Rightarrow> trace \<Rightarrow> bool" where
   equiv_trace_empty: "equiv_trace [] []"
 | equiv_trace_merge: "p1 d1 = p2 0 \<Longrightarrow>
-   equiv_trace [WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) rdy, WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy]
-               [WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy]"
-| equiv_trace_sym: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace tr2 tr1"
+   equiv_trace (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) rdy # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy # tr)
+               (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr)"
 | equiv_trace_cons: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (ev # tr1) (ev # tr2)"
-| equiv_trace_append: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (tr1 @ tr3) (tr2 @ tr3)"
 | equiv_trace_trans: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace tr2 tr3 \<Longrightarrow> equiv_trace tr1 tr3"
 
 lemma equiv_trace_refl [simp]:
@@ -94,6 +92,11 @@ lemma equiv_trace_refl [simp]:
 lemma equiv_trace_append_left:
   "equiv_trace tr2 tr3 \<Longrightarrow> equiv_trace (tr1 @ tr2) (tr1 @ tr3)"
   apply (induct tr1) by (auto intro: equiv_trace.intros)
+
+lemma equiv_trace_append:
+  "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (tr1 @ tr3) (tr2 @ tr3)"
+  apply (induct rule: equiv_trace.induct)
+  by (auto intro: equiv_trace.intros)
 
 lemma small_step_closure_single_None:
   "small_step p s None p2 s2 \<Longrightarrow> small_step_closure p s [] p2 s2"
@@ -385,7 +388,7 @@ proof (induction arbitrary: tr2 s3 rule: small_step.induct)
     apply (rule exI[where x="tr2' @ tr22"])
     apply auto
     unfolding a(1)
-    using b(1) equiv_trace.intros(5) apply fastforce
+    using b(1) equiv_trace_append apply fastforce
     by (rule seqB[OF b(2) a(3)])
 next
   case (waitS1 d1 d s)
@@ -435,13 +438,10 @@ next
   have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({ch}, {}), OutBlock ch (e s)]
            [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({ch}, {}), OutBlock ch (e s)]" (is "equiv_trace ?lhs ?rhs") for d2
   proof -
-    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({ch}, {})] @ [OutBlock ch (e s)]"
-      by auto
-    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({ch}, {})] @ [OutBlock ch (e s)]"
+    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({ch}, {}), OutBlock ch (e s)]"
       by auto
     show ?thesis
-      unfolding b1 b2 apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge) by auto
   qed
   show ?case
     using sendS2(3) apply (elim sendE)
@@ -474,13 +474,10 @@ next
   have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}), InBlock ch v]
            [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({}, {ch}), InBlock ch v]" (is "equiv_trace ?lhs ?rhs") for v d2
   proof -
-    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch})] @ [InBlock ch v]"
-      by auto
-    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({}, {ch})] @ [InBlock ch v]"
+    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({}, {ch}), InBlock ch v]"
       by auto
     show ?thesis
-      unfolding b1 b2 apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge) by auto
   qed
   show ?case
     using receiveS2(3) apply (elim receiveE)
@@ -506,15 +503,11 @@ next
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')"
     (is "equiv_trace ?lhs ?rhs") for d2 ch e tr2'
   proof -
-    have b1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs)]
-                @ (OutBlock ch (e s) # tr2')"
-      by auto
-    have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs)]
-                @ (OutBlock ch (e s) # tr2')"
+    have b2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs) #
+                     OutBlock ch (e s) # tr2'"
       by auto
     show ?thesis
-      unfolding b1 b2 apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge) by auto
   qed
   have c: "equiv_trace
      (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs) #
@@ -522,15 +515,10 @@ next
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')"
     (is "equiv_trace ?lhs ?rhs") for d2 ch v tr2'
   proof -
-    have c1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs)]
-                @ (InBlock ch v # tr2')"
-      by auto
-    have c2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs)] @ (InBlock ch v # tr2')"
+    have c2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs) # InBlock ch v # tr2'"
       by auto
     show ?thesis
-      unfolding c1 c2
-      apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge) by auto
+      unfolding c2 apply (rule equiv_trace_merge) by auto
   qed
   show ?case
     using EChoiceS1(3) apply (elim echoiceE)
@@ -676,15 +664,11 @@ next
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')"
     (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch e tr2'
   proof -
-    have e1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
-                @ (OutBlock ch (e (p2 d2)) # tr2')"
-      by auto
-    have e2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]
-                @ (OutBlock ch (e (p2 d2)) # tr2')"
+    have e2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
+                     OutBlock ch (e (p2 d2)) # tr2'"
       by auto
     show ?thesis
-      unfolding e1 e2 apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge)
+      unfolding e2 apply (rule equiv_trace_merge)
       using that by auto
   qed
   have f: "equiv_trace
@@ -692,15 +676,11 @@ next
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # InBlock ch v # tr2')"
     (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch v tr2'
   proof -
-    have f1: "?lhs = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
-                @ (InBlock ch v # tr2')"
-      by auto
-    have f2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]
-                @ (InBlock ch v # tr2')"
+    have f2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
+                     InBlock ch v # tr2'"
       by auto
     show ?thesis
-      unfolding f1 f2 apply (rule equiv_trace_append)
-      apply (rule equiv_trace_merge)
+      unfolding f2 apply (rule equiv_trace_merge)
       using that by auto
   qed
   have g: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
@@ -1460,23 +1440,157 @@ next
 qed
 
 
+lemma par_big_step_empty:
+  "wf_pair p s \<Longrightarrow> is_skip p \<Longrightarrow> par_big_step p s [] s"
+proof (induct rule: wf_pair.induct)
+  case (1 p s)
+  then show ?case
+    using SingleB is_skip.cases skipB by blast
+next
+  case (2 p1 s1 p2 s2 chs)
+  have a: "is_skip p1 \<and> is_skip p2"
+    using 2(5) apply (cases rule: is_skip.cases) by auto
+  show ?case
+    apply (rule ParallelB)
+      apply (rule 2(2)) using a apply auto[1]
+     apply (rule 2(4)) using a apply auto[1]
+    by (rule combine_blocks.intros)
+qed
+
+lemma par_small1_big_continue:
+  "par_small_step p s None p2 s2 \<Longrightarrow>
+   par_big_step p2 s2 evs s3 \<Longrightarrow>
+   par_big_step p s evs s3"
+proof (induction p s "None::trace_block option" p2 s2 arbitrary: evs s3 rule: par_small_step.induct)
+  case (SingleS p s1 p' s2)
+  show ?case
+    using SingleS(2) apply (elim SingleE)
+    apply auto
+    apply (rule SingleB)
+    apply (rule small1_big_continue[OF SingleS(1)])
+    by auto
+next
+  case (ParTauS1 p3 s3' p1 s1 p2 s2 chs)
+  show ?case
+    using ParTauS1(4) apply (elim ParallelE)
+    using ParTauS1.hyps(3) ParallelB by blast
+next
+  case (ParTauS2 p1 s1 p2 s2 p3 s3' chs)
+  show ?case
+    using ParTauS2(4) apply (elim ParallelE)
+    using ParTauS2.hyps(3) ParallelB by blast
+qed
+
+lemma combine_blocks_cons_left:
+  "combine_blocks chs (ev # tr1) tr2 tr \<Longrightarrow>
+   \<forall>tr3 tr'. combine_blocks chs tr1 tr3 tr' \<longrightarrow> combine_blocks chs tr2' tr3 tr' \<Longrightarrow> 
+   combine_blocks chs (ev # tr2') tr2 tr"
+  apply (induct chs "ev # tr1" tr2 tr arbitrary: ev rule: combine_blocks.induct)
+  by (auto intro: combine_blocks.intros)
+
+
+lemma combine_blocks_equiv_left:
+  "equiv_trace tr1 tr1' \<Longrightarrow> combine_blocks chs tr1 tr2 tr \<Longrightarrow> combine_blocks chs tr1' tr2 tr"
+proof (induct arbitrary: tr2 tr rule: equiv_trace.induct)
+  case equiv_trace_empty
+  then show ?case by auto
+next
+  case (equiv_trace_merge p1 d1 p2 rdy d2 tr' d)
+  then show ?case
+    sorry
+next
+  case (equiv_trace_cons tr1 tr2' ev)
+  then show ?case
+    using combine_blocks_cons_left by auto
+next
+  case (equiv_trace_trans tr1 tr2' tr3)
+  then show ?case by simp
+qed
+
+
+lemma par_small1_big_continue2:
+  "par_small_step p s (Some ev) p2 s2 \<Longrightarrow>
+   par_big_step p2 s2 evs s3 \<Longrightarrow>
+   \<exists>evs'. equiv_trace (ev # evs) evs' \<and> par_big_step p s evs' s3"
+proof (induction p s "Some ev" p2 s2 arbitrary: ev evs s3 rule: par_small_step.induct)
+  case (SingleS p s1 p' s2)
+  show ?case
+    using SingleS(2) apply (elim SingleE)
+    by (metis SingleB SingleS.hyps gstate.inject(1) small1_big_continue2)
+next
+  case (ParDelayS rdy1 rdy2 hist hist1 hist2 t rdy p1 s1 p2 s2 p3 s3' p4 s4 chs)
+  have a: "\<exists>evs'. equiv_trace (WaitBlock t hist rdy # evs) evs' \<and>
+                  par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p4 s4 tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs1 where b: "equiv_trace (WaitBlock t hist1 rdy1 # tr1) evs1" "par_big_step p1 s1 evs1 s12"
+      using ParDelayS(5)[OF aH(2)] by auto
+    obtain evs2 where c: "equiv_trace (WaitBlock t hist2 rdy2 # tr2) evs2" "par_big_step p3 s3' evs2 s22"
+      using ParDelayS(7)[OF aH(3)] by auto
+    have "combine_blocks chs (WaitBlock t hist1 rdy1 # tr1) (WaitBlock t hist2 rdy2 # tr2) (WaitBlock t hist rdy # evs)"
+      apply (rule combine_blocks_wait1[OF aH(4)])
+      using ParDelayS by auto
+    show ?thesis
+      apply (rule exI[where x="WaitBlock t hist rdy # evs"])
+      apply auto
+      apply (rule ParallelB[OF b(2) c(2)])
+      sorry
+  qed
+  show ?case
+    using ParDelayS(8) apply (elim ParallelE)
+    using a by auto
+next
+  case (ParPairS1 ch chs p1 s1 v p2 s2 p3 s3 p4 s4)
+  then show ?case sorry
+next
+  case (ParPairS2 ch chs p1 s1 v p2 s2 p3 s3 p4 s4)
+  then show ?case sorry
+next
+  case (ParUnpairS1 p3 s3 ch chs p1 s1 v p2 s2)
+  then show ?case sorry
+next
+  case (ParUnpairS2 p3 s3 ch chs p1 s1 v p2 s2)
+  then show ?case sorry
+next
+  case (ParUnpairS3 p1 s1 ch chs p2 s2 v p3 s3)
+  then show ?case sorry
+next
+  case (ParUnpairS4 p1 s1 ch chs p2 s2 v p3 s3)
+  then show ?case sorry
+next
+  case (ParUnpairS5 p3 s3 ch chs p1 s1 v p2 s2)
+  then show ?case sorry
+next
+  case (ParUnpairS6 p1 s1 ch chs p2 s2 v p3 s3)
+  then show ?case sorry
+qed
+
+
 theorem small_to_big_par:
   "par_small_step_closure p s1 tr q s2 \<Longrightarrow>
    is_skip q \<Longrightarrow> 
-   \<exists>tr'. equiv_trace tr tr' \<and> par_big_step p s1 tr s2"
+   \<exists>tr'. equiv_trace tr tr' \<and> par_big_step p s1 tr' s2"
 proof (induction rule: par_small_step_closure.induct)
   case (1 p s)
   show ?case
     apply (rule exI[where x="[]"])
-    sorry
+    using par_big_step_empty 1 by auto
 next
   case (2 p s p2 s2 evs p3 s3)
-  then show ?case sorry
+  obtain tr' where a: "equiv_trace evs tr'" "par_big_step p2 s2 tr' s3"
+    using 2(3,4) by auto
+  show ?case
+    using 2(1) a par_small1_big_continue by auto
 next
   case (3 p s ev p2 s2 evs p3 s3)
-  then show ?case sorry
+  obtain tr' where a: "equiv_trace evs tr'" "par_big_step p2 s2 tr' s3"
+    using 3(3,4) by auto
+  show ?case
+    by (meson 3(1) a equiv_trace_cons equiv_trace_trans par_small1_big_continue2)
 qed
-
 
 
 end
