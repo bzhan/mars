@@ -37,7 +37,11 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
+<<<<<<< HEAD
             if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.startswith("BR") or hps[i].ch_name.startswith("DBR")): #BR收到子图发来的消息广播申请
+=======
+            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):  # BR收到子图发来的消息广播申请
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
                 # For example, hps[i].expr.name = E_S1
                 #state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1 split
                 state_name = (lambda x: x.split("_")[-1])(hps[i].expr.name)
@@ -243,6 +247,9 @@ class SF_Chart(Subsystem):
                 for child in self.diagram.children:
                     child.name = "S" + str(num)
                     num += 1
+        # self.diagram is an AND-state.
+        # That its name is S1 implies that its children are OR-states;
+        # Otherwise, if S0, its children are AND-states.
 
         and_num = or_num = jun_num = 0
         for state in self.all_states.values():
@@ -260,20 +267,28 @@ class SF_Chart(Subsystem):
                     raise RuntimeError("Error State!")
 
     def find_root_for_states(self):  # get the root of each state in chart
+        """
+        (1) Note that each stateflow chart is encapsulated as an AND-state,
+        so self.diagram is of course an AND-state
+        (2) Examples. If the children of self.diagram are AND-states,
+        then each child is the root of all the descendants within that child;
+        If the children of self.diagram are OR-states,
+        then self.diagram is the root of all its descendants.
+        """
         def find_root_recursively(_state):
             if isinstance(_state, (AND_State, OR_State)) and _state.father:
                 _state.root = _state.father.root             
                 for _child in _state.children:
                     find_root_recursively(_child)
 
-        if self.diagram.name == "S0":
+        if self.diagram.name == "S0":  # Its children are AND-states, see add_names().
             for child in self.diagram.children:
                 assert isinstance(child, AND_State)
                 child.root = child
                 child.chart = self
                 for grandchild in child.children:
                     find_root_recursively(grandchild)
-        elif self.diagram.name == "S1":
+        elif self.diagram.name == "S1":  # Its children are OR-states, see add_names().
             assert self.diagram.chart == self
             for state in self.all_states.values():
                 state.root = self.diagram
@@ -347,7 +362,11 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
+<<<<<<< HEAD
         return self.fun_dict[longest_path]      
+=======
+        return self.fun_dict[longest_path]       # 为什莫要是路径最长的
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -355,7 +374,7 @@ class SF_Chart(Subsystem):
             assert len(objects) == len(classes)
             return all(isinstance(_obj, _class) for _obj, _class in zip(objects, classes))
 
-        # Transfer an object into a Condition one if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
+        # Transfer an object into a Condition if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
         def to_Condition(obj):
             if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip():   
                 return hp.Condition(cond=obj.if_hps[0][0], hp=obj.if_hps[0][1])
@@ -397,7 +416,7 @@ class SF_Chart(Subsystem):
             out_tran_hp.else_hp = hp.Sequence(during_hp, to_Condition(in_tran_hp))
             return out_tran_hp
 
-    # Execute transitions from a state
+    # Execute transitions from a state (event broadcasting)
     def execute_trans_from_state(self, state, tran_type="out_trans", tran_act_Q=(), event_var="E"):
         """
         Execute a set of transitions from a given state
@@ -425,13 +444,14 @@ class SF_Chart(Subsystem):
 
         if_hps, else_hp = list(), hp.Skip()
         for tran in trans:
+            # Get the execution condition for the current transition
             conds = list()
             if tran.event:
                 conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
             if tran.condition:
                 conds.append(tran.condition)
             conds.append(bexpr_parser.parse("done == 0"))
-            cond = conj(*conds) if len(conds) >= 2 else conds[0]    
+            cond = conj(*conds) if len(conds) >= 2 else conds[0]  # Conjunction
 
             dst_state = self.all_states[tran.dst]
             current_tran_act_Q = list(tran_act_Q) + tran.tran_acts
@@ -445,7 +465,7 @@ class SF_Chart(Subsystem):
             if isinstance(dst_state, (AND_State, OR_State)):
                 assert not isinstance(dst_state, AND_State) or tran_type == "inner_trans"
                 hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
-                      + [hp_parser.parse("done := 1")]
+                    + [hp_parser.parse("done := 1")]
             elif isinstance(dst_state, Junction):
                 if not dst_state.visited:  # has not been visited in this round
                     dst_state.visited = True
@@ -457,15 +477,14 @@ class SF_Chart(Subsystem):
                                                             tran_act_Q=current_tran_act_Q)
                     assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     dst_state.processes.append((process_name, process))
-                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    dst_state.visited = False      # ？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                          + enter_into_dst + ([] if process == hp.Skip() else [process])
+                        + enter_into_dst + ([] if process == hp.Skip() else [process])
                 else:  # visited in this round
                     process_name = dst_state.processes[-1][0]
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                          + enter_into_dst + [hp.Var(process_name)]
-            if_hps.append((cond, get_hcsp(hps)))    #？？？？
-            
+                        + enter_into_dst + [hp.Var(process_name)]
+            if_hps.append((cond, get_hcsp(hps)))    # ？？？？
 
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
@@ -617,6 +636,7 @@ class SF_Chart(Subsystem):
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 ##########
+
         # Add VIn! after BR! in an hcsp list of state
         def add_VIn_after_BR_in_list(_num, _hps, _modified_vars):
             _vin = vin(_num, _modified_vars)
@@ -676,7 +696,7 @@ class SF_Chart(Subsystem):
                     tran.cond_acts = add_VIn_after_BR_in_list(_num, tran.cond_acts, _modified_vars)
                     tran.tran_acts = add_VIn_after_BR_in_list(_num, tran.tran_acts, _modified_vars)
 
-        # If there is no event, return two functions and move to get_pure_process()
+        # If there is no event, return two function objects and move to get_pure_process()
         if not self.has_event:
             return get_S_du_and_P_diag, analyse_P_diag
 
@@ -762,6 +782,7 @@ class SF_Chart(Subsystem):
 
         return new_processes
 
+    # No event broadcasting
     def get_pure_process(self):
         assert not self.has_event
         get_S_du_and_P_diag, analyse_P_diag = self.get_process()

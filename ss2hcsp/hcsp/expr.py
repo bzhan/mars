@@ -177,7 +177,7 @@ class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
         super(FunExpr, self).__init__()
         assert fun_name in [
-            "min", "max", "abs", "gcd", "delay",
+            "min", "max", "abs", "gcd", "delay", "sqrt",
             "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min","pop_min"]
         self.fun_name = fun_name
         exprs = tuple(exprs)
@@ -212,7 +212,7 @@ class ModExpr(AExpr):
         self.expr2 = expr2
 
     def __repr__(self):
-        return "Mod(%s, %s)" % (repr(self.expr1), str(repr.expr2))
+        return "Mod(%s, %s)" % (repr(self.expr1), str(repr(self.expr2)))
 
     def __str__(self):
         return "%s%%%s" % (str(self.expr1), str(self.expr2))

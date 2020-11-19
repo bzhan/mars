@@ -8,6 +8,8 @@ from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
 from ss2hcsp.sl.MathOperations.add import Add
 from ss2hcsp.sl.MathOperations.my_abs import Abs
+from ss2hcsp.sl.MathOperations.sqrt import Sqrt
+from ss2hcsp.sl.MathOperations.square import Square
 from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
@@ -21,7 +23,8 @@ from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 
-from xml.dom.minidom import parse
+from xml.dom.minidom import parse, Element
+from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
 import re
@@ -99,6 +102,8 @@ class SL_Diagram:
             mapping from ID to a transition.
             
             """
+            assert type(blocks) is NodeList
+
             _tran_dict = dict()
             for block in blocks:
                 if block.nodeName == "transition":
@@ -118,8 +123,10 @@ class SL_Diagram:
                     _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                        src=src_ssid, dst=dst_ssid)
             return _tran_dict
-#历史节点修改
-        all_out_trans=dict()
+
+        #  历史节点修改
+        all_out_trans = dict()
+
         def get_children(block):
             """Get lists of children states and junctions of the current
             block.
@@ -131,7 +138,8 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
-            
+            assert type(block) is Element
+
             _states, _junctions, _functions = list(), list(), list()
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
@@ -187,8 +195,8 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    dictMerged2 = dict( out_trans_dict)
-                    dictMerged2.update( all_out_trans )
+                    dictMerged2 = dict(out_trans_dict)
+                    dictMerged2.update(all_out_trans)
                    
                     for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
@@ -197,7 +205,7 @@ class SL_Diagram:
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
                         else:
-                            all_out_trans[tran.ssid]=tran
+                            all_out_trans[tran.ssid] = tran
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Get inner_trans     
                     inner_trans = list()
@@ -230,9 +238,9 @@ class SL_Diagram:
                     for _child in child_states + child_junctions:
                         _child.father = _state
                         _state.children.append(_child)
-                        if isinstance(_child ,Junction) and _child.type == "HISTORY_JUNCTION":
-                            if isinstance(_state , OR_State):
-                                _state.has_history_junc=True
+                        if isinstance(_child, Junction) and _child.type == "HISTORY_JUNCTION":
+                            if isinstance(_state, OR_State):
+                                _state.has_history_junc = True
 
                     if _state.children and isinstance(_state.children[0], AND_State):
                         _state.children.sort(key=operator.attrgetter("order"))
@@ -240,7 +248,7 @@ class SL_Diagram:
                     
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
-                    junc_type=get_attribute_value(block=child, attribute="type")
+                    junc_type = get_attribute_value(block=child, attribute="type")
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
@@ -340,6 +348,12 @@ class SL_Diagram:
                 self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
+            elif block_type == "Sqrt":
+                sqrt_operator = get_attribute_value(block, "Operator")
+                self.add_block(Sqrt(name=block_name, operator=sqrt_operator, st=sample_time))
+            elif block_type == "Math":
+                math_operator = get_attribute_value(block, "Operator")
+                self.add_block(Square(name=block_name, operator=math_operator, st=sample_time))
             elif block_type == "Sum":
                 inputs = get_attribute_value(block, "Inputs")
                 dest_spec = inputs.replace("|", "") if inputs else "++"

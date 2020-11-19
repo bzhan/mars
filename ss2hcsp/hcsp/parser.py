@@ -18,6 +18,7 @@ grammar = r"""
         | "(" expr ")"
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
+        | times_expr "/" atom_expr -> divide_expr
         | times_expr "%" atom_expr -> mod_expr
         | atom_expr
 
@@ -140,6 +141,9 @@ class HPTransformer(Transformer):
 
     def times_expr(self, e1, e2):
         return expr.TimesExpr(["*", "*"], [e1, e2])
+
+    def divide_expr(self, e1, e2):
+        return expr.TimesExpr(["*", "/"], [e1, e2])
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])

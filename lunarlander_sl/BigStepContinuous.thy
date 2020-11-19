@@ -5,11 +5,6 @@ begin
 
 subsection \<open>Hoare rules for ODE\<close>
 
-inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
-thm contE
-
-inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
-thm interruptE
 
 text \<open>Weakest precondition form\<close>
 theorem Valid_ode:
