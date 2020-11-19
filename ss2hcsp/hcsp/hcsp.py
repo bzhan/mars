@@ -174,7 +174,8 @@ class InputChannel(HCSP):
             return self.ch_name + "?"
 
     def get_vars(self):
-        if self.var_name:
+        if self.var_name and not (self.ch_name.startswith("DBR") or self.ch_name.startswith("DBC")):
+            
             return {self.var_name}
         return set()
 
@@ -210,7 +211,7 @@ class OutputChannel(HCSP):
             return self.ch_name + "!"
 
     def get_vars(self):
-        if self.expr:
+        if self.expr and not (self.ch_name.startswith("DBC") or self.ch_name.startswith("DBR")):
             return self.expr.get_vars()
         return set()
 

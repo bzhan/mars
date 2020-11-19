@@ -199,7 +199,7 @@ class SL_Diagram:
                         else:
                             all_out_trans[tran.ssid]=tran
                     out_trans.sort(key=operator.attrgetter("order"))
-                    # Get inner_trans     #有问题
+                    # Get inner_trans     
                     inner_trans = list()
                     grandchildren = [grandchild for grandchild in child.childNodes if grandchild.nodeName == "Children"]
                     assert len(grandchildren) <= 1
@@ -259,6 +259,7 @@ class SL_Diagram:
         # Create charts
         charts = self.model.getElementsByTagName(name="chart")
         for chart in charts:
+            all_out_trans=dict()
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
 
@@ -284,7 +285,7 @@ class SL_Diagram:
                 value = eval(value) if value else 0
                 chart_data[var_name] = value
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
-
+            
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st}
 
@@ -379,18 +380,20 @@ class SL_Diagram:
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
-
+            
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
-                if sf_block_type == "Chart":     #char 名称必须是Chart改成其他名字九九不能用了
+                if sf_block_type == "Chart":     
                     assert block_name in self.chart_parameters
+
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                     if len(ports) == 0:
                         ports = [0, 0]
                     elif len(ports) == 1:
                         ports.append(0)
-                    num_dest, num_src = ports
+
+                    num_dest, num_src = ports[:2]
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"])
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
