@@ -184,7 +184,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_wait2:
   "combine_blocks comms blks1 (WaitBlock (t2 - t1) (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   t1 < t2 \<Longrightarrow>
+   t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
@@ -192,7 +192,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_wait3:
   "combine_blocks comms (WaitBlock (t1 - t2) (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   t1 > t2 \<Longrightarrow>
+   t1 > t2 \<Longrightarrow> t2 > 0 \<Longrightarrow>
    hist = (\<lambda>\<tau>\<in>{0..t2}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
@@ -331,18 +331,18 @@ text \<open>big_step p s1 tr s2 means executing p starting from state s1 results
 in a trace tr and final state s2.\<close>
 inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow> state \<Rightarrow> bool" where
   skipB: "big_step Skip s [] s"
-| assignB: "big_step (Assign var e) s [] (s(var := e s))"
+| assignB: "big_step (var ::= e) s [] (s(var := e s))"
 | seqB: "big_step p1 s1 tr1 s2 \<Longrightarrow>
          big_step p2 s2 tr2 s3 \<Longrightarrow>
          big_step (Seq p1 p2) s1 (tr1 @ tr2) s3"
 | condB1: "b s1 \<Longrightarrow> big_step p1 s1 tr s2 \<Longrightarrow> big_step (Cond b p1 p2) s1 tr s2"
 | condB2: "\<not> b s1 \<Longrightarrow> big_step p2 s1 tr s2 \<Longrightarrow> big_step (Cond b p1 p2) s1 tr s2"
-| waitB: "big_step (Wait d) s [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})] s"
-| sendB1: "big_step (Cm (Send ch e)) s [OutBlock ch (e s)] s"
+| waitB: "d > 0 \<Longrightarrow> big_step (Wait d) s [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})] s"
+| sendB1: "big_step (Cm (ch[!]e)) s [OutBlock ch (e s)] s"
 | sendB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}),
              OutBlock ch (e s)] s"
-| receiveB1: "big_step (Cm (Receive ch var)) s [InBlock ch v] (s(var := v))"
+| receiveB1: "big_step (Cm (ch[?]var)) s [InBlock ch v] (s(var := v))"
 | receiveB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[?]var)) s
             [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}),
              InBlock ch v] (s(var := v))"
@@ -479,7 +479,7 @@ lemma test3: "par_big_step (
 text \<open>Wait\<close>
 lemma test4: "big_step (Wait 2)
   (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
-  by (rule waitB)
+  apply (rule waitB) by auto
 
 text \<open>Seq\<close>
 lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
@@ -521,14 +521,14 @@ lemma test9a: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
   (\<lambda>_. 0) [OutBlock ''ch1'' 1, WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=0])
-  apply auto by (rule waitB)
+  apply auto apply (rule waitB) by auto
 
 text \<open>External choice 2\<close>
 lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
   (\<lambda>_. 0) [OutBlock ''ch2'' 2, WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=1])
-  apply auto by (rule waitB)
+  apply auto apply (rule waitB) by auto
 
 text \<open>Communication with external choice\<close>
 lemma test10: "par_big_step (
@@ -622,12 +622,12 @@ proof -
     [WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {}),
      WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {''ch1''}),
      InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
-    apply (rule seqB') apply (rule waitB)
+    apply (rule seqB') apply (rule waitB) apply simp
      apply (rule receiveB2'[where d=1]) by auto
   have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
     [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}),
      InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
-    apply (rule seqB') apply (rule waitB)
+    apply (rule seqB') apply (rule waitB) apply simp
      apply (rule receiveB1) by auto
   show ?thesis
     apply (rule ParallelB)
@@ -715,6 +715,11 @@ thm echoiceE
 inductive_cases ichoiceE: "big_step (IChoice p1 p2) s1 tr s2"
 thm ichoiceE
 
+inductive_cases contE: "big_step (Cont ode b) s1 tr s2"
+thm contE
+
+inductive_cases interruptE: "big_step (Interrupt ode b cs) s1 tr s2"
+thm interruptE
 
 theorem Valid_weaken_pre:
   "P \<Longrightarrow>\<^sub>A P' \<Longrightarrow> Valid P' c Q \<Longrightarrow> Valid P c Q"
