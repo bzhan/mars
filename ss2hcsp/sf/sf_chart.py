@@ -3,6 +3,7 @@ from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import AConst, BExpr, conj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from ss2hcsp.hcsp.hcsp import Condition , Assign
 import re
 
 
@@ -36,19 +37,38 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
+<<<<<<< HEAD
+            if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.startswith("BR") or hps[i].ch_name.startswith("DBR")): #BR收到子图发来的消息广播申请
+=======
             if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):  # BR收到子图发来的消息广播申请
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
                 # For example, hps[i].expr.name = E_S1
-                state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1
-                ch_expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # AConst("e")
+                #state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1 split
+                state_name = (lambda x: x.split("_")[-1])(hps[i].expr.name)
+                #ch_expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # AConst("e")
+                ch_expr = (lambda x: AConst('"' + x[:x.rfind("_")] + '"'))(hps[i].expr.name)
                 _hps.append(hp.OutputChannel(ch_name=hps[i].ch_name, expr=ch_expr))
                 j = i + 1
-                if hps[j] != hp.Var("X"):  # hps[j] is VIn!
-                    j += 1
-                assert hps[j] == hp.Var("X")
+                if hps[i].ch_name.startswith("BR"):
+                    
+                    if hps[j] != hp.Var("X"):  # hps[j] is VIn!
+                        j += 1
+                #assert hps[j] == hp.Var("X")
+                if hps[i].ch_name.startswith("DBR"):
+                    m=j
+                    for k in range(m,len(hps)-1):
+                        if (not isinstance(hps[k-1], hp.OutputChannel)) and isinstance(hps[k],Condition):
+                            j+=1
+                        elif (isinstance(hps[k], hp.OutputChannel) or isinstance(hps[k], hp.InputChannel)) and (hps[k].ch_name.startswith("DBC") or hps[k].ch_name.startswith("DBVOut") or hps[k].ch_name.startswith("DBO") or hps[k].ch_name.startswith("DBVIn")):
+                            j=j+1
+                        elif isinstance(hps[k-1], hp.OutputChannel) and isinstance(hps[k],(Assign)):
+                            j=j-1
+                            break
+                            
                 _hps.extend(hps[i + 1:j + 1])
                 if len(hps) - 1 >= j + 1:
                     _hps.append(hp.Condition(cond=bexpr_parser.parse("a_" + state_name + " == 1"),
-                                             hp=get_hcsp(hps[j + 1:])))
+                                                 hp=get_hcsp(hps[j + 1:])))
                 break
             else:
                 if isinstance(hps[i], tuple):
@@ -63,24 +83,50 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
             assert isinstance(cond, BExpr)
             _hps.append(hp.Condition(cond=cond, hp=get_hcsp(hps[i][1])))
 
+
     if len(_hps) == 1:
         return _hps[0]
     else:
         return hp.Sequence(*_hps)
 
-
+global_destState_num=1
 def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simulink into an hcsp list
     assert isinstance(acts, (list, tuple))
     assert all(isinstance(act, str) for act in acts)
     assert isinstance(root, AND_State) and isinstance(location, (AND_State, OR_State))
-
+    def _DBvout(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("DBVOut" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
+    def _DBvin(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("DBVIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
+    def get_child_hcsp(dest_state,root):
+        hps=list()
+        if isinstance(dest_state,(OR_State, AND_State)):
+            _hps=list()
+            in_tran_hp = root.chart.execute_one_step_from_state(dest_state) 
+            for child in dest_state.children:
+                _child_hp=get_child_hcsp(child,root)
+                cond=list()
+                cond.append(child.activated())
+                conds = conj(*cond) if len(cond) >= 2 else cond[0]
+                _hp=root.chart.execute_one_step_from_state(child)
+                if len(_child_hp)>0:
+                    _hps.append(hp.Condition(cond=bexpr_parser.parse("done == 0"),hp=get_hcsp(_child_hp)))
+            if len(_hps)>0:
+                hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp,hp.Sequence(*_hps) if len(_hps) >= 2 else  _hps[0] )))
+            else:
+                hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
+        return hps
     hps = list()
     # acts = action.split(";")
     for act in acts:
         # print(re.match(pattern="\\w+", string=act), act)
         if re.match(pattern="^\\w+ *:=.+$", string=act):  # an assigment
             hps.append(hp_parser.parse(act))
-        elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act):  # a function
+        elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act) and not re.match(pattern="send\\(.*?\\)", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
             hps.append(root.chart.get_fun_by_path(act))
             # fun_path = tuple(act[:act.index("(")].split("."))
@@ -89,20 +135,74 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             #     if path[-len(fun_path):] == fun_path:
             #         hps.append(fun)
             #         break
-        elif re.match(pattern="^\\w+$", string=act):  # an event
+        elif re.match(pattern="^\\w+$", string=act) or re.match(pattern="send\\(.*?,.*?\\)", string=act) or re.match(pattern="send\\(.*?\\)", string=act):  # an event
             assert isinstance(root.chart, SF_Chart)
             root.chart.has_event = True
-            event = act + "_" + location.name
             root_num = re.findall(pattern="\\d+", string=root.name)
             assert len(root_num) == 1
             root_num = root_num[0]
-            hps.append(hp_parser.parse("BR" + root_num + "!" + event))
-            hps.append(hp.Var("X"))
+            if re.match(pattern="^\\w+$", string=act):
+                event = act + "_" + location.name
+                hps.append(hp_parser.parse("BR" + root_num + "!" + event))
+                hps.append(hp.Var("X"))
+            
+            if re.match(pattern="send\\(.*?\\)", string=act):
+                acts=act.strip('send(').strip(')')
+                if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
+                    if re.match(pattern="send\\(.*?,.*?\\)", string=act):
+                        event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
+                        path=dest_state_name1.split(".")
+                        if "." in dest_state_name1:
+                            path=dest_state_name1.split(".")
+                            dest_state_name=path[len(path)-1]
+                        else:
+                            dest_state_name=dest_state_name1
+                    elif "." in acts:
+                        path=acts.split(".")
+                        dest_state_name=path[len(path)-2]
+                        event=path[len(path)-1]
+                    _event=event + "_" + location.name
+                    for state in root.chart.all_states.values():
+                        if state.name == dest_state_name:
+                            dest_state=state
+                    
+                    _root=dest_state.root
+                    _root_num=re.findall(pattern="\\d+", string=_root.name)
+                    _root_num=_root_num[0]
+                    global_destState_num=_root_num
+                    vars_in_s_i = _root.get_vars().union(set(root.chart.port_to_in_var.values()))
+                    hps.append(hp_parser.parse("DBR" + root_num + "!" + _event+";"+ _DBvin(root_num, vars_in_s_i)))
+                    hps.append(hp_parser.parse("DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i)))
+                    # _hps=list()
+                    out_trans1=hp.Skip()
+                    hps.append(get_hcsp(get_child_hcsp(dest_state,root)))
+                    
+                    # if isinstance(dest_state,(OR_State, AND_State)):
+                    #     in_tran_hp = root.chart.execute_one_step_from_state(dest_state) 
+                    #     for child in dest_state.children:
+                    #         cond=list()
+                    #         cond.append(child.activated())
+                    #         conds = conj(*cond) if len(cond) >= 2 else cond[0]
+                    #         _hp=root.chart.execute_one_step_from_state(child)
+                    #         _hps.append(hp.Condition(cond=conds,hp=hp.Sequence(hp_parser.parse("done := 0"),_hp)))
+                    #     if len(_hps)>0:
+
+                    #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp,hp.Condition(bexpr_parser.parse("done == 0"),hp.Sequence(*_hps) if len(_hps) >= 2 else  _hps[0] ))))
+                    #     else:
+                    #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
+                    hps.append(hp_parser.parse("DBO" +_root_num + "!;"+ _DBvin(_root_num, vars_in_s_i)))
+                else:
+
+                    event = (act.strip('send(').strip(')')) + "_" + location.name
+                    hps.append(hp_parser.parse("BR" + root_num + "!" +event ))
+                    hps.append(hp.Var("X"))
+            
+            
     return hps
 
 
 class SF_Chart(Subsystem):
-    def __init__(self, name, state, data, num_src, num_dest, st=-1):
+    def __init__(self, name, state, data, num_src, num_dest, st=1):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
@@ -232,8 +332,8 @@ class SF_Chart(Subsystem):
                 out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
                 inner_trans = list(state.inner_trans) if hasattr(state, "inner_trans") else list()
                 for tran in out_trans + inner_trans:
-                    tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
-                    tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
+                    tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, self.get_state_by_ssid(tran.src))
+                    tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, self.get_state_by_ssid(tran.src))
             elif isinstance(state, Junction):
                 for tran in state.out_trans:
                     tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
@@ -246,7 +346,10 @@ class SF_Chart(Subsystem):
         for state in self.all_states.values():
             if state.name == name:
                 return state
-
+    def get_state_by_ssid(self, ssid):
+        for state in self.all_states.values():
+            if state.ssid == ssid:
+                return state
     def get_fun_by_path(self, fun_path):
         assert isinstance(fun_path, str)
         fun_path = tuple(fun_path[:fun_path.index("(")].split("."))
@@ -259,7 +362,11 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
+<<<<<<< HEAD
+        return self.fun_dict[longest_path]      
+=======
         return self.fun_dict[longest_path]       # 为什莫要是路径最长的
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -326,7 +433,6 @@ class SF_Chart(Subsystem):
         if isinstance(state, AND_State) and tran_type == "out_trans" \
                 or isinstance(state, Junction) and tran_type == "inner_trans":
             return hp.Skip()
-
         if tran_type == "out_trans":
             assert isinstance(state, (OR_State, Junction))
             trans = state.out_trans
@@ -423,11 +529,20 @@ class SF_Chart(Subsystem):
                 return "skip"
             return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 
+        def DBvout(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("DBVOut" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
+
         # Get VIn
         def vin(_i, _vars):
             if not _vars:
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
+        def DBvin(_i, _vars):
+            if not _vars:
+                return "skip"
+            return "; ".join("DBVIn" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
 
         in_channels = "; ".join(in_channels) + "; " if in_channels else ""
         out_channels = "; ".join(out_channels) + "; " if out_channels else ""
@@ -439,12 +554,12 @@ class SF_Chart(Subsystem):
             s_i = self.get_state_by_name("S" + i)
             assert isinstance(s_i, AND_State)
             vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
+            
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> (BC" + i + "!E --> " + vout(i, vars_in_s_i)
+                                    hp_parser.parse("num == " + i + " -> (DBC" + i + "!E -->" + DBvout(i, vars_in_s_i)+" $ BC" + i + "!E --> " + vout(i, vars_in_s_i)
                                                     + " $ BR" + i + "?E -->" + vin(i, vars_in_s_i) +
-                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO" + i
-                                                    + "? -->" + vin(i, vars_in_s_i)
-                                                    + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
+                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR" + i + "?E -->"+ DBvin(i, vars_in_s_i) +"; EL := push(EL, E); num :="+str(global_destState_num)+" ; NL := push(NL, num) $ DBO"+ i +"? -->"+ DBvin(i, vars_in_s_i)+
+                                                " $ BO" + i + "? --> " + vin(i, vars_in_s_i) + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; "
@@ -532,7 +647,7 @@ class SF_Chart(Subsystem):
 
             new_hps = list()
             for sub_hp in _hps:
-                assert isinstance(sub_hp, hp.HCSP)
+                #assert isinstance(sub_hp, hp.HCSP)
                 if isinstance(sub_hp, hp.Sequence):
                     new_hps.extend(sub_hp.hps)
                 else:
@@ -610,12 +725,10 @@ class SF_Chart(Subsystem):
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_one_step_from_state(s_i))
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
-
             # Body of process S_i
             s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, vars_in_s_i)),
                                    s_du,  # S_du
                                    hp_parser.parse("BO" + str(i) + "!; " + vin(i, vars_in_s_i)))
-
             # P_diag = p_diag_proc
             if p_diag:
                 if isinstance(p_diag[0], hp.Var):
@@ -642,6 +755,7 @@ class SF_Chart(Subsystem):
                     break
             if not contain_X:
                 s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()), hp.Loop(s_i_proc))
+                #s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),s_i_proc)
 
             # The output order is after D, M and M_main
             processes.insert(3, s_i.name, s_i_proc)

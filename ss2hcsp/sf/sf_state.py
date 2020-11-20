@@ -261,8 +261,14 @@ class SF_State:
             assert isinstance(act, hp.HCSP)
             if isinstance(act, (hp.Assign, hp.Sequence)):
                 var_set = var_set.union(act.get_vars())
+<<<<<<< HEAD
+        for tran in self.inner_trans:                         #并行状态中只能有内部转换，or状态中3种转换都可以有
+            
+=======
         for tran in self.inner_trans:                         # 并行状态中只能有内部转换，or状态中3种转换都可以有
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
             var_set = var_set.union(tran.get_vars())
+
         if isinstance(self, OR_State):                           
             for tran in self.out_trans:
                 var_set = var_set.union(tran.get_vars())
@@ -270,6 +276,7 @@ class SF_State:
                 var_set = var_set.union(self.default_tran.get_vars())
         for child in self.children:
             var_set = var_set.union(child.get_vars())
+
         return var_set
 
     def check_children(self):
@@ -364,5 +371,9 @@ class Function:
         assert re.match(pattern="function \\w+", string=acts[0])
         hps = [hp_parser.parse(act) for act in acts[1:]]
         assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
+<<<<<<< HEAD
+        result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]  
+=======
         result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]    # ？？？？？
+>>>>>>> da5f292d821337190321920c9dedb702f149d8cf
         return result_hp

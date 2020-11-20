@@ -11,6 +11,38 @@ def printTofile(self,path,content):
   print(content, file=f)
   f.close()  #  关闭文件
 class SfTest(unittest.TestCase):
+    
+    def testhis_junction(self):
+        location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        #print(process)
+#         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
+    def testSendDirect_event(self):
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+        print(process)
+    def testSend(self):
+        location = "./Examples/Stateflow/early_exit/early_return_logic_eg1_1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        #print(process)
+        #printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
+ 
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
         diagram = SL_Diagram(location=location)
@@ -19,19 +51,19 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
-
+        print(process)
+        printTofile("./Examples/Stateflow/early_exit/early_exit.txt",process)
         res = [
             ("P", "@M || @S1"),
             ("M", 'num := 0; wait(-1); (num == 0 -> (E := ""; EL := [""]; NL := [1]; num := 1); '
-                  'num == 1 -> (BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 '
-                  '$ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
+                  'num == 1 -> (DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip; EL := push(EL, E); num := 1; NL := push(NL, num) '
+                  '$ DBO1? --> skip $ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(-1)); '
                   'EL != [] -> (E := top(EL); num := top(NL))))**'),
             ("S1", 'a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; a_S1 := 1; a_A := 1; a_A1 := 1; '
                    '(rec X.(BC1?E; skip; if a_A == 1 then done := 0; E == "e" && done == 0 -> '
                    '(a_A2 == 1 -> a_A2 := 0; a_A1 == 1 -> a_A1 := 0; a_A := 0; a_B := 1; done := 1); '
-                   'done == 0 -> if a_A1 == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_A == 1 -> '
+                   'done == 0 -> if a_A1 == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_A1 == 1 -> '
                    '(a_A1 := 0; a_A2 := 1; done := 1)) elif a_A2 == 1 then skip else skip endif '
                    'elif a_B == 1 then skip else skip endif; BO1!; skip))**'),
         ]
@@ -75,7 +107,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
+        #print(process)
 
         res = [
             ("P", "a := 0; cansend := 0; flag := 0; heartbeat := 0; heartbeatPeriod := 0; i := 0; a_S1 := 0; "
@@ -199,31 +231,19 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
+        #print(process)
 
     # To be implemented
-    # def testJunctionPriority(self):
-    #     location = "./Examples/Stateflow/junction_priority/junction_priority.xml"
-    #     diagram = SL_Diagram(location)
-    #     _ = diagram.parse_xml()
-    #     diagram.delete_subsystems()
-    #     diagram.comp_inher_st()
-    #     diagram.inherit_to_continuous()
-    #     diagram.add_buffers()
-    #     diagram.add_line_name()
-    #     process = get_hcsp(*diagram.seperate_diagram())
-    #     print(process)
-
-    def testhis_junction(self):
-        location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
-        diagram = SL_Diagram(location=location)
+    def testJunctionPriority(self):
+        location = "./Examples/Stateflow/junction_priority/junction_priority.xml"
+        diagram = SL_Diagram(location)
         _ = diagram.parse_xml()
+        diagram.delete_subsystems()
         diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
-        #printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
-
+        #print(process)
 if __name__ == "__main__":
     unittest.main()

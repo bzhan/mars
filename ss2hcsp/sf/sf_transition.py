@@ -2,6 +2,7 @@ import re
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.hcsp.hcsp import OutputChannel
 
 
 class Transition:
@@ -95,9 +96,10 @@ class Transition:
         if self.condition:
             assert isinstance(self.condition, BExpr)
             var_set = var_set.union(self.condition.get_vars())    #返回两个集合的交集
+            #print(self.condition.get_vars())
         # Get variables in actions
         for act in list(self.cond_acts) + list(self.tran_acts):
-            assert isinstance(act, hp.HCSP)
-            if isinstance(act, (hp.Assign, hp.Sequence)):
+            #assert isinstance(act, hp.HCSP)
+            if isinstance(act, (hp.Assign, hp.Sequence)) :
                 var_set = var_set.union(act.get_vars())
         return var_set
