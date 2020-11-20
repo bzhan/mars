@@ -1493,6 +1493,20 @@ lemma combine_blocks_cons_left:
   apply (induct chs "ev # tr1" tr2 tr arbitrary: ev rule: combine_blocks.induct)
   by (auto intro: combine_blocks.intros)
 
+lemma equiv_trace_merge':
+  assumes "d1 > 0" "d2 > 0"
+   "\<forall>\<tau>\<in>{0..d1}. hist1 \<tau> = hist \<tau>"
+   "\<forall>\<tau>\<in>{0..d2}. hist2 \<tau> = hist (\<tau> + d1)"
+  shows "equiv_trace (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. hist1 \<tau>) rdy # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. hist2 \<tau>) rdy # tr)
+                     (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. hist \<tau>) rdy # tr)"
+proof -
+  have a: "(\<lambda>\<tau>\<in>{0..d1+d2}. hist \<tau>) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then hist1 \<tau> else hist2 (\<tau> - d1))"
+    using assms by auto
+  show ?thesis
+    unfolding a apply (rule equiv_trace_merge)
+    using assms by auto
+qed
+
 lemma combine_blocks_merge_left:
   "combine_blocks chs (WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr') tr2 tr \<Longrightarrow>
    p1 d1 = p2 0 \<Longrightarrow>
@@ -1527,9 +1541,29 @@ next
     using combine_blocks_wait1 by auto
 next
   case (combine_blocks_wait2 comms t2 hist2 rdy2 blks2 blks hist rdy')
-  thm combine_blocks_wait2
   have a: ?case if "d1 + d2 = t2"
-    sorry
+  proof -
+    have b: "t2 - d1 = d2"
+      using that by auto
+    obtain blks' where c:
+      "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (restrict p2 {0..d2} t) ((\<lambda>\<tau>\<in>{0..d2}. hist2 (\<tau> + d1)) t)) rdy' # blks'"
+      "combine_blocks comms tr' blks2 blks'"
+      using combine_blocks_elim4[OF combine_blocks_wait2(1)[unfolded b]]
+            combine_blocks_wait2(3,7) by auto
+    show ?thesis
+      unfolding c(1)
+      apply (rule exI[where x="WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. ParState (if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) (hist2 \<tau>)) rdy' # blks'"])
+      apply auto
+      subgoal
+        unfolding combine_blocks_wait2(6)
+        apply (rule equiv_trace_merge')
+        using combine_blocks_wait2(8-10) by auto
+      subgoal
+        unfolding that
+        apply (rule combine_blocks.combine_blocks_wait1)
+        using combine_blocks_wait2(3,7) c(2) by auto
+      done
+  qed
   have b: ?case if "d1 + d2 < t2"
     sorry
   have c: ?case if "d1 + d2 > t2"
