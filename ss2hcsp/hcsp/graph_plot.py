@@ -32,7 +32,7 @@ def get_data_time(res, ProgramName):
     for new_entry in temp_program_list:
         for state_entry in new_entry.get('state'):
             for state_key in state_entry.keys():
-                if not dataset_state.has_key(state_key):
+                if not state_key in dataset_state:
                     dataset_state.update({state_key : []})
                     dataset_time.update({state_key : []})
                 dataset_state.get(state_key).append(state_entry.get(state_key))
@@ -156,7 +156,7 @@ class PageThree(tk.Frame):
                     x = dataset_state.get(t)
                     y = dataset_time.get(t)
                     a.plot(x,y,label = t)
-                legend(labels)
+                    a.legend()
                 canvas = FigureCanvasTkAgg(f, self)
                 canvas.draw()
                 canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
