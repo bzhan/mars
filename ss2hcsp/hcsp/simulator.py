@@ -836,7 +836,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, tkplot=False):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -977,8 +977,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
             log_event(ori_pos=[], type="overflow", str="overflow")
             break
     
-    app = Graphapp(res)
-    app.mainloop()
+    if tkplot:
+        app = graph_plot.Graphapp(res)
+        app.mainloop()
+
     return res
 
 def check_comms(infos):

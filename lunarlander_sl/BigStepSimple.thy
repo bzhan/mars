@@ -291,6 +291,22 @@ lemma combine_blocks_elim4c:
   "combine_blocks comms [] (WaitBlock d1 p1 rdy1 # blks1) blks \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim4d:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
+   d1 < d2 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>blks'. blks = WaitBlock d1 (\<lambda>t\<in>{0..d1}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
+            combine_blocks comms blks1 (WaitBlock (d2 - d1) (\<lambda>t\<in>{0..d2-d1}. p2 (t + d1)) rdy2 # blks2) blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4e:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
+   d1 > d2 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>blks'. blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
+            combine_blocks comms (WaitBlock (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 
 subsection \<open>Tests for combine_blocks\<close>
 
