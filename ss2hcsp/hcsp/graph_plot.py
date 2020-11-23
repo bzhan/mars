@@ -188,5 +188,5 @@ class PageThree(tk.Frame):
 
     
 
-app = Graphapp()
-app.mainloop()
+#app = Graphapp()
+#app.mainloop()

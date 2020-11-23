@@ -14,6 +14,7 @@ from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExp
     opt_round, get_range, split_conj, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import graph_plot
 
 
 class SimulatorException(Exception):
@@ -887,6 +888,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         if len(res['trace']) > num_steps:
             end_run = True
 
+        
+
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""
         new_entry = {
@@ -973,7 +976,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         if has_overflow:
             log_event(ori_pos=[], type="overflow", str="overflow")
             break
-
+    
+    app = Graphapp(res)
+    app.mainloop()
     return res
 
 def check_comms(infos):
