@@ -79,9 +79,9 @@ text \<open>Further, we define equivalence between two traces\<close>
 
 inductive equiv_trace :: "trace \<Rightarrow> trace \<Rightarrow> bool" where
   equiv_trace_empty: "equiv_trace [] []"
-| equiv_trace_merge: "p1 d1 = p2 0 \<Longrightarrow>
+| equiv_trace_merge: "d1 > 0 \<Longrightarrow> d2 > 0 \<Longrightarrow> p1 d1 = p2 0 \<Longrightarrow>
    equiv_trace (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. p1 \<tau>) rdy # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy # tr)
-               (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr)"
+               (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr)"
 | equiv_trace_cons: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace (ev # tr1) (ev # tr2)"
 | equiv_trace_trans: "equiv_trace tr1 tr2 \<Longrightarrow> equiv_trace tr2 tr3 \<Longrightarrow> equiv_trace tr1 tr3"
 
@@ -402,7 +402,8 @@ next
   show ?case
     apply (rule exI[where x="[WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"])
     unfolding a b apply auto
-    unfolding c apply (rule equiv_trace_merge) apply auto
+    unfolding c apply (rule equiv_trace_merge)
+       apply (auto simp add: waitS1)
      apply (rule waitB)
     using waitS1 by auto
 next
@@ -436,12 +437,13 @@ next
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {})"
     using sendS2(2) by auto
   have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({ch}, {}), OutBlock ch (e s)]
-           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({ch}, {}), OutBlock ch (e s)]" (is "equiv_trace ?lhs ?rhs") for d2
+           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({ch}, {}), OutBlock ch (e s)]" (is "equiv_trace ?lhs ?rhs") if "d2 > 0" for d2
   proof -
     have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({ch}, {}), OutBlock ch (e s)]"
       by auto
     show ?thesis
-      unfolding b2 apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge)
+      by (auto simp add: sendS2 that)
   qed
   show ?case
     using sendS2(3) apply (elim sendE)
@@ -472,12 +474,13 @@ next
   have a: "ev = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch})"
     using receiveS2(2) by auto
   have b: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}), InBlock ch v]
-           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({}, {ch}), InBlock ch v]" (is "equiv_trace ?lhs ?rhs") for v d2
+           [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) ({}, {ch}), InBlock ch v]" (is "equiv_trace ?lhs ?rhs") if "d2 > 0" for v d2
   proof -
     have b2: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) ({}, {ch}), InBlock ch v]"
       by auto
     show ?thesis
-      unfolding b2 apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge)
+      by (auto simp add: receiveS2 that)
   qed
   show ?case
     using receiveS2(3) apply (elim receiveE)
@@ -501,24 +504,26 @@ next
      (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs) #
       WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')"
-    (is "equiv_trace ?lhs ?rhs") for d2 ch e tr2'
+    (is "equiv_trace ?lhs ?rhs") if "d2 > 0" for d2 ch e tr2'
   proof -
     have b2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs) #
                      OutBlock ch (e s) # tr2'"
       by auto
     show ?thesis
-      unfolding b2 apply (rule equiv_trace_merge) by auto
+      unfolding b2 apply (rule equiv_trace_merge)
+      by (auto simp add: EChoiceS1 that)
   qed
   have c: "equiv_trace
      (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice cs) #
       WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')"
-    (is "equiv_trace ?lhs ?rhs") for d2 ch v tr2'
+    (is "equiv_trace ?lhs ?rhs") if "d2 > 0" for d2 ch v tr2'
   proof -
     have c2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State s else State s) (rdy_of_echoice cs) # InBlock ch v # tr2'"
       by auto
     show ?thesis
-      unfolding c2 apply (rule equiv_trace_merge) by auto
+      unfolding c2 apply (rule equiv_trace_merge)
+      by (auto simp add: EChoiceS1 that)
   qed
   show ?case
     using EChoiceS1(3) apply (elim echoiceE)
@@ -582,13 +587,13 @@ next
   qed
   have c: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {}), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]
      [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})]"
-    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2       
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2       
   proof -
     have c1: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) ({}, {})]"
       by auto
     show ?thesis
       unfolding c1 apply (rule equiv_trace_merge)
-      using that by auto
+      by (auto simp add: that ContS1)
   qed
   show ?case
     using ContS1(6) apply (elim contE)
@@ -662,36 +667,36 @@ next
      (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) #
       WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')"
-    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch e tr2'
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2 ch e tr2'
   proof -
     have e2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
                      OutBlock ch (e (p2 d2)) # tr2'"
       by auto
     show ?thesis
       unfolding e2 apply (rule equiv_trace_merge)
-      using that by auto
+      by (auto simp add: InterruptS1 that)
   qed
   have f: "equiv_trace
      (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2')
      (WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # InBlock ch v # tr2')"
-    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2 ch v tr2'
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2 ch v tr2'
   proof -
     have f2: "?rhs = WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
                      InBlock ch v # tr2'"
       by auto
     show ?thesis
       unfolding f2 apply (rule equiv_trace_merge)
-      using that by auto
+      by (auto simp add: that InterruptS1)
   qed
   have g: "equiv_trace [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) (rdy_of_echoice cs)]
      [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)]"
-    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" for d2 p2
+    (is "equiv_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2
   proof -
     have g1: "?rhs = [WaitBlock (d + d2) (\<lambda>\<tau>\<in>{0..d + d2}. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]"
       by auto
     show ?thesis
       unfolding g1 apply (rule equiv_trace_merge)
-      using that by auto
+      by (auto simp add: that InterruptS1)
   qed
   show ?case
     using InterruptS1(6) apply (elim interruptE)
@@ -1487,6 +1492,90 @@ lemma combine_blocks_cons_left:
    combine_blocks chs (ev # tr2') tr2 tr"
   apply (induct chs "ev # tr1" tr2 tr arbitrary: ev rule: combine_blocks.induct)
   by (auto intro: combine_blocks.intros)
+
+lemma equiv_trace_merge':
+  assumes "d1 > 0" "d2 > 0"
+   "\<forall>\<tau>\<in>{0..d1}. hist1 \<tau> = hist \<tau>"
+   "\<forall>\<tau>\<in>{0..d2}. hist2 \<tau> = hist (\<tau> + d1)"
+  shows "equiv_trace (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. hist1 \<tau>) rdy # WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. hist2 \<tau>) rdy # tr)
+                     (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. hist \<tau>) rdy # tr)"
+proof -
+  have a: "(\<lambda>\<tau>\<in>{0..d1+d2}. hist \<tau>) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then hist1 \<tau> else hist2 (\<tau> - d1))"
+    using assms by auto
+  show ?thesis
+    unfolding a apply (rule equiv_trace_merge)
+    using assms by auto
+qed
+
+lemma combine_blocks_merge_left:
+  "combine_blocks chs (WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr') tr2 tr \<Longrightarrow>
+   p1 d1 = p2 0 \<Longrightarrow>
+   d1 > 0 \<Longrightarrow> d2 > 0 \<Longrightarrow>
+   \<exists>tr''. equiv_trace tr tr'' \<and>
+   combine_blocks chs (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr') tr2 tr''"
+proof (induct chs "WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr'" tr2 tr
+       rule: combine_blocks.induct)
+  case (combine_blocks_unpair3 ch comms blks2 blks v)
+  then show ?case
+    using combine_blocks.combine_blocks_unpair3 equiv_trace_cons by blast
+next
+  case (combine_blocks_unpair4 ch comms blks2 blks v)
+  then show ?case
+    using combine_blocks.combine_blocks_unpair4 equiv_trace_cons by blast
+next
+  case (combine_blocks_unpair6 ch comms blks2 blks v)
+  then show ?case
+    using combine_blocks.combine_blocks_unpair6 equiv_trace_cons by blast
+next
+  case (combine_blocks_wait1 chs blks2 blks rdy2 hist hist2 rdy')
+  have a: "(\<lambda>\<tau>\<in>{0..d2}. if 0 \<le> \<tau> + d1 \<and> \<tau> \<le> d2 then if \<tau> + d1 < d1 then p1 (\<tau> + d1) else p2 (\<tau> + d1 - d1) else undefined) =
+           (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
+    apply (rule restrict_ext)
+    using combine_blocks_wait1 by auto
+  show ?case
+    apply (rule exI[where x="WaitBlock d1 hist rdy' # blks"])
+    apply auto
+    apply (rule combine_blocks_wait3)
+    subgoal apply (auto simp add: combine_blocks_wait1)
+      unfolding a by (rule combine_blocks_wait1(1))
+    using combine_blocks_wait1 by auto
+next
+  case (combine_blocks_wait2 comms t2 hist2 rdy2 blks2 blks hist rdy')
+  have a: ?case if "d1 + d2 = t2"
+  proof -
+    have b: "t2 - d1 = d2"
+      using that by auto
+    obtain blks' where c:
+      "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (restrict p2 {0..d2} t) ((\<lambda>\<tau>\<in>{0..d2}. hist2 (\<tau> + d1)) t)) rdy' # blks'"
+      "combine_blocks comms tr' blks2 blks'"
+      using combine_blocks_elim4[OF combine_blocks_wait2(1)[unfolded b]]
+            combine_blocks_wait2(3,7) by auto
+    show ?thesis
+      unfolding c(1)
+      apply (rule exI[where x="WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. ParState (if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) (hist2 \<tau>)) rdy' # blks'"])
+      apply auto
+      subgoal
+        unfolding combine_blocks_wait2(6)
+        apply (rule equiv_trace_merge')
+        using combine_blocks_wait2(8-10) by auto
+      subgoal
+        unfolding that
+        apply (rule combine_blocks.combine_blocks_wait1)
+        using combine_blocks_wait2(3,7) c(2) by auto
+      done
+  qed
+  have b: ?case if "d1 + d2 < t2"
+    sorry
+  have c: ?case if "d1 + d2 > t2"
+    sorry
+  show ?case
+    using a b c by fastforce
+next
+  case (combine_blocks_wait3 comms t2 blks2 blks rdy2 hist hist2 rdy)
+  thm combine_blocks_wait3
+  then show ?case sorry
+qed
+
 
 
 lemma combine_blocks_equiv_left:
