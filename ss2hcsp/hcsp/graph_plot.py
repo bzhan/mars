@@ -44,7 +44,7 @@ def get_data_time(res, ProgramName):
 
 class Graphapp(tk.Tk):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, res, *args, **kwargs):
         
         tk.Tk.__init__(self, *args, **kwargs)
 
@@ -56,10 +56,10 @@ class Graphapp(tk.Tk):
         container.pack(side="top", fill="both", expand = True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-
+        self.res = res
         self.frames = {}
 
-        for F in (StartPage, PageOne, PageTwo, PageThree):
+        for F in (StartPage, PageOne, PageTwo):
 
             frame = F(container, self)
 
@@ -67,6 +67,12 @@ class Graphapp(tk.Tk):
 
             frame.grid(row=0, column=0, sticky="nsew")
 
+        frame = PageThree(container, self, self.res)
+
+        self.frames[PageThree] = frame
+
+        frame.grid(row=0, column=0, sticky="nsew")
+        
         self.show_frame(StartPage)
 
     def show_frame(self, cont):
@@ -126,11 +132,11 @@ class PageTwo(tk.Frame):
 
 class PageThree(tk.Frame):
 
-    def __init__(self, parent, controller):
+    def __init__(self, parent, controller, res):
         tk.Frame.__init__(self, parent)
         label = tk.Label(self, text="Graph Page!", font=LARGE_FONT)
         label.pack(pady=10,padx=10)
-
+        self.res = res
         button1 = ttk.Button(self, text="Back to Home",
                             command=lambda: controller.show_frame(StartPage))
         button1.pack()
@@ -145,13 +151,13 @@ class PageThree(tk.Frame):
         
 
         def plot_graph():
-            if (e1.get() in get_program(res)):
+            if (e1.get() in get_program(self.res)):
                 # x = np.arange(0,4*np.pi,0.1)   # start,stop,step
                 # y1 = np.sin(x)
                 # y2 = np.cos(x)
                 # a.plot(x,y1)
                 # a.plot(x,y2) 
-                dataset_state, dataset_time = get_data_time(res, e1.get())
+                dataset_state, dataset_time = get_data_time(self.res, e1.get())
                 for t in dataset_state.keys():
                     x = dataset_state.get(t)
                     y = dataset_time.get(t)
