@@ -96,7 +96,6 @@ class Transition:
         if self.condition:
             assert isinstance(self.condition, BExpr)
             var_set = var_set.union(self.condition.get_vars())    #返回两个集合的交集
-            #print(self.condition.get_vars())
         # Get variables in actions
         for act in list(self.cond_acts) + list(self.tran_acts):
             #assert isinstance(act, hp.HCSP)
