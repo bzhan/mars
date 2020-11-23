@@ -6,10 +6,10 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
 
-def printTofile(self,path,content):
-  f = open(path, "w")    # 打开文件以便写入
-  print(content, file=f)
-  f.close()  #  关闭文件
+def printTofile(path,content):
+    f = open(path, "w")    # 打开文件以便写入
+    print(content, file=f)
+    f.close()  #  关闭文件
 class SfTest(unittest.TestCase):
     
     def testhis_junction(self):
@@ -23,14 +23,14 @@ class SfTest(unittest.TestCase):
         #print(process)
 #         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
     def testSendDirect_event(self):
-        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_2.txt",process)
         print(process)
     def testSend(self):
         location = "./Examples/Stateflow/early_exit/early_return_logic_eg1_1.xml"
@@ -41,7 +41,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         #print(process)
-        #printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
+#         #printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
  
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
@@ -56,7 +56,7 @@ class SfTest(unittest.TestCase):
         res = [
             ("P", "@M || @S1"),
             ("M", 'num := 0; wait(-1); (num == 0 -> (E := ""; EL := [""]; NL := [1]; num := 1); '
-                  'num == 1 -> (DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip; EL := push(EL, E); num := 1; NL := push(NL, num) '
+                  'num == 1 -> (DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip;DBnum1?Dnum; num := Dnum '
                   '$ DBO1? --> skip $ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(-1)); '
                   'EL != [] -> (E := top(EL); num := top(NL))))**'),
