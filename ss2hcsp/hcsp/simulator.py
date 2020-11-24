@@ -8,7 +8,6 @@ from copy import copy
 import itertools
 import math
 from scipy.integrate import solve_ivp
-from numpy import *
 import matplotlib.pyplot as plt
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
