@@ -8,6 +8,8 @@ from copy import copy
 import itertools
 import math
 from scipy.integrate import solve_ivp
+from numpy import *
+import matplotlib.pyplot as plt
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, ArrayIdxExpr, BConst, LogicExpr, RelExpr, true_expr, \
@@ -836,7 +838,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, tkplot=False):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, tkplot = True) :
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -977,11 +979,44 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, tkplot=False):
             log_event(ori_pos=[], type="overflow", str="overflow")
             break
     
+   
+    # print(res.get("time_series"))
+
+    
+    return res
+
+def graph(res, ProgramName, tkplot=False):
+    DataState = {}
+    temp = res.get("time_series")
+    # for k in temp.keys():
+    lst = temp.get(ProgramName)
+    for t in lst:
+        state = t.get("state")
+        # print(t.get('time'))
+        for key in state.keys():
+            # if state.get(key) == {}:
+            #     pass
+            if key not in DataState.keys():
+                DataState.update({key:([],[])})
+            # print (DataState.get(key))
+            # print (state.get())
+            DataState.get(key)[0].append(state.get(key))
+            DataState.get(key)[1].append(t.get('time'))
+                
+    # print (DataState)
+    # for l in DataState.keys():
+    #     print(len(DataState.get(l)[0])==len(DataState.get(l)[1]))
     if tkplot:
         app = graph_plot.Graphapp(res)
         app.mainloop()
+    else:
+        for t in DataState.keys():
+            x = DataState.get(t)[1]
+            y = DataState.get(t)[0]
+            plt.plot(x,y,label = t)
+            plt.legend()
+            plt.show()
 
-    return res
 
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of

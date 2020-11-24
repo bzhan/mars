@@ -26,19 +26,22 @@ def get_program(res):
 #     return res.get('time') 
 
 def get_data_time(res, ProgramName):
-    temp_program_list = res.get('time_series').get(ProgramName)
-    dataset_state = {}
-    dataset_time = {}
-    for new_entry in temp_program_list:
-        for state_entry in new_entry.get('state'):
-            for state_key in state_entry.keys():
-                if not state_key in dataset_state:
-                    dataset_state.update({state_key : []})
-                    dataset_time.update({state_key : []})
-                dataset_state.get(state_key).append(state_entry.get(state_key))
-                dataset_time.get(state_key).append(new_entry.get('time'))
-    return dataset_state, dataset_time
-
+    DataState = {}
+    temp = res.get("time_series")
+    lst = temp.get(ProgramName)
+    for t in lst:
+        state = t.get("state")
+        # print(t.get('time'))
+        for key in state.keys():
+            # if state.get(key) == {}:
+            #     pass
+            if key not in DataState.keys():
+                DataState.update({key:([],[])})
+            # print (DataState.get(key))
+            # print (state.get())
+            DataState.get(key)[0].append(state.get(key))
+            DataState.get(key)[1].append(t.get('time'))
+    return DataState
 
 
 
@@ -157,10 +160,10 @@ class PageThree(tk.Frame):
                 # y2 = np.cos(x)
                 # a.plot(x,y1)
                 # a.plot(x,y2) 
-                dataset_state, dataset_time = get_data_time(self.res, e1.get())
+                dataset_state = get_data_time(self.res, e1.get())
                 for t in dataset_state.keys():
-                    x = dataset_state.get(t)
-                    y = dataset_time.get(t)
+                    x = dataset_state.get(t)[1]
+                    y = dataset_state.get(t)[0]
                     a.plot(x,y,label = t)
                     a.legend()
                 canvas = FigureCanvasTkAgg(f, self)
@@ -188,5 +191,5 @@ class PageThree(tk.Frame):
 
     
 
-#app = Graphapp()
-#app.mainloop()
+# app = Graphapp()
+# app.mainloop()
