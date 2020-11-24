@@ -37,11 +37,7 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
-<<<<<<< HEAD
             if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.startswith("BR") or hps[i].ch_name.startswith("DBR")): #BR收到子图发来的消息广播申请
-=======
-            if isinstance(hps[i], hp.OutputChannel) and hps[i].ch_name.startswith("BR"):  # BR收到子图发来的消息广播申请
->>>>>>> da5f292d821337190321920c9dedb702f149d8cf
                 # For example, hps[i].expr.name = E_S1
                 #state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1 split
                 state_name = (lambda x: x.split("_")[-1])(hps[i].expr.name)
@@ -362,11 +358,7 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-<<<<<<< HEAD
-        return self.fun_dict[longest_path]      
-=======
         return self.fun_dict[longest_path]       # 为什莫要是路径最长的
->>>>>>> da5f292d821337190321920c9dedb702f149d8cf
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
