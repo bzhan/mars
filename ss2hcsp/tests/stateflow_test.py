@@ -6,7 +6,7 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
 
-def printTofile(self,path,content):
+def printTofile(path,content):
   f = open(path, "w")    # 打开文件以便写入
   print(content, file=f)
   f.close()  #  关闭文件
@@ -23,7 +23,7 @@ class SfTest(unittest.TestCase):
         #print(process)
 #         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
     def testSendDirect_event(self):
-        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
