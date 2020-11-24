@@ -1782,7 +1782,7 @@ next
   have b2: "\<tau> - (t1 - t2) = \<tau> + t2 - t1" for \<tau>
     by auto
   have c: "WaitBlock (t1 - t2 + d2) (\<lambda>\<tau>\<in>{0..t1-t2+d2}. if \<tau> < t1 - t2 then p1 (\<tau> + t2) else p2 (\<tau> - (t1 - t2))) rdy =
-           WaitBlock (t1 + d2 - t2) (\<lambda>\<tau>\<in>{0..t1 + d2 - t2}. (\<lambda>\<tau>\<in>{0..t1 + d2}. if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (\<tau> + t2)) rdy"
+           WaitBlock (t1 + d2 - t2) (\<lambda>\<tau>\<in>{0..t1+d2-t2}. (\<lambda>\<tau>\<in>{0..t1+d2}. if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (\<tau> + t2)) rdy"
     unfolding b apply auto
     apply (rule restrict_ext)
     using combine_blocks_wait3(3-10) by (auto simp add: b2)
@@ -1804,22 +1804,148 @@ lemma combine_blocks_merge_right:
 proof (induct chs tr1 "WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr'" tr
        arbitrary: d1 p1 rule: combine_blocks.induct)
   case (combine_blocks_unpair1 ch comms blks1 blks v)
-  then show ?case sorry
+  then show ?case
+    using combine_blocks.combine_blocks_unpair1 equiv_trace_cons by blast
 next
   case (combine_blocks_unpair2 ch comms blks1 blks v)
-  then show ?case sorry
+  then show ?case
+    using combine_blocks.combine_blocks_unpair2 equiv_trace_cons by blast
 next
   case (combine_blocks_unpair5 ch comms blks1 blks v)
-  then show ?case sorry
+  then show ?case
+    using combine_blocks.combine_blocks_unpair5 equiv_trace_cons by blast
 next
-  case (combine_blocks_wait1 comms blks1 blks rdy1 hist hist1 t rdy)
-  then show ?case sorry
+  case (combine_blocks_wait1 comms blks1 blks rdy1 hist hist1 t rdy')
+  have a: "(\<lambda>\<tau>\<in>{0..d2}. if 0 \<le> \<tau> + t \<and> \<tau> \<le> d2 then if \<tau> + t < t then p1 (\<tau> + t) else p2 (\<tau> + t - t) else undefined) =
+           (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)" if "t > 0"
+    apply (rule restrict_ext)
+    using combine_blocks_wait1 that by auto
+  show ?case
+    apply (rule exI[where x="WaitBlock t hist rdy' # blks"])
+    apply auto
+    apply (rule combine_blocks_wait2)
+    subgoal apply (auto simp add: combine_blocks_wait1)
+      unfolding a
+      by (simp add: a combine_blocks_wait1.hyps(1) combine_blocks_wait1.prems(2))
+    using combine_blocks_wait1 by auto
 next
-  case (combine_blocks_wait2 comms blks1 t2 t1 blks rdy1 hist hist1 rdy)
-  then show ?case sorry
+  case (combine_blocks_wait2 comms blks1 t2 t1 blks rdy1 hist hist1 rdy')
+  have "\<exists>tr''.
+   equiv_trace blks tr'' \<and>
+   combine_blocks comms blks1 (WaitBlock (t2 - t1 + d2) (\<lambda>\<tau>\<in>{0..t2-t1+d2}. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy # tr') tr''"
+    apply (rule combine_blocks_wait2(2))
+    using combine_blocks_wait2(3-10) by auto
+  then obtain tr'' where a:
+    "equiv_trace blks tr''"
+    "combine_blocks comms blks1 (WaitBlock (t2 - t1 + d2) (\<lambda>\<tau>\<in>{0..t2-t1+d2}. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy # tr') tr''"
+    by auto
+  have b: "t2 - t1 + d2 = t2 + d2 - t1"
+    by auto
+  have b2: "\<tau> - (t2 - t1) = \<tau> + t1 - t2" for \<tau>
+    by auto
+  have c: "WaitBlock (t2 - t1 + d2) (\<lambda>\<tau>\<in>{0..t2-t1+d2}. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy =
+           WaitBlock (t2 + d2 - t1) (\<lambda>\<tau>\<in>{0..t2+d2-t1}. (\<lambda>\<tau>\<in>{0..t2+d2}. if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2)) (\<tau> + t1)) rdy"
+    unfolding b apply auto
+    apply (rule restrict_ext)
+    using combine_blocks_wait2(3-10) by (auto simp add: b2)
+  show ?case
+    apply (rule exI[where x="WaitBlock t1 hist rdy' # tr''"])
+    apply auto
+    subgoal apply (rule equiv_trace_cons) by (rule a(1))
+    apply (rule combine_blocks.combine_blocks_wait2)
+    subgoal using a(2) unfolding c by auto
+    using combine_blocks_wait2(3-10) by auto
 next
-  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks hist rdy)
-  then show ?case sorry
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks hist rdy')
+  have a: ?case if "t2 + d2 = t1"
+  proof -
+    have a1: "t1 - t2 = d2"
+      using that by auto
+    obtain blks' where a2:
+      "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState ((\<lambda>\<tau>\<in>{0..d2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
+      "combine_blocks comms blks1 tr' blks'"
+      using combine_blocks_elim4[OF combine_blocks_wait3(1)[unfolded a1]]
+            combine_blocks_wait3(3,7) by auto
+    show ?thesis
+      unfolding a2(1)
+      apply (rule exI[where x="WaitBlock (t2 + d2) (\<lambda>\<tau>\<in>{0..t2+d2}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' # blks'"])
+      apply auto
+      subgoal
+        unfolding combine_blocks_wait3(6)
+        apply (rule equiv_trace_merge')
+        using combine_blocks_wait3(8-10) by auto
+      subgoal
+        unfolding that
+        apply (rule combine_blocks.combine_blocks_wait1)
+        using combine_blocks_wait3(3,7) a2(2) by auto
+      done
+  qed
+  have b: ?case if "t2 + d2 < t1"
+  proof -
+    have b1: "d2 < t1 - t2"
+      using that by auto
+    obtain blks' where b2:
+      "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState ((\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
+      "combine_blocks comms (WaitBlock (t1-t2-d2) (\<lambda>t\<in>{0..t1-t2-d2}. (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) (t + d2)) rdy1 # blks1) tr' blks'"
+      using combine_blocks_elim4e[OF combine_blocks_wait3(1) b1 combine_blocks_wait3(3)]
+            combine_blocks_wait3(7) by auto
+    have b3: "t1 - t2 - d2 = t1 - (t2 + d2)"
+      by auto
+    have b4:
+      "(\<lambda>t\<in>{0..t1-t2-d2}. (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) (t + d2)) = (\<lambda>\<tau>\<in>{0..t1-(t2+d2)}. hist1 (\<tau> + (t2 + d2)))"
+      unfolding b3 apply (rule restrict_ext)
+      apply auto
+       apply (metis add.assoc add.commute)
+      using combine_blocks_wait3.prems(3) by auto
+    show ?thesis
+      unfolding b2(1)
+      apply (rule exI[where x="WaitBlock (t2 + d2) (\<lambda>\<tau>\<in>{0..t2+d2}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' # blks'"])
+      apply auto
+      subgoal
+        unfolding combine_blocks_wait3(6)
+        apply (rule equiv_trace_merge')
+        using combine_blocks_wait3(8-10) b1 by auto
+      subgoal
+        apply (rule combine_blocks.combine_blocks_wait3)
+        using combine_blocks_wait3(3,7-10) that b2(2)
+        unfolding b4 unfolding b3 by auto
+      done
+  qed
+  have c: ?case if "t2 + d2 > t1"
+  proof -
+    have c1: "t1 - t2 < d2"
+      using that by auto
+    obtain blks' where c2:
+      "blks = WaitBlock (t1 - t2) (\<lambda>t\<in>{0..t1-t2}. ParState ((\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
+      "combine_blocks comms blks1 (WaitBlock (d2 - (t1 - t2)) (\<lambda>t\<in>{0..d2-(t1-t2)}. restrict p2 {0..d2} (t + (t1 - t2))) rdy # tr') blks'"
+      using combine_blocks_elim4d[OF combine_blocks_wait3(1) c1 combine_blocks_wait3(3)]
+            combine_blocks_wait3(7) by auto
+    have c3: "WaitBlock t1 (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' =
+              WaitBlock (t2 + (t1 - t2)) (\<lambda>\<tau>\<in>{0..t2+(t1-t2)}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy'"
+      by auto
+    have c4: "d2 - (t1 - t2) = t2 + d2 - t1"
+      by auto
+    have c5: "(\<lambda>t\<in>{0..d2-(t1-t2)}. restrict p2 {0..d2} (t + (t1 - t2))) =
+              (\<lambda>\<tau>\<in>{0..t2+d2-t1}. if 0 \<le> \<tau> + t1 \<and> \<tau> + t1 \<le> t2 + d2 then if \<tau> + t1 < t2 then p1 (\<tau> + t1) else p2 (\<tau> + t1 - t2) else undefined)"
+      unfolding c4 apply (rule restrict_ext)
+      using combine_blocks_wait3 apply auto
+      by (simp add: group_cancel.sub1)
+    show ?thesis
+      unfolding c2(1)
+      apply (rule exI[where x="WaitBlock t1 (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' # blks'"])
+      apply auto
+      subgoal
+        unfolding combine_blocks_wait3(6) c3
+        apply (rule equiv_trace_merge')
+        using combine_blocks_wait3(4,8-10) c1 by auto
+      subgoal
+        apply (rule combine_blocks.combine_blocks_wait2)
+        using combine_blocks_wait3(3-10) that c2
+        unfolding c5 unfolding c4 by auto
+      done
+  qed
+  show ?case
+    using a b c by fastforce
 qed
 
 
@@ -1926,29 +2052,209 @@ next
     using ParDelayS(8) apply (elim ParallelE)
     using a by auto
 next
-  case (ParPairS1 ch chs p1 s1 v p2 s2 p3 s3 p4 s4)
-  then show ?case sorry
+  case (ParPairS1 ch chs p1 s1 v p2 s2 p3 s3' p4 s4)
+  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p4 s4 tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs1 where b: "equiv_trace (InBlock ch v # tr1) evs1" "par_big_step p1 s1 evs1 s12"
+      using ParPairS1(3)[OF aH(2)] by auto
+    obtain evs2 where c: "equiv_trace (OutBlock ch v # tr2) evs2" "par_big_step p3 s3' evs2 s22"
+      using ParPairS1(5)[OF aH(3)] by auto
+    have d: "combine_blocks chs (InBlock ch v # tr1) (OutBlock ch v # tr2) (IOBlock ch v # evs)"
+      by (rule combine_blocks_pair1[OF ParPairS1(1) aH(4)])
+    obtain tr' where e:
+      "equiv_trace (IOBlock ch v # evs) tr'"
+      "combine_blocks chs evs1 evs2 tr'"
+      using b(1) c(1) d combine_blocks_equiv by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+       apply (rule e(1))
+      apply (rule ParallelB[OF b(2) c(2)])
+      by (rule e(2))
+  qed
+  show ?case
+    using ParPairS1(6) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParPairS2 ch chs p1 s1 v p2 s2 p3 s3 p4 s4)
-  then show ?case sorry
+  case (ParPairS2 ch chs p1 s1 v p2 s2 p3 s3' p4 s4)
+  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p4 s4 tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs1 where b: "equiv_trace (OutBlock ch v # tr1) evs1" "par_big_step p1 s1 evs1 s12"
+      using ParPairS2(3)[OF aH(2)] by auto
+    obtain evs2 where c: "equiv_trace (InBlock ch v # tr2) evs2" "par_big_step p3 s3' evs2 s22"
+      using ParPairS2(5)[OF aH(3)] by auto
+    have d: "combine_blocks chs (OutBlock ch v # tr1) (InBlock ch v # tr2) (IOBlock ch v # evs)"
+      by (rule combine_blocks_pair2[OF ParPairS2(1) aH(4)])
+    obtain tr' where e:
+      "equiv_trace (IOBlock ch v # evs) tr'"
+      "combine_blocks chs evs1 evs2 tr'"
+      using b(1) c(1) d combine_blocks_equiv by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+       apply (rule e(1))
+      apply (rule ParallelB[OF b(2) c(2)])
+      by (rule e(2))
+  qed
+  show ?case
+    using ParPairS2(6) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS1 p3 s3 ch chs p1 s1 v p2 s2)
-  then show ?case sorry
+  case (ParUnpairS1 p3 s3' ch chs p1 s1 v p2 s2)
+  have a: "\<exists>evs'. equiv_trace (InBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (InBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
+      using ParUnpairS1(4)[OF aH(2)] by auto
+    have c: "combine_blocks chs (InBlock ch v # tr1) tr2 (InBlock ch v # evs)"
+      by (rule combine_blocks_unpair1[OF ParUnpairS1(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (InBlock ch v # evs) tr'"
+      "combine_blocks chs evs' tr2 tr'"
+      using b(1) combine_blocks_equiv_left c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF b(2) aH(3) d(2)])
+  qed
+  show ?case
+    using ParUnpairS1(5) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS2 p3 s3 ch chs p1 s1 v p2 s2)
-  then show ?case sorry
+  case (ParUnpairS2 p3 s3' ch chs p1 s1 v p2 s2)
+  have a: "\<exists>evs'. equiv_trace (OutBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (OutBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
+      using ParUnpairS2(4)[OF aH(2)] by auto
+    have c: "combine_blocks chs (OutBlock ch v # tr1) tr2 (OutBlock ch v # evs)"
+      by (rule combine_blocks_unpair2[OF ParUnpairS2(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (OutBlock ch v # evs) tr'"
+      "combine_blocks chs evs' tr2 tr'"
+      using b(1) combine_blocks_equiv_left c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF b(2) aH(3) d(2)])
+  qed
+  show ?case
+    using ParUnpairS2(5) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS3 p1 s1 ch chs p2 s2 v p3 s3)
-  then show ?case sorry
+  case (ParUnpairS3 p1 s1 ch chs p2 s2 v p3 s3')
+  have a: "\<exists>evs'. equiv_trace (InBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p1 s1 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (InBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
+      using ParUnpairS3(4)[OF aH(3)] by auto
+    have c: "combine_blocks chs tr1 (InBlock ch v # tr2) (InBlock ch v # evs)"
+      by (rule combine_blocks_unpair3[OF ParUnpairS3(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (InBlock ch v # evs) tr'"
+      "combine_blocks chs tr1 evs' tr'"
+      using b(1) combine_blocks_equiv_right c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF aH(2) b(2) d(2)])
+  qed
+  show ?case
+    using ParUnpairS3(5) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS4 p1 s1 ch chs p2 s2 v p3 s3)
-  then show ?case sorry
+  case (ParUnpairS4 p1 s1 ch chs p2 s2 v p3 s3')
+  have a: "\<exists>evs'. equiv_trace (OutBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p1 s1 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (OutBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
+      using ParUnpairS4(4)[OF aH(3)] by auto
+    have c: "combine_blocks chs tr1 (OutBlock ch v # tr2) (OutBlock ch v # evs)"
+      by (rule combine_blocks_unpair4[OF ParUnpairS4(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (OutBlock ch v # evs) tr'"
+      "combine_blocks chs tr1 evs' tr'"
+      using b(1) combine_blocks_equiv_right c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF aH(2) b(2) d(2)])
+  qed
+  show ?case
+    using ParUnpairS4(5) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS5 p3 s3 ch chs p1 s1 v p2 s2)
-  then show ?case sorry
+  case (ParUnpairS5 p3 s3' ch chs p1 s1 v p2 s2)
+  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (IOBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
+      using ParUnpairS5(4)[OF aH(2)] by auto
+    have c: "combine_blocks chs (IOBlock ch v # tr1) tr2 (IOBlock ch v # evs)"
+      by (rule combine_blocks_unpair5[OF ParUnpairS5(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (IOBlock ch v # evs) tr'"
+      "combine_blocks chs evs' tr2 tr'"
+      using b(1) combine_blocks_equiv_left c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF b(2) aH(3) d(2)])
+  qed
+  show ?case
+    using ParUnpairS5(5) apply (elim ParallelE)
+    using a by auto
 next
-  case (ParUnpairS6 p1 s1 ch chs p2 s2 v p3 s3)
-  then show ?case sorry
+  case (ParUnpairS6 p1 s1 ch chs p2 s2 v p3 s3')
+  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
+    if aH: "s3 = ParState s12 s22"
+       "par_big_step p1 s1 tr1 s12"
+       "par_big_step p3 s3' tr2 s22"
+       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
+  proof -
+    obtain evs' where b:
+      "equiv_trace (IOBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
+      using ParUnpairS6(4)[OF aH(3)] by auto
+    have c: "combine_blocks chs tr1 (IOBlock ch v # tr2) (IOBlock ch v # evs)"
+      by (rule combine_blocks_unpair6[OF ParUnpairS6(2) aH(4)])
+    obtain tr' where d:
+      "equiv_trace (IOBlock ch v # evs) tr'"
+      "combine_blocks chs tr1 evs' tr'"
+      using b(1) combine_blocks_equiv_right c by blast
+    show ?thesis
+      apply (rule exI[where x="tr'"]) apply auto
+      apply (rule d(1))
+      by (rule ParallelB[OF aH(2) b(2) d(2)])
+  qed
+  show ?case
+    using ParUnpairS6(5) apply (elim ParallelE)
+    using a by auto
 qed
 
 
