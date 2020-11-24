@@ -838,7 +838,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, tkplot = True) :
+def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
