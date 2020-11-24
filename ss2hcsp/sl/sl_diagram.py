@@ -223,10 +223,10 @@ class SL_Diagram:
                     if state_type == "AND_STATE":
                         assert default_tran is None and out_trans == []
                         order = int(get_attribute_value(child, "executionOrder"))
-                        _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name, en=en, du=du, ex=ex,
+                        _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name,original_name=name, en=en, du=du, ex=ex,
                                            order=order)
                     elif state_type == "OR_STATE":
-                        _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,
+                        _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,original_name=name,
                                           en=en, du=du, ex=ex, default_tran=default_tran)
                     else:
                         print(state_type)

@@ -8,12 +8,14 @@ from copy import copy
 import itertools
 import math
 from scipy.integrate import solve_ivp
+import matplotlib.pyplot as plt
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, ArrayIdxExpr, BConst, LogicExpr, RelExpr, true_expr, \
     opt_round, get_range, split_conj, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import graph_plot
 
 
 class SimulatorException(Exception):
@@ -108,7 +110,7 @@ def eval_expr(expr, state):
 
             return tuple(b)
         elif expr.fun_name == "sqrt":
-            assert len(args) == 1 and args[0] >= 0
+            assert len(args) == 1 and args[0] > 0
             return math.sqrt(args[0])
         else:
             raise NotImplementedError
@@ -835,7 +837,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -886,6 +888,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         res['trace'].append(new_event)
         if len(res['trace']) > num_steps:
             end_run = True
+
+        
 
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""
@@ -973,8 +977,45 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400):
         if has_overflow:
             log_event(ori_pos=[], type="overflow", str="overflow")
             break
+    
+   
+    # print(res.get("time_series"))
 
+    
     return res
+
+def graph(res, ProgramName, tkplot=False):
+    DataState = {}
+    temp = res.get("time_series")
+    # for k in temp.keys():
+    lst = temp.get(ProgramName)
+    for t in lst:
+        state = t.get("state")
+        # print(t.get('time'))
+        for key in state.keys():
+            # if state.get(key) == {}:
+            #     pass
+            if key not in DataState.keys():
+                DataState.update({key:([],[])})
+            # print (DataState.get(key))
+            # print (state.get())
+            DataState.get(key)[0].append(state.get(key))
+            DataState.get(key)[1].append(t.get('time'))
+                
+    # print (DataState)
+    # for l in DataState.keys():
+    #     print(len(DataState.get(l)[0])==len(DataState.get(l)[1]))
+    if tkplot:
+        app = graph_plot.Graphapp(res)
+        app.mainloop()
+    else:
+        for t in DataState.keys():
+            x = DataState.get(t)[1]
+            y = DataState.get(t)[0]
+            plt.plot(x,y,label = t)
+            plt.legend()
+            plt.show()
+
 
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of

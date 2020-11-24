@@ -53,13 +53,13 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
                 if hps[i].ch_name.startswith("DBR"):
                     m=j
                     for k in range(m,len(hps)-1):
-                        if (not isinstance(hps[k-1], hp.OutputChannel)) and isinstance(hps[k],Condition):
-                            j+=1
-                        elif (isinstance(hps[k], hp.OutputChannel) or isinstance(hps[k], hp.InputChannel)) and (hps[k].ch_name.startswith("DBC") or hps[k].ch_name.startswith("DBVOut") or hps[k].ch_name.startswith("DBO") or hps[k].ch_name.startswith("DBVIn")):
-                            j=j+1
-                        elif isinstance(hps[k-1], hp.OutputChannel) and isinstance(hps[k],(Assign)):
-                            j=j-1
+                        if isinstance(hps[k],(Assign)) and  hps[k] == hp_parser.parse("a_"+state_name+":= 0"):
+                            j=k-1
+                            
                             break
+                        else:
+                            j+=1
+                            
                             
                 _hps.extend(hps[i + 1:j + 1])
                 if len(hps) - 1 >= j + 1:
@@ -93,6 +93,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     def _DBvout(_i, _vars):
             if not _vars:
                 return "skip"
+            #for state in root.chart.all_states.values():
             return "; ".join("DBVOut" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
     def _DBvin(_i, _vars):
             if not _vars:
@@ -158,20 +159,24 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         dest_state_name=path[len(path)-2]
                         event=path[len(path)-1]
                     _event=event + "_" + location.name
+                    #print(root.chart.all_states.values())
                     for state in root.chart.all_states.values():
-                        if state.name == dest_state_name:
+                        if state.original_name == dest_state_name:
                             dest_state=state
-                    
+                            break;
                     _root=dest_state.root
                     _root_num=re.findall(pattern="\\d+", string=_root.name)
                     _root_num=_root_num[0]
                     global_destState_num=_root_num
-                    vars_in_s_i = _root.get_vars().union(set(root.chart.port_to_in_var.values()))
-                    hps.append(hp_parser.parse("DBR" + root_num + "!" + _event+";"+ _DBvin(root_num, vars_in_s_i)))
-                    hps.append(hp_parser.parse("DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i)))
-                    # _hps=list()
-                    out_trans1=hp.Skip()
-                    hps.append(get_hcsp(get_child_hcsp(dest_state,root)))
+                    vars_in_s_i = root.get_vars().union(set(root.chart.port_to_in_var.values()))
+                    vars_in_s_i1 = _root.get_vars().union(set(root.chart.port_to_in_var.values()))
+                    hps.append(hp_parser.parse("DBR" + root_num + "!" + _event+";"+ _DBvin(root_num, vars_in_s_i)+";DBnum"+root_num+"!"+_root_num))
+                    if dest_state.name == _root.name:
+                       print("dest_state is a parallel state")
+                        #hps.append(s_i_proc)
+                    else:
+                        hps.append(hp_parser.parse("DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i1)))
+                        hps.append(get_hcsp(get_child_hcsp(dest_state,root)))
                     
                     # if isinstance(dest_state,(OR_State, AND_State)):
                     #     in_tran_hp = root.chart.execute_one_step_from_state(dest_state) 
@@ -186,7 +191,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                     #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp,hp.Condition(bexpr_parser.parse("done == 0"),hp.Sequence(*_hps) if len(_hps) >= 2 else  _hps[0] ))))
                     #     else:
                     #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
-                    hps.append(hp_parser.parse("DBO" +_root_num + "!;"+ _DBvin(_root_num, vars_in_s_i)))
+                    hps.append(hp_parser.parse("DBO" +_root_num + "!;"+ _DBvin(_root_num, vars_in_s_i1)))
                 else:
 
                     event = (act.strip('send(').strip(')')) + "_" + location.name
@@ -243,9 +248,6 @@ class SF_Chart(Subsystem):
                 for child in self.diagram.children:
                     child.name = "S" + str(num)
                     num += 1
-        # self.diagram is an AND-state.
-        # That its name is S1 implies that its children are OR-states;
-        # Otherwise, if S0, its children are AND-states.
 
         and_num = or_num = jun_num = 0
         for state in self.all_states.values():
@@ -263,28 +265,20 @@ class SF_Chart(Subsystem):
                     raise RuntimeError("Error State!")
 
     def find_root_for_states(self):  # get the root of each state in chart
-        """
-        (1) Note that each stateflow chart is encapsulated as an AND-state,
-        so self.diagram is of course an AND-state
-        (2) Examples. If the children of self.diagram are AND-states,
-        then each child is the root of all the descendants within that child;
-        If the children of self.diagram are OR-states,
-        then self.diagram is the root of all its descendants.
-        """
         def find_root_recursively(_state):
             if isinstance(_state, (AND_State, OR_State)) and _state.father:
                 _state.root = _state.father.root             
                 for _child in _state.children:
                     find_root_recursively(_child)
 
-        if self.diagram.name == "S0":  # Its children are AND-states, see add_names().
+        if self.diagram.name == "S0":
             for child in self.diagram.children:
                 assert isinstance(child, AND_State)
                 child.root = child
                 child.chart = self
                 for grandchild in child.children:
                     find_root_recursively(grandchild)
-        elif self.diagram.name == "S1":  # Its children are OR-states, see add_names().
+        elif self.diagram.name == "S1":
             assert self.diagram.chart == self
             for state in self.all_states.values():
                 state.root = self.diagram
@@ -366,7 +360,7 @@ class SF_Chart(Subsystem):
             assert len(objects) == len(classes)
             return all(isinstance(_obj, _class) for _obj, _class in zip(objects, classes))
 
-        # Transfer an object into a Condition if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
+        # Transfer an object into a Condition one if it is of ITE with len(if_hps) == 1 and else_hp == hp.Skip()
         def to_Condition(obj):
             if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip():   
                 return hp.Condition(cond=obj.if_hps[0][0], hp=obj.if_hps[0][1])
@@ -408,7 +402,7 @@ class SF_Chart(Subsystem):
             out_tran_hp.else_hp = hp.Sequence(during_hp, to_Condition(in_tran_hp))
             return out_tran_hp
 
-    # Execute transitions from a state (event broadcasting)
+    # Execute transitions from a state
     def execute_trans_from_state(self, state, tran_type="out_trans", tran_act_Q=(), event_var="E"):
         """
         Execute a set of transitions from a given state
@@ -436,14 +430,13 @@ class SF_Chart(Subsystem):
 
         if_hps, else_hp = list(), hp.Skip()
         for tran in trans:
-            # Get the execution condition for the current transition
             conds = list()
             if tran.event:
                 conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
             if tran.condition:
                 conds.append(tran.condition)
             conds.append(bexpr_parser.parse("done == 0"))
-            cond = conj(*conds) if len(conds) >= 2 else conds[0]  # Conjunction
+            cond = conj(*conds) if len(conds) >= 2 else conds[0]    
 
             dst_state = self.all_states[tran.dst]
             current_tran_act_Q = list(tran_act_Q) + tran.tran_acts
@@ -457,7 +450,7 @@ class SF_Chart(Subsystem):
             if isinstance(dst_state, (AND_State, OR_State)):
                 assert not isinstance(dst_state, AND_State) or tran_type == "inner_trans"
                 hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
-                    + [hp_parser.parse("done := 1")]
+                      + [hp_parser.parse("done := 1")]
             elif isinstance(dst_state, Junction):
                 if not dst_state.visited:  # has not been visited in this round
                     dst_state.visited = True
@@ -469,14 +462,15 @@ class SF_Chart(Subsystem):
                                                             tran_act_Q=current_tran_act_Q)
                     assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     dst_state.processes.append((process_name, process))
-                    dst_state.visited = False      # ？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                        + enter_into_dst + ([] if process == hp.Skip() else [process])
+                          + enter_into_dst + ([] if process == hp.Skip() else [process])
                 else:  # visited in this round
                     process_name = dst_state.processes[-1][0]
                     hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                        + enter_into_dst + [hp.Var(process_name)]
-            if_hps.append((cond, get_hcsp(hps)))    # ？？？？
+                          + enter_into_dst + [hp.Var(process_name)]
+            if_hps.append((cond, get_hcsp(hps)))    #？？？？
+            
 
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
@@ -550,11 +544,11 @@ class SF_Chart(Subsystem):
             hp_M_main = hp.Sequence(hp_M_main,
                                     hp_parser.parse("num == " + i + " -> (DBC" + i + "!E -->" + DBvout(i, vars_in_s_i)+" $ BC" + i + "!E --> " + vout(i, vars_in_s_i)
                                                     + " $ BR" + i + "?E -->" + vin(i, vars_in_s_i) +
-                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR" + i + "?E -->"+ DBvin(i, vars_in_s_i) +"; EL := push(EL, E); num :="+str(global_destState_num)+" ; NL := push(NL, num) $ DBO"+ i +"? -->"+ DBvin(i, vars_in_s_i)+
+                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR" + i + "?E -->"+ DBvin(i, vars_in_s_i) +";DBnum"+i+"?Dnum; num :=Dnum"+"  $ DBO"+ i +"? -->"+ DBvin(i, vars_in_s_i)+
                                                 " $ BO" + i + "? --> " + vin(i, vars_in_s_i) + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
-                                                " -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; "
+                                                " -> (EL := pop(EL); NL := pop(NL);EL == [] -> (num := 0; "
                                                 + out_channels + "wait(" + str(self.st)
                                                 + ")); EL != [] -> (E := top(EL); num := top(NL)))"))
         return hp_M, hp_M_main, state_num
@@ -628,7 +622,6 @@ class SF_Chart(Subsystem):
                 return "skip"
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 ##########
-
         # Add VIn! after BR! in an hcsp list of state
         def add_VIn_after_BR_in_list(_num, _hps, _modified_vars):
             _vin = vin(_num, _modified_vars)
@@ -688,7 +681,7 @@ class SF_Chart(Subsystem):
                     tran.cond_acts = add_VIn_after_BR_in_list(_num, tran.cond_acts, _modified_vars)
                     tran.tran_acts = add_VIn_after_BR_in_list(_num, tran.tran_acts, _modified_vars)
 
-        # If there is no event, return two function objects and move to get_pure_process()
+        # If there is no event, return two functions and move to get_pure_process()
         if not self.has_event:
             return get_S_du_and_P_diag, analyse_P_diag
 
@@ -774,7 +767,6 @@ class SF_Chart(Subsystem):
 
         return new_processes
 
-    # No event broadcasting
     def get_pure_process(self):
         assert not self.has_event
         get_S_du_and_P_diag, analyse_P_diag = self.get_process()
