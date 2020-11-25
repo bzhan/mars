@@ -16,6 +16,7 @@ class Transition:
         self.location = None  # in which state
 
         self.event = None
+        self.message=None
         self.condition = None
         self.cond_acts = list()
         self.tran_acts = list()
@@ -51,6 +52,10 @@ class Transition:
                     special_var = "state_time"
                     self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
                     self.cond_vars.add(special_var)
+            elif "." in condition and "==" in condition:
+                left,right=condition.split("==")
+                left1,left2=left.split(".")
+                self.condition=bexpr_parser.parse(left1+"_"+left2+" == "+right)
             else:
                 self.condition = bexpr_parser.parse(condition)
         else:
@@ -98,7 +103,7 @@ class Transition:
             var_set = var_set.union(self.condition.get_vars())    #返回两个集合的交集
         # Get variables in actions
         for act in list(self.cond_acts) + list(self.tran_acts):
-            #assert isinstance(act, hp.HCSP)
+            assert isinstance(act, (hp.HCSP,str))
             if isinstance(act, (hp.Assign, hp.Sequence)) :
                 var_set = var_set.union(act.get_vars())
         return var_set

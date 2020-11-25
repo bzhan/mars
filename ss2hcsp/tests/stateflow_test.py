@@ -23,6 +23,16 @@ class SfTest(unittest.TestCase):
         #print(process)
 #         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
     def testSendDirect_event(self):
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+        print(process)
+    def testSendDirect_event2(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
@@ -30,7 +40,26 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_2.txt",process)
+        print(process)
+    def testMessage_eg(self):
+        location = "./Examples/Stateflow/Message_eg/Message_eg.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        printTofile("./Examples/Stateflow/Message_eg/Message_eg.txt",process)
+        print(process)
+    def testMessage_eg2(self):
+        location = "./Examples/Stateflow/Message_eg/Message_eg2.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        printTofile("./Examples/Stateflow/Message_eg/Message_eg2.txt",process)
         print(process)
     def testSend(self):
         location = "./Examples/Stateflow/early_exit/early_return_logic_eg1_1.xml"

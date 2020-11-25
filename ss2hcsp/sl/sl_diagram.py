@@ -21,6 +21,7 @@ from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
+from ss2hcsp.sf.sf_message import SF_Message
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 
 from xml.dom.minidom import parse, Element
@@ -286,16 +287,31 @@ class SL_Diagram:
             chart_st = eval(chart_st) if chart_st else -1
 
             chart_data = dict()
+            local_message_list=list()
+            input_message_list=list()
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
                 assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
                 value = eval(value) if value else 0
-                chart_data[var_name] = value
+                scope=get_attribute_value(data, "scope")
+                if (len(data.getElementsByTagName(name="message"))>=1):
+                    for node in data.getElementsByTagName(name="message"):
+                        mesgNode=node
+                        break;
+                    is_mesg=get_attribute_value(mesgNode, "isMessage")
+                    if is_mesg == "1":
+                        data_value=0
+                        message=SF_Message(name=var_name,data=data_value,scope=scope)
+                        if scope == "LOCAL_DATA":         
+                            local_message_list.append(message)
+                        elif scope =="OUTPUT_DATA":
+                            input_message_list.append(message)
+                else:
+                    chart_data[var_name] = value
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
-            
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st}
+            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list}
 
     def parse_xml(self, model_name=""):
         self.parse_stateflow_xml()
@@ -409,7 +425,7 @@ class SL_Diagram:
 
                     num_dest, num_src = ports[:2]
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"])
+                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],input_message_queue=chart_paras["input_message"])
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
                         if child.nodeName == "Block":
