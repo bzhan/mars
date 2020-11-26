@@ -753,7 +753,7 @@ theorem Valid_skip:
 theorem Valid_assign:
   "Valid
     (\<lambda>s tr. Q (s(var := e s)) tr)
-    (Assign var e)
+    (var ::= e)
     Q"
   unfolding Valid_def
   by (auto elim: assignE)
@@ -777,7 +777,7 @@ theorem Valid_receive:
   by (auto elim: receiveE)
 
 theorem Valid_seq:
-  "Valid P c1 Q \<Longrightarrow> Valid Q c2 R \<Longrightarrow> Valid P (Seq c1 c2) R"
+  "Valid P c1 Q \<Longrightarrow> Valid Q c2 R \<Longrightarrow> Valid P (c1; c2) R"
   unfolding Valid_def
   apply (auto elim!: seqE) by fastforce
 
