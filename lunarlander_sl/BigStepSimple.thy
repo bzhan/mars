@@ -353,7 +353,8 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
          big_step (Seq p1 p2) s1 (tr1 @ tr2) s3"
 | condB1: "b s1 \<Longrightarrow> big_step p1 s1 tr s2 \<Longrightarrow> big_step (Cond b p1 p2) s1 tr s2"
 | condB2: "\<not> b s1 \<Longrightarrow> big_step p2 s1 tr s2 \<Longrightarrow> big_step (Cond b p1 p2) s1 tr s2"
-| waitB: "d > 0 \<Longrightarrow> big_step (Wait d) s [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})] s"
+| waitB1: "d > 0 \<Longrightarrow> big_step (Wait d) s [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})] s"
+| waitB2: "\<not> d > 0 \<Longrightarrow> big_step (Wait d) s [] s"
 | sendB1: "big_step (Cm (ch[!]e)) s [OutBlock ch (e s)] s"
 | sendB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}),
@@ -495,7 +496,7 @@ lemma test3: "par_big_step (
 text \<open>Wait\<close>
 lemma test4: "big_step (Wait 2)
   (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
-  apply (rule waitB) by auto
+  apply (rule waitB1) by auto
 
 text \<open>Seq\<close>
 lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
@@ -537,14 +538,14 @@ lemma test9a: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
   (\<lambda>_. 0) [OutBlock ''ch1'' 1, WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=0])
-  apply auto apply (rule waitB) by auto
+  apply auto apply (rule waitB1) by auto
 
 text \<open>External choice 2\<close>
 lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
   (\<lambda>_. 0) [OutBlock ''ch2'' 2, WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=1])
-  apply auto apply (rule waitB) by auto
+  apply auto apply (rule waitB1) by auto
 
 text \<open>Communication with external choice\<close>
 lemma test10: "par_big_step (
@@ -557,7 +558,7 @@ lemma test10: "par_big_step (
   apply (rule ParallelB)
     apply (rule SingleB[OF test9a])
    apply (rule SingleB)
-   apply (rule seqB) apply (rule receiveB1) apply (rule waitB)
+   apply (rule seqB) apply (rule receiveB1) apply (rule waitB1)
   apply auto
   by (intro combine_blocks.intros, auto)
 
@@ -638,12 +639,12 @@ proof -
     [WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {}),
      WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {''ch1''}),
      InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
-    apply (rule seqB') apply (rule waitB) apply simp
+    apply (rule seqB') apply (rule waitB1) apply simp
      apply (rule receiveB2'[where d=1]) by auto
   have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
     [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}),
      InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
-    apply (rule seqB') apply (rule waitB) apply simp
+    apply (rule seqB') apply (rule waitB1) apply simp
      apply (rule receiveB1) by auto
   show ?thesis
     apply (rule ParallelB)
@@ -782,10 +783,15 @@ theorem Valid_seq:
   apply (auto elim!: seqE) by fastforce
 
 theorem Valid_wait:
-  "Valid
+  "d > 0 \<Longrightarrow> Valid
     (\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]))
     (Wait d)
     Q"
+  unfolding Valid_def
+  by (auto elim: waitE)
+
+theorem Valid_wait2:
+  "\<not> d > 0 \<Longrightarrow> Valid Q (Wait d) Q"
   unfolding Valid_def
   by (auto elim: waitE)
 
@@ -1201,7 +1207,7 @@ theorem Valid_receive':
   by (auto intro: in_assn.intros)
 
 theorem Valid_wait':
-  "Valid
+  "d > 0 \<Longrightarrow> Valid
     (\<lambda>s. WaitS\<^sub>A d (\<lambda>_. s) @- Q s)
     (Wait d)
     Q"
@@ -1211,7 +1217,7 @@ theorem Valid_wait':
   by (auto intro: wait_assn.intros)
 
 theorem Valid_wait_sp:
-  "Valid
+  "d > 0 \<Longrightarrow> Valid
     (\<lambda>s tr. s = st \<and> P s tr)
     (Wait d)
     (\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>A d (\<lambda>_. st)) tr)"

@@ -1041,7 +1041,7 @@ lemma testHL14b:
    apply (rule Valid_ex_pre)
   subgoal for vs
     apply (rule Valid_seq)
-    apply (rule Valid_wait_sp)
+    apply (rule Valid_wait_sp) apply simp
     apply (rule Valid_seq)
      apply (rule Valid_receive_sp)
     apply (rule Valid_ex_pre)

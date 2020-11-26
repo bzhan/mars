@@ -19,10 +19,13 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
        {Q}"
 | SeqH:
     "\<turnstile> {P} c1 {Q} \<Longrightarrow> \<turnstile> {Q} c2 {R} \<Longrightarrow> \<turnstile> {P} c1; c2 {R}"
-| WaitH:
-    "\<turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})])}
+| WaitH1:
+    "d > 0 \<Longrightarrow>
+     \<turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})])}
          (Wait d)
        {Q}"
+| WaitH2:
+    "\<not>d > 0 \<Longrightarrow> \<turnstile> {Q} Wait d {Q}"
 | RepH:
     "\<turnstile> {P} c {P} \<Longrightarrow> \<turnstile> {P} (Rep c) {P}"
 | IChoiceH:
@@ -94,9 +97,13 @@ next
   then show ?case
     by (simp add: Valid_seq)
 next
-  case (WaitH Q d)
+  case (WaitH1 Q d)
   then show ?case
     by (simp add: Valid_wait)
+next
+  case (WaitH2 Q d)
+  then show ?case
+    by (simp add: Valid_wait2)
 next
   case (RepH P c)
   then show ?case
@@ -130,6 +137,83 @@ next
   then show ?case
     sorry
 qed
+
+
+subsection \<open>Weakest precondition\<close>
+
+term big_step
+
+definition wp :: "proc \<Rightarrow> assn \<Rightarrow> assn" where
+  "wp c Q = (\<lambda>s tr. \<forall>s' tr'. big_step c s tr' s' \<longrightarrow> Q s' (tr @ tr'))"
+
+lemma wp_Skip: "wp Skip Q = Q"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: skipE)
+    using skipB by fastforce
+  done
+
+lemma wp_Assign: "wp (var ::= e) Q = (\<lambda>s. Q (s(var := e s)))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: assignE)
+    using assignB by fastforce
+  done
+
+lemma wp_Send:
+  "wp (Cm (ch[!]e)) Q =
+    (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
+              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: sendE)
+     apply (simp add: sendB1)
+    using sendB2 by blast
+  done
+
+lemma wp_Receive:
+  "wp (Cm (ch[?]var)) Q =
+    (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
+           (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v])))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: receiveE)
+     apply (simp add: receiveB1)
+    using receiveB2 by blast
+  done   
+
+lemma wp_Seq: "wp (c1; c2) Q = wp c1 (wp c2 Q)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: seqE)
+    using seqB by fastforce
+  done
+
+lemma wp_Wait1:
+  assumes "d > 0"
+  shows "wp (Wait d) Q =
+    (\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: waitE)
+    using assms waitB1 apply blast
+    using assms waitE by blast
+  done
+
+lemma wp_Wait2:
+  assumes "\<not>d > 0"
+  shows "wp (Wait d) Q = Q"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: waitE)
+    using assms waitB2 apply fastforce
+    apply (elim waitE)
+    using assms by auto
+  done
+
+lemma wp_Rep:
+  "wp (Rep c) Q = wp (c; Rep C) Q"
+  sorry
 
 
 end
