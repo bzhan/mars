@@ -557,7 +557,7 @@ class NegExpr(BExpr):
         return "Not(%s)" % repr(self.expr)
 
     def __str__(self):
-        return self.op + str(self.expr)
+        return "~(" + str(self.expr) + ")"
 
     def __eq__(self, other):
         return isinstance(other, NegExpr) and self.op == other.op and self.expr == other.expr
