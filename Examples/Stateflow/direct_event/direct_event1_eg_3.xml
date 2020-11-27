@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="direct_event1_eg_2">
+  <Model Name="direct_event1_eg_3">
     <P Name="Version">9.1</P>
-    <P Name="SavedCharacterEncoding">GB2312</P>
+    <P Name="SavedCharacterEncoding">GBK</P>
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.8</P>
+      <P Name="ComputedModelVersion">1.5</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -58,8 +58,8 @@
           <P Name="ViewObjType" Class="char">StateflowChart</P>
           <P Name="LoadSaveID" Class="char">1</P>
           <P Name="Extents" Class="double">[1242.0, 533.0]</P>
-          <P Name="ZoomFactor" Class="double">1.059103913704613</P>
-          <P Name="Offset" Class="double">[-173.07065527858879, -41.785553183039696]</P>
+          <P Name="ZoomFactor" Class="double">0.69235102278681593</P>
+          <P Name="Offset" Class="double">[-200.21688862755752, -169.81516295151042]</P>
         </Object>
         <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -77,15 +77,15 @@
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
-      <P Name="Created">Wed Sep 30 17:28:17 2020</P>
+      <P Name="Created">Wed Nov 25 21:27:22 2020</P>
       <P Name="Creator">86188</P>
       <P Name="UpdateHistory">UpdateHistoryNever</P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedBy">BEAR</P>
+      <P Name="LastModifiedBy">86188</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Tue Nov 24 16:47:34 2020</P>
-      <P Name="RTWModifiedTimeStamp">528136984</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:8&gt;</P>
+      <P Name="LastModifiedDate">Wed Nov 25 22:22:46 2020</P>
+      <P Name="RTWModifiedTimeStamp">528243752</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:5&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -142,10 +142,10 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="7" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">direct_event1_eg_2</P>
+        <P Name="model_" Class="char">direct_event1_eg_3</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">direct_event1_eg_2</Cell>
+          <Cell Class="char">direct_event1_eg_3</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
           <Cell Class="double">[]</Cell>
@@ -981,7 +981,7 @@
       <P Name="SIDHighWatermark">1</P>
       <Block BlockType="SubSystem" Name="Chart" SID="1">
         <P Name="Ports">[]</P>
-        <P Name="Position">[75, 94, 135, 146]</P>
+        <P Name="Position">[260, 84, 320, 136]</P>
         <P Name="ZOrder">2</P>
         <P Name="ErrorFcn">Stateflow.Translate.translate</P>
         <P Name="PermitHierarchicalResolution">ExplicitOnly</P>
@@ -1007,14 +1007,14 @@
             <P Name="ZOrder">72</P>
           </Block>
           <Block BlockType="S-Function" Name=" SFunction " SID="1::89">
-            <P Name="Tag">Stateflow S-Function direct_event1_eg_2 3</P>
+            <P Name="Tag">Stateflow S-Function direct_event1_eg_3 3</P>
             <P Name="Ports">[1, 1]</P>
             <P Name="Position">[180, 100, 230, 140]</P>
             <P Name="ZOrder">69</P>
             <P Name="FunctionName">sf_sfun</P>
             <P Name="PortCounts">[1 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
-            <P Name="EnableBusSupport">on</P>
+            <P Name="EnableBusSupport">off</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="1::91">
@@ -1047,24 +1047,24 @@
     </System>
   </Model>
   <Stateflow>
-    <machine id="32">
-      <P Name="created">30-Sep-2020 17:28:37</P>
+    <machine id="34">
+      <P Name="created">25-Nov-2020 21:31:05</P>
       <P Name="isLibrary">0</P>
       <P Name="sfVersion">80000014</P>
       <Children>
-        <target id="54" name="sfun">
+        <target id="63" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
-        <chart id="33">
+        <chart id="35">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-173.071 999.619 -41.786 461.47]</P>
-          <P Name="zoomFactor">0.944</P>
+          <P Name="viewLimits">[-200.217 1593.671 -169.815 600.026]</P>
+          <P Name="zoomFactor">1.444</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
-          <P Name="viewObj">33</P>
+          <P Name="viewObj">35</P>
           <P Name="visible">1</P>
-          <P Name="ssIdHighWaterMark">31</P>
-          <P Name="decomposition">SET_CHART</P>
+          <P Name="ssIdHighWaterMark">33</P>
+          <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
           <P Name="allowGlobalAccessToExportedFunctions">0</P>
           <P Name="saturateOnIntegerOverflow">1</P>
@@ -1072,168 +1072,99 @@
           <P Name="disableImplicitCasting">1</P>
           <P Name="actionLanguage">2</P>
           <Children>
-            <state SSID="7">
-              <P Name="labelString">A</P>
-              <P Name="position">[94.5 63.5 434 91]</P>
+            <state SSID="5">
+              <P Name="labelString">AM</P>
+              <P Name="position">[20.75 50.25 955 480]</P>
               <P Name="fontSize">12</P>
-              <P Name="subviewer">33</P>
-              <P Name="type">AND_STATE</P>
-              <P Name="decomposition">CLUSTER_STATE</P>
-              <P Name="executionOrder">1</P>
+              <P Name="subviewer">35</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">SET_STATE</P>
               <Children>
-                <state SSID="9">
-                  <P Name="labelString">A2
-</P>
-                  <P Name="position">[402.5 103.5 83.5 47]</P>
+                <state SSID="7">
+                  <P Name="labelString">A</P>
+                  <P Name="position">[110.25 78.75 760 100]</P>
                   <P Name="fontSize">12</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="type">OR_STATE</P>
+                  <P Name="subviewer">35</P>
+                  <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                </state>
-                <state SSID="5">
-                  <P Name="labelString">A1
-</P>
-                  <P Name="position">[140 106.25 73.5 41.5]</P>
-                  <P Name="fontSize">12</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                </state>
-                <transition SSID="3">
-                  <P Name="labelString"/>
-                  <P Name="labelPosition">[176.5 91.25 0 0]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="intersection">[0 -0 1 0 176.5 76.25 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">5</P>
-                    <P Name="intersection">[1 0 -1 0.4966 176.5 106.25 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[176.5 91.25]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[174.1 178.9 76.25 106.25]</P>
-                  <P Name="subviewer">33</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
                   <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="1">
-                  <P Name="labelString">[data==1]{send(E_one,B.B1.B3)}</P>
-                  <P Name="labelPosition">[222.305 97.5 176.906 14]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="SSID">5</P>
-                    <P Name="intersection">[2 1 0 0.5 213.5 127 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">9</P>
-                    <P Name="intersection">[4 -1 -0 0.5 402.5 127 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[304 127]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[213.5 402.5 124.6 129.4]</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="4">
-                  <P Name="labelString">E_two</P>
-                  <P Name="labelPosition">[291.532 136.5 35.328 16]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="SSID">9</P>
-                    <P Name="intersection">[4 -1 0 0.2872 402.5 137 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">5</P>
-                    <P Name="intersection">[2 1 -0 0.741 213.5 137 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[312 137]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[213.5 402.5 134.6 139.4]</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-              </Children>
-            </state>
-            <state SSID="15">
-              <P Name="labelString">B</P>
-              <P Name="position">[81.2813 181.3416 491.2187 161.1584]</P>
-              <P Name="fontSize">12</P>
-              <P Name="subviewer">33</P>
-              <P Name="type">AND_STATE</P>
-              <P Name="decomposition">CLUSTER_STATE</P>
-              <P Name="executionOrder">2</P>
-              <Children>
-                <state SSID="13">
-                  <P Name="labelString">B1</P>
-                  <P Name="position">[114.779 238.2545 193.6359 96.1517]</P>
-                  <P Name="fontSize">12</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
                   <Children>
-                    <state SSID="27">
-                      <P Name="labelString">B3</P>
-                      <P Name="position">[130.4498 276.9581 57.6719 31.9464]</P>
+                    <state SSID="4">
+                      <P Name="labelString">A2
+</P>
+                      <P Name="position">[418.25 118.75 83.5 47]</P>
                       <P Name="fontSize">12</P>
-                      <P Name="subviewer">33</P>
+                      <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
                     </state>
-                    <state SSID="28">
-                      <P Name="labelString">B4</P>
-                      <P Name="position">[239.0322 276.9581 57.6719 31.9464]</P>
+                    <state SSID="15">
+                      <P Name="labelString">A1
+</P>
+                      <P Name="position">[155.75 121.5 73.5 41.5]</P>
                       <P Name="fontSize">12</P>
-                      <P Name="subviewer">33</P>
+                      <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
                     </state>
-                    <transition SSID="31">
+                    <transition SSID="10">
                       <P Name="labelString"/>
-                      <P Name="labelPosition">[216.109 240.357 0 0]</P>
+                      <P Name="labelPosition">[192.25 106.5 0 0]</P>
                       <P Name="fontSize">12</P>
                       <src>
-                        <P Name="intersection">[0 -0.8986 0.4389 0 196.1094 260.3567 0 0]</P>
+                        <P Name="intersection">[0 -0 1 0 192.25 91.5 0 0]</P>
                       </src>
                       <dst>
-                        <P Name="SSID">27</P>
-                        <P Name="intersection">[1 0 -1 0.5491 162.1184 276.9581 0 0]</P>
+                        <P Name="SSID">15</P>
+                        <P Name="intersection">[1 0 -1 0.4966 192.25 121.5 0 0]</P>
                       </dst>
-                      <P Name="midPoint">[179.1139 260.2746]</P>
+                      <P Name="midPoint">[192.25 106.5]</P>
                       <P Name="visible">0</P>
-                      <P Name="dataLimits">[159.718 196.109 260.194 276.958]</P>
-                      <P Name="subviewer">33</P>
+                      <P Name="dataLimits">[189.85 194.65 91.5 121.5]</P>
+                      <P Name="subviewer">35</P>
                       <slide>
-                        <P Name="mode">MIRROR_SLIDE</P>
                         <P Name="sticky">BOTH_STICK</P>
                       </slide>
                       <P Name="executionOrder">1</P>
                     </transition>
-                    <transition SSID="30">
-                      <P Name="labelString">E_one</P>
-                      <P Name="labelPosition">[189.811 274.931 39.531 15]</P>
-                      <P Name="fontSize">13</P>
+                    <transition SSID="8">
+                      <P Name="labelString">[data==1]{send(E_one,B.B1.B2)}</P>
+                      <P Name="labelPosition">[238.055 112.75 176.672 16]</P>
+                      <P Name="fontSize">12</P>
                       <src>
-                        <P Name="SSID">27</P>
-                        <P Name="intersection">[2 1 0 0.5 188.1217 292.9314 0 0]</P>
+                        <P Name="SSID">15</P>
+                        <P Name="intersection">[2 1 0 0.5 229.25 142.25 0 0]</P>
                       </src>
                       <dst>
-                        <P Name="SSID">28</P>
-                        <P Name="intersection">[4 -1 -0 0.5 239.0322 292.9314 0 0]</P>
+                        <P Name="SSID">4</P>
+                        <P Name="intersection">[4 -1 -0 0.5 418.25 142.25 0 0]</P>
                       </dst>
-                      <P Name="midPoint">[209.577 292.9314]</P>
-                      <P Name="dataLimits">[188.122 239.032 290.531 295.331]</P>
-                      <P Name="subviewer">33</P>
+                      <P Name="midPoint">[319.75 142.25]</P>
+                      <P Name="visible">0</P>
+                      <P Name="dataLimits">[229.25 418.25 139.85 144.65]</P>
+                      <P Name="subviewer">35</P>
+                      <P Name="drawStyle">SMART</P>
+                      <slide>
+                        <P Name="sticky">BOTH_STICK</P>
+                      </slide>
+                      <P Name="executionOrder">1</P>
+                    </transition>
+                    <transition SSID="11">
+                      <P Name="labelString">E_two</P>
+                      <P Name="labelPosition">[307.282 151.75 35.328 16]</P>
+                      <P Name="fontSize">12</P>
+                      <src>
+                        <P Name="SSID">4</P>
+                        <P Name="intersection">[4 -1 0 0.2872 418.25 152.25 0 0]</P>
+                      </src>
+                      <dst>
+                        <P Name="SSID">15</P>
+                        <P Name="intersection">[2 1 -0 0.741 229.25 152.25 0 0]</P>
+                      </dst>
+                      <P Name="midPoint">[327.75 152.25]</P>
+                      <P Name="visible">0</P>
+                      <P Name="dataLimits">[229.25 418.25 149.85 154.65]</P>
+                      <P Name="subviewer">35</P>
                       <P Name="drawStyle">SMART</P>
                       <slide>
                         <P Name="sticky">BOTH_STICK</P>
@@ -1242,82 +1173,241 @@
                     </transition>
                   </Children>
                 </state>
-                <state SSID="12">
-                  <P Name="labelString">B2
-</P>
-                  <P Name="position">[402.5 252.5 83.5 47]</P>
+                <state SSID="3">
+                  <P Name="labelString">B</P>
+                  <P Name="position">[110.25 221.25 781 287.5]</P>
                   <P Name="fontSize">12</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="type">OR_STATE</P>
+                  <P Name="subviewer">35</P>
+                  <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <P Name="executionOrder">2</P>
+                  <Children>
+                    <state SSID="12">
+                      <P Name="labelString">B1</P>
+                      <P Name="position">[131.75 255 299 231]</P>
+                      <P Name="fontSize">12</P>
+                      <P Name="subviewer">35</P>
+                      <P Name="type">OR_STATE</P>
+                      <P Name="decomposition">CLUSTER_STATE</P>
+                      <Children>
+                        <state SSID="17">
+                          <P Name="labelString">B2</P>
+                          <P Name="position">[144.5 295 110 156]</P>
+                          <P Name="fontSize">12</P>
+                          <P Name="subviewer">35</P>
+                          <P Name="type">OR_STATE</P>
+                          <P Name="decomposition">CLUSTER_STATE</P>
+                          <Children>
+                            <state SSID="23">
+                              <P Name="labelString">B21</P>
+                              <P Name="position">[155.75 316.75 39.5 30]</P>
+                              <P Name="fontSize">12</P>
+                              <P Name="subviewer">35</P>
+                              <P Name="type">OR_STATE</P>
+                              <P Name="decomposition">CLUSTER_STATE</P>
+                            </state>
+                            <state SSID="25">
+                              <P Name="labelString">B22</P>
+                              <P Name="position">[181.25 404.5 48 30]</P>
+                              <P Name="fontSize">12</P>
+                              <P Name="subviewer">35</P>
+                              <P Name="type">OR_STATE</P>
+                              <P Name="decomposition">CLUSTER_STATE</P>
+                            </state>
+                            <transition SSID="24">
+                              <P Name="labelString"/>
+                              <P Name="labelPosition">[210.25 305.5 0 0]</P>
+                              <P Name="fontSize">12</P>
+                              <src>
+                                <P Name="intersection">[0 -1 -0 0 225.25 323.5 0 0]</P>
+                              </src>
+                              <dst>
+                                <P Name="SSID">23</P>
+                                <P Name="intersection">[2 1 0 0.225 195.25 323.5 0 0]</P>
+                              </dst>
+                              <P Name="midPoint">[210.25 323.5]</P>
+                              <P Name="dataLimits">[195.25 225.25 321.1 325.9]</P>
+                              <P Name="subviewer">35</P>
+                              <P Name="drawStyle">SMART</P>
+                              <slide>
+                                <P Name="sticky">BOTH_STICK</P>
+                              </slide>
+                              <P Name="executionOrder">1</P>
+                            </transition>
+                            <transition SSID="26">
+                              <P Name="labelString">E_one</P>
+                              <P Name="labelPosition">[185.5 364.5 36.688 16]</P>
+                              <P Name="fontSize">12</P>
+                              <src>
+                                <P Name="SSID">23</P>
+                                <P Name="intersection">[3 0 1 0.7342 166.25 346.75 0 0]</P>
+                              </src>
+                              <dst>
+                                <P Name="SSID">25</P>
+                                <P Name="intersection">[4 -1 0 0.5 181.25 419.5 0 0]</P>
+                              </dst>
+                              <P Name="midPoint">[160.6143 392.2607]</P>
+                              <P Name="dataLimits">[160.573 181.25 346.75 421.9]</P>
+                              <P Name="subviewer">35</P>
+                              <P Name="drawStyle">SMART</P>
+                              <slide>
+                                <P Name="mode">MIRROR_SLIDE</P>
+                                <P Name="sticky">BOTH_STICK</P>
+                              </slide>
+                              <P Name="executionOrder">1</P>
+                            </transition>
+                          </Children>
+                        </state>
+                        <state SSID="18">
+                          <P Name="labelString">B3</P>
+                          <P Name="position">[300.5 295 102.5 102.5]</P>
+                          <P Name="fontSize">12</P>
+                          <P Name="subviewer">35</P>
+                          <P Name="type">OR_STATE</P>
+                          <P Name="decomposition">CLUSTER_STATE</P>
+                        </state>
+                        <transition SSID="33">
+                          <P Name="labelString"/>
+                          <P Name="labelPosition">[202 280 0 0]</P>
+                          <P Name="fontSize">12</P>
+                          <src>
+                            <P Name="intersection">[0 -0 1 0 202 265 0 0]</P>
+                          </src>
+                          <dst>
+                            <P Name="SSID">17</P>
+                            <P Name="intersection">[1 0 -1 0.5227 202 295 0 0]</P>
+                          </dst>
+                          <P Name="midPoint">[202 280]</P>
+                          <P Name="dataLimits">[199.6 204.4 265 295]</P>
+                          <P Name="subviewer">35</P>
+                          <P Name="drawStyle">SMART</P>
+                          <slide>
+                            <P Name="sticky">BOTH_STICK</P>
+                          </slide>
+                          <P Name="executionOrder">1</P>
+                        </transition>
+                        <transition SSID="19">
+                          <P Name="labelString">E_two</P>
+                          <P Name="labelPosition">[255.836 312.5 35.328 16]</P>
+                          <P Name="fontSize">12</P>
+                          <src>
+                            <P Name="SSID">17</P>
+                            <P Name="intersection">[2 1 0 0.2276 254.5 330.5 0 0]</P>
+                          </src>
+                          <dst>
+                            <P Name="SSID">18</P>
+                            <P Name="intersection">[4 -1 -0 0.6537 300.5 330.5 0 0]</P>
+                          </dst>
+                          <P Name="midPoint">[273.5 330.5]</P>
+                          <P Name="dataLimits">[254.5 300.5 328.1 332.9]</P>
+                          <P Name="subviewer">35</P>
+                          <P Name="drawStyle">SMART</P>
+                          <slide>
+                            <P Name="sticky">BOTH_STICK</P>
+                          </slide>
+                          <P Name="executionOrder">1</P>
+                        </transition>
+                        <transition SSID="22">
+                          <P Name="labelString">E_one</P>
+                          <P Name="labelPosition">[263.156 337.5 36.688 16]</P>
+                          <P Name="fontSize">12</P>
+                          <src>
+                            <P Name="SSID">18</P>
+                            <P Name="intersection">[4 -1 0 0.4098 300.5 355.5 0 0]</P>
+                          </src>
+                          <dst>
+                            <P Name="SSID">17</P>
+                            <P Name="intersection">[2 1 -0 0.3878 254.5 355.5 0 0]</P>
+                          </dst>
+                          <P Name="midPoint">[281.5 355.5]</P>
+                          <P Name="dataLimits">[254.5 300.5 353.1 357.9]</P>
+                          <P Name="subviewer">35</P>
+                          <P Name="drawStyle">SMART</P>
+                          <slide>
+                            <P Name="sticky">BOTH_STICK</P>
+                          </slide>
+                          <P Name="executionOrder">1</P>
+                        </transition>
+                      </Children>
+                    </state>
+                    <state SSID="16">
+                      <P Name="labelString">B4
+</P>
+                      <P Name="position">[671.75 279 83.5 47]</P>
+                      <P Name="fontSize">12</P>
+                      <P Name="subviewer">35</P>
+                      <P Name="type">OR_STATE</P>
+                      <P Name="decomposition">CLUSTER_STATE</P>
+                    </state>
+                    <transition SSID="14">
+                      <P Name="labelString"/>
+                      <P Name="labelPosition">[280.233 240 0 0]</P>
+                      <P Name="fontSize">12</P>
+                      <src>
+                        <P Name="intersection">[0 -0 1 0 280.233 225 0 0]</P>
+                      </src>
+                      <dst>
+                        <P Name="SSID">12</P>
+                        <P Name="intersection">[1 0 -1 0.4966 280.233 255 0 0]</P>
+                      </dst>
+                      <P Name="midPoint">[280.233 240]</P>
+                      <P Name="visible">0</P>
+                      <P Name="dataLimits">[277.833 282.633 225 255]</P>
+                      <P Name="subviewer">35</P>
+                      <slide>
+                        <P Name="sticky">BOTH_STICK</P>
+                      </slide>
+                      <P Name="executionOrder">1</P>
+                    </transition>
+                    <transition SSID="13">
+                      <P Name="labelString">E_one</P>
+                      <P Name="labelPosition">[481.708 284 36.688 16]</P>
+                      <P Name="fontSize">12</P>
+                      <src>
+                        <P Name="SSID">12</P>
+                        <P Name="intersection">[2 1 0 0.2056 430.75 302.5 0 0]</P>
+                      </src>
+                      <dst>
+                        <P Name="SSID">16</P>
+                        <P Name="intersection">[4 -1 -0 0.5 671.75 302.5 0 0]</P>
+                      </dst>
+                      <P Name="midPoint">[547.25 302.5]</P>
+                      <P Name="visible">0</P>
+                      <P Name="dataLimits">[430.75 671.75 300.1 304.9]</P>
+                      <P Name="subviewer">35</P>
+                      <P Name="drawStyle">SMART</P>
+                      <slide>
+                        <P Name="sticky">BOTH_STICK</P>
+                      </slide>
+                      <P Name="executionOrder">1</P>
+                    </transition>
+                    <transition SSID="9">
+                      <P Name="labelString">E_two</P>
+                      <P Name="labelPosition">[512.303 313.5 35.328 16]</P>
+                      <P Name="fontSize">12</P>
+                      <src>
+                        <P Name="SSID">16</P>
+                        <P Name="intersection">[4 -1 0 0.2447 671.75 314.5 0 0]</P>
+                      </src>
+                      <dst>
+                        <P Name="SSID">12</P>
+                        <P Name="intersection">[2 1 0 0.2576 430.75 314.5 0 0]</P>
+                      </dst>
+                      <P Name="midPoint">[555.25 314.5]</P>
+                      <P Name="visible">0</P>
+                      <P Name="dataLimits">[430.75 671.75 312.1 316.9]</P>
+                      <P Name="subviewer">35</P>
+                      <P Name="drawStyle">SMART</P>
+                      <slide>
+                        <P Name="sticky">BOTH_STICK</P>
+                      </slide>
+                      <P Name="executionOrder">1</P>
+                    </transition>
+                  </Children>
                 </state>
-                <transition SSID="11">
-                  <P Name="labelString"/>
-                  <P Name="labelPosition">[229.328 179.928 0 0]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="intersection">[0 -0 1 0 209.3281 199.9282 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">13</P>
-                    <P Name="intersection">[1 0 -1 0.4883 209.3281 238.2545 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[209.3281 211.3006]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[206.928 211.728 199.928 238.255]</P>
-                  <P Name="subviewer">33</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="10">
-                  <P Name="labelString">E_one</P>
-                  <P Name="labelPosition">[311.587 258 36.688 16]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="SSID">13</P>
-                    <P Name="intersection">[2 1 0 0.3926 308.4149 276 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">12</P>
-                    <P Name="intersection">[4 -1 -0 0.5 402.5 276 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[351.4575 276]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[308.415 402.5 273.6 278.4]</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="2">
-                  <P Name="labelString">E_two</P>
-                  <P Name="labelPosition">[337.052 287 35.328 16]</P>
-                  <P Name="fontSize">12</P>
-                  <src>
-                    <P Name="SSID">12</P>
-                    <P Name="intersection">[4 -1 0 0.2447 402.5 288 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">13</P>
-                    <P Name="intersection">[2 1 -0 0.5174 308.4149 288 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[359.4575 288]</P>
-                  <P Name="visible">0</P>
-                  <P Name="dataLimits">[308.415 402.5 285.6 290.4]</P>
-                  <P Name="subviewer">33</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
               </Children>
             </state>
-            <data SSID="26" name="data">
+            <data SSID="27" name="data">
               <P Name="scope">LOCAL_DATA</P>
               <props>
                 <P Name="initialValue">1</P>
@@ -1325,6 +1415,7 @@
                   <P Name="size">-1</P>
                 </array>
                 <type>
+                  <P Name="method">SF_INHERITED_TYPE</P>
                   <P Name="primitive">SF_DOUBLE_TYPE</P>
                   <P Name="isSigned">1</P>
                   <P Name="wordLength">16</P>
@@ -1335,26 +1426,45 @@
                   <P Name="name">inherit</P>
                 </unit>
               </props>
-              <P Name="dataType">double</P>
+              <P Name="dataType">Inherit: From definition in chart</P>
             </data>
-            <event SSID="24">
+            <event SSID="28">
               <P Name="name">E_one</P>
               <P Name="scope">LOCAL_EVENT</P>
               <P Name="trigger">FUNCTION_CALL_EVENT</P>
             </event>
-            <event SSID="25">
+            <event SSID="29">
               <P Name="name">E_two</P>
               <P Name="scope">LOCAL_EVENT</P>
               <P Name="trigger">FUNCTION_CALL_EVENT</P>
             </event>
+            <transition SSID="6">
+              <P Name="labelString"/>
+              <P Name="labelPosition">[154.667 35.25 0 0]</P>
+              <P Name="fontSize">12</P>
+              <src>
+                <P Name="intersection">[0 0 1 0 154.6675 20.25 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">5</P>
+                <P Name="intersection">[1 0 -1 0.1402 154.6675 50.25 0 0]</P>
+              </dst>
+              <P Name="midPoint">[154.6675 35.25]</P>
+              <P Name="dataLimits">[152.267 157.067 20.25 50.25]</P>
+              <P Name="subviewer">35</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
           </Children>
         </chart>
       </Children>
     </machine>
-    <instance id="53">
-      <P Name="machine">32</P>
+    <instance id="62">
+      <P Name="machine">34</P>
       <P Name="name">Chart</P>
-      <P Name="chart">33</P>
+      <P Name="chart">35</P>
     </instance>
   </Stateflow>
 </ModelInformation>
