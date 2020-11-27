@@ -7,9 +7,9 @@ from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
 
 def printTofile(path,content):
-    f = open(path, "w")    # 打开文件以便写入
-    print(content, file=f)
-    f.close()  #  关闭文件
+  f = open(path, "w")    # 打开文件以便写入
+  print(content, file=f)
+  f.close()  #  关闭文件
 class SfTest(unittest.TestCase):
     
     def testhis_junction(self):

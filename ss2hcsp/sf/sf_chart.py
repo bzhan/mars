@@ -379,7 +379,7 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-        return self.fun_dict[longest_path]      
+        return self.fun_dict[longest_path]       # 为什莫要是路径最长的
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
