@@ -34,6 +34,7 @@ inductive small_step :: "proc \<Rightarrow> state \<Rightarrow> trace_block opti
 | waitS1: "d1 > 0 \<Longrightarrow> d1 < d \<Longrightarrow> small_step (Wait d) s (Some (WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {})))
                                  (Wait (d - d1)) s"
 | waitS2: "d > 0 \<Longrightarrow> small_step (Wait d) s (Some (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {}))) Skip s"
+| waitS3: "\<not>d > 0 \<Longrightarrow> small_step (Wait d) s None Skip s"
 | sendS1: "small_step (Cm (ch[!]e)) s (Some (OutBlock ch (e s))) Skip s"
 | sendS2: "d > 0 \<Longrightarrow> small_step (Cm (ch[!]e)) s (Some (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {})))
                                 (Cm (ch[!]e)) s"
@@ -180,10 +181,15 @@ next
      apply (rule condS2) apply (rule condB2(1))
     by (rule condB2(3))
 next
-  case (waitB d s)
+  case (waitB1 d s)
   show ?case
     apply (rule small_step_closure_single_Some)
-    apply (rule waitS2) by (rule waitB)
+    apply (rule waitS2) by (rule waitB1)
+next
+  case (waitB2 d s)
+  show ?case
+    apply (rule small_step_closure_single_None)
+    apply (rule waitS3) by (rule waitB2)
 next
   case (sendB1 ch e s)
   then show ?case
@@ -361,6 +367,14 @@ next
   then show ?case
     using condB2 by auto
 next
+  case (waitS2 d s)
+  then show ?case
+    using waitB2 by auto
+next
+  case (waitS3 d s)
+  then show ?case
+    using skipE waitB2 by blast
+next
   case (IChoiceS1 p1 p2 s)
   then show ?case
     using IChoiceB1 by auto
@@ -407,7 +421,7 @@ proof (induction arbitrary: tr2 s3 rule: small_step.induct)
 next
   case (waitS1 d1 d s)
   have a: "tr2 = [WaitBlock (d - d1) (\<lambda>\<tau>\<in>{0..d - d1}. State s) ({}, {})]" "s3 = s" "0 < d - d1"
-    using waitE[OF waitS1(4)] by auto
+    using waitE[OF waitS1(4)] by (auto simp add: waitS1(1,2))
   have b: "ev = WaitBlock d1 (\<lambda>\<tau>\<in>{0..d1}. State s) ({}, {})"
     using waitS1(3) by auto
   have c: "WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {}) =
@@ -418,7 +432,7 @@ next
     unfolding a b apply auto
     unfolding c apply (rule equiv_trace_merge)
        apply (auto simp add: waitS1)
-     apply (rule waitB)
+     apply (rule waitB1)
     using waitS1 by auto
 next
   case (waitS2 d s)
@@ -432,7 +446,7 @@ next
     unfolding a b c
     apply (rule exI[where x="[WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]"])
     apply auto
-    apply (rule waitB) by (rule waitS2(1))
+    apply (rule waitB1) by (rule waitS2(1))
 next
   case (sendS1 ch e s)
   have a: "ev = OutBlock ch (e s)"

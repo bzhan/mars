@@ -268,7 +268,7 @@ class SimulatorTest(unittest.TestCase):
         res = simulator.exec_parallel_steps(infos, start_event=start_event)
         self.assertEqual(len(res), res_len)
 
-    def Simulato(self):
+    def Simulator(self):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",

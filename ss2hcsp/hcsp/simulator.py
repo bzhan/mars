@@ -984,7 +984,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
     
     return res
 
-def graph(res, ProgramName, tkplot=False):
+def graph(res, ProgramName, tkplot=False, seperate=True):
     DataState = {}
     temp = res.get("time_series")
     # for k in temp.keys():
@@ -1009,12 +1009,19 @@ def graph(res, ProgramName, tkplot=False):
         app = graph_plot.Graphapp(res)
         app.mainloop()
     else:
-        for t in DataState.keys():
-            x = DataState.get(t)[1]
-            y = DataState.get(t)[0]
-            plt.plot(x,y,label = t)
-            plt.legend()
-            plt.show()
+        if seperate:
+            for t in DataState.keys():
+                x = DataState.get(t)[1]
+                y = DataState.get(t)[0]
+                plt.plot(x,y,label = t)
+                # plt.legend()
+                plt.show()
+        else:
+            for t in DataState.keys():
+                x = DataState.get(t)[1]
+                y = DataState.get(t)[0]
+                plt.plot(x,y,label = t)
+                plt.legend()
 
 
 def check_comms(infos):

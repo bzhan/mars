@@ -33,7 +33,6 @@ class SF_State:
         # Inner transitions of this state
         assert isinstance(inner_trans, (list, tuple))
         self.inner_trans = inner_trans
-
         self.funs = None  # functions in this state
 
         # Variables modified in this state
