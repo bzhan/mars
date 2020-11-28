@@ -280,7 +280,7 @@ def get_ode_delay(hp, state):
         cur_delay = 100
         for delay in delays:
             try:
-                sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-3, atol=1e-5)
+                sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
             except ValueError:
                 print('error')
                 continue

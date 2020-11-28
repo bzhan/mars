@@ -337,7 +337,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel12(self):
         self.run_test([
-            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
+            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x >= 0>; v := -0.8 * v)**",
         ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
 
     def testExecParallel13(self):
