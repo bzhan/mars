@@ -97,11 +97,24 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     def _DBvout(_i, _vars):
             if not _vars:
                 return "skip"
-            #for state in root.chart.all_states.values():
+            for state in root.chart.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "E" in _vars:
+                _vars.remove("E")
+            if "done" in _vars:
+                _vars.remove("done")
             return "; ".join("DBVOut" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
     def _DBvin(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in root.chart.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("DBVIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
     def get_child_hcsp(dest_state,root):
         hps=list()
@@ -170,6 +183,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                 if re.match(pattern="send\\(.*?\\)", string=act):
                     acts=act.strip('send(').strip(')')
                     if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
+
                         if re.match(pattern="send\\(.*?,.*?\\)", string=act):
                             event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
                             path=dest_state_name1.split(".")
@@ -195,11 +209,20 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         hps.append(hp_parser.parse("DBR" + root_num + "!" + _event+";"+ _DBvin(root_num, vars_in_s_i)+";DBnum"+root_num+"!"+_root_num))
                         if dest_state.name == _root.name:
                            print("dest_state is a parallel state")
-                            #hps.append(s_i_proc)
+                           hps.append(hp_parser.parse('DState'+root_num+'! "'+'"'))
+                           hps.append(hp_parser.parse("DBO" +root_num + "!;"+ _DBvin(root_num, vars_in_s_i)))
                         else:
-                            hps.append(hp_parser.parse("DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i1)))
-                            hps.append(get_hcsp(get_child_hcsp(dest_state,root)))
-                        
+                            name="a_"+dest_state.name
+                            if _root.name != root.name:
+                                root.chart.dest_state_root_num=_root_num
+                                root.chart.dest_state_name=dest_state.name
+                                hps.append(hp_parser.parse('DState'+root_num+'! "'+name+'"'+""))
+                                hps.append(hp_parser.parse("DBO" +root_num + "!;"+ _DBvin(root_num, vars_in_s_i)))
+                                #hps.append(hp.Sequence(get_hcsp(_root.init()), get_hcsp(_root.activate()),get_hcsp(get_child_hcsp(dest_state,root))))
+                            else:
+                                hps.append(hp.Sequence( hp_parser.parse('DState'+root_num+'! "'+'"'+""+";DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i1)),get_hcsp(get_child_hcsp(dest_state,root)),hp_parser.parse("DBO" +root_num + "!;"+ _DBvin(root_num, vars_in_s_i)),hp_parser.parse("DBC" + _root_num + "?E;"+ _DBvout(_root_num, vars_in_s_i1))))
+                                #hps.append()
+
                         # if isinstance(dest_state,(OR_State, AND_State)):
                         #     in_tran_hp = root.chart.execute_one_step_from_state(dest_state) 
                         #     for child in dest_state.children:
@@ -213,7 +236,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp,hp.Condition(bexpr_parser.parse("done == 0"),hp.Sequence(*_hps) if len(_hps) >= 2 else  _hps[0] ))))
                         #     else:
                         #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
-                        hps.append(hp_parser.parse("DBO" +_root_num + "!;"+ _DBvin(_root_num, vars_in_s_i1)))
+                        
                     else:
 
                         event = (act.strip('send(').strip(')')) + "_" + location.name
@@ -252,6 +275,9 @@ class SF_Chart(Subsystem):
 
         self.port_to_in_var = dict()
         self.port_to_out_var = dict()
+
+        self.dest_state_root_num=-1
+        self.dest_state_name=""
 
         self.input_message_queue=input_message_queue
         self.local_message_queue=local_message_queue
@@ -487,6 +513,10 @@ class SF_Chart(Subsystem):
                     event_var = "M_"+tran.event
                     self.mesg_hp.append(hp_parser.parse("ML_"+tran.event+" != [] ->( M_"+tran.event+" :=top(ML_"+tran.event+"); ML_"+tran.event+" :=pop(ML_"+tran.event+"))" ))
             conds = list()
+            if isinstance(state,(AND_State,OR_State)):
+                root_num=re.findall(pattern="\\d+", string=state.root.name)
+                if self.dest_state_root_num == root_num[0]:
+                    conds.append(bexpr_parser.parse( "state" +'=="'+"a_"+state.name +'"'))
             if tran.event:
                 conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
             if tran.condition:
@@ -571,28 +601,56 @@ class SF_Chart(Subsystem):
         def vout(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("VOut" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 
         def DBvout(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name) 
+            if "done" in _vars:
+                _vars.remove("done")  
+            if "E" in _vars:
+                _vars.remove("E") 
             return "; ".join("DBVOut" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 
         # Get VIn
         def vin(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("VIn" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
         def DBvin(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("DBVIn" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
 
         in_channels = "; ".join(in_channels) + "; " if in_channels else ""
         out_channels = "; ".join(out_channels) + "; " if out_channels else ""
 
         # Get M_main process      BC为当前的广播事件的通道，BR为新的事件的广播申请，BO为广播结束
-        hp_M_main = hp_parser.parse("num == 0 -> (" + in_channels + 'E := ""; EL := [""]; NL := [1]; num := 1)')
+        hp_M_main = hp_parser.parse("num == 0 -> (" + in_channels + 'state :="" ; E := ""; EL := [""]; NL := [1]; num := 1)')
         for i in range(1, state_num + 1):
             i = str(i)
             s_i = self.get_state_by_name("S" + i)
@@ -600,10 +658,10 @@ class SF_Chart(Subsystem):
             vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
             
             hp_M_main = hp.Sequence(hp_M_main,
-                                    hp_parser.parse("num == " + i + " -> (DBC" + i + "!E -->" + DBvout(i, vars_in_s_i)+" $ BC" + i + "!E --> " + vout(i, vars_in_s_i)
+                                    hp_parser.parse("num == " + i + " -> (DState"+i+" ! state-->skip $ DBC" + i + "!E -->" + DBvout(i, vars_in_s_i)+" $ BC" + i + "!E --> " + vout(i, vars_in_s_i)
                                                     + " $ BR" + i + "?E -->" + vin(i, vars_in_s_i) +
-                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR" + i + "?E -->"+ DBvin(i, vars_in_s_i) +";DBnum"+i+"?Dnum; num :=Dnum"+"  $ DBO"+ i +"? -->"+ DBvin(i, vars_in_s_i)+
-                                                " $ BO" + i + "? --> " + vin(i, vars_in_s_i) + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
+                                                    "; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR" + i + "?E -->"+ DBvin(i, vars_in_s_i) +";DBnum"+i+"?Dnum; num :=Dnum"+";DState"+i+"?state  $ DBO"+ i +"? -->"+ DBvin(i, vars_in_s_i)+
+                                                ";num :=num+1 $ BO" + i + "? --> " + vin(i, vars_in_s_i) + "; num := num+1; NL := pop(NL); NL := push(NL, num))"))
         hp_M_main = hp.Sequence(hp_M_main,
                                 hp_parser.parse("num == " + str(state_num + 1) +
                                                 " -> (EL := pop(EL); NL := pop(NL);EL == [] -> (num := 0; "
@@ -672,12 +730,26 @@ class SF_Chart(Subsystem):
         def vout(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("VOut" + str(_i) + "_" + _var + "?" + _var for _var in sorted(list(_vars)))
 
         # Get VIn
         def vin(_i, _vars):
             if not _vars:
                 return "skip"
+            for state in self.all_states.values():
+                if "a_"+state.name in _vars:
+                    _vars.remove("a_"+state.name)
+            if "done" in _vars:
+                _vars.remove("done")
+            if "E" in _vars:
+                _vars.remove("E")
             return "; ".join("VIn" + str(_i) + "_" + _var + "!" + _var for _var in sorted(list(_vars)))
 ##########
         # Add VIn! after BR! in an hcsp list of state
@@ -769,9 +841,14 @@ class SF_Chart(Subsystem):
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
             # Body of process S_i
-            s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, vars_in_s_i)),
-                                   s_du,  # S_du
-                                   hp_parser.parse("BO" + str(i) + "!; " + vin(i, vars_in_s_i)))
+            if  s_i.name == "S" +str(self.dest_state_root_num):
+                s_i_proc = hp.Sequence(hp_parser.parse("DState"+str(i)+"?state"+";BC" + str(i) + "?" + event_var + "; " + vout(i, vars_in_s_i)),
+                                       s_du,  # S_du
+                                       hp_parser.parse("BO" + str(i) + "!; " + vin(i, vars_in_s_i)))
+            else:
+                s_i_proc = hp.Sequence(hp_parser.parse("BC" + str(i) + "?" + event_var + "; " + vout(i, vars_in_s_i)),
+                                       s_du,  # S_du
+                                       hp_parser.parse("BO" + str(i) + "!; " + vin(i, vars_in_s_i)))
             # P_diag = p_diag_proc
             if p_diag:
                 if isinstance(p_diag[0], hp.Var):
