@@ -70,7 +70,6 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         #print(process)
-#         #printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
  
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
