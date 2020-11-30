@@ -20,19 +20,9 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        #print(process)
-#         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
-    def testSendDirect_event(self):
-        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
-        diagram = SL_Diagram(location=location)
-        _ = diagram.parse_xml()
-        diagram.comp_inher_st()
-        diagram.add_buffers()
-        diagram.add_line_name()
-        process = get_hcsp(*diagram.seperate_diagram())
-        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
         print(process)
-    def testSendDirect_event2(self):
+        printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
+    def testSendDirect_event(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
@@ -40,7 +30,48 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_2.txt",process)
         print(process)
+    def testSendDirect_event2(self):
+        location = "./Examples/Stateflow/direct_event/direct_event_eg2.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/direct_event/direct_event_eg2.txt",process)
+    def testSendDirect_event3(self):
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        #printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+    def testSendDirect_event4(self):
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_3.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_3.txt",process)
+    def testSendDirect_event5(self):
+        location = "./Examples/Stateflow/direct_event/direct_event1_eg_4.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_4.txt",process)
     def testMessage_eg(self):
         location = "./Examples/Stateflow/Message_eg/Message_eg.xml"
         diagram = SL_Diagram(location=location)
@@ -79,13 +110,13 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
+        #print(process)
         printTofile("./Examples/Stateflow/early_exit/early_exit.txt",process)
         res = [
             ("P", "@M || @S1"),
-            ("M", 'num := 0; wait(-1); (num == 0 -> (E := ""; EL := [""]; NL := [1]; num := 1); '
-                  'num == 1 -> (DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip;DBnum1?Dnum; num := Dnum '
-                  '$ DBO1? --> skip $ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
+            ("M", 'num := 0; wait(-1); (num == 0 -> (state := "";E := ""; EL := [""]; NL := [1]; num := 1); '
+                  'num == 1 -> (DState1!state --> skip $ DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip;DBnum1?Dnum; num := Dnum ; DState1?state'
+                  '$ DBO1? --> skip; num :=num+1 $ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
                   'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(-1)); '
                   'EL != [] -> (E := top(EL); num := top(NL))))**'),
             ("S1", 'a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; a_S1 := 1; a_A := 1; a_A1 := 1; '

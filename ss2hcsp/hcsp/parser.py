@@ -35,6 +35,7 @@ grammar = r"""
         | expr "<" expr -> less_cond
         | expr ">=" expr -> greater_eq_cond
         | expr ">" expr -> greater_cond
+        | "~" cond -> not_cond
         | "true" -> true_cond
         | "false" -> false_cond
         | "(" cond ")"
@@ -177,6 +178,9 @@ class HPTransformer(Transformer):
 
     def greater_cond(self, e1, e2):
         return expr.RelExpr(">", e1, e2)
+
+    def not_cond(self, e):
+        return expr.NegExpr(e)
 
     def true_cond(self):
         return expr.BConst(True)

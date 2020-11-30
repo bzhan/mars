@@ -11,7 +11,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, ArrayIdxExpr, BConst, LogicExpr, RelExpr, true_expr, \
+    ListExpr, ArrayIdxExpr, BConst, LogicExpr, NegExpr, RelExpr, true_expr, \
     opt_round, get_range, split_conj, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
@@ -144,6 +144,10 @@ def eval_expr(expr, state):
         else:
             raise NotImplementedError
 
+    elif isinstance(expr, NegExpr):
+        a = eval_expr(expr.expr, state)
+        return (not a)
+
     elif isinstance(expr, RelExpr):
         a = eval_expr(expr.expr1, state)
         b = eval_expr(expr.expr2, state)
@@ -204,8 +208,10 @@ def get_ode_delay(hp, state):
             elif c.op in ('>', '>='):
                 return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
             else:
+                print('!!!!!')
                 raise NotImplementedError
         else:
+            print('!!!!!')
             raise NotImplementedError
 
     def is_zero(t):
@@ -254,6 +260,9 @@ def get_ode_delay(hp, state):
             else:
                 return 0
 
+        if not eval_expr(e, state):
+            return 0
+
         y0 = []
         for var_name, _ in hp.eqs:
             y0.append(state[var_name])
@@ -270,7 +279,11 @@ def get_ode_delay(hp, state):
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
+            try:
+                sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
+            except ValueError:
+                print('error')
+                continue
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break
