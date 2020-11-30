@@ -73,7 +73,10 @@ def eval_expr(expr, state):
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, tuple)
-            return a + (b,)
+            if isinstance(b, tuple):
+                return a + b
+            else:
+                return a + (b,)
         elif expr.fun_name == "pop":
             a, = args
             assert isinstance(a, tuple) and len(a) > 0
@@ -214,19 +217,42 @@ def get_ode_delay(hp, state):
             print('!!!!!')
             raise NotImplementedError
 
+    # Compute set of variables that remain zero
+    zero_vars = []
+
     def is_zero(t):
         """Whether the given expression simplifies to 0."""
         if isinstance(t, TimesExpr):
             return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
         elif isinstance(t, AConst):
             return t.value == 0
+        elif isinstance(t, AVar):
+            return t.name in zero_vars
         else:
             return False
+    
+    def is_zero_deriv(name):
+        """Whether the derivative of variable simplifies to 0."""
+        for var_name, eq in hp.eqs:
+            if var_name == name and not is_zero(eq):
+                return False
+        return True
+
+    found = True
+    while found:
+        found = False
+        for name in state:
+            if name not in zero_vars and is_zero_deriv(name) and state[name] == 0:
+                zero_vars.append(name)
+                found = True
 
     changed_vars = []
     for var_name, eq in hp.eqs:
         if not is_zero(eq):
             changed_vars.append(var_name)
+
+    # print('zero', zero_vars)
+    # print('changed', changed_vars)
 
     def occur_var(e, var_name):
         if isinstance(e, RelExpr):
@@ -240,7 +266,7 @@ def get_ode_delay(hp, state):
         elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
         else:
-            print(e)
+            print('occur_var:', e)
             raise NotImplementedError
 
     def test_cond(e):
@@ -701,7 +727,6 @@ class HCSPInfo:
                     if comm_hp.var_name is None:
                         assert x is None
                     else:
-                        print(comm_hp)
                         assert x is not None
                         self.state[comm_hp.var_name] = x
                     self.pos += (i,) + start_pos(out_hp)
@@ -902,7 +927,6 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
         if len(res['trace']) > num_steps:
             end_run = True
 
-        
 
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""

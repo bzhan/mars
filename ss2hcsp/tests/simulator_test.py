@@ -355,7 +355,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 1; (<x_dot = x & true> |> [](c!x --> skip))**",
             "(wait(10); c?x)**"
-        ], 100, ['delay 10', 'IO c 22026.815', 'delay 10', 'IO c 485180544.948', 'delay 10', 'overflow'])
+        ], 100, ['delay 10', 'IO c 22026.814', 'delay 10', 'IO c 485180534.947', 'delay 10', 'overflow'])
 
     def testExecParallel16(self):
         self.run_test([
@@ -451,6 +451,11 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             'x := 0; <x_dot = 0 * x & x < 0>'
         ], 3, ['delay 0.0', 'deadlock'])
+
+    def testExecParallel32(self):
+        self.run_test([
+            'x := 0; v := 0; <x_dot = v, v_dot = 0 & x <= 0>'
+        ], 3, ['delay 100', 'deadlock'])
 
 
 if __name__ == "__main__":
