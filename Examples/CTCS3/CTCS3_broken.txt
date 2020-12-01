@@ -1,29 +1,29 @@
 System ::= @Train || @Driver
 Train ::= s := 0; v := 0; a := 1;
-  b := 1; A := 1; LU_x2 := 640; next_seg_v1 := 0; level := 2.5;
+  b := 1; A := 1; LU_x2 := 64000; next_seg_v1 := 0; level := 2.5;
   hd_tl_MA_mode := "CO";
   (
   t := 0;
   <s_dot=v, v_dot=a, t_dot=1 &
      (v >= 0 || a >= 0) &&
-     (v < 10 || a < 0 || t < 0.128) &&
-     (t < 0.128) &&
-     ((v < 10.5 && (v * v + 2 * b * s < next_seg_v1 * next_seg_v1 + 2 * b * 640 || v <= 0)) || (a == -b)) &&
+     (v < 100 || a < 0 || t < 1) &&
+     (t < 1) &&
+     ((v < 105 && (v * v + 2 * b * s < next_seg_v1 * next_seg_v1 + 2 * b * 64000 || v <= 0)) || (a == -b)) &&
      (level != 2.5 || s <= LU_x2) &&
-     (level != 3 || "CO" != hd_tl_MA_mode || 640 - s > 320 || t < 0.128)>;
+     (level != 3 || "CO" != hd_tl_MA_mode || 64000 - s > 32000 || t < 1)>;
   ~(v >= 0 || a >= 0) ->
      (a := 1);
-  ~(v < 10 || a < 0 || t < 0.128) ->
+  ~(v < 100 || a < 0 || t < 1) ->
      (a := -0.2);
-  (~((v < 10.5 && (v * v + 2 * b * s < next_seg_v1 * next_seg_v1 + 2 * b * 640 || v <= 0)) || (a == -b))) ->
+  (~((v < 105 && (v * v + 2 * b * s < next_seg_v1 * next_seg_v1 + 2 * b * 64000 || v <= 0)) || (a == -b))) ->
      (a := -1);
-  ~(v >= 10 || v >= 10.5 || (v * v + 2 * b * s >= next_seg_v1 * next_seg_v1 + 2 * b * 640) || t < 0.128) ->
+  ~(v >= 100 || v >= 105 || (v * v + 2 * b * s >= next_seg_v1 * next_seg_v1 + 2 * b * 64000) || t < 1) ->
      (a := 1);
   (~(level != 2.5 || s <= LU_x2)) ->
      (level := 3);
-  (level != 3 || "CO" != hd_tl_MA_mode || 640 - s > 320 || t < 0.128) ->
+  (level != 3 || "CO" != hd_tl_MA_mode || 64000 - s > 32000 || t < 1) ->
      (CH_win!0);
-  (~((level != 3) || ("CO" != hd_tl_MA_mode) || (640 - s > 320) || (t < 0.128))) ->
+  (~((level != 3) || ("CO" != hd_tl_MA_mode) || (64000 - s > 32000) || (t < 1))) ->
      (CH_win!1; CH_DC?b_rConf; (b_rConf == 1) -> next_seg_v1 := 40);
   (v <= 0 && a < 0) ->
      (a := 0)
