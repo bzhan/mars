@@ -388,7 +388,7 @@ def conj(*args):
 
 def split_conj(e):
     if isinstance(e, LogicExpr) and e.op == '&&':
-        return [e.expr1] + split_conj(e.expr2)
+        return split_conj(e.expr1) + split_conj(e.expr2)
     else:
         return [e]
 

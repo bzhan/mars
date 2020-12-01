@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, ArrayIdxExpr, BConst, LogicExpr, NegExpr, RelExpr, true_expr, \
-    opt_round, get_range, split_conj, split_disj, false_expr
+    opt_round, get_range, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import graph_plot
