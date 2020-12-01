@@ -117,6 +117,8 @@ class ExprTest(unittest.TestCase):
             ("(a, b) := xs", "Assign([a,b],xs)"),
             ("x := -x", "Assign(x,-x)"),
             ("x := -x+y", "Assign(x,-x+y)"),
+            ("@X", "Var(X)"),
+            ("@X[x,y]", "Var(X,[x,y])"),
         ]
 
         for s, res in test_data:

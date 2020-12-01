@@ -58,6 +58,7 @@ grammar = r"""
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
     ?atom_cmd: "@" CNAME -> var_cmd
+        | "@" CNAME "[" CNAME ("," CNAME)* "]" -> var_cmd_out
         | "skip" -> skip_cmd
         | "wait" "(" expr ")" -> wait_cmd
         | CNAME ":=" expr -> assign_cmd
@@ -199,6 +200,9 @@ class HPTransformer(Transformer):
 
     def var_cmd(self, name):
         return hcsp.Var(str(name))
+
+    def var_cmd_out(self, *args):
+        return hcsp.Var(str(args[0]), output=args[1:])
 
     def skip_cmd(self):
         return hcsp.Skip()

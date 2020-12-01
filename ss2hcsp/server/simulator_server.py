@@ -84,10 +84,16 @@ def run_hcsp():
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
 
+    log_time_series = [infos[1]['name']]
     infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
+
+    num_show = data['num_show']
+    show_starting = data['show_starting']
     try:
         clock = time.clock()
-        res = simulator.exec_parallel(infos, num_steps=num_steps, num_io_events=num_io_events)
+        res = simulator.exec_parallel(
+            infos, num_steps=num_steps, num_io_events=num_io_events, log_time_series=log_time_series,
+            num_show=num_show)
         print("Time:", time.clock() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
@@ -104,17 +110,15 @@ def run_hcsp():
 
     # When limiting to a range, update info so it does not refer to value
     # outside the range
-    num_show = data['num_show']
-    show_starting = data['show_starting']
-    for i in range(show_starting, min(len(res['trace']), show_starting + num_show)):
-        for name, info in res['trace'][i]['infos'].items():
-            if isinstance(info, int):
-                if info < show_starting:
-                    res['trace'][i]['infos'][name] = res['trace'][info]['infos'][name]
-                else:
-                    res['trace'][i]['infos'][name] = info - show_starting
+    # for i in range(show_starting, min(len(res['trace']), show_starting + num_show)):
+    #     for name, info in res['trace'][i]['infos'].items():
+    #         if isinstance(info, int):
+    #             if info < show_starting:
+    #                 res['trace'][i]['infos'][name] = res['trace'][info]['infos'][name]
+    #             else:
+    #                 res['trace'][i]['infos'][name] = info - show_starting
 
-    res['trace'] = res['trace'][show_starting : show_starting+num_show]
+    # res['trace'] = res['trace'][show_starting : show_starting+num_show]
 
     for key in res.keys():
         print(key, len(json.dumps(res[key])))

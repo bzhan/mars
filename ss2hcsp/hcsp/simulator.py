@@ -875,7 +875,8 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
+def exec_parallel(infos, *, num_io_events=100, num_steps=400,
+                  log_time_series=None, num_show=None):
     """Given a list of HCSPInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -898,15 +899,20 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
         'time_series': {}  # Evolution of variables, indexed by program
     }
 
-    # Signals the maximum number of steps has been reached.
-    end_run = False
+    # Number of steps so far.
+    num_event = 0
 
-    for info in infos:
-        res['time_series'][info.name] = []
+    if log_time_series is None:
+        for info in infos:
+            res['time_series'][info.name] = []
+    else:
+        for info in infos:
+            if info.name in log_time_series:
+                res['time_series'][info.name] = []
 
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
-        nonlocal end_run
+        nonlocal num_event
         cur_index = len(res['trace'])
 
         new_event = xargs
@@ -923,13 +929,17 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
                 cur_info[info.name] = info.last_change
 
         new_event['infos'] = cur_info
-        res['trace'].append(new_event)
-        if len(res['trace']) > num_steps:
-            end_run = True
-
+        if num_show is None or len(res['trace']) < num_show:
+            res['trace'].append(new_event)
+        num_event += 1
+        if num_event % 100 == 0:
+            print('i:', num_event)
 
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""
+        if name not in res['time_series']:
+            return
+
         new_entry = {
             "time": time,
             "event": len(res['trace']),
@@ -957,7 +967,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
             if info.name not in updated:
                 continue
 
-            while info.pos is not None and not end_run:
+            while info.pos is not None and not num_event > num_steps:
                 info.exec_step()
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
@@ -967,7 +977,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
             if info.pos is None:
                 info.reason = {'end': None}
 
-        if end_run:
+        if num_event > num_steps:
             break
 
         event = extract_event(infos)
@@ -1014,11 +1024,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
         if has_overflow:
             log_event(ori_pos=[], type="overflow", str="overflow")
             break
-    
-   
-    # print(res.get("time_series"))
-
-    
+        
     return res
 
 def graph(res, ProgramName, tkplot=False, seperate=True):

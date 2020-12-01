@@ -60,19 +60,28 @@ class HCSP:
 
 
 class Var(HCSP):
-    def __init__(self, name):
+    def __init__(self, name, output=None):
         super(Var, self).__init__()
         self.type = "var" 
         self.name = name
+        if output is None:
+            output = tuple()
+        self.output = tuple(output)
 
     def __eq__(self, other):
         return self.type == other.type and self.name == other.name
 
     def __repr__(self):
-        return "Var(%s)" % self.name
+        if self.output:
+            return "Var(%s,[%s])" % (self.name, ','.join(self.output))
+        else:
+            return "Var(%s)" % self.name
 
     def __str__(self):
-        return "@" + self.name
+        if self.output:
+            return "@%s[%s]" % (self.name, ','.join(self.output))
+        else:
+            return "@" + self.name
 
     def sc_str(self):
         return self.name
