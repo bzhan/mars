@@ -913,6 +913,13 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
         nonlocal num_event
+        num_event += 1
+        if num_event % 100 == 0:
+            print('i:', num_event)
+
+        if num_show is not None and len(res['trace']) >= num_show:
+            return
+
         cur_index = len(res['trace'])
 
         new_event = xargs
@@ -929,11 +936,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                 cur_info[info.name] = info.last_change
 
         new_event['infos'] = cur_info
-        if num_show is None or len(res['trace']) < num_show:
-            res['trace'].append(new_event)
-        num_event += 1
-        if num_event % 100 == 0:
-            print('i:', num_event)
+        res['trace'].append(new_event)
 
     def log_time_series(name, time, state):
         """Log the given time series for program with the given name."""
