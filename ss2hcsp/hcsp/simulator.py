@@ -914,7 +914,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         """Log the given event, starting with the given event info."""
         nonlocal num_event
         num_event += 1
-        if num_event % 100 == 0:
+        if num_event % 10000 == 0:
             print('i:', num_event)
 
         if num_show is not None and len(res['trace']) >= num_show:

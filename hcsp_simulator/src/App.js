@@ -517,7 +517,8 @@ class App extends React.Component {
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
                         <label htmlFor="num_steps" className="menu-label">Number of steps:</label>
-                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps} onChange={this.handleChange}/>
+                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps}
+                         onChange={this.handleChange} style={{width: "70px"}}/>
                         <label htmlFor="num_show" className="menu-label">Showing </label>
                         <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange}/>
                         <label htmlFor="show_starting" className="menu-label">starting from </label>
