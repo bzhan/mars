@@ -1030,7 +1030,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         
     return res
 
-def graph(res, ProgramName, tkplot=False, seperate=True):
+def graph(res, ProgramName, tkplot=False, separate=True):
     DataState = {}
     temp = res.get("time_series")
     # for k in temp.keys():
@@ -1055,7 +1055,7 @@ def graph(res, ProgramName, tkplot=False, seperate=True):
         app = graph_plot.Graphapp(res)
         app.mainloop()
     else:
-        if seperate:
+        if separate:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
