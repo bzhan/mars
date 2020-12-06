@@ -1030,27 +1030,20 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         
     return res
 
-def graph(res, ProgramName, tkplot=False, separate=True):
+def graph(res, proc_name, tkplot=False, separate=True, variables=None):
     DataState = {}
     temp = res.get("time_series")
-    # for k in temp.keys():
-    lst = temp.get(ProgramName)
+    lst = temp.get(proc_name)
     for t in lst:
         state = t.get("state")
-        # print(t.get('time'))
         for key in state.keys():
-            # if state.get(key) == {}:
-            #     pass
+            if variables is not None and key not in variables:
+                continue
             if key not in DataState.keys():
                 DataState.update({key:([],[])})
-            # print (DataState.get(key))
-            # print (state.get())
             DataState.get(key)[0].append(state.get(key))
             DataState.get(key)[1].append(t.get('time'))
                 
-    # print (DataState)
-    # for l in DataState.keys():
-    #     print(len(DataState.get(l)[0])==len(DataState.get(l)[1]))
     if tkplot:
         app = graph_plot.Graphapp(res)
         app.mainloop()
@@ -1059,14 +1052,13 @@ def graph(res, ProgramName, tkplot=False, separate=True):
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
-                # plt.legend()
+                plt.plot(x, y, label=t)
                 plt.show()
         else:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
+                plt.plot(x, y, label=t)
                 plt.legend()
 
 
