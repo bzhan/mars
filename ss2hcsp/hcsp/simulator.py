@@ -914,7 +914,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         """Log the given event, starting with the given event info."""
         nonlocal num_event
         num_event += 1
-        if num_event % 100 == 0:
+        if num_event % 10000 == 0:
             print('i:', num_event)
 
         if num_show is not None and len(res['trace']) >= num_show:
@@ -1030,43 +1030,35 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         
     return res
 
-def graph(res, ProgramName, tkplot=False, seperate=True):
+def graph(res, proc_name, tkplot=False, separate=True, variables=None):
     DataState = {}
     temp = res.get("time_series")
-    # for k in temp.keys():
-    lst = temp.get(ProgramName)
+    lst = temp.get(proc_name)
     for t in lst:
         state = t.get("state")
-        # print(t.get('time'))
         for key in state.keys():
-            # if state.get(key) == {}:
-            #     pass
+            if variables is not None and key not in variables:
+                continue
             if key not in DataState.keys():
                 DataState.update({key:([],[])})
-            # print (DataState.get(key))
-            # print (state.get())
             DataState.get(key)[0].append(state.get(key))
             DataState.get(key)[1].append(t.get('time'))
                 
-    # print (DataState)
-    # for l in DataState.keys():
-    #     print(len(DataState.get(l)[0])==len(DataState.get(l)[1]))
     if tkplot:
         app = graph_plot.Graphapp(res)
         app.mainloop()
     else:
-        if seperate:
+        if separate:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
-                # plt.legend()
+                plt.plot(x, y, label=t)
                 plt.show()
         else:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
+                plt.plot(x, y, label=t)
                 plt.legend()
 
 
