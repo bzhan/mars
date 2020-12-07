@@ -84,7 +84,6 @@ def run_hcsp():
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
 
-    log_time_series = [infos[1]['name']]
     infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
@@ -92,7 +91,7 @@ def run_hcsp():
     try:
         clock = time.clock()
         res = simulator.exec_parallel(
-            infos, num_steps=num_steps, num_io_events=num_io_events, log_time_series=log_time_series,
+            infos, num_steps=num_steps, num_io_events=num_io_events, log_time_series=None,
             num_show=num_show)
         print("Time:", time.clock() - clock)
     except simulator.SimulatorException as e:
