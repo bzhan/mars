@@ -89,11 +89,11 @@ def run_hcsp():
     num_show = data['num_show']
     show_starting = data['show_starting']
     try:
-        clock = time.clock()
+        clock = time.perf_counter()
         res = simulator.exec_parallel(
             infos, num_steps=num_steps, num_io_events=num_io_events, log_time_series=None,
             num_show=num_show)
-        print("Time:", time.clock() - clock)
+        print("Time:", time.perf_counter() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
 
