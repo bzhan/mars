@@ -7,6 +7,7 @@ The state is given by a dictionary from variable names to numbers.
 from copy import copy
 import itertools
 import math
+import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
@@ -110,11 +111,19 @@ def eval_expr(expr, state):
             except TypeError as e:
                 print('value is:', a)
                 raise e
-
             return tuple(b)
         elif expr.fun_name == "sqrt":
             assert len(args) == 1 and args[0] >= 0
             return math.sqrt(args[0])
+        elif expr.fun_name == "bernoulli":
+            assert len(args) == 1 and args[0] >= 0 and args[0] <= 1
+            if random.uniform(0,1) <= args[0]:
+                return 1
+            else:
+                return 0
+        elif expr.fun_name == "uniform":
+            assert len(args) == 2 and args[0] <= args[1]
+            return random.uniform(args[0], args[1])
         else:
             raise NotImplementedError
 

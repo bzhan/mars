@@ -178,7 +178,8 @@ class FunExpr(AExpr):
         super(FunExpr, self).__init__()
         assert fun_name in [
             "min", "max", "abs", "gcd", "delay", "sqrt",
-            "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min","pop_min"]
+            "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
+            "bernoulli", "uniform"]
         self.fun_name = fun_name
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
