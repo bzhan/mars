@@ -980,7 +980,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                 continue
 
             while info.pos is not None and not num_event > num_steps:
-                info.exec_step()
+                try:
+                    info.exec_step()
+                except SimulatorException as e:
+                    if e.error_msg.startswith('Uninitialized variable'):
+                        raise SimulatorException(e.error_msg + ' in process ' + info.name)
+                    else:
+                        raise e
+
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
                     log_time_series(info.name, res['time'], info.state)

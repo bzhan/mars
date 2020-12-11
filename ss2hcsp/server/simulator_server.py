@@ -33,13 +33,14 @@ def parse_hcsp():
     # start of a new program.
     lines = []
     for line in text_lines:
+        comment_pos = line.find('#')
+        if comment_pos != -1:
+            line = line[:comment_pos].strip()
         if line.find('::=') != -1:
             lines.append(line)
         else:
-            comment_pos = line.find('#')
-            if comment_pos != -1:
-                line = line[:comment_pos]
-            lines[-1] += line
+            if line != "":
+                lines[-1] += line + ' '
 
     infos = []
 
