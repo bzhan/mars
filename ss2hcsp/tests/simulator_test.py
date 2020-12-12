@@ -462,6 +462,11 @@ class SimulatorTest(unittest.TestCase):
             'x := 2; assert(x == 2)'
         ], 2, ['deadlock'])
 
+    def testExecParallel34(self):
+        self.run_test([
+            'x := 2; assert(x == 3)'
+        ], 2, ['error: Assertion failed: x == 3'])
+
 
 if __name__ == "__main__":
     unittest.main()

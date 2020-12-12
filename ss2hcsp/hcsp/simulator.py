@@ -868,6 +868,11 @@ def extract_event(infos):
     ("comm", id_out, id_in, ch_name) -> communication.
 
     """
+    # If any process is in error, return error
+    for i, info in enumerate(infos):
+        if 'error' in info.reason:
+            return ('error', info.reason['error'])
+
     # First, attempt to find communication
     for i, info1 in enumerate(infos):
         for j, info2 in enumerate(infos):
@@ -991,18 +996,20 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                 try:
                     info.exec_step()
                 except SimulatorException as e:
-                    if e.error_msg.startswith('Uninitialized variable'):
-                        raise SimulatorException(e.error_msg + ' in process ' + info.name)
-                    else:
-                        raise e
+                    info.reason = {'error': e.error_msg}
+                    break
 
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
                     log_time_series(info.name, res['time'], info.state)
                 else:
                     break
+
             if info.pos is None:
                 info.reason = {'end': None}
+
+            if info.reason == {'error': None}:
+                break
 
         if num_event > num_steps:
             break
@@ -1010,6 +1017,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         event = extract_event(infos)
         if event == "deadlock":
             log_event(ori_pos=[], type="deadlock", str="deadlock")
+            break
+        elif event[0] == "error":
+            log_event(ori_pos=[info.name], type="error", str="error: " + event[1])
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
