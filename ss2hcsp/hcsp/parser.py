@@ -191,13 +191,13 @@ class HPTransformer(Transformer):
         return expr.BConst(False)
 
     def conj(self, b1, b2):
-        return expr.conj(b1, b2)
+        return expr.LogicExpr("&&", b1, b2)
 
     def disj(self, b1, b2):
-        return expr.disj(b1, b2)
+        return expr.LogicExpr("||", b1, b2)
 
     def imp(self, b1, b2):
-        return expr.imp(b1, b2)
+        return expr.LogicExpr("-->", b1, b2)
 
     def var_cmd(self, name):
         return hcsp.Var(str(name))
