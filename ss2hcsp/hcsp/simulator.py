@@ -629,6 +629,14 @@ class HCSPInfo:
             else: 
                 raise SimulatorException("Assertion failed: %s" % cur_hp.bexpr)
 
+        elif cur_hp.type == "log":
+            # Output a log item to the simulator
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            log_expr = eval_expr(cur_hp.expr, self.state)
+            if isinstance(log_expr, str):
+                log_expr = log_expr[1:-1]
+            self.reason = {"log": log_expr}
+
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
             if eval_expr(cur_hp.cond, self.state):
@@ -1002,6 +1010,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
                     log_time_series(info.name, res['time'], info.state)
+                elif 'log' in info.reason:
+                    log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
                 else:
                     break
 

@@ -40,7 +40,7 @@ class ExprTest(unittest.TestCase):
     def testBExprParser(self):
         test_data = [
             ("a < 1", "Rel(<, AVar(a), AConst(1))"),
-            ("a == 1 && true", "Rel(==, AVar(a), AConst(1))")
+            ("a == 1 && true", "Logic(&&, Rel(==, AVar(a), AConst(1)), BConst(True))")
         ]
 
         for s, res in test_data:
@@ -118,6 +118,7 @@ class ExprTest(unittest.TestCase):
             ("x := -x", "Assign(x,-x)"),
             ("x := -x+y", "Assign(x,-x+y)"),
             ("assert(x == 2)", "Assert(Rel(==, AVar(x), AConst(2)))"),
+            ("log(\"start\")", "Log(AConst(\"start\"))"),
             ("@X", "Var(X)"),
             ("@X[x,y]", "Var(X,[x,y])"),
         ]

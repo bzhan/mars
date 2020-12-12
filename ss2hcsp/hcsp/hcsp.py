@@ -176,6 +176,26 @@ class Assert(HCSP):
     def get_vars(self):
         return self.bexpr.get_vars()
 
+
+class Log(HCSP):
+    def __init__(self, expr):
+        super(Log, self).__init__()
+        self.type = "log"
+        assert isinstance(expr, AExpr)
+        self.expr = expr
+
+    def __eq__(self, other):
+        return self.type == other.type and self.expr == other.expr
+
+    def __repr__(self):
+        return "Log(%s)" % repr(self.expr)
+
+    def __str__(self):
+        return "log(%s)" % self.expr
+
+    def get_vars(self):
+        return self.expr.get_vars()
+    
     
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
