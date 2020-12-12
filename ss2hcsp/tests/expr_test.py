@@ -117,6 +117,7 @@ class ExprTest(unittest.TestCase):
             ("(a, b) := xs", "Assign([a,b],xs)"),
             ("x := -x", "Assign(x,-x)"),
             ("x := -x+y", "Assign(x,-x+y)"),
+            ("assert(x == 2)", "Assert(Rel(==, AVar(x), AConst(2)))"),
             ("@X", "Var(X)"),
             ("@X[x,y]", "Var(X,[x,y])"),
         ]

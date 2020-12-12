@@ -268,7 +268,7 @@ class SimulatorTest(unittest.TestCase):
         res = simulator.exec_parallel_steps(infos, start_event=start_event)
         self.assertEqual(len(res), res_len)
 
-    def Simulator(self):
+    def testExecParallel1(self):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",
@@ -456,6 +456,11 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             'x := 0; v := 0; <x_dot = v, v_dot = 0 & x <= 0>'
         ], 3, ['delay 100', 'deadlock'])
+
+    def testExecParallel33(self):
+        self.run_test([
+            'x := 2; assert(x == 2)'
+        ], 2, ['deadlock'])
 
 
 if __name__ == "__main__":

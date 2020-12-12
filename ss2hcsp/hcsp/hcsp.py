@@ -157,6 +157,26 @@ class Assign(HCSP):
         return re.sub(pattern=":=", repl="=", string=str(self))
 
 
+class Assert(HCSP):
+    def __init__(self, bexpr):
+        super(Assert, self).__init__()
+        self.type = "assert"
+        assert isinstance(bexpr, BExpr)
+        self.bexpr = bexpr
+
+    def __eq__(self, other):
+        return self.type == other.type and self.bexpr == other.bexpr
+
+    def __repr__(self):
+        return "Assert(%s)" % repr(self.bexpr)
+
+    def __str__(self):
+        return "assert(%s)" % self.bexpr
+
+    def get_vars(self):
+        return self.bexpr.get_vars()
+
+    
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
         super(InputChannel, self).__init__()
@@ -183,9 +203,7 @@ class InputChannel(HCSP):
             return self.ch_name + "?"
 
     def get_vars(self):
-
         if self.var_name and not (self.ch_name.startswith("DState") or self.ch_name.startswith("DBR") or self.ch_name.startswith("DBC") or self.ch_name.startswith("DBVIn") or self.ch_name.startswith("DBVOut")):
-            
             return {self.var_name}
         return set()
 

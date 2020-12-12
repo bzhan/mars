@@ -621,6 +621,14 @@ class HCSPInfo:
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
 
+        elif cur_hp.type == "assert":
+            # Evaluate an assertion
+            if eval_expr(cur_hp.bexpr, self.state):
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.reason = None
+            else: 
+                raise SimulatorException("Assertion failed: %s" % cur_hp.bexpr)
+
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
             if eval_expr(cur_hp.cond, self.state):
