@@ -40,7 +40,7 @@ def parse_hcsp():
             lines.append(line)
         else:
             if line != "":
-                lines[-1] += line + ' '
+                lines[-1] += line + '\n'
 
     infos = []
 
@@ -53,8 +53,12 @@ def parse_hcsp():
         try:
             hp = parser.hp_parser.parse(hp_text)
         except (lark.exceptions.UnexpectedToken, lark.exceptions.UnexpectedCharacters) as e:
-            indicator_str = " " * (e.column-1) + "^"
-            return raise_error("Unable to parse:\n  %s\n  %s" % (hp_text, indicator_str))
+            error_str = "Unable to parse\n"
+            for i, line in enumerate(hp_text.split('\n')):
+                error_str += line + '\n'
+                if i == e.line - 1:
+                    error_str += " " * (e.column-1) + "^" + '\n'
+            return raise_error(error_str)
 
         if hp.type == 'parallel':
             if not all(sub_hp.type == 'var' for sub_hp in hp.hps):
