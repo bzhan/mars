@@ -2,10 +2,10 @@ import './App.css';
 
 import React from "react";
 
-import {Nav, Navbar, ButtonToolbar, Button, Container} from "react-bootstrap"
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft} from '@fortawesome/free-solid-svg-icons'
-import {Chart} from 'chart.js'
+import { Nav, Navbar, ButtonToolbar, Button, Container } from "react-bootstrap"
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft } from '@fortawesome/free-solid-svg-icons'
+import { Chart } from 'chart.js'
 import axios from "axios"
 
 // Plugin for drawing vertical lines on the graph.
@@ -21,8 +21,8 @@ const verticalLinePlugin = {
     renderVerticalLine: function (chartInstance, pointIndex) {
         const scale = chartInstance.scales['y-axis-0'];
         const context = chartInstance.chart.ctx;
-  
-        if (typeof(pointIndex) === 'number') {
+
+        if (typeof (pointIndex) === 'number') {
             // render vertical line
             const lineLeftOffset = this.getLinePosition(chartInstance, pointIndex);
             context.beginPath();
@@ -34,10 +34,10 @@ const verticalLinePlugin = {
             const lineLeftOffset1 = this.getLinePosition(chartInstance, pointIndex[0]);
             const lineLeftOffset2 = this.getLinePosition(chartInstance, pointIndex[1]);
             context.fillStyle = 'lightgray';
-            context.fillRect(lineLeftOffset1, scale.bottom, lineLeftOffset2-lineLeftOffset1, scale.top-scale.bottom);
+            context.fillRect(lineLeftOffset1, scale.bottom, lineLeftOffset2 - lineLeftOffset1, scale.top - scale.bottom);
         }
     },
-  
+
     beforeDatasetsDraw: function (chart, easing) {
         if (chart.config.lineAtIndex) {
             chart.config.lineAtIndex.forEach(pointIndex => this.renderVerticalLine(chart, pointIndex));
@@ -53,71 +53,73 @@ class Process extends React.Component {
         super(props);
         this.state = {
             show_graph: false,
+            
         }
+
     }
 
     render() {
         return (
             <div>
-            {/* Program text, with highlight on current location */}
-            <div>Process: {this.props.name}</div>
-            <div className="program-text">
-                {this.props.lines.map((str, line_no) => {
-                    if (this.props.pos === undefined) {
+                {/* Program text, with highlight on current location */}
+                <div>Process: {this.props.name}</div>
+                <div className="program-text">
+                    {this.props.lines.map((str, line_no) => {
+                        if (this.props.pos === undefined) {
+                            return <pre key={line_no}>{str}</pre>
+                        }
+                        const pos = this.props.pos;
+                        var bg_start, bg_end;
+                        if (line_no === pos.start_x) {
+                            bg_start = pos.start_y;
+                        } else if (line_no > pos.start_x) {
+                            bg_start = 0;
+                        } else {
+                            bg_start = str.length;
+                        }
+                        if (line_no === pos.end_x) {
+                            bg_end = pos.end_y;
+                        } else if (line_no < pos.end_x) {
+                            bg_end = str.length;
+                        } else {
+                            bg_end = 0;
+                        }
+                        if (bg_start < bg_end) {
+                            return (
+                                <pre key={line_no}>
+                                    <span>{str.slice(0, bg_start)}</span>
+                                    <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                        {str.slice(bg_start, bg_end)}
+                                    </span>
+                                    <span>{str.slice(bg_end, str.length)}</span>
+                                </pre>)
+                        }
                         return <pre key={line_no}>{str}</pre>
-                    }
-                    const pos = this.props.pos;
-                    var bg_start, bg_end;
-                    if (line_no === pos.start_x) {
-                        bg_start = pos.start_y;
-                    } else if (line_no > pos.start_x) {
-                        bg_start = 0;
-                    } else {
-                        bg_start = str.length;
-                    }
-                    if (line_no === pos.end_x) {
-                        bg_end = pos.end_y;
-                    } else if (line_no < pos.end_x) {
-                        bg_end = str.length;
-                    } else {
-                        bg_end = 0;
-                    }
-                    if (bg_start < bg_end) {
-                        return (
-                            <pre key={line_no}>
-                                <span>{str.slice(0,bg_start)}</span>
-                                <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
-                                    {str.slice(bg_start,bg_end)}
-                                </span>
-                                <span>{str.slice(bg_end,str.length)}</span>
-                            </pre>)
-                    }
-                    return <pre key={line_no}>{str}</pre>
-                })}
-            </div>
+                    })}
+                </div>
 
-            {/* State of the program */}
-            <pre className="program-state">
-                <span>&nbsp;</span>
-                {Object.keys(this.props.state).map((key, index) => {
-                    // Round numbers to at most three digits for display
-                    var val = this.props.state[key];
-                    if (typeof(val) == 'number') {
-                        val = Math.round(val.toFixed(3)*1000)/1000
-                    }
-                    return (<>
-                    {index > 0 && index % 5 === 0 ? <><br/><span>&nbsp;</span></> : null}
-                    <span key={index} style={{marginLeft: "10px"}}>{key}: {String(val)}</span>
-                    </>)
-                })}
-                <span>&nbsp;&nbsp;</span>
-                <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
-            </pre>
+                {/* State of the program */}
+                <pre className="program-state">
+                    <span>&nbsp;</span>
+                    {Object.keys(this.props.state).map((key, index) => {
+                        // Round numbers to at most three digits for display
+                        var val = this.props.state[key];
+                        if (typeof (val) == 'number') {
+                            val = Math.round(val.toFixed(3) * 1000) / 1000
+                        }
+                        return (<>
+                            {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
+                            <span key={index} style={{ marginLeft: "10px" }}>{key}: {String(val)}</span>
+                        </>)
+                    })}
+                    <span>&nbsp;&nbsp;</span>
+                    <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
+                </pre>
 
-            {/* Graph of time series */}
-            {(this.state.show_graph && this.props.time_series !== undefined) ?
-                <canvas id={'chart'+String(this.props.index)} width="400" height="100"/> : null
-            }
+                {/* Graph of time series */}
+                {(this.state.show_graph && this.props.time_series !== undefined) ?
+                    <canvas id={'chart' + String(this.props.index)} width="400" height="100" /> : null
+                }
             </div>
         );
     }
@@ -134,21 +136,21 @@ class Process extends React.Component {
             return;
         }
         var series = {};
-        const is_discrete = (ts[ts.length-1].time === 0)
+        const is_discrete = (ts[ts.length - 1].time === 0)
         for (let i = 0; i < ts.length; i++) {
             for (let k in ts[i].state) {
-                if (typeof(ts[i].state[k]) === 'number') {
+                if (typeof (ts[i].state[k]) === 'number') {
                     if (!(k in series)) {
                         series[k] = [];
                     }
                     if (is_discrete) {
-                        series[k].push({x: ts[i].event, y: ts[i].state[k]});
+                        series[k].push({ x: ts[i].event, y: ts[i].state[k] });
                     } else {
-                        series[k].push({x: ts[i].time, y: ts[i].state[k]});
+                        series[k].push({ x: ts[i].time, y: ts[i].state[k] });
                     }
                 }
             }
-        }    
+        }
         var datasets = [];
         var colors = ['blue', 'red', 'green', 'yellow'];
         for (let k in series) {
@@ -165,7 +167,7 @@ class Process extends React.Component {
             })
         }
 
-        var canvas = document.getElementById('chart'+String(this.props.index));
+        var canvas = document.getElementById('chart' + String(this.props.index));
         const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
         this.chart = new Chart(canvas, {
             type: 'line',
@@ -209,11 +211,11 @@ class Events extends React.Component {
                     } else {
                         return (
                             <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
-                                <span className={index === this.props.current_index?"event-list-hl":""}>
+                                <span className={index === this.props.current_index ? "event-list-hl" : ""}>
                                     {event.str}
                                 </span>
                             </pre>
-                        )    
+                        )
                     }
                 })}
             </div>
@@ -313,7 +315,7 @@ class App extends React.Component {
                     time_series: [],
                     history_pos: 0,
                     querying: false
-                });    
+                });
             }
         };
         this.reader.readAsText(this.fileSelector.files[0]);
@@ -424,10 +426,10 @@ class App extends React.Component {
         } else {
             const history = this.state.history;
             var res;
-            if (history[history.length-1].type === 'deadlock') {
-                res = String(history.length-1) + " events."
+            if (history[history.length - 1].type === 'deadlock') {
+                res = String(history.length - 1) + " events."
             } else {
-                res = String(history.length-1) + "+ events."
+                res = String(history.length - 1) + "+ events."
             }
             return res
         }
@@ -444,69 +446,69 @@ class App extends React.Component {
             <pre className="error-message">
                 Error: {this.state.error}
             </pre>
-        : (
-            <Container className="left">
-            {this.state.warnings.map((warning, index) => {
-                return <div key={index} style={{color:'red'}}>{warning}</div>
-            })}
-            {this.state.hcsp_info.map((info, index) => {
-                const hcsp_name = info.name;
-                if ('parallel' in info) {
-                    return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
-                }
-                else if (this.state.history.length === 0) {
-                    // No data is available
-                    return <Process key={index} index={index} lines={info.lines}
-                                    name={hcsp_name} pos={undefined} state={[]}
-                                    time_series={undefined} event_time={undefined} hpos={undefined}
-                                    npos={undefined}/>
-                } else {
-                    const hpos = this.state.history_pos;
-                    const event = this.state.history[hpos];
-                    var pos, state;
-                    if (typeof(event.infos[hcsp_name]) === 'number') {
-                        var prev_id = event.infos[hcsp_name];
-                        var prev_info = this.state.history[prev_id].infos[hcsp_name];
-                        pos = prev_info.pos;
-                        state = prev_info.state;
-                    } else {
-                        pos = event.infos[hcsp_name].pos;
-                        state = event.infos[hcsp_name].state;    
-                    }
-                    var event_time;
-                    if (event.type !== 'delay') {
-                        event_time = event.time;
-                    } else {
-                        event_time = [event.time, event.time + event.delay_time];
-                    }
-                    var time_series = this.state.time_series[hcsp_name];
-                    if (pos === 'end') {
-                        // End of data set
-                        return <Process key={index} index={index} lines={info.lines}
-                                        name={hcsp_name} pos={undefined} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        npos={undefined}/>
-                    } else {
-                        var npos = false;
-                        if (hpos < this.state.history.length-1) {
-                            const next_history = this.state.history[hpos+1];
-                            if ('ori_pos' in next_history && next_history.ori_pos.indexOf(hcsp_name) !== -1) {
-                                npos = true;
+            : (
+                <Container className="left">
+                    {this.state.warnings.map((warning, index) => {
+                        return <div key={index} style={{ color: 'red' }}>{warning}</div>
+                    })}
+                    {this.state.hcsp_info.map((info, index) => {
+                        const hcsp_name = info.name;
+                        if ('parallel' in info) {
+                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
+                        }
+                        else if (this.state.history.length === 0) {
+                            // No data is available
+                            return <Process key={index} index={index} lines={info.lines}
+                                name={hcsp_name} pos={undefined} state={[]}
+                                time_series={undefined} event_time={undefined} hpos={undefined}
+                                npos={undefined} />
+                        } else {
+                            const hpos = this.state.history_pos;
+                            const event = this.state.history[hpos];
+                            var pos, state;
+                            if (typeof (event.infos[hcsp_name]) === 'number') {
+                                var prev_id = event.infos[hcsp_name];
+                                var prev_info = this.state.history[prev_id].infos[hcsp_name];
+                                pos = prev_info.pos;
+                                state = prev_info.state;
+                            } else {
+                                pos = event.infos[hcsp_name].pos;
+                                state = event.infos[hcsp_name].state;
+                            }
+                            var event_time;
+                            if (event.type !== 'delay') {
+                                event_time = event.time;
+                            } else {
+                                event_time = [event.time, event.time + event.delay_time];
+                            }
+                            var time_series = this.state.time_series[hcsp_name];
+                            if (pos === 'end') {
+                                // End of data set
+                                return <Process key={index} index={index} lines={info.lines}
+                                    name={hcsp_name} pos={undefined} state={state}
+                                    time_series={time_series} event_time={event_time} hpos={hpos}
+                                    npos={undefined} />
+                            } else {
+                                var npos = false;
+                                if (hpos < this.state.history.length - 1) {
+                                    const next_history = this.state.history[hpos + 1];
+                                    if ('ori_pos' in next_history && next_history.ori_pos.indexOf(hcsp_name) !== -1) {
+                                        npos = true;
+                                    }
+                                }
+                                return <Process key={index} index={index} lines={info.lines}
+                                    name={hcsp_name} pos={info.mapping[pos]} state={state}
+                                    time_series={time_series} event_time={event_time} hpos={hpos}
+                                    npos={npos} />
                             }
                         }
-                        return <Process key={index} index={index} lines={info.lines}
-                                        name={hcsp_name} pos={info.mapping[pos]} state={state}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        npos={npos}/>
-                    }
-                }
-            })}
-            </Container>
-        );
+                    })}
+                </Container>
+            );
         const right = (
             <Container id="right" className="right">
                 <Events events={this.state.history} current_index={this.state.history_pos}
-                        onClick={this.eventOnClick} show_event_only={this.state.show_event_only}/>
+                    onClick={this.eventOnClick} show_event_only={this.state.show_event_only} />
             </Container>
         );
         return (
@@ -515,14 +517,13 @@ class App extends React.Component {
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
-                        <span style={{marginLeft:'20px',fontSize:'x-large'}}>{this.state.hcspFileName}</span>
+                        <span style={{ marginLeft: '20px', fontSize: 'x-large' }}>{this.state.hcspFileName}</span>
                         <label htmlFor="num_steps" className="menu-label">Number of steps:</label>
-                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps}
-                         onChange={this.handleChange} style={{width: "70px"}}/>
+                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps} onChange={this.handleChange} />
                         <label htmlFor="num_show" className="menu-label">Showing </label>
-                        <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange}/>
+                        <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange} />
                         <label htmlFor="show_starting" className="menu-label">starting from </label>
-                        <input type="text" id="show_starting" name="show_starting" value={this.state.show_starting} onChange={this.handleChange}/>
+                        <input type="text" id="show_starting" name="show_starting" value={this.state.show_starting} onChange={this.handleChange} />
                     </Nav>
                 </Navbar>
 
@@ -530,46 +531,46 @@ class App extends React.Component {
                     <ButtonToolbar>
                         <Button variant="success" title={"run"} onClick={this.run}
                             disabled={this.state.querying || !this.state.file_loaded || this.state.error !== undefined}>
-                            <FontAwesomeIcon icon={faPlayCircle} size="lg"/>
+                            <FontAwesomeIcon icon={faPlayCircle} size="lg" />
                         </Button>
 
                         <Button variant="secondary" title={"refresh"} onClick={this.handleFiles}
                             disabled={this.state.querying || !this.state.file_loaded}>
-                            <FontAwesomeIcon icon={faSync} size="lg"/>
+                            <FontAwesomeIcon icon={faSync} size="lg" />
                         </Button>
 
                         <Button variant="secondary" title={"forward"} onClick={this.nextEvent}
-                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
-                            <FontAwesomeIcon icon={faCaretRight} size="lg"/>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length - 1}>
+                            <FontAwesomeIcon icon={faCaretRight} size="lg" />
                         </Button>
 
                         <Button variant="secondary" title={"backward"} onClick={this.prevEvent}
                             disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === 0}>
-                            <FontAwesomeIcon icon={faCaretLeft} size="lg"/>
+                            <FontAwesomeIcon icon={faCaretLeft} size="lg" />
                         </Button>
 
                         <Button variant="secondary" title={"step forward"} onClick={this.nextStep}
-                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length-1}>
-                            <FontAwesomeIcon icon={faForward} size="lg"/>
+                            disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === this.state.history.length - 1}>
+                            <FontAwesomeIcon icon={faForward} size="lg" />
                         </Button>
 
                         <Button variant="secondary" title={"step backward"} onClick={this.prevStep}
                             disabled={this.state.querying || this.state.history.length === 0 || this.state.history_pos === 0}>
-                            <FontAwesomeIcon icon={faBackward} size="lg"/>
+                            <FontAwesomeIcon icon={faBackward} size="lg" />
                         </Button>
 
-                        <span style={{marginLeft:'20px',fontSize:'large',marginTop:"auto",marginBottom:"auto"}}>
+                        <span style={{ marginLeft: '20px', fontSize: 'large', marginTop: "auto", marginBottom: "auto" }}>
                             {this.eventLine()}
                         </span>
 
-                        <a href="#" style={{marginLeft:'auto',marginRight:'10px',marginTop:'auto',marginBottom:'auto'}}
-                           onClick={this.toggleShowEvent}>
+                        <a href="#" style={{ marginLeft: 'auto', marginRight: '10px', marginTop: 'auto', marginBottom: 'auto' }}
+                            onClick={this.toggleShowEvent}>
                             {this.state.show_event_only ? 'Show all steps' : 'Show events only'}
                         </a>
                     </ButtonToolbar>
                 </div>
 
-                <hr/>
+                <hr />
                 {left}
                 {right}
             </div>

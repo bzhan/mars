@@ -50,18 +50,22 @@
 .program-text {
   margin-top: 10px;
   font-family: 'Consolas', Courier, monospace;
+  overflow:visible;
 }
 
 .program-text-hl {
   background-color: yellow;
+  
 }
 
-.program-text-next-hl {
+.program-text-next-hl { 
   background-color: springgreen;
+  
 }
 
 .program-text pre {
   margin: 0px;
+  overflow:visible;
 }
 
 .event-list {
@@ -89,6 +93,7 @@
   top: 127px;
   bottom: 0px;
   overflow-y: scroll;
+  overflow-x: scroll;
 }
 
 .right {
@@ -100,7 +105,12 @@
   bottom: 0px;
   left: 70%;
   overflow-y: scroll;
+  overflow-x: scroll;
 }
+
+
+
+
 
 .error-message {
   margin-left: 10px;
