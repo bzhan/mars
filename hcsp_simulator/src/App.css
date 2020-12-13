@@ -65,16 +65,18 @@
 
 .program-text pre {
   margin: 0px;
-  overflow:visible;
+  overflow: visible;
 }
 
 .event-list {
   margin-top: 10px;
+  overflow: visible;
 }
 
 .event-list pre {
   margin: 0px;
   cursor: pointer;
+  overflow: visible;
 }
 
 .event-list-hl {
@@ -107,10 +109,6 @@
   overflow-y: scroll;
   overflow-x: scroll;
 }
-
-
-
-
 
 .error-message {
   margin-left: 10px;
