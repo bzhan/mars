@@ -212,7 +212,7 @@ class Events extends React.Component {
                         return (
                             <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
                                 <span className={index === this.props.current_index ? "event-list-hl" : ""}>
-                                    {event.str}
+                                    {index + ' ' + event.str}
                                 </span>
                             </pre>
                         )
