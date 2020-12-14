@@ -370,7 +370,7 @@ def parse_file(text):
     for line in text_lines:
         comment_pos = line.find('#')
         if comment_pos != -1:
-            line = line[:comment_pos].strip()
+            line = line[:comment_pos]
         if line.find('::=') != -1:
             lines.append(line)
         else:
@@ -412,8 +412,9 @@ def parse_module_file(text):
     for line in text_lines:
         comment_pos = line.find('#')
         if comment_pos != -1:
-            line = line[:comment_pos].strip()
-        text += line + '\n'
+            line = line[:comment_pos]
+        if line.strip() != "":
+            text += line + '\n'
 
     try:
         decls = decls_parser.parse(text)
@@ -424,5 +425,7 @@ def parse_module_file(text):
             if i == e.line - 1:
                 error_str += " " * (e.column-1) + "^" + '\n'
         raise ParseFileException(error_str)
-        
+    except module.ModuleException as e:
+        raise ParseFileException("Module exception\n" + e.error_msg)
+
     return decls.generateHCSPInfo()

@@ -3,6 +3,11 @@
 from ss2hcsp.hcsp.hcsp import HCSPInfo
 
 
+class ModuleException(Exception):
+    def __init__(self, error_msg):
+        self.error_msg = error_msg
+
+
 class HCSPModule:
     """An HCSP module can be considered as a template for HCSP processes.
     It contains a list of parameters that can be substituted for channel
@@ -100,17 +105,20 @@ class HCSPDeclarations:
 
         for arg in args:
             if isinstance(arg, HCSPModule):
-                assert arg.name not in self.modules, "Name %s is repeated" % arg.name
+                if arg.name in self.modules:
+                    raise ModuleException("Name %s is repeated" % arg.name)
                 self.modules[arg.name] = arg
 
             elif isinstance(arg, HCSPSystem):
-                assert self.system is None, "More than one system in declaration"
+                if self.system is not None:
+                    raise ModuleException("More than one system in declaration")
                 self.system = arg
 
             else:
                 raise NotImplementedError
 
-        assert self.system is not None, "No system in declaration"
+        if self.system is None:
+            raise ModuleException("No system in declaration")
 
     def __str__(self):
         res = ""
@@ -130,8 +138,9 @@ class HCSPDeclarations:
         """Produce list of HCSP info objects."""
         infos = []
         for module_inst in self.system.module_insts:
-            assert module_inst.module_name in self.modules, \
-                "generateHCSPInfo: %s not found in declaration" % module_inst.module_name
+            if module_inst.module_name not in self.modules:
+                raise ModuleException(
+                    "generateHCSPInfo: %s not found in declaration" % module_inst.module_name)
 
             module = self.modules[module_inst.module_name]
             hcsp_info = module_inst.generateInst(module)

@@ -65,7 +65,7 @@ class HCSP:
         def subst_if_hp(if_hp):
             return (if_hp[0], if_hp[1].subst_comm(inst))
 
-        if self.type in ('var', 'skip', 'wait', 'assign', 'log'):
+        if self.type in ('var', 'skip', 'wait', 'assign', 'assert', 'log'):
             return self
         elif self.type == 'input_channel':
             if self.ch_name in inst:
@@ -94,6 +94,9 @@ class HCSP:
             return Recursion(self.hp.subst_comm(inst), entry=self.entry)
         elif self.type == 'ite':
             return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], self.else_hp.subst_comm(inst))
+        else:
+            print(self.type)
+            raise NotImplementedError
 
 
 class Var(HCSP):
