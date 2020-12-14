@@ -122,7 +122,7 @@ class HPTransformer(Transformer):
         return expr.AVar(str(s))
 
     def num_expr(self, v):
-        return expr.AConst(float(v) if '.' in v else int(v))
+        return expr.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
         return expr.AConst(str(s))
