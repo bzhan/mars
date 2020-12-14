@@ -183,8 +183,8 @@ class PPrintTest(unittest.TestCase):
     def test18(self):
         self.run_test("<x_dot = v, v_dot = a & x < 2 && v < 1>", [
             '<x_dot = v, v_dot = a &',
-            '  v < 1 &&',
-            '  x < 2',
+            '  x < 2 &&',
+            '  v < 1',
             '>'
         ])
 

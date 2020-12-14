@@ -52,14 +52,15 @@ class SimTest(unittest.TestCase):
         # print("R: ", real_hp)
 
         hp_init = hp_parser.parse("x2 := 7; x1 := 3; x0 := 1; x4 := 1; x5 := 1")
-        hp_ode0 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & 
-        min(x2, x2) < 5 && x5 < 10 || x4 < 10 && min(x2, x2) >= 5> |> 
-        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
-        ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x4 --> skip)""")
-        hp_ode1 = hp_parser.parse(r"""<x2_dot = x1, x1_dot = x0 & 
-        x5 >= 10 && min(x2, x2) < 5 || min(x2, x2) >= 5 && x4 >= 10> |> 
-        [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
-        ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x5 --> skip)""")
+        hp_ode0 = hp_parser.parse(r"""
+        <x2_dot = x1, x1_dot = x0 & min(x2, x2) < 5 && x5 < 10 || min(x2, x2) >= 5 && x4 < 10> |> 
+            [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
+                ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x4 --> skip)""")
+        hp_ode1 = hp_parser.parse(r"""
+        <x2_dot = x1, x1_dot = x0 & min(x2, x2) < 5 && x5 >= 10 || min(x2, x2) >= 5 && x4 >= 10> |> 
+            [] (ch_x0_0?x0 --> skip, ch_x4_0?x4 --> skip, ch_x4_1?x4 --> skip, 
+                ch_x5_0?x5 --> skip, ch_x5_1?x5 --> skip, ch_x7_0!x5 --> skip)""")
+
         continuous_hp = hcsp.Sequence(hp_init, hcsp.Loop(hcsp.Sequence(hp_ode0, hp_ode1)))
         expected_hp = hcsp.HCSPProcess()
         # expected_hp.add("P", hcsp.Var("PC0"))
