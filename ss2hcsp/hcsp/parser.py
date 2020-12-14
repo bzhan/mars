@@ -348,3 +348,53 @@ hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=HPTra
 module_parser = Lark(grammar, start="module", parser="lalr", transformer=HPTransformer())
 system_parser = Lark(grammar, start="system", parser="lalr", transformer=HPTransformer())
 decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=HPTransformer())
+
+
+class ParseFileException(Exception):
+    def __init__(self, error_msg):
+        self.error_msg = error_msg
+
+
+def parse_file(text):
+    """Parsing regular HCSP files.
+
+    Input is the string of the file. Output is a list of pairs (name, hp).
+
+    """
+    text_lines = text.strip().split('\n')
+    hcsp_info = []
+
+    # First, read lines from file, each line containing ::= means the
+    # start of a new program.
+    lines = []
+    for line in text_lines:
+        comment_pos = line.find('#')
+        if comment_pos != -1:
+            line = line[:comment_pos].strip()
+        if line.find('::=') != -1:
+            lines.append(line)
+        else:
+            if line != "":
+                lines[-1] += line + '\n'
+
+    infos = []
+
+    # Now each entry in lines represent the definition of a program.
+    for line in lines:
+        index = line.index('::=')
+        name = line[:index].strip()
+        hp_text = line[index+3:].strip()
+
+        try:
+            hp = hp_parser.parse(hp_text)
+        except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
+            error_str = "Unable to parse\n"
+            for i, line in enumerate(hp_text.split('\n')):
+                error_str += line + '\n'
+                if i == e.line - 1:
+                    error_str += " " * (e.column-1) + "^" + '\n'
+            raise ParseFileException(error_str)
+
+        infos.append((name, hp))
+
+    return infos

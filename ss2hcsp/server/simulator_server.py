@@ -26,40 +26,15 @@ def raise_error(err_str):
 def parse_hcsp():
     data = json.loads(request.get_data())
     text = data['text']
-    text_lines = text.strip().split('\n')
+
+    try:
+        infos = parser.parse_file(text)
+    except parser.ParseFileException as e:
+        return raise_error(e.error_msg)
+
+    sim_infos = []
     hcsp_info = []
-
-    # First, read lines from file, each line containing ::= means the
-    # start of a new program.
-    lines = []
-    for line in text_lines:
-        comment_pos = line.find('#')
-        if comment_pos != -1:
-            line = line[:comment_pos].strip()
-        if line.find('::=') != -1:
-            lines.append(line)
-        else:
-            if line != "":
-                lines[-1] += line + '\n'
-
-    infos = []
-
-    # Now each entry in lines represent the definition of a program.
-    for line in lines:
-        index = line.index('::=')
-        name = line[:index].strip()
-        hp_text = line[index+3:].strip()
-
-        try:
-            hp = parser.hp_parser.parse(hp_text)
-        except (lark.exceptions.UnexpectedToken, lark.exceptions.UnexpectedCharacters) as e:
-            error_str = "Unable to parse\n"
-            for i, line in enumerate(hp_text.split('\n')):
-                error_str += line + '\n'
-                if i == e.line - 1:
-                    error_str += " " * (e.column-1) + "^" + '\n'
-            return raise_error(error_str)
-
+    for name, hp in infos:
         if hp.type == 'parallel':
             if not all(sub_hp.type == 'var' for sub_hp in hp.hps):
                 return raise_error("Group definition must be a parallel of variables.\n  %s" % line)
@@ -69,16 +44,16 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            infos.append(simulator.SimInfo(name, hp_text))
+            sim_infos.append(simulator.SimInfo(name, hp))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             hcsp_info.append({
                 'name': name,
-                'text': hp_text,
+                'text': str(hp),
                 'lines': lines,
                 'mapping': mapping
             })
 
-    warnings = simulator.check_comms(infos)
+    warnings = simulator.check_comms(sim_infos)
 
     return json.dumps({
         'hcsp_info': hcsp_info,
