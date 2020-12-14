@@ -405,6 +405,16 @@ def parse_module_file(text):
     Input is the string of the file. Output is a list of pairs (name, hp).
 
     """
+    # Preprocessing: just remove comments
+    text_lines = text.strip().split('\n')
+    text = ""
+
+    for line in text_lines:
+        comment_pos = line.find('#')
+        if comment_pos != -1:
+            line = line[:comment_pos].strip()
+        text += line + '\n'
+
     try:
         decls = decls_parser.parse(text)
     except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
