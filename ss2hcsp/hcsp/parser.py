@@ -3,6 +3,8 @@
 from lark import Lark, Transformer, v_args, exceptions
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import module
+
 
 grammar = r"""
     ?atom_expr: CNAME -> var_expr
@@ -83,6 +85,17 @@ grammar = r"""
     ?cmd: select_cmd
 
     ?parallel_cmd: cmd ("||" cmd)*   // Priority 30, outermost level only
+
+    ?module_sig: CNAME "(" CNAME ("," CNAME)* ")"  -> module_sig
+        | CNAME "(" ")"                            -> module_sig
+
+    ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
+    
+    ?module: "module" module_sig ":" (module_output)* "begin" cmd "end" "endmodule"
+
+    ?system: "system" module_sig ("||" module_sig)* "endsystem"
+
+    ?decls: (module | system)*
 
     %import common.CNAME
     %import common.WS
@@ -297,7 +310,37 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args)
 
+    def module_sig(self, *args):
+        return tuple(str(arg) for arg in args)
+
+    def module_output(self, *args):
+        return tuple(str(arg) for arg in args)
+
+    def module(self, *args):
+        # The first item is a tuple consisting of name and list of parameters
+        # The middle items are the output sequences
+        # The last item is code for the module
+        assert len(args) >= 2
+        sig, outputs, code = args[0], args[1:-1], args[-1]
+        if isinstance(sig, tuple):
+            name, params = sig[0], sig[1:]
+        else:
+            name, params = sig, tuple()
+        return module.HCSPModule(name, params, outputs, code)
+
+    def system(self, *args):
+        # List of module instantiations
+        # Each item is a tuple consisting of name and list of parameters
+        return module.HCSPSystem(args)
+
+    def decls(self, *args):
+        # A list of declarations.
+        return module.HCSPDeclarations(args)
+
 
 aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())
 bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=HPTransformer())
 hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=HPTransformer())
+module_parser = Lark(grammar, start="module", parser="lalr", transformer=HPTransformer())
+system_parser = Lark(grammar, start="system", parser="lalr", transformer=HPTransformer())
+decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=HPTransformer())
