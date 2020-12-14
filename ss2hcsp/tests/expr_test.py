@@ -120,7 +120,6 @@ class ExprTest(unittest.TestCase):
             ("assert(x == 2)", "Assert(Rel(==, AVar(x), AConst(2)))"),
             ("log(\"start\")", "Log(AConst(\"start\"))"),
             ("@X", "Var(X)"),
-            ("@X[x,y]", "Var(X,[x,y])"),
         ]
 
         for s, res in test_data:

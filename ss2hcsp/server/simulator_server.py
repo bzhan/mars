@@ -69,7 +69,7 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            infos.append(simulator.HCSPInfo(name, hp_text))
+            infos.append(simulator.SimInfo(name, hp_text))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             hcsp_info.append({
                 'name': name,
@@ -92,7 +92,7 @@ def run_hcsp():
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
 
-    infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
+    infos = [simulator.SimInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
     show_starting = data['show_starting']

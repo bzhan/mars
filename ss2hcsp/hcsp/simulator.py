@@ -16,6 +16,7 @@ from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExp
     opt_round, get_range, split_disj, false_expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
 
 
@@ -540,7 +541,7 @@ def string_of_pos(hp, pos):
     else:
         return 'p' + '.'.join(str(p) for p in pos[:-1])
 
-class HCSPInfo:
+class SimInfo:
     """Represents a (non-parallel) HCSP program together with
     additional information on the current execution position and
     the current state.
@@ -549,7 +550,7 @@ class HCSPInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -561,6 +562,12 @@ class HCSPInfo:
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
+
+        # List of output variables
+        if outputs is None:
+            outputs = tuple()
+
+        self.output = outputs
 
         # Current position of execution
         if isinstance(pos, str):
@@ -907,7 +914,7 @@ def extract_event(infos):
 
 def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                   log_time_series=None, num_show=None):
-    """Given a list of HCSPInfo objects, execute the hybrid programs
+    """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
     The returned result is a dictionary containing the result of the

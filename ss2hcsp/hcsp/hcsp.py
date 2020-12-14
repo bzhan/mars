@@ -58,30 +58,58 @@ class HCSP:
                     return True
         return False
 
+    def subst_comm(self, inst):
+        def subst_io_comm(io_comm):
+            return (io_comm[0].subst_comm(inst), io_comm[1].subst_comm(inst))
+
+        def subst_if_hp(if_hp):
+            return (if_hp[0], if_hp[1].subst_comm(inst))
+
+        if self.type in ('var', 'skip', 'wait', 'assign', 'log'):
+            return self
+        elif self.type == 'input_channel':
+            if self.ch_name in inst:
+                return InputChannel(inst[self.ch_name], self.var_name)
+            else:
+                return self
+        elif self.type == 'output_channel':
+            if self.ch_name in inst:
+                return OutputChannel(inst[self.ch_name], self.expr)
+            else:
+                return self
+        elif self.type == 'sequence':
+            return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
+        elif self.type == 'ode':
+            return ODE(self.eqs, self.constraint, out_hp=self.out_hp.subst_comm(inst))
+        elif self.type == 'ode_comm':
+            return ODE_Comm(self.eqs, self.constraint,
+                            [subst_io_comm(io_comm) for io_comm in self.io_comms])
+        elif self.type == 'loop':
+            return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
+        elif self.type == 'condition':
+            return Condition(self.cond, self.hp.subst_comm(inst))
+        elif self.type == 'select_comm':
+            return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
+        elif self.type == 'recursion':
+            return Recursion(self.hp.subst_comm(inst), entry=self.entry)
+        elif self.type == 'ite':
+            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], self.else_hp.subst_comm(inst))
+
 
 class Var(HCSP):
-    def __init__(self, name, output=None):
+    def __init__(self, name):
         super(Var, self).__init__()
         self.type = "var" 
         self.name = name
-        if output is None:
-            output = tuple()
-        self.output = tuple(output)
 
     def __eq__(self, other):
         return self.type == other.type and self.name == other.name
 
     def __repr__(self):
-        if self.output:
-            return "Var(%s,[%s])" % (self.name, ','.join(self.output))
-        else:
-            return "Var(%s)" % self.name
+        return "Var(%s)" % self.name
 
     def __str__(self):
-        if self.output:
-            return "@%s[%s]" % (self.name, ','.join(self.output))
-        else:
-            return "@" + self.name
+        return "@" + self.name
 
     def sc_str(self):
         return self.name
@@ -709,6 +737,21 @@ def get_comm_chs(hp):
     
     rec(hp)
     return list(OrderedDict.fromkeys(collect))
+
+
+class HCSPInfo:
+    """HCSP process with extra information."""
+    def __init__(self, name, hp, *, outputs=None):
+        self.name = name
+        self.hp = hp
+        
+        # List of output variables
+        if outputs is None:
+            outputs = tuple()
+        self.outputs = outputs
+
+    def __str__(self):
+        return self.name + '::=\n' + str(self.hp)
 
 
 class HCSPProcess:

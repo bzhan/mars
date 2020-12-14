@@ -80,7 +80,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, None)
             self.assertEqual(info.pos, pos2)
@@ -105,7 +105,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, reason in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos)
@@ -125,7 +125,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             while info.pos is not None:
                 info.exec_step()
                 if info.reason is not None:
@@ -146,7 +146,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_input_comm(ch_name, val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -162,7 +162,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_output_comm(ch_name)
             self.assertEqual(res, val)
             self.assertEqual(info.pos, pos2)
@@ -183,7 +183,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
@@ -213,7 +213,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, state, delay, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, state=state)
+            info = simulator.SimInfo('P0', cmd, state=state)
             info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
@@ -249,7 +249,7 @@ class SimulatorTest(unittest.TestCase):
 
     def run_test(self, infos, num_io_events, trace, *, print_time_series=False, print_state=False):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
+            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel(infos, num_io_events=num_io_events)
         res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
@@ -263,7 +263,7 @@ class SimulatorTest(unittest.TestCase):
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
+            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel_steps(infos, start_event=start_event)
         self.assertEqual(len(res), res_len)

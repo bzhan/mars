@@ -60,7 +60,6 @@ grammar = r"""
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
     ?atom_cmd: "@" CNAME -> var_cmd
-        | "@" CNAME "[" CNAME ("," CNAME)* "]" -> var_cmd_out
         | "skip" -> skip_cmd
         | "wait" "(" expr ")" -> wait_cmd
         | CNAME ":=" expr -> assign_cmd
@@ -93,7 +92,10 @@ grammar = r"""
     
     ?module: "module" module_sig ":" (module_output)* "begin" cmd "end" "endmodule"
 
-    ?system: "system" module_sig ("||" module_sig)* "endsystem"
+    ?module_inst: module_sig    -> module_inst_noname
+        | CNAME "=" module_sig  -> module_inst
+
+    ?system: "system" module_inst ("||" module_inst)* "endsystem"
 
     ?decls: (module | system)*
 
@@ -216,9 +218,6 @@ class HPTransformer(Transformer):
     def var_cmd(self, name):
         return hcsp.Var(str(name))
 
-    def var_cmd_out(self, *args):
-        return hcsp.Var(str(args[0]), output=args[1:])
-
     def skip_cmd(self):
         return hcsp.Skip()
 
@@ -328,9 +327,14 @@ class HPTransformer(Transformer):
             name, params = sig, tuple()
         return module.HCSPModule(name, params, outputs, code)
 
+    def module_inst(self, name, sig):
+        return module.HCSPModuleInst(name, sig[0], sig[1:])
+    
+    def module_inst_noname(self, sig):
+        return module.HCSPModuleInst(sig[0], sig[0], sig[1:])
+
     def system(self, *args):
-        # List of module instantiations
-        # Each item is a tuple consisting of name and list of parameters
+        # Each item is a module instantiation
         return module.HCSPSystem(args)
 
     def decls(self, *args):
