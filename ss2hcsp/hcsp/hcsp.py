@@ -63,12 +63,21 @@ class HCSP:
             return (io_comm[0].subst_comm(inst), io_comm[1].subst_comm(inst))
 
         def subst_if_hp(if_hp):
-            return (if_hp[0], if_hp[1].subst_comm(inst))
+            return (if_hp[0].subst(inst), if_hp[1].subst_comm(inst))
 
-        if self.type in ('var', 'skip', 'wait', 'assert', 'log'):
+        def subst_ode_eq(ode_eq):
+            return (ode_eq[0], ode_eq[1].subst(inst))
+
+        if self.type in ('var', 'skip'):
             return self
+        elif self.type == 'wait':
+            return Wait(self.delay.subst(inst))
         elif self.type == 'assign':
             return Assign(self.var_name, self.expr.subst(inst))
+        elif self.type == 'assert':
+            return Assert(self.bexpr.subst(inst))
+        elif self.type == 'log':
+            return Log(self.expr.subst(inst))
         elif self.type == 'input_channel':
             if self.ch_name in inst:
                 return InputChannel(inst[self.ch_name], self.var_name)
@@ -76,20 +85,22 @@ class HCSP:
                 return self
         elif self.type == 'output_channel':
             if self.ch_name in inst:
-                return OutputChannel(inst[self.ch_name], self.expr)
+                return OutputChannel(inst[self.ch_name], self.expr.subst(inst))
             else:
-                return self
+                return OutputChannel(self.ch_name, self.expr.subst(inst))
         elif self.type == 'sequence':
             return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
         elif self.type == 'ode':
-            return ODE(self.eqs, self.constraint, out_hp=self.out_hp.subst_comm(inst))
+            return ODE([subst_ode_eq(eq) for eq in self.eqs],
+                       self.constraint.subst(inst), out_hp=self.out_hp.subst_comm(inst))
         elif self.type == 'ode_comm':
-            return ODE_Comm(self.eqs, self.constraint,
+            return ODE_Comm([subst_ode_eq(eq) for eq in self.eqs],
+                            self.constraint.subst(inst),
                             [subst_io_comm(io_comm) for io_comm in self.io_comms])
         elif self.type == 'loop':
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
         elif self.type == 'condition':
-            return Condition(self.cond, self.hp.subst_comm(inst))
+            return Condition(self.cond.subst(inst), self.hp.subst_comm(inst))
         elif self.type == 'select_comm':
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
         elif self.type == 'recursion':

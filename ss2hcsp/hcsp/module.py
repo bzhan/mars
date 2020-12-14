@@ -63,6 +63,9 @@ class HCSPModuleInst:
 
         # First, construct the mapping between formal and actual parameters
         inst = dict()
+        if len(module.params) != len(self.args):
+            raise ModuleException("Number of arguments for %s does not match: %s vs %s" % (
+                self.name, len(module.params), len(self.args)))
         for param, arg in zip(module.params, self.args):
             inst[param] = arg
         

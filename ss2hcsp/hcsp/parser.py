@@ -431,6 +431,7 @@ def parse_module_file(text):
 
     try:
         decls = decls_parser.parse(text)
+        infos = decls.generateHCSPInfo()
     except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
         error_str = "Unable to parse\n"
         for i, line in enumerate(text.split('\n')):
@@ -441,4 +442,4 @@ def parse_module_file(text):
     except module.ModuleException as e:
         raise ParseFileException("Module exception\n" + e.error_msg)
 
-    return decls.generateHCSPInfo()
+    return infos
