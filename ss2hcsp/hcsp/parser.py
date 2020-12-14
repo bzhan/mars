@@ -395,6 +395,24 @@ def parse_file(text):
                     error_str += " " * (e.column-1) + "^" + '\n'
             raise ParseFileException(error_str)
 
-        infos.append((name, hp))
+        infos.append(hcsp.HCSPInfo(name, hp))
 
     return infos
+
+def parse_module_file(text):
+    """Parse a file in module format.
+    
+    Input is the string of the file. Output is a list of pairs (name, hp).
+
+    """
+    try:
+        decls = decls_parser.parse(text)
+    except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
+        error_str = "Unable to parse\n"
+        for i, line in enumerate(text.split('\n')):
+            error_str += line + '\n'
+            if i == e.line - 1:
+                error_str += " " * (e.column-1) + "^" + '\n'
+        raise ParseFileException(error_str)
+        
+    return decls.generateHCSPInfo()

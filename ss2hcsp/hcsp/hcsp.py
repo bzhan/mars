@@ -753,6 +753,12 @@ class HCSPInfo:
     def __str__(self):
         return self.name + '::=\n' + str(self.hp)
 
+    def __repr__(self):
+        return "HCSPInfo(%s, %s)" % (self.name, str(self.hp))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.hp == other.hp
+
 
 class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""

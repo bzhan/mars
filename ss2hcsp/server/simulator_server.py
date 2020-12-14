@@ -28,13 +28,18 @@ def parse_hcsp():
     text = data['text']
 
     try:
-        infos = parser.parse_file(text)
+        if text.startswith('%type: module'):
+            text = text[14:]  # remove prefix
+            infos = parser.parse_module_file(text)
+        else:
+            infos = parser.parse_file(text)
     except parser.ParseFileException as e:
         return raise_error(e.error_msg)
 
     sim_infos = []
     hcsp_info = []
-    for name, hp in infos:
+    for info in infos:
+        name, hp = info.name, info.hp
         if hp.type == 'parallel':
             if not all(sub_hp.type == 'var' for sub_hp in hp.hps):
                 return raise_error("Group definition must be a parallel of variables.\n  %s" % line)
