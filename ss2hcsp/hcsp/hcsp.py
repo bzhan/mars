@@ -761,9 +761,7 @@ class HCSPInfo:
         self.name = name
         self.hp = hp
         
-        # List of output variables
-        if outputs is None:
-            outputs = tuple()
+        # List of output variables, None indicates output everything
         self.outputs = outputs
 
     def __str__(self):

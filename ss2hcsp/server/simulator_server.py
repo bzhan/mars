@@ -49,11 +49,12 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            sim_infos.append(simulator.SimInfo(name, hp))
+            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             hcsp_info.append({
                 'name': name,
                 'text': str(hp),
+                'outputs': info.outputs,
                 'lines': lines,
                 'mapping': mapping
             })
@@ -72,15 +73,15 @@ def run_hcsp():
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
 
-    infos = [simulator.SimInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
+    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'])
+             for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
     show_starting = data['show_starting']
     try:
         clock = time.perf_counter()
         res = simulator.exec_parallel(
-            infos, num_steps=num_steps, num_io_events=num_io_events, log_time_series=None,
-            num_show=num_show)
+            infos, num_steps=num_steps, num_io_events=num_io_events, num_show=num_show)
         print("Time:", time.perf_counter() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)

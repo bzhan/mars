@@ -563,11 +563,8 @@ class SimInfo:
         else:
             self.hp = hp
 
-        # List of output variables
-        if outputs is None:
-            outputs = tuple()
-
-        self.output = outputs
+        # List of output variables, None indicates output everything.
+        self.outputs = outputs
 
         # Current position of execution
         if isinstance(pos, str):
@@ -912,8 +909,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400,
-                  log_time_series=None, num_show=None):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -939,13 +935,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
     # Number of steps so far.
     num_event = 0
 
-    if log_time_series is None:
-        for info in infos:
+    for info in infos:
+        if info.outputs is None or len(info.outputs) > 0:
+            # Has some variable to output
             res['time_series'][info.name] = []
-    else:
-        for info in infos:
-            if info.name in log_time_series:
-                res['time_series'][info.name] = []
 
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
@@ -975,9 +968,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
         new_event['infos'] = cur_info
         res['trace'].append(new_event)
 
-    def log_time_series(name, time, state):
+    def log_time_series(info, time, state):
         """Log the given time series for program with the given name."""
-        if name not in res['time_series']:
+        if info.name not in res['time_series']:
             return
 
         new_entry = {
@@ -986,9 +979,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
             "state": dict()
         }
         for k, v in state.items():
-            if isinstance(v, (int, float)):
+            if (info.outputs is None or any(k in output for output in info.outputs)) and \
+                isinstance(v, (int, float)):
                 new_entry['state'][k] = v
-        series = res['time_series'][name]
+        series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
@@ -998,7 +992,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
     # Record event and time series at the beginning.
     log_event(ori_pos=updated, type="start", str="start")
     for info in infos:
-        log_time_series(info.name, 0, info.state)
+        log_time_series(info, 0, info.state)
 
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
@@ -1016,7 +1010,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
 
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
-                    log_time_series(info.name, res['time'], info.state)
+                    log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
                     log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
                 else:
@@ -1046,8 +1040,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
                 series = []
                 info.exec_delay(min_delay, time_series=series)
                 for entry in series:
-                    log_time_series(info.name, res['time'] + entry['time'], entry['state'])
-                log_time_series(info.name, res['time'] + min_delay, info.state)
+                    log_time_series(info, res['time'] + entry['time'], entry['state'])
+                log_time_series(info, res['time'] + min_delay, info.state)
 
             updated = [infos[p].name for p in delay_pos]
             log_event(ori_pos=updated, type="delay", delay_time=min_delay, str=trace_str)
@@ -1066,7 +1060,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400,
             updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
             log_event(ori_pos=updated, type="comm", ch_name=ch_name, val=val, str=trace_str)
-            log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
+            log_time_series(infos[id_in], res['time'], infos[id_in].state)
 
         # Overflow detection
         has_overflow = False
