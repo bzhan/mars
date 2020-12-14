@@ -2,6 +2,7 @@
 
 import unittest
 
+from ss2hcsp.hcsp.expr import AConst
 from ss2hcsp.hcsp.parser import hp_parser, module_parser, system_parser, decls_parser
 from ss2hcsp.hcsp.module import HCSPModule, HCSPModuleInst, HCSPSystem, HCSPDeclarations
 
@@ -130,6 +131,37 @@ class ModuleTest(unittest.TestCase):
         self.assertEqual(str(infos[0].hp), "x := 0; (<x_dot = 1 & true> |> [] (ch1!x --> skip); ch2?x)**")
         self.assertEqual(str(infos[1].hp), "(wait(2); ch1?x; ch2!x-1)**")
         self.assertEqual(str(infos[2].hp), "x := 0; (<x_dot = 1 & true> |> [] (ch3!x --> skip); ch4?x)**")
+        self.assertEqual(str(infos[3].hp), "(wait(2); ch3?x; ch4!x-1)**")
+
+    def testParseSystem2(self):
+        sys = system_parser.parse("""
+            system
+              P0(ch1, ch2, $0) ||
+              P1(ch1, ch2)
+            endsystem
+        """)
+
+        self.assertEqual(str(sys), "P0(ch1,ch2,0) || P1(ch1,ch2)")
+        self.assertEqual(repr(sys), "System(P0(ch1,ch2,0); P1(ch1,ch2))")
+
+    def testGenerateHCSPInfo2(self):
+        decls = HCSPDeclarations([
+            HCSPModule("P0", ("p2c", "c2p", "init_x"), (("x",),),
+                       hp_parser.parse("x := init_x; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**")),
+            HCSPModule("P1", ("p2c", "c2p"), tuple(),
+                       hp_parser.parse("(wait(2); p2c?x; c2p!x-1)**")),
+            HCSPSystem([
+                HCSPModuleInst("P0a", "P0", ("ch1", "ch2", AConst(0))),
+                HCSPModuleInst("P1a", "P1", ("ch1", "ch2")),
+                HCSPModuleInst("P0b", "P0", ("ch3", "ch4", AConst(1))),
+                HCSPModuleInst("P1b", "P1", ("ch3", "ch4")),
+            ])
+        ])
+
+        infos = decls.generateHCSPInfo()
+        self.assertEqual(str(infos[0].hp), "x := 0; (<x_dot = 1 & true> |> [] (ch1!x --> skip); ch2?x)**")
+        self.assertEqual(str(infos[1].hp), "(wait(2); ch1?x; ch2!x-1)**")
+        self.assertEqual(str(infos[2].hp), "x := 1; (<x_dot = 1 & true> |> [] (ch3!x --> skip); ch4?x)**")
         self.assertEqual(str(infos[3].hp), "(wait(2); ch3?x; ch4!x-1)**")
 
 

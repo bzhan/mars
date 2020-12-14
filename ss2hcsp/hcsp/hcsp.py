@@ -65,8 +65,10 @@ class HCSP:
         def subst_if_hp(if_hp):
             return (if_hp[0], if_hp[1].subst_comm(inst))
 
-        if self.type in ('var', 'skip', 'wait', 'assign', 'assert', 'log'):
+        if self.type in ('var', 'skip', 'wait', 'assert', 'log'):
             return self
+        elif self.type == 'assign':
+            return Assign(self.var_name, self.expr.subst(inst))
         elif self.type == 'input_channel':
             if self.ch_name in inst:
                 return InputChannel(inst[self.ch_name], self.var_name)

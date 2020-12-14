@@ -85,15 +85,18 @@ grammar = r"""
 
     ?parallel_cmd: cmd ("||" cmd)*   // Priority 30, outermost level only
 
-    ?module_sig: CNAME "(" CNAME ("," CNAME)* ")"  -> module_sig
+    ?module_sig: CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  -> module_sig
         | CNAME "(" ")"                            -> module_sig
 
     ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
     
     ?module: "module" module_sig ":" (module_output)* "begin" cmd "end" "endmodule"
 
-    ?module_inst: module_sig    -> module_inst_noname
-        | CNAME "=" module_sig  -> module_inst
+    ?module_arg: CNAME "(" (CNAME | "$" expr) ("," (CNAME | "$" expr))* ")"  -> module_arg
+        | CNAME "(" ")"                            -> module_arg
+
+    ?module_inst: module_arg    -> module_inst_noname
+        | CNAME "=" module_arg  -> module_inst
 
     ?system: "system" module_inst ("||" module_inst)* "endsystem"
 
@@ -326,6 +329,16 @@ class HPTransformer(Transformer):
         else:
             name, params = sig, tuple()
         return module.HCSPModule(name, params, outputs, code)
+
+    def module_arg(self, *args):
+        def convert_arg(arg):
+            if isinstance(arg, expr.AExpr):
+                return arg
+            elif isinstance(arg, str):
+                return str(arg)  # remove Token(.)
+            else:
+                raise NotImplementedError
+        return tuple(convert_arg(arg) for arg in args)
 
     def module_inst(self, name, sig):
         return module.HCSPModuleInst(name, sig[0], sig[1:])
