@@ -3,7 +3,7 @@
 import unittest
 import math
 
-from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp.hcsp import Channel
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
@@ -88,20 +88,20 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep2(self):
         test_data = [
-            ("c?x", (), {}, {"comm": [("c", "?")]}),
-            ("c!x", (), {}, {"comm": [("c", "!")]}),
+            ("c?x", (), {}, {"comm": [(Channel("c"), "?")]}),
+            ("c!x", (), {}, {"comm": [(Channel("c"), "!")]}),
             ("wait(3)", (0,), {}, {"delay": 3}),
             ("wait(3)", (1,), {}, {"delay": 2}),
             ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {},
-             {"comm": [("c1", "?"), ("c2", "!")]}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")]}),
             ("x := 1; wait(3)", (1, 0), {}, {"delay": 3}),
             ("(x := 1; wait(3))**", (1, 0), {}, {"delay": 3}),
             ("(x := 1; wait(3))**", (1, 1), {}, {"delay": 2}),
             ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {}, {"delay": 1}),
             ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0},
-             {"comm": [("c1", "?"), ("c2", "!")], "delay": 1.0}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 1.0}),
             ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0.5},
-             {"comm": [("c1", "?"), ("c2", "!")], "delay": 0.5}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 0.5}),
         ]
 
         for cmd, pos, state, reason in test_data:
@@ -116,7 +116,7 @@ class SimulatorTest(unittest.TestCase):
             ("skip", (), {}, None, {}, "end"),
             ("x := 2", (), {}, None, {"x": 2}, "end"),
             ("x := 2; x := x + 1", (0,), {}, None, {"x": 3}, "end"),
-            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [("c", "!")]}),
+            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [(Channel("c"), "!")]}),
             ("wait(3)", (0,), {}, (0,), {}, {"delay": 3}),
             ("(x := x + 1; wait(3))**", (0,), {"x": 2}, (1, 0), {"x": 3}, {"delay": 3}),
             ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 0}, None, {"x": 0}, "end"),
@@ -147,7 +147,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            info.exec_input_comm(ch_name, val)
+            info.exec_input_comm(Channel(ch_name), val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
@@ -163,7 +163,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_output_comm(ch_name)
+            res = info.exec_output_comm(Channel(ch_name))
             self.assertEqual(res, val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)

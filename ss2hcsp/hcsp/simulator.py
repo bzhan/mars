@@ -1059,7 +1059,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
 
             updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(ori_pos=updated, type="comm", ch_name=ch_name, val=val, str=trace_str)
+            log_event(ori_pos=updated, type="comm", ch_name=str(ch_name), val=val, str=trace_str)
             log_time_series(infos[id_in], res['time'], infos[id_in].state)
 
         # Overflow detection

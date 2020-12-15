@@ -5,6 +5,7 @@ import unittest
 from ss2hcsp.hcsp.expr import AConst
 from ss2hcsp.hcsp.parser import hp_parser, module_parser, system_parser, decls_parser
 from ss2hcsp.hcsp.module import HCSPModule, HCSPModuleInst, HCSPSystem, HCSPDeclarations
+from ss2hcsp.hcsp.hcsp import Channel
 
 
 class ModuleTest(unittest.TestCase):
@@ -120,10 +121,10 @@ class ModuleTest(unittest.TestCase):
             HCSPModule("P1", ("p2c", "c2p"), tuple(),
                        hp_parser.parse("(wait(2); p2c?x; c2p!x-1)**")),
             HCSPSystem([
-                HCSPModuleInst("P0a", "P0", ("ch1", "ch2")),
-                HCSPModuleInst("P1a", "P1", ("ch1", "ch2")),
-                HCSPModuleInst("P0b", "P0", ("ch3", "ch4")),
-                HCSPModuleInst("P1b", "P1", ("ch3", "ch4")),
+                HCSPModuleInst("P0a", "P0", (Channel("ch1"), Channel("ch2"))),
+                HCSPModuleInst("P1a", "P1", (Channel("ch1"), Channel("ch2"))),
+                HCSPModuleInst("P0b", "P0", (Channel("ch3"), Channel("ch4"))),
+                HCSPModuleInst("P1b", "P1", (Channel("ch3"), Channel("ch4"))),
             ])
         ])
 
@@ -151,10 +152,10 @@ class ModuleTest(unittest.TestCase):
             HCSPModule("P1", ("p2c", "c2p", "dly"), tuple(),
                        hp_parser.parse("(wait(dly); p2c?x; c2p!x-1)**")),
             HCSPSystem([
-                HCSPModuleInst("P0a", "P0", ("ch1", "ch2", AConst(0), AConst(1))),
-                HCSPModuleInst("P1a", "P1", ("ch1", "ch2", AConst(2))),
-                HCSPModuleInst("P0b", "P0", ("ch3", "ch4", AConst(1), AConst(2))),
-                HCSPModuleInst("P1b", "P1", ("ch3", "ch4", AConst(3))),
+                HCSPModuleInst("P0a", "P0", (Channel("ch1"), Channel("ch2"), AConst(0), AConst(1))),
+                HCSPModuleInst("P1a", "P1", (Channel("ch1"), Channel("ch2"), AConst(2))),
+                HCSPModuleInst("P0b", "P0", (Channel("ch3"), Channel("ch4"), AConst(1), AConst(2))),
+                HCSPModuleInst("P1b", "P1", (Channel("ch3"), Channel("ch4"), AConst(3))),
             ])
         ])
 

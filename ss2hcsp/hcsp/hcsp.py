@@ -5,6 +5,45 @@ from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr
 import re
 
 
+class Channel:
+    """Models a channel identifier. It is a string followed by a list
+    of integer arguments.
+
+    The usual channel is modeled by a string without arguments. Further
+    arguments can be given for parameterized channels.
+
+    """
+    def __init__(self, name, args=None):
+        assert isinstance(name, str)
+        if args is None:
+            args = tuple()
+        assert isinstance(args, tuple) and all(isinstance(arg, AExpr) for arg in args)
+
+        self.name = name
+        self.args = args
+
+    def __str__(self):
+        return self.name + ''.join('[' + str(arg) + ']' for arg in self.args)
+    
+    def __repr__(self):
+        if self.args:
+            return "Channel(%s,%s)" % (self.name, ','.join(str(arg) for arg in self.args))
+        else:
+            return "Channel(%s)" % self.name
+
+    def __hash__(self):
+        return hash(("CHANNEL", self.name, self.args))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.args == other.args
+
+    def __le__(self, other):
+        return (self.name, self.args) <= (other.name, other.args)
+
+    def __lt__(self, other):
+        return (self.name, self.args) < (other.name, other.args)
+
+
 class HCSP:
     def __init__(self):
         self.type = None
@@ -79,13 +118,19 @@ class HCSP:
         elif self.type == 'log':
             return Log(self.expr.subst(inst))
         elif self.type == 'input_channel':
-            if self.ch_name in inst:
-                return InputChannel(inst[self.ch_name], self.var_name)
+            if self.ch_name.name in inst:
+                target = inst[self.ch_name.name]
+                assert isinstance(target, Channel)
+                new_channel = Channel(target.name, target.args + self.ch_name.args)
+                return InputChannel(new_channel, self.var_name)
             else:
                 return self
         elif self.type == 'output_channel':
-            if self.ch_name in inst:
-                return OutputChannel(inst[self.ch_name], self.expr.subst(inst))
+            if self.ch_name.name in inst:
+                target = inst[self.ch_name.name]
+                assert isinstance(target, Channel)
+                new_channel = Channel(target.name, target.args + self.ch_name.args)
+                return OutputChannel(new_channel, self.expr.subst(inst))
             else:
                 return OutputChannel(self.ch_name, self.expr.subst(inst))
         elif self.type == 'sequence':
@@ -245,9 +290,11 @@ class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
         super(InputChannel, self).__init__()
         self.type = "input_channel"
-        assert isinstance(ch_name, str)
+        if isinstance(ch_name, str):
+            ch_name = Channel(ch_name)
+        assert isinstance(ch_name, Channel)
         assert var_name is None or isinstance(var_name, str)
-        self.ch_name = ch_name  # string
+        self.ch_name = ch_name  # Channel
         self.var_name = var_name  # string or None
 
     def __eq__(self, other):
@@ -262,12 +309,12 @@ class InputChannel(HCSP):
 
     def __str__(self):
         if self.var_name:
-            return self.ch_name + "?" + str(self.var_name)
+            return str(self.ch_name) + "?" + str(self.var_name)
         else:
-            return self.ch_name + "?"
+            return str(self.ch_name) + "?"
 
     def get_vars(self):
-        if self.var_name and not (self.ch_name.startswith("DState") or self.ch_name.startswith("DBR") or self.ch_name.startswith("DBC") or self.ch_name.startswith("DBVIn") or self.ch_name.startswith("DBVOut")):
+        if self.var_name:
             return {self.var_name}
         return set()
 
@@ -282,9 +329,11 @@ class OutputChannel(HCSP):
     def __init__(self, ch_name, expr=None):
         super(OutputChannel, self).__init__()
         self.type = "output_channel"
-        assert isinstance(ch_name, str)
+        if isinstance(ch_name, str):
+            ch_name = Channel(ch_name)
+        assert isinstance(ch_name, Channel)
         assert expr is None or isinstance(expr, AExpr)
-        self.ch_name = ch_name  # string
+        self.ch_name = ch_name  # Channel
         self.expr = expr  # AExpr or None
 
     def __eq__(self, other):
@@ -298,12 +347,12 @@ class OutputChannel(HCSP):
 
     def __str__(self):
         if self.expr:
-            return self.ch_name + "!" + str(self.expr)
+            return str(self.ch_name) + "!" + str(self.expr)
         else:
-            return self.ch_name + "!"
+            return str(self.ch_name) + "!"
 
     def get_vars(self):
-        if self.expr and not (self.ch_name.startswith("DState") or self.ch_name.startswith("DBC") or self.ch_name.startswith("DBR") or self.ch_name.startswith("DBVIn") or self.ch_name.startswith("DBVOut")):
+        if self.expr:
             return self.expr.get_vars()
         return set()
 
@@ -856,7 +905,7 @@ class HCSPProcess:
                 break
         sys_def = "systemDef " + system + " ::= " + process.sc_str() + "\n\n"
         var_def = "variableDef ::= " + ("; ".join(self.get_vars())) + "\n\n"
-        ch_def = "channelDef ::= " + ("; ".join(self.get_chs())) + "\n\n"
+        ch_def = "channelDef ::= " + ("; ".join([ch.name for ch in self.get_chs()])) + "\n\n"
         hp_def = "\n".join("processDef " + "%s ::= %s" % (name, hp.sc_str()) for name, hp in self.hps
                            if not isinstance(hp, Parallel))
         return sys_def + var_def + ch_def + hp_def

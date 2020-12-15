@@ -50,10 +50,10 @@ grammar = r"""
 
     ?cond: imp
 
-    ?comm_cmd: CNAME "?" CNAME -> input_cmd
-        | CNAME "?" -> input_none_cmd
-        | CNAME "!" expr -> output_cmd
-        | CNAME "!" -> output_none_cmd
+    ?comm_cmd: CNAME ("[" expr "]")* "?" CNAME -> input_cmd
+        | CNAME ("[" expr "]")* "?" -> input_none_cmd
+        | CNAME ("[" expr "]")* "!" expr -> output_cmd
+        | CNAME ("[" expr "]")* "!" -> output_none_cmd
 
     ?ode_seq: CNAME "=" expr ("," CNAME "=" expr)*
 
@@ -91,12 +91,15 @@ grammar = r"""
     ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
     
     ?module: "module" module_sig ":" (module_output)* "begin" cmd "end" "endmodule"
+    
+    ?module_arg: CNAME ("[" INT "]")*   -> module_arg_channel
+        | "$" expr    -> module_arg_expr
 
-    ?module_arg: CNAME "(" (CNAME | "$" expr) ("," (CNAME | "$" expr))* ")"  -> module_arg
-        | CNAME "(" ")"                            -> module_arg
+    ?module_args: CNAME "(" module_arg ("," module_arg)* ")"  -> module_args
+        | CNAME "(" ")"                            -> module_args
 
-    ?module_inst: module_arg    -> module_inst_noname
-        | CNAME "=" module_arg  -> module_inst
+    ?module_inst: module_args    -> module_inst_noname
+        | CNAME "=" module_args  -> module_inst
 
     ?system: "system" module_inst ("||" module_inst)* "endsystem"
 
@@ -245,17 +248,27 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Sequence(*args)
 
-    def input_cmd(self, ch_name, var_name):
-        return hcsp.InputChannel(str(ch_name), str(var_name))
+    def input_cmd(self, *args):
+        # First argument is channel name, last argument is variable name.
+        # Middle arguments are args to channel name.
+        ch_name, ch_args, var_name = args[0], args[1:-1], args[-1]
+        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args), str(var_name))
 
-    def input_none_cmd(self, ch_name):
-        return hcsp.InputChannel(str(ch_name))
+    def input_none_cmd(self, *args):
+        # First argument is channel name, remaining arguments are its args.
+        ch_name, ch_args = args[0], args[1:]
+        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args))
 
-    def output_cmd(self, ch_name, expr):
-        return hcsp.OutputChannel(str(ch_name), expr)
+    def output_cmd(self, *args):
+        # First argument is channel name, last argument is variable name.
+        # Middle arguments are args to channel name.
+        ch_name, ch_args, expr = args[0], args[1:-1], args[-1]
+        return hcsp.OutputChannel(hcsp.Channel(ch_name, ch_args), expr)
 
-    def output_none_cmd(self, ch_name):
-        return hcsp.OutputChannel(str(ch_name))
+    def output_none_cmd(self, *args):
+        # First argument is channel name, remaining arguments are its args.
+        ch_name, ch_args = args[0], args[1:]
+        return hcsp.OutputChannel(hcsp.Channel(ch_name, ch_args))
 
     def repeat_cmd(self, cmd):
         return hcsp.Loop(cmd)
@@ -330,15 +343,16 @@ class HPTransformer(Transformer):
             name, params = sig, tuple()
         return module.HCSPModule(name, params, outputs, code)
 
-    def module_arg(self, *args):
-        def convert_arg(arg):
-            if isinstance(arg, expr.AExpr):
-                return arg
-            elif isinstance(arg, str):
-                return str(arg)  # remove Token(.)
-            else:
-                raise NotImplementedError
-        return tuple(convert_arg(arg) for arg in args)
+    def module_arg_channel(self, *args):
+        # First argument is channel name, remaining arguments are channel args.
+        ch_name, ch_args = args[0], args[1:]
+        return hcsp.Channel(str(ch_name), tuple(AConst(ch_arg) for ch_arg in ch_args))
+
+    def module_arg_expr(self, expr):
+        return expr
+
+    def module_args(self, *args):
+        return args
 
     def module_inst(self, name, sig):
         return module.HCSPModuleInst(name, sig[0], sig[1:])

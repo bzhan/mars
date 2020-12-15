@@ -1,6 +1,6 @@
 """Modules for hybrid programs"""
 
-from ss2hcsp.hcsp.hcsp import HCSPInfo
+from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
 
 
 class ModuleException(Exception):
