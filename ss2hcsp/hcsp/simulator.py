@@ -188,6 +188,10 @@ def eval_expr(expr, state):
     else:
         raise NotImplementedError
 
+def eval_channel(ch_name, state):
+    args = tuple(int(eval_expr(arg, state)) for arg in ch_name.args)
+    return hcsp.Channel(ch_name.name, args)
+
 def get_ode_delay(hp, state):
     """Obtain the delay needed for the given ODE, starting at the
     given state.
@@ -590,6 +594,9 @@ class SimInfo:
         # Last step at which the state is changed. Used during simulation.
         self.last_change = 0
 
+    def __str__(self):
+        return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
+
     def exec_step(self):
         """Compute a single process for one step.
 
@@ -668,11 +675,11 @@ class SimInfo:
 
         elif cur_hp.type == "input_channel":
             # Waiting for input
-            self.reason = {"comm": [(cur_hp.ch_name, "?")]}
+            self.reason = {"comm": [(eval_channel(cur_hp.ch_name, self.state), "?")]}
 
         elif cur_hp.type == "output_channel":
             # Waiting for someone to receive output
-            self.reason = {"comm": [(cur_hp.ch_name, "!")]}
+            self.reason = {"comm": [(eval_channel(cur_hp.ch_name, self.state), "!")]}
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
@@ -687,9 +694,9 @@ class SimInfo:
             comms = []
             for io_comm, rest in cur_hp.io_comms:
                 if io_comm.type == "input_channel":
-                    comms.append((io_comm.ch_name, "?"))
+                    comms.append((eval_channel(io_comm.ch_name, self.state), "?"))
                 else:
-                    comms.append((io_comm.ch_name, "!"))
+                    comms.append((eval_channel(io_comm.ch_name, self.state), "!"))
             self.reason = {"comm": comms}
             if cur_hp.constraint != true_expr:
                 self.reason["delay"] = get_ode_delay(cur_hp, self.state)
@@ -699,9 +706,9 @@ class SimInfo:
             comms = []
             for comm_hp, out_hp in cur_hp.io_comms:
                 if comm_hp.type == "input_channel":
-                    comms.append((comm_hp.ch_name, "?"))
+                    comms.append((eval_channel(comm_hp.ch_name, self.state), "?"))
                 elif comm_hp.type == "output_channel":
-                    comms.append((comm_hp.ch_name, "!"))
+                    comms.append((eval_channel(comm_hp.ch_name, self.state), "!"))
                 else:
                     raise NotImplementedError
             self.reason = {"comm": comms}
@@ -732,7 +739,7 @@ class SimInfo:
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "input_channel":
-            assert cur_hp.ch_name == ch_name
+            assert eval_channel(cur_hp.ch_name, self.state) == ch_name
             if cur_hp.var_name is None:
                 assert x is None
             else:
@@ -742,7 +749,7 @@ class SimInfo:
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     self.state[comm_hp.var_name] = x
                     self.pos += (i,) + start_pos(out_hp)
                     return
@@ -752,7 +759,7 @@ class SimInfo:
 
         elif cur_hp.type == "select_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     if comm_hp.var_name is None:
                         assert x is None
                     else:
@@ -779,13 +786,13 @@ class SimInfo:
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "output_channel":
-            assert cur_hp.ch_name == ch_name
+            assert eval_channel(cur_hp.ch_name, self.state) == ch_name
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             return eval_expr(cur_hp.expr, self.state)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     val = eval_expr(comm_hp.expr, self.state)
                     self.pos += (i,) + start_pos(out_hp)
                     return val
@@ -795,7 +802,7 @@ class SimInfo:
 
         elif cur_hp.type == "select_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     self.pos += (i,) + start_pos(out_hp)
                     return eval_expr(comm_hp.expr, self.state)
 

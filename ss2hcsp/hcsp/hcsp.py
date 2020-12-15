@@ -17,7 +17,7 @@ class Channel:
         assert isinstance(name, str)
         if args is None:
             args = tuple()
-        assert isinstance(args, tuple) and all(isinstance(arg, AExpr) for arg in args)
+        assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int)) for arg in args)
 
         self.name = name
         self.args = args
@@ -42,6 +42,14 @@ class Channel:
 
     def __lt__(self, other):
         return (self.name, self.args) < (other.name, other.args)
+
+    def subst(self, inst):
+        if self.name in inst:
+            target = inst[self.name]
+            assert isinstance(target, Channel)
+            return Channel(target.name, tuple(arg.subst(inst) for arg in target.args + self.args))
+        else:
+            return Channel(self.name, tuple(arg.subst(inst) for arg in self.args))
 
 
 class HCSP:
@@ -118,21 +126,9 @@ class HCSP:
         elif self.type == 'log':
             return Log(self.expr.subst(inst))
         elif self.type == 'input_channel':
-            if self.ch_name.name in inst:
-                target = inst[self.ch_name.name]
-                assert isinstance(target, Channel)
-                new_channel = Channel(target.name, target.args + self.ch_name.args)
-                return InputChannel(new_channel, self.var_name)
-            else:
-                return self
+            return InputChannel(self.ch_name.subst(inst), self.var_name)
         elif self.type == 'output_channel':
-            if self.ch_name.name in inst:
-                target = inst[self.ch_name.name]
-                assert isinstance(target, Channel)
-                new_channel = Channel(target.name, target.args + self.ch_name.args)
-                return OutputChannel(new_channel, self.expr.subst(inst))
-            else:
-                return OutputChannel(self.ch_name, self.expr.subst(inst))
+            return OutputChannel(self.ch_name.subst(inst), self.expr.subst(inst))
         elif self.type == 'sequence':
             return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
         elif self.type == 'ode':
@@ -814,7 +810,7 @@ class HCSPInfo:
         self.outputs = outputs
 
     def __str__(self):
-        return self.name + '::=\n' + str(self.hp)
+        return self.name + ' ::=\n' + str(self.hp)
 
     def __repr__(self):
         return "HCSPInfo(%s, %s)" % (self.name, str(self.hp))

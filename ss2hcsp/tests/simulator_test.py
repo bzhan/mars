@@ -472,6 +472,18 @@ class SimulatorTest(unittest.TestCase):
             'x := 2; log("start")'
         ], 2, ['-- start --', 'deadlock'])
 
+    def testExecParallel36(self):
+        self.run_test([
+            'x := 0; (<x_dot = 1 & true> |> [](p2c[0]!x --> skip); c2p[0]?x)**',
+            '(wait(2); p2c[0]?x; c2p[0]!x-1)**'
+        ], 6, ['delay 2', 'IO p2c[0] 2.0', 'IO c2p[0] 1.0', 'delay 2', 'IO p2c[0] 3.0', 'IO c2p[0] 2.0'])
+
+    def testExecParallel37(self):
+        self.run_test([
+            'x := 0; i := 0; (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**',
+            'i := 0; (i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1)**'
+        ], 6, ['delay 2', 'IO p2c[1] 2.0', 'IO c2p[1] 1.0', 'delay 2', 'IO p2c[2] 3.0', 'IO c2p[2] 2.0'])
+
 
 if __name__ == "__main__":
     unittest.main()
