@@ -1,5 +1,7 @@
 """Modules for hybrid programs"""
 
+import os
+
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
 
 
@@ -89,6 +91,36 @@ class HCSPSystem:
         return "System(%s)" % ("; ".join(str(module_inst) for module_inst in self.module_insts))
 
 
+hcsp_import_path = [
+    './ss2hcsp/common',
+]
+
+# Read additional import path from import_path.txt
+try:
+    hcsp_import_path = [os.path.abspath(path) for path in hcsp_import_path]
+    with open('./ss2hcsp/import_path.txt') as f:
+        for line in f.readlines():
+            hcsp_import_path.append(os.path.abspath(line.strip()))
+except FileNotFoundError:
+    print('Warning: import_path.txt not found.')
+
+def read_file(filename):
+    """Given file name, attempt to locate the file in the import paths
+    in reverse order. Returns the content of the file. If the file is not
+    found, return None.
+
+    """
+    for path in reversed(hcsp_import_path):
+        try:
+            with open(os.path.join(path, filename)) as f:
+                text = f.read()
+            return text
+        except FileNotFoundError:
+            pass
+    
+    return None
+
+
 class HCSPDeclarations:
     """A list of HCSP declarations.
     
@@ -97,7 +129,8 @@ class HCSPDeclarations:
 
     """
     def __init__(self, args):
-        """Input is a list of HCSPModule or HCSPSystem.
+        """Input is a list of HCSPModule, HCSPSystem, or HCSPDeclaration
+        objects. The HCSPDeclaration objects are unfolded.
         
         Should contain exactly one HCSPSystem.
 
@@ -116,6 +149,12 @@ class HCSPDeclarations:
                 if self.system is not None:
                     raise ModuleException("More than one system in declaration")
                 self.system = arg
+
+            elif isinstance(arg, HCSPDeclarations):
+                for name in arg.modules:
+                    if name in self.modules:
+                        raise ModuleException("Import name %s is repeated" % name)
+                    self.modules[name] = arg
 
             else:
                 raise NotImplementedError

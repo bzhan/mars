@@ -1,0 +1,27 @@
+%type: module
+
+import channels
+
+module input(ch_in):
+begin
+(
+    ch_in?x
+)**
+end
+endmodule
+
+module output(ch_out):
+begin
+x := 0;
+(
+    x := x + 1;
+    ch_out!x
+)**
+end
+endmodule
+
+system
+    input(ch_in) ||
+    output(ch_out) ||
+    asyncChannel(ch_out, ch_in)
+endsystem

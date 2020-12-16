@@ -103,7 +103,9 @@ grammar = r"""
 
     ?system: "system" module_inst ("||" module_inst)* "endsystem"
 
-    ?decls: (module | system)*
+    ?import: "import" CNAME   -> hcsp_import
+
+    ?decls: "%type: module" (module | import | system)*
 
     %import common.CNAME
     %import common.WS
@@ -360,6 +362,13 @@ class HPTransformer(Transformer):
     def module_inst_noname(self, sig):
         return module.HCSPModuleInst(sig[0], sig[0], sig[1:])
 
+    def hcsp_import(self, filename):
+        # Importing from a file
+        text = module.read_file(filename + '.txt')
+        if text is None:
+            raise ParseFileException('File %s not found' % filename)
+        return decls_parser.parse(text)
+
     def system(self, *args):
         # Each item is a module instantiation
         return module.HCSPSystem(args)
@@ -402,6 +411,8 @@ def parse_file(text):
             lines.append(line)
         else:
             if line != "":
+                if len(lines) == 0:
+                    raise ParseFileException('Unexpected line: ' + line)
                 lines[-1] += line + '\n'
 
     infos = []

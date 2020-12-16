@@ -29,7 +29,6 @@ def parse_hcsp():
 
     try:
         if text.startswith('%type: module'):
-            text = text[14:]  # remove prefix
             infos = parser.parse_module_file(text)
         else:
             infos = parser.parse_file(text)
