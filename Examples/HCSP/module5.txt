@@ -1,0 +1,19 @@
+%type: module:
+
+module P0():
+  output x;
+  begin
+    x := 0; i := 0;
+    (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**
+  end
+endmodule
+
+module P1(i):
+  begin
+    wait(2*i+2); p2c[i]?x; c2p[i]!x-1
+  end
+endmodule
+
+system
+  P0() || P10=P1($0) || P11=P1($1) || P12=P1($2) || P13=P1($3)
+endsystem
