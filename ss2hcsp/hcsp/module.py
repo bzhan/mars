@@ -112,7 +112,8 @@ def read_file(filename):
     """
     for path in reversed(hcsp_import_path):
         try:
-            with open(os.path.join(path, filename)) as f:
+            print('Opening:', os.path.join(path, filename))
+            with open(os.path.join(path, filename), encoding='utf-8') as f:
                 text = f.read()
             return text
         except FileNotFoundError:
@@ -154,13 +155,10 @@ class HCSPDeclarations:
                 for name in arg.modules:
                     if name in self.modules:
                         raise ModuleException("Import name %s is repeated" % name)
-                    self.modules[name] = arg
+                    self.modules[name] = arg.modules[name]
 
             else:
                 raise NotImplementedError
-
-        if self.system is None:
-            raise ModuleException("No system in declaration")
 
     def __str__(self):
         res = ""
@@ -178,6 +176,9 @@ class HCSPDeclarations:
 
     def generateHCSPInfo(self):
         """Produce list of HCSP info objects."""
+        if self.system is None:
+            raise ModuleException("No system in declaration")
+
         infos = []
         for module_inst in self.system.module_insts:
             if module_inst.module_name not in self.modules:

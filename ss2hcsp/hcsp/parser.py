@@ -367,7 +367,26 @@ class HPTransformer(Transformer):
         text = module.read_file(filename + '.txt')
         if text is None:
             raise ParseFileException('File %s not found' % filename)
-        return decls_parser.parse(text)
+        try:
+            # Preprocessing: just remove comments
+            text_lines = text.strip().split('\n')
+            text = ""
+
+            for line in text_lines:
+                comment_pos = line.find('#')
+                if comment_pos != -1:
+                    line = line[:comment_pos]
+                if line.strip() != "":
+                    text += line + '\n'
+
+            return decls_parser.parse(text)
+        except (exceptions.UnexpectedToken, exceptions.UnexpectedCharacters) as e:
+            error_str = "Unable to parse\n"
+            for i, line in enumerate(text.split('\n')):
+                error_str += line + '\n'
+                if i == e.line - 1:
+                    error_str += " " * (e.column-1) + "^" + '\n'
+            raise ParseFileException(error_str)
 
     def system(self, *args):
         # Each item is a module instantiation
