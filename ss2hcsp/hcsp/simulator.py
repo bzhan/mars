@@ -137,7 +137,10 @@ def eval_expr(expr, state):
     elif isinstance(expr, ArrayIdxExpr):
         a = eval_expr(expr.expr1, state)
         i = eval_expr(expr.expr2, state)
-        assert isinstance(a, tuple) and isinstance(i, int) and i < len(a)
+        if not (isinstance(a, tuple) and isinstance(i, int)):
+            raise SimulatorException('When evaluating %s: type error' % expr)
+        if not i < len(a):
+            raise SimulatorException('When evaluating %s: array out of bounds error' % expr)
         return a[i]
 
     elif isinstance(expr, BConst):
