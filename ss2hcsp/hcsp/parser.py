@@ -65,7 +65,7 @@ grammar = r"""
         | CNAME ":=" expr -> assign_cmd
         | "(" CNAME ("," CNAME)* ")" ":=" expr -> multi_assign_cmd
         | "assert" "(" cond ")" -> assert_cmd
-        | "log" "(" expr ")" -> log_cmd
+        | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
         | "(" cmd "){" cond "}**" -> repeat_cond_cmd
@@ -241,8 +241,8 @@ class HPTransformer(Transformer):
     def assert_cmd(self, bexpr):
         return hcsp.Assert(bexpr)
 
-    def log_cmd(self, expr):
-        return hcsp.Log(expr)
+    def log_cmd(self, *args):
+        return hcsp.Log(*args)
 
     def seq_cmd(self, *args):
         if len(args) == 1:

@@ -124,7 +124,7 @@ class HCSP:
         elif self.type == 'assert':
             return Assert(self.bexpr.subst(inst))
         elif self.type == 'log':
-            return Log(self.expr.subst(inst))
+            return Log(*[expr.subst(inst) for expr in self.exprs])
         elif self.type == 'input_channel':
             return InputChannel(self.ch_name.subst(inst), self.var_name)
         elif self.type == 'output_channel':
@@ -263,24 +263,28 @@ class Assert(HCSP):
 
 
 class Log(HCSP):
-    def __init__(self, expr):
+    def __init__(self, *exprs):
         super(Log, self).__init__()
         self.type = "log"
-        assert isinstance(expr, AExpr)
-        self.expr = expr
+        exprs = tuple(exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
+        self.exprs = tuple(exprs)
 
     def __eq__(self, other):
-        return self.type == other.type and self.expr == other.expr
+        return self.type == other.type and self.exprs == other.exprs
 
     def __repr__(self):
-        return "Log(%s)" % repr(self.expr)
+        return "Log(%s)" % (','.join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "log(%s)" % self.expr
+        return "log(%s)" % (','.join(str(expr) for expr in self.exprs))
 
     def get_vars(self):
-        return self.expr.get_vars()
-    
+        var_set = set()
+        for expr in self.exprs():
+            var_set.update(expr.get_vars())
+        return var_set
+
     
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):

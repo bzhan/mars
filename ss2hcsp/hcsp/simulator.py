@@ -43,13 +43,16 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, PlusExpr):
         # Sum of expressions
-        res = 0
-        for s, e in zip(expr.signs, expr.exprs):
-            if s == '+':
-                res += eval_expr(e, state)
-            else:
-                res -= eval_expr(e, state)
-        return res
+        try:
+            res = 0
+            for s, e in zip(expr.signs, expr.exprs):
+                if s == '+':
+                    res += eval_expr(e, state)
+                else:
+                    res -= eval_expr(e, state)
+            return res
+        except TypeError:
+            raise SimulatorException("Type error when evaluating %s" % expr)
 
     elif isinstance(expr, TimesExpr):
         # Product of expressions
@@ -646,9 +649,13 @@ class SimInfo:
         elif cur_hp.type == "log":
             # Output a log item to the simulator
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
-            log_expr = eval_expr(cur_hp.expr, self.state)
-            if isinstance(log_expr, str):
-                log_expr = log_expr[1:-1]
+            log_expr = ''
+            for expr in cur_hp.exprs:
+                val = eval_expr(expr, self.state)
+                if isinstance(val, str):
+                    log_expr += val[1:-1]
+                else:
+                    log_expr += str(val)
             self.reason = {"log": log_expr}
 
         elif cur_hp.type == "condition":

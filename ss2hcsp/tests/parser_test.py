@@ -20,6 +20,8 @@ class ParserTest(unittest.TestCase):
 
     def testParseModuleFile(self):
         infos = parse_module_file("""
+            %type: module
+
             module P0():
             output x;
             begin
@@ -47,6 +49,8 @@ class ParserTest(unittest.TestCase):
 
     def testParseModuleFile2(self):
         infos = parse_module_file("""
+            %type: module
+
             module P0(p2c,c2p):
             output x;
             begin
@@ -78,6 +82,8 @@ class ParserTest(unittest.TestCase):
 
     def testParseModule3(self):
         infos = parse_module_file("""
+            %type: module
+
             module P0(i):
             output x;
             begin
