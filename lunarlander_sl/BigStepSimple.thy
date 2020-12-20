@@ -723,6 +723,9 @@ thm receiveE
 inductive_cases seqE: "big_step (Seq p1 p2) s1 tr s2"
 thm seqE
 
+inductive_cases condE: "big_step (Cond b p1 p2) s1 tr s2"
+thm condE
+
 inductive_cases waitE: "big_step (Wait d) s1 tr s2"
 thm waitE
 
@@ -781,6 +784,12 @@ theorem Valid_seq:
   "Valid P c1 Q \<Longrightarrow> Valid Q c2 R \<Longrightarrow> Valid P (c1; c2) R"
   unfolding Valid_def
   apply (auto elim!: seqE) by fastforce
+
+theorem Valid_cond:
+  "Valid P1 c1 Q \<Longrightarrow> Valid P2 c2 Q \<Longrightarrow>
+   Valid (\<lambda>s. if b s then P1 s else P2 s) (Cond b c1 c2) Q"
+  unfolding Valid_def
+  by (auto elim: condE)
 
 theorem Valid_wait:
   "d > 0 \<Longrightarrow> Valid

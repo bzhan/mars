@@ -19,6 +19,9 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
        {Q}"
 | SeqH:
     "\<turnstile> {P} c1 {Q} \<Longrightarrow> \<turnstile> {Q} c2 {R} \<Longrightarrow> \<turnstile> {P} c1; c2 {R}"
+| CondH:
+    "\<turnstile> {P1} c1 {Q} \<Longrightarrow> \<turnstile> {P2} c2 {Q} \<Longrightarrow>
+     \<turnstile> {\<lambda>s. if b s then P1 s else P2 s} (Cond b c1 c2) {Q}"
 | WaitH1:
     "d > 0 \<Longrightarrow>
      \<turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})])}
@@ -73,6 +76,8 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
                                                InBlock ch v])))) \<Longrightarrow>
      \<turnstile> {P} Interrupt ode b es {R} \<Longrightarrow>
      \<turnstile> {P} Interrupt ode b ((ch[?]var, p2) # es) {R}"
+| ConseqH:
+    "P' \<Longrightarrow>\<^sub>A P \<Longrightarrow> Q \<Longrightarrow>\<^sub>A Q' \<Longrightarrow> \<turnstile> {P} c {Q} \<Longrightarrow> \<turnstile> {P'} c {Q'}"
 
 theorem hoare_sound:
   "\<turnstile> {P} c {Q} \<Longrightarrow> Valid P c Q"
@@ -96,6 +101,10 @@ next
   case (SeqH P c1 Q c2 R)
   then show ?case
     by (simp add: Valid_seq)
+next
+  case (CondH P1 c1 Q P2 c2 b)
+  then show ?case
+    by (simp add: Valid_cond)
 next
   case (WaitH1 Q d)
   then show ?case
@@ -136,12 +145,14 @@ next
   case (InterruptH3 p2 R P var ch ode b cs es)
   then show ?case
     sorry
+next
+  case (ConseqH P' P Q Q' c)
+  then show ?case
+    unfolding Valid_def entails_def by blast
 qed
 
 
 subsection \<open>Weakest precondition\<close>
-
-term big_step
 
 definition wp :: "proc \<Rightarrow> assn \<Rightarrow> assn" where
   "wp c Q = (\<lambda>s tr. \<forall>s' tr'. big_step c s tr' s' \<longrightarrow> Q s' (tr @ tr'))"
@@ -189,6 +200,13 @@ lemma wp_Seq: "wp (c1; c2) Q = wp c1 (wp c2 Q)"
     using seqB by fastforce
   done
 
+lemma wp_Cond: "wp (Cond b c1 c2) Q = (\<lambda>s. if b s then wp c1 Q s else wp c2 Q s)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: condE)
+    using condB1 condB2 by auto
+  done
+
 lemma wp_Wait1:
   assumes "d > 0"
   shows "wp (Wait d) Q =
@@ -211,9 +229,113 @@ lemma wp_Wait2:
     using assms by auto
   done
 
-lemma wp_Rep:
-  "wp (Rep c) Q = wp (c; Rep C) Q"
-  sorry
+lemma wp_IChoice:
+  "wp (IChoice c1 c2) Q = (\<lambda>s tr. wp c1 Q s tr \<and> wp c2 Q s tr)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: ichoiceE)
+    by (auto simp add: IChoiceB1 IChoiceB2)
+  done
+
+lemma wp_ODE:
+  "wp (Cont ode b) Q =
+    (\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
+            (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                   Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})])))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (auto simp add: wp_def elim: contE)
+    apply (auto simp add: ContB2)
+    using ContB1[of b s] by fastforce
+  done
+
+lemma wp_is_pre: "\<turnstile> {wp c Q} c {Q}"
+proof (induction c arbitrary: Q)
+  case (Cm cm)
+  then show ?case
+  proof (cases cm)
+    case (Send ch e)
+    show ?thesis
+      unfolding Send wp_Send
+      by (rule SendH)
+  next
+    case (Receive ch v)
+    show ?thesis
+      unfolding Receive wp_Receive
+      by (rule ReceiveH)
+  qed
+next
+  case Skip
+  then show ?case
+    unfolding wp_Skip by (rule SkipH)
+next
+  case (Assign v e)
+  then show ?case
+    unfolding wp_Assign by (rule AssignH)
+next
+  case (Seq c1 c2)
+  then show ?case
+    unfolding wp_Seq by (rule SeqH)
+next
+  case (Cond x1a c1 c2)
+  then show ?case
+    unfolding wp_Cond by (rule CondH)
+next
+  case (Wait d)
+  show ?case
+  proof (cases "d > 0")
+    case True
+    then show ?thesis
+      unfolding wp_Wait1[OF True]
+      by (rule WaitH1)
+  next
+    case False
+    then show ?thesis
+      unfolding wp_Wait2[OF False]
+      by (rule WaitH2)
+  qed
+next
+  case (IChoice c1 c2)
+  then show ?case
+    unfolding wp_IChoice by (rule IChoiceH)
+next
+  case (EChoice x)
+  then show ?case sorry
+next
+  case (Rep c)
+  show ?case
+    apply (rule ConseqH[where P="wp (Rep c) Q" and Q="wp (Rep c) Q"])
+    subgoal by simp
+    subgoal unfolding entails_def wp_def apply auto
+      using RepetitionB1 by fastforce
+    apply (rule RepH)
+    apply (rule ConseqH[where Q="wp (Rep c) Q"])
+      prefer 2 apply simp
+     prefer 2 apply (rule Rep)
+    unfolding entails_def wp_def apply auto
+    subgoal for s1 tr1 s2 tr2 s3 tr3
+      using RepetitionB2 by auto
+    done
+next
+  case (Cont x1a x2)
+  then show ?case
+    unfolding wp_ODE by (rule ContH)
+next
+  case (Interrupt x1a x2 x3)
+  then show ?case sorry
+qed
+
+
+theorem hoare_complete:
+  "Valid P c Q \<Longrightarrow> \<turnstile> {P} c {Q}"
+  apply (rule ConseqH[where P="wp c Q" and Q=Q])
+    apply (auto simp add: entails_def)
+   apply (auto simp add: Valid_def wp_def)[1]
+  by (rule wp_is_pre)
+
+theorem hoare_sound_complete:
+  "\<turnstile> {P} c {Q} \<longleftrightarrow> Valid P c Q"
+  using hoare_sound hoare_complete by auto
 
 
 end
