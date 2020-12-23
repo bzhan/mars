@@ -130,20 +130,22 @@ class HCSPDeclarations:
 
     """
     def __init__(self, args):
-        """Input is a list of HCSPModule, HCSPSystem, or HCSPDeclaration
-        objects. The HCSPDeclaration objects are unfolded.
+        """Input is a list of HCSPModule, HCSPSystem, or
+        HCSPDeclaration objects. The HCSPDeclaration objects are unfolded.
         
         Should contain exactly one HCSPSystem.
 
         """
         # Mapping from module name to HCSPModule
         self.modules = dict()
+
+        # Overall system
         self.system = None
 
         for arg in args:
             if isinstance(arg, HCSPModule):
                 if arg.name in self.modules:
-                    raise ModuleException("Name %s is repeated" % arg.name)
+                    raise ModuleException("Module name %s is repeated" % arg.name)
                 self.modules[arg.name] = arg
 
             elif isinstance(arg, HCSPSystem):
@@ -175,7 +177,7 @@ class HCSPDeclarations:
         return res
 
     def generateHCSPInfo(self):
-        """Produce list of HCSP info objects."""
+        """Produce list of HCSPInfo objects."""
         if self.system is None:
             raise ModuleException("No system in declaration")
 

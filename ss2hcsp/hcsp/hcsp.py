@@ -205,37 +205,48 @@ class Wait(HCSP):
 
 
 class Assign(HCSP):
+    """Assignment command.
+
+    Left side is an expression that can serve as a lname. This includes
+    variables, array indices, and field names.
+
+    """
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
         assert isinstance(expr, AExpr)
         if isinstance(var_name, str):
+            var_name = AVar(var_name)
+        if isinstance(var_name, AExpr):
             self.var_name = var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) >= 2 and all(isinstance(name, str) for name in var_name)
-            self.var_name = var_name  # string or tuple of strings
+            assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
+            self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr  # AExpr
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        if isinstance(self.var_name, str):
-            var_str = self.var_name
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
         else:
-            var_str = "[%s]" % (','.join(self.var_name))
+            var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
         return "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
-        if isinstance(self.var_name, str):
-            var_str = self.var_name
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
         else:
-            var_str = "(%s)" % (', '.join(self.var_name))
+            var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return var_str + " := " + str(self.expr)
 
     def get_vars(self):
-        var_set = {self.var_name} if isinstance(self.var_name, str) else set(self.var_name)
+        if isinstance(self.var_name, AExpr):
+            var_set = {str(self.var_name)}
+        else:
+            var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
     def sc_str(self):
@@ -340,7 +351,7 @@ class OutputChannel(HCSP):
         return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
 
     def __repr__(self):
-        if self.expr == AExpr():
+        if isinstance(self.expr, AExpr):
             return "OutputC(%s,%s)" % (self.ch_name, self.expr)
         else:
             return "OutputC(%s)" % self.ch_name

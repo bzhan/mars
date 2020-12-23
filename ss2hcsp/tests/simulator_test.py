@@ -427,7 +427,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             'xs := []; (ch_new?new; xs := push(xs, new); x := get_max(xs); ch_max!x; xs := pop_max(xs))**',
             'ch_new![1,2]; ch_max?x; ch_new!3; ch_max?x; ch_new![]; ch_max?x'
-        ], 10, ['IO ch_new (1, 2)', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new ()', 'IO ch_max 1', 'deadlock'])
+        ], 10, ['IO ch_new [1,2]', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new []', 'IO ch_max 1', 'deadlock'])
 
     def testExecParallel28(self):
         self.run_test([
@@ -483,6 +483,18 @@ class SimulatorTest(unittest.TestCase):
             'x := 0; i := 0; (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**',
             'i := 0; (i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1)**'
         ], 6, ['delay 2', 'IO p2c[1] 2.0', 'IO c2p[1] 1.0', 'delay 2', 'IO p2c[2] 3.0', 'IO c2p[2] 2.0'])
+
+    def testExecParallel38(self):
+        self.run_test([
+            'pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch {x:3,y:2}', 'deadlock'])
+
+    def testExecParallel39(self):
+        self.run_test([
+            'pt := [1, 2]; pt[0] := pt[1] + 1; ch!pt[0]; ch!pt',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch [3,2]', 'deadlock'])
 
 
 if __name__ == "__main__":

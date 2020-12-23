@@ -11,9 +11,9 @@ import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, ArrayIdxExpr, BConst, LogicExpr, NegExpr, RelExpr, true_expr, \
-    opt_round, get_range, split_disj, false_expr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
+    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
@@ -77,45 +77,45 @@ def eval_expr(expr, state):
             return math.gcd(*args)
         elif expr.fun_name == "push":
             a, b = args
-            assert isinstance(a, tuple)
-            if isinstance(b, tuple):
+            assert isinstance(a, list)
+            if isinstance(b, list):
                 return a + b
             else:
-                return a + (b,)
+                return a + [b]
         elif expr.fun_name == "pop":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             return a[:-1]
         elif expr.fun_name == "top":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             return a[-1]
         elif expr.fun_name == "bottom":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             return a[0]
         elif expr.fun_name == "get":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             return a[1:]
         elif expr.fun_name == "len":
             a, = args
-            assert isinstance(a, tuple)
+            assert isinstance(a, list)
             return len(a)
         elif expr.fun_name == "get_max":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             return max(a)
         elif expr.fun_name == "pop_max":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list) and len(a) > 0
             b = list(a)
             try:
                 b.remove(max(a))
             except TypeError as e:
                 print('value is:', a)
                 raise e
-            return tuple(b)
+            return list(b)
         elif expr.fun_name == "sqrt":
             assert len(args) == 1 and args[0] >= 0
             return math.sqrt(args[0])
@@ -135,16 +135,25 @@ def eval_expr(expr, state):
         return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
 
     elif isinstance(expr, ListExpr):
-        return tuple(eval_expr(arg, state) for arg in expr.args)
+        return list(eval_expr(arg, state) for arg in expr.args)
+
+    elif isinstance(expr, DictExpr):
+        return dict((k, eval_expr(v, state)) for k, v in expr.dict.items())
 
     elif isinstance(expr, ArrayIdxExpr):
         a = eval_expr(expr.expr1, state)
         i = eval_expr(expr.expr2, state)
-        if not (isinstance(a, tuple) and isinstance(i, int)):
+        if not (isinstance(a, list) and isinstance(i, int)):
             raise SimulatorException('When evaluating %s: type error' % expr)
         if not i < len(a):
             raise SimulatorException('When evaluating %s: array out of bounds error' % expr)
         return a[i]
+
+    elif isinstance(expr, FieldNameExpr):
+        a = eval_expr(expr.expr, state)
+        if expr.field not in a:
+            raise SimulatorException('When evaluating %s: field not found' % expr)
+        return a[expr.field]
 
     elif isinstance(expr, BConst):
         return expr.value
@@ -192,6 +201,7 @@ def eval_expr(expr, state):
             raise NotImplementedError
 
     else:
+        print('When evaluating %s' % expr)
         raise NotImplementedError
 
 def eval_channel(ch_name, state):
@@ -270,9 +280,6 @@ def get_ode_delay(hp, state):
     for var_name, eq in hp.eqs:
         if not is_zero(eq):
             changed_vars.append(var_name)
-
-    # print('zero', zero_vars)
-    # print('changed', changed_vars)
 
     def occur_var(e, var_name):
         if isinstance(e, RelExpr):
@@ -618,22 +625,35 @@ class SimInfo:
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
+        def exec_assign(lname, val):
+            if isinstance(lname, AVar):
+                self.state[lname.name] = val
+            elif isinstance(lname, ArrayIdxExpr):
+                v = eval_expr(lname.expr1, self.state)
+                idx = eval_expr(lname.expr2, self.state)
+                v[idx] = val
+            elif isinstance(lname, FieldNameExpr):
+                v = eval_expr(lname.expr, self.state)
+                v[lname.field] = val
+            else:
+                raise NotImplementedError
+
         if cur_hp.type == "skip":
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            if isinstance(cur_hp.var_name, str):
-                self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
+            if isinstance(cur_hp.var_name, AExpr):
+                exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state))
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
-                assert isinstance(val, tuple) and len(val) == len(cur_hp.var_name), \
-                    "Multiple assignment: value not a tuple or of the wrong length."
+                assert isinstance(val, list) and len(val) == len(cur_hp.var_name), \
+                    "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
-                    if s != '_':
-                        self.state[s] = val[i]
+                    if s != AVar('_'):
+                        exec_assign(s, val[i])
 
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
@@ -1071,6 +1091,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                 val_str = ""
             elif isinstance(val, float):
                 val_str = " " + str(round(val, 3))
+            elif isinstance(val, dict):
+                val_str = " {%s}" % (','.join(k + ':' + str(v) for k, v in val.items()))
+            elif isinstance(val, list):
+                val_str = " [%s]" % (','.join(str(v) for v in val))
             else:
                 val_str = " " + str(val)
 

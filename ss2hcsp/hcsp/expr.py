@@ -72,14 +72,17 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, tuple, str))
-        self.value = value
+        assert isinstance(value, (int, float, list, str))
+        if isinstance(value, list):
+            self.value = list(value)
+        else:
+            self.value = value
 
     def __repr__(self):
         return "AConst(%s)" % str(self.value)
 
     def __str__(self):
-        if isinstance(self.value, tuple):            
+        if isinstance(self.value, list):
             return "[" + ",".join(str(v) for v in self.value) + "]"
         else:
             return str(self.value)
@@ -232,9 +235,10 @@ class ModExpr(AExpr):
 
 
 class ListExpr(AExpr):
+    """List expressions."""
     def __init__(self, *args):
         super(ListExpr, self).__init__()
-        args = tuple(args)
+        args = list(args)
         assert all(isinstance(arg, AExpr) for arg in args)
         self.args = args
 
@@ -251,12 +255,40 @@ class ListExpr(AExpr):
         return hash(("List", self.args))
 
     def get_vars(self):
-        # return set().union(*(expr.get_vars() for expr in self.exprs))
-        # Modified by xux
         return set().union(*(arg.get_vars() for arg in self.args))
 
     def subst(self, inst):
         return ListExpr(expr.subst(inst) for expr in self.args)
+
+
+class DictExpr(AExpr):
+    """Dictionary expressions (structures)."""
+    def __init__(self, *args):
+        """Argument is a list of key-value pairs. Each key should be a string."""
+        super(DictExpr, self).__init__()
+        self.dict = dict()
+        args = tuple(args)
+        assert all(isinstance(k, str) and isinstance(v, AExpr) for k, v in args)
+        for k, v in args:
+            self.dict[k] = v
+
+    def __repr__(self):
+        return "Dict(%s)" % (','.join(k + ':' + repr(v) for k, v in self.dict.items()))
+
+    def __str__(self):
+        return "{%s}" % (','.join(k + ':' + str(v) for k, v in self.dict.items()))
+
+    def __eq__(self, other):
+        return isinstance(other, DictExpr) and self.args == other.arg_strs
+
+    def __hash__(self):
+        return hash(("Dict", self.args))
+
+    def get_vars(self):
+        return set().union(*(v.get_vars() for k, v in self.args))
+
+    def subst(self, inst):
+        return DictExpr((k, v.subst(inst)) for k, v in self.args)
 
 
 class ArrayIdxExpr(AExpr):
@@ -289,6 +321,37 @@ class ArrayIdxExpr(AExpr):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
 
+class FieldNameExpr(AExpr):
+    """Expression of the form a.name, where a evaluates to a structure
+    and name is a field name.
+
+    """
+    def __init__(self, expr, field):
+        super(FieldNameExpr, self).__init__()
+        assert isinstance(expr, AExpr) and isinstance(field, str)
+        self.expr = expr
+        self.field = field
+
+    def __repr__(self):
+        return "FieldNameExpr(%s,%s)" % (repr(self.expr), self.field)
+
+    def __str__(self):
+        return "%s.%s" % (str(self.expr), self.field)
+
+    def __eq__(self, other):
+        return isinstance(other, FieldNameExpr) and self.expr == other.expr and \
+            self.field == other.field
+
+    def __hash__(self):
+        return hash(("FieldName", self.expr, self.field))
+
+    def get_vars(self):
+        return self.expr.get_vars()
+
+    def subst(self, inst):
+        return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
+
+    
 class BExpr:
     def __init__(self):
         pass

@@ -7,12 +7,16 @@ from ss2hcsp.hcsp import module
 
 
 grammar = r"""
-    ?atom_expr: CNAME -> var_expr
+    ?lname: CNAME -> var_expr
+        | CNAME "[" expr "]" -> array_idx_expr
+        | lname "." CNAME -> field_expr
+
+    ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "[]" -> empty_list
         | "[" expr ("," expr)* "]" -> literal_list
-        | atom_expr "[" expr "]" -> array_idx_expr
+        | "{" CNAME ":" expr ("," CNAME ":" expr)* "}" -> literal_dict
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
@@ -62,8 +66,8 @@ grammar = r"""
     ?atom_cmd: "@" CNAME -> var_cmd
         | "skip" -> skip_cmd
         | "wait" "(" expr ")" -> wait_cmd
-        | CNAME ":=" expr -> assign_cmd
-        | "(" CNAME ("," CNAME)* ")" ":=" expr -> multi_assign_cmd
+        | lname ":=" expr -> assign_cmd
+        | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
         | "assert" "(" cond ")" -> assert_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
@@ -133,16 +137,27 @@ class HPTransformer(Transformer):
         return expr.AConst(str(s))
 
     def empty_list(self):
-        return expr.AConst(tuple())
+        return expr.AConst(list())
 
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
-            return expr.AConst(tuple(arg.value for arg in args))
+            return expr.AConst(list(arg.value for arg in args))
         else:
             return expr.ListExpr(*args)
 
+    def literal_dict(self, *args):
+        # args should contain 2*n elements, which are key-value pairs
+        assert len(args) >= 2 and len(args) % 2 == 0
+        pairs = []
+        for i in range(0,len(args),2):
+            pairs.append((str(args[i]), args[i+1]))
+        return expr.DictExpr(*pairs)
+
     def array_idx_expr(self, a, i):
-        return expr.ArrayIdxExpr(a, i)
+        return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
+
+    def field_expr(self, e, field):
+        return expr.FieldNameExpr(e, field)
 
     def plus_expr(self, e1, e2):
         signs, exprs = [], []
@@ -233,10 +248,10 @@ class HPTransformer(Transformer):
         return hcsp.Wait(delay)
 
     def assign_cmd(self, var, expr):
-        return hcsp.Assign(str(var), expr)
+        return hcsp.Assign(var, expr)
 
     def multi_assign_cmd(self, *args):
-        return hcsp.Assign((str(arg) for arg in args[:-1]), args[-1])
+        return hcsp.Assign(args[:-1], args[-1])
 
     def assert_cmd(self, bexpr):
         return hcsp.Assert(bexpr)
