@@ -104,12 +104,22 @@ class Process extends React.Component {
                     {Object.keys(this.props.state).map((key, index) => {
                         // Round numbers to at most three digits for display
                         var val = this.props.state[key];
-                        if (typeof (val) == 'number') {
-                            val = Math.round(val.toFixed(3) * 1000) / 1000
+                        var str_val = '';
+                        if (typeof(val) == 'number') {
+                            val = Math.round(val.toFixed(3) * 1000) / 1000;
+                            str_val = String(val);
+                        }
+                        else if (Array.isArray(val)) {
+                            str_val = '[' + val.join(',') + ']';
+                        }
+                        else {
+                            str_val = '{' + (Object.keys(val).map((k) => k + ':' + val[k])).join(',') + '}';
                         }
                         return (<>
                             {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
-                            <span key={index} style={{ marginLeft: "10px" }}>{key}: {String(val)}</span>
+                            <span key={index} style={{ marginLeft: "10px" }}>
+                                {key}: {str_val}
+                            </span>
                         </>)
                     })}
                     <span>&nbsp;&nbsp;</span>
