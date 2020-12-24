@@ -255,6 +255,9 @@ class App extends React.Component {
             // Current position
             history_pos: 0,
 
+            // Warning message from simulation
+            sim_warning: undefined,
+
             // Whether there is a file loaded.
             file_loaded: false,
 
@@ -373,6 +376,7 @@ class App extends React.Component {
                 error: undefined,
                 history: response.data.trace,
                 time_series: response.data.time_series,
+                sim_warning: response.data.warning,
                 querying: false
             })
         }
