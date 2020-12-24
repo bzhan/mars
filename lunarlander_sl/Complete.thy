@@ -4,7 +4,8 @@ begin
 
 subsection \<open>Proof system\<close>
 
-inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bool" ("\<turnstile> ({(1_)}/ (_)/ {(1_)})" 50) where
+inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> bool" ("\<turnstile> ({(1_)}/ (_)/ {(1_)})" 50) 
+  and echoice_hoare :: "assn \<Rightarrow> nat \<Rightarrow> (comm \<times> proc) list \<Rightarrow> assn \<Rightarrow> bool" where
   SkipH: "\<turnstile> {P} Skip {P}"
 | AssignH: "\<turnstile> {\<lambda>s. Q (s(var := e s))} (var ::= e) {Q}"
 | SendH:
@@ -35,17 +36,24 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
     "\<turnstile> {P1} c1 {Q} \<Longrightarrow> \<turnstile> {P2} c2 {Q} \<Longrightarrow>
      \<turnstile> {\<lambda>s tr. P1 s tr \<and> P2 s tr} IChoice c1 c2 {Q}"
 | EChoiceH1:
-    "(\<exists>Q. \<turnstile> {Q} p2 {R} \<and>
-         (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
-         (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))) \<Longrightarrow>
-     \<turnstile> {P} EChoice es {R} \<Longrightarrow>
-     \<turnstile> {P} EChoice ((ch[!]e, p2) # es) {R}"
+    "echoice_hoare P 0 es R"
 | EChoiceH2:
-    "(\<exists>Q. \<turnstile> {Q} p2 {R} \<and>
-         (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
-         (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))) \<Longrightarrow>
-     \<turnstile> {P} EChoice es {R} \<Longrightarrow>
-     \<turnstile> {P} EChoice ((ch[?]var, p2) # es) {R}"
+    "\<turnstile> {Q} p2 {R} \<Longrightarrow>
+     es ! n = (ch[!]e, p2) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)])) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])) \<Longrightarrow>
+     echoice_hoare P n es R \<Longrightarrow>
+     echoice_hoare P (Suc n) es R"
+| EChoiceH3:
+    "\<turnstile> {Q} p2 {R} \<Longrightarrow>
+     es ! n = (ch[?]var, p2) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])) \<Longrightarrow>
+     echoice_hoare P n es R \<Longrightarrow>
+     echoice_hoare P (Suc n) es R"
+| EChoiceH4:
+    "echoice_hoare P (length es) es R \<Longrightarrow>
+     \<turnstile> {P} EChoice es {R}"
 | ContH:
     "\<turnstile> {\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
              (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
@@ -79,9 +87,99 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | ConseqH:
     "P' \<Longrightarrow>\<^sub>A P \<Longrightarrow> Q \<Longrightarrow>\<^sub>A Q' \<Longrightarrow> \<turnstile> {P} c {Q} \<Longrightarrow> \<turnstile> {P'} c {Q'}"
 
+inductive big_step_echoice :: "nat \<Rightarrow> (comm \<times> proc) list \<Rightarrow> state \<Rightarrow> trace \<Rightarrow> state \<Rightarrow> bool" where
+  "i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+    big_step p2 s1 tr2 s2 \<Longrightarrow>
+    big_step_echoice n cs s1 (OutBlock ch (e s1) # tr2) s2"
+| "d > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+    big_step p2 s1 tr2 s2 \<Longrightarrow>
+    big_step_echoice n cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice cs) #
+                              OutBlock ch (e s1) # tr2) s2"
+| "i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+    big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow>
+    big_step_echoice n cs s1 (InBlock ch v # tr2) s2"
+| "d > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+    big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow>
+    big_step_echoice n cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice cs) #
+                              InBlock ch v # tr2) s2"
+
+inductive_cases big_step_echoiceE: "big_step_echoice n cs s1 tr s2"
+
+lemma big_step_echoice_next:
+  "big_step_echoice n es s1 tr2 s2 \<Longrightarrow> big_step_echoice (Suc n) es s1 tr2 s2"
+  apply (auto elim!: big_step_echoiceE)
+  by (rule big_step_echoice.intros, auto)+
+
+lemma big_step_echoice_next_rev1:
+  "big_step_echoice (Suc n) es s1 tr s2 \<Longrightarrow>
+   es ! n = (Send ch e, p2) \<Longrightarrow>
+   (big_step_echoice n es s1 tr s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>tr2. tr = OutBlock ch (e s1) # tr2 \<Longrightarrow> big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>d tr2. d > 0 \<Longrightarrow> tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) #
+                           OutBlock ch (e s1) # tr2 \<Longrightarrow> big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   P"
+  apply (auto elim!: big_step_echoiceE)
+  subgoal for i ch' e' p2' tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(1))
+    using less_antisym by fastforce
+  subgoal for d i ch' e' p2' tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(2))
+    by (metis Pair_inject comm.inject(1) less_antisym)
+  subgoal for i ch' var p2' v tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(3))
+    using less_antisym by fastforce
+  subgoal for d i ch' var p2' v tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(4))
+    by (metis Pair_inject comm.distinct(1) less_SucE)
+  done
+   
+lemma big_step_echoice_next_rev2:
+  "big_step_echoice (Suc n) es s1 tr s2 \<Longrightarrow>
+   es ! n = (Receive ch var, p2) \<Longrightarrow>
+   (big_step_echoice n es s1 tr s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>tr2 v. tr = InBlock ch v # tr2 \<Longrightarrow> big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>d tr2 v. d > 0 \<Longrightarrow> tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) #
+                           InBlock ch v # tr2 \<Longrightarrow> big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   P"
+  apply (auto elim!: big_step_echoiceE)
+  subgoal for i ch' e' p2' tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(1))
+    using less_antisym by fastforce
+  subgoal for d i ch' e' p2' tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(2))
+    by (metis Pair_inject comm.distinct(1) less_SucE)
+  subgoal for i ch' var' p2' v tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(3))
+    using less_antisym by fastforce
+  subgoal for d i ch' var' p2' v tr2
+    apply (cases "i < n")
+     apply (simp add: big_step_echoice.intros(4))
+    by (metis comm.inject(2) less_antisym old.prod.inject)
+  done
+
+lemma big_step_echoice_final:
+  "big_step_echoice (length cs) cs s1 tr s2 \<longleftrightarrow> big_step (EChoice cs) s1 tr s2"
+  apply (rule iffI)
+  apply (auto elim!: echoiceE big_step_echoiceE)
+  by (auto intro: big_step.intros big_step_echoice.intros)
+
+
+definition echoice_Valid :: "assn \<Rightarrow> nat \<Rightarrow> (comm \<times> proc) list \<Rightarrow> assn \<Rightarrow> bool" where
+  "echoice_Valid P n cs Q \<longleftrightarrow>
+    (\<forall>s1 tr1 s2 tr2. P s1 tr1 \<longrightarrow> big_step_echoice n cs s1 tr2 s2 \<longrightarrow> Q s2 (tr1 @ tr2))"
+   
+
 theorem hoare_sound:
-  "\<turnstile> {P} c {Q} \<Longrightarrow> Valid P c Q"
-proof (induction rule: hoare.induct)
+  "(\<turnstile> {P} c {Q} \<longrightarrow> Valid P c Q) \<and>
+   (echoice_hoare P n cs Q \<longrightarrow> echoice_Valid P n cs Q)"   
+proof (induction rule: hoare_echoice_hoare.induct)
   case (SkipH P)
   then show ?case
     by (simp add: Valid_skip)
@@ -122,13 +220,62 @@ next
   then show ?case
     by (simp add: Valid_ichoice)
 next
-  case (EChoiceH1 p2 R P ch e es)
+  case (EChoiceH1 P es R)
   then show ?case
-    sorry
+    unfolding echoice_Valid_def
+    by (auto elim: big_step_echoiceE)
 next
-  case (EChoiceH2 p2 R P var ch es)
+  case (EChoiceH2 Q p2 R es n ch e P)
+  have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
+       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
+  proof -
+    have "Q s1 (tr1 @ [OutBlock ch (e s1)])"
+      using that(1,3) unfolding entails_def by auto
+    then show ?thesis
+      using that(2,4) unfolding Valid_def by fastforce
+  qed
+  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
+       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
+  proof -
+    have "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
+      using that(1,3,5) unfolding entails_def by auto
+    then show ?thesis
+      using that(2,4) unfolding Valid_def by fastforce
+  qed
+  show ?case
+    using EChoiceH2 unfolding echoice_Valid_def
+    apply (auto elim!: big_step_echoice_next_rev1)
+    using a b by auto
+next
+  case (EChoiceH3 Q p2 R es n ch var P)
+  have a: "R s2 (tr1 @ InBlock ch v # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
+       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s2 tr1 v tr2' s1
+  proof -
+    have "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
+      using that(1,3) unfolding entails_def by auto
+    then show ?thesis
+      using that(2,4) unfolding Valid_def by fastforce
+  qed
+  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
+       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
+  proof -
+    have "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
+      using that(1,3,5) unfolding entails_def by auto
+    then show ?thesis
+      using that(2,4) unfolding Valid_def by fastforce
+  qed
+  show ?case
+    using EChoiceH3 unfolding echoice_Valid_def
+    apply (auto elim!: big_step_echoice_next_rev2)
+    using a b by auto
+next
+  case (EChoiceH4 P es R)
   then show ?case
-    sorry
+    unfolding echoice_Valid_def Valid_def big_step_echoice_final by auto
 next
   case (ContH b Q ode)
   then show ?case
