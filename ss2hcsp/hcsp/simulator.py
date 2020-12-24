@@ -296,6 +296,9 @@ def get_ode_delay(hp, state):
             print('occur_var:', e)
             raise NotImplementedError
 
+    def expr_unchanged(e):
+        return all(not occur_var(e, var_name) for var_name in changed_vars)
+
     def test_cond(e):
         if isinstance(e, LogicExpr) and e.op == '||':
             delay1 = test_cond(e.expr1)
@@ -307,11 +310,20 @@ def get_ode_delay(hp, state):
             delay2 = test_cond(e.expr2)
             return min(delay1, delay2)
 
-        if all(not occur_var(e, var_name) for var_name in changed_vars):
+        # Condition never changes
+        if expr_unchanged(e):
             if eval_expr(e, state):
                 return 100
             else:
                 return 0
+
+        # Condition of the form t < constant
+        if isinstance(e, RelExpr) and e.op in ('<', '<=') and \
+            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2):
+            for var_name, deriv in hp.eqs:
+                if var_name == e.expr1.name and expr_unchanged(deriv):
+                    diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
+                    return min(diff / eval_expr(deriv, state), 100.0)
 
         if not eval_expr(e, state):
             return 0
