@@ -304,9 +304,11 @@ class InputChannel(HCSP):
         if isinstance(ch_name, str):
             ch_name = Channel(ch_name)
         assert isinstance(ch_name, Channel)
-        assert var_name is None or isinstance(var_name, str)
+        if isinstance(var_name, str):
+            var_name = AVar(str(var_name))
+        assert var_name is None or isinstance(var_name, AExpr)
         self.ch_name = ch_name  # Channel
-        self.var_name = var_name  # string or None
+        self.var_name = var_name  # AExpr or None
 
     def __eq__(self, other):
         return self.type == other.type and self.ch_name == other.ch_name and \
@@ -326,7 +328,7 @@ class InputChannel(HCSP):
 
     def get_vars(self):
         if self.var_name:
-            return {self.var_name}
+            return {str(self.var_name)}
         return set()
 
     def get_chs(self):

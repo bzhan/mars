@@ -508,6 +508,12 @@ class SimulatorTest(unittest.TestCase):
             'ch?pt; pt.y := 3; ch?y'
         ], 3, ['IO ch {x:1,y:2}', 'IO ch 2', 'deadlock'])
 
+    def testExecParallel42(self):
+        self.run_test([
+            'pt := {x:1, y:2}; ch!pt.x; ch!pt.y; ch?z; ch?z',
+            'pt := {x:2, y:3}; ch?pt.x; ch?pt.y; ch!pt.x; ch!pt.y'
+        ], 5, ['IO ch 1', 'IO ch 2', 'IO ch 1', 'IO ch 2', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()

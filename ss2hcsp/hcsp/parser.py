@@ -54,7 +54,7 @@ grammar = r"""
 
     ?cond: imp
 
-    ?comm_cmd: CNAME ("[" expr "]")* "?" CNAME -> input_cmd
+    ?comm_cmd: CNAME ("[" expr "]")* "?" lname -> input_cmd
         | CNAME ("[" expr "]")* "?" -> input_none_cmd
         | CNAME ("[" expr "]")* "!" expr -> output_cmd
         | CNAME ("[" expr "]")* "!" -> output_none_cmd
@@ -269,7 +269,7 @@ class HPTransformer(Transformer):
         # First argument is channel name, last argument is variable name.
         # Middle arguments are args to channel name.
         ch_name, ch_args, var_name = args[0], args[1:-1], args[-1]
-        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args), str(var_name))
+        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args), var_name)
 
     def input_none_cmd(self, *args):
         # First argument is channel name, remaining arguments are its args.

@@ -610,6 +610,23 @@ class SimInfo:
     def __str__(self):
         return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
 
+    def exec_assign(self, lname, val):
+        """Make the copy of val into lname. Note deep-copy need to be
+        used to avoid aliasing.
+
+        """
+        if isinstance(lname, AVar):
+            self.state[lname.name] = copy.deepcopy(val)
+        elif isinstance(lname, ArrayIdxExpr):
+            v = eval_expr(lname.expr1, self.state)
+            idx = eval_expr(lname.expr2, self.state)
+            v[idx] = copy.deepcopy(val)
+        elif isinstance(lname, FieldNameExpr):
+            v = eval_expr(lname.expr, self.state)
+            v[lname.field] = copy.deepcopy(val)
+        else:
+            raise NotImplementedError
+
     def exec_step(self):
         """Compute a single process for one step.
 
@@ -625,23 +642,6 @@ class SimInfo:
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
-        def exec_assign(lname, val):
-            """Make the copy of val into lname. Note deep-copy need to be
-            used to avoid aliasing.
-
-            """
-            if isinstance(lname, AVar):
-                self.state[lname.name] = copy.deepcopy(val)
-            elif isinstance(lname, ArrayIdxExpr):
-                v = eval_expr(lname.expr1, self.state)
-                idx = eval_expr(lname.expr2, self.state)
-                v[idx] = copy.deepcopy(val)
-            elif isinstance(lname, FieldNameExpr):
-                v = eval_expr(lname.expr, self.state)
-                v[lname.field] = copy.deepcopy(val)
-            else:
-                raise NotImplementedError
-
         if cur_hp.type == "skip":
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
@@ -649,7 +649,7 @@ class SimInfo:
         elif cur_hp.type == "assign":
             # Perform assignment
             if isinstance(cur_hp.var_name, AExpr):
-                exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state))
+                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state))
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
@@ -657,7 +657,7 @@ class SimInfo:
                     "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
                     if s != AVar('_'):
-                        exec_assign(s, val[i])
+                        self.exec_assign(s, val[i])
 
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
@@ -778,13 +778,13 @@ class SimInfo:
                 assert x is None
             else:
                 assert x is not None
-                self.state[cur_hp.var_name] = copy.deepcopy(x)
+                self.exec_assign(cur_hp.var_name, x)
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
-                    self.state[comm_hp.var_name] = copy.deepcopy(x)
+                    self.exec_assign(comm_hp.var_name, x)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -798,7 +798,7 @@ class SimInfo:
                         assert x is None
                     else:
                         assert x is not None
-                        self.state[comm_hp.var_name] = copy.deepcopy(x)
+                        self.exec_assign(comm_hp.var_name, x)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
