@@ -4,7 +4,7 @@ The state is given by a dictionary from variable names to numbers.
 
 """
 
-from copy import copy
+import copy
 import itertools
 import math
 import random
@@ -223,7 +223,7 @@ def get_ode_delay(hp, state):
 
     def ode_fun(t, y):
         res = []
-        state2 = copy(state)
+        state2 = copy.copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
         for var_name, expr in hp.eqs:
@@ -232,7 +232,7 @@ def get_ode_delay(hp, state):
 
     def event_gen(t, y, c):
         # Here c is the constraint
-        state2 = copy(state)
+        state2 = copy.copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
         if isinstance(c, RelExpr):
@@ -626,15 +626,19 @@ class SimInfo:
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         def exec_assign(lname, val):
+            """Make the copy of val into lname. Note deep-copy need to be
+            used to avoid aliasing.
+
+            """
             if isinstance(lname, AVar):
-                self.state[lname.name] = val
+                self.state[lname.name] = copy.deepcopy(val)
             elif isinstance(lname, ArrayIdxExpr):
                 v = eval_expr(lname.expr1, self.state)
                 idx = eval_expr(lname.expr2, self.state)
-                v[idx] = val
+                v[idx] = copy.deepcopy(val)
             elif isinstance(lname, FieldNameExpr):
                 v = eval_expr(lname.expr, self.state)
-                v[lname.field] = val
+                v[lname.field] = copy.deepcopy(val)
             else:
                 raise NotImplementedError
 
@@ -774,13 +778,13 @@ class SimInfo:
                 assert x is None
             else:
                 assert x is not None
-                self.state[cur_hp.var_name] = x
+                self.state[cur_hp.var_name] = copy.deepcopy(x)
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
-                    self.state[comm_hp.var_name] = x
+                    self.state[comm_hp.var_name] = copy.deepcopy(x)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -794,7 +798,7 @@ class SimInfo:
                         assert x is None
                     else:
                         assert x is not None
-                        self.state[comm_hp.var_name] = x
+                        self.state[comm_hp.var_name] = copy.deepcopy(x)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -874,7 +878,7 @@ class SimInfo:
             if delay != 0.0:
                 def ode_fun(t, y):
                     res = []
-                    state2 = copy(self.state)
+                    state2 = copy.copy(self.state)
                     for (var_name, _), yval in zip(cur_hp.eqs, y):
                         state2[var_name] = yval
                     for var_name, expr in cur_hp.eqs:
@@ -893,7 +897,7 @@ class SimInfo:
                     for i in range(len(sol.t)):
                         for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
                             self.state[var_name] = opt_round(yval[i])
-                        time_series.append({'time': t_eval[i], 'state': copy(self.state)})
+                        time_series.append({'time': t_eval[i], 'state': copy.copy(self.state)})
 
                 # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
@@ -997,7 +1001,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         for info in infos:
             if info.name in ori_pos:
                 info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
-                cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
+                cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
                 info.last_change = cur_index
             else:
                 cur_info[info.name] = info.last_change

@@ -496,6 +496,18 @@ class SimulatorTest(unittest.TestCase):
             'ch?x; ch?x'
         ], 3, ['IO ch 3', 'IO ch [3,2]', 'deadlock'])
 
+    def testExecParallel40(self):
+        self.run_test([
+            'pt := {x:1, y:2}; pt2 := pt; pt2.y := 3; ch!pt2.y; ch!pt.y',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel41(self):
+        self.run_test([
+            'pt := {x:1, y:2}; ch!pt; ch!pt.y',
+            'ch?pt; pt.y := 3; ch?y'
+        ], 3, ['IO ch {x:1,y:2}', 'IO ch 2', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()
