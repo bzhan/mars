@@ -269,23 +269,23 @@ class HPTransformer(Transformer):
         # First argument is channel name, last argument is variable name.
         # Middle arguments are args to channel name.
         ch_name, ch_args, var_name = args[0], args[1:-1], args[-1]
-        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args), var_name)
+        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args), var_name)
 
     def input_none_cmd(self, *args):
         # First argument is channel name, remaining arguments are its args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.InputChannel(hcsp.Channel(ch_name, ch_args))
+        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args))
 
     def output_cmd(self, *args):
         # First argument is channel name, last argument is variable name.
         # Middle arguments are args to channel name.
         ch_name, ch_args, expr = args[0], args[1:-1], args[-1]
-        return hcsp.OutputChannel(hcsp.Channel(ch_name, ch_args), expr)
+        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args), expr)
 
     def output_none_cmd(self, *args):
         # First argument is channel name, remaining arguments are its args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.OutputChannel(hcsp.Channel(ch_name, ch_args))
+        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args))
 
     def repeat_cmd(self, cmd):
         return hcsp.Loop(cmd)

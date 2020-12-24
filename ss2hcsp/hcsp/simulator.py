@@ -939,13 +939,21 @@ def extract_event(infos):
             return ('error', info.reason['error'])
 
     # First, attempt to find communication
-    for i, info1 in enumerate(infos):
-        for j, info2 in enumerate(infos):
-            if 'comm' in info1.reason and 'comm' in info2.reason:
-                for ch_name1, dir1 in info1.reason['comm']:
-                    for ch_name2, dir2 in info2.reason['comm']:
-                        if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
-                            return ("comm", i, j, ch_name1)
+    # We keep two dictionaries: out-ready events and in-ready events
+    out_ready = dict()
+    in_ready = dict()
+    for i, info in enumerate(infos):
+        if 'comm' in info.reason:
+            for ch_name, dir in info.reason['comm']:
+                if dir == '!':
+                    out_ready[ch_name] = i
+                elif dir == '?':
+                    in_ready[ch_name] = i
+                else:
+                    raise TypeError
+    for ch_name in out_ready:
+        if ch_name in in_ready:
+            return ('comm', out_ready[ch_name], in_ready[ch_name], ch_name)
 
     # If there is no communication, find minimum delay
     min_delay, delay_pos = None, []

@@ -4,6 +4,8 @@ import lark
 import json
 import math
 import time
+from pstats import Stats
+import cProfile
 
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
@@ -71,12 +73,18 @@ def run_hcsp():
     infos = data['hcsp_info']
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
+    profile = False
 
     infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'])
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
     show_starting = data['show_starting']
+
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
+
     try:
         clock = time.perf_counter()
         res = simulator.exec_parallel(
@@ -94,6 +102,13 @@ def run_hcsp():
                 idx = math.floor(i * (l / 1000.0))
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
+
+    if profile:
+        p = Stats(pr)
+        p.strip_dirs()
+        p.sort_stats('cumtime')
+        p.print_stats()
+
 
     # When limiting to a range, update info so it does not refer to value
     # outside the range
