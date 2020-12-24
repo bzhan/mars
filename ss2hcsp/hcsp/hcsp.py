@@ -254,23 +254,35 @@ class Assign(HCSP):
 
 
 class Assert(HCSP):
-    def __init__(self, bexpr):
+    def __init__(self, bexpr, msgs):
         super(Assert, self).__init__()
         self.type = "assert"
         assert isinstance(bexpr, BExpr)
         self.bexpr = bexpr
+        msgs = tuple(msgs)
+        assert all(isinstance(msg, AExpr) for msg in msgs)
+        self.msgs = msgs
 
     def __eq__(self, other):
-        return self.type == other.type and self.bexpr == other.bexpr
+        return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
 
     def __repr__(self):
-        return "Assert(%s)" % repr(self.bexpr)
+        if self.msgs:
+            return "Assert(%s,%s)" % (repr(self.bexpr), ','.join(repr(msg) for msg in self.msgs))
+        else:
+            return "Assert(%s)" % repr(self.bexpr)
 
     def __str__(self):
-        return "assert(%s)" % self.bexpr
+        if self.msgs:
+            return "assert(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+        else:
+            return "assert(%s)" % self.bexpr
 
     def get_vars(self):
-        return self.bexpr.get_vars()
+        var_set = self.bexpr.get_vars()
+        for msg in self.msgs:
+            var_set.update(msg.get_vars())
+        return var_set
 
 
 class Log(HCSP):
@@ -292,7 +304,7 @@ class Log(HCSP):
 
     def get_vars(self):
         var_set = set()
-        for expr in self.exprs():
+        for expr in self.exprs:
             var_set.update(expr.get_vars())
         return var_set
 

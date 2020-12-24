@@ -118,6 +118,7 @@ class ExprTest(unittest.TestCase):
             ("x := -x", "Assign(x,-x)"),
             ("x := -x+y", "Assign(x,-x+y)"),
             ("assert(x == 2)", "Assert(Rel(==, AVar(x), AConst(2)))"),
+            ("assert(x == 2,\"message\")", "Assert(Rel(==, AVar(x), AConst(2)),AConst(\"message\"))"),
             ("log(\"start\")", "Log(AConst(\"start\"))"),
             ("pt.x := pt.y+1", "Assign(pt.x,pt.y+1)"),
             ("ch!pt.y", "OutputC(ch,pt.y)"),

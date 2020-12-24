@@ -68,7 +68,7 @@ grammar = r"""
         | "wait" "(" expr ")" -> wait_cmd
         | lname ":=" expr -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
-        | "assert" "(" cond ")" -> assert_cmd
+        | "assert" "(" cond ("," expr)* ")" -> assert_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
@@ -253,8 +253,10 @@ class HPTransformer(Transformer):
     def multi_assign_cmd(self, *args):
         return hcsp.Assign(args[:-1], args[-1])
 
-    def assert_cmd(self, bexpr):
-        return hcsp.Assert(bexpr)
+    def assert_cmd(self, *args):
+        # First argument is the 
+        bexpr, msgs = args[0], args[1:]
+        return hcsp.Assert(bexpr, msgs)
 
     def log_cmd(self, *args):
         return hcsp.Log(*args)

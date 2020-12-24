@@ -247,7 +247,10 @@ class SimulatorTest(unittest.TestCase):
             res = simulator.get_ode_delay(hp, state)
             self.assertAlmostEqual(res, delay, places=5)
 
-    def run_test(self, infos, num_io_events, trace, *, print_time_series=False, print_state=False):
+    def run_test(self, infos, num_io_events, trace, *,
+                 print_time_series=False,  # Show time series
+                 print_state=False,  # Show final state
+                 warning=None):
         for i in range(len(infos)):
             infos[i] = simulator.SimInfo('P' + str(i), infos[i])
 
@@ -260,6 +263,9 @@ class SimulatorTest(unittest.TestCase):
         if print_state:
             for info in infos:
                 print(info.state)
+        if warning is not None:
+            self.assertTrue('warning' in res)
+            self.assertEqual(res['warning'], warning)
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
@@ -464,8 +470,9 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel34(self):
         self.run_test([
-            'x := 2; assert(x == 3)'
-        ], 2, ['error: Assertion failed: x == 3'])
+            'x := 2; assert(x == 3, "x should equal 3")'
+        ], 3, ['warning: x should equal 3', 'deadlock'],
+        warning=(0, "x should equal 3"))
 
     def testExecParallel35(self):
         self.run_test([
@@ -513,6 +520,14 @@ class SimulatorTest(unittest.TestCase):
             'pt := {x:1, y:2}; ch!pt.x; ch!pt.y; ch?z; ch?z',
             'pt := {x:2, y:3}; ch?pt.x; ch?pt.y; ch!pt.x; ch!pt.y'
         ], 5, ['IO ch 1', 'IO ch 2', 'IO ch 1', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel43(self):
+        self.run_test([
+            "x := 0; (assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
+                "delay 2", "IO p2c 4.0", "IO c2p 3.0", "warning: x is too big", "delay 2", "IO p2c 5.0", "IO c2p 4.0"],
+        warning=(6, "x is too big"))
 
 
 if __name__ == "__main__":

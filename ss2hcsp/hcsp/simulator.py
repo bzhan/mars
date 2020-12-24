@@ -24,6 +24,11 @@ class SimulatorException(Exception):
     def __init__(self, error_msg):
         self.error_msg = error_msg
 
+class SimulatorAssertionException(Exception):
+    def __init__(self, expr, error_msg):
+        self.expr = expr
+        self.error_msg = error_msg
+
 
 def eval_expr(expr, state):
     """Evaluate the given expression on the given state."""
@@ -344,11 +349,7 @@ def get_ode_delay(hp, state):
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            try:
-                sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
-            except ValueError:
-                print('error')
-                continue
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break
@@ -676,11 +677,17 @@ class SimInfo:
 
         elif cur_hp.type == "assert":
             # Evaluate an assertion
-            if eval_expr(cur_hp.bexpr, self.state):
-                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
-                self.reason = None
-            else: 
-                raise SimulatorException("Assertion failed: %s" % cur_hp.bexpr)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.reason = None
+            if not eval_expr(cur_hp.bexpr, self.state):
+                warning_expr = ''
+                for msg in cur_hp.msgs:
+                    val = eval_expr(msg, self.state)
+                    if isinstance(val, str):
+                        warning_expr += val[1:-1]
+                    else:
+                        warning_expr += str(val)
+                raise SimulatorAssertionException(cur_hp.bexpr, warning_expr)
 
         elif cur_hp.type == "log":
             # Output a log item to the simulator
@@ -929,14 +936,15 @@ def extract_event(infos):
     value is one of:
 
     "deadlock" -> the program has deadlocked.
+    ("warning", msg) -> warning message.
     ("delay", n) -> delay for n seconds.
     ("comm", id_out, id_in, ch_name) -> communication.
 
     """
-    # If any process is in error, return error
+    # If any process has a warning, return warning
     for i, info in enumerate(infos):
-        if 'error' in info.reason:
-            return ('error', info.reason['error'])
+        if 'warning' in info.reason:
+            return ('warning', info.reason['warning'])
 
     # First, attempt to find communication
     # We keep two dictionaries: out-ready events and in-ready events
@@ -1065,23 +1073,23 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             while info.pos is not None and not num_event > num_steps:
                 try:
                     info.exec_step()
-                except SimulatorException as e:
-                    info.reason = {'error': e.error_msg}
-                    break
+                except SimulatorAssertionException as e:
+                    if 'warning' not in res:
+                        info.reason = {'warning': e.error_msg}
+                        res['warning'] = (res['time'], e.error_msg)
 
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
                     log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
                     log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
+                elif 'warning' in info.reason:
+                    log_event(ori_pos=[info.name], type="warning", str="warning: " + info.reason['warning'])
                 else:
                     break
 
             if info.pos is None:
                 info.reason = {'end': None}
-
-            if info.reason == {'error': None}:
-                break
 
         if num_event > num_steps:
             break
@@ -1089,9 +1097,6 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         event = extract_event(infos)
         if event == "deadlock":
             log_event(ori_pos=[], type="deadlock", str="deadlock")
-            break
-        elif event[0] == "error":
-            log_event(ori_pos=[info.name], type="error", str="error: " + event[1])
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
