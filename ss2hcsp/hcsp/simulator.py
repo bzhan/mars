@@ -944,10 +944,10 @@ def extract_event(infos):
     in_ready = dict()
     for i, info in enumerate(infos):
         if 'comm' in info.reason:
-            for ch_name, dir in info.reason['comm']:
-                if dir == '!':
+            for ch_name, direction in info.reason['comm']:
+                if direction == '!':
                     out_ready[ch_name] = i
-                elif dir == '?':
+                elif direction == '?':
                     in_ready[ch_name] = i
                 else:
                     raise TypeError
@@ -1185,6 +1185,8 @@ def check_comms(infos):
             continue
 
         for ch_name, direction in hcsp.get_comm_chs(info.hp):
+            if len(ch_name.args) > 0:  # do not check parameterized channels
+                continue
             if direction == '?':
                 if ch_name not in comm_in_map:
                     comm_in_map[ch_name] = []
