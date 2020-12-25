@@ -288,7 +288,7 @@ class DictExpr(AExpr):
         return set().union(*(v.get_vars() for k, v in self.dict.items()))
 
     def subst(self, inst):
-        return DictExpr((k, v.subst(inst)) for k, v in self.dict.items())
+        return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
 
 
 class ArrayIdxExpr(AExpr):
