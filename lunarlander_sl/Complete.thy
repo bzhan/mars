@@ -54,6 +54,8 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | EChoiceH4:
     "echoice_hoare P (length es) es R \<Longrightarrow>
      \<turnstile> {P} EChoice es {R}"
+| EChoiceH5:
+    "P' \<Longrightarrow>\<^sub>A P \<Longrightarrow> echoice_hoare P n es R \<Longrightarrow> echoice_hoare P' n es R"
 | ContH:
     "\<turnstile> {\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
              (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
@@ -170,6 +172,58 @@ lemma big_step_echoice_final:
   apply (auto elim!: echoiceE big_step_echoiceE)
   by (auto intro: big_step.intros big_step_echoice.intros)
 
+lemma big_step_echoice_provable:
+  assumes "\<forall>e\<in>set es. \<turnstile> {wp (snd e) Q} snd e {Q}"
+  shows "n \<le> length es \<Longrightarrow> echoice_hoare
+    (\<lambda>s tr. \<forall>i<n.
+      case es ! i of
+        (ch[!]e, p2) \<Rightarrow>
+          wp p2 Q s (tr @ [OutBlock ch (e s)]) \<and>
+          (\<forall>d>0. wp p2 Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+      | (ch[?]var, p2) \<Rightarrow>
+          (\<forall>v. wp p2 Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
+          (\<forall>d>0. \<forall>v. wp p2 Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))
+    n es Q"
+proof (induction n)
+  case 0
+  then show ?case
+    by (auto intro: EChoiceH1)
+next
+  case (Suc n)
+  have "es ! n \<in> set es"
+    using Suc(2) by auto
+  then have 1: "\<turnstile> {wp (snd (es ! n)) Q} (snd (es ! n)) {Q}"
+    using assms(1) by auto
+  show ?case
+  proof (cases "es ! n")
+    case (Pair cm p2)
+    then show ?thesis
+    proof (cases cm)
+      case (Send ch e)
+      show ?thesis
+        apply (rule EChoiceH2[of "wp p2 Q" p2 _ es n ch e])
+        subgoal using 1 Pair by auto
+        subgoal using Pair Send by auto
+        subgoal using Pair Send unfolding entails_def by auto
+        subgoal using Pair Send unfolding entails_def by auto
+        apply (rule EChoiceH5[OF _ Suc(1)])
+         apply (auto simp add: entails_def)
+        using Suc(2) by auto
+    next
+      case (Receive ch var)
+      show ?thesis
+        apply (rule EChoiceH3[of "wp p2 Q" p2 _ es n ch var])
+        subgoal using 1 Pair by auto
+        subgoal using Pair Receive by auto
+        subgoal using Pair Receive unfolding entails_def by auto
+        subgoal using Pair Receive unfolding entails_def by auto
+        apply (rule EChoiceH5[OF _ Suc(1)])
+         apply (auto simp add: entails_def)
+        using Suc(2) by auto
+    qed
+  qed
+qed
+
 
 definition echoice_Valid :: "assn \<Rightarrow> nat \<Rightarrow> (comm \<times> proc) list \<Rightarrow> assn \<Rightarrow> bool" where
   "echoice_Valid P n cs Q \<longleftrightarrow>
@@ -178,7 +232,7 @@ definition echoice_Valid :: "assn \<Rightarrow> nat \<Rightarrow> (comm \<times>
 
 theorem hoare_sound:
   "(\<turnstile> {P} c {Q} \<longrightarrow> Valid P c Q) \<and>
-   (echoice_hoare P n cs Q \<longrightarrow> echoice_Valid P n cs Q)"   
+   (echoice_hoare P n cs Q \<longrightarrow> echoice_Valid P n cs Q)"
 proof (induction rule: hoare_echoice_hoare.induct)
   case (SkipH P)
   then show ?case
@@ -276,6 +330,10 @@ next
   case (EChoiceH4 P es R)
   then show ?case
     unfolding echoice_Valid_def Valid_def big_step_echoice_final by auto
+next
+  case (EChoiceH5 P' P n es R)
+  then show ?case
+    unfolding echoice_Valid_def entails_def by blast
 next
   case (ContH b Q ode)
   then show ?case
@@ -396,6 +454,85 @@ lemma wp_ODE:
     using ContB1[of b s] by fastforce
   done
 
+lemma wp_echoice:
+  "wp (EChoice es) R =
+    (\<lambda>s tr. (\<forall>i<length es.
+      case es ! i of
+        (ch[!]e, p2) \<Rightarrow>
+          wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
+          (\<forall>d>0. wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+      | (ch[?]var, p2) \<Rightarrow>
+          (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
+          (\<forall>d>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))))"
+proof -
+  have a: "R s' (tr @ tr')" if assms_a:
+    "\<forall>i<length es.
+       case es ! i of
+       (ch[!]e, p2) \<Rightarrow>
+         wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
+         (\<forall>d>0. wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+       | (ch[?]var, p2) \<Rightarrow>
+           (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
+           (\<forall>d>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
+    "big_step (EChoice es) s tr' s'" for s s' tr tr'
+  proof -
+    have a1: "R s' (tr @ OutBlock ch (e s) # tr2)"
+      if "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 s tr2 s'" for ch tr2 i e p2
+    proof -
+      have "wp p2 R s (tr @ [OutBlock ch (e s)])"
+        using assms_a(1) that(1,2) by fastforce
+      then show ?thesis
+        unfolding wp_def using that(3) by auto
+    qed
+    have a2: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es) # OutBlock ch (e s) # tr2)"
+      if "0 < d" "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 s tr2 s'" for d ch e tr2 i p2
+    proof -
+      have "wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])"
+        using assms_a(1) that(1-3) by fastforce
+      then show ?thesis
+        unfolding wp_def using that(4) by auto
+    qed
+    have a3: "R s' (tr @ InBlock ch v # tr2)"
+      if "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (s(var := v)) tr2 s'" for ch v tr2 i var p2
+    proof -
+      have "wp p2 R (s(var := v)) (tr @ [InBlock ch v])"
+        using assms_a(1) that(1,2) by fastforce
+      then show ?thesis
+        unfolding wp_def using that(3) by auto
+    qed
+    have a4: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es) # InBlock ch v # tr2)"
+      if "0 < d" "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (s(var := v)) tr2 s'" for d ch v tr2 i var p2
+    proof -
+      have "wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])"
+        using assms_a(1) that(1-3) by fastforce
+      then show ?thesis
+        unfolding wp_def using that(4) by auto
+    qed
+    from assms_a(2) show ?thesis
+      apply (auto elim!: echoiceE)
+      using a1 a2 a3 a4 by auto
+  qed
+  show ?thesis
+    apply (rule ext) apply (rule ext)
+    subgoal for s tr
+      apply (auto simp add: wp_def)
+      subgoal for i cm p2
+        apply (cases cm)
+        subgoal for ch e
+          by (auto simp add: wp_def intro: big_step.intros)
+        subgoal for ch var
+          by (auto simp add: wp_def intro: big_step.intros)
+        done
+      subgoal for s' tr'
+        using a by auto
+      done
+    done
+qed
+
+
+definition wp_echoice :: "nat \<Rightarrow> (comm \<times> proc) list \<Rightarrow> assn \<Rightarrow> assn" where
+  "wp_echoice = undefined"
+
 lemma wp_is_pre: "\<turnstile> {wp c Q} c {Q}"
 proof (induction c arbitrary: Q)
   case (Cm cm)
@@ -446,8 +583,12 @@ next
   then show ?case
     unfolding wp_IChoice by (rule IChoiceH)
 next
-  case (EChoice x)
-  then show ?case sorry
+  case (EChoice es)
+  show ?case
+    unfolding wp_echoice
+    apply (rule EChoiceH4)
+    apply (rule big_step_echoice_provable)
+    using EChoice by auto
 next
   case (Rep c)
   show ?case
