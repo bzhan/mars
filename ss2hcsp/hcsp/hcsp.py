@@ -122,7 +122,7 @@ class HCSP:
         elif self.type == 'assign':
             return Assign(self.var_name, self.expr.subst(inst))
         elif self.type == 'assert':
-            return Assert(self.bexpr.subst(inst))
+            return Assert(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
         elif self.type == 'log':
             return Log(*[expr.subst(inst) for expr in self.exprs])
         elif self.type == 'input_channel':
