@@ -279,16 +279,16 @@ class DictExpr(AExpr):
         return "{%s}" % (','.join(k + ':' + str(v) for k, v in self.dict.items()))
 
     def __eq__(self, other):
-        return isinstance(other, DictExpr) and self.args == other.arg_strs
+        return isinstance(other, DictExpr) and self.dict == other.dict
 
     def __hash__(self):
-        return hash(("Dict", self.args))
+        return hash(("Dict", tuple((k, v) for k, v in self.dict.items())))
 
     def get_vars(self):
-        return set().union(*(v.get_vars() for k, v in self.args))
+        return set().union(*(v.get_vars() for k, v in self.dict.items()))
 
     def subst(self, inst):
-        return DictExpr((k, v.subst(inst)) for k, v in self.args)
+        return DictExpr((k, v.subst(inst)) for k, v in self.dict.items())
 
 
 class ArrayIdxExpr(AExpr):

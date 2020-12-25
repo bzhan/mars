@@ -529,6 +529,12 @@ class SimulatorTest(unittest.TestCase):
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "warning: x is too big", "delay 2", "IO p2c 5.0", "IO c2p 4.0"],
         warning=(6, "x is too big"))
 
+    def testExecParallel44(self):
+        self.run_test([
+            "status := [1]; status[0] := {x:1, y:2}; ch!status[0].x; ch!status[0].y",
+            "ch?z; ch?x"
+        ], 3, ['IO ch 1', 'IO ch 2', 'deadlock'])
+
 
 if __name__ == "__main__":
     unittest.main()
