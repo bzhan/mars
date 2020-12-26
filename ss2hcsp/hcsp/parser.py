@@ -56,10 +56,18 @@ grammar = r"""
 
     ?cond: imp
 
-    ?comm_cmd: CNAME ("[" expr "]")* "?" lname -> input_cmd
-        | CNAME ("[" expr "]")* "?" -> input_none_cmd
-        | CNAME ("[" expr "]")* "!" expr -> output_cmd
-        | CNAME ("[" expr "]")* "!" -> output_none_cmd
+    ?comm_cmd: CNAME "?" lname -> input_cmd
+        | CNAME "[" expr "]" "?" lname -> input_cmd
+        | CNAME "[" expr "]" "[" expr "]" "?" lname -> input_cmd
+        | CNAME "?" -> input_none_cmd
+        | CNAME "[" expr "]" "?" -> input_none_cmd
+        | CNAME "[" expr "]" "[" expr "]" "?" -> input_none_cmd
+        | CNAME "!" expr -> output_cmd
+        | CNAME "[" expr "]" "!" expr -> output_cmd
+        | CNAME "[" expr "]" "[" expr "]" "!" expr -> output_cmd
+        | CNAME "!" -> output_none_cmd
+        | CNAME "[" expr "]" "!" -> output_none_cmd
+        | CNAME "[" expr "]" "[" expr "]" "!" -> output_none_cmd
 
     ?ode_seq: CNAME "=" expr ("," CNAME "=" expr)*
 

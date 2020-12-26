@@ -125,6 +125,8 @@ class ExprTest(unittest.TestCase):
             ("pt := {x:1,y:2}", "Assign(pt,{x:1,y:2})"),
             ("ch!a[1][2]", "OutputC(ch,a[1][2])"),
             ("ch!pt.x[2]", "OutputC(ch,pt.x[2])"),
+            ("a[1][2]!x", "OutputC(a[1][2],x)"),
+            ("a[1][2]?pt.x[1]", "InputC(a[1][2],pt.x[1])"),
             ("@X", "Var(X)"),
         ]
 
