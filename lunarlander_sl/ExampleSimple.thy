@@ -525,7 +525,8 @@ lemma testHL4s:
     (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
     (Parallel (Single (Cm (''ch''[!](\<lambda>s. s X)))) {''ch''}
               (Single (Cm (''ch''[?]X))))
-    (left_gassn (sing_assn (\<lambda>s. s = st1)) \<and>\<^sub>g right_gassn (sing_assn (\<lambda>s. s = st2(X := st1 X))) \<and>\<^sub>g
+    (left_gassn (sing_assn (\<lambda>s. s = st1)) \<and>\<^sub>g
+     right_gassn (sing_assn (\<lambda>s. s = st2(X := st1 X))) \<and>\<^sub>g
      trace_gassn (IO\<^sub>A ''ch'' (st1 X)))"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
@@ -718,15 +719,24 @@ fun count_up_io_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
   "count_up_io_inv a 0 = emp\<^sub>A"
 | "count_up_io_inv a (Suc n) = IO\<^sub>A ''ch'' (a + 1) @\<^sub>t count_up_io_inv (a + 1) n"
 
+fun count_up_list :: "real \<Rightarrow> nat \<Rightarrow> real list" where
+  "count_up_list a 0 = []"
+| "count_up_list a (Suc n) = (a + 1) # count_up_list (a + 1) n"
+
+lemma last_val_count_up_list [simp]:
+  "last_val a (count_up_list a n) = a + n"
+  apply (induction n arbitrary: a) by auto
+
 lemma combine_count_up:
   "combine_assn {''ch''} (count_up_inv a n) (receive_inv b xs) \<Longrightarrow>\<^sub>t
-   count_up_io_inv a n"
+   \<up>(xs = count_up_list a n) \<and>\<^sub>t count_up_io_inv a n"
 proof (induction n arbitrary: a b xs)
   case 0
   show ?case
   proof (cases xs)
     case Nil
-    then show ?thesis by auto
+    then show ?thesis
+      by (auto simp add: conj_assn_def pure_assn_def)
   next
     case (Cons x xs')
     then show ?thesis
@@ -745,17 +755,21 @@ next
       apply auto
       apply (rule entails_tassn_trans)
        apply (rule combine_assn_out_in)
-       apply auto apply (rule entails_tassn_cancel_left)
-      by (rule Suc)
+       apply (auto simp add: entails_tassn_def)
+      using Suc[of "a + 1" "a + 1" xs']
+      unfolding entails_tassn_def conj_assn_def pure_assn_def join_assn_def
+      by auto
   qed
 qed
 
 lemma testLoopPar:
   "ParValid
-    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := b))))
+    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := a))))
     (Parallel (Single (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))) {''ch''}
               (Single (Rep (Cm (''ch''[?]Y)))))
-    (\<exists>\<^sub>gn. trace_gassn (count_up_io_inv a n))"
+    (\<exists>\<^sub>gn. left_gassn (sing_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a + n)))) \<and>\<^sub>g 
+          right_gassn (sing_assn (\<lambda>s. s = ((\<lambda>_. 0)(Y := a + n)))) \<and>\<^sub>g
+          trace_gassn (count_up_io_inv a n))"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testLoop1)
@@ -772,7 +786,8 @@ lemma testLoopPar:
     apply (rule entails_tassn_trans)
      prefer 2 apply (rule combine_count_up)
     apply (rule combine_assn_mono)
-    by (auto simp add: entails_tassn_def entails_gassn_def and_gassn_def)
+    by (auto simp add: entails_tassn_def entails_gassn_def and_gassn_def conj_assn_def
+                       trace_gassn_def pure_assn_def)
   done
 
 
