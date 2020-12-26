@@ -180,7 +180,7 @@ class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
         super(FunExpr, self).__init__()
         assert fun_name in [
-            "min", "max", "abs", "gcd", "delay", "sqrt",
+            "min", "max", "abs", "gcd", "delay", "sqrt", "div",
             "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
             "bernoulli", "uniform"]
         self.fun_name = fun_name
@@ -211,7 +211,7 @@ class FunExpr(AExpr):
 class ModExpr(AExpr):
     def __init__(self, expr1, expr2):
         super(ModExpr, self).__init__()
-        assert isinstance(expr1, AVar) and isinstance(expr2, AExpr)
+        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.expr1 = expr1
         self.expr2 = expr2
 

@@ -80,6 +80,9 @@ def eval_expr(expr, state):
             return abs(*args)
         elif expr.fun_name == "gcd":
             return math.gcd(*args)
+        elif expr.fun_name == "div":
+            a, b = args
+            return int(a) // int(b)
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
