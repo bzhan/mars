@@ -2,6 +2,7 @@ theory ExampleSimple
   imports BigStepParallel
 begin
 
+
 subsection \<open>Test of big-step semantics\<close>
 
 text \<open>Send 1 immediately\<close>
@@ -12,7 +13,7 @@ lemma test1a: "big_step (Cm (''ch''[!](\<lambda>_. 1)))
 text \<open>Send x + 1 immediately\<close>
 lemma test1b: "big_step (Cm (''ch''[!](\<lambda>s. s X + 1)))
   ((\<lambda>_. 0)(X := 1)) [OutBlock ''ch'' 2] ((\<lambda>_. 0)(X := 1))"
-  by (rule sendB1', auto)
+  apply (rule big_step_cong) apply (rule sendB1) by auto
 
 text \<open>Send 1 after delay 2\<close>
 lemma test1c: "big_step (Cm (''ch''[!](\<lambda>_. 1)))
@@ -51,7 +52,7 @@ lemma test4: "big_step (Wait 2)
 text \<open>Seq\<close>
 lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
   (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}), OutBlock ''ch'' 1] (\<lambda>_. 0)"
-  by (rule seqB'[OF test4 test1a], auto)
+  apply (rule big_step_cong) apply (rule seqB[OF test4 test1a]) by auto
 
 text \<open>Communication after delay 2\<close>
 lemma test6: "par_big_step (
@@ -137,7 +138,7 @@ lemma test_interrupt2:
     (\<lambda>_. 0) [OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB1)
     apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
-  apply (rule assignB') by auto
+  apply (rule big_step_cong) apply (rule assignB) by auto
 
 text \<open>Communication in the middle\<close>
 lemma test_interrupt3:
@@ -147,8 +148,8 @@ lemma test_interrupt3:
   apply (rule InterruptSendB2)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
   apply (rule has_vector_derivative_projI)
-  apply (auto intro!: derivative_intros)
-  apply (rule assignB') by auto
+   apply (auto intro!: derivative_intros)
+  apply (rule big_step_cong) apply (rule assignB) by auto
 
 text \<open>Note with current definition, communication at the end is also possible\<close>
 lemma test_interrupt4:
@@ -159,9 +160,15 @@ lemma test_interrupt4:
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
   apply (rule has_vector_derivative_projI)
   apply (auto intro!: derivative_intros)
-  apply (rule assignB') by auto
+  apply (rule big_step_cong) apply (rule assignB) by auto
 
-text \<open>Some tests with internal and external choice\<close>
+subsection \<open>Difference between internal and external choice\<close>
+
+text \<open>This example shows the difference between semantics of internal
+and external choice. We begin with the process with internal choice,
+  (ch1!1 \<squnion> ch2!2)*,
+which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
+\<close>
 lemma test_internal:
   "big_step (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))
     (\<lambda>_. 0) [WaitBlock 2 (\<lambda>\<tau>\<in>{0..2}. State (\<lambda>_. 0)) ({''ch2''}, {}),
@@ -175,6 +182,27 @@ lemma test_internal:
      apply (rule sendB1) apply (rule RepetitionB1)
   by auto
 
+text \<open>For external choice, the process
+  (ch1!1 \<rightarrow> skip $ ch2!2 \<rightarrow> skip)*
+produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
+\<close>
+lemma test_external:
+  "big_step (Rep (EChoice [(''ch1''[!](\<lambda>_. 1), Skip), (''ch2''[!](\<lambda>_. 2), Skip)]))
+    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>\<tau>\<in>{0..2}. State (\<lambda>_. 0)) ({''ch1'', ''ch2''}, {}),
+             OutBlock ''ch2'' 2,
+             OutBlock ''ch1'' 1] (\<lambda>_. 0)"
+  apply (rule RepetitionB2)
+    apply (rule EChoiceSendB2[where d=2 and i=1])
+       apply auto apply (rule skipB)
+  apply (rule RepetitionB2)
+    apply (rule EChoiceSendB1[where i=0])
+      apply auto apply (rule skipB)
+  by (rule RepetitionB1)
+
+text \<open>The other side is the process
+  (wait 1; ch1?x) || (wait 2; ch2?x),
+which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
+\<close>
 lemma test_internal_other:
   "par_big_step (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
                           (Single (Wait 2; Cm (''ch2''[?]X))))
@@ -189,13 +217,13 @@ proof -
     [WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {}),
      WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {''ch1''}),
      InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
-    apply (rule seqB') apply (rule waitB1) apply simp
-     apply (rule receiveB2'[where d=1]) by auto
+    apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
+    apply auto apply (rule receiveB2) by auto
   have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
     [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}),
      InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
-    apply (rule seqB') apply (rule waitB1) apply simp
-     apply (rule receiveB1) by auto
+    apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
+    apply auto by (rule receiveB1)
   show ?thesis
     apply (rule ParallelB)
       apply (rule SingleB[OF left])
@@ -207,6 +235,13 @@ proof -
     by (rule combine_blocks_empty)
 qed
 
+text \<open>The two sides can be synchronized, so the process
+  (ch1!1 \<squnion> ch2!2)* || ((wait 1; ch1?x) || (wait 2; ch2?x))
+can produce the trace (1,s,{ch2!})^(1,s,{ch1?,ch2!})^(ch2,2)^(ch1,1).
+
+However, for the case of external choice, the two sides cannot be
+synchronized, since the test of compat_rdy fails in the time interval (1,2).
+\<close>
 lemma test_internal_parallel:
   "par_big_step (Parallel
     (Single (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))) {''ch1'', ''ch2''}
@@ -228,7 +263,7 @@ lemma test_internal_parallel:
   apply (rule combine_blocks_pair2) apply auto
   by (rule combine_blocks_empty)
 
-subsection \<open>Simple examples\<close>
+subsection \<open>Simple examples of proofs\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1:
@@ -326,7 +361,7 @@ subsection \<open>Simple examples redone\<close>
 text \<open>Send 1\<close>
 lemma testHL1s:
   "Valid
-    (\<lambda>s. Out\<^sub>A s ''ch'' (s X) @- P s)
+    (\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- P s)
     (Cm (''ch''[!](\<lambda>s. s X)))
     P"
   by (rule Valid_send')
@@ -336,13 +371,13 @@ lemma testHL1s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[!](\<lambda>s. s X)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>A st ''ch'' (st X)) tr)"
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>t st ''ch'' (st X)) tr)"
   by (rule Valid_send_sp)
 
 text \<open>Send 1, then send 2\<close>
 lemma testHL2s:
   "Valid
-    (\<lambda>s. Out\<^sub>A s ''ch'' (s X) @- Out\<^sub>A s ''ch'' (s Y) @- P s)
+    (\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- Out\<^sub>t s ''ch'' (s Y) @- P s)
     (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
     P"
   apply (rule Valid_seq)
@@ -354,7 +389,7 @@ lemma testHL2s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>A s ''ch'' (s X)) @\<^sub>t (Out\<^sub>A s ''ch'' (s Y))) tr)"
+    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>t s ''ch'' (s X)) @\<^sub>t (Out\<^sub>t s ''ch'' (s Y))) tr)"
   apply (rule Valid_seq)
    apply (rule Valid_send_sp)
   apply (rule Valid_strengthen_post)
@@ -364,7 +399,7 @@ lemma testHL2s':
 text \<open>Receive from ch\<close>
 lemma testHL3s:
   "Valid
-    (\<lambda>s. \<forall>\<^sub>Av. In\<^sub>A s ''ch'' v @- P (s(X := v)))
+    (\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- P (s(X := v)))
     (Cm (''ch''[?]X))
     P"
   by (rule Valid_receive')
@@ -374,13 +409,13 @@ lemma testHL3s':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v) tr)"
+    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v) tr)"
   by (rule Valid_receive_sp)
 
 text \<open>Receive two values in a row\<close>
 lemma testHL3a:
   "Valid
-    ((\<lambda>s. \<forall>\<^sub>Av. In\<^sub>A s ''ch'' v @- (\<forall>\<^sub>Aw. In\<^sub>A (s(X := v)) ''ch'' w @- P (s(X := w)))))
+    ((\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- (\<forall>\<^sub>tw. In\<^sub>t (s(X := v)) ''ch'' w @- P (s(X := w)))))
     (Cm (''ch''[?]X); Cm (''ch''[?]X))
     P"
   apply (rule Valid_weaken_pre) prefer 2
@@ -394,7 +429,7 @@ lemma testHL3a':
   "Valid
     (\<lambda>s tr. s = st \<and> P tr)
     (Cm (''ch''[?]X); Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>A st ''ch'' v @\<^sub>t In\<^sub>A (st(X := v)) ''ch'' w) tr)"
+    (\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v @\<^sub>t In\<^sub>t (st(X := v)) ''ch'' w) tr)"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
   apply (rule Valid_ex_pre)
@@ -405,120 +440,6 @@ lemma testHL3a':
     by (auto simp add: entails_def join_assoc)
   done
 
-lemma ParValid_Parallel':
-  assumes "Valid (\<lambda>s tr. P1 s \<and> emp\<^sub>A tr) p1 Q1"
-    and "Valid (\<lambda>s tr. P2 s \<and> emp\<^sub>A tr) p2 Q2"
-  shows "ParValid
-    (pair_assn P1 P2)
-    (Parallel (Single p1) chs (Single p2))
-    (sync_gassn chs (sing_gassn Q1) (sing_gassn Q2))"
-  unfolding pair_assn_def
-  apply (rule ParValid_Parallel)
-  using ParValid_Single assms unfolding emp_assn_def by auto
-
-definition entails_gassn :: "gassn \<Rightarrow> gassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>g" 25) where
-  "(P \<Longrightarrow>\<^sub>g Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
-
-definition state_gassn :: "gs_assn \<Rightarrow> gassn" where
-  "state_gassn P = (\<lambda>s tr. P s)"
-
-fun left_gassn :: "gs_assn \<Rightarrow> gassn" where
-  "left_gassn P (State s) tr = False"
-| "left_gassn P (ParState s1 s2) tr = P s1"
-
-fun right_gassn :: "gs_assn \<Rightarrow> gassn" where
-  "right_gassn P (State s) tr = False"
-| "right_gassn P (ParState s1 s2) tr = P s2"
-
-definition trace_gassn :: "tassn \<Rightarrow> gassn" where
-  "trace_gassn P = (\<lambda>s tr. P tr)"
-
-definition and_gassn :: "gassn \<Rightarrow> gassn \<Rightarrow> gassn" (infixr "\<and>\<^sub>g" 35) where
-  "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
-
-definition ex_gassn :: "('a \<Rightarrow> gassn) \<Rightarrow> gassn" (binder "\<exists>\<^sub>g" 10) where
-  "(\<exists>\<^sub>g x. P x) = (\<lambda>s tr. \<exists>x. P x s tr)"
-
-lemma ParValid_conseq':
-  assumes "ParValid P c Q"
-    and "\<And>s. P' s \<Longrightarrow> P s"
-    and "Q \<Longrightarrow>\<^sub>g Q'"
-  shows "ParValid P' c Q'"
-  using assms ParValid_conseq unfolding entails_gassn_def by auto
-
-lemma sync_gassn_ex_pre_left:
-  assumes "\<And>x. sync_gassn chs (P x) Q \<Longrightarrow>\<^sub>g R"
-  shows "sync_gassn chs (\<exists>\<^sub>g x. P x) Q \<Longrightarrow>\<^sub>g R"
-  apply (auto simp add: entails_gassn_def)
-  subgoal for s tr
-    apply (cases s) apply auto
-    unfolding ex_gassn_def apply auto
-    using assms entails_gassn_def by fastforce
-  done
-
-lemma sync_gassn_ex_pre_right:
-  assumes "\<And>x. sync_gassn chs P (Q x) \<Longrightarrow>\<^sub>g R"
-  shows "sync_gassn chs P (\<exists>\<^sub>g x. Q x) \<Longrightarrow>\<^sub>g R"
-  apply (auto simp add: entails_gassn_def)
-  subgoal for s tr
-    apply (cases s) apply auto
-    unfolding ex_gassn_def apply auto
-    using assms entails_gassn_def by fastforce
-  done
-
-lemma entails_ex_gassn:
-  assumes "\<exists>x. P \<Longrightarrow>\<^sub>g Q x"
-  shows "P \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g x. Q x)"
-  using assms unfolding entails_gassn_def ex_gassn_def by auto
-
-lemma sing_gassn_split [simp]:
-  "sing_gassn (\<lambda>s tr. P s \<and> Q tr) = (state_gassn (sing_assn P) \<and>\<^sub>g trace_gassn Q)"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (cases s) by (auto simp add: state_gassn_def trace_gassn_def and_gassn_def)
-  done
-
-lemma sing_gassn_ex [simp]:
-  "sing_gassn (\<lambda>s tr. \<exists>x. P x s tr) = (\<exists>\<^sub>gx. sing_gassn (\<lambda>s tr. P x s tr))"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (cases s) by (auto simp add: ex_gassn_def)
-  done
-
-lemma sync_gassn_state_left:
-  "sync_gassn chs (state_gassn P1 \<and>\<^sub>g P2) Q = (left_gassn P1 \<and>\<^sub>g sync_gassn chs P2 Q)"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (cases s) by (auto simp add: and_gassn_def state_gassn_def)
-  done
-
-lemma sync_gassn_state_right:
-  "sync_gassn chs P (state_gassn Q1 \<and>\<^sub>g Q2) = (right_gassn Q1 \<and>\<^sub>g sync_gassn chs P Q2)"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (cases s) by (auto simp add: and_gassn_def state_gassn_def)
-  done
-
-lemma sync_gassn_traces:
-  "sync_gassn chs (trace_gassn P) (trace_gassn Q) \<Longrightarrow>\<^sub>g trace_gassn (combine_assn chs P Q)"
-  unfolding entails_gassn_def apply auto
-  subgoal for s tr
-    apply (cases s) by (auto simp add: trace_gassn_def combine_assn_def)
-  done
-
-lemma entails_trace_gassn:
-  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> trace_gassn P \<Longrightarrow>\<^sub>g trace_gassn Q"
-  unfolding entails_tassn_def entails_gassn_def trace_gassn_def by auto 
-
-lemma and_entails_gassn:
-  "P2 \<Longrightarrow>\<^sub>g P2' \<Longrightarrow> P1 \<and>\<^sub>g P2' \<Longrightarrow>\<^sub>g Q \<Longrightarrow> P1 \<and>\<^sub>g P2 \<Longrightarrow>\<^sub>g Q"
-  unfolding entails_gassn_def and_gassn_def by auto
-
-lemma and_entails_gassn2:
-  "P3 \<Longrightarrow>\<^sub>g P3' \<Longrightarrow> P1 \<and>\<^sub>g P2 \<and>\<^sub>g P3' \<Longrightarrow>\<^sub>g Q \<Longrightarrow> P1 \<and>\<^sub>g P2 \<and>\<^sub>g P3 \<Longrightarrow>\<^sub>g Q"
-  unfolding entails_gassn_def and_gassn_def by auto
-
-
 text \<open>Communication\<close>
 lemma testHL4s:
   "ParValid
@@ -527,13 +448,14 @@ lemma testHL4s:
               (Single (Cm (''ch''[?]X))))
     (left_gassn (sing_assn (\<lambda>s. s = st1)) \<and>\<^sub>g
      right_gassn (sing_assn (\<lambda>s. s = st2(X := st1 X))) \<and>\<^sub>g
-     trace_gassn (IO\<^sub>A ''ch'' (st1 X)))"
+     trace_gassn (IO\<^sub>t ''ch'' (st1 X)))"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testHL1s')
     apply (rule testHL3s')
    apply auto[1]
-  apply auto apply (rule sync_gassn_ex_pre_right)
+  apply (auto simp add: sing_gassn_ex sing_gassn_split)
+  apply (rule sync_gassn_ex_pre_right)
   subgoal for v
     unfolding sync_gassn_state_left sync_gassn_state_right
     apply (rule and_entails_gassn2[OF sync_gassn_traces])
@@ -545,7 +467,7 @@ lemma testHL4s:
 text \<open>Receive then send\<close>
 lemma testHL5:
   "Valid
-    (\<lambda>s. \<forall>\<^sub>Av. In\<^sub>A s ''ch1'' v @- Out\<^sub>A (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v)))
+    (\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Out\<^sub>t (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v)))
     (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
     Q"
   apply (rule Valid_weaken_pre)
@@ -559,7 +481,7 @@ lemma testHL5sp:
   "Valid
     (\<lambda>s tr. s = st \<and> P s tr)
     (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
-    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>A st ''ch1'' v) @\<^sub>t Out\<^sub>A (st(X := v)) ''ch2'' (v + 1)) tr)"
+    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>t st ''ch1'' v) @\<^sub>t Out\<^sub>t (st(X := v)) ''ch2'' (v + 1)) tr)"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
   apply (rule Valid_ex_pre)
@@ -569,24 +491,210 @@ lemma testHL5sp:
     by (auto simp add: entails_def)
   done
 
+subsection \<open>Test for internal choice\<close>
+
+text \<open>Contrast this with the case of internal choice\<close>
+lemma ichoice_test1:
+  "Valid
+    (\<lambda>s. (\<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Q (s(X := v))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. In\<^sub>t s ''ch2'' v @- Q (s(X := v))))
+    (IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X)))
+    Q"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_ichoice)
+    apply (rule Valid_receive') apply (rule Valid_receive')
+  unfolding entails_def conj_assn_def by auto
+
+text \<open>Strongest postcondition form\<close>
+
+lemma ichoice_test1':
+  "Valid
+    (\<lambda>s tr. s = st \<and> P tr)
+    (IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X)))
+    (\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch1'' v) tr) \<or>
+            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch2'' v) tr))"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule ichoice_test1)
+  apply (auto simp add: entails_def conj_assn_def magic_wand_assn_def join_assn_def all_assn_def)
+  subgoal for tr v tr'
+    apply (rule exI[where x=v])
+    apply auto
+    apply (rule exI[where x=tr])
+    by auto
+  done
+
+subsection \<open>Test for external choice\<close>
+
+text \<open>Some special cases of EChoice\<close>
+
+lemma InIn_lemma:
+  assumes "Q ch1 var1 p1"
+    and "Q ch2 var2 p2"
+    and "i < length [(ch1[?]var1, p1), (ch2[?]var2, p2)]"
+  shows "case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
+            (ch[!]e, p1) \<Rightarrow> P ch e p1
+          | (ch[?]var, p1) \<Rightarrow> Q ch var p1"
+proof -
+  have "case comm of ch[!]e \<Rightarrow> P ch e p | ch[?]var \<Rightarrow> Q ch var p"
+    if "i < Suc (Suc 0)"
+       "[(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i = (comm, p)" for comm p i
+  proof -
+    have "i = 0 \<or> i = 1"
+      using that(1) by auto
+    then show ?thesis
+      apply (rule disjE)
+      using that(2) assms by auto
+  qed
+  then show ?thesis
+    using assms(3) by auto
+qed
+
+theorem Valid_echoice_InIn:
+  assumes "Valid Q1 p1 R"
+    and "Valid Q2 p2 R"
+  shows "Valid
+    (\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
+            (\<forall>d>0. \<forall>v. Q1 (s(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch1 v])) \<and>
+            (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
+            (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch2 v])))
+      (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+    R"
+  apply (rule Valid_echoice)
+  apply (rule InIn_lemma)
+  subgoal apply (rule exI[where x=Q1])
+    by (auto simp add: assms entails_def)
+  apply (rule exI[where x=Q2])
+  by (auto simp add: assms entails_def)
+
+theorem Valid_echoice_InIn':
+  assumes "Valid Q1 p1 R"
+    and "Valid Q2 p2 R"
+  shows "Valid
+    (\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch1 v ({}, {ch1, ch2})) @- Q1 (s(var1 := v)))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch2 v ({}, {ch1, ch2})) @- Q2 (s(var2 := v)))))
+      (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+    R"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_echoice_InIn[OF assms(1-2)])
+  apply (auto simp add: entails_def magic_wand_assn_def conj_assn_def all_assn_def)
+  by (auto simp add: inrdy_assn.intros)
+
+theorem Valid_echoice_InIn_sp:
+  assumes "\<And>v. Valid (\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr) p1 (Q1 v)"
+    and "\<And>v. Valid (\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr) p2 (Q2 v)"
+  shows
+   "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+    (\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr))"
+  apply (rule Valid_echoice_sp)
+  apply (rule InIn_lemma)
+  using assms apply (auto simp add: Valid_def) by blast+
+
+lemma echoice_test1:
+  "Valid
+    (\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch1'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch2'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))))
+    (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
+    Q"
+  apply (rule Valid_echoice_InIn')
+   apply (rule Valid_skip)
+  by (rule Valid_skip)
+
+text \<open>Strongest postcondition form\<close>
+lemma testEChoice1:
+  "Valid
+    (\<lambda>s tr. s = st \<and> P s tr)
+    (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))])
+    (\<lambda>s tr. (\<exists>v. s = st(X := v, Y := st Y + v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
+            (\<exists>v. s = st(X := v, Y := st Y - v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
+  apply (rule Valid_strengthen_post)
+  prefer 2
+   apply (rule Valid_echoice_InIn_sp)
+    apply (rule Valid_assign_sp)
+   apply (rule Valid_assign_sp)
+  by auto
+
+datatype dir = CH1 | CH2
+
+fun echoice_ex_inv :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> tassn" where
+  "echoice_ex_inv st [] = emp\<^sub>t"
+| "echoice_ex_inv st ((CH1, v) # rest) =
+    Inrdy\<^sub>t st ''ch1'' v ({}, {''ch1'', ''ch2''}) @\<^sub>t echoice_ex_inv (st(X := v, Y := st Y + v)) rest"
+| "echoice_ex_inv st ((CH2, v) # rest) =
+    Inrdy\<^sub>t st ''ch2'' v ({}, {''ch1'', ''ch2''}) @\<^sub>t echoice_ex_inv (st(X := v, Y := st Y - v)) rest"
+
+fun last_echoice_ex :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> state" where
+  "last_echoice_ex st [] = st"
+| "last_echoice_ex st ((CH1, v) # rest) = last_echoice_ex (st(X := v, Y := st Y + v)) rest"
+| "last_echoice_ex st ((CH2, v) # rest) = last_echoice_ex (st(X := v, Y := st Y - v)) rest"
+
+lemma echoice_ex_inv_snoc [simp]:
+  "echoice_ex_inv st (ins @ [(CH1, v)]) =
+    echoice_ex_inv st ins @\<^sub>t Inrdy\<^sub>t (last_echoice_ex st ins) ''ch1'' v ({}, {''ch1'', ''ch2''}) \<and>
+   echoice_ex_inv st (ins @ [(CH2, v)]) =
+    echoice_ex_inv st ins @\<^sub>t Inrdy\<^sub>t (last_echoice_ex st ins) ''ch2'' v ({}, {''ch1'', ''ch2''})"
+  apply (induct ins arbitrary: st)
+  subgoal by auto
+  apply auto subgoal for dir v ins st
+    apply (cases dir)
+    by (auto simp add: join_assoc)
+  subgoal for dir v ins st
+    apply (cases dir)
+    by (auto simp add: join_assoc)
+  done
+
+lemma last_echoice_ex_snoc [simp]:
+  "last_echoice_ex st (ins @ [(CH1, v)]) = (last_echoice_ex st ins)(X := v, Y := last_echoice_ex st ins Y + v) \<and>
+   last_echoice_ex st (ins @ [(CH2, v)]) = (last_echoice_ex st ins)(X := v, Y := last_echoice_ex st ins Y - v)"
+  apply (induct ins arbitrary: st)
+  apply auto
+  by (metis (full_types) dir.exhaust last_echoice_ex.simps(2) last_echoice_ex.simps(3))+
+
+lemma testEChoice:
+  "Valid
+    (\<lambda>s tr. s = st \<and> tr = [])
+    (Rep (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]))
+    (\<lambda>s tr. \<exists>ins. s = last_echoice_ex st ins \<and> echoice_ex_inv st ins tr)"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_rep)
+   apply (rule Valid_ex_pre)
+  subgoal for ins
+    apply (rule Valid_strengthen_post)
+    prefer 2
+     apply (rule Valid_echoice_InIn_sp)
+    apply (rule Valid_assign_sp)
+     apply (rule Valid_assign_sp)
+    apply (auto simp add: entails_def)
+    subgoal for tr v
+      apply (rule exI[where x="ins@[(CH1,v)]"])
+      by auto
+    subgoal for tr v
+      apply (rule exI[where x="ins@[(CH2,v)]"])
+      by auto
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x="[]"])
+  by (auto simp add: emp_assn_def)
+
 
 subsection \<open>Examples for loops\<close>
 
 text \<open>First example simply counts up variable X.\<close>
 
 fun count_up_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
-  "count_up_inv a 0 = emp\<^sub>A"
-| "count_up_inv a (Suc n) = Out\<^sub>A ((\<lambda>_. 0)(X := a + 1)) ''ch'' (a + 1) @\<^sub>t count_up_inv (a + 1) n"
+  "count_up_inv a 0 = emp\<^sub>t"
+| "count_up_inv a (Suc n) = Out\<^sub>t ((\<lambda>_. 0)(X := a + 1)) ''ch'' (a + 1) @\<^sub>t count_up_inv (a + 1) n"
 
 lemma count_up_inv_Suc:
-  "count_up_inv a (Suc n) = count_up_inv a n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := a + real n + 1)) ''ch'' (a + real n + 1)"
+  "count_up_inv a (Suc n) = count_up_inv a n @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := a + real n + 1)) ''ch'' (a + real n + 1)"
   apply (induct n arbitrary: a)
    apply (auto simp add: join_assoc)
   by (smt join_assoc)
 
 lemma testLoop1:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr)
     (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))
     (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := a + n)) \<and> count_up_inv a n tr)"
   apply (rule Valid_weaken_pre)
@@ -606,12 +714,12 @@ lemma testLoop1:
 
 text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
 fun count_up3_inv :: "nat \<Rightarrow> tassn" where
-  "count_up3_inv 0 = emp\<^sub>A"
-| "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := 3 * real n + 1)) ''ch'' (3 * real n + 1)"
+  "count_up3_inv 0 = emp\<^sub>t"
+| "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 3 * real n + 1)) ''ch'' (3 * real n + 1)"
 
 lemma testLoop2:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 0)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 0)) \<and> emp\<^sub>t tr)
     (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 2)))
     (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := 3 * real n)) \<and> count_up3_inv n tr)"
   apply (rule Valid_weaken_pre)
@@ -635,15 +743,15 @@ text \<open>Example that repeatedly receives on X\<close>
 
 text \<open>Here a is the starting value of X\<close>
 fun receive_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
-  "receive_inv a [] = emp\<^sub>A"
-| "receive_inv a (x # xs) = In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch'' x @\<^sub>t receive_inv x xs"
+  "receive_inv a [] = emp\<^sub>t"
+| "receive_inv a (x # xs) = In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch'' x @\<^sub>t receive_inv x xs"
 
 fun last_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_val a [] = a"
 | "last_val a (x # xs) = last_val x xs"
 
 lemma receive_inv_snoc:
-  "receive_inv a (xs @ [v]) = receive_inv a xs @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(Y := last_val a xs)) ''ch'' v"
+  "receive_inv a (xs @ [v]) = receive_inv a xs @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(Y := last_val a xs)) ''ch'' v"
   apply (induct xs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -653,7 +761,7 @@ lemma last_val_snoc [simp]:
 
 lemma testLoop3:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr)
     (Rep (Cm (''ch''[?]Y)))
     (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(Y := last_val a xs)) \<and> receive_inv a xs tr)"
   apply (rule Valid_weaken_pre)
@@ -675,15 +783,15 @@ text \<open>Example that repeated receives, and add the input values\<close>
 
 text \<open>Here a is the starting value of X, b is the starting value of Y\<close>
 fun receive_add_inv :: "real \<Rightarrow> real \<Rightarrow> real list \<Rightarrow> tassn" where
-  "receive_add_inv a b [] = emp\<^sub>A"
-| "receive_add_inv a b (x # xs) = In\<^sub>A ((\<lambda>_. 0)(X := a, Y := b)) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
+  "receive_add_inv a b [] = emp\<^sub>t"
+| "receive_add_inv a b (x # xs) = In\<^sub>t ((\<lambda>_. 0)(X := a, Y := b)) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
 
 fun last_add_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_add_val a [] = a"
 | "last_add_val a (x # xs) = last_add_val (a + x) xs"
 
 lemma receive_add_inv_snoc:
-  "receive_add_inv a b (xs @ [v]) = receive_add_inv a b xs @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) ''ch'' v"
+  "receive_add_inv a b (xs @ [v]) = receive_add_inv a b xs @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) ''ch'' v"
   apply (induct xs arbitrary: a b)
   by (auto simp add: join_assoc)
 
@@ -693,22 +801,26 @@ lemma last_add_val_snoc [simp]:
 
 lemma testLoop4:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a, Y := b)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a, Y := b)) \<and> emp\<^sub>t tr)
     (Rep (Cm (''ch''[?]Y); X ::= (\<lambda>s. s X + s Y)))
     (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) \<and> receive_add_inv a b xs tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
   subgoal for xs
-    apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_seq)
-      apply (rule Valid_receive_sp)
-    apply (rule Valid_assign_sp')
+    apply (rule Valid_seq)
+     apply (rule Valid_receive_sp)
+    apply (rule Valid_ex_pre)
+    subgoal for v
+      apply (rule Valid_strengthen_post)
+       prefer 2
+       apply (rule Valid_assign_sp)
     apply (auto simp add: entails_def)
-    subgoal for tr v
+    subgoal for tr
       apply (rule exI[where x="xs@[v]"])
       by (auto simp add: receive_add_inv_snoc)
     done
+  done
   apply (auto simp add: entails_def)
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
@@ -716,8 +828,8 @@ lemma testLoop4:
 subsection \<open>Example of parallel\<close>
 
 fun count_up_io_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
-  "count_up_io_inv a 0 = emp\<^sub>A"
-| "count_up_io_inv a (Suc n) = IO\<^sub>A ''ch'' (a + 1) @\<^sub>t count_up_io_inv (a + 1) n"
+  "count_up_io_inv a 0 = emp\<^sub>t"
+| "count_up_io_inv a (Suc n) = IO\<^sub>t ''ch'' (a + 1) @\<^sub>t count_up_io_inv (a + 1) n"
 
 fun count_up_list :: "real \<Rightarrow> nat \<Rightarrow> real list" where
   "count_up_list a 0 = []"
@@ -774,7 +886,7 @@ lemma testLoopPar:
     apply (rule ParValid_Parallel')
      apply (rule testLoop1)
     apply (rule testLoop3)
-   apply auto
+   apply (auto simp add: sing_gassn_ex sing_gassn_split)
   apply (rule sync_gassn_ex_pre_left)
   apply (rule sync_gassn_ex_pre_right)
   subgoal for n xs

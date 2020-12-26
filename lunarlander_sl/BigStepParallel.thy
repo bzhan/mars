@@ -291,13 +291,26 @@ lemma ParValid_conseq:
   shows "ParValid P' c Q'"
   using assms unfolding ParValid_def by blast
 
+text \<open>Version for two processes\<close>
+
+lemma ParValid_Parallel':
+  assumes "Valid (\<lambda>s tr. P1 s \<and> emp\<^sub>t tr) p1 Q1"
+    and "Valid (\<lambda>s tr. P2 s \<and> emp\<^sub>t tr) p2 Q2"
+  shows "ParValid
+    (pair_assn P1 P2)
+    (Parallel (Single p1) chs (Single p2))
+    (sync_gassn chs (sing_gassn Q1) (sing_gassn Q2))"
+  unfolding pair_assn_def
+  apply (rule ParValid_Parallel)
+  using ParValid_Single assms unfolding emp_assn_def by auto
+
 
 subsection \<open>Combining standard assertions\<close>
 
 lemma combine_assn_elim2:
   "combine_blocks comms tr1 tr2 tr \<Longrightarrow>
-   Out\<^sub>A s1 ch v tr1 \<Longrightarrow>
-   In\<^sub>A s2 ch w tr2 \<Longrightarrow>
+   Out\<^sub>t s1 ch v tr1 \<Longrightarrow>
+   In\<^sub>t s2 ch w tr2 \<Longrightarrow>
    ch \<in> comms \<Longrightarrow>
    (w = v \<Longrightarrow> tr = [IOBlock ch v] \<Longrightarrow> P) \<Longrightarrow> P"
   apply (simp only: out_assn.simps in_assn.simps)
@@ -307,8 +320,8 @@ lemma combine_assn_elim2:
 
 lemma combine_assn_elim2a:
   "combine_blocks comms (tr1 @ tr1') (tr2 @ tr2') tr \<Longrightarrow>
-   Out\<^sub>A s1 ch v tr1 \<Longrightarrow>
-   In\<^sub>A s2 ch w tr2 \<Longrightarrow>
+   Out\<^sub>t s1 ch v tr1 \<Longrightarrow>
+   In\<^sub>t s2 ch w tr2 \<Longrightarrow>
    ch \<in> comms \<Longrightarrow>
    (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch w] @ blks' \<Longrightarrow> combine_blocks comms tr1' tr2' blks' \<Longrightarrow> P) \<Longrightarrow> P"
   apply (simp only: out_assn.simps in_assn.simps)
@@ -317,8 +330,8 @@ lemma combine_assn_elim2a:
 
 lemma combine_assn_elim2a':
   "combine_blocks comms (tr1 @ tr1') (tr2 @ tr2') tr \<Longrightarrow>
-   In\<^sub>A s1 ch v tr1 \<Longrightarrow>
-   Out\<^sub>A s2 ch w tr2 \<Longrightarrow>
+   In\<^sub>t s1 ch v tr1 \<Longrightarrow>
+   Out\<^sub>t s2 ch w tr2 \<Longrightarrow>
    ch \<in> comms \<Longrightarrow>
    (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch w] @ blks' \<Longrightarrow> combine_blocks comms tr1' tr2' blks' \<Longrightarrow> P) \<Longrightarrow> P"
   apply (simp only: out_assn.simps in_assn.simps)
@@ -326,12 +339,12 @@ lemma combine_assn_elim2a':
                   combine_blocks_elim2d combine_blocks_elim4a)
 
 lemma combine_assn_elim2b:
-  "combine_blocks comms [] tr2 tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (In\<^sub>A s ch a @\<^sub>t Q) tr2 \<Longrightarrow> P"
+  "combine_blocks comms [] tr2 tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (In\<^sub>t s ch a @\<^sub>t Q) tr2 \<Longrightarrow> P"
   apply (simp only: in_assn.simps join_assn_def)
   by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
 
 lemma combine_assn_elim2c:
-  "combine_blocks comms tr1 [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (Out\<^sub>A s ch a @\<^sub>t Q) tr1 \<Longrightarrow> P"
+  "combine_blocks comms tr1 [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (Out\<^sub>t s ch a @\<^sub>t Q) tr1 \<Longrightarrow> P"
   apply (simp only: out_assn.simps join_assn_def)
   by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
 
@@ -358,7 +371,7 @@ lemma combine_assn_mono:
   using assms by (auto simp add: combine_assn_def entails_tassn_def)
 
 lemma combine_assn_emp [simp]:
-  "combine_assn chs emp\<^sub>A emp\<^sub>A = emp\<^sub>A"
+  "combine_assn chs emp\<^sub>t emp\<^sub>t = emp\<^sub>t"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: emp_assn_def)
@@ -366,28 +379,28 @@ lemma combine_assn_emp [simp]:
   by (rule combine_blocks_empty)
 
 lemma combine_assn_emp_in:
-  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>A (In\<^sub>A s ch v @\<^sub>t P) = false\<^sub>A"
+  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>t (In\<^sub>t s ch v @\<^sub>t P) = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_assn.cases)
   by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
 
 lemma combine_assn_in_emp:
-  "ch \<in> chs \<Longrightarrow> combine_assn chs (In\<^sub>A s ch v @\<^sub>t P) emp\<^sub>A = false\<^sub>A"
+  "ch \<in> chs \<Longrightarrow> combine_assn chs (In\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_assn.cases)
   by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
 
 lemma combine_assn_emp_out:
-  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>A (Out\<^sub>A s ch v @\<^sub>t P) = false\<^sub>A"
+  "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>t (Out\<^sub>t s ch v @\<^sub>t P) = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
   by (auto elim!: combine_blocks_elim2g combine_blocks_elim4c)
 
 lemma combine_assn_out_emp:
-  "ch \<in> chs \<Longrightarrow> combine_assn chs (Out\<^sub>A s ch v @\<^sub>t P) emp\<^sub>A = false\<^sub>A"
+  "ch \<in> chs \<Longrightarrow> combine_assn chs (Out\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
@@ -395,44 +408,44 @@ lemma combine_assn_out_emp:
 
 lemma combine_assn_out_in:
   "ch \<in> chs \<Longrightarrow>
-   combine_assn chs (Out\<^sub>A s1 ch v @\<^sub>t P) (In\<^sub>A s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
+   combine_assn chs (Out\<^sub>t s1 ch v @\<^sub>t P) (In\<^sub>t s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
    apply (auto elim!: combine_assn_elim2a) by auto
 
 lemma combine_assn_out_in':
   "ch \<in> chs \<Longrightarrow>
-   combine_assn chs (Out\<^sub>A s1 ch v) (In\<^sub>A s2 ch w) \<Longrightarrow>\<^sub>t
-   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>A ch v))"
+   combine_assn chs (Out\<^sub>t s1 ch v) (In\<^sub>t s2 ch w) \<Longrightarrow>\<^sub>t
+   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v))"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
   by (auto elim!: combine_assn_elim2)
 
 lemma combine_assn_in_out:
   "ch \<in> chs \<Longrightarrow>
-   combine_assn chs (In\<^sub>A s1 ch v @\<^sub>t P) (Out\<^sub>A s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
+   combine_assn chs (In\<^sub>t s1 ch v @\<^sub>t P) (Out\<^sub>t s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
    apply (auto elim!: combine_assn_elim2a') by auto
 
 lemma combine_assn_wait_emp:
-  "combine_assn chs (Wait\<^sub>A d p rdy @\<^sub>t P) emp\<^sub>A \<Longrightarrow>\<^sub>t false\<^sub>A"
+  "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
   by (auto elim!: combine_blocks_elim4b)
 
 lemma combine_assn_emp_wait:
-  "combine_assn chs emp\<^sub>A (Wait\<^sub>A d p rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
+  "combine_assn chs emp\<^sub>t (Wait\<^sub>t d p rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
   by (auto elim!: combine_blocks_elim4c)
 
 lemma combine_assn_wait:
   "compat_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_assn chs (Wait\<^sub>A d p rdy1 @\<^sub>t P) (Wait\<^sub>A d q rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (q t)) (merge_rdy rdy1 rdy2) @\<^sub>t combine_assn chs P Q)"
+   combine_assn chs (Wait\<^sub>t d p rdy1 @\<^sub>t P) (Wait\<^sub>t d q rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (Wait\<^sub>t d (\<lambda>t. ParState (p t) (q t)) (merge_rdy rdy1 rdy2) @\<^sub>t combine_assn chs P Q)"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def wait_assn.simps)
   apply (auto elim!: combine_blocks_elim4) by auto
@@ -442,21 +455,21 @@ lemma combine_assn_wait_in:
   assumes "ch \<in> chs"
     and "compat_rdy rdy1 ({}, {ch})"
     and "d > 0"
-  shows "combine_assn chs (Wait\<^sub>A d p rdy1 @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
+  shows "combine_assn chs (Wait\<^sub>t d p rdy1 @\<^sub>t P) (In\<^sub>t s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t
+   (Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q))"
 proof -
-  have *: "(Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
-    if "(Wait\<^sub>A d p rdy1 @\<^sub>t P) tr1" "(In\<^sub>A s ch v @\<^sub>t Q) tr2" "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+  have *: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
+    if "(Wait\<^sub>t d p rdy1 @\<^sub>t P) tr1" "(In\<^sub>t s ch v @\<^sub>t Q) tr2" "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
   proof -
     from that(1)[unfolded join_assn_def]
-    obtain tr11 tr12 where a: "Wait\<^sub>A d p rdy1 tr11" "P tr12" "tr1 = tr11 @ tr12"
+    obtain tr11 tr12 where a: "Wait\<^sub>t d p rdy1 tr11" "P tr12" "tr1 = tr11 @ tr12"
       by auto
     from that(2)[unfolded join_assn_def]
-    obtain tr21 tr22 where b: "In\<^sub>A s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
+    obtain tr21 tr22 where b: "In\<^sub>t s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
       by auto
     have c: "tr11 = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy1]"
       using a(1) wait_assn.cases by blast
-    have d: "(Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
+    have d: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
       if "compat_rdy rdy1 ({}, {ch})" "0 < d2"
          "combine_blocks chs (WaitBlock d (restrict p {0..d}) rdy1 # tr12)
           (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}) # InBlock ch v # tr22) tr" for d2
@@ -543,5 +556,110 @@ proof -
     apply (auto simp add: entails_tassn_def)
     using * by auto
 qed
+
+
+subsection \<open>Assertions for global states\<close>
+
+definition entails_gassn :: "gassn \<Rightarrow> gassn \<Rightarrow> bool" (infixr "\<Longrightarrow>\<^sub>g" 25) where
+  "(P \<Longrightarrow>\<^sub>g Q) \<longleftrightarrow> (\<forall>s tr. P s tr \<longrightarrow> Q s tr)"
+
+definition state_gassn :: "gs_assn \<Rightarrow> gassn" where
+  "state_gassn P = (\<lambda>s tr. P s)"
+
+fun left_gassn :: "gs_assn \<Rightarrow> gassn" where
+  "left_gassn P (State s) tr = False"
+| "left_gassn P (ParState s1 s2) tr = P s1"
+
+fun right_gassn :: "gs_assn \<Rightarrow> gassn" where
+  "right_gassn P (State s) tr = False"
+| "right_gassn P (ParState s1 s2) tr = P s2"
+
+definition trace_gassn :: "tassn \<Rightarrow> gassn" where
+  "trace_gassn P = (\<lambda>s tr. P tr)"
+
+definition and_gassn :: "gassn \<Rightarrow> gassn \<Rightarrow> gassn" (infixr "\<and>\<^sub>g" 35) where
+  "(P \<and>\<^sub>g Q) = (\<lambda>s tr. P s tr \<and> Q s tr)"
+
+definition ex_gassn :: "('a \<Rightarrow> gassn) \<Rightarrow> gassn" (binder "\<exists>\<^sub>g" 10) where
+  "(\<exists>\<^sub>g x. P x) = (\<lambda>s tr. \<exists>x. P x s tr)"
+
+lemma ParValid_conseq':
+  assumes "ParValid P c Q"
+    and "\<And>s. P' s \<Longrightarrow> P s"
+    and "Q \<Longrightarrow>\<^sub>g Q'"
+  shows "ParValid P' c Q'"
+  using assms ParValid_conseq unfolding entails_gassn_def by auto
+
+lemma sync_gassn_ex_pre_left:
+  assumes "\<And>x. sync_gassn chs (P x) Q \<Longrightarrow>\<^sub>g R"
+  shows "sync_gassn chs (\<exists>\<^sub>g x. P x) Q \<Longrightarrow>\<^sub>g R"
+  apply (auto simp add: entails_gassn_def)
+  subgoal for s tr
+    apply (cases s) apply auto
+    unfolding ex_gassn_def apply auto
+    using assms entails_gassn_def by fastforce
+  done
+
+lemma sync_gassn_ex_pre_right:
+  assumes "\<And>x. sync_gassn chs P (Q x) \<Longrightarrow>\<^sub>g R"
+  shows "sync_gassn chs P (\<exists>\<^sub>g x. Q x) \<Longrightarrow>\<^sub>g R"
+  apply (auto simp add: entails_gassn_def)
+  subgoal for s tr
+    apply (cases s) apply auto
+    unfolding ex_gassn_def apply auto
+    using assms entails_gassn_def by fastforce
+  done
+
+lemma entails_ex_gassn:
+  assumes "\<exists>x. P \<Longrightarrow>\<^sub>g Q x"
+  shows "P \<Longrightarrow>\<^sub>g (\<exists>\<^sub>g x. Q x)"
+  using assms unfolding entails_gassn_def ex_gassn_def by auto
+
+lemma sing_gassn_split:
+  "sing_gassn (\<lambda>s tr. P s \<and> Q tr) = (state_gassn (sing_assn P) \<and>\<^sub>g trace_gassn Q)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (cases s) by (auto simp add: state_gassn_def trace_gassn_def and_gassn_def)
+  done
+
+lemma sing_gassn_ex:
+  "sing_gassn (\<lambda>s tr. \<exists>x. P x s tr) = (\<exists>\<^sub>gx. sing_gassn (\<lambda>s tr. P x s tr))"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (cases s) by (auto simp add: ex_gassn_def)
+  done
+
+lemma sync_gassn_state_left:
+  "sync_gassn chs (state_gassn P1 \<and>\<^sub>g P2) Q = (left_gassn P1 \<and>\<^sub>g sync_gassn chs P2 Q)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (cases s) by (auto simp add: and_gassn_def state_gassn_def)
+  done
+
+lemma sync_gassn_state_right:
+  "sync_gassn chs P (state_gassn Q1 \<and>\<^sub>g Q2) = (right_gassn Q1 \<and>\<^sub>g sync_gassn chs P Q2)"
+  apply (rule ext) apply (rule ext)
+  subgoal for s tr
+    apply (cases s) by (auto simp add: and_gassn_def state_gassn_def)
+  done
+
+lemma sync_gassn_traces:
+  "sync_gassn chs (trace_gassn P) (trace_gassn Q) \<Longrightarrow>\<^sub>g trace_gassn (combine_assn chs P Q)"
+  unfolding entails_gassn_def apply auto
+  subgoal for s tr
+    apply (cases s) by (auto simp add: trace_gassn_def combine_assn_def)
+  done
+
+lemma entails_trace_gassn:
+  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> trace_gassn P \<Longrightarrow>\<^sub>g trace_gassn Q"
+  unfolding entails_tassn_def entails_gassn_def trace_gassn_def by auto 
+
+lemma and_entails_gassn:
+  "P2 \<Longrightarrow>\<^sub>g P2' \<Longrightarrow> P1 \<and>\<^sub>g P2' \<Longrightarrow>\<^sub>g Q \<Longrightarrow> P1 \<and>\<^sub>g P2 \<Longrightarrow>\<^sub>g Q"
+  unfolding entails_gassn_def and_gassn_def by auto
+
+lemma and_entails_gassn2:
+  "P3 \<Longrightarrow>\<^sub>g P3' \<Longrightarrow> P1 \<and>\<^sub>g P2 \<and>\<^sub>g P3' \<Longrightarrow>\<^sub>g Q \<Longrightarrow> P1 \<and>\<^sub>g P2 \<and>\<^sub>g P3 \<Longrightarrow>\<^sub>g Q"
+  unfolding entails_gassn_def and_gassn_def by auto
 
 end

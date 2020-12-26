@@ -2,6 +2,35 @@ theory ExampleContinuous
   imports BigStepContinuous ExampleSimple
 begin
 
+subsection \<open>Version of interrupt with two communications\<close>
+
+theorem Valid_interrupt_InIn:
+  assumes "Valid Q1 p1 R"
+    and "Valid Q2 p2 R"
+  shows "Valid
+    (\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
+            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                Q1 ((p d)(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
+                                             InBlock ch1 v])) \<and>
+            (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
+            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
+                Q2 ((p d)(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
+                                             InBlock ch2 v])) \<and>
+            (\<not>b s \<longrightarrow> R s tr) \<and>
+            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
+                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2})])))
+      (Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)])
+    R"
+  apply (rule Valid_interrupt)
+  apply (rule InIn_lemma)
+  subgoal apply (rule exI[where x=Q1])
+    by (auto simp add: assms entails_def)
+  apply (rule exI[where x=Q2])
+  unfolding entails_def using assms by auto  
+
 subsection \<open>Tests for ODE\<close>
 
 lemma testHL12:
@@ -9,7 +38,7 @@ lemma testHL12:
   shows "Valid
     (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
     (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr)"
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr)"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -45,9 +74,9 @@ lemma testHL13a':
      Cm (''ch1''[!](\<lambda>s. s X));
      Cm (''ch2''[?]X))
     (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})
-               @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
-               @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr)"
+            (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})
+               @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
+               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr)"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -84,8 +113,8 @@ lemma testHL13a'':
      Cm (''ch1''[!](\<lambda>s. s X));
      Cm (''ch2''[?]X))
     (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch1'' a
-               @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr)"
+            (Q @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch1'' a
+               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr)"
   apply (rule Valid_seq)
    apply (rule Valid_ode_exit)
   using assms apply auto[1]
@@ -98,33 +127,33 @@ lemma testHL13a'':
 
 text \<open>a is the initial value of X\<close>
 fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
-  "left_blocks a [] = emp\<^sub>A"
+  "left_blocks a [] = emp\<^sub>t"
 | "left_blocks a (v # rest) =
     (if a < 1 then
-       WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {}) @\<^sub>t
-       Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
-       In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v @\<^sub>t left_blocks v rest
+       WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {}) @\<^sub>t
+       Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
+       In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v @\<^sub>t left_blocks v rest
      else
-       Out\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch1'' a @\<^sub>t
-       In\<^sub>A ((\<lambda>_. 0)(X := a)) ''ch2'' v @\<^sub>t left_blocks v rest)"
+       Out\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch1'' a @\<^sub>t
+       In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v @\<^sub>t left_blocks v rest)"
 
 lemma left_blocks_snoc:
   "left_blocks a (vs @ [v]) =
     (if last_val a vs < 1 then
       left_blocks a vs @\<^sub>t
-      WaitS\<^sub>A (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) ({}, {}) @\<^sub>t
-      Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
-      In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v
+      WaitS\<^sub>t (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) ({}, {}) @\<^sub>t
+      Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
+      In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v
     else
       left_blocks a vs @\<^sub>t
-      Out\<^sub>A ((\<lambda>_. 0)(X := last_val a vs)) ''ch1'' (last_val a vs) @\<^sub>t
-      In\<^sub>A ((\<lambda>_. 0)(X := last_val a vs)) ''ch2'' v)"
+      Out\<^sub>t ((\<lambda>_. 0)(X := last_val a vs)) ''ch1'' (last_val a vs) @\<^sub>t
+      In\<^sub>t ((\<lambda>_. 0)(X := last_val a vs)) ''ch2'' v)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
 lemma testHL13a:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr)
     (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
           Cm (''ch1''[!](\<lambda>s. s X));
           Cm (''ch2''[?]X)))
@@ -151,23 +180,23 @@ lemma testHL13a:
   by (auto simp add: emp_assn_def)
 
 fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
-  "right_blocks a [] = emp\<^sub>A"
+  "right_blocks a [] = emp\<^sub>t"
 | "right_blocks a (v # rest) =
-    In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
-    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t
+    In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
+    Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t
     right_blocks v rest"
 
 lemma right_blocks_snoc:
   "right_blocks a (vs @ [v]) =
     right_blocks a vs @\<^sub>t
-    In\<^sub>A ((\<lambda>_. 0)(Y := last_val a vs)) ''ch1'' v @\<^sub>t
-    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+    In\<^sub>t ((\<lambda>_. 0)(Y := last_val a vs)) ''ch1'' v @\<^sub>t
+    Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
 lemma testHL13b:
   "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr)
     (Rep (Cm (''ch1''[?]Y);
           Cm (''ch2''[!](\<lambda>s. s Y - 1))))
     (\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_val a ws)) \<and> right_blocks a ws tr)"
@@ -192,10 +221,10 @@ lemma testHL13b:
   by (auto simp add: emp_assn_def)
 
 fun tot_blocks :: "nat \<Rightarrow> tassn" where
-  "tot_blocks 0 = emp\<^sub>A"
+  "tot_blocks 0 = emp\<^sub>t"
 | "tot_blocks (Suc n) = (
-    Wait\<^sub>A 1 (\<lambda>t. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({}, {''ch1''}) @\<^sub>t
-    IO\<^sub>A ''ch1'' 1 @\<^sub>t IO\<^sub>A ''ch2'' 0 @\<^sub>t tot_blocks n)"
+    Wait\<^sub>t 1 (\<lambda>t. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({}, {''ch1''}) @\<^sub>t
+    IO\<^sub>t ''ch1'' 1 @\<^sub>t IO\<^sub>t ''ch2'' 0 @\<^sub>t tot_blocks n)"
 
 lemma combineHL13:
   "combine_assn {''ch1'', ''ch2''} (left_blocks 0 vs) (right_blocks 1 ws) \<Longrightarrow>\<^sub>t
@@ -254,7 +283,7 @@ lemma testHL13:
     apply (rule ParValid_Parallel')
      apply (rule testHL13a)
     apply (rule testHL13b)
-   apply auto
+   apply (auto simp add: sing_gassn_ex sing_gassn_split)
   apply (rule sync_gassn_ex_pre_left)
   apply (rule sync_gassn_ex_pre_right)
   subgoal for vs ws
@@ -277,7 +306,7 @@ lemma testHL14o:
     (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr)
     (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
                [(''ch1''[!](\<lambda>s. s X), Skip)])
-    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {})) tr)"
+    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {})) tr)"
 proof -
   have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
@@ -304,10 +333,10 @@ proof -
 qed
 
 fun ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
-  "ileft_blocks a [] = emp\<^sub>A"
+  "ileft_blocks a [] = emp\<^sub>t"
 | "ileft_blocks a ((d, v) # rest) =
-   WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
-   In\<^sub>A ((\<lambda>_. 0)(X := a + d)) ''ch2'' v @\<^sub>t
+   WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
+   In\<^sub>t ((\<lambda>_. 0)(X := a + d)) ''ch2'' v @\<^sub>t
    ileft_blocks v rest"
 
 fun last_ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> real" where
@@ -317,8 +346,8 @@ fun last_ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightar
 lemma ileft_blocks_snoc:
   "ileft_blocks a (ps @ [(d, v)]) =
    ileft_blocks a ps @\<^sub>t
-     WaitOut\<^sub>A d (\<lambda>t. (\<lambda>_. 0)(X := t + last_ileft_blocks a ps)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
-     In\<^sub>A ((\<lambda>_. 0)(X := d + last_ileft_blocks a ps)) ''ch2'' v"
+     WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + last_ileft_blocks a ps)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
+     In\<^sub>t ((\<lambda>_. 0)(X := d + last_ileft_blocks a ps)) ''ch2'' v"
   apply (induct ps arbitrary: a)
   by (auto simp add: join_assoc add.commute)
 
@@ -328,7 +357,7 @@ lemma last_ileft_blocks_snoc [simp]:
 
 lemma testHL14a:
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> emp\<^sub>t tr)
     (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
           Cm (''ch2''[?]X)))
     (\<lambda>s tr. \<exists>ps. s = (\<lambda>_. 0)(X := last_ileft_blocks a ps) \<and> ileft_blocks a ps tr)"
@@ -353,11 +382,11 @@ lemma testHL14a:
   by (auto simp add: emp_assn_def)
 
 fun iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
-  "iright_blocks a [] = emp\<^sub>A"
+  "iright_blocks a [] = emp\<^sub>t"
 | "iright_blocks a (v # rest) =
-   WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) ({}, {}) @\<^sub>t
-   In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
-   Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
+   WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) ({}, {}) @\<^sub>t
+   In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
+   Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
 
 fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_iright_blocks a [] = a"
@@ -365,9 +394,9 @@ fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" wher
 
 lemma iright_blocks_snoc:
   "iright_blocks a (vs @ [v]) =
-   iright_blocks a vs @\<^sub>t WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) ({}, {}) @\<^sub>t
-   In\<^sub>A ((\<lambda>_. 0)(Y := last_iright_blocks a vs)) ''ch1'' v @\<^sub>t
-   Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+   iright_blocks a vs @\<^sub>t WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) ({}, {}) @\<^sub>t
+   In\<^sub>t ((\<lambda>_. 0)(Y := last_iright_blocks a vs)) ''ch1'' v @\<^sub>t
+   Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -377,7 +406,7 @@ lemma last_iright_blocks_snoc [simp]:
 
 lemma testHL14b:
   "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>A tr)
+    (\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>t tr)
     (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))
     (\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr)"
   apply (rule Valid_weaken_pre)
@@ -402,7 +431,7 @@ lemma testHL14b:
 
 lemma combine_assn_waitout_emp:
   assumes "ch \<in> chs"
-  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) emp\<^sub>A \<Longrightarrow>\<^sub>t false\<^sub>A"
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
   using assms by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
@@ -411,28 +440,28 @@ lemma combine_assn_waitout_wait:
   assumes "ch \<in> chs"
     and "compat_rdy rdy rdy2"
     and "d2 > 0"
-  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (Wait\<^sub>A d2 p2 rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
-         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>A d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
-                        combine_assn chs (WaitOut\<^sub>A (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q))"
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) (Wait\<^sub>t d2 p2 rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+                        combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q))"
 proof -
   have *: "(\<up> (d2 \<le> d) \<and>\<^sub>t
-        Wait\<^sub>A d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
-        combine_assn chs (WaitOut\<^sub>A (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
-    if "(WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) tr1"
-       "(Wait\<^sub>A d2 p2 rdy2 @\<^sub>t Q) tr2"
+        Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+        combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
+    if "(WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) tr1"
+       "(Wait\<^sub>t d2 p2 rdy2 @\<^sub>t Q) tr2"
        "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
   proof -
     from that(1)[unfolded join_assn_def]
-    obtain tr11 tr12 where a: "WaitOut\<^sub>A d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+    obtain tr11 tr12 where a: "WaitOut\<^sub>t d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
       by auto
     from that(2)[unfolded join_assn_def]
-    obtain tr21 tr22 where b: "Wait\<^sub>A d2 p2 rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
+    obtain tr21 tr22 where b: "Wait\<^sub>t d2 p2 rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
       by auto
     have c: "tr21 = [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy2]"
       using b(1) wait_assn.cases by blast
     have d: "(\<up> (d2 \<le> d) \<and>\<^sub>t
-             Wait\<^sub>A d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
-             combine_assn chs (WaitOut\<^sub>A (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
+             Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+             combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
       if "0 < d"
          "combine_blocks chs (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy # OutBlock ch (e (p d)) # tr12)
                              (WaitBlock d2 (restrict p2 {0..d2}) rdy2 # tr22) tr"
@@ -534,20 +563,20 @@ qed
 lemma combine_assn_waitout_in:
   assumes "ch \<in> chs"
     and "ch \<in> fst rdy"
-  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) (In\<^sub>t s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
          (\<up>(d = 0) \<and>\<^sub>t \<up>(v = e (p 0)) \<and>\<^sub>t
-          (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
+          (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
 proof -
-  have *: "(\<up> (d = 0) \<and>\<^sub>t \<up> (v = e (p 0)) \<and>\<^sub>t IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q) tr"
-    if "(WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) tr1"
-       "(In\<^sub>A s ch v @\<^sub>t Q) tr2"
+  have *: "(\<up> (d = 0) \<and>\<^sub>t \<up> (v = e (p 0)) \<and>\<^sub>t IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q) tr"
+    if "(WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) tr1"
+       "(In\<^sub>t s ch v @\<^sub>t Q) tr2"
        "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
   proof -
     from that(1)[unfolded join_assn_def]
-    obtain tr11 tr12 where a: "WaitOut\<^sub>A d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+    obtain tr11 tr12 where a: "WaitOut\<^sub>t d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
       by auto
     from that(2)[unfolded join_assn_def]
-    obtain tr21 tr22 where b: "In\<^sub>A s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
+    obtain tr21 tr22 where b: "In\<^sub>t s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
       by auto
     show ?thesis
       using a(1) apply (cases rule: wait_out_assn.cases)
@@ -576,10 +605,10 @@ proof -
 qed
 
 fun tot_blocks2 :: "nat \<Rightarrow> tassn" where
-  "tot_blocks2 0 = emp\<^sub>A"
+  "tot_blocks2 0 = emp\<^sub>t"
 | "tot_blocks2 (Suc n) = (
-    Wait\<^sub>A 1 (\<lambda>t. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({''ch1''}, {}) @\<^sub>t
-    IO\<^sub>A ''ch1'' 1 @\<^sub>t IO\<^sub>A ''ch2'' 0 @\<^sub>t tot_blocks2 n)"
+    Wait\<^sub>t 1 (\<lambda>t. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({''ch1''}, {}) @\<^sub>t
+    IO\<^sub>t ''ch1'' 1 @\<^sub>t IO\<^sub>t ''ch2'' 0 @\<^sub>t tot_blocks2 n)"
 
 lemma combineHL14:
   "combine_assn {''ch1'', ''ch2''} (ileft_blocks 0 ps) (iright_blocks 1 ws) \<Longrightarrow>\<^sub>t
@@ -645,7 +674,7 @@ lemma testHL14:
     apply (rule ParValid_Parallel')
      apply (rule testHL14a)
     apply (rule testHL14b)
-  apply auto
+   apply (auto simp add: sing_gassn_ex sing_gassn_split)
   apply (rule sync_gassn_ex_pre_left)
   apply (rule sync_gassn_ex_pre_right)
   subgoal for ps vs
