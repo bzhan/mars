@@ -92,19 +92,27 @@ def eval_expr(expr, state):
                 return a + [b]
         elif expr.fun_name == "pop":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[:-1]
         elif expr.fun_name == "top":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[-1]
         elif expr.fun_name == "bottom":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[0]
         elif expr.fun_name == "get":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[1:]
         elif expr.fun_name == "len":
             a, = args
@@ -112,11 +120,15 @@ def eval_expr(expr, state):
             return len(a)
         elif expr.fun_name == "get_max":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return max(a)
         elif expr.fun_name == "pop_max":
             a, = args
-            assert isinstance(a, list) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             b = list(a)
             try:
                 b.remove(max(a))
@@ -125,16 +137,22 @@ def eval_expr(expr, state):
                 raise e
             return list(b)
         elif expr.fun_name == "sqrt":
-            assert len(args) == 1 and args[0] >= 0
+            assert len(args) == 1
+            if args[0] < 0:
+                raise SimulatorException('When evaluating %s: argument %s less than zero' % (expr, args[0]))
             return math.sqrt(args[0])
         elif expr.fun_name == "bernoulli":
-            assert len(args) == 1 and args[0] >= 0 and args[0] <= 1
+            assert len(args) == 1
+            if not (args[0] >= 0 and args[0] <= 1):
+                raise SimulatorException('When evaluating %s: argument %s not in range' % (expr, args[0]))
             if random.uniform(0,1) <= args[0]:
                 return 1
             else:
                 return 0
         elif expr.fun_name == "uniform":
-            assert len(args) == 2 and args[0] <= args[1]
+            assert len(args) == 2
+            if args[0] > args[1]:
+                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
             return random.uniform(args[0], args[1])
         else:
             raise NotImplementedError
