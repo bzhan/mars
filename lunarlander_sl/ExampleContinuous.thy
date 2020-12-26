@@ -9,7 +9,7 @@ lemma testHL12:
   shows "Valid
     (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
     (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a))) tr)"
+    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr)"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -45,7 +45,7 @@ lemma testHL13a':
      Cm (''ch1''[!](\<lambda>s. s X));
      Cm (''ch2''[?]X))
     (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a))
+            (Q @\<^sub>t WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})
                @\<^sub>t Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
                @\<^sub>t In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr)"
 proof -
@@ -101,7 +101,7 @@ fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "left_blocks a [] = emp\<^sub>A"
 | "left_blocks a (v # rest) =
     (if a < 1 then
-       WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) @\<^sub>t
+       WaitS\<^sub>A (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {}) @\<^sub>t
        Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
        In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v @\<^sub>t left_blocks v rest
      else
@@ -112,7 +112,7 @@ lemma left_blocks_snoc:
   "left_blocks a (vs @ [v]) =
     (if last_val a vs < 1 then
       left_blocks a vs @\<^sub>t
-      WaitS\<^sub>A (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) @\<^sub>t
+      WaitS\<^sub>A (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) ({}, {}) @\<^sub>t
       Out\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
       In\<^sub>A ((\<lambda>_. 0)(X := 1)) ''ch2'' v
     else
@@ -194,7 +194,7 @@ lemma testHL13b:
 fun tot_blocks :: "nat \<Rightarrow> tassn" where
   "tot_blocks 0 = emp\<^sub>A"
 | "tot_blocks (Suc n) = (
-    Wait\<^sub>A 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) @\<^sub>t
+    Wait\<^sub>A 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({}, {''ch1''}) @\<^sub>t
     IO\<^sub>A ''ch1'' 1 @\<^sub>t IO\<^sub>A ''ch2'' 0 @\<^sub>t tot_blocks n)"
 
 lemma combineHL13:
@@ -228,7 +228,7 @@ next
       apply (auto simp add: Cons)
       apply (rule entails_tassn_trans)
        apply (rule combine_assn_wait_in)
-       apply auto[1]
+         apply auto
       apply (rule entails_tassn_cancel_left)
       apply (rule entails_tassn_trans)
        apply (rule combine_assn_out_in)
@@ -355,7 +355,7 @@ lemma testHL14a:
 fun iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "iright_blocks a [] = emp\<^sub>A"
 | "iright_blocks a (v # rest) =
-   WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) @\<^sub>t
+   WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) ({}, {}) @\<^sub>t
    In\<^sub>A ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
 
@@ -365,7 +365,7 @@ fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" wher
 
 lemma iright_blocks_snoc:
   "iright_blocks a (vs @ [v]) =
-   iright_blocks a vs @\<^sub>t WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) @\<^sub>t
+   iright_blocks a vs @\<^sub>t WaitS\<^sub>A 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) ({}, {}) @\<^sub>t
    In\<^sub>A ((\<lambda>_. 0)(Y := last_iright_blocks a vs)) ''ch1'' v @\<^sub>t
    Out\<^sub>A ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
@@ -409,8 +409,8 @@ lemma combine_assn_waitout_emp:
 
 lemma combine_assn_waitout_wait:
   assumes "ch \<in> chs"
-  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (Wait\<^sub>A d2 p2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
-         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>A d2 (\<lambda>t\<in>{0..d2}. ParState (State (p t)) (p2 t)) @\<^sub>t
+  shows "combine_assn chs (WaitOut\<^sub>A d p ch e rdy @\<^sub>t P) (Wait\<^sub>A d2 p2 rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>A d2 (\<lambda>t\<in>{0..d2}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
                         combine_assn chs (WaitOut\<^sub>A (d - d2) (\<lambda>t\<in>{0..d-d2}. p (t + d2)) ch e rdy @\<^sub>t P) Q))"
   sorry
 
@@ -421,9 +421,15 @@ lemma combine_assn_waitout_in:
           (IO\<^sub>A ch v @\<^sub>t combine_assn chs P Q))"
   sorry
 
+fun tot_blocks2 :: "nat \<Rightarrow> tassn" where
+  "tot_blocks2 0 = emp\<^sub>A"
+| "tot_blocks2 (Suc n) = (
+    Wait\<^sub>A 1 (\<lambda>t\<in>{0..1}. ParState (State ((\<lambda>_. 0)(X := t))) (State ((\<lambda>_. 0)(Y := 1)))) ({''ch1''}, {}) @\<^sub>t
+    IO\<^sub>A ''ch1'' 1 @\<^sub>t IO\<^sub>A ''ch2'' 0 @\<^sub>t tot_blocks2 n)"
+
 lemma combineHL14:
   "combine_assn {''ch1'', ''ch2''} (ileft_blocks 0 ps) (iright_blocks 1 ws) \<Longrightarrow>\<^sub>t
-   tot_blocks (length ps)"
+   tot_blocks2 (length ps)"
 proof (induct ps arbitrary: ws)
   case Nil
   then show ?case
@@ -480,7 +486,7 @@ lemma testHL14:
       (Single (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
                Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
       (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))))
-    (\<exists>\<^sub>g n. trace_gassn (tot_blocks n))"
+    (\<exists>\<^sub>g n. trace_gassn (tot_blocks2 n))"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testHL14a)

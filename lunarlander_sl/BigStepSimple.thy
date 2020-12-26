@@ -559,8 +559,8 @@ inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow>
 inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> tassn" ("IO\<^sub>A") where
   "IO\<^sub>A ch v [IOBlock ch v]"
 
-inductive wait_assn :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> tassn" ("Wait\<^sub>A") where
-  "Wait\<^sub>A d p [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) ({}, {})]"
+inductive wait_assn :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rdy_info \<Rightarrow> tassn" ("Wait\<^sub>A") where
+  "Wait\<^sub>A d p rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy]"
 
 abbreviation "WaitS\<^sub>A d p \<equiv> Wait\<^sub>A d (\<lambda>t. State (p t))"
 
@@ -625,7 +625,7 @@ theorem Valid_receive':
 
 theorem Valid_wait':
   "d > 0 \<Longrightarrow> Valid
-    (\<lambda>s. WaitS\<^sub>A d (\<lambda>_. s) @- Q s)
+    (\<lambda>s. WaitS\<^sub>A d (\<lambda>_. s) ({}, {}) @- Q s)
     (Wait d)
     Q"
   apply (rule Valid_weaken_pre)
@@ -637,7 +637,7 @@ theorem Valid_wait_sp:
   "d > 0 \<Longrightarrow> Valid
     (\<lambda>s tr. s = st \<and> P s tr)
     (Wait d)
-    (\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>A d (\<lambda>_. st)) tr)"
+    (\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>A d (\<lambda>_. st) ({}, {})) tr)"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def)

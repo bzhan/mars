@@ -276,12 +276,12 @@ theorem Valid_ode_unique_solution_aux:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "ODE\<^sub>A st ode b st' tr"
   shows
-    "st' = p d \<and> WaitS\<^sub>A d p tr"
+    "st' = p d \<and> WaitS\<^sub>A d p ({}, {}) tr"
 proof -
   have "b st"
     using assms(1,3,5) by auto
   have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
-              WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+              WaitS\<^sub>A d p ({}, {}) [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
@@ -330,7 +330,7 @@ proof -
       using s7 s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
-    have s11: "WaitS\<^sub>A d p [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+    have s11: "WaitS\<^sub>A d p ({}, {}) [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
       apply (subst s9[symmetric])
       apply (subst s7[symmetric])
       by (rule wait_assn.intros)
@@ -355,11 +355,11 @@ theorem Valid_ode_unique_solution':
   shows "Valid
     (\<lambda>s tr. s = st \<and> Q s tr)
     (Cont ode b)
-    (\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>A d p) tr)"
+    (\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>A d p ({}, {})) tr)"
 proof -
   have "b st"
     using assms(1,3,5) by auto
-  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>A d p tr2" for s tr2
+  have *: "ODE\<^sub>A st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>A d p ({}, {}) tr2" for s tr2
     using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
   show ?thesis
     apply (rule Valid_strengthen_post)
