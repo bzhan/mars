@@ -443,9 +443,9 @@ lemma combine_assn_wait_in:
     and "compat_rdy rdy1 ({}, {ch})"
     and "d > 0"
   shows "combine_assn chs (Wait\<^sub>A d p rdy1 @\<^sub>t P) (In\<^sub>A s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t
-   (Wait\<^sub>A d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
+   (Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q))"
 proof -
-  have *: "(Wait\<^sub>A d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
+  have *: "(Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
     if "(Wait\<^sub>A d p rdy1 @\<^sub>t P) tr1" "(In\<^sub>A s ch v @\<^sub>t Q) tr2" "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
   proof -
     from that(1)[unfolded join_assn_def]
@@ -456,7 +456,7 @@ proof -
       by auto
     have c: "tr11 = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy1]"
       using a(1) wait_assn.cases by blast
-    have d: "(Wait\<^sub>A d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
+    have d: "(Wait\<^sub>A d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>A s ch v @\<^sub>t Q)) tr"
       if "compat_rdy rdy1 ({}, {ch})" "0 < d2"
          "combine_blocks chs (WaitBlock d (restrict p {0..d}) rdy1 # tr12)
           (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}) # InBlock ch v # tr22) tr" for d2
