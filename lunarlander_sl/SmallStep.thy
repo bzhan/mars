@@ -1,5 +1,5 @@
 theory SmallStep
-  imports BigStepSimple
+  imports BigStepSimple BigStepParallel
 begin
 
 

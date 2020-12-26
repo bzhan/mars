@@ -1,5 +1,5 @@
 theory Complete
-  imports BigStepContinuous
+  imports BigStepContinuous BigStepParallel
 begin
 
 subsection \<open>Proof system\<close>
@@ -964,6 +964,122 @@ theorem hoare_complete:
 theorem hoare_sound_complete:
   "\<turnstile> {P} c {Q} \<longleftrightarrow> Valid P c Q"
   using hoare_sound hoare_complete by auto
+
+
+subsection \<open>Completeness for parallel programs\<close>
+
+inductive par_hoare :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Rightarrow> bool" ("\<turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
+  "\<turnstile> {\<lambda>s tr. P s \<and> tr = []} c {Q} \<Longrightarrow>
+   \<turnstile>\<^sub>p {sing_assn P} (Single c) {sing_gassn Q}"
+| "\<turnstile>\<^sub>p {P1} p1 {Q1} \<Longrightarrow> \<turnstile>\<^sub>p {P2} p2 {Q2} \<Longrightarrow>
+   \<turnstile>\<^sub>p {par_assn P1 P2} (Parallel p1 chs p2) {sync_gassn chs Q1 Q2}"
+| "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<forall>s. P' s \<longrightarrow> P s \<Longrightarrow> \<forall>s tr. Q s tr \<longrightarrow> Q' s tr \<Longrightarrow>
+   \<turnstile>\<^sub>p {P'} c {Q'}"
+
+theorem par_hoare_sound:
+  "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> ParValid P c Q"
+proof (induction rule: par_hoare.induct)
+  case (1 P c Q)
+  show ?case
+    apply (rule ParValid_Single)
+    using hoare_sound_complete 1 by auto
+next
+  case (2 P1 p1 Q1 P2 p2 Q2 chs)
+  show ?case
+    apply (rule ParValid_Parallel)
+    using 2 by auto
+next
+  case (3 P c Q P' Q')
+  then show ?case
+    unfolding ParValid_def by auto
+qed
+
+
+lemma ParValid_to_Valid:
+  assumes "ParValid (sing_assn P) (Single c) (sing_gassn Q)"
+  shows "Valid (\<lambda>s tr. P s \<and> tr = []) c Q"
+  using assms unfolding Valid_def ParValid_def
+  using SingleB by force
+
+
+definition sp :: "proc \<Rightarrow> fform \<Rightarrow> assn" where
+  "sp c P = (\<lambda>s' tr. \<exists>s. P s \<and> big_step c s tr s')"
+
+lemma Valid_sp:
+  "Valid (\<lambda>s tr. P s \<and> tr = []) c (sp c P)"
+  unfolding Valid_def sp_def by auto
+
+
+definition par_sp :: "pproc \<Rightarrow> gs_assn \<Rightarrow> gassn" where
+  "par_sp c P = (\<lambda>s' tr'. \<exists>s. P s \<and> par_big_step c s tr' s')"
+
+lemma par_sp_single:
+  "par_sp (Single c) (sing_assn P) = sing_gassn (sp c P)"
+  unfolding par_sp_def apply (rule ext) apply (rule ext)
+  subgoal for s' tr'
+    apply (cases s')
+    subgoal for s1
+      apply (auto simp add: sp_def)
+      using SingleE apply fastforce
+      using SingleB sing_assn.simps(1) by blast
+    subgoal for s1 s2
+      using SingleE by fastforce
+    done
+  done
+
+lemma par_sp_parallel:
+  "par_sp (Parallel p1 chs p2) (par_assn P1 P2) =
+   sync_gassn chs (par_sp p1 P1) (par_sp p2 P2)"
+  unfolding par_sp_def apply (rule ext) apply (rule ext)
+  subgoal for s' tr'
+    apply (cases s')
+    subgoal for s1
+      using ParallelE by fastforce
+    subgoal for s1 s2
+      apply auto
+      subgoal apply (elim ParallelE) by auto
+      using ParallelB by force
+    done
+  done
+
+inductive wf_pre :: "pproc \<Rightarrow> gs_assn \<Rightarrow> bool" where
+  "wf_pre (Single c) (sing_assn P)"
+| "wf_pre p1 P1 \<Longrightarrow> wf_pre p2 P2 \<Longrightarrow> wf_pre (Parallel p1 chs p2) (par_assn P1 P2)"
+
+inductive_cases wf_pre_Single: "wf_pre (Single c) P"
+inductive_cases wf_pre_Parallel: "wf_pre (Parallel p1 chs p2) P"
+
+lemma par_sp_is_post: "wf_pre c P \<Longrightarrow> \<turnstile>\<^sub>p {P} c {par_sp c P}"
+proof (induction c arbitrary: P)
+  case (Single p)
+  then show ?case
+    apply (elim wf_pre_Single)
+    apply (auto simp add: par_sp_single)
+    apply (rule par_hoare.intros(1))
+    apply (rule hoare_complete)
+    by (rule Valid_sp)
+next
+  case (Parallel p1 chs p2)
+  show ?case
+    using Parallel(3) apply (elim wf_pre_Parallel)
+    apply (auto simp add: par_sp_parallel)
+    apply (rule par_hoare.intros(2))
+    using Parallel(1,2) by auto
+qed
+
+
+theorem par_hoare_complete:
+  "wf_pre c P \<Longrightarrow> ParValid P c Q \<Longrightarrow> \<turnstile>\<^sub>p {P} c {Q}"
+  apply (rule par_hoare.intros(3))
+  apply (rule par_sp_is_post)
+    apply assumption
+   apply simp
+  using ParValid_def par_sp_def by auto
+
+theorem par_hoare_sound_complete:
+  assumes "wf_pre c P"
+  shows "\<turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> ParValid P c Q"
+  using par_hoare_sound par_hoare_complete assms by auto
 
 
 end
