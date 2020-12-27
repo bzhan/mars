@@ -400,7 +400,7 @@ definition interrupt_Valid :: "assn \<Rightarrow> nat \<Rightarrow> ODE \<Righta
 
 
 theorem hoare_sound:
-  "(\<turnstile> {P} c {Q} \<longrightarrow> Valid P c Q) \<and>
+  "(\<turnstile> {P} c {Q} \<longrightarrow> \<Turnstile> {P} c {Q}) \<and>
    (echoice_hoare P n cs Q \<longrightarrow> echoice_Valid P n cs Q) \<and>
    (interrupt_hoare P n ode b cs Q \<longrightarrow> interrupt_Valid P n ode b cs Q)"
 proof (induction rule: hoare_echoice_hoare_interrupt_hoare.induct)
@@ -452,7 +452,7 @@ next
   case (EChoiceH2 Q p2 R es n ch e P)
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [OutBlock ch (e s1)])"
       using that(1,3) unfolding entails_def by auto
@@ -461,7 +461,7 @@ next
   qed
   have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
       using that(1,3,5) unfolding entails_def by auto
@@ -476,7 +476,7 @@ next
   case (EChoiceH3 Q p2 R es n ch var P)
   have a: "R s2 (tr1 @ InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s2 tr1 v tr2' s1
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s2 tr1 v tr2' s1
   proof -
     have "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
       using that(1,3) unfolding entails_def by auto
@@ -485,7 +485,7 @@ next
   qed
   have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
   proof -
     have "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
       using that(1,3,5) unfolding entails_def by auto
@@ -518,7 +518,7 @@ next
   case (InterruptH2 Q p2 R es n ch e P ode b)
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [OutBlock ch (e s1)])"
       using that(1,3) unfolding entails_def by auto
@@ -532,7 +532,7 @@ next
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                      Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))"
-       "Valid Q p2 R" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
+       "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 (p d) tr2' s2" for s2 tr1 d p tr2'
   proof -
     have "Q (p d) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
@@ -548,7 +548,7 @@ next
   case (InterruptH3 Q p2 R es n ch var P ode b)
   have a: "R s2 (tr1 @ InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
-      "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s1 tr1 s2 tr2' v
+      "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s1 tr1 s2 tr2' v
   proof -
     have "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
       using that(1,3) unfolding entails_def by auto
@@ -562,7 +562,7 @@ next
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                      (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])))"
-       "Valid Q p2 R" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
+       "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 ((p d)(var := v)) tr2' s2" for s2 tr1 d p v tr2'
   proof -
     have "Q ((p d)(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"

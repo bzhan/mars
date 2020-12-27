@@ -24,14 +24,14 @@ theorem Valid_interrupt:
   assumes "\<And>i. i < length cs \<Longrightarrow>
     case cs ! i of
       (ch[!]e, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                         (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                         Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
                                        OutBlock ch (e (p d))]))))
     | (ch[?]var, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                         (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
@@ -41,7 +41,7 @@ theorem Valid_interrupt:
     and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
                    R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)])))"
-  shows "Valid P (Interrupt ode b cs) R"
+  shows "\<Turnstile> {P} Interrupt ode b cs {R}"
 proof -
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2)"
     if *: "P s1 tr1"
@@ -50,7 +50,7 @@ proof -
           "big_step p2 s1 tr2 s2" for s1 tr1 s2 i ch e p2 tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
       using *(2,3) by fastforce
     have 2: "Q s1 (tr1 @ [OutBlock ch (e s1)])"
@@ -68,7 +68,7 @@ proof -
           "big_step p2 (p d) tr2 s2" for tr1 s2 d p i ch e p2 tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                  (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                  Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
@@ -87,7 +87,7 @@ proof -
           "big_step p2 (s1(var := v)) tr2 s2" for s1 tr1 s2 i ch var p2 v tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
       using *(2,3) by fastforce
     have 2: "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
@@ -105,7 +105,7 @@ proof -
           "big_step p2 ((p d)(var := v)) tr2a s2" for tr1 s2 d p i ch var p2 v tr2a
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                  (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                  Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
@@ -125,9 +125,9 @@ qed
 text \<open>Simpler versions with one input/output\<close>
 
 theorem Valid_interrupt_In:
-  assumes "Valid Q p R"
-  shows "Valid
-    (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
+  assumes "\<Turnstile> {Q} p {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                 Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}),
@@ -135,17 +135,17 @@ theorem Valid_interrupt_In:
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})])))
-      (Interrupt ode b [(ch[?]var, p)])
-    R"
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})]))}
+      Interrupt ode b [(ch[?]var, p)]
+    {R}"
   apply (rule Valid_interrupt)
   apply auto apply (rule exI[where x=Q])
   by (auto simp add: assms entails_def)
 
 theorem Valid_interrupt_Out:
-  assumes "Valid Q p R"
-  shows "Valid
-    (\<lambda>s tr. (Q s (tr @ [OutBlock ch (e s)])) \<and>
+  assumes "\<Turnstile> {Q} p {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (Q s (tr @ [OutBlock ch (e s)])) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                 Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {}),
@@ -153,9 +153,9 @@ theorem Valid_interrupt_Out:
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})])))
-      (Interrupt ode b [(ch[!]e, p)])
-    R"
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})]))}
+      Interrupt ode b [(ch[!]e, p)]
+    {R}"
   apply (rule Valid_interrupt)
   apply auto apply (rule exI[where x=Q])
   by (auto simp add: assms entails_def)
@@ -196,10 +196,9 @@ inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightar
 subsection \<open>Simpler rules for ODE\<close>
 
 theorem Valid_ode':
-  "Valid
-    (\<lambda>s tr. \<forall>s'. (ODE\<^sub>t s ode b s' @- Q s') tr)
-    (Cont ode b)
-    Q"
+  "\<Turnstile> {\<lambda>s tr. \<forall>s'. (ODE\<^sub>t s ode b s' @- Q s') tr}
+       Cont ode b
+      {Q}"
 proof -
   have 1: "Q s tr"
     if "\<forall>s'. (ODE\<^sub>t s ode b s' @- Q s') tr" "\<not> b s" for s tr
@@ -231,10 +230,10 @@ qed
 
 theorem Valid_ode_sp:
   assumes "b st"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> Q s tr)
-    (Cont ode b)
-    (\<lambda>s tr. \<exists>s'. s = s' \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr)"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> Q s tr}
+      Cont ode b
+    {\<lambda>s tr. \<exists>s'. s = s' \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_ode')
   apply (auto simp add: entails_def)
@@ -323,10 +322,10 @@ theorem Valid_ode_unique_solution':
     "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
     "\<not> b (p d)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> Q s tr)
-    (Cont ode b)
-    (\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>t d p ({}, {})) tr)"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> Q s tr}
+      Cont ode b
+    {\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>t d p ({}, {})) tr}"
 proof -
   have "b st"
     using assms(1,3,5) by auto
@@ -340,10 +339,10 @@ qed
 
 theorem Valid_ode_exit:
   assumes "\<not> b st"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> Q tr)
-    (Cont ode b)
-    (\<lambda>s tr. s = st \<and> Q tr)"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> Q tr}
+      Cont ode b
+    {\<lambda>s tr. s = st \<and> Q tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_ode)
   using assms by (auto simp add: entails_def)
@@ -354,15 +353,15 @@ theorem Valid_interrupt':
   assumes "\<And>i. i < length cs \<Longrightarrow>
     case cs ! i of
       (ch[!]e, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEout\<^sub>t s ode b s' ch e (rdy_of_echoice cs) @- Q s') tr)))
     | (ch[?]var, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEin\<^sub>t s ode b s' ch var (rdy_of_echoice cs) @- Q s') tr)))"
     and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODErdy\<^sub>t s ode b s' (rdy_of_echoice cs) @- R s') tr)"
-  shows "Valid P (Interrupt ode b cs) R"
+  shows "\<Turnstile> {P} Interrupt ode b cs {R}"
 proof -
-  have 1: "\<exists>Q. Valid Q p R \<and>
+  have 1: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
            (P \<Longrightarrow>\<^sub>A
             (\<lambda>s tr.
@@ -373,13 +372,13 @@ proof -
     if *: "i < length cs" "cs ! i = (ch[!]e, p)" for i ch e p
   proof -
     from assms(1) obtain Q where
-      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEout\<^sub>t s ode b s' ch e (rdy_of_echoice cs) @- Q s') tr))"
+      Q: "\<Turnstile> {Q} p {R} \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEout\<^sub>t s ode b s' ch e (rdy_of_echoice cs) @- Q s') tr))"
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
       using Q by (auto simp add: entails_def magic_wand_assn_def ode_out_assn.intros)
   qed
-  have 2: "\<exists>Q. Valid Q p R \<and>
+  have 2: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
            (P \<Longrightarrow>\<^sub>A
             (\<lambda>s tr.
@@ -390,7 +389,7 @@ proof -
     if *: "i < length cs" "cs ! i = (ch[?]var, p)" for i ch var p
   proof -
     from assms(1) obtain Q where
-      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEin\<^sub>t s ode b s' ch var (rdy_of_echoice cs) @- Q s') tr))"
+      Q: "\<Turnstile> {Q} p {R} \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>s'. (ODEin\<^sub>t s ode b s' ch var (rdy_of_echoice cs) @- Q s') tr))"
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
@@ -433,22 +432,22 @@ proof -
 qed
 
 theorem Valid_interrupt_In':
-  assumes "Valid Q p R"
-  shows "Valid
-    (\<lambda>s tr. (\<forall>s'. (ODEin\<^sub>t s ode b s' ch var ({}, {ch}) @- Q s') tr) \<and>
-            (\<forall>s'. (ODErdy\<^sub>t s ode b s' ({}, {ch}) @- R s') tr))
-      (Interrupt ode b [(ch[?]var, p)])
-    R"
+  assumes "\<Turnstile> {Q} p {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (\<forall>s'. (ODEin\<^sub>t s ode b s' ch var ({}, {ch}) @- Q s') tr) \<and>
+            (\<forall>s'. (ODErdy\<^sub>t s ode b s' ({}, {ch}) @- R s') tr)}
+      Interrupt ode b [(ch[?]var, p)]
+    {R}"
   apply (rule Valid_interrupt')
   using assms by (auto simp add: entails_def)
 
 theorem Valid_interrupt_Out':
-  assumes "Valid Q p R"
-  shows "Valid
-    (\<lambda>s tr. (\<forall>s'. (ODEout\<^sub>t s ode b s' ch e ({ch}, {}) @- Q s') tr) \<and>
-            (\<forall>s'. (ODErdy\<^sub>t s ode b s' ({ch}, {}) @- R s') tr))
-      (Interrupt ode b [(ch[!]e, p)])
-    R"
+  assumes "\<Turnstile> {Q} p {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (\<forall>s'. (ODEout\<^sub>t s ode b s' ch e ({ch}, {}) @- Q s') tr) \<and>
+            (\<forall>s'. (ODErdy\<^sub>t s ode b s' ({ch}, {}) @- R s') tr)}
+      Interrupt ode b [(ch[!]e, p)]
+    {R}"
   apply (rule Valid_interrupt')
   using assms by (auto simp add: entails_def)
 
@@ -456,14 +455,14 @@ theorem Valid_interrupt_sp:
   assumes "\<And>i. i < length cs \<Longrightarrow>
     case cs ! i of
       (ch[!]e, p2) \<Rightarrow>
-        Valid (\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>t st ode b s ch e (rdy_of_echoice cs)) tr) p2 Q
+        \<Turnstile> {\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>t st ode b s ch e (rdy_of_echoice cs)) tr} p2 {Q}
     | (ch[?]var, p2) \<Rightarrow>
-        Valid (\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>t st ode b s ch var (rdy_of_echoice cs)) tr) p2 Q"
+        \<Turnstile> {\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>t st ode b s ch var (rdy_of_echoice cs)) tr} p2 {Q}"
   assumes "(\<lambda>s tr. (P st @\<^sub>t (ODErdy\<^sub>t st ode b s (rdy_of_echoice cs))) tr) \<Longrightarrow>\<^sub>A Q"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Interrupt ode b cs)
-    Q"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt ode b cs
+    {Q}"
   apply (rule Valid_interrupt')
   subgoal for i
     apply (cases "cs ! i") apply auto
@@ -485,20 +484,20 @@ theorem Valid_interrupt_sp:
   using join_assn_def by fastforce
 
 theorem Valid_interrupt_In_sp:
-  assumes "Valid (\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>t st ode b s ch var ({}, {ch})) tr) p Q"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Interrupt ode b [(ch[?]var, p)])
-    (\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>t st ode b s ({}, {ch}))) tr)"
+  assumes "\<Turnstile> {\<lambda>s tr. (P st @\<^sub>t ODEin\<^sub>t st ode b s ch var ({}, {ch})) tr} p {Q}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt ode b [(ch[?]var, p)]
+    {\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>t st ode b s ({}, {ch}))) tr}"
   apply (rule Valid_interrupt_sp)
   using assms by (auto simp add: Valid_def entails_def)
 
 theorem Valid_interrupt_Out_sp:
-  assumes "Valid (\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>t st ode b s ch e ({ch}, {})) tr) p Q"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Interrupt ode b [(ch[!]e, p)])
-    (\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>t st ode b s ({ch}, {}))) tr)"
+  assumes "\<Turnstile> {\<lambda>s tr. (P st @\<^sub>t ODEout\<^sub>t st ode b s ch e ({ch}, {})) tr} p {Q}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt ode b [(ch[!]e, p)]
+    {\<lambda>s tr. Q s tr \<or> (P st @\<^sub>t (ODErdy\<^sub>t st ode b s ({ch}, {}))) tr}"
   apply (rule Valid_interrupt_sp)
   using assms by (auto simp add: Valid_def entails_def)
 
@@ -610,11 +609,11 @@ theorem Valid_ode_out_unique_solution:
   assumes
     "ODEsolInf ode p" "\<forall>t\<ge>0. b (p t)" "p 0 = st"
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
-    "Valid (\<lambda>s tr. \<exists>d. s = p d \<and> (P st @\<^sub>t WaitOut\<^sub>t d p ch e ({ch}, {})) tr) p2 Q"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Interrupt ode b [(ch[!]e, p2)])
-    Q"
+    "\<Turnstile> {\<lambda>s tr. \<exists>d. s = p d \<and> (P st @\<^sub>t WaitOut\<^sub>t d p ch e ({ch}, {})) tr} p2 {Q}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt ode b [(ch[!]e, p2)]
+    {Q}"
 proof -
   have *: "ODEout\<^sub>t st ode b s ch e ({ch}, {}) tr2 \<Longrightarrow>
            \<exists>d. s = p d \<and> WaitOut\<^sub>t d p ch e ({ch}, {}) tr2" for s tr2

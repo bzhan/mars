@@ -5,10 +5,10 @@ begin
 subsection \<open>Version of interrupt with two communications\<close>
 
 theorem Valid_interrupt_InIn:
-  assumes "Valid Q1 p1 R"
-    and "Valid Q2 p2 R"
-  shows "Valid
-    (\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
+  assumes "\<Turnstile> {Q1} p1 {R}"
+    and "\<Turnstile> {Q2} p2 {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                 Q1 ((p d)(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
@@ -21,9 +21,9 @@ theorem Valid_interrupt_InIn:
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2})])))
-      (Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)])
-    R"
+                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2})]))}
+      Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)]
+    {R}"
   apply (rule Valid_interrupt)
   apply (rule InIn_lemma)
   subgoal apply (rule exI[where x=Q1])
@@ -35,10 +35,10 @@ subsection \<open>Tests for ODE\<close>
 
 lemma testHL12:
   assumes "a < 1"
-  shows "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
-    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr)"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr}
+      Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1)
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr}"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -68,15 +68,15 @@ subsection \<open>Test with ODE, loop and parallel\<close>
 
 lemma testHL13a':
   assumes "a < 1"
-  shows "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
-    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
-     Cm (''ch1''[!](\<lambda>s. s X));
-     Cm (''ch2''[?]X))
-    (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr}
+      Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+      Cm (''ch1''[!](\<lambda>s. s X));
+      Cm (''ch2''[?]X)
+    {\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
             (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})
                @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
-               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr)"
+               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr}"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
@@ -107,14 +107,14 @@ qed
 
 lemma testHL13a'':
   assumes "\<not>a < 1"
-  shows "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr)
-    (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
-     Cm (''ch1''[!](\<lambda>s. s X));
-     Cm (''ch2''[?]X))
-    (\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr}
+      Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+      Cm (''ch1''[!](\<lambda>s. s X));
+      Cm (''ch2''[?]X)
+    {\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
             (Q @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch1'' a
-               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr)"
+               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr}"
   apply (rule Valid_seq)
    apply (rule Valid_ode_exit)
   using assms apply auto[1]
@@ -152,12 +152,12 @@ lemma left_blocks_snoc:
   by (auto simp add: join_assoc)
 
 lemma testHL13a:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr)
-    (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
-          Cm (''ch1''[!](\<lambda>s. s X));
-          Cm (''ch2''[?]X)))
-    (\<lambda>s tr. \<exists>vs. s = ((\<lambda>_. 0)(X := last_val a vs)) \<and> left_blocks a vs tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr}
+      Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
+           Cm (''ch1''[!](\<lambda>s. s X));
+           Cm (''ch2''[?]X))
+    {\<lambda>s tr. \<exists>vs. s = ((\<lambda>_. 0)(X := last_val a vs)) \<and> left_blocks a vs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
@@ -195,11 +195,11 @@ lemma right_blocks_snoc:
   by (auto simp add: join_assoc)
 
 lemma testHL13b:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr)
-    (Rep (Cm (''ch1''[?]Y);
-          Cm (''ch2''[!](\<lambda>s. s Y - 1))))
-    (\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_val a ws)) \<and> right_blocks a ws tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr}
+      Rep (Cm (''ch1''[?]Y);
+           Cm (''ch2''[!](\<lambda>s. s Y - 1)))
+    {\<lambda>s tr. \<exists>ws. s = ((\<lambda>_. 0)(Y := last_val a ws)) \<and> right_blocks a ws tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
@@ -270,15 +270,15 @@ next
 qed
 
 lemma testHL13:
-  "ParValid
-    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1))))
-    (Parallel
+  "\<Turnstile>\<^sub>p
+    {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1)))}
+      Parallel
        (Single (Rep (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1);
                 Cm (''ch1''[!](\<lambda>s. s X));
                 Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
        (Single (Rep (Cm (''ch1''[?]Y);
-                Cm (''ch2''[!](\<lambda>s. s Y - 1))))))
-    (\<exists>\<^sub>gn. trace_gassn (tot_blocks n))"
+                Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
+    {\<exists>\<^sub>gn. trace_gassn (tot_blocks n)}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testHL13a)
@@ -302,11 +302,11 @@ lemma testHL13:
 subsection \<open>Test with interrupt, loop and parallel\<close>
 
 lemma testHL14o:
-  "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr)
-    (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
-               [(''ch1''[!](\<lambda>s. s X), Skip)])
-    (\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {})) tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr}
+      Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True)
+                [(''ch1''[!](\<lambda>s. s X), Skip)]
+    {\<lambda>s tr. \<exists>d. s = (\<lambda>_. 0)(X := d + a) \<and> (P @\<^sub>t WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {})) tr}"
 proof -
   have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
@@ -356,11 +356,11 @@ lemma last_ileft_blocks_snoc [simp]:
   apply (induct ps arbitrary: a) by auto
 
 lemma testHL14a:
-  "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> emp\<^sub>t tr)
-    (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
-          Cm (''ch2''[?]X)))
-    (\<lambda>s tr. \<exists>ps. s = (\<lambda>_. 0)(X := last_ileft_blocks a ps) \<and> ileft_blocks a ps tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> emp\<^sub>t tr}
+      Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
+           Cm (''ch2''[?]X))
+    {\<lambda>s tr. \<exists>ps. s = (\<lambda>_. 0)(X := last_ileft_blocks a ps) \<and> ileft_blocks a ps tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
@@ -405,10 +405,10 @@ lemma last_iright_blocks_snoc [simp]:
   apply (induct vs arbitrary: a) by auto
 
 lemma testHL14b:
-  "Valid
-    (\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>t tr)
-    (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))
-    (\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>t tr}
+      Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))
+    {\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
@@ -488,13 +488,13 @@ next
 qed
 
 lemma testHL14:
-  "ParValid
-    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1))))
-    (Parallel
+  "\<Turnstile>\<^sub>p
+    {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := 0))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := 1)))}
+     Parallel
       (Single (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
                Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
-      (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1))))))
-    (\<exists>\<^sub>g n. trace_gassn (tot_blocks2 n))"
+      (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
+    {\<exists>\<^sub>g n. trace_gassn (tot_blocks2 n)}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testHL14a)

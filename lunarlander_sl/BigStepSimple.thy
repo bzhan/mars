@@ -180,83 +180,73 @@ lemma entails_trans:
   unfolding entails_def by auto
 
 lemma Valid_ex_pre:
-  "(\<And>v. Valid (P v) c Q) \<Longrightarrow> Valid (\<lambda>s t. \<exists>v. P v s t) c Q"
+  "(\<And>v. \<Turnstile> {P v} c {Q}) \<Longrightarrow> \<Turnstile> {\<lambda>s t. \<exists>v. P v s t} c {Q}"
   unfolding Valid_def by auto
 
 lemma Valid_ex_post:
-  "\<exists>v. Valid P c (Q v) \<Longrightarrow> Valid P c (\<lambda>s t. \<exists>v. Q v s t)"
+  "\<exists>v. \<Turnstile> {P} c {Q v} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s t. \<exists>v. Q v s t}"
   unfolding Valid_def by blast
 
 lemma Valid_and_pre:
-  "(P1 \<Longrightarrow> Valid P c Q) \<Longrightarrow> Valid (\<lambda>s t. P1 \<and> P s t) c Q"
+  "(P1 \<Longrightarrow> \<Turnstile> {P} c {Q}) \<Longrightarrow> \<Turnstile> {\<lambda>s t. P1 \<and> P s t} c {Q}"
   unfolding Valid_def by auto
 
 theorem Valid_weaken_pre:
-  "P \<Longrightarrow>\<^sub>A P' \<Longrightarrow> Valid P' c Q \<Longrightarrow> Valid P c Q"
+  "P \<Longrightarrow>\<^sub>A P' \<Longrightarrow> \<Turnstile> {P'} c {Q} \<Longrightarrow> \<Turnstile> {P} c {Q}"
   unfolding Valid_def entails_def by blast
 
 theorem Valid_strengthen_post:
-  "Q \<Longrightarrow>\<^sub>A Q' \<Longrightarrow> Valid P c Q \<Longrightarrow> Valid P c Q'"
+  "Q \<Longrightarrow>\<^sub>A Q' \<Longrightarrow> \<Turnstile> {P} c {Q} \<Longrightarrow> \<Turnstile> {P} c {Q'}"
   unfolding Valid_def entails_def by blast
 
 theorem Valid_skip:
-  "Valid P Skip P"
+  "\<Turnstile> {P} Skip {P}"
   unfolding Valid_def
   by (auto elim: skipE)
 
 theorem Valid_assign:
-  "Valid
-    (\<lambda>s tr. Q (s(var := e s)) tr)
-    (var ::= e)
-    Q"
+  "\<Turnstile> {\<lambda>s. Q (s(var := e s))} var ::= e {Q}"
   unfolding Valid_def
   by (auto elim: assignE)
 
 theorem Valid_send:
-  "Valid
-    (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-        (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])))
-    (Cm (ch[!]e))
-    Q"
+  "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
+               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)]))}
+       Cm (ch[!]e) {Q}"
   unfolding Valid_def
   by (auto elim: sendE)
 
 theorem Valid_receive:
-  "Valid
-    (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-        (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v])))
-    (Cm (ch[?]var))
-    Q"
+  "\<Turnstile> {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
+               (\<forall>d>0. \<forall>v. Q (s(var := v))
+                           (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v]))}
+       Cm (ch[?]var) {Q}"
   unfolding Valid_def
   by (auto elim: receiveE)
 
 theorem Valid_seq:
-  "Valid P c1 Q \<Longrightarrow> Valid Q c2 R \<Longrightarrow> Valid P (c1; c2) R"
+  "\<Turnstile> {P} c1 {Q} \<Longrightarrow> \<Turnstile> {Q} c2 {R} \<Longrightarrow> \<Turnstile> {P} c1; c2 {R}"
   unfolding Valid_def
   apply (auto elim!: seqE) by fastforce
 
 theorem Valid_cond:
-  "Valid P1 c1 Q \<Longrightarrow> Valid P2 c2 Q \<Longrightarrow>
-   Valid (\<lambda>s. if b s then P1 s else P2 s) (Cond b c1 c2) Q"
+  "\<Turnstile> {P1} c1 {Q} \<Longrightarrow> \<Turnstile> {P2} c2 {Q} \<Longrightarrow> \<Turnstile> {\<lambda>s. if b s then P1 s else P2 s} IF b c1 c2 {Q}"
   unfolding Valid_def
   by (auto elim: condE)
 
 theorem Valid_wait:
-  "d > 0 \<Longrightarrow> Valid
-    (\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]))
-    (Wait d)
-    Q"
+  "d > 0 \<Longrightarrow> \<Turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})])} Wait d {Q}"
   unfolding Valid_def
   by (auto elim: waitE)
 
 theorem Valid_wait2:
-  "\<not> d > 0 \<Longrightarrow> Valid Q (Wait d) Q"
+  "\<not> d > 0 \<Longrightarrow> \<Turnstile> {Q} Wait d {Q}"
   unfolding Valid_def
   by (auto elim: waitE)
 
 theorem Valid_rep:
-  assumes "Valid P c P"
-  shows "Valid P (Rep c) P"
+  assumes "\<Turnstile> {P} c {P}"
+  shows "\<Turnstile> {P} Rep c {P}"
 proof -
   have "big_step p s1 tr2 s2 \<Longrightarrow> p = Rep c \<Longrightarrow> \<forall>tr1. P s1 tr1 \<longrightarrow> P s2 (tr1 @ tr2)" for p s1 s2 tr2
     apply (induct rule: big_step.induct, auto)
@@ -266,26 +256,23 @@ proof -
 qed
 
 theorem Valid_ichoice:
-  assumes "Valid P1 c1 Q"
-    and "Valid P2 c2 Q"
-  shows "Valid
-    (\<lambda>s tr. P1 s tr \<and> P2 s tr)
-    (IChoice c1 c2)
-    Q"
+  assumes "\<Turnstile> {P1} c1 {Q}"
+    and "\<Turnstile> {P2} c2 {Q}"
+  shows "\<Turnstile> {\<lambda>s tr. P1 s tr \<and> P2 s tr} IChoice c1 c2 {Q}"
   using assms unfolding Valid_def by (auto elim: ichoiceE)
 
 theorem Valid_echoice:
   assumes "\<And>i. i<length es \<Longrightarrow>
     case es ! i of
       (ch[!]e, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))))
     | (ch[?]var, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))))"
-  shows "Valid P (EChoice es) R"
+  shows "\<Turnstile> {P} EChoice es {R}"
 proof -
   have a: "R s2 (tr1 @ (OutBlock ch (e s1) # tr2))"
     if *: "P s1 tr1"
@@ -294,7 +281,7 @@ proof -
           "big_step p2 s1 tr2 s2" for s1 tr1 s2 i ch e p2 tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
       using *(2,3) by fastforce
     have 2: "Q s1 (tr1 @ [OutBlock ch (e s1)])"
@@ -310,7 +297,7 @@ proof -
           "big_step p2 s1 tr2 s2" for s1 tr1 s2 d i ch e p2 tr2
   proof -
     obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
       using *(3,4) assms by fastforce
     have 2: "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
@@ -325,7 +312,7 @@ proof -
           "big_step p2 (s1(var := v)) tr2 s2" for s1 tr1 s2 i ch var p2 v tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
       using *(2,3) by fastforce
     have 2: "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
@@ -341,7 +328,7 @@ proof -
           "big_step p2 (s1(var := v)) tr2 s2" for s1 tr1 s2 d i ch var p2 v tr2
   proof -
     from assms obtain Q where 1:
-      "Valid Q p2 R"
+      "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
       using *(3,4) by fastforce
     have 2: "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
@@ -455,30 +442,28 @@ lemma entails_tassn_cancel_left:
 text \<open>Simpler forms of weakest precondition\<close>
 
 theorem Valid_send':
-  "Valid
-    (\<lambda>s. Out\<^sub>t s ch (e s) @- Q s)
-    (Cm (ch[!]e))
-    Q"
+  "\<Turnstile> {\<lambda>s. Out\<^sub>t s ch (e s) @- Q s}
+       Cm (ch[!]e)
+      {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send)
   unfolding entails_def magic_wand_assn_def
   by (auto intro: out_assn.intros)
 
 theorem Valid_receive':
-  "Valid
-    (\<lambda>s. \<forall>\<^sub>t v. In\<^sub>t s ch v @- Q (s(var := v)))
-    (Cm (ch[?]var))
-    Q"
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ch v @- Q (s(var := v))}
+       Cm (ch[?]var)
+      {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_receive)
   unfolding entails_def magic_wand_assn_def all_assn_def
   by (auto intro: in_assn.intros)
 
 theorem Valid_wait':
-  "d > 0 \<Longrightarrow> Valid
-    (\<lambda>s. WaitS\<^sub>t d (\<lambda>_. s) ({}, {}) @- Q s)
-    (Wait d)
-    Q"
+  "d > 0 \<Longrightarrow> \<Turnstile>
+    {\<lambda>s. WaitS\<^sub>t d (\<lambda>_. s) ({}, {}) @- Q s}
+      Wait d
+    {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait)
   unfolding entails_def magic_wand_assn_def
@@ -487,28 +472,25 @@ theorem Valid_wait':
 text \<open>Strongest postcondition forms\<close>
 
 theorem Valid_assign_sp:
-  "Valid
-    (\<lambda>s t. s = st \<and> P s t)
-    (Assign x e)
-    (\<lambda>s t. s = st(x := e st) \<and> P st t)"
+  "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
+        Assign x e
+      {\<lambda>s t. s = st(x := e st) \<and> P st t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_assign)
   by (auto simp add: entails_def)
 
 theorem Valid_send_sp:
-  "Valid
-    (\<lambda>s t. s = st \<and> P s t)
-    (Cm (ch[!]e))
-    (\<lambda>s t. s = st \<and> (P st @\<^sub>t Out\<^sub>t st ch (e st)) t)"
+  "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
+       Cm (ch[!]e)
+      {\<lambda>s t. s = st \<and> (P st @\<^sub>t Out\<^sub>t st ch (e st)) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send')
   by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
 
 theorem Valid_receive_sp:
-  "Valid
-    (\<lambda>s t. s = st \<and> P s t)
-    (Cm (ch[?]var))
-    (\<lambda>s t. \<exists>v. s = st(var := v) \<and> (P st @\<^sub>t In\<^sub>t st ch v) t)"
+  "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
+        Cm (ch[?]var)
+      {\<lambda>s t. \<exists>v. s = st(var := v) \<and> (P st @\<^sub>t In\<^sub>t st ch v) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_receive)
   unfolding entails_def
@@ -524,10 +506,10 @@ theorem Valid_receive_sp:
   done
 
 theorem Valid_wait_sp:
-  "d > 0 \<Longrightarrow> Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Wait d)
-    (\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>t d (\<lambda>_. st) ({}, {})) tr)"
+  "d > 0 \<Longrightarrow> \<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Wait d
+    {\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>t d (\<lambda>_. st) ({}, {})) tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def)
@@ -550,33 +532,33 @@ theorem Valid_echoice':
   assumes "\<And>i. i<length es \<Longrightarrow>
     case es ! i of
       (ch[!]e, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
             (P \<Longrightarrow>\<^sub>A (\<lambda>s. Outrdy\<^sub>t s ch (e s) (rdy_of_echoice es) @- Q s)))
     | (ch[?]var, p2) \<Rightarrow>
-        (\<exists>Q. Valid Q p2 R \<and>
+        (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
             (P \<Longrightarrow>\<^sub>A (\<lambda>s. \<forall>\<^sub>tv. Inrdy\<^sub>t s ch v (rdy_of_echoice es) @- Q (s(var := v)))))"
-  shows "Valid P (EChoice es) R"
+  shows "\<Turnstile> {P} EChoice es {R}"
 proof -
-  have 1: "\<exists>Q. Valid Q p R \<and>
+  have 1: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])))"
     if *: "i < length es" "es ! i = (ch[!]e, p)" for i ch e p
   proof -
     from assms obtain Q where
-      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. Outrdy\<^sub>t s ch (e s) (rdy_of_echoice es) @- Q s))"
+      Q: "\<Turnstile> {Q} p {R} \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. Outrdy\<^sub>t s ch (e s) (rdy_of_echoice es) @- Q s))"
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
       using Q by (auto simp add: entails_def magic_wand_assn_def
                        intro: outrdy_assn.intros)
   qed
-  have 2: "\<exists>Q. Valid Q p R \<and>
+  have 2: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))"
     if *: "i < length es" "es ! i = (ch[?]var, p)" for i ch var p
   proof -
     from assms obtain Q where
-      Q: "Valid Q p R \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. \<forall>\<^sub>tv. Inrdy\<^sub>t s ch v (rdy_of_echoice es) @- Q (s(var := v))))"
+      Q: "\<Turnstile> {Q} p {R} \<and> (P \<Longrightarrow>\<^sub>A (\<lambda>s. \<forall>\<^sub>tv. Inrdy\<^sub>t s ch v (rdy_of_echoice es) @- Q (s(var := v))))"
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
@@ -598,13 +580,13 @@ theorem Valid_echoice_sp:
   assumes "\<And>i. i<length es \<Longrightarrow>
     case es ! i of
       (ch[!]e, p2) \<Rightarrow>
-        Valid (\<lambda>s tr. s = st \<and> (P s @\<^sub>t Outrdy\<^sub>t s ch (e s) (rdy_of_echoice es)) tr) p2 Q
+        \<Turnstile> {\<lambda>s tr. s = st \<and> (P s @\<^sub>t Outrdy\<^sub>t s ch (e s) (rdy_of_echoice es)) tr} p2 {Q}
     | (ch[?]var, p2) \<Rightarrow>
-        Valid (\<lambda>s tr. (\<exists>v. s = st(var := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch v (rdy_of_echoice es)) tr)) p2 Q"
-  shows "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (EChoice es)
-    Q"
+        \<Turnstile> {\<lambda>s tr. (\<exists>v. s = st(var := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch v (rdy_of_echoice es)) tr)} p2 {Q}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      EChoice es
+    {Q}"
   apply (rule Valid_echoice')
   subgoal for i
     apply (cases "es ! i") apply auto
