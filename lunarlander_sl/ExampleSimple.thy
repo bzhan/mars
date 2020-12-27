@@ -365,10 +365,10 @@ lemma testHL4:
          apply (metis combine_blocks_elim1 combine_blocks_elim2a singletonI)
       using combine_blocks_elim2b apply blast
        apply (cases s2) apply auto
-      using combine_blocks_elim2e apply blast
+      using combine_blocks_elim2d apply blast
        apply (auto elim!: combine_blocks_elim4a)
       apply (cases s2) apply auto
-      using combine_blocks_elim2e apply blast
+      using combine_blocks_elim2d apply blast
       by (auto elim!: combine_blocks_elim4a)
     done
   done

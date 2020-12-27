@@ -87,35 +87,19 @@ lemma combine_blocks_elim2a:
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim2b:
-  "combine_blocks comms (OutBlock ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim2c:
-  "combine_blocks comms (InBlock ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  "combine_blocks comms (CommBlock ch_type ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim2d:
-  "combine_blocks comms (WaitBlock d p rdy # blks1) (OutBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim2e:
-  "combine_blocks comms (WaitBlock d p rdy # blks1) (InBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  "combine_blocks comms (WaitBlock d p rdy # blks1) (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim2f:
-  "combine_blocks comms [] (InBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim2g:
-  "combine_blocks comms [] (OutBlock ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  "combine_blocks comms [] (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim2h:
-  "combine_blocks comms (InBlock ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim2i:
-  "combine_blocks comms (OutBlock ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  "combine_blocks comms (CommBlock ch_type ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 
@@ -129,15 +113,15 @@ lemma combine_blocks_elim3:
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim3a:
-  "combine_blocks comms (InBlock ch1 v # blks1) [] blks \<Longrightarrow>
+  "combine_blocks comms (CommBlock ch_type ch1 v # blks1) [] blks \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = InBlock ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 [] blks' \<Longrightarrow> P) \<Longrightarrow> P"
+   (\<And>blks'. blks = CommBlock ch_type ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 [] blks' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim3b:
-  "combine_blocks comms [] (OutBlock ch2 w # blks2) blks \<Longrightarrow>
+  "combine_blocks comms [] (CommBlock ch_type ch2 w # blks2) blks \<Longrightarrow>
    ch2 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms [] blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+   (\<And>blks'. blks = CommBlock ch_type ch2 w # blks' \<Longrightarrow> combine_blocks comms [] blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 text \<open>Wait cases\<close>
@@ -315,14 +299,14 @@ lemma combine_assn_emp_out:
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2g combine_blocks_elim4c)
+  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
 
 lemma combine_assn_out_emp:
   "ch \<in> chs \<Longrightarrow> combine_assn chs (Out\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
+  by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
 
 lemma combine_assn_out_in:
   "ch \<in> chs \<Longrightarrow>
@@ -332,7 +316,7 @@ lemma combine_assn_out_in:
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2e combine_blocks_elim4a)
+                  combine_blocks_elim2d combine_blocks_elim4a)
 
 lemma combine_assn_out_in':
   "ch \<in> chs \<Longrightarrow>
@@ -342,7 +326,7 @@ lemma combine_assn_out_in':
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def
                         io_assn.simps out_assn.simps in_assn.simps)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2e combine_blocks_elim4a)
+                  combine_blocks_elim2d combine_blocks_elim4a)
 
 lemma combine_assn_in_out:
   "ch \<in> chs \<Longrightarrow>
@@ -351,7 +335,7 @@ lemma combine_assn_in_out:
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2c
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2b
                   combine_blocks_elim2d combine_blocks_elim4a)
 
 lemma combine_assn_wait_emp:
@@ -462,14 +446,14 @@ proof -
           apply (elim combine_blocks_elim4e)
           apply (rule d3)
            using that(1) apply simp
-          apply (elim combine_blocks_elim2e)
+          apply (elim combine_blocks_elim2d)
           using assms by auto
       qed
     qed
     show ?thesis
       using b(1) apply (cases rule: in_assn.cases)
       subgoal
-        by (metis Cons_eq_appendI a(3) assms(1) b(3) c combine_blocks_elim2e that(3))
+        by (metis Cons_eq_appendI a(3) assms(1) b(3) c combine_blocks_elim2d that(3))
       subgoal for d2
         using that(3) unfolding a(3) b(3) c
         using d assms(2) by auto
@@ -639,7 +623,7 @@ proof -
         apply (elim combine_blocks_elim2b) by (rule assms)
       using b(1) apply (cases rule: in_assn.cases)
       using that(3) unfolding a(3) b(3) apply auto
-       apply (elim combine_blocks_elim2e) apply (rule assms)
+       apply (elim combine_blocks_elim2d) apply (rule assms)
       apply (elim combine_blocks_elim4a)
       using assms(2) apply (cases rdy) by auto
   qed
@@ -654,7 +638,7 @@ lemma combine_assn_waitout_emp:
   shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
-  using assms by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
+  using assms by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
 
 subsection \<open>Assertions for global states\<close>
 
