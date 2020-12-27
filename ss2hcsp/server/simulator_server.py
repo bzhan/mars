@@ -7,6 +7,8 @@ import time
 from pstats import Stats
 import cProfile
 
+import sys
+sys.path.append("..")
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint

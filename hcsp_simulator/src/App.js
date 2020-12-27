@@ -37,10 +37,27 @@ const verticalLinePlugin = {
             context.fillRect(lineLeftOffset1, scale.bottom, lineLeftOffset2 - lineLeftOffset1, scale.top - scale.bottom);
         }
     },
+    renderVerticalLine_red: function (chartInstance, pointIndex) {
+        const scale = chartInstance.scales['y-axis-0'];
+        const context = chartInstance.chart.ctx;
+
+        if (typeof (pointIndex) === 'number') {
+            // render vertical line
+            const lineLeftOffset = this.getLinePosition(chartInstance, pointIndex);
+            context.beginPath();
+            context.strokeStyle = 'red';
+            context.moveTo(lineLeftOffset, scale.top);
+            context.lineTo(lineLeftOffset, scale.bottom);
+            context.stroke();
+        }
+    },
 
     beforeDatasetsDraw: function (chart, easing) {
         if (chart.config.lineAtIndex) {
             chart.config.lineAtIndex.forEach(pointIndex => this.renderVerticalLine(chart, pointIndex));
+        }
+        if (chart.config.warningAtIndex) {
+            chart.config.warningAtIndex.forEach(pointIndex => this.renderVerticalLine_red(chart, pointIndex));
         }
     }
 };
@@ -53,7 +70,7 @@ class Process extends React.Component {
         super(props);
         this.state = {
             show_graph: false,
-            
+
         }
 
     }
@@ -105,7 +122,7 @@ class Process extends React.Component {
                         // Round numbers to at most three digits for display
                         var val = this.props.state[key];
                         var str_val = '';
-                        if (typeof(val) == 'number') {
+                        if (typeof (val) == 'number') {
                             val = Math.round(val.toFixed(3) * 1000) / 1000;
                             str_val = String(val);
                         }
@@ -179,12 +196,16 @@ class Process extends React.Component {
 
         var canvas = document.getElementById('chart' + String(this.props.index));
         const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
+        if (typeof this.props.warning_at == 'undefined') { }
+        else
+            var warningAtIndex = this.props.warning_at[0];
         this.chart = new Chart(canvas, {
             type: 'line',
             data: {
                 datasets: datasets
             },
             lineAtIndex: [lineAtIndex],
+            warningAtIndex: [warningAtIndex],
             options: {
                 animation: {
                     duration: 0
@@ -468,14 +489,14 @@ class App extends React.Component {
                     {this.state.hcsp_info.map((info, index) => {
                         const hcsp_name = info.name;
                         if ('parallel' in info) {
-                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
+                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')  }</div>
                         }
                         else if (this.state.history.length === 0) {
                             // No data is available
                             return <Process key={index} index={index} lines={info.lines}
                                 name={hcsp_name} pos={undefined} state={[]}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
-                                npos={undefined} />
+                                npos={undefined} warning_at={this.state.sim_warning} />
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
@@ -501,7 +522,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={undefined} />
+                                    npos={undefined} warning_at={this.state.sim_warning} />
                             } else {
                                 var npos = false;
                                 if (hpos < this.state.history.length - 1) {
@@ -513,7 +534,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={info.mapping[pos]} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={npos} />
+                                    npos={npos} warning_at={this.state.sim_warning} />
                             }
                         }
                     })}
