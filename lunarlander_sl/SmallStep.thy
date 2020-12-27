@@ -1,23 +1,6 @@
 theory SmallStep
-  imports BigStepSimple BigStepParallel
+  imports BigStepParallel
 begin
-
-
-subsection \<open>Further results in analysis\<close>
-
-lemma ODEsol_merge:
-  assumes "ODEsol ode p d"
-    and "ODEsol ode p2 d2"
-    and "p2 0 = p d"
-  shows "ODEsol ode (\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)) (d + d2)"
-  sorry
-
-lemma ODEsol_split:
-  assumes "ODEsol ode p d"
-    and "0 < t1" and "t1 < d"
-  shows "ODEsol ode p t1"
-        "ODEsol ode (\<lambda>t. p (t + t1)) (d - t1)"
-  sorry
 
 
 subsection \<open>Small-step semantics\<close>

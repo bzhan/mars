@@ -1,5 +1,5 @@
 theory BigStepParallel
-  imports BigStepSimple
+  imports BigStepContinuous
 begin
 
 
@@ -557,6 +557,180 @@ proof -
     using * by auto
 qed
 
+lemma combine_assn_waitout_wait:
+  assumes "ch \<in> chs"
+    and "compat_rdy rdy rdy2"
+    and "d2 > 0"
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) (Wait\<^sub>t d2 p2 rdy2 @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d \<ge> d2) \<and>\<^sub>t (Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+                        combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q))"
+proof -
+  have *: "(\<up> (d2 \<le> d) \<and>\<^sub>t
+        Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+        combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
+    if "(WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) tr1"
+       "(Wait\<^sub>t d2 p2 rdy2 @\<^sub>t Q) tr2"
+       "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+  proof -
+    from that(1)[unfolded join_assn_def]
+    obtain tr11 tr12 where a: "WaitOut\<^sub>t d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+      by auto
+    from that(2)[unfolded join_assn_def]
+    obtain tr21 tr22 where b: "Wait\<^sub>t d2 p2 rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
+      by auto
+    have c: "tr21 = [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy2]"
+      using b(1) wait_assn.cases by blast
+    have d: "(\<up> (d2 \<le> d) \<and>\<^sub>t
+             Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
+             combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
+      if "0 < d"
+         "combine_blocks chs (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy # OutBlock ch (e (p d)) # tr12)
+                             (WaitBlock d2 (restrict p2 {0..d2}) rdy2 # tr22) tr"
+    proof -
+      have "d < d2 \<or> d = d2 \<or> d > d2" by auto
+      then show ?thesis
+      proof (elim disjE)
+        assume d1: "d < d2"
+        show ?thesis
+          using that(2)
+          apply (elim combine_blocks_elim4d)
+            apply (rule d1) apply (rule assms(2))
+          using assms(1) combine_blocks_elim2b by blast
+      next
+        assume d2: "d = d2"
+        have rw: "WaitBlock d (\<lambda>t\<in>{0..d}. ParState ((\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) t) (restrict p2 {0..d} t)) (merge_rdy rdy rdy2) =
+                  WaitBlock d (\<lambda>t\<in>{0..d}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)"
+          by auto
+        show ?thesis
+          using that(2)
+          unfolding d2[symmetric]
+          apply (elim combine_blocks_elim4)
+           apply (rule assms(2))
+          subgoal for blks'
+            unfolding pure_assn_def conj_assn_def
+            apply (rule conjI)
+            subgoal by auto
+            apply (subst join_assn_def)
+            apply (rule exI[where x="[WaitBlock d (\<lambda>t\<in>{0..d}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
+            apply (rule exI[where x=blks'])
+            apply (rule conjI)
+            subgoal by (auto intro: wait_assn.intros)
+            apply (rule conjI)
+             prefer 2 subgoal unfolding rw by auto
+            unfolding combine_assn_def
+            apply (rule exI[where x="OutBlock ch (e (p d)) # tr12"])
+            apply (rule exI[where x=tr22])
+            apply (rule conjI)
+             prefer 2 subgoal using b(2) by auto
+            unfolding join_assn_def
+            apply (rule exI[where x="[OutBlock ch (e (p d))]"])
+            apply (rule exI[where x=tr12])
+            by (auto simp add: a(2) wait_out_assn.simps)
+          done
+      next
+        assume d3: "d > d2"
+        have rw: "WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (t + d2)) rdy =
+                  WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy"
+          apply auto apply (rule ext) using d3 that(1) assms(3) by auto
+        show ?thesis
+          using that(2)
+          apply (elim combine_blocks_elim4e)
+            apply (rule d3) apply (rule assms(2))
+          subgoal for blks'
+            unfolding pure_assn_def conj_assn_def
+            apply (rule conjI)
+            subgoal using d3 by auto
+            apply (subst join_assn_def)
+            apply (rule exI[where x="[WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
+            apply (rule exI[where x=blks'])
+            apply (rule conjI)
+            subgoal by (auto intro: wait_assn.intros)
+            apply (rule conjI)
+             prefer 2 subgoal apply auto apply (rule ext) using d3 by auto
+            unfolding combine_assn_def
+            apply (rule exI[where x="WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy # OutBlock ch (e (p d)) # tr12"])
+            apply (rule exI[where x=tr22])
+            apply (rule conjI)
+             prefer 2 subgoal apply (rule conjI)
+               apply (rule b(2)) unfolding rw by auto
+            unfolding join_assn_def
+            apply (rule exI[where x="[WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy, OutBlock ch (e (p d))]"])
+            apply (rule exI[where x=tr12])
+            apply (rule conjI)
+            subgoal
+              using wait_out_assn.intros(2)[of "d - d2" "\<lambda>t. p (t + d2)" ch e rdy]
+              by (simp add: d3)
+            using a(2) by auto
+          done
+      qed
+    qed
+    show ?thesis
+      using a(1) apply (cases rule: wait_out_assn.cases)
+      subgoal
+        using that(3) unfolding a(3) b(3) c
+        apply auto
+        using assms combine_blocks_elim2b by blast
+      subgoal
+        using that(3) unfolding a(3) b(3) c
+        apply auto using d by auto
+      done
+  qed
+  show ?thesis
+    apply (subst combine_assn_def)
+    apply (auto simp add: entails_tassn_def)
+    using * by auto
+qed
+
+lemma combine_assn_waitout_in:
+  assumes "ch \<in> chs"
+    and "ch \<in> fst rdy"
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) (In\<^sub>t s ch v @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (\<up>(d = 0) \<and>\<^sub>t \<up>(v = e (p 0)) \<and>\<^sub>t
+          (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
+proof -
+  have *: "(\<up> (d = 0) \<and>\<^sub>t \<up> (v = e (p 0)) \<and>\<^sub>t IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q) tr"
+    if "(WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) tr1"
+       "(In\<^sub>t s ch v @\<^sub>t Q) tr2"
+       "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+  proof -
+    from that(1)[unfolded join_assn_def]
+    obtain tr11 tr12 where a: "WaitOut\<^sub>t d p ch e rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+      by auto
+    from that(2)[unfolded join_assn_def]
+    obtain tr21 tr22 where b: "In\<^sub>t s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
+      by auto
+    show ?thesis
+      using a(1) apply (cases rule: wait_out_assn.cases)
+      subgoal
+        using b(1) apply (cases rule: in_assn.cases)
+        subgoal
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_elim2a)
+          apply (rule assms(1))
+          apply (auto simp add: conj_assn_def pure_assn_def join_assn_def)
+          apply (rule exI[where x="[IOBlock ch (e (p 0))]"])
+          apply (auto intro: io_assn.intros)
+          unfolding combine_assn_def using a(2) b(2) by auto
+        using that(3) unfolding a(3) b(3) apply auto
+        apply (elim combine_blocks_elim2b) by (rule assms)
+      using b(1) apply (cases rule: in_assn.cases)
+      using that(3) unfolding a(3) b(3) apply auto
+       apply (elim combine_blocks_elim2e) apply (rule assms)
+      apply (elim combine_blocks_elim4a)
+      using assms(2) apply (cases rdy) by auto
+  qed
+  show ?thesis
+    apply (subst combine_assn_def)
+    apply (auto simp add: entails_tassn_def)
+    using * by auto
+qed
+
+lemma combine_assn_waitout_emp:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
+  using assms by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
 
 subsection \<open>Assertions for global states\<close>
 

@@ -1,5 +1,5 @@
 theory Complete
-  imports BigStepContinuous BigStepParallel
+  imports BigStepParallel
 begin
 
 subsection \<open>Proof system\<close>

@@ -1,5 +1,5 @@
 theory BigStepContinuous
-  imports BigStepSimple Analysis_More
+  imports BigStepSimple
 begin
 
 
