@@ -263,25 +263,47 @@ lemma test_internal_parallel:
   apply (rule combine_blocks_pair2) apply auto
   by (rule combine_blocks_empty)
 
+
+subsection \<open>Tests for combine_blocks\<close>
+
+lemma test_combine1:
+  "combine_blocks {''ch''} [InBlock ''ch'' v] [OutBlock ''ch'' v] [IOBlock ''ch'' v]"
+  by (intro combine_blocks.intros, auto)
+
+lemma test_combine1_unique:
+  "combine_blocks {''ch''} [InBlock ''ch'' v] [OutBlock ''ch'' v] blks \<Longrightarrow>
+   blks = [IOBlock ''ch'' v]"
+  by (auto elim: combine_blocks_elim1 combine_blocks_elim2)
+
+lemma test_combine2:
+  "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] [InBlock ''ch1'' v, OutBlock ''ch2'' w]"
+  by (intro combine_blocks.intros, auto)
+
+lemma test_combine2_unique:
+  "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] blks \<Longrightarrow>
+   blks = [InBlock ''ch1'' v, OutBlock ''ch2'' w] \<or>
+   blks = [OutBlock ''ch2'' w, InBlock ''ch1'' v]"
+  by (auto elim!: combine_blocks_elim3 combine_blocks_elim3a combine_blocks_elim3b
+      combine_blocks_elim1)
+
+
 subsection \<open>Simple examples of proofs\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1:
-  "Valid
-    (\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
-            (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1])))
-    (Cm (''ch''[!](\<lambda>_. 1)))
-    Q"
+  "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
+              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]))}
+        Cm (''ch''[!](\<lambda>_. 1))
+      {Q}"
   by (rule Valid_send)
 
 text \<open>This implies the strongest postcondition form\<close>
 lemma testHL1':
-  "Valid
-    (\<lambda>s t. s = st \<and> t = tr)
-    (Cm (''ch''[!](\<lambda>_. 1)))
-    (\<lambda>s t. s = st \<and>
+  "\<Turnstile> {\<lambda>s t. s = st \<and> t = tr}
+        Cm (''ch''[!](\<lambda>_. 1))
+      {\<lambda>s t. s = st \<and>
            (t = tr @ [OutBlock ''ch'' 1] \<or>
-             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1])))"
+             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1]))}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule Valid_send)
@@ -289,36 +311,33 @@ lemma testHL1':
 
 text \<open>Send 1, then send 2\<close>
 lemma testHL2:
-  "Valid
-    (\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-             (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
-            (\<forall>d>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-             (\<forall>da>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
-                           [WaitBlock da (\<lambda>\<tau>\<in>{0..da}. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))))
-    (Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2)))
-    Q"
+  "\<Turnstile> {\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
+               (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
+              (\<forall>d>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
+               (\<forall>da>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
+                             [WaitBlock da (\<lambda>\<tau>\<in>{0..da}. State s) ({''ch''}, {}), OutBlock ''ch'' 2])))}
+        Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2))
+      {Q}"
   apply (rule Valid_seq)
     prefer 2 apply (rule Valid_send)
   by (rule Valid_send)
 
 text \<open>Receive from ch\<close>
 lemma testHL3:
-  "Valid
-    (\<lambda>s tr.
+  "\<Turnstile> {\<lambda>s tr.
         (\<forall>v. Q (s(X := v)) (tr @ [InBlock ''ch'' v])) \<and>
-        (\<forall>d>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {''ch''}), InBlock ''ch'' v])))
-    (Cm (''ch''[?]X))
-    Q"
+        (\<forall>d>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {''ch''}), InBlock ''ch'' v]))}
+       Cm (''ch''[?]X)
+      {Q}"
   by (rule Valid_receive)
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL3':
-  "Valid
-    (\<lambda>s t. s = st \<and> t = tr)
-    (Cm (''ch''[?]X))
-    (\<lambda>s t. (\<exists>v. s = st(X := v) \<and>
-             (t = tr @ [InBlock ''ch'' v]) \<or>
-               (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({}, {''ch''}), InBlock ''ch'' v])))"
+  "\<Turnstile> {\<lambda>s t. s = st \<and> t = tr}
+       (Cm (''ch''[?]X))
+      {\<lambda>s t. (\<exists>v. s = st(X := v) \<and>
+              (t = tr @ [InBlock ''ch'' v]) \<or>
+                 (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({}, {''ch''}), InBlock ''ch'' v]))}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule testHL3)
@@ -326,11 +345,10 @@ lemma testHL3':
 
 text \<open>Communication\<close>
 lemma testHL4:
-  "ParValid
-    (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
-    (Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
-              (Single (Cm (''ch''[?]X))))
-    (\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1])"
+  "\<Turnstile>\<^sub>p {pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2)}
+        Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+                 (Single (Cm (''ch''[?]X)))
+      {\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1]}"
   apply (rule ParValid_conseq)
     apply (rule ParValid_Parallel)
   apply (rule ParValid_Single[OF testHL1'])
@@ -360,36 +378,32 @@ subsection \<open>Simple examples redone\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1s:
-  "Valid
-    (\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- P s)
-    (Cm (''ch''[!](\<lambda>s. s X)))
-    P"
+  "\<Turnstile> {\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- P s}
+       Cm (''ch''[!](\<lambda>s. s X))
+      {P}"
   by (rule Valid_send')
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL1s':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[!](\<lambda>s. s X)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>t st ''ch'' (st X)) tr)"
+  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+       Cm (''ch''[!](\<lambda>s. s X))
+      {\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>t st ''ch'' (st X)) tr}"
   by (rule Valid_send_sp)
 
 text \<open>Send 1, then send 2\<close>
 lemma testHL2s:
-  "Valid
-    (\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- Out\<^sub>t s ''ch'' (s Y) @- P s)
-    (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
-    P"
+  "\<Turnstile> {\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- Out\<^sub>t s ''ch'' (s Y) @- P s}
+        Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y))
+      {P}"
   apply (rule Valid_seq)
     prefer 2 apply (rule Valid_send')
   by (rule Valid_send')
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL2s':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y)))
-    (\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>t s ''ch'' (s X)) @\<^sub>t (Out\<^sub>t s ''ch'' (s Y))) tr)"
+  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+        Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y))
+      {\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>t s ''ch'' (s X)) @\<^sub>t (Out\<^sub>t s ''ch'' (s Y))) tr}"
   apply (rule Valid_seq)
    apply (rule Valid_send_sp)
   apply (rule Valid_strengthen_post)
@@ -398,26 +412,23 @@ lemma testHL2s':
 
 text \<open>Receive from ch\<close>
 lemma testHL3s:
-  "Valid
-    (\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- P (s(X := v)))
-    (Cm (''ch''[?]X))
-    P"
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- P (s(X := v))}
+        Cm (''ch''[?]X)
+      {P}"
   by (rule Valid_receive')
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL3s':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v) tr)"
+  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+       Cm (''ch''[?]X)
+      {\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v) tr}"
   by (rule Valid_receive_sp)
 
 text \<open>Receive two values in a row\<close>
 lemma testHL3a:
-  "Valid
-    ((\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- (\<forall>\<^sub>tw. In\<^sub>t (s(X := v)) ''ch'' w @- P (s(X := w)))))
-    (Cm (''ch''[?]X); Cm (''ch''[?]X))
-    P"
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- (\<forall>\<^sub>tw. In\<^sub>t (s(X := v)) ''ch'' w @- P (s(X := w)))}
+        Cm (''ch''[?]X); Cm (''ch''[?]X)
+      {P}"
   apply (rule Valid_weaken_pre) prefer 2
   apply (rule Valid_seq)
     prefer 2 apply (rule Valid_receive')
@@ -426,10 +437,9 @@ lemma testHL3a:
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL3a':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (Cm (''ch''[?]X); Cm (''ch''[?]X))
-    (\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v @\<^sub>t In\<^sub>t (st(X := v)) ''ch'' w) tr)"
+  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+        Cm (''ch''[?]X); Cm (''ch''[?]X)
+      {\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v @\<^sub>t In\<^sub>t (st(X := v)) ''ch'' w) tr}"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
   apply (rule Valid_ex_pre)
@@ -442,13 +452,13 @@ lemma testHL3a':
 
 text \<open>Communication\<close>
 lemma testHL4s:
-  "ParValid
-    (pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2))
-    (Parallel (Single (Cm (''ch''[!](\<lambda>s. s X)))) {''ch''}
-              (Single (Cm (''ch''[?]X))))
-    (left_gassn (sing_assn (\<lambda>s. s = st1)) \<and>\<^sub>g
+  "\<Turnstile>\<^sub>p
+    {pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2)}
+      Parallel (Single (Cm (''ch''[!](\<lambda>s. s X)))) {''ch''}
+               (Single (Cm (''ch''[?]X)))
+    {left_gassn (sing_assn (\<lambda>s. s = st1)) \<and>\<^sub>g
      right_gassn (sing_assn (\<lambda>s. s = st2(X := st1 X))) \<and>\<^sub>g
-     trace_gassn (IO\<^sub>t ''ch'' (st1 X)))"
+     trace_gassn (IO\<^sub>t ''ch'' (st1 X))}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testHL1s')
@@ -466,10 +476,9 @@ lemma testHL4s:
 
 text \<open>Receive then send\<close>
 lemma testHL5:
-  "Valid
-    (\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Out\<^sub>t (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v)))
-    (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
-    Q"
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Out\<^sub>t (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v))}
+        Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1))
+      {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_seq)
     prefer 2 apply (rule Valid_send')
@@ -478,10 +487,10 @@ lemma testHL5:
 
 text \<open>Receive then send, strongest postcondition version\<close>
 lemma testHL5sp:
-  "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1)))
-    (\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>t st ''ch1'' v) @\<^sub>t Out\<^sub>t (st(X := v)) ''ch2'' (v + 1)) tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1))
+    {\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>t st ''ch1'' v) @\<^sub>t Out\<^sub>t (st(X := v)) ''ch2'' (v + 1)) tr}"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
   apply (rule Valid_ex_pre)
@@ -495,11 +504,11 @@ subsection \<open>Test for internal choice\<close>
 
 text \<open>Contrast this with the case of internal choice\<close>
 lemma ichoice_test1:
-  "Valid
-    (\<lambda>s. (\<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Q (s(X := v))) \<and>\<^sub>t
-         (\<forall>\<^sub>tv. In\<^sub>t s ''ch2'' v @- Q (s(X := v))))
-    (IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X)))
-    Q"
+  "\<Turnstile>
+    {\<lambda>s. (\<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Q (s(X := v))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. In\<^sub>t s ''ch2'' v @- Q (s(X := v)))}
+      IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X))
+    {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_ichoice)
     apply (rule Valid_receive') apply (rule Valid_receive')
@@ -508,11 +517,11 @@ lemma ichoice_test1:
 text \<open>Strongest postcondition form\<close>
 
 lemma ichoice_test1':
-  "Valid
-    (\<lambda>s tr. s = st \<and> P tr)
-    (IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X)))
-    (\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch1'' v) tr) \<or>
-            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch2'' v) tr))"
+  "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P tr}
+      IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X))
+    {\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch1'' v) tr) \<or>
+            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch2'' v) tr)}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule ichoice_test1)
   apply (auto simp add: entails_def conj_assn_def magic_wand_assn_def join_assn_def all_assn_def)
@@ -550,15 +559,15 @@ proof -
 qed
 
 theorem Valid_echoice_InIn:
-  assumes "Valid Q1 p1 R"
-    and "Valid Q2 p2 R"
-  shows "Valid
-    (\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
+  assumes "\<Turnstile> {Q1} p1 {R}"
+    and "\<Turnstile> {Q2} p2 {R}"
+  shows "\<Turnstile>
+    {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
             (\<forall>d>0. \<forall>v. Q1 (s(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch1 v])) \<and>
             (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
-            (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch2 v])))
-      (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
-    R"
+            (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch2 v]))}
+      EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
+    {R}"
   apply (rule Valid_echoice)
   apply (rule InIn_lemma)
   subgoal apply (rule exI[where x=Q1])
@@ -567,47 +576,46 @@ theorem Valid_echoice_InIn:
   by (auto simp add: assms entails_def)
 
 theorem Valid_echoice_InIn':
-  assumes "Valid Q1 p1 R"
-    and "Valid Q2 p2 R"
-  shows "Valid
-    (\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch1 v ({}, {ch1, ch2})) @- Q1 (s(var1 := v)))) \<and>\<^sub>t
-         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch2 v ({}, {ch1, ch2})) @- Q2 (s(var2 := v)))))
-      (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
-    R"
+  assumes "\<Turnstile> {Q1} p1 {R}"
+    and "\<Turnstile> {Q2} p2 {R}"
+  shows "\<Turnstile>
+    {\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch1 v ({}, {ch1, ch2})) @- Q1 (s(var1 := v)))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch2 v ({}, {ch1, ch2})) @- Q2 (s(var2 := v))))}
+      EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
+    {R}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_echoice_InIn[OF assms(1-2)])
   apply (auto simp add: entails_def magic_wand_assn_def conj_assn_def all_assn_def)
   by (auto simp add: inrdy_assn.intros)
 
 theorem Valid_echoice_InIn_sp:
-  assumes "\<And>v. Valid (\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr) p1 (Q1 v)"
-    and "\<And>v. Valid (\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr) p2 (Q2 v)"
+  assumes "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr} p1 {Q1 v}"
+    and "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr} p2 {Q2 v}"
   shows
-   "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)])
-    (\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr))"
+   "\<Turnstile> {\<lambda>s tr. s = st \<and> P s tr}
+        EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
+       {\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr)}"
   apply (rule Valid_echoice_sp)
   apply (rule InIn_lemma)
   using assms apply (auto simp add: Valid_def) by blast+
 
 lemma echoice_test1:
-  "Valid
-    (\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch1'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))) \<and>\<^sub>t
-         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch2'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))))
-    (EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)])
-    Q"
+  "\<Turnstile>
+    {\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch1'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch2'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v))))}
+      EChoice [(''ch1''[?]X, Skip), (''ch2''[?]X, Skip)]
+    {Q}"
   apply (rule Valid_echoice_InIn')
    apply (rule Valid_skip)
   by (rule Valid_skip)
 
 text \<open>Strongest postcondition form\<close>
 lemma testEChoice1:
-  "Valid
-    (\<lambda>s tr. s = st \<and> P s tr)
-    (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))])
-    (\<lambda>s tr. (\<exists>v. s = st(X := v, Y := st Y + v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
-            (\<exists>v. s = st(X := v, Y := st Y - v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr))"
+  "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]
+    {\<lambda>s tr. (\<exists>v. s = st(X := v, Y := st Y + v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch1'' v ({}, {''ch1'', ''ch2''})) tr) \<or>
+            (\<exists>v. s = st(X := v, Y := st Y - v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ''ch2'' v ({}, {''ch1'', ''ch2''})) tr)}"
   apply (rule Valid_strengthen_post)
   prefer 2
    apply (rule Valid_echoice_InIn_sp)
@@ -652,10 +660,11 @@ lemma last_echoice_ex_snoc [simp]:
   by (metis (full_types) dir.exhaust last_echoice_ex.simps(2) last_echoice_ex.simps(3))+
 
 lemma testEChoice:
-  "Valid
-    (\<lambda>s tr. s = st \<and> tr = [])
-    (Rep (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]))
-    (\<lambda>s tr. \<exists>ins. s = last_echoice_ex st ins \<and> echoice_ex_inv st ins tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> tr = []}
+      Rep (EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)),
+                    (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))])
+    {\<lambda>s tr. \<exists>ins. s = last_echoice_ex st ins \<and> echoice_ex_inv st ins tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
@@ -693,10 +702,10 @@ lemma count_up_inv_Suc:
   by (smt join_assoc)
 
 lemma testLoop1:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr)
-    (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))
-    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := a + n)) \<and> count_up_inv a n tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> emp\<^sub>t tr}
+      Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)))
+    {\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := a + n)) \<and> count_up_inv a n tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
@@ -718,10 +727,10 @@ fun count_up3_inv :: "nat \<Rightarrow> tassn" where
 | "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 3 * real n + 1)) ''ch'' (3 * real n + 1)"
 
 lemma testLoop2:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := 0)) \<and> emp\<^sub>t tr)
-    (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 2)))
-    (\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := 3 * real n)) \<and> count_up3_inv n tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := 0)) \<and> emp\<^sub>t tr}
+      Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X)); Assign X (\<lambda>s. s X + 2))
+    {\<lambda>s tr. \<exists>n. s = ((\<lambda>_. 0)(X := 3 * real n)) \<and> count_up3_inv n tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
    apply (rule Valid_ex_pre)
@@ -760,10 +769,10 @@ lemma last_val_snoc [simp]:
   by (induct xs arbitrary: a, auto)
 
 lemma testLoop3:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr)
-    (Rep (Cm (''ch''[?]Y)))
-    (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(Y := last_val a xs)) \<and> receive_inv a xs tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(Y := a)) \<and> emp\<^sub>t tr}
+      Rep (Cm (''ch''[?]Y))
+    {\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(Y := last_val a xs)) \<and> receive_inv a xs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
@@ -800,10 +809,10 @@ lemma last_add_val_snoc [simp]:
   by (induct xs arbitrary: a, auto)
 
 lemma testLoop4:
-  "Valid
-    (\<lambda>s tr. s = ((\<lambda>_. 0)(X := a, Y := b)) \<and> emp\<^sub>t tr)
-    (Rep (Cm (''ch''[?]Y); X ::= (\<lambda>s. s X + s Y)))
-    (\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) \<and> receive_add_inv a b xs tr)"
+  "\<Turnstile>
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a, Y := b)) \<and> emp\<^sub>t tr}
+     Rep (Cm (''ch''[?]Y); X ::= (\<lambda>s. s X + s Y))
+    {\<lambda>s tr. \<exists>xs. s = ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) \<and> receive_add_inv a b xs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
@@ -875,13 +884,13 @@ next
 qed
 
 lemma testLoopPar:
-  "ParValid
-    (pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := a))))
-    (Parallel (Single (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))) {''ch''}
-              (Single (Rep (Cm (''ch''[?]Y)))))
-    (\<exists>\<^sub>gn. left_gassn (sing_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a + n)))) \<and>\<^sub>g 
+  "\<Turnstile>\<^sub>p
+    {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a))) (\<lambda>s. s = ((\<lambda>_. 0)(Y := a)))}
+      Parallel (Single (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lambda>s. s X))))) {''ch''}
+               (Single (Rep (Cm (''ch''[?]Y))))
+    {\<exists>\<^sub>gn. left_gassn (sing_assn (\<lambda>s. s = ((\<lambda>_. 0)(X := a + n)))) \<and>\<^sub>g 
           right_gassn (sing_assn (\<lambda>s. s = ((\<lambda>_. 0)(Y := a + n)))) \<and>\<^sub>g
-          trace_gassn (count_up_io_inv a n))"
+          trace_gassn (count_up_io_inv a n)}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
      apply (rule testLoop1)

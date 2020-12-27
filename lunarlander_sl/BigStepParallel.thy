@@ -194,28 +194,6 @@ lemma combine_blocks_elim4e:
   by (induct rule: combine_blocks.cases, auto)
 
 
-subsection \<open>Tests for combine_blocks\<close>
-
-lemma test_combine1:
-  "combine_blocks {''ch''} [InBlock ''ch'' v] [OutBlock ''ch'' v] [IOBlock ''ch'' v]"
-  by (intro combine_blocks.intros, auto)
-
-lemma test_combine1_unique:
-  "combine_blocks {''ch''} [InBlock ''ch'' v] [OutBlock ''ch'' v] blks \<Longrightarrow>
-   blks = [IOBlock ''ch'' v]"
-  by (auto elim: combine_blocks_elim1 combine_blocks_elim2)
-
-lemma test_combine2:
-  "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] [InBlock ''ch1'' v, OutBlock ''ch2'' w]"
-  by (intro combine_blocks.intros, auto)
-
-lemma test_combine2_unique:
-  "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] blks \<Longrightarrow>
-   blks = [InBlock ''ch1'' v, OutBlock ''ch2'' w] \<or>
-   blks = [OutBlock ''ch2'' w, InBlock ''ch1'' v]"
-  by (auto elim!: combine_blocks_elim3 combine_blocks_elim3a combine_blocks_elim3b
-      combine_blocks_elim1)
-
 subsection \<open>Big-step semantics for parallel processes.\<close>
 
 inductive par_big_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace \<Rightarrow> gstate \<Rightarrow> bool" where
