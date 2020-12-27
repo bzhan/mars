@@ -9,7 +9,9 @@ from ss2hcsp.hcsp import module
 grammar = r"""
     ?lname: CNAME -> var_expr
         | CNAME "[" expr "]" -> array_idx_expr
+        | CNAME "[" expr "]" "[" expr "]" -> array_idx_expr2
         | lname "." CNAME -> field_expr
+        | lname "." CNAME "[" expr "]" -> field_array_idx
 
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
@@ -54,10 +56,18 @@ grammar = r"""
 
     ?cond: imp
 
-    ?comm_cmd: CNAME ("[" expr "]")* "?" lname -> input_cmd
-        | CNAME ("[" expr "]")* "?" -> input_none_cmd
-        | CNAME ("[" expr "]")* "!" expr -> output_cmd
-        | CNAME ("[" expr "]")* "!" -> output_none_cmd
+    ?comm_cmd: CNAME "?" lname -> input_cmd
+        | CNAME "[" expr "]" "?" lname -> input_cmd
+        | CNAME "[" expr "]" "[" expr "]" "?" lname -> input_cmd
+        | CNAME "?" -> input_none_cmd
+        | CNAME "[" expr "]" "?" -> input_none_cmd
+        | CNAME "[" expr "]" "[" expr "]" "?" -> input_none_cmd
+        | CNAME "!" expr -> output_cmd
+        | CNAME "[" expr "]" "!" expr -> output_cmd
+        | CNAME "[" expr "]" "[" expr "]" "!" expr -> output_cmd
+        | CNAME "!" -> output_none_cmd
+        | CNAME "[" expr "]" "!" -> output_none_cmd
+        | CNAME "[" expr "]" "[" expr "]" "!" -> output_none_cmd
 
     ?ode_seq: CNAME "=" expr ("," CNAME "=" expr)*
 
@@ -155,6 +165,12 @@ class HPTransformer(Transformer):
 
     def array_idx_expr(self, a, i):
         return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
+
+    def array_idx_expr2(self, a, i, j):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j)
+
+    def field_array_idx(self, e, field, i):
+        return expr.ArrayIdxExpr(expr.FieldNameExpr(e, field), i)
 
     def field_expr(self, e, field):
         return expr.FieldNameExpr(e, field)

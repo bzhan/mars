@@ -1,5 +1,5 @@
 theory Complete
-  imports BigStepContinuous
+  imports BigStepParallel
 begin
 
 subsection \<open>Proof system\<close>
@@ -400,7 +400,7 @@ definition interrupt_Valid :: "assn \<Rightarrow> nat \<Rightarrow> ODE \<Righta
 
 
 theorem hoare_sound:
-  "(\<turnstile> {P} c {Q} \<longrightarrow> Valid P c Q) \<and>
+  "(\<turnstile> {P} c {Q} \<longrightarrow> \<Turnstile> {P} c {Q}) \<and>
    (echoice_hoare P n cs Q \<longrightarrow> echoice_Valid P n cs Q) \<and>
    (interrupt_hoare P n ode b cs Q \<longrightarrow> interrupt_Valid P n ode b cs Q)"
 proof (induction rule: hoare_echoice_hoare_interrupt_hoare.induct)
@@ -452,7 +452,7 @@ next
   case (EChoiceH2 Q p2 R es n ch e P)
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [OutBlock ch (e s1)])"
       using that(1,3) unfolding entails_def by auto
@@ -461,7 +461,7 @@ next
   qed
   have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
       using that(1,3,5) unfolding entails_def by auto
@@ -476,7 +476,7 @@ next
   case (EChoiceH3 Q p2 R es n ch var P)
   have a: "R s2 (tr1 @ InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s2 tr1 v tr2' s1
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s2 tr1 v tr2' s1
   proof -
     have "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
       using that(1,3) unfolding entails_def by auto
@@ -485,7 +485,7 @@ next
   qed
   have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
   proof -
     have "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
       using that(1,3,5) unfolding entails_def by auto
@@ -518,7 +518,7 @@ next
   case (InterruptH2 Q p2 R es n ch e P ode b)
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))"
-       "Valid Q p2 R" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" for s1 tr1 s2 tr2'
   proof -
     have "Q s1 (tr1 @ [OutBlock ch (e s1)])"
       using that(1,3) unfolding entails_def by auto
@@ -532,7 +532,7 @@ next
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                      Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))"
-       "Valid Q p2 R" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
+       "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 (p d) tr2' s2" for s2 tr1 d p tr2'
   proof -
     have "Q (p d) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
@@ -548,7 +548,7 @@ next
   case (InterruptH3 Q p2 R es n ch var P ode b)
   have a: "R s2 (tr1 @ InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))"
-      "Valid Q p2 R" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s1 tr1 s2 tr2' v
+      "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" for s1 tr1 s2 tr2' v
   proof -
     have "Q (s1(var := v)) (tr1 @ [InBlock ch v])"
       using that(1,3) unfolding entails_def by auto
@@ -562,7 +562,7 @@ next
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
                      (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])))"
-       "Valid Q p2 R" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
+       "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 ((p d)(var := v)) tr2' s2" for s2 tr1 d p v tr2'
   proof -
     have "Q ((p d)(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"
@@ -953,17 +953,132 @@ next
     using Interrupt by auto
 qed
 
-
 theorem hoare_complete:
-  "Valid P c Q \<Longrightarrow> \<turnstile> {P} c {Q}"
+  "\<Turnstile> {P} c {Q} \<Longrightarrow> \<turnstile> {P} c {Q}"
   apply (rule ConseqH[where P="wp c Q" and Q=Q])
     apply (auto simp add: entails_def)
    apply (auto simp add: Valid_def wp_def)[1]
   by (rule wp_is_pre)
 
 theorem hoare_sound_complete:
-  "\<turnstile> {P} c {Q} \<longleftrightarrow> Valid P c Q"
+  "\<turnstile> {P} c {Q} \<longleftrightarrow> \<Turnstile> {P} c {Q}"
   using hoare_sound hoare_complete by auto
+
+
+subsection \<open>Completeness for parallel programs\<close>
+
+inductive par_hoare :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Rightarrow> bool" ("\<turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
+  "\<turnstile> {\<lambda>s tr. P s \<and> tr = []} c {Q} \<Longrightarrow>
+   \<turnstile>\<^sub>p {sing_assn P} (Single c) {sing_gassn Q}"
+| "\<turnstile>\<^sub>p {P1} p1 {Q1} \<Longrightarrow> \<turnstile>\<^sub>p {P2} p2 {Q2} \<Longrightarrow>
+   \<turnstile>\<^sub>p {par_assn P1 P2} (Parallel p1 chs p2) {sync_gassn chs Q1 Q2}"
+| "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<forall>s. P' s \<longrightarrow> P s \<Longrightarrow> \<forall>s tr. Q s tr \<longrightarrow> Q' s tr \<Longrightarrow>
+   \<turnstile>\<^sub>p {P'} c {Q'}"
+
+theorem par_hoare_sound:
+  "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
+proof (induction rule: par_hoare.induct)
+  case (1 P c Q)
+  show ?case
+    apply (rule ParValid_Single)
+    using hoare_sound_complete 1 by auto
+next
+  case (2 P1 p1 Q1 P2 p2 Q2 chs)
+  show ?case
+    apply (rule ParValid_Parallel)
+    using 2 by auto
+next
+  case (3 P c Q P' Q')
+  then show ?case
+    unfolding ParValid_def by auto
+qed
+
+
+lemma ParValid_to_Valid:
+  assumes "\<Turnstile>\<^sub>p {sing_assn P} Single c {sing_gassn Q}"
+  shows "\<Turnstile> {\<lambda>s tr. P s \<and> tr = []} c {Q}"
+  using assms unfolding Valid_def ParValid_def
+  using SingleB by force
+
+
+definition sp :: "proc \<Rightarrow> fform \<Rightarrow> assn" where
+  "sp c P = (\<lambda>s' tr. \<exists>s. P s \<and> big_step c s tr s')"
+
+lemma Valid_sp:
+  "\<Turnstile> {\<lambda>s tr. P s \<and> tr = []} c {sp c P}"
+  unfolding Valid_def sp_def by auto
+
+
+definition par_sp :: "pproc \<Rightarrow> gs_assn \<Rightarrow> gassn" where
+  "par_sp c P = (\<lambda>s' tr'. \<exists>s. P s \<and> par_big_step c s tr' s')"
+
+lemma par_sp_single:
+  "par_sp (Single c) (sing_assn P) = sing_gassn (sp c P)"
+  unfolding par_sp_def apply (rule ext) apply (rule ext)
+  subgoal for s' tr'
+    apply (cases s')
+    subgoal for s1
+      apply (auto simp add: sp_def)
+      using SingleE apply fastforce
+      using SingleB sing_assn.simps(1) by blast
+    subgoal for s1 s2
+      using SingleE by fastforce
+    done
+  done
+
+lemma par_sp_parallel:
+  "par_sp (Parallel p1 chs p2) (par_assn P1 P2) =
+   sync_gassn chs (par_sp p1 P1) (par_sp p2 P2)"
+  unfolding par_sp_def apply (rule ext) apply (rule ext)
+  subgoal for s' tr'
+    apply (cases s')
+    subgoal for s1
+      using ParallelE by fastforce
+    subgoal for s1 s2
+      apply auto
+      subgoal apply (elim ParallelE) by auto
+      using ParallelB by force
+    done
+  done
+
+inductive wf_pre :: "pproc \<Rightarrow> gs_assn \<Rightarrow> bool" where
+  "wf_pre (Single c) (sing_assn P)"
+| "wf_pre p1 P1 \<Longrightarrow> wf_pre p2 P2 \<Longrightarrow> wf_pre (Parallel p1 chs p2) (par_assn P1 P2)"
+
+inductive_cases wf_pre_Single: "wf_pre (Single c) P"
+inductive_cases wf_pre_Parallel: "wf_pre (Parallel p1 chs p2) P"
+
+lemma par_sp_is_post: "wf_pre c P \<Longrightarrow> \<turnstile>\<^sub>p {P} c {par_sp c P}"
+proof (induction c arbitrary: P)
+  case (Single p)
+  then show ?case
+    apply (elim wf_pre_Single)
+    apply (auto simp add: par_sp_single)
+    apply (rule par_hoare.intros(1))
+    apply (rule hoare_complete)
+    by (rule Valid_sp)
+next
+  case (Parallel p1 chs p2)
+  show ?case
+    using Parallel(3) apply (elim wf_pre_Parallel)
+    apply (auto simp add: par_sp_parallel)
+    apply (rule par_hoare.intros(2))
+    using Parallel(1,2) by auto
+qed
+
+
+theorem par_hoare_complete:
+  "wf_pre c P \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<turnstile>\<^sub>p {P} c {Q}"
+  apply (rule par_hoare.intros(3))
+  apply (rule par_sp_is_post)
+    apply assumption
+   apply simp
+  using ParValid_def par_sp_def by auto
+
+theorem par_hoare_sound_complete:
+  assumes "wf_pre c P"
+  shows "\<turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
+  using par_hoare_sound par_hoare_complete assms by auto
 
 
 end
