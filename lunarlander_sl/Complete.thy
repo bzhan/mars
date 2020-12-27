@@ -953,16 +953,15 @@ next
     using Interrupt by auto
 qed
 
-
 theorem hoare_complete:
-  "Valid P c Q \<Longrightarrow> \<turnstile> {P} c {Q}"
+  "\<Turnstile> {P} c {Q} \<Longrightarrow> \<turnstile> {P} c {Q}"
   apply (rule ConseqH[where P="wp c Q" and Q=Q])
     apply (auto simp add: entails_def)
    apply (auto simp add: Valid_def wp_def)[1]
   by (rule wp_is_pre)
 
 theorem hoare_sound_complete:
-  "\<turnstile> {P} c {Q} \<longleftrightarrow> Valid P c Q"
+  "\<turnstile> {P} c {Q} \<longleftrightarrow> \<Turnstile> {P} c {Q}"
   using hoare_sound hoare_complete by auto
 
 
@@ -977,7 +976,7 @@ inductive par_hoare :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Righta
    \<turnstile>\<^sub>p {P'} c {Q'}"
 
 theorem par_hoare_sound:
-  "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> ParValid P c Q"
+  "\<turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
 proof (induction rule: par_hoare.induct)
   case (1 P c Q)
   show ?case
@@ -996,8 +995,8 @@ qed
 
 
 lemma ParValid_to_Valid:
-  assumes "ParValid (sing_assn P) (Single c) (sing_gassn Q)"
-  shows "Valid (\<lambda>s tr. P s \<and> tr = []) c Q"
+  assumes "\<Turnstile>\<^sub>p {sing_assn P} Single c {sing_gassn Q}"
+  shows "\<Turnstile> {\<lambda>s tr. P s \<and> tr = []} c {Q}"
   using assms unfolding Valid_def ParValid_def
   using SingleB by force
 
@@ -1006,7 +1005,7 @@ definition sp :: "proc \<Rightarrow> fform \<Rightarrow> assn" where
   "sp c P = (\<lambda>s' tr. \<exists>s. P s \<and> big_step c s tr s')"
 
 lemma Valid_sp:
-  "Valid (\<lambda>s tr. P s \<and> tr = []) c (sp c P)"
+  "\<Turnstile> {\<lambda>s tr. P s \<and> tr = []} c {sp c P}"
   unfolding Valid_def sp_def by auto
 
 
@@ -1069,7 +1068,7 @@ qed
 
 
 theorem par_hoare_complete:
-  "wf_pre c P \<Longrightarrow> ParValid P c Q \<Longrightarrow> \<turnstile>\<^sub>p {P} c {Q}"
+  "wf_pre c P \<Longrightarrow> \<Turnstile>\<^sub>p {P} c {Q} \<Longrightarrow> \<turnstile>\<^sub>p {P} c {Q}"
   apply (rule par_hoare.intros(3))
   apply (rule par_sp_is_post)
     apply assumption
@@ -1078,7 +1077,7 @@ theorem par_hoare_complete:
 
 theorem par_hoare_sound_complete:
   assumes "wf_pre c P"
-  shows "\<turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> ParValid P c Q"
+  shows "\<turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> \<Turnstile>\<^sub>p {P} c {Q}"
   using par_hoare_sound par_hoare_complete assms by auto
 
 

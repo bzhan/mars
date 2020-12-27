@@ -254,8 +254,8 @@ fun sync_gassn :: "cname set \<Rightarrow> gassn \<Rightarrow> gassn \<Rightarro
   "sync_gassn chs P Q (State s) tr = False"
 | "sync_gassn chs P Q (ParState l r) tr \<longleftrightarrow> (\<exists>tr1 tr2. P l tr1 \<and> Q r tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
-definition ParValid :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Rightarrow> bool" where
-  "ParValid P c Q \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
+definition ParValid :: "gs_assn \<Rightarrow> pproc \<Rightarrow> gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
+  "\<Turnstile>\<^sub>p {P} c {Q} \<longleftrightarrow> (\<forall>s1 s2 tr2. P s1 \<longrightarrow> par_big_step c s1 tr2 s2 \<longrightarrow> Q s2 tr2)"
 
 
 inductive_cases SingleE: "par_big_step (Single p) s1 tr s2"
@@ -265,15 +265,15 @@ inductive_cases ParallelE: "par_big_step (Parallel p1 ch p2) s1 tr s2"
 thm ParallelE
 
 lemma ParValid_Single:
-  assumes "Valid (\<lambda>s tr. P s \<and> tr = []) c Q"
-  shows "ParValid (sing_assn P) (Single c) (sing_gassn Q)"
+  assumes "\<Turnstile> {\<lambda>s tr. P s \<and> tr = []} c {Q}"
+  shows "\<Turnstile>\<^sub>p {sing_assn P} Single c {sing_gassn Q}"
   using assms unfolding ParValid_def Valid_def
   by (metis SingleE append_Nil gstate.inject(1) sing_assn.elims(2) sing_gassn.simps(1))
 
 lemma ParValid_Parallel:
-  assumes "ParValid P1 p1 Q1"
-    and "ParValid P2 p2 Q2"
-  shows "ParValid (par_assn P1 P2) (Parallel p1 chs p2) (sync_gassn chs Q1 Q2)"
+  assumes "\<Turnstile>\<^sub>p {P1} p1 {Q1}"
+    and "\<Turnstile>\<^sub>p {P2} p2 {Q2}"
+  shows "\<Turnstile>\<^sub>p {par_assn P1 P2} Parallel p1 chs p2 {sync_gassn chs Q1 Q2}"
   unfolding ParValid_def apply clarify
   apply (elim ParallelE) apply auto
   subgoal for tr2 s11 tr1 s12 s21 tr2' s22
@@ -285,68 +285,24 @@ lemma ParValid_Parallel:
   done
 
 lemma ParValid_conseq:
-  assumes "ParValid P c Q"
+  assumes "\<Turnstile>\<^sub>p {P} c {Q}"
     and "\<And>s. P' s \<Longrightarrow> P s"
     and "\<And>s tr. Q s tr \<Longrightarrow> Q' s tr"
-  shows "ParValid P' c Q'"
+  shows "\<Turnstile>\<^sub>p {P'} c {Q'}"
   using assms unfolding ParValid_def by blast
 
 text \<open>Version for two processes\<close>
 
 lemma ParValid_Parallel':
-  assumes "Valid (\<lambda>s tr. P1 s \<and> emp\<^sub>t tr) p1 Q1"
-    and "Valid (\<lambda>s tr. P2 s \<and> emp\<^sub>t tr) p2 Q2"
-  shows "ParValid
-    (pair_assn P1 P2)
-    (Parallel (Single p1) chs (Single p2))
-    (sync_gassn chs (sing_gassn Q1) (sing_gassn Q2))"
+  assumes "\<Turnstile> {\<lambda>s tr. P1 s \<and> emp\<^sub>t tr} p1 {Q1}"
+    and "\<Turnstile> {\<lambda>s tr. P2 s \<and> emp\<^sub>t tr} p2 {Q2}"
+  shows "\<Turnstile>\<^sub>p
+    {pair_assn P1 P2}
+      Parallel (Single p1) chs (Single p2)
+    {sync_gassn chs (sing_gassn Q1) (sing_gassn Q2)}"
   unfolding pair_assn_def
   apply (rule ParValid_Parallel)
   using ParValid_Single assms unfolding emp_assn_def by auto
-
-
-subsection \<open>Combining standard assertions\<close>
-
-lemma combine_assn_elim2:
-  "combine_blocks comms tr1 tr2 tr \<Longrightarrow>
-   Out\<^sub>t s1 ch v tr1 \<Longrightarrow>
-   In\<^sub>t s2 ch w tr2 \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow>
-   (w = v \<Longrightarrow> tr = [IOBlock ch v] \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (simp only: out_assn.simps in_assn.simps)
-  apply (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                     combine_blocks_elim2e combine_blocks_elim4a )
-  by (simp add: combine_blocks_elim1)
-
-lemma combine_assn_elim2a:
-  "combine_blocks comms (tr1 @ tr1') (tr2 @ tr2') tr \<Longrightarrow>
-   Out\<^sub>t s1 ch v tr1 \<Longrightarrow>
-   In\<^sub>t s2 ch w tr2 \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch w] @ blks' \<Longrightarrow> combine_blocks comms tr1' tr2' blks' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (simp only: out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2e combine_blocks_elim4a)
-
-lemma combine_assn_elim2a':
-  "combine_blocks comms (tr1 @ tr1') (tr2 @ tr2') tr \<Longrightarrow>
-   In\<^sub>t s1 ch v tr1 \<Longrightarrow>
-   Out\<^sub>t s2 ch w tr2 \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. w = v \<Longrightarrow> tr = [IOBlock ch w] @ blks' \<Longrightarrow> combine_blocks comms tr1' tr2' blks' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (simp only: out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2c
-                  combine_blocks_elim2d combine_blocks_elim4a)
-
-lemma combine_assn_elim2b:
-  "combine_blocks comms [] tr2 tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (In\<^sub>t s ch a @\<^sub>t Q) tr2 \<Longrightarrow> P"
-  apply (simp only: in_assn.simps join_assn_def)
-  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
-
-lemma combine_assn_elim2c:
-  "combine_blocks comms tr1 [] tr \<Longrightarrow> ch \<in> comms \<Longrightarrow> (Out\<^sub>t s ch a @\<^sub>t Q) tr1 \<Longrightarrow> P"
-  apply (simp only: out_assn.simps join_assn_def)
-  by (auto elim!: combine_blocks_elim2i combine_blocks_elim4b)
 
 
 subsection \<open>Combination on assertions\<close>
@@ -411,24 +367,30 @@ lemma combine_assn_out_in:
    combine_assn chs (Out\<^sub>t s1 ch v @\<^sub>t P) (In\<^sub>t s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
    (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
   unfolding combine_assn_def
-  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
-   apply (auto elim!: combine_assn_elim2a) by auto
+  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
+                        out_assn.simps in_assn.simps)
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
+                  combine_blocks_elim2e combine_blocks_elim4a)
 
 lemma combine_assn_out_in':
   "ch \<in> chs \<Longrightarrow>
    combine_assn chs (Out\<^sub>t s1 ch v) (In\<^sub>t s2 ch w) \<Longrightarrow>\<^sub>t
    (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v))"
   unfolding combine_assn_def
-  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
-  by (auto elim!: combine_assn_elim2)
+  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def
+                        io_assn.simps out_assn.simps in_assn.simps)
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
+                  combine_blocks_elim2e combine_blocks_elim4a)
 
 lemma combine_assn_in_out:
   "ch \<in> chs \<Longrightarrow>
    combine_assn chs (In\<^sub>t s1 ch v @\<^sub>t P) (Out\<^sub>t s2 ch w @\<^sub>t Q) \<Longrightarrow>\<^sub>t
    (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v @\<^sub>t combine_assn chs P Q))"
   unfolding combine_assn_def
-  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps)
-   apply (auto elim!: combine_assn_elim2a') by auto
+  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
+                        out_assn.simps in_assn.simps)
+  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2c
+                  combine_blocks_elim2d combine_blocks_elim4a)
 
 lemma combine_assn_wait_emp:
   "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
@@ -758,10 +720,10 @@ definition ex_gassn :: "('a \<Rightarrow> gassn) \<Rightarrow> gassn" (binder "\
   "(\<exists>\<^sub>g x. P x) = (\<lambda>s tr. \<exists>x. P x s tr)"
 
 lemma ParValid_conseq':
-  assumes "ParValid P c Q"
+  assumes "\<Turnstile>\<^sub>p {P} c {Q}"
     and "\<And>s. P' s \<Longrightarrow> P s"
     and "Q \<Longrightarrow>\<^sub>g Q'"
-  shows "ParValid P' c Q'"
+  shows "\<Turnstile>\<^sub>p {P'} c {Q'}"
   using assms ParValid_conseq unfolding entails_gassn_def by auto
 
 lemma sync_gassn_ex_pre_left:
