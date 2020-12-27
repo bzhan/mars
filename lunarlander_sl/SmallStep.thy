@@ -971,33 +971,13 @@ inductive par_small_step :: "pproc \<Rightarrow> gstate \<Rightarrow> trace_bloc
 | ParUnpairS1:
     "wf_pair p3 s3 \<Longrightarrow>
      ch \<notin> chs \<Longrightarrow>
-     par_small_step p1 s1 (Some (InBlock ch v)) p2 s2 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (InBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
+     par_small_step p1 s1 (Some (CommBlock ch_type ch v)) p2 s2 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (CommBlock ch_type ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
 | ParUnpairS2:
-    "wf_pair p3 s3 \<Longrightarrow>
-     ch \<notin> chs \<Longrightarrow>
-     par_small_step p1 s1 (Some (OutBlock ch v)) p2 s2 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (OutBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
-| ParUnpairS3:
     "wf_pair p1 s1 \<Longrightarrow>
      ch \<notin> chs \<Longrightarrow>
-     par_small_step p2 s2 (Some (InBlock ch v)) p3 s3 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (InBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
-| ParUnpairS4:
-    "wf_pair p1 s1 \<Longrightarrow>
-     ch \<notin> chs \<Longrightarrow>
-     par_small_step p2 s2 (Some (OutBlock ch v)) p3 s3 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (OutBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
-| ParUnpairS5:
-    "wf_pair p3 s3 \<Longrightarrow>
-     ch \<notin> chs \<Longrightarrow>
-     par_small_step p1 s1 (Some (IOBlock ch v)) p2 s2 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p3) (ParState s1 s3) (Some (IOBlock ch v)) (Parallel p2 chs p3) (ParState s2 s3)"
-| ParUnpairS6:
-    "wf_pair p1 s1 \<Longrightarrow>
-     ch \<notin> chs \<Longrightarrow>
-     par_small_step p2 s2 (Some (IOBlock ch v)) p3 s3 \<Longrightarrow>
-     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (IOBlock ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
+     par_small_step p2 s2 (Some (CommBlock ch_type ch v)) p3 s3 \<Longrightarrow>
+     par_small_step (Parallel p1 chs p2) (ParState s1 s2) (Some (CommBlock ch_type ch v)) (Parallel p1 chs p3) (ParState s1 s3)"
 
 
 text \<open>Transitive closure of small step semantics\<close>
@@ -1248,16 +1228,17 @@ next
   show ?case
     using c d e par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
 next
-  case (combine_blocks_unpair1 ch chs blks1 blks2 blks v)
+  case (combine_blocks_unpair1 ch chs blks1 blks2 blks ch_type v)
   obtain p1' s1' p1'' s1'' where a:
     "par_small_step_tau_closure p1 s11 p1' s1'"
-    "par_small_step p1' s1' (Some (InBlock ch v)) p1'' s1''"
+    "par_small_step p1' s1' (Some (CommBlock ch_type ch v)) p1'' s1''"
     "par_small_step_closure p1'' s1'' blks1 p3 s12"
     using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair1(4)] by auto
   have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
     apply (rule par_small_step_closure_left[OF a(1)])
     using par_small_step_closure_wf_pair combine_blocks_unpair1(5) by auto
-  have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (InBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
+  have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21)
+                          (Some (CommBlock ch_type ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
     apply (rule ParUnpairS1[OF _ combine_blocks_unpair1(1) a(2)])
     using par_small_step_closure_wf_pair combine_blocks_unpair1(5) by auto
   have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
@@ -1265,88 +1246,21 @@ next
   show ?case
     using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
 next
-  case (combine_blocks_unpair2 ch chs blks1 blks2 blks v)
-  obtain p1' s1' p1'' s1'' where a:
-    "par_small_step_tau_closure p1 s11 p1' s1'"
-    "par_small_step p1' s1' (Some (OutBlock ch v)) p1'' s1''"
-    "par_small_step_closure p1'' s1'' blks1 p3 s12"
-    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair2(4)] by auto
-  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
-    apply (rule par_small_step_closure_left[OF a(1)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair2(5) by auto
-  have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (OutBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
+  case (combine_blocks_unpair2 ch chs blks1 blks2 blks ch_type v)
+  obtain p2' s2' p2'' s2'' where a:
+    "par_small_step_tau_closure p2 s21 p2' s2'"
+    "par_small_step p2' s2' (Some (CommBlock ch_type ch v)) p2'' s2''"
+    "par_small_step_closure p2'' s2'' blks2 p4 s22"
+    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair2(5)] by auto
+  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
+    apply (rule par_small_step_closure_right[OF a(1)])
+    using par_small_step_closure_wf_pair combine_blocks_unpair2(4) by auto
+  have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (CommBlock ch_type ch v))
+                          (Parallel p1 chs p2'') (ParState s11 s2'')"
     apply (rule ParUnpairS2[OF _ combine_blocks_unpair2(1) a(2)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair2(5) by auto
-  have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
-    by (rule combine_blocks_unpair2(3)[OF a(3) combine_blocks_unpair2(5)])
-  show ?case
-    using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
-next
-  case (combine_blocks_unpair3 ch chs blks1 blks2 blks v)
-  obtain p2' s2' p2'' s2'' where a:
-    "par_small_step_tau_closure p2 s21 p2' s2'"
-    "par_small_step p2' s2' (Some (InBlock ch v)) p2'' s2''"
-    "par_small_step_closure p2'' s2'' blks2 p4 s22"
-    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair3(5)] by auto
-  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    apply (rule par_small_step_closure_right[OF a(1)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair3(4) by auto
-  have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (InBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    apply (rule ParUnpairS3[OF _ combine_blocks_unpair3(1) a(2)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair3(4) by auto
+    using par_small_step_closure_wf_pair combine_blocks_unpair2(4) by auto
   have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
-    by (rule combine_blocks_unpair3(3)[OF combine_blocks_unpair3(4) a(3)])
-  show ?case
-    using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce 
-next
-  case (combine_blocks_unpair4 ch chs blks1 blks2 blks v)
-  obtain p2' s2' p2'' s2'' where a:
-    "par_small_step_tau_closure p2 s21 p2' s2'"
-    "par_small_step p2' s2' (Some (OutBlock ch v)) p2'' s2''"
-    "par_small_step_closure p2'' s2'' blks2 p4 s22"
-    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair4(5)] by auto
-  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    apply (rule par_small_step_closure_right[OF a(1)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair4(4) by auto
-  have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (OutBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    apply (rule ParUnpairS4[OF _ combine_blocks_unpair4(1) a(2)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair4(4) by auto
-  have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
-    by (rule combine_blocks_unpair4(3)[OF combine_blocks_unpair4(4) a(3)])
-  show ?case
-    using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce 
-next
-  case (combine_blocks_unpair5 ch chs blks1 blks2 blks v)
-  obtain p1' s1' p1'' s1'' where a:
-    "par_small_step_tau_closure p1 s11 p1' s1'"
-    "par_small_step p1' s1' (Some (IOBlock ch v)) p1'' s1''"
-    "par_small_step_closure p1'' s1'' blks1 p3 s12"
-    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair5(4)] by auto
-  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1' chs p2) (ParState s1' s21)"
-    apply (rule par_small_step_closure_left[OF a(1)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair5(5) by auto
-  have c: "par_small_step (Parallel p1' chs p2) (ParState s1' s21) (Some (IOBlock ch v)) (Parallel p1'' chs p2) (ParState s1'' s21)"
-    apply (rule ParUnpairS5[OF _ combine_blocks_unpair5(1) a(2)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair5(5) by auto
-  have d: "par_small_step_closure (Parallel p1'' chs p2) (ParState s1'' s21) blks (Parallel p3 chs p4) (ParState s12 s22)"
-    by (rule combine_blocks_unpair5(3)[OF a(3) combine_blocks_unpair5(5)])
-  show ?case
-    using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce
-next
-  case (combine_blocks_unpair6 ch chs blks1 blks2 blks v)
-  obtain p2' s2' p2'' s2'' where a:
-    "par_small_step_tau_closure p2 s21 p2' s2'"
-    "par_small_step p2' s2' (Some (IOBlock ch v)) p2'' s2''"
-    "par_small_step_closure p2'' s2'' blks2 p4 s22"
-    using par_small_step_closure_cons_to_tau[OF combine_blocks_unpair6(5)] by auto
-  have b: "par_small_step_closure (Parallel p1 chs p2) (ParState s11 s21) [] (Parallel p1 chs p2') (ParState s11 s2')"
-    apply (rule par_small_step_closure_right[OF a(1)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair6(4) by auto
-  have c: "par_small_step (Parallel p1 chs p2') (ParState s11 s2') (Some (IOBlock ch v)) (Parallel p1 chs p2'') (ParState s11 s2'')"
-    apply (rule ParUnpairS6[OF _ combine_blocks_unpair6(1) a(2)])
-    using par_small_step_closure_wf_pair combine_blocks_unpair6(4) by auto
-  have d: "par_small_step_closure (Parallel p1 chs p2'') (ParState s11 s2'') blks (Parallel p3 chs p4) (ParState s12 s22)"
-    by (rule combine_blocks_unpair6(3)[OF combine_blocks_unpair6(4) a(3)])
+    by (rule combine_blocks_unpair2(3)[OF combine_blocks_unpair2(4) a(3)])
   show ?case
     using b c d par_small_step_closure.intros(3) par_small_step_closure_trans by fastforce 
 next
@@ -1510,29 +1424,13 @@ next
   then show ?case
     by (meson combine_blocks.combine_blocks_pair2 equiv_trace_cons)
 next
-  case (combine_blocks_unpair1 ch comms blks1 blks2 blks v)
+  case (combine_blocks_unpair1 ch comms blks1 blks2 blks ch_type v)
   then show ?case
     by (meson combine_blocks.combine_blocks_unpair1 equiv_trace_cons)
 next
-  case (combine_blocks_unpair2 ch comms blks1 blks2 blks v)
+  case (combine_blocks_unpair2 ch comms blks1 blks2 blks ch_type v)
   then show ?case
     by (meson combine_blocks.combine_blocks_unpair2 equiv_trace_cons)
-next
-  case (combine_blocks_unpair3 ch comms blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair3 equiv_trace_cons)
-next
-  case (combine_blocks_unpair4 ch comms blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair4 equiv_trace_cons)
-next
-  case (combine_blocks_unpair5 ch comms blks1 blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair5 equiv_trace_cons)
-next
-  case (combine_blocks_unpair6 ch comms blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair6 equiv_trace_cons)
 next
   case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 t rdy)
   obtain tr'' where a: "equiv_trace blks tr''" "combine_blocks comms tr2' blks2 tr''"
@@ -1580,29 +1478,13 @@ next
   then show ?case
     by (meson combine_blocks.combine_blocks_pair2 equiv_trace_cons)
 next
-  case (combine_blocks_unpair1 ch comms blks1 blks v)
+  case (combine_blocks_unpair1 ch comms blks1 blks ch_type v)
   then show ?case
     by (meson combine_blocks.combine_blocks_unpair1 equiv_trace_cons)
 next
-  case (combine_blocks_unpair2 ch comms blks1 blks v)
+  case (combine_blocks_unpair2 ch comms blks1 blks ch_type v)
   then show ?case
     by (meson combine_blocks.combine_blocks_unpair2 equiv_trace_cons)
-next
-  case (combine_blocks_unpair3 ch comms blks1 blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair3 equiv_trace_cons)
-next
-  case (combine_blocks_unpair4 ch comms blks1 blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair4 equiv_trace_cons)
-next
-  case (combine_blocks_unpair5 ch comms blks1 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair5 equiv_trace_cons)
-next
-  case (combine_blocks_unpair6 ch comms blks1 blks2 blks v)
-  then show ?case
-    by (meson combine_blocks.combine_blocks_unpair6 equiv_trace_cons)
 next
   case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 t rdy)
   obtain tr'' where a: "equiv_trace blks tr''" "combine_blocks comms blks1 tr2' tr''"
@@ -1647,17 +1529,9 @@ lemma combine_blocks_merge_left:
    combine_blocks chs (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr') tr2 tr''"
 proof (induct chs "WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr'" tr2 tr
        arbitrary: d1 p1 rule: combine_blocks.induct)
-  case (combine_blocks_unpair3 ch comms blks2 blks v)
+  case (combine_blocks_unpair2 ch comms blks2 blks ch_type v)
   then show ?case
-    using combine_blocks.combine_blocks_unpair3 equiv_trace_cons by blast
-next
-  case (combine_blocks_unpair4 ch comms blks2 blks v)
-  then show ?case
-    using combine_blocks.combine_blocks_unpair4 equiv_trace_cons by blast
-next
-  case (combine_blocks_unpair6 ch comms blks2 blks v)
-  then show ?case
-    using combine_blocks.combine_blocks_unpair6 equiv_trace_cons by blast
+    using combine_blocks.combine_blocks_unpair2 equiv_trace_cons by blast
 next
   case (combine_blocks_wait1 chs blks2 blks rdy2 hist hist2 t rdy')
   have a: "(\<lambda>\<tau>\<in>{0..d2}. if 0 \<le> \<tau> + t \<and> \<tau> \<le> d2 then if \<tau> + t < t then p1 (\<tau> + t) else p2 (\<tau> + t - t) else undefined) =
@@ -1800,17 +1674,9 @@ lemma combine_blocks_merge_right:
    combine_blocks chs tr1 (WaitBlock (d1 + d2) (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr') tr''"
 proof (induct chs tr1 "WaitBlock d1 (restrict p1 {0..d1}) rdy # WaitBlock d2 (restrict p2 {0..d2}) rdy # tr'" tr
        arbitrary: d1 p1 rule: combine_blocks.induct)
-  case (combine_blocks_unpair1 ch comms blks1 blks v)
+  case (combine_blocks_unpair1 ch comms blks1 blks ch_type v)
   then show ?case
     using combine_blocks.combine_blocks_unpair1 equiv_trace_cons by blast
-next
-  case (combine_blocks_unpair2 ch comms blks1 blks v)
-  then show ?case
-    using combine_blocks.combine_blocks_unpair2 equiv_trace_cons by blast
-next
-  case (combine_blocks_unpair5 ch comms blks1 blks v)
-  then show ?case
-    using combine_blocks.combine_blocks_unpair5 equiv_trace_cons by blast
 next
   case (combine_blocks_wait1 comms blks1 blks rdy1 hist hist1 t rdy')
   have a: "(\<lambda>\<tau>\<in>{0..d2}. if 0 \<le> \<tau> + t \<and> \<tau> \<le> d2 then if \<tau> + t < t then p1 (\<tau> + t) else p2 (\<tau> + t - t) else undefined) =
@@ -2103,20 +1969,20 @@ next
     using ParPairS2(6) apply (elim ParallelE)
     using a by auto
 next
-  case (ParUnpairS1 p3 s3' ch chs p1 s1 v p2 s2)
-  have a: "\<exists>evs'. equiv_trace (InBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+  case (ParUnpairS1 p3 s3' ch chs p1 s1 ch_type v p2 s2)
+  have a: "\<exists>evs'. equiv_trace (CommBlock ch_type ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
     if aH: "s3 = ParState s12 s22"
        "par_big_step p2 s2 tr1 s12"
        "par_big_step p3 s3' tr2 s22"
        "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
   proof -
     obtain evs' where b:
-      "equiv_trace (InBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
+      "equiv_trace (CommBlock ch_type ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
       using ParUnpairS1(4)[OF aH(2)] by auto
-    have c: "combine_blocks chs (InBlock ch v # tr1) tr2 (InBlock ch v # evs)"
+    have c: "combine_blocks chs (CommBlock ch_type ch v # tr1) tr2 (CommBlock ch_type ch v # evs)"
       by (rule combine_blocks_unpair1[OF ParUnpairS1(2) aH(4)])
     obtain tr' where d:
-      "equiv_trace (InBlock ch v # evs) tr'"
+      "equiv_trace (CommBlock ch_type ch v # evs) tr'"
       "combine_blocks chs evs' tr2 tr'"
       using b(1) combine_blocks_equiv_left c by blast
     show ?thesis
@@ -2128,129 +1994,29 @@ next
     using ParUnpairS1(5) apply (elim ParallelE)
     using a by auto
 next
-  case (ParUnpairS2 p3 s3' ch chs p1 s1 v p2 s2)
-  have a: "\<exists>evs'. equiv_trace (OutBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
+  case (ParUnpairS2 p1 s1 ch chs p2 s2 ch_type v p3 s3')
+  have a: "\<exists>evs'. equiv_trace (CommBlock ch_type ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
     if aH: "s3 = ParState s12 s22"
-       "par_big_step p2 s2 tr1 s12"
+       "par_big_step p1 s1 tr1 s12"
        "par_big_step p3 s3' tr2 s22"
        "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
   proof -
     obtain evs' where b:
-      "equiv_trace (OutBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
-      using ParUnpairS2(4)[OF aH(2)] by auto
-    have c: "combine_blocks chs (OutBlock ch v # tr1) tr2 (OutBlock ch v # evs)"
+      "equiv_trace (CommBlock ch_type ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
+      using ParUnpairS2(4)[OF aH(3)] by auto
+    have c: "combine_blocks chs tr1 (CommBlock ch_type ch v # tr2) (CommBlock ch_type ch v # evs)"
       by (rule combine_blocks_unpair2[OF ParUnpairS2(2) aH(4)])
     obtain tr' where d:
-      "equiv_trace (OutBlock ch v # evs) tr'"
-      "combine_blocks chs evs' tr2 tr'"
-      using b(1) combine_blocks_equiv_left c by blast
+      "equiv_trace (CommBlock ch_type ch v # evs) tr'"
+      "combine_blocks chs tr1 evs' tr'"
+      using b(1) combine_blocks_equiv_right c by blast
     show ?thesis
       apply (rule exI[where x="tr'"]) apply auto
       apply (rule d(1))
-      by (rule ParallelB[OF b(2) aH(3) d(2)])
+      by (rule ParallelB[OF aH(2) b(2) d(2)])
   qed
   show ?case
     using ParUnpairS2(5) apply (elim ParallelE)
-    using a by auto
-next
-  case (ParUnpairS3 p1 s1 ch chs p2 s2 v p3 s3')
-  have a: "\<exists>evs'. equiv_trace (InBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
-    if aH: "s3 = ParState s12 s22"
-       "par_big_step p1 s1 tr1 s12"
-       "par_big_step p3 s3' tr2 s22"
-       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
-  proof -
-    obtain evs' where b:
-      "equiv_trace (InBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
-      using ParUnpairS3(4)[OF aH(3)] by auto
-    have c: "combine_blocks chs tr1 (InBlock ch v # tr2) (InBlock ch v # evs)"
-      by (rule combine_blocks_unpair3[OF ParUnpairS3(2) aH(4)])
-    obtain tr' where d:
-      "equiv_trace (InBlock ch v # evs) tr'"
-      "combine_blocks chs tr1 evs' tr'"
-      using b(1) combine_blocks_equiv_right c by blast
-    show ?thesis
-      apply (rule exI[where x="tr'"]) apply auto
-      apply (rule d(1))
-      by (rule ParallelB[OF aH(2) b(2) d(2)])
-  qed
-  show ?case
-    using ParUnpairS3(5) apply (elim ParallelE)
-    using a by auto
-next
-  case (ParUnpairS4 p1 s1 ch chs p2 s2 v p3 s3')
-  have a: "\<exists>evs'. equiv_trace (OutBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
-    if aH: "s3 = ParState s12 s22"
-       "par_big_step p1 s1 tr1 s12"
-       "par_big_step p3 s3' tr2 s22"
-       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
-  proof -
-    obtain evs' where b:
-      "equiv_trace (OutBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
-      using ParUnpairS4(4)[OF aH(3)] by auto
-    have c: "combine_blocks chs tr1 (OutBlock ch v # tr2) (OutBlock ch v # evs)"
-      by (rule combine_blocks_unpair4[OF ParUnpairS4(2) aH(4)])
-    obtain tr' where d:
-      "equiv_trace (OutBlock ch v # evs) tr'"
-      "combine_blocks chs tr1 evs' tr'"
-      using b(1) combine_blocks_equiv_right c by blast
-    show ?thesis
-      apply (rule exI[where x="tr'"]) apply auto
-      apply (rule d(1))
-      by (rule ParallelB[OF aH(2) b(2) d(2)])
-  qed
-  show ?case
-    using ParUnpairS4(5) apply (elim ParallelE)
-    using a by auto
-next
-  case (ParUnpairS5 p3 s3' ch chs p1 s1 v p2 s2)
-  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p3) (ParState s1 s3') evs' (ParState s12 s22)"
-    if aH: "s3 = ParState s12 s22"
-       "par_big_step p2 s2 tr1 s12"
-       "par_big_step p3 s3' tr2 s22"
-       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
-  proof -
-    obtain evs' where b:
-      "equiv_trace (IOBlock ch v # tr1) evs'" "par_big_step p1 s1 evs' s12"
-      using ParUnpairS5(4)[OF aH(2)] by auto
-    have c: "combine_blocks chs (IOBlock ch v # tr1) tr2 (IOBlock ch v # evs)"
-      by (rule combine_blocks_unpair5[OF ParUnpairS5(2) aH(4)])
-    obtain tr' where d:
-      "equiv_trace (IOBlock ch v # evs) tr'"
-      "combine_blocks chs evs' tr2 tr'"
-      using b(1) combine_blocks_equiv_left c by blast
-    show ?thesis
-      apply (rule exI[where x="tr'"]) apply auto
-      apply (rule d(1))
-      by (rule ParallelB[OF b(2) aH(3) d(2)])
-  qed
-  show ?case
-    using ParUnpairS5(5) apply (elim ParallelE)
-    using a by auto
-next
-  case (ParUnpairS6 p1 s1 ch chs p2 s2 v p3 s3')
-  have a: "\<exists>evs'. equiv_trace (IOBlock ch v # evs) evs' \<and> par_big_step (Parallel p1 chs p2) (ParState s1 s2) evs' (ParState s12 s22)"
-    if aH: "s3 = ParState s12 s22"
-       "par_big_step p1 s1 tr1 s12"
-       "par_big_step p3 s3' tr2 s22"
-       "combine_blocks chs tr1 tr2 evs" for s12 s22 tr1 tr2
-  proof -
-    obtain evs' where b:
-      "equiv_trace (IOBlock ch v # tr2) evs'" "par_big_step p2 s2 evs' s22"
-      using ParUnpairS6(4)[OF aH(3)] by auto
-    have c: "combine_blocks chs tr1 (IOBlock ch v # tr2) (IOBlock ch v # evs)"
-      by (rule combine_blocks_unpair6[OF ParUnpairS6(2) aH(4)])
-    obtain tr' where d:
-      "equiv_trace (IOBlock ch v # evs) tr'"
-      "combine_blocks chs tr1 evs' tr'"
-      using b(1) combine_blocks_equiv_right c by blast
-    show ?thesis
-      apply (rule exI[where x="tr'"]) apply auto
-      apply (rule d(1))
-      by (rule ParallelB[OF aH(2) b(2) d(2)])
-  qed
-  show ?case
-    using ParUnpairS6(5) apply (elim ParallelE)
     using a by auto
 qed
 

@@ -230,7 +230,7 @@ proof -
      apply (rule SingleB[OF right])
     apply (rule combine_blocks_wait2) apply auto
     apply (rule combine_blocks_wait1) apply auto
-     apply (rule combine_blocks_unpair3) apply auto
+     apply (rule combine_blocks_unpair2) apply auto
      apply (rule combine_blocks_unpair1) apply auto
     by (rule combine_blocks_empty)
 qed

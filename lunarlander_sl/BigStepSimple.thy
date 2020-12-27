@@ -43,11 +43,15 @@ datatype gstate =
 
 subsection \<open>Traces\<close>
 
+datatype comm_type = In | Out | IO
+
 datatype trace_block =
-  InBlock cname real
-  | OutBlock cname real
-  | IOBlock cname real
-  | WaitBlock real "real \<Rightarrow> gstate" rdy_info
+  CommBlock comm_type cname real
+| WaitBlock real "real \<Rightarrow> gstate" rdy_info
+
+abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
+abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
+abbreviation "IOBlock ch v \<equiv> CommBlock IO ch v"
 
 type_synonym trace = "trace_block list"
 

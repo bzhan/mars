@@ -34,27 +34,11 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_unpair1:
   "ch \<notin> comms \<Longrightarrow>
    combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms (InBlock ch v # blks1) blks2 (InBlock ch v # blks)"
+   combine_blocks comms (CommBlock ch_type ch v # blks1) blks2 (CommBlock ch_type ch v # blks)"
 | combine_blocks_unpair2:
   "ch \<notin> comms \<Longrightarrow>
    combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms (OutBlock ch v # blks1) blks2 (OutBlock ch v # blks)"
-| combine_blocks_unpair3:
-  "ch \<notin> comms \<Longrightarrow>
-   combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms blks1 (InBlock ch v # blks2) (InBlock ch v # blks)"
-| combine_blocks_unpair4:
-  "ch \<notin> comms \<Longrightarrow>
-   combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms blks1 (OutBlock ch v # blks2) (OutBlock ch v # blks)"
-| combine_blocks_unpair5:
-  "ch \<notin> comms \<Longrightarrow>
-   combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms (IOBlock ch v # blks1) blks2 (IOBlock ch v # blks)"
-| combine_blocks_unpair6:
-  "ch \<notin> comms \<Longrightarrow>
-   combine_blocks comms blks1 blks2 blks \<Longrightarrow>
-   combine_blocks comms blks1 (IOBlock ch v # blks2) (IOBlock ch v # blks)"
+   combine_blocks comms blks1 (CommBlock ch_type ch v # blks2) (CommBlock ch_type ch v # blks)"
 
   \<comment> \<open>Wait\<close>
 | combine_blocks_wait1:
