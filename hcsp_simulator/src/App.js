@@ -398,9 +398,15 @@ class App extends React.Component {
                 history: response.data.trace,
                 time_series: response.data.time_series,
                 sim_warning: response.data.warning,
-                warnings: response.data.warning,
                 querying: false
             })
+            if ('warning' in response.data) {
+                var time = Math.round(response.data.warning[0].toFixed(5) * 100000) / 100000;
+                var str_time = 'At time ' + String(time);
+                this.setState({
+                    warnings: [str_time, response.data.warning[1]]
+                })
+            }
         }
     };
 
