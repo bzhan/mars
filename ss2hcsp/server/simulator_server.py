@@ -13,6 +13,7 @@ from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
+from ss2hcsp.server.sequence_diagram import print_sequence_diagram
 
 app = Flask(__name__)
 
@@ -104,6 +105,12 @@ def run_hcsp():
                 idx = math.floor(i * (l / 1000.0))
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
+
+    if len(res['trace']) < 2000:
+        with open('event_output.json', 'w', encoding='utf-8') as f:
+            json.dump(res['trace'], f, indent=4, ensure_ascii=False)
+
+    print_sequence_diagram(res['trace'])
 
     if profile:
         p = Stats(pr)
