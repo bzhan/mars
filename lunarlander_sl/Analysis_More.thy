@@ -143,8 +143,7 @@ definition ODEsolInf :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarr
 
 
 subsection \<open>Further results in analysis\<close>
-thm has_vderiv_on_If
-thm has_vderiv_on_compose2
+
 lemma ODEsol_merge:
   assumes "ODEsol ode p d"
     and "ODEsol ode p2 d2"
@@ -165,12 +164,7 @@ lemma ODEsol_merge:
     have step4:"({d..d + d2} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {d..d+d2}"
       using step1 by auto
     have step5:"(((\<lambda>t. (t-d)) has_vderiv_on (\<lambda>t.1)) {d .. d+d2})"
-      unfolding has_vderiv_on_def 
-      apply auto subgoal for x
-      apply (rule has_vector_derivative_eq_rhs)
-         apply (auto intro!: derivative_intros)[1]
-        by auto
-      done
+      by (auto intro!: derivative_intros)
     then have step6:"(((\<lambda>t. state2vec (p2 (t-d))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 (t-d)))) {d .. d+d2})"
       using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p2 (t)))" "(\<lambda>t. ODE2Vec ode (p2 (t)))" "{0 .. d2}" "(\<lambda>t. (t-d))" "(\<lambda>t.1)" "{d .. d+d2}"]
       using assms(2) unfolding ODEsol_def
@@ -193,7 +187,24 @@ lemma ODEsol_split:
     and "0 < t1" and "t1 < d"
   shows "ODEsol ode p t1"
         "ODEsol ode (\<lambda>t. p (t + t1)) (d - t1)"
-  sorry
-
+  subgoal
+    using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{0..t1}"]
+    using assms unfolding ODEsol_def by auto
+  subgoal
+    unfolding ODEsol_def apply auto
+    subgoal using assms by auto
+    subgoal 
+    proof-
+      have step1:"((\<lambda>t. state2vec (p (t))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p (t)))) {t1..d}"
+        using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{t1..d}"]
+        using assms unfolding ODEsol_def by auto
+      have step2:"((\<lambda>t.(t+t1)) has_vderiv_on (\<lambda>t. 1)) {0..d-t1}"
+        by (auto intro!: derivative_intros)
+      show ?thesis
+        using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p (t)))" "(\<lambda>t. ODE2Vec ode (p (t)))" "{t1..d}" "(\<lambda>t.(t+t1))" "(\<lambda>t. 1)" " {0..d-t1}"]
+        using step1 step2 assms by auto
+    qed
+    done
+  done
 
 end
