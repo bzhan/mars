@@ -398,6 +398,7 @@ class App extends React.Component {
                 history: response.data.trace,
                 time_series: response.data.time_series,
                 sim_warning: response.data.warning,
+                warnings: response.data.warning,
                 querying: false
             })
         }

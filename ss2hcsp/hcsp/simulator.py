@@ -29,6 +29,12 @@ class SimulatorAssertionException(Exception):
         self.expr = expr
         self.error_msg = error_msg
 
+    def __str__(self):
+        res = 'Test %s failed' % self.expr
+        if self.error_msg:
+            res += ' (%s)' % self.error_msg
+        return res
+
 
 def eval_expr(expr, state):
     """Evaluate the given expression on the given state."""
@@ -1096,8 +1102,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     info.exec_step()
                 except SimulatorAssertionException as e:
                     if 'warning' not in res:
-                        info.reason = {'warning': e.error_msg}
-                        res['warning'] = (res['time'], e.error_msg)
+                        info.reason = {'warning': str(e)}
+                        res['warning'] = (res['time'], str(e))
 
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
