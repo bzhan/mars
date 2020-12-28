@@ -660,7 +660,7 @@ class SimInfo:
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
-            if idx not in v:
+            if idx >= len(v):
                 raise SimulatorException('Array index %s out of bounds, when executing %s' % (idx, hp))
             v[idx] = copy.deepcopy(val)
         elif isinstance(lname, FieldNameExpr):
