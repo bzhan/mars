@@ -112,6 +112,10 @@ def run_hcsp():
 
     print_sequence_diagram(res['trace'])
 
+    with open('simulator_events.txt', 'w', encoding='utf-8') as f:
+        for i, event in enumerate(res['events']):
+            f.write("%s: %s\n" % (i, event))
+
     if profile:
         p = Stats(pr)
         p.strip_dirs()

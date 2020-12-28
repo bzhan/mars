@@ -1029,7 +1029,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
-        'time_series': {}  # Evolution of variables, indexed by program
+        'time_series': {},  # Evolution of variables, indexed by program
+        'events': []  # Concise list of event strings
     }
 
     # Number of steps so far.
@@ -1047,21 +1048,20 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         if num_event % 10000 == 0:
             print('i:', num_event)
 
-        if num_show is not None and len(res['trace']) >= num_show:
-            return
-
-        cur_index = len(res['trace'])
-
         new_event = xargs
         new_event['time'] = res['time']
         new_event['ori_pos'] = ori_pos
+        res['events'].append(new_event['str'])
+
+        if num_show is not None and len(res['trace']) >= num_show:
+            return
 
         cur_info = dict()
         for info in infos:
             if info.name in ori_pos:
                 info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
                 cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
-                info.last_change = cur_index
+                info.last_change = len(res['trace'])
             else:
                 cur_info[info.name] = info.last_change
 
