@@ -143,13 +143,50 @@ definition ODEsolInf :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarr
 
 
 subsection \<open>Further results in analysis\<close>
-
+thm has_vderiv_on_If
+thm has_vderiv_on_compose2
 lemma ODEsol_merge:
   assumes "ODEsol ode p d"
     and "ODEsol ode p2 d2"
     and "p2 0 = p d"
   shows "ODEsol ode (\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)) (d + d2)"
-  sorry
+  unfolding ODEsol_def
+  apply auto
+  subgoal 
+    using assms(1,2) unfolding ODEsol_def by auto
+  subgoal
+  proof-
+    have step1:"d\<ge>0 \<and> d2\<ge>0"
+      using assms unfolding ODEsol_def by auto
+    then have step2:"{0 .. d+d2} = {0 .. d}\<union>{d .. d+d2}"
+      by auto
+    have step3:"({0..d} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {0..d}"
+      using step1 by auto
+    have step4:"({d..d + d2} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {d..d+d2}"
+      using step1 by auto
+    have step5:"(((\<lambda>t. (t-d)) has_vderiv_on (\<lambda>t.1)) {d .. d+d2})"
+      unfolding has_vderiv_on_def 
+      apply auto subgoal for x
+      apply (rule has_vector_derivative_eq_rhs)
+         apply (auto intro!: derivative_intros)[1]
+        by auto
+      done
+    then have step6:"(((\<lambda>t. state2vec (p2 (t-d))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 (t-d)))) {d .. d+d2})"
+      using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p2 (t)))" "(\<lambda>t. ODE2Vec ode (p2 (t)))" "{0 .. d2}" "(\<lambda>t. (t-d))" "(\<lambda>t.1)" "{d .. d+d2}"]
+      using assms(2) unfolding ODEsol_def
+      by auto
+    have step7:" ((\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d))) has_vderiv_on
+     (\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))){0..d + d2}"
+      using has_vderiv_on_If[of "{0 .. d+d2}" "{0 .. d}" "{d .. d+d2}" "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec ode (p t))" "(\<lambda>t. state2vec (p2 (t-d)))" "(\<lambda>t. ODE2Vec ode (p2 (t-d)))"]
+      using step1 step2 step3 step4 step6
+      using assms(1) assms(3) unfolding ODEsol_def 
+      by auto
+    then show ?thesis 
+      using has_vderiv_eq[of "(\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d)))" "(\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))" "{0..d + d2}" "(\<lambda>t. state2vec (if t < d then p t else p2 (t - d)))" "(\<lambda>t. ODE2Vec ode (if t < d then p t else p2 (t - d)))" "{0..d + d2}"]
+      using assms(3) step1 
+      by auto
+  qed
+  done
 
 lemma ODEsol_split:
   assumes "ODEsol ode p d"
