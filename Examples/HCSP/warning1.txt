@@ -1,2 +1,2 @@
-P0 ::= x := 0; (assert(x <= 10, "x is too large"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**
+P0 ::= x := 0; (assert(x <= 10, "x is too large: ", x, " > 10"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**
 P1 ::= (wait(2); p2c?x; c2p!x-1)**
