@@ -968,14 +968,17 @@ def extract_event(infos):
 
     "deadlock" -> the program has deadlocked.
     ("warning", msg) -> warning message.
+    ("error", msg) -> error message.
     ("delay", n) -> delay for n seconds.
     ("comm", id_out, id_in, ch_name) -> communication.
 
     """
-    # If any process has a warning, return warning
+    # If any process has a warning or error, return it
     for i, info in enumerate(infos):
         if 'warning' in info.reason:
             return ('warning', info.reason['warning'])
+        if 'error' in info.reason:
+            return ('error', info.reason['error'])
 
     # First, attempt to find communication
     # We keep two dictionaries: out-ready events and in-ready events
@@ -1053,12 +1056,12 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         new_event['ori_pos'] = ori_pos
         res['events'].append(new_event['str'])
 
-        if num_show is not None and len(res['trace']) >= num_show:
+        if new_event['type'] != 'error' and num_show is not None and len(res['trace']) >= num_show + 1:
             return
 
         cur_info = dict()
         for info in infos:
-            if info.name in ori_pos:
+            if new_event['type'] == 'error' or info.name in ori_pos:
                 info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
                 cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
                 info.last_change = len(res['trace'])
@@ -1108,6 +1111,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     if 'warning' not in res:
                         info.reason = {'warning': str(e)}
                         res['warning'] = (res['time'], str(e))
+                except SimulatorException as e:
+                    info.reason = {'error': str(e)}
+                    res['warning'] = (res['time'], str(e))
 
                 if info.reason is None:
                     log_event(ori_pos=[info.name], type="step", str="step")
@@ -1116,6 +1122,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
                 elif 'warning' in info.reason:
                     log_event(ori_pos=[info.name], type="warning", str="warning: " + info.reason['warning'])
+                elif 'error' in info.reason:
+                    log_event(ori_pos=[info.name], type="error", str="error: " + info.reason['error'])
+                    break
                 else:
                     break
 
@@ -1128,6 +1137,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         event = extract_event(infos)
         if event == "deadlock":
             log_event(ori_pos=[], type="deadlock", str="deadlock")
+            break
+        elif event[0] == "error":
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
