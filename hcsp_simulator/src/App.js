@@ -58,7 +58,7 @@ const verticalLinePlugin = {
             chart.config.lineAtIndex.forEach(pointIndex => this.renderVerticalLine(chart, pointIndex));
         }
         if (chart.config.warningAtIndex) {
-            chart.config.warningAtIndex.forEach(pointIndex => this.renderVerticalLine_red(chart, pointIndex));
+            chart.config.warningAtIndex.forEach(pointIndex => this.renderVerticalLineRed(chart, pointIndex));
         }
     }
 };
@@ -76,6 +76,7 @@ class Process extends React.Component {
 
     displayValue(val) {
         if (typeof (val) == 'number') {
+            // Round numbers to at most three digits for display
             return String(Math.round(val.toFixed(3) * 1000) / 1000);
         }
         else if (Array.isArray(val)) {
@@ -130,13 +131,13 @@ class Process extends React.Component {
                 <pre className="program-state">
                     <span>&nbsp;</span>
                     {Object.keys(this.props.state).map((key, index) => {
-                        // Round numbers to at most three digits for display
                         var val = this.props.state[key];
                         var str_val = this.displayValue(val);
                         return (<>
-                            {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
+                            {index > 0 ? <><br /><span>&nbsp;</span></> : null}
                             <span key={index} style={{ marginLeft: "10px" }}>
-                                {key}: {str_val}
+                                <span style={{color: 'indianred'}}> {key}: </span>
+                                <span style={{color: 'black'}}> {str_val} </span>
                             </span>
                         </>)
                     })}
