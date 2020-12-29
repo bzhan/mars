@@ -3,7 +3,7 @@
 
 def print_sequence_diagram(trace):
     # First entry of trace contains all processes
-    all_processes = sorted(trace[0]['ori_pos'])
+    all_processes = sorted(trace[0]['ori_pos'].keys())
 
     # Mapping from process name to a list of events.
     # '|' represents no event for this process.

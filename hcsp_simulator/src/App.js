@@ -391,6 +391,7 @@ class App extends React.Component {
             this.setState({
                 error: response.data.error,
                 history: [],
+                history_pos: 0,
                 time_series: [],
                 querying: false
             })
@@ -398,6 +399,7 @@ class App extends React.Component {
             this.setState({
                 error: undefined,
                 history: response.data.trace,
+                history_pos: 0,
                 time_series: response.data.time_series,
                 sim_warning: response.data.warning,
                 querying: false
@@ -406,8 +408,12 @@ class App extends React.Component {
                 var time = Math.round(response.data.warning[0].toFixed(5) * 100000) / 100000;
                 var str_time = 'At time ' + String(time);
                 this.setState({
+                    history_pos: response.data.trace.length - 1,
                     warnings: [str_time, response.data.warning[1]]
                 })
+                document.getElementById('right').scrollTop = (this.state.history_pos) * 21;
+            } else {
+                document.getElementById('right').scrollTop = 0;
             }
         }
     };
@@ -534,14 +540,15 @@ class App extends React.Component {
                                     npos={undefined} warning_at={this.state.sim_warning} />
                             } else {
                                 var npos = false;
-                                if (hpos < this.state.history.length - 1) {
-                                    const next_history = this.state.history[hpos + 1];
-                                    if ('ori_pos' in next_history && next_history.ori_pos.indexOf(hcsp_name) !== -1) {
+                                var pos = info.mapping[pos];
+                                if (hpos < this.state.history.length) {
+                                    if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos) {
                                         npos = true;
+                                        pos = info.mapping[this.state.history[hpos].ori_pos[hcsp_name]];
                                     }
                                 }
                                 return <Process key={index} index={index} lines={info.lines}
-                                    name={hcsp_name} pos={info.mapping[pos]} state={state}
+                                    name={hcsp_name} pos={pos} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
                                     npos={npos} warning_at={this.state.sim_warning} />
                             }
@@ -563,7 +570,7 @@ class App extends React.Component {
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{ marginLeft: '20px', fontSize: 'x-large' }}>{this.state.hcspFileName}</span>
                         <label htmlFor="num_steps" className="menu-label">Number of steps:</label>
-                        <input type="text" id="num_steps" name="num_steps" value={this.state.num_steps} onChange={this.handleChange} />
+                        <input type="text" id="num_steps" name="num_steps" style={{width: '70px'}} value={this.state.num_steps} onChange={this.handleChange} />
                         <label htmlFor="num_show" className="menu-label">Showing </label>
                         <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange} />
                         <label htmlFor="show_starting" className="menu-label">starting from </label>

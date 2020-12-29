@@ -598,6 +598,10 @@ def string_of_pos(hp, pos):
     else:
         return 'p' + '.'.join(str(p) for p in pos[:-1])
 
+def disp_of_pos(hp, pos):
+    return string_of_pos(hp, remove_rec(hp, pos))
+
+
 class SimInfo:
     """Represents a (non-parallel) HCSP program together with
     additional information on the current execution position and
@@ -1079,7 +1083,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         cur_info = dict()
         for info in infos:
             if new_event['type'] == 'error' or info.name in ori_pos:
-                info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
+                info_pos = disp_of_pos(info.hp, info.pos)
                 cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
                 info.last_change = len(res['trace'])
             else:
@@ -1108,10 +1112,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             series.append(new_entry)
 
     # List of processes that have been updated in the last round.
-    updated = [info.name for info in infos]
+    start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
 
     # Record event and time series at the beginning.
-    log_event(ori_pos=updated, type="start", str="start")
+    log_event(ori_pos=start_pos, type="start", str="start")
     for info in infos:
         log_time_series(info, 0, info.state)
 
@@ -1119,10 +1123,11 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            if info.name not in updated:
+            if info.name not in start_pos:
                 continue
 
             while info.pos is not None and not num_event > num_steps:
+                ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
                 try:
                     info.exec_step()
                 except SimulatorAssertionException as e:
@@ -1134,14 +1139,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     res['warning'] = (res['time'], str(e))
 
                 if info.reason is None:
-                    log_event(ori_pos=[info.name], type="step", str="step")
+                    log_event(ori_pos=ori_pos, type="step", str="step")
                     log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
-                    log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
+                    log_event(ori_pos=ori_pos, type="log", str='-- ' + info.reason['log'] + ' --')
                 elif 'warning' in info.reason:
-                    log_event(ori_pos=[info.name], type="warning", str="warning: " + info.reason['warning'])
+                    log_event(ori_pos=ori_pos, type="warning", str="warning: " + info.reason['warning'])
                 elif 'error' in info.reason:
-                    log_event(ori_pos=[info.name], type="error", str="error: " + info.reason['error'])
+                    log_event(ori_pos=ori_pos, type="error", str="error: " + info.reason['error'])
                     break
                 else:
                     break
@@ -1154,12 +1159,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
 
         event = extract_event(infos)
         if event == "deadlock":
-            log_event(ori_pos=[], type="deadlock", str="deadlock")
+            log_event(ori_pos=dict(), type="deadlock", str="deadlock")
             break
         elif event[0] == "error":
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
+            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
+
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
             for info in infos:
@@ -1169,16 +1176,17 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     log_time_series(info, res['time'] + entry['time'], entry['state'])
                 log_time_series(info, res['time'] + min_delay, info.state)
 
-            updated = [infos[p].name for p in delay_pos]
-            log_event(ori_pos=updated, type="delay", delay_time=min_delay, str=trace_str)
+            log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
+            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos),
+                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos)}
             try:
                 val = infos[id_out].exec_output_comm(ch_name)
                 infos[id_in].exec_input_comm(ch_name, val)
             except SimulatorException as e:
-                log_event(ori_pos=updated, type="error", str="error: " + str(e))
+                log_event(ori_pos=ori_pos, type="error", str="error: " + str(e))
                 res['warning'] = (res['time'], str(e))
                 break
 
@@ -1193,9 +1201,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             else:
                 val_str = " " + str(val)
 
-            updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(ori_pos=updated, inproc=infos[id_in].name, outproc=infos[id_out].name,
+            log_event(ori_pos=ori_pos, inproc=infos[id_in].name, outproc=infos[id_out].name,
                       type="comm", ch_name=str(ch_name), val=val, str=trace_str)
             log_time_series(infos[id_in], res['time'], infos[id_in].state)
 
@@ -1207,7 +1214,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     has_overflow = True
 
         if has_overflow:
-            log_event(ori_pos=[], type="overflow", str="overflow")
+            log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
         
     return res
