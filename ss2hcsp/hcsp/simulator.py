@@ -1085,6 +1085,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             else:
                 cur_info[info.name] = info.last_change
 
+        new_event['id'] = num_event - 1
         new_event['infos'] = cur_info
         res['trace'].append(new_event)
 
