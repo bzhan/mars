@@ -37,7 +37,8 @@ const verticalLinePlugin = {
             context.fillRect(lineLeftOffset1, scale.bottom, lineLeftOffset2 - lineLeftOffset1, scale.top - scale.bottom);
         }
     },
-    renderVerticalLine_red: function (chartInstance, pointIndex) {
+
+    renderVerticalLineRed: function (chartInstance, pointIndex) {
         const scale = chartInstance.scales['y-axis-0'];
         const context = chartInstance.chart.ctx;
 
@@ -70,9 +71,19 @@ class Process extends React.Component {
         super(props);
         this.state = {
             show_graph: false,
-
         }
+    }
 
+    displayValue(val) {
+        if (typeof (val) == 'number') {
+            return String(Math.round(val.toFixed(3) * 1000) / 1000);
+        }
+        else if (Array.isArray(val)) {
+            return '[' + val.map((k) => this.displayValue(k)).join(',') + ']';
+        }
+        else {
+            return '{' + (Object.keys(val).map((k) => k + ':' + this.displayValue(val[k]))).join(',') + '}';
+        }
     }
 
     render() {
@@ -121,17 +132,7 @@ class Process extends React.Component {
                     {Object.keys(this.props.state).map((key, index) => {
                         // Round numbers to at most three digits for display
                         var val = this.props.state[key];
-                        var str_val = '';
-                        if (typeof (val) == 'number') {
-                            val = Math.round(val.toFixed(3) * 1000) / 1000;
-                            str_val = String(val);
-                        }
-                        else if (Array.isArray(val)) {
-                            str_val = '[' + val.join(',') + ']';
-                        }
-                        else {
-                            str_val = '{' + (Object.keys(val).map((k) => k + ':' + val[k])).join(',') + '}';
-                        }
+                        var str_val = this.displayValue(val);
                         return (<>
                             {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
                             <span key={index} style={{ marginLeft: "10px" }}>
