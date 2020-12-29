@@ -1174,8 +1174,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
-            val = infos[id_out].exec_output_comm(ch_name)
-            infos[id_in].exec_input_comm(ch_name, val)
+            try:
+                val = infos[id_out].exec_output_comm(ch_name)
+                infos[id_in].exec_input_comm(ch_name, val)
+            except SimulatorException as e:
+                log_event(ori_pos=updated, type="error", str="error: " + str(e))
+                res['warning'] = (res['time'], str(e))
+                break
+
             if val is None:
                 val_str = ""
             elif isinstance(val, float):
