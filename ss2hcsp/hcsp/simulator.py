@@ -649,7 +649,7 @@ class SimInfo:
         self.reason = None
 
         # Last step at which the state is changed. Used during simulation.
-        self.last_change = 0
+        self.last_change = None
 
     def __str__(self):
         return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
@@ -1033,7 +1033,8 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
+                  show_starting=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1077,12 +1078,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         new_event['ori_pos'] = ori_pos
         res['events'].append(new_event['str'])
 
-        if new_event['type'] != 'error' and num_show is not None and len(res['trace']) >= num_show + 1:
+        if new_event['type'] != 'error' and \
+            ((num_show is not None and len(res['trace']) >= num_show + 1) or \
+             (show_starting is not None and num_event <= show_starting)):
             return
 
         cur_info = dict()
         for info in infos:
-            if new_event['type'] == 'error' or info.name in ori_pos:
+            if new_event['type'] == 'error' or info.name in ori_pos or info.last_change is None:
                 info_pos = disp_of_pos(info.hp, info.pos)
                 cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
                 info.last_change = len(res['trace'])

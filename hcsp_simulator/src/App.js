@@ -574,7 +574,7 @@ class App extends React.Component {
                         <label htmlFor="num_show" className="menu-label">Showing </label>
                         <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange} />
                         <label htmlFor="show_starting" className="menu-label">starting from </label>
-                        <input type="text" id="show_starting" name="show_starting" value={this.state.show_starting} onChange={this.handleChange} />
+                        <input type="text" id="show_starting" name="show_starting" style={{width: '70px'}} value={this.state.show_starting} onChange={this.handleChange} />
                     </Nav>
                 </Navbar>
 
