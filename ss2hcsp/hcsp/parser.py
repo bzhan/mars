@@ -79,6 +79,7 @@ grammar = r"""
         | lname ":=" expr -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
         | "assert" "(" cond ("," expr)* ")" -> assert_cmd
+        | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
@@ -270,9 +271,16 @@ class HPTransformer(Transformer):
         return hcsp.Assign(args[:-1], args[-1])
 
     def assert_cmd(self, *args):
-        # First argument is the 
+        # First argument is the assert condition. The remaining ones
+        # are error messages. 
         bexpr, msgs = args[0], args[1:]
         return hcsp.Assert(bexpr, msgs)
+
+    def test_cmd(self, *args):
+        # First argument is the test condition. The remaining ones
+        # are warning messages.
+        bexpr, msgs = args[0], args[1:]
+        return hcsp.Test(bexpr, msgs)
 
     def log_cmd(self, *args):
         return hcsp.Log(*args)

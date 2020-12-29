@@ -285,6 +285,38 @@ class Assert(HCSP):
         return var_set
 
 
+class Test(HCSP):
+    def __init__(self, bexpr, msgs):
+        super(Test, self).__init__()
+        self.type = "test"
+        assert isinstance(bexpr, BExpr)
+        self.bexpr = bexpr
+        msgs = tuple(msgs)
+        assert all(isinstance(msg, AExpr) for msg in msgs)
+        self.msgs = msgs
+
+    def __eq__(self, other):
+        return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
+
+    def __repr__(self):
+        if self.msgs:
+            return "Test(%s,%s)" % (repr(self.bexpr), ','.join(repr(msg) for msg in self.msgs))
+        else:
+            return "Test(%s)" % repr(self.bexpr)
+
+    def __str__(self):
+        if self.msgs:
+            return "test(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+        else:
+            return "test(%s)" % self.bexpr
+
+    def get_vars(self):
+        var_set = self.bexpr.get_vars()
+        for msg in self.msgs:
+            var_set.update(msg.get_vars())
+        return var_set
+
+
 class Log(HCSP):
     def __init__(self, *exprs):
         super(Log, self).__init__()

@@ -707,7 +707,24 @@ class SimInfo:
             self.reason = None
 
         elif cur_hp.type == "assert":
-            # Evaluate an assertion
+            # Evaluate an assertion. If fails, immediate stop the execution
+            # (like a runtime error).
+            if not eval_expr(cur_hp.bexpr, self.state):
+                error_msg = ''
+                for msg in cur_hp.msgs:
+                    val = eval_expr(msg, self.state)
+                    if isinstance(val, str):
+                        error_msg += val[1:-1]
+                    else:
+                        error_msg += str(val)
+                raise SimulatorException(error_msg)
+            else:
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.reason = None
+
+        elif cur_hp.type == "test":
+            # Evaluate a test. If fails, output a warning but do not stop
+            # the execution.
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
             if not eval_expr(cur_hp.bexpr, self.state):

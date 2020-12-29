@@ -470,7 +470,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel34(self):
         self.run_test([
-            'x := 2; assert(x == 3, "x should equal 3")'
+            'x := 2; test(x == 3, "x should equal 3")'
         ], 3, ['warning: Test x == 3 failed (x should equal 3)', 'deadlock'],
         warning=(0, "Test x == 3 failed (x should equal 3)"))
 
@@ -523,7 +523,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel43(self):
         self.run_test([
-            "x := 0; (assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "x := 0; (test(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",
         ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "warning: Test x <= 2 failed (x is too big)", "delay 2", "IO p2c 5.0", "IO c2p 4.0"],
@@ -546,6 +546,14 @@ class SimulatorTest(unittest.TestCase):
             "pt := {xs: [1, 2], ys: [3, 4]}; ch!pt.xs[1]; ch!pt.ys[0]",
             "ch?x; ch?x"
         ], 3, ['IO ch 2', 'IO ch 3', 'deadlock'])
+
+    def testExecParallel47(self):
+        self.run_test([
+            "x := 0; (assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
+                "delay 2", "IO p2c 4.0", "IO c2p 3.0", "error: x is too big"],
+        warning=(6, "x is too big"))
 
 
 if __name__ == "__main__":
