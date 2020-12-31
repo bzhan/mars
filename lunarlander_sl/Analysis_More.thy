@@ -36,7 +36,7 @@ lemma mvt_real_eq:
   fixes p :: "real \<Rightarrow> real"
   assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
     and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
+    and "\<forall>t\<in>{0 ..<d}. \<forall>s. q t s = 0"
     and "x \<in> {0 .. d}"
   shows "p 0 = p x" 
 proof -
