@@ -54,7 +54,7 @@ lemma mvt_real_ge:
   fixes p :: "real \<Rightarrow>real"
  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
   and "d \<ge> 0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
+  and "\<forall>t\<in>{0 ..<d}. \<forall>s\<ge>0. q t s \<ge> 0"
   and "x \<in> {0 .. d}"
   shows "p 0 \<le> p x"
 proof -
@@ -64,7 +64,7 @@ proof -
   then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+  by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
 qed
 
 text \<open>If the derivative is always non-positive, then the function is decreasing.\<close>
@@ -72,7 +72,7 @@ lemma mvt_real_le:
   fixes p :: "real \<Rightarrow>real"
   assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
     and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
+    and "\<forall>t\<in>{0 ..<d}. \<forall>s\<ge>0 . q t s \<le> 0"
     and "x \<in> {0 .. d}"
   shows "p 0 \<ge> p x"
 proof -
@@ -82,7 +82,7 @@ proof -
   then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+  by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
 qed
 
 
