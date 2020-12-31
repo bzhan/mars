@@ -256,25 +256,24 @@ class SimTest(unittest.TestCase):
 
         self.assertEqual(real_hp, expected_hp)
 
-    # def testHCS(self):
-    #     location = "./ss2hcsp/case_studies/hcs_test.xml"
-    #     diagram = SL_Diagram(location=location)
-    #     diagram.parse_xml()
-    #     # print(diagram)
-    #     get_hp.delete_subsystems(diagram.blocks_dict)
-    #     # print(diagram)
-    #     diagram.add_line_name()
-    #     # print(diagram)
-    #     # diagram.delete_ports()
-    #     diagram.comp_inher_st()
-    #     # print(diagram)
-    #     dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
-    #     # print("D_Processes: ", dis_subdiag_with_chs)
-    #     # print("C_Processes: ", con_subdiag_with_chs)
-    #     # print(get_hp.translate_discrete(dis_subdiag_with_chs[0]))
-    #     # print(diagram)
-    #     # real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-    #     # print(real_hp)
+    def testHCS(self):
+        location = "./ss2hcsp/case_studies/hcs_test.xml"
+        diagram = SL_Diagram(location=location)
+        diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.add_line_name()
+        # diagram.delete_ports()
+        diagram.comp_inher_st()
+        # print(diagram)
+        real_hp = get_hcsp(*diagram.seperate_diagram(), "HCS")
+        print(real_hp)
+
+        # print("D_Processes: ", dis_subdiag_with_chs)
+        # print("C_Processes: ", con_subdiag_with_chs)
+        # print(get_hp.translate_discrete(dis_subdiag_with_chs[0]))
+        # print(diagram)
+        # real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
+        # print(real_hp)
 
     # def testIsollete(self):
     #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
@@ -335,6 +334,30 @@ class SimTest(unittest.TestCase):
         # print(expected_hp)
 
         self.assertEqual(real_hp, expected_hp)
+
+    def testLander(self):
+        location = "./CaseStudies/lander/lander.xml"
+        diagram = SL_Diagram(location)
+        model_name = diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
+        print(real_hp)
+
+        # expected_hp = hcsp.HCSPProcess()
+        # expected_hp.add(model_name, hcsp.Var("PC0"))
+        # con_init = hp_parser.parse("q := 97; c := 100; x0 := 1")
+        # con_hp = hp_parser.parse("<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] "
+        #                          "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip); "
+        #                          "<q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] "
+        #                          "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip)")
+        # continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
+        # expected_hp.add(model_name, continuous_hp)
+        # print(expected_hp)
+
+        # self.assertEqual(real_hp, expected_hp)
 
 
 if __name__ == "__main__":
