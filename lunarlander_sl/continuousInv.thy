@@ -65,7 +65,34 @@ theorem Valid_inv':
   shows "\<Turnstile> {\<lambda>s tr. inv s = r \<and> P tr \<and> b s}
      Cont ode b
     {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. inv s = r)) tr}"
-  sorry
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal for tr1 d p
+    apply(simp add: join_assn_def)
+    apply(rule exI [where x="tr1"])
+    apply auto
+    apply(auto intro!: ode_inv_assn.intros)
+  subgoal premises pre for \<tau>
+    proof-
+      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+        using pre assms
+        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+        by auto
+      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+        using 1 unfolding has_derivative_def bounded_linear_def 
+        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+        by blast
+      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+        using 2 3 that by auto
+      have 5: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 ..<d}" for t
+        using 4 assms(2) that pre by auto
+      show ?thesis
+        using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
+        using 1 5 pre by auto
+    qed
+    done
+  done
 
 
 end
