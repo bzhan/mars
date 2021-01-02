@@ -34,12 +34,12 @@ def translate_continuous(diagram):
             assert isinstance(in_vars, set) and len(in_vars) == 1
             in_var = in_vars.pop()
             ode_eqs.append((out_var, AVar(in_var)))
-        elif block.type == "unit_delay":
-            out_vars = block.get_output_vars()
-            assert isinstance(out_vars, set) and len(out_vars) == 1
-            out_var = out_vars.pop()
-            ode_eqs.append((out_var, AConst(0)))
-    #assert init_hps
+        # elif block.type == "unit_delay":
+        #     out_vars = block.get_output_vars()
+        #     assert isinstance(out_vars, set) and len(out_vars) == 1
+        #     out_var = out_vars.pop()
+        #     ode_eqs.append((out_var, AConst(0)))
+    # assert init_hps
 
     # Delete integrator blocks
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
@@ -136,13 +136,21 @@ def translate_continuous(diagram):
                 var_name = ch_hp.var_name
                 if var_name not in initialised_vars:
                     # update by lqq
-                    init_hps.append(hp.Assign(var_name, AConst(1)))
+                    init_hps.append(hp.Assign(var_name, AConst(0)))
                     initialised_vars.append(var_name)
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     assert ode_hps
-    result_hp = hp.Sequence(init_hp, hp.Loop(ode_hps[0])) if len(ode_hps) == 1 \
-        else hp.Sequence(init_hp, hp.Loop(hp.Sequence(*ode_hps)))
+
+    modified_ode_hps = list()
+    for ode_hp in ode_hps:
+        if ode_hp.constraint == true_expr:
+            modified_ode_hps.append(ode_hp)
+        else:
+            modified_ode_hps.append(hp.Condition(cond=ode_hp.constraint, hp=ode_hp))
+
+    result_hp = hp.Sequence(init_hp, hp.Loop(modified_ode_hps[0])) if len(ode_hps) == 1 \
+        else hp.Sequence(init_hp, hp.Loop(hp.Sequence(*modified_ode_hps)))
     return result_hp
 
 
@@ -251,7 +259,7 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers, model_name="P"):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers, model_name="P"):
     """Compute the discrete and continuous processes from a diagram,
     which is represented as discrete and continuous subdiagrams."""
     processes = hp.HCSPProcess()
@@ -280,13 +288,21 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers, mod
         sf_processes = chart.get_process() if chart.has_event else chart.get_pure_process()
         for name, sf_process in sf_processes.hps:
             assert not isinstance(sf_process, hp.Parallel)
-            processes.add(name, sf_process)
-            main_processes.append(hp.Var(name))
+            process_name = name.replace(" ", "_")
+            processes.add(process_name, sf_process)
+            main_processes.append(hp.Var(process_name))
+
+    # Compute the unit_delay processes
+    for unit_delay in unit_delays:
+        process_name = unit_delay.name.replace(" ", "_")
+        processes.add(process_name, unit_delay.get_hcsp())
+        main_processes.append(hp.Var(process_name))
 
     # Computer the buffer processes
     for buffer in buffers:
-        processes.add(buffer.name, buffer.get_hcsp())
-        main_processes.append(hp.Var(buffer.name))
+        process_name = buffer.name.replace(" ", "_")
+        processes.add(process_name, buffer.get_hcsp())
+        main_processes.append(hp.Var(process_name))
 
     # Get main paralell processes
     assert len(main_processes) >= 1 and len(main_processes) == len(processes.hps)

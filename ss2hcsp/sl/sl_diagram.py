@@ -1,7 +1,7 @@
 from ss2hcsp.sl.sl_line import SL_Line
 
 from ss2hcsp.sl.port import Port
-from ss2hcsp.sl.Continuous.integrator import Integrator, Buffer
+from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
@@ -313,7 +313,18 @@ class SL_Diagram:
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list}
 
-    def parse_xml(self, model_name=""):
+    def parse_xml(self, model_name="", default_SampleTimes=()):
+        # Extract BlockParameterDefaults
+        if not default_SampleTimes:
+            default_SampleTimes = dict()
+            default_para_blocks = self.model.getElementsByTagName("BlockParameterDefaults")
+            assert len(default_para_blocks) == 1
+            for child in default_para_blocks[0].childNodes:
+                if child.nodeName == "Block":
+                    child_type = child.getAttribute("BlockType")
+                    assert child_type not in default_SampleTimes
+                    default_SampleTimes[child_type] = get_attribute_value(child, "SampleTime")
+
         self.parse_stateflow_xml()
 
         models = self.model.getElementsByTagName("Model")
@@ -324,15 +335,19 @@ class SL_Diagram:
         system = self.model.getElementsByTagName("System")[0]
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
+
         # The following dictionary is used to replace the port names as formatted ones.
         # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
         # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
         port_name_dict = {}  # in the form {old_name: new_name}
         for block in blocks:
             block_type = block.getAttribute("BlockType")
+            # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            sample_time = eval(sample_time) if sample_time else -1
+            if not sample_time:
+                sample_time = default_SampleTimes[block_type]
+            sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
             if block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
@@ -395,6 +410,7 @@ class SL_Diagram:
             elif block_type == "UnitDelay":
                 init_value = get_attribute_value(block, "InitialCondition")
                 init_value = eval(init_value) if init_value else 0
+                assert sample_time > 0
                 self.add_block(UnitDelay(name=block_name, init_value=init_value, st=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block, "Function")
@@ -463,7 +479,7 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                inner_model_name = subsystem.diagram.parse_xml(model_name)
+                inner_model_name = subsystem.diagram.parse_xml(model_name, default_SampleTimes)
                 assert inner_model_name == model_name
                 self.add_block(subsystem)
             elif block_type == "Inport":
@@ -714,6 +730,10 @@ class SL_Diagram:
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
             del blocks_dict[name]
+        # Get unit_delays and then delete them from block_dict
+        unit_delays = [block for block in blocks_dict.values() if block.type == "unit_delay"]
+        for name in [block.name for block in unit_delays]:
+            del blocks_dict[name]
         # Get buffers and then delete them from block_dict
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
         for name in [block.name for block in buffers]:
@@ -764,13 +784,13 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, buffers
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers
         # return dis_subdiag_with_chs, con_subdiag_with_chs
 
     def add_buffers(self):
         buffers = []
         for block in self.blocks_dict.values():
-            if block.type == "stateflow":
+            if block.type in {"stateflow", "unit_delay"}:
                 for port_id in range(len(block.dest_lines)):
                     line = block.dest_lines[port_id]
                     src_block = self.blocks_dict[line.src]
