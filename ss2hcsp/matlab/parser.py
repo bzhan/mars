@@ -1,4 +1,4 @@
-"""Parsing and conversion for matlab functions."""
+"""Parsing for matlab functions."""
 
 from lark import Lark, Transformer, v_args, exceptions
 
