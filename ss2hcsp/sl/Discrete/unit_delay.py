@@ -1,6 +1,9 @@
+"""Unit delay block"""
+
 from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, FunExpr
 from ss2hcsp.hcsp.parser import hp_parser
+from ss2hcsp.hcsp import hcsp
 
 
 class UnitDelay(SL_Block):
@@ -46,8 +49,11 @@ class UnitDelay(SL_Block):
         assert len(self.src_lines) == 1 and len(self.src_lines[0]) == 1
         out_var = self.src_lines[0][0].name
         out_branch = str(self.src_lines[0][0].branch)
-        return hp_parser.parse(in_var + " := " + str(self.init_value) + "; "
-                               + "ch_" + out_var + "_" + out_branch + "!" + in_var + "; "
-                               + "(ch_" + in_var + "_" + in_branch + "?" + in_var + "; t := 0; "
-                               + "<t_dot = 1, " + in_var + "_dot = 0 & t < " + str(self.st) + ">; "
-                               + "ch_" + out_var + "_" + out_branch + "!" + in_var + ")**")
+        return hcsp.Sequence(
+            hcsp.Assign(in_var, AConst(self.init_value)),
+            hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var)),
+            hcsp.Loop(hcsp.Sequence(
+                hcsp.InputChannel('ch_' + in_var + '_' + in_branch, in_var),
+                hcsp.Wait(AConst(self.st)),
+                hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var))
+        )))
