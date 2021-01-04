@@ -35,6 +35,12 @@ from ss2hcsp.hcsp.parser import aexpr_parser
 
 
 def get_gcd(sample_times):
+    """Return the gcd of a list of sample times.
+
+    If some of the sample times are not integers, first multiply by an
+    appropriate power of 10 before taking gcd.
+
+    """
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
     assert all(isinstance(st, (int, float)) for st in sample_times)
 
@@ -776,7 +782,7 @@ class SL_Diagram:
             else:
                 discrete_subdiagrams.append(scc)
 
-        # Sort disrecte blocks
+        # Sort discrete blocks
         discrete_subdiagrams_sorted = []
         for scc in discrete_subdiagrams:
             scc_dict = {block.name: block for block in scc}
@@ -795,7 +801,6 @@ class SL_Diagram:
             discrete_subdiagrams_sorted.append(sorted_scc)
 
         return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers
-        # return dis_subdiag_with_chs, con_subdiag_with_chs
 
     def add_buffers(self):
         buffers = []
