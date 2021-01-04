@@ -21,6 +21,9 @@ class Sqrt(SL_Block):
         return "%s: %s[in=%s, out=%s, st=%s]" % \
                (self.name, self.operator, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
         if self.operator == "signedSqrt":

@@ -563,7 +563,7 @@ class SL_Diagram:
         pass
 
     def add_line_name(self):
-        # Give each group of lines a name
+        """Give each group of lines a name."""
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
@@ -575,14 +575,15 @@ class SL_Diagram:
                     for line2 in line_group:
                         line2.name = "x" + str(num_lines)
                     num_lines += 1
+
             # Give name to each group of outgoing lines (if no
             # name is given already).
             for i, lines in enumerate(block.src_lines):
-
                 if len(lines) != 0 and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1
+
         # Add channel name for each line
         for block in self.blocks_dict.values():
             for line in block.dest_lines:
@@ -629,32 +630,38 @@ class SL_Diagram:
                 block.is_continuous = True
 
     def delete_subsystems(self):
+        """Unfold subsystems from the current diagram."""
+        # Maintain list of subsystems (to be removed) and list of blocks
+        # in those subsystems (to be added to self).
         subsystems = []
         blocks_in_subsystems = []
+
         for block in self.blocks_dict.values():
             if block.type == "subsystem":
-                # Collect all the subsystems to be deleted
+                # Collect all subsystems to be deleted
                 subsystems.append(block.name)
-                # The subsytem is treated as a diagram
+                # The sussystem is treated as a diagram
                 subsystem = block.diagram
                 # Delete subsystems recursively
                 subsystem.delete_subsystems()
-                # Move all the blocks except ports from the subsystem to the parent system
+                # Move all blocks except ports from the subsystem to the parent system
                 for sub_block in subsystem.blocks_dict.values():
                     if sub_block.type not in ["in_port", "out_port"]:
                         blocks_in_subsystems.append(sub_block)
-                # Sort the input ports in the subsystem by names
+                # Sort the input ports in the subsystem by name
                 input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
                 input_ports.sort(key=operator.attrgetter('name'))
-                # Sort the output ports in the subsystem by names
+                # Sort the output ports in the subsystem by name
                 output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
                 output_ports.sort(key=operator.attrgetter('name'))
 
-                # Delete old input lines and add new ones
+                # For each input line, find what is the source of this line
+                # (in the current diagram or in other subsystems), and make the
+                # new connections.
                 for port_id in range(block.num_dest):
                     input_line = block.dest_lines[port_id]
 
-                    # src_block = blocks_dict[input_line.src]
+                    # Find the source
                     src_block = None
                     if input_line.src in self.blocks_dict:
                         src_block = self.blocks_dict[input_line.src]
@@ -665,8 +672,9 @@ class SL_Diagram:
                                 break
 
                     # Delete the old line (input_line) from src_block
-                    assert src_block
+                    assert src_block is not None, "delete_subsystems: src_block not found."
                     src_block.src_lines[input_line.src_port][input_line.branch] = None
+
                     # Get the corresponding input port in the subsystem
                     port = input_ports[port_id]
                     assert port.name == "in_" + str(port_id)
@@ -681,18 +689,19 @@ class SL_Diagram:
                         # Add a new line for src_block
                         src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
 
-                # Delete old output lines and add new ones
+                # For each output line, find what is the destination
+                # (in the current diagram or in other diagrams), and make
+                # the new connections.
                 for port_id in range(block.num_src):
-                    # Get the corresponding output port in the subsystem
                     port = output_ports[port_id]
+
                     assert port.name == "out_" + str(port_id)
                     port_line = port.dest_lines[0]
                     src_block = subsystem.blocks_dict[port_line.src]
+
                     # Delete the old line (port_line) from src_block
                     src_block.src_lines[port_line.src_port][port_line.branch] = None
                     for output_line in block.src_lines[port_id]:
-
-                        # dest_block = blocks_dict[output_line.dest]
                         dest_block = None
                         if output_line.dest in self.blocks_dict:
                             dest_block = self.blocks_dict[output_line.dest]
@@ -703,7 +712,7 @@ class SL_Diagram:
                                     break
 
                         # Generate a new output line
-                        assert dest_block
+                        assert dest_block is not None, "delete_subsystems: dest_block not found"
                         new_output_line = SL_Line(src=src_block.name, dest=dest_block.name,
                                                   src_port=port_line.src_port, dest_port=output_line.dest_port)
                         new_output_line.name = output_line.name
@@ -715,6 +724,7 @@ class SL_Diagram:
         # Delete all the subsystems
         for name in subsystems:
             del self.blocks_dict[name]
+
         # Add new blocks from subsystems to block_dict
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict

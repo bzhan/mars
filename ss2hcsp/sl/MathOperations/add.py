@@ -25,6 +25,9 @@ class Add(SL_Block):
         return "%s: Add[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]
         expr = PlusExpr(self.dest_spec, in_vars)

@@ -27,6 +27,9 @@ class UnitDelay(SL_Block):
         return "%s: UnitDelay[init = %s, in = %s, out = %s, delay = %s]" % \
                (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     # def get_var_map(self):
     #     in_var = AVar(self.dest_lines[0].name)
     #     cond0 = RelExpr("<", AVar("t"), AConst(self.st))
