@@ -1,3 +1,5 @@
+"""Translation from diagrams to HCSP processes."""
+
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
 from ss2hcsp.sl import sl_diagram
@@ -6,8 +8,10 @@ import operator
 
 
 def translate_continuous(diagram):
+    """Translate the continuous part of the diagram."""
     # Get block dictionary
     block_dict = {block.name: block for block in diagram}
+
     # Get input and output channels
     in_channels, out_channels = [], []
     for block in block_dict.values():
@@ -54,6 +58,7 @@ def translate_continuous(diagram):
             assert len(var_map) == 1
             out_var, cond_inst = var_map.popitem()
             var_substitute.add(out_var, cond_inst)
+
     # Delete constant blocks
     constant_names = [name for name, block in block_dict.items() if block.type == "constant"]
     for name in constant_names:
@@ -61,6 +66,8 @@ def translate_continuous(diagram):
 
     # Variable substitution
     while block_dict:
+        # At each iteration, find a list of blocks that do not
+        # depend on other blocks.
         block_pool = dict()
         for name, block in block_dict.items():
             src_blocks = block.get_src_blocks()
@@ -68,11 +75,13 @@ def translate_continuous(diagram):
             if src_blocks.isdisjoint(set(block_dict.keys())):
                 assert name not in block_pool
                 block_pool[name] = block
-        assert block_pool
+        assert block_pool, "translate_continuous: cyclic dependence"
+
         for block in block_pool.values():
             assert len(block.get_var_map()) == 1  # for current version
             for out_var, cond_inst in block.get_var_map().items():
                 var_substitute.add(out_var, cond_inst)
+
         # Delete blocks in block_pool from block_dict
         for name in block_pool.keys():
             del block_dict[name]
@@ -221,7 +230,7 @@ def translate_discrete(diagram):
             if src_blocks.isdisjoint(set(block_dict.keys())):
                 assert name not in block_pool
                 block_pool[name] = block
-        assert block_pool
+        assert block_pool, "translate_discrete: cyclic dependence"
 
         # Classify blocks in block_pool by sample time
         st_to_hps = dict()  # sample time to HCSP of blocks
@@ -274,8 +283,16 @@ def translate_discrete(diagram):
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers, model_name="P"):
-    """Compute the discrete and continuous processes from a diagram,
-    which is represented as discrete and continuous subdiagrams."""
+    """Obtain HCSP from a list of disjoint diagrams.
+    
+    The arguments are:
+    dis_subdiag_with_chs - list of discrete diagrams
+    con_subdiag_with_chs - list of continuous diagrams
+    sf_charts - list of Stateflow charts
+    unit_delays - list of unit delay blocks
+    buffers - list of buffers
+
+    """
     processes = hp.HCSPProcess()
     main_processes = []
     # Compute the discrete processes from discrete subdiagrams
