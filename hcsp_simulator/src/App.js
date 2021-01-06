@@ -87,9 +87,12 @@ class Process extends React.Component {
         return (
             <div>
                 {/* Program text, with highlight on current location */}
-                <div>Process: {this.props.name}</div>
+                <div>Process: {this.props.name}{'  '}
+
+                    <a href="#" style={{fontSize:14}} onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"} </a>
+                </div>
                 <div className="program-text">
-                    <a href="#" onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"}</a>
+
                     {
                         this.state.show_process ? (
                             <div>
@@ -137,7 +140,7 @@ class Process extends React.Component {
 
                     <span>&nbsp;</span>
 
-                    
+
                     {Object.keys(this.props.state).map((key, index) => {
                         var val = this.props.state[key];
                         var str_val = this.displayValue(val);
@@ -629,6 +632,8 @@ class App extends React.Component {
                             onClick={this.toggleShowEvent}>
                             {this.state.show_event_only ? 'Show all steps' : 'Show events only'}
                         </a>
+
+
                     </ButtonToolbar>
                 </div>
 
