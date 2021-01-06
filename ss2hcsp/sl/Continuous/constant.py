@@ -22,6 +22,9 @@ class Constant(SL_Block):
     def __str__(self):
         return "%s: Constant[value = %s, out = %s]" % (self.name, str(self.value), str(self.src_lines))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         out_var = self.src_lines[0][0].name
         expr = AConst(self.value)

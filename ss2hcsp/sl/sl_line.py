@@ -16,9 +16,6 @@ class SL_Line:
         self.branch = None
 
     def __str__(self):
-        # if self.name == "":
-        #     return "?"
-        # else:
         return self.name
         # return "{" + self.src + "->" + self.dest + "}"
 

@@ -40,6 +40,9 @@ class And(Logic):
         return "%s: And[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
 
 class Or(Logic):
     def __init__(self, name, num_dest, st=-1):
@@ -49,6 +52,9 @@ class Or(Logic):
     def __str__(self):
         return "%s: Or[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+
+    def __repr__(self):
+        return str(self)
 
 
 class Not(Logic):
@@ -60,3 +66,6 @@ class Not(Logic):
     def __str__(self):
         return "%s: Not[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+
+    def __repr__(self):
+        return str(self)

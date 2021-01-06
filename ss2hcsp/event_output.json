@@ -1,0 +1,363 @@
+[
+    {
+        "type": "start",
+        "str": "start",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p0",
+            "P1": "p0"
+        },
+        "id": 0,
+        "infos": {
+            "P0": {
+                "pos": "p0",
+                "state": {}
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {}
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p0"
+        },
+        "id": 1,
+        "infos": {
+            "P0": {
+                "pos": "p1",
+                "state": {
+                    "x": 0
+                }
+            },
+            "P1": 0
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p1"
+        },
+        "id": 2,
+        "infos": {
+            "P0": {
+                "pos": "p2",
+                "state": {
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            "P1": 0
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 1,
+        "str": "delay 1",
+        "time": 0,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 3,
+        "infos": {
+            "P0": 2,
+            "P1": {
+                "pos": "p1",
+                "state": {}
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cx",
+        "val": 1.0,
+        "str": "IO cx 1.0",
+        "time": 1,
+        "ori_pos": {
+            "P0": "p2",
+            "P1": "p1"
+        },
+        "id": 4,
+        "infos": {
+            "P0": {
+                "pos": "p2.0.0",
+                "state": {
+                    "x": 1.0,
+                    "y": 1.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 1.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cy",
+        "val": 1.0,
+        "str": "IO cy 1.0",
+        "time": 1,
+        "ori_pos": {
+            "P0": "p2.0.0",
+            "P1": "p2"
+        },
+        "id": 5,
+        "infos": {
+            "P0": {
+                "pos": "p2.0.1",
+                "state": {
+                    "x": 1.0,
+                    "y": 1.0
+                }
+            },
+            "P1": {
+                "pos": "p3",
+                "state": {
+                    "x": 1.0,
+                    "y": 1.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 1,
+        "ori_pos": {
+            "P0": "p2.0.1"
+        },
+        "id": 6,
+        "infos": {
+            "P0": {
+                "pos": "p2",
+                "state": {
+                    "x": 0.0,
+                    "y": 1.0
+                }
+            },
+            "P1": 5
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 1,
+        "str": "delay 1",
+        "time": 1,
+        "ori_pos": {
+            "P1": "p3"
+        },
+        "id": 7,
+        "infos": {
+            "P0": 6,
+            "P1": {
+                "pos": "p4",
+                "state": {
+                    "x": 1.0,
+                    "y": 1.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cy",
+        "val": 2.0,
+        "str": "IO cy 2.0",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p2",
+            "P1": "p4"
+        },
+        "id": 8,
+        "infos": {
+            "P0": {
+                "pos": "p2.1.0",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            },
+            "P1": {
+                "pos": "p5",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cx",
+        "val": 1.0,
+        "str": "IO cx 1.0",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p2.1.0",
+            "P1": "p5"
+        },
+        "id": 9,
+        "infos": {
+            "P0": {
+                "pos": "p2.1.1",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            },
+            "P1": {
+                "pos": "p6",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p2.1.1"
+        },
+        "id": 10,
+        "infos": {
+            "P0": {
+                "pos": "p2",
+                "state": {
+                    "x": 1.0,
+                    "y": 1.0
+                }
+            },
+            "P1": 9
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 1,
+        "str": "delay 1",
+        "time": 2,
+        "ori_pos": {
+            "P1": "p6"
+        },
+        "id": 11,
+        "infos": {
+            "P0": 10,
+            "P1": {
+                "pos": "p7",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cx",
+        "val": 2.0,
+        "str": "IO cx 2.0",
+        "time": 3,
+        "ori_pos": {
+            "P0": "p2",
+            "P1": "p7"
+        },
+        "id": 12,
+        "infos": {
+            "P0": {
+                "pos": "p2.0.0",
+                "state": {
+                    "x": 2.0,
+                    "y": 2.0
+                }
+            },
+            "P1": {
+                "pos": "p8",
+                "state": {
+                    "x": 2.0,
+                    "y": 2.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "cy",
+        "val": 2.0,
+        "str": "IO cy 2.0",
+        "time": 3,
+        "ori_pos": {
+            "P0": "p2.0.0",
+            "P1": "p8"
+        },
+        "id": 13,
+        "infos": {
+            "P0": {
+                "pos": "p2.0.1",
+                "state": {
+                    "x": 2.0,
+                    "y": 2.0
+                }
+            },
+            "P1": {
+                "pos": "end",
+                "state": {
+                    "x": 2.0,
+                    "y": 2.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 3,
+        "ori_pos": {
+            "P0": "p2.0.1"
+        },
+        "id": 14,
+        "infos": {
+            "P0": {
+                "pos": "p2",
+                "state": {
+                    "x": 1.0,
+                    "y": 2.0
+                }
+            },
+            "P1": 13
+        }
+    },
+    {
+        "type": "deadlock",
+        "str": "deadlock",
+        "time": 3,
+        "ori_pos": {},
+        "id": 15,
+        "infos": {
+            "P0": 14,
+            "P1": 13
+        }
+    }
+]

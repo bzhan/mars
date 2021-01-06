@@ -21,6 +21,9 @@ class Abs(SL_Block):
         return "%s: Abs[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
         expr = FunExpr("abs", [in_var])

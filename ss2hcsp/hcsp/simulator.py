@@ -29,6 +29,12 @@ class SimulatorAssertionException(Exception):
         self.expr = expr
         self.error_msg = error_msg
 
+    def __str__(self):
+        res = 'Test %s failed' % self.expr
+        if self.error_msg:
+            res += ' (%s)' % self.error_msg
+        return res
+
 
 def eval_expr(expr, state):
     """Evaluate the given expression on the given state."""
@@ -592,6 +598,10 @@ def string_of_pos(hp, pos):
     else:
         return 'p' + '.'.join(str(p) for p in pos[:-1])
 
+def disp_of_pos(hp, pos):
+    return string_of_pos(hp, remove_rec(hp, pos))
+
+
 class SimInfo:
     """Represents a (non-parallel) HCSP program together with
     additional information on the current execution position and
@@ -639,12 +649,12 @@ class SimInfo:
         self.reason = None
 
         # Last step at which the state is changed. Used during simulation.
-        self.last_change = 0
+        self.last_change = None
 
     def __str__(self):
         return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
 
-    def exec_assign(self, lname, val):
+    def exec_assign(self, lname, val, hp):
         """Make the copy of val into lname. Note deep-copy need to be
         used to avoid aliasing.
 
@@ -654,9 +664,13 @@ class SimInfo:
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
+            if idx >= len(v):
+                raise SimulatorException('Array index %s out of bounds, when executing %s' % (idx, hp))
             v[idx] = copy.deepcopy(val)
         elif isinstance(lname, FieldNameExpr):
             v = eval_expr(lname.expr, self.state)
+            if lname.field not in v:
+                raise SimulatorException('Field %s does not exist, when executing %s' % (lname.field, hp))
             v[lname.field] = copy.deepcopy(val)
         else:
             raise NotImplementedError
@@ -683,7 +697,7 @@ class SimInfo:
         elif cur_hp.type == "assign":
             # Perform assignment
             if isinstance(cur_hp.var_name, AExpr):
-                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state))
+                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state), cur_hp)
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
@@ -691,13 +705,30 @@ class SimInfo:
                     "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
                     if s != AVar('_'):
-                        self.exec_assign(s, val[i])
+                        self.exec_assign(s, val[i], cur_hp)
 
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
 
         elif cur_hp.type == "assert":
-            # Evaluate an assertion
+            # Evaluate an assertion. If fails, immediate stop the execution
+            # (like a runtime error).
+            if not eval_expr(cur_hp.bexpr, self.state):
+                error_msg = ''
+                for msg in cur_hp.msgs:
+                    val = eval_expr(msg, self.state)
+                    if isinstance(val, str):
+                        error_msg += val[1:-1]
+                    else:
+                        error_msg += str(val)
+                raise SimulatorException(error_msg)
+            else:
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.reason = None
+
+        elif cur_hp.type == "test":
+            # Evaluate a test. If fails, output a warning but do not stop
+            # the execution.
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
             if not eval_expr(cur_hp.bexpr, self.state):
@@ -818,13 +849,13 @@ class SimInfo:
                 assert x is None
             else:
                 assert x is not None
-                self.exec_assign(cur_hp.var_name, x)
+                self.exec_assign(cur_hp.var_name, x, cur_hp)
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
-                    self.exec_assign(comm_hp.var_name, x)
+                    self.exec_assign(comm_hp.var_name, x, comm_hp)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -838,7 +869,7 @@ class SimInfo:
                         assert x is None
                     else:
                         assert x is not None
-                        self.exec_assign(comm_hp.var_name, x)
+                        self.exec_assign(comm_hp.var_name, x, comm_hp)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -958,14 +989,17 @@ def extract_event(infos):
 
     "deadlock" -> the program has deadlocked.
     ("warning", msg) -> warning message.
+    ("error", msg) -> error message.
     ("delay", n) -> delay for n seconds.
     ("comm", id_out, id_in, ch_name) -> communication.
 
     """
-    # If any process has a warning, return warning
+    # If any process has a warning or error, return it
     for i, info in enumerate(infos):
         if 'warning' in info.reason:
             return ('warning', info.reason['warning'])
+        if 'error' in info.reason:
+            return ('error', info.reason['error'])
 
     # First, attempt to find communication
     # We keep two dictionaries: out-ready events and in-ready events
@@ -999,7 +1033,8 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
+                  show_starting=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1019,7 +1054,8 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
-        'time_series': {}  # Evolution of variables, indexed by program
+        'time_series': {},  # Evolution of variables, indexed by program
+        'events': []  # Concise list of event strings
     }
 
     # Number of steps so far.
@@ -1037,24 +1073,26 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         if num_event % 10000 == 0:
             print('i:', num_event)
 
-        if num_show is not None and len(res['trace']) >= num_show:
-            return
-
-        cur_index = len(res['trace'])
-
         new_event = xargs
         new_event['time'] = res['time']
         new_event['ori_pos'] = ori_pos
+        res['events'].append(new_event['str'])
+
+        if new_event['type'] != 'error' and \
+            ((num_show is not None and len(res['trace']) >= num_show + 1) or \
+             (show_starting is not None and num_event <= show_starting)):
+            return
 
         cur_info = dict()
         for info in infos:
-            if info.name in ori_pos:
-                info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
+            if new_event['type'] == 'error' or info.name in ori_pos or info.last_change is None:
+                info_pos = disp_of_pos(info.hp, info.pos)
                 cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
-                info.last_change = cur_index
+                info.last_change = len(res['trace'])
             else:
                 cur_info[info.name] = info.last_change
 
+        new_event['id'] = num_event - 1
         new_event['infos'] = cur_info
         res['trace'].append(new_event)
 
@@ -1077,10 +1115,10 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             series.append(new_entry)
 
     # List of processes that have been updated in the last round.
-    updated = [info.name for info in infos]
+    start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
 
     # Record event and time series at the beginning.
-    log_event(ori_pos=updated, type="start", str="start")
+    log_event(ori_pos=start_pos, type="start", str="start")
     for info in infos:
         log_time_series(info, 0, info.state)
 
@@ -1088,24 +1126,31 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            if info.name not in updated:
+            if info.name not in start_pos:
                 continue
 
             while info.pos is not None and not num_event > num_steps:
+                ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
                 try:
                     info.exec_step()
                 except SimulatorAssertionException as e:
                     if 'warning' not in res:
-                        info.reason = {'warning': e.error_msg}
-                        res['warning'] = (res['time'], e.error_msg)
+                        info.reason = {'warning': str(e)}
+                        res['warning'] = (res['time'], str(e))
+                except SimulatorException as e:
+                    info.reason = {'error': str(e)}
+                    res['warning'] = (res['time'], str(e))
 
                 if info.reason is None:
-                    log_event(ori_pos=[info.name], type="step", str="step")
+                    log_event(ori_pos=ori_pos, type="step", str="step")
                     log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
-                    log_event(ori_pos=[info.name], type="log", str='-- ' + info.reason['log'] + ' --')
+                    log_event(ori_pos=ori_pos, type="log", str='-- ' + info.reason['log'] + ' --')
                 elif 'warning' in info.reason:
-                    log_event(ori_pos=[info.name], type="warning", str="warning: " + info.reason['warning'])
+                    log_event(ori_pos=ori_pos, type="warning", str="warning: " + info.reason['warning'])
+                elif 'error' in info.reason:
+                    log_event(ori_pos=ori_pos, type="error", str="error: " + info.reason['error'])
+                    break
                 else:
                     break
 
@@ -1117,10 +1162,14 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
 
         event = extract_event(infos)
         if event == "deadlock":
-            log_event(ori_pos=[], type="deadlock", str="deadlock")
+            log_event(ori_pos=dict(), type="deadlock", str="deadlock")
+            break
+        elif event[0] == "error":
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
+            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
+
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
             for info in infos:
@@ -1130,13 +1179,20 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     log_time_series(info, res['time'] + entry['time'], entry['state'])
                 log_time_series(info, res['time'] + min_delay, info.state)
 
-            updated = [infos[p].name for p in delay_pos]
-            log_event(ori_pos=updated, type="delay", delay_time=min_delay, str=trace_str)
+            log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
-            val = infos[id_out].exec_output_comm(ch_name)
-            infos[id_in].exec_input_comm(ch_name, val)
+            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos),
+                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos)}
+            try:
+                val = infos[id_out].exec_output_comm(ch_name)
+                infos[id_in].exec_input_comm(ch_name, val)
+            except SimulatorException as e:
+                log_event(ori_pos=ori_pos, type="error", str="error: " + str(e))
+                res['warning'] = (res['time'], str(e))
+                break
+
             if val is None:
                 val_str = ""
             elif isinstance(val, float):
@@ -1148,9 +1204,9 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
             else:
                 val_str = " " + str(val)
 
-            updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(ori_pos=updated, type="comm", ch_name=str(ch_name), val=val, str=trace_str)
+            log_event(ori_pos=ori_pos, inproc=infos[id_in].name, outproc=infos[id_out].name,
+                      type="comm", ch_name=str(ch_name), val=val, str=trace_str)
             log_time_series(infos[id_in], res['time'], infos[id_in].state)
 
         # Overflow detection
@@ -1161,7 +1217,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None):
                     has_overflow = True
 
         if has_overflow:
-            log_event(ori_pos=[], type="overflow", str="overflow")
+            log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
         
     return res

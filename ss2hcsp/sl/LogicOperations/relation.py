@@ -24,6 +24,9 @@ class Relation(SL_Block):
         return "%s: Relation[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]
         cond0 = RelExpr(self.relation, in_vars[0], in_vars[1])

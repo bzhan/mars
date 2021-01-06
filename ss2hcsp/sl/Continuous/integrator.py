@@ -22,6 +22,9 @@ class Integrator(SL_Block):
         return "%s: Integrator[init = %s, in = %s, out = %s]" % \
                (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines))
 
+    def __repr__(self):
+        return str(self)
+
 
 class Buffer(Integrator):
     num = 0

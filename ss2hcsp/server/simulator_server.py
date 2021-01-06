@@ -13,6 +13,7 @@ from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
+from ss2hcsp.server.sequence_diagram import print_sequence_diagram
 
 app = Flask(__name__)
 
@@ -90,7 +91,8 @@ def run_hcsp():
     try:
         clock = time.perf_counter()
         res = simulator.exec_parallel(
-            infos, num_steps=num_steps, num_io_events=num_io_events, num_show=num_show)
+            infos, num_steps=num_steps, num_io_events=num_io_events, num_show=num_show,
+            show_starting=show_starting)
         print("Time:", time.perf_counter() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
@@ -105,24 +107,21 @@ def run_hcsp():
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
 
+    if len(res['trace']) < 2000:
+        with open('event_output.json', 'w', encoding='utf-8') as f:
+            json.dump(res['trace'], f, indent=4, ensure_ascii=False)
+
+    print_sequence_diagram(res['trace'])
+
+    with open('simulator_events.txt', 'w', encoding='utf-8') as f:
+        for i, event in enumerate(res['events']):
+            f.write("%s: %s\n" % (i, event))
+
     if profile:
         p = Stats(pr)
         p.strip_dirs()
         p.sort_stats('cumtime')
         p.print_stats()
-
-
-    # When limiting to a range, update info so it does not refer to value
-    # outside the range
-    # for i in range(show_starting, min(len(res['trace']), show_starting + num_show)):
-    #     for name, info in res['trace'][i]['infos'].items():
-    #         if isinstance(info, int):
-    #             if info < show_starting:
-    #                 res['trace'][i]['infos'][name] = res['trace'][info]['infos'][name]
-    #             else:
-    #                 res['trace'][i]['infos'][name] = info - show_starting
-
-    # res['trace'] = res['trace'][show_starting : show_starting+num_show]
 
     for key in res.keys():
         print(key, len(json.dumps(res[key])))

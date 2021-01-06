@@ -1,4 +1,4 @@
-%type: module:
+%type: module
 
 module P0():
   output x;

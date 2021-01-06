@@ -1,0 +1,30 @@
+P0 ::=
+(
+    ch_Fc_a?Fc;
+    ch_v?v;
+    ch_m?m;
+    Fc := (-(Fc/m-3.732)*0.01+3.732-(v-(-1.5))*0.6)*m;
+    ch_Fc_b!Fc;
+    ch_Fc!Fc;
+    wait(0.128)
+)**
+
+P1 ::=
+v := -1.5;
+m := 759.5;
+(
+    <v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & true> |> [] (
+        ch_v!v --> skip,
+        ch_m!m --> skip,
+        ch_Fc?Fc --> skip
+    )
+)**
+
+P2 ::=
+Fc := 2835;
+ch_Fc_a!Fc;
+(
+    ch_Fc_b?Fc;
+    wait(0.128);
+    ch_Fc_a!Fc
+)**

@@ -1,0 +1,16 @@
+0: start
+1: step
+2: step
+3: delay 1
+4: IO cx 1.0
+5: IO cy 1.0
+6: step
+7: delay 1
+8: IO cy 2.0
+9: IO cx 1.0
+10: step
+11: delay 1
+12: IO cx 2.0
+13: IO cy 2.0
+14: step
+15: deadlock

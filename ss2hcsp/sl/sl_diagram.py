@@ -1,7 +1,7 @@
 from ss2hcsp.sl.sl_line import SL_Line
 
 from ss2hcsp.sl.port import Port
-from ss2hcsp.sl.Continuous.integrator import Integrator, Buffer
+from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
@@ -35,6 +35,12 @@ from ss2hcsp.hcsp.parser import aexpr_parser
 
 
 def get_gcd(sample_times):
+    """Return the gcd of a list of sample times.
+
+    If some of the sample times are not integers, first multiply by an
+    appropriate power of 10 before taking gcd.
+
+    """
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
     assert all(isinstance(st, (int, float)) for st in sample_times)
 
@@ -313,7 +319,18 @@ class SL_Diagram:
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list}
 
-    def parse_xml(self, model_name=""):
+    def parse_xml(self, model_name="", default_SampleTimes=()):
+        # Extract BlockParameterDefaults
+        if not default_SampleTimes:
+            default_SampleTimes = dict()
+            default_para_blocks = self.model.getElementsByTagName("BlockParameterDefaults")
+            assert len(default_para_blocks) == 1
+            for child in default_para_blocks[0].childNodes:
+                if child.nodeName == "Block":
+                    child_type = child.getAttribute("BlockType")
+                    assert child_type not in default_SampleTimes
+                    default_SampleTimes[child_type] = get_attribute_value(child, "SampleTime")
+
         self.parse_stateflow_xml()
 
         models = self.model.getElementsByTagName("Model")
@@ -324,15 +341,19 @@ class SL_Diagram:
         system = self.model.getElementsByTagName("System")[0]
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
+
         # The following dictionary is used to replace the port names as formatted ones.
         # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
         # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
         port_name_dict = {}  # in the form {old_name: new_name}
         for block in blocks:
             block_type = block.getAttribute("BlockType")
+            # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            sample_time = eval(sample_time) if sample_time else -1
+            if not sample_time:
+                sample_time = default_SampleTimes[block_type]
+            sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
             if block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
@@ -395,6 +416,7 @@ class SL_Diagram:
             elif block_type == "UnitDelay":
                 init_value = get_attribute_value(block, "InitialCondition")
                 init_value = eval(init_value) if init_value else 0
+                assert sample_time > 0
                 self.add_block(UnitDelay(name=block_name, init_value=init_value, st=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block, "Function")
@@ -463,7 +485,7 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                inner_model_name = subsystem.diagram.parse_xml(model_name)
+                inner_model_name = subsystem.diagram.parse_xml(model_name, default_SampleTimes)
                 assert inner_model_name == model_name
                 self.add_block(subsystem)
             elif block_type == "Inport":
@@ -547,7 +569,7 @@ class SL_Diagram:
         pass
 
     def add_line_name(self):
-        # Give each group of lines a name
+        """Give each group of lines a name."""
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
@@ -559,14 +581,15 @@ class SL_Diagram:
                     for line2 in line_group:
                         line2.name = "x" + str(num_lines)
                     num_lines += 1
+
             # Give name to each group of outgoing lines (if no
             # name is given already).
             for i, lines in enumerate(block.src_lines):
-
                 if len(lines) != 0 and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1
+
         # Add channel name for each line
         for block in self.blocks_dict.values():
             for line in block.dest_lines:
@@ -613,32 +636,38 @@ class SL_Diagram:
                 block.is_continuous = True
 
     def delete_subsystems(self):
+        """Unfold subsystems from the current diagram."""
+        # Maintain list of subsystems (to be removed) and list of blocks
+        # in those subsystems (to be added to self).
         subsystems = []
         blocks_in_subsystems = []
+
         for block in self.blocks_dict.values():
             if block.type == "subsystem":
-                # Collect all the subsystems to be deleted
+                # Collect all subsystems to be deleted
                 subsystems.append(block.name)
-                # The subsytem is treated as a diagram
+                # The sussystem is treated as a diagram
                 subsystem = block.diagram
                 # Delete subsystems recursively
                 subsystem.delete_subsystems()
-                # Move all the blocks except ports from the subsystem to the parent system
+                # Move all blocks except ports from the subsystem to the parent system
                 for sub_block in subsystem.blocks_dict.values():
                     if sub_block.type not in ["in_port", "out_port"]:
                         blocks_in_subsystems.append(sub_block)
-                # Sort the input ports in the subsystem by names
+                # Sort the input ports in the subsystem by name
                 input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
                 input_ports.sort(key=operator.attrgetter('name'))
-                # Sort the output ports in the subsystem by names
+                # Sort the output ports in the subsystem by name
                 output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
                 output_ports.sort(key=operator.attrgetter('name'))
 
-                # Delete old input lines and add new ones
+                # For each input line, find what is the source of this line
+                # (in the current diagram or in other subsystems), and make the
+                # new connections.
                 for port_id in range(block.num_dest):
                     input_line = block.dest_lines[port_id]
 
-                    # src_block = blocks_dict[input_line.src]
+                    # Find the source
                     src_block = None
                     if input_line.src in self.blocks_dict:
                         src_block = self.blocks_dict[input_line.src]
@@ -649,8 +678,9 @@ class SL_Diagram:
                                 break
 
                     # Delete the old line (input_line) from src_block
-                    assert src_block
+                    assert src_block is not None, "delete_subsystems: src_block not found."
                     src_block.src_lines[input_line.src_port][input_line.branch] = None
+
                     # Get the corresponding input port in the subsystem
                     port = input_ports[port_id]
                     assert port.name == "in_" + str(port_id)
@@ -665,18 +695,19 @@ class SL_Diagram:
                         # Add a new line for src_block
                         src_block.add_src(port_id=input_line.src_port, sl_line=new_input_line)
 
-                # Delete old output lines and add new ones
+                # For each output line, find what is the destination
+                # (in the current diagram or in other diagrams), and make
+                # the new connections.
                 for port_id in range(block.num_src):
-                    # Get the corresponding output port in the subsystem
                     port = output_ports[port_id]
+
                     assert port.name == "out_" + str(port_id)
                     port_line = port.dest_lines[0]
                     src_block = subsystem.blocks_dict[port_line.src]
+
                     # Delete the old line (port_line) from src_block
                     src_block.src_lines[port_line.src_port][port_line.branch] = None
                     for output_line in block.src_lines[port_id]:
-
-                        # dest_block = blocks_dict[output_line.dest]
                         dest_block = None
                         if output_line.dest in self.blocks_dict:
                             dest_block = self.blocks_dict[output_line.dest]
@@ -687,7 +718,7 @@ class SL_Diagram:
                                     break
 
                         # Generate a new output line
-                        assert dest_block
+                        assert dest_block is not None, "delete_subsystems: dest_block not found"
                         new_output_line = SL_Line(src=src_block.name, dest=dest_block.name,
                                                   src_port=port_line.src_port, dest_port=output_line.dest_port)
                         new_output_line.name = output_line.name
@@ -699,6 +730,7 @@ class SL_Diagram:
         # Delete all the subsystems
         for name in subsystems:
             del self.blocks_dict[name]
+
         # Add new blocks from subsystems to block_dict
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict
@@ -713,6 +745,10 @@ class SL_Diagram:
         # Get stateflow charts and then delete them from block_dict
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
+            del blocks_dict[name]
+        # Get unit_delays and then delete them from block_dict
+        unit_delays = [block for block in blocks_dict.values() if block.type == "unit_delay"]
+        for name in [block.name for block in unit_delays]:
             del blocks_dict[name]
         # Get buffers and then delete them from block_dict
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
@@ -746,7 +782,7 @@ class SL_Diagram:
             else:
                 discrete_subdiagrams.append(scc)
 
-        # Sort disrecte blocks
+        # Sort discrete blocks
         discrete_subdiagrams_sorted = []
         for scc in discrete_subdiagrams:
             scc_dict = {block.name: block for block in scc}
@@ -764,13 +800,12 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, buffers
-        # return dis_subdiag_with_chs, con_subdiag_with_chs
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers
 
     def add_buffers(self):
         buffers = []
         for block in self.blocks_dict.values():
-            if block.type == "stateflow":
+            if block.type in {"stateflow", "unit_delay"}:
                 for port_id in range(len(block.dest_lines)):
                     line = block.dest_lines[port_id]
                     src_block = self.blocks_dict[line.src]

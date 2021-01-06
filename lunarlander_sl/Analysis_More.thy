@@ -36,7 +36,7 @@ lemma mvt_real_eq:
   fixes p :: "real \<Rightarrow> real"
   assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
     and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s. q t s = 0"
+    and "\<forall>t\<in>{0 ..<d}. \<forall>s. q t s = 0"
     and "x \<in> {0 .. d}"
   shows "p 0 = p x" 
 proof -
@@ -54,7 +54,7 @@ lemma mvt_real_ge:
   fixes p :: "real \<Rightarrow>real"
  assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
   and "d \<ge> 0"
-  and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0. q t s \<ge> 0"
+  and "\<forall>t\<in>{0 ..<d}. \<forall>s\<ge>0. q t s \<ge> 0"
   and "x \<in> {0 .. d}"
   shows "p 0 \<le> p x"
 proof -
@@ -64,7 +64,7 @@ proof -
   then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+  by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
 qed
 
 text \<open>If the derivative is always non-positive, then the function is decreasing.\<close>
@@ -72,7 +72,7 @@ lemma mvt_real_le:
   fixes p :: "real \<Rightarrow>real"
   assumes "\<forall>t\<in>{0 .. d}. (p has_derivative q t) (at t within {0 .. d}) "
     and "d \<ge> 0"
-    and "\<forall>t\<in>{0 .. d}. \<forall>s\<ge>0 . q t s \<le> 0"
+    and "\<forall>t\<in>{0 ..<d}. \<forall>s\<ge>0 . q t s \<le> 0"
     and "x \<in> {0 .. d}"
   shows "p 0 \<ge> p x"
 proof -
@@ -82,7 +82,7 @@ proof -
   then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
-  by (smt atLeastAtMost_iff greaterThanLessThan_iff)
+  by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
 qed
 
 
@@ -149,14 +149,62 @@ lemma ODEsol_merge:
     and "ODEsol ode p2 d2"
     and "p2 0 = p d"
   shows "ODEsol ode (\<lambda>\<tau>. if \<tau> < d then p \<tau> else p2 (\<tau> - d)) (d + d2)"
-  sorry
+  unfolding ODEsol_def
+  apply auto
+  subgoal 
+    using assms(1,2) unfolding ODEsol_def by auto
+  subgoal
+  proof-
+    have step1:"d\<ge>0 \<and> d2\<ge>0"
+      using assms unfolding ODEsol_def by auto
+    then have step2:"{0 .. d+d2} = {0 .. d}\<union>{d .. d+d2}"
+      by auto
+    have step3:"({0..d} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {0..d}"
+      using step1 by auto
+    have step4:"({d..d + d2} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {d..d+d2}"
+      using step1 by auto
+    have step5:"(((\<lambda>t. (t-d)) has_vderiv_on (\<lambda>t.1)) {d .. d+d2})"
+      by (auto intro!: derivative_intros)
+    then have step6:"(((\<lambda>t. state2vec (p2 (t-d))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 (t-d)))) {d .. d+d2})"
+      using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p2 (t)))" "(\<lambda>t. ODE2Vec ode (p2 (t)))" "{0 .. d2}" "(\<lambda>t. (t-d))" "(\<lambda>t.1)" "{d .. d+d2}"]
+      using assms(2) unfolding ODEsol_def
+      by auto
+    have step7:" ((\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d))) has_vderiv_on
+     (\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))){0..d + d2}"
+      using has_vderiv_on_If[of "{0 .. d+d2}" "{0 .. d}" "{d .. d+d2}" "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec ode (p t))" "(\<lambda>t. state2vec (p2 (t-d)))" "(\<lambda>t. ODE2Vec ode (p2 (t-d)))"]
+      using step1 step2 step3 step4 step6
+      using assms(1) assms(3) unfolding ODEsol_def 
+      by auto
+    then show ?thesis 
+      using has_vderiv_eq[of "(\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d)))" "(\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))" "{0..d + d2}" "(\<lambda>t. state2vec (if t < d then p t else p2 (t - d)))" "(\<lambda>t. ODE2Vec ode (if t < d then p t else p2 (t - d)))" "{0..d + d2}"]
+      using assms(3) step1 
+      by auto
+  qed
+  done
 
 lemma ODEsol_split:
   assumes "ODEsol ode p d"
     and "0 < t1" and "t1 < d"
   shows "ODEsol ode p t1"
         "ODEsol ode (\<lambda>t. p (t + t1)) (d - t1)"
-  sorry
-
+  subgoal
+    using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{0..t1}"]
+    using assms unfolding ODEsol_def by auto
+  subgoal
+    unfolding ODEsol_def apply auto
+    subgoal using assms by auto
+    subgoal 
+    proof-
+      have step1:"((\<lambda>t. state2vec (p (t))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p (t)))) {t1..d}"
+        using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{t1..d}"]
+        using assms unfolding ODEsol_def by auto
+      have step2:"((\<lambda>t.(t+t1)) has_vderiv_on (\<lambda>t. 1)) {0..d-t1}"
+        by (auto intro!: derivative_intros)
+      show ?thesis
+        using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p (t)))" "(\<lambda>t. ODE2Vec ode (p (t)))" "{t1..d}" "(\<lambda>t.(t+t1))" "(\<lambda>t. 1)" " {0..d-t1}"]
+        using step1 step2 assms by auto
+    qed
+    done
+  done
 
 end

@@ -23,6 +23,9 @@ class Bias(SL_Block):
         return "%s: Bias[in = %s, out = %s, st = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
         expr = PlusExpr("++", [in_var, AConst(self.bias)])

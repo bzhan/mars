@@ -1,0 +1,3 @@
+UnitDelay ::= @PC0 || @Unit_Delay
+PC0 ::= x1 := 1; x0 := 0; (<x1_dot = x0 & true> |> [] (ch_x0_0?x0 --> skip, ch_x1_0!x1 --> skip))**
+Unit_Delay ::= x1 := 0; ch_x0_0!x1; (ch_x1_0?x1; t := 0; <t_dot = 1, x1_dot = 0 & t < 1>; ch_x0_0!x1)**
