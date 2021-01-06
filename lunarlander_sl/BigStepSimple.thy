@@ -23,7 +23,7 @@ datatype proc =
 | Skip
 | Assign var exp             ("_ ::= _" [99,95] 94)
 | Seq proc proc           ("_; _" [91,90] 90)
-| Cond fform proc proc        ("IF _ _ _" [95,94] 93)
+| Cond fform proc proc        ("IF _ THEN _ ELSE _ FI" [95,94] 93)
 | Wait real  \<comment> \<open>Waiting for a specified amount of time\<close>
 | IChoice proc proc  \<comment> \<open>Nondeterminism\<close>
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
@@ -78,8 +78,8 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | seqB: "big_step p1 s1 tr1 s2 \<Longrightarrow>
          big_step p2 s2 tr2 s3 \<Longrightarrow>
          big_step (p1; p2) s1 (tr1 @ tr2) s3"
-| condB1: "b s1 \<Longrightarrow> big_step p1 s1 tr s2 \<Longrightarrow> big_step (IF b p1 p2) s1 tr s2"
-| condB2: "\<not> b s1 \<Longrightarrow> big_step p2 s1 tr s2 \<Longrightarrow> big_step (IF b p1 p2) s1 tr s2"
+| condB1: "b s1 \<Longrightarrow> big_step p1 s1 tr s2 \<Longrightarrow> big_step (IF b THEN p1 ELSE p2 FI) s1 tr s2"
+| condB2: "\<not> b s1 \<Longrightarrow> big_step p2 s1 tr s2 \<Longrightarrow> big_step (IF b THEN p1 ELSE p2 FI) s1 tr s2"
 | waitB1: "d > 0 \<Longrightarrow> big_step (Wait d) s [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})] s"
 | waitB2: "\<not> d > 0 \<Longrightarrow> big_step (Wait d) s [] s"
 | sendB1: "big_step (Cm (ch[!]e)) s [OutBlock ch (e s)] s"
@@ -230,7 +230,8 @@ theorem Valid_seq:
   apply (auto elim!: seqE) by fastforce
 
 theorem Valid_cond:
-  "\<Turnstile> {P1} c1 {Q} \<Longrightarrow> \<Turnstile> {P2} c2 {Q} \<Longrightarrow> \<Turnstile> {\<lambda>s. if b s then P1 s else P2 s} IF b c1 c2 {Q}"
+  "\<Turnstile> {P1} c1 {Q} \<Longrightarrow> \<Turnstile> {P2} c2 {Q} \<Longrightarrow>
+   \<Turnstile> {\<lambda>s. if b s then P1 s else P2 s} IF b THEN c1 ELSE c2 FI {Q}"
   unfolding Valid_def
   by (auto elim: condE)
 
