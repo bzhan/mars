@@ -183,7 +183,7 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, FieldNameExpr):
         a = eval_expr(expr.expr, state)
-        if expr.field not in a:
+        if not isinstance(a, dict) or expr.field not in a:
             raise SimulatorException('When evaluating %s: field not found' % expr)
         return a[expr.field]
 
