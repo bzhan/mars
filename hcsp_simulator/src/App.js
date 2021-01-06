@@ -77,6 +77,19 @@ class Process extends React.Component {
     }
 
 
+    displayValue(val) {
+        if (typeof (val) == 'number') {
+            // Round numbers to at most three digits for display
+            return String(Math.round(val.toFixed(3) * 1000) / 1000);
+        }
+        else if (Array.isArray(val)) {
+            return '[' + val.map((k) => this.displayValue(k)).join(',') + ']';
+        }
+        else {
+            return '{' + (Object.keys(val).map((k) => k + ':' + this.displayValue(val[k]))).join(',') + '}';
+        }
+    }
+
     toggleShowText = (e) => {
         this.setState((state) => ({
             show_process: !state.show_process,
@@ -137,10 +150,7 @@ class Process extends React.Component {
 
                 {/* State of the program */}
                 < pre className="program-state" >
-
                     <span>&nbsp;</span>
-
-
                     {Object.keys(this.props.state).map((key, index) => {
                         var val = this.props.state[key];
                         var str_val = this.displayValue(val);
