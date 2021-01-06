@@ -69,10 +69,18 @@ class Process extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            show_process: true,
             show_graph: false,
 
         }
+        this.canvas = document.getElementById('chart' + String(this.props.index));
+    }
 
+
+    toggleShowText = (e) => {
+        this.setState((state) => ({
+            show_process: !state.show_process,
+        }))
     }
 
     render() {
@@ -81,73 +89,87 @@ class Process extends React.Component {
                 {/* Program text, with highlight on current location */}
                 <div>Process: {this.props.name}</div>
                 <div className="program-text">
-                    {this.props.lines.map((str, line_no) => {
-                        if (this.props.pos === undefined) {
-                            return <pre key={line_no}>{str}</pre>
-                        }
-                        const pos = this.props.pos;
-                        var bg_start, bg_end;
-                        if (line_no === pos.start_x) {
-                            bg_start = pos.start_y;
-                        } else if (line_no > pos.start_x) {
-                            bg_start = 0;
-                        } else {
-                            bg_start = str.length;
-                        }
-                        if (line_no === pos.end_x) {
-                            bg_end = pos.end_y;
-                        } else if (line_no < pos.end_x) {
-                            bg_end = str.length;
-                        } else {
-                            bg_end = 0;
-                        }
-                        if (bg_start < bg_end) {
-                            return (
-                                <pre key={line_no}>
-                                    <span>{str.slice(0, bg_start)}</span>
-                                    <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
-                                        {str.slice(bg_start, bg_end)}
-                                    </span>
-                                    <span>{str.slice(bg_end, str.length)}</span>
-                                </pre>)
-                        }
-                        return <pre key={line_no}>{str}</pre>
-                    })}
+                    <a href="#" onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"}</a>
+                    {
+                        this.state.show_process ? (
+                            <div>
+                                {
+                                    this.props.lines.map((str, line_no) => {
+                                        if (this.props.pos === undefined) {
+                                            return <pre key={line_no}>{str}</pre>
+                                        }
+                                        const pos = this.props.pos;
+                                        var bg_start, bg_end;
+                                        if (line_no === pos.start_x) {
+                                            bg_start = pos.start_y;
+                                        } else if (line_no > pos.start_x) {
+                                            bg_start = 0;
+                                        } else {
+                                            bg_start = str.length;
+                                        }
+                                        if (line_no === pos.end_x) {
+                                            bg_end = pos.end_y;
+                                        } else if (line_no < pos.end_x) {
+                                            bg_end = str.length;
+                                        } else {
+                                            bg_end = 0;
+                                        }
+                                        if (bg_start < bg_end) {
+                                            return (
+                                                <pre key={line_no}>
+                                                    <span>{str.slice(0, bg_start)}</span>
+                                                    <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                                        {str.slice(bg_start, bg_end)}
+                                                    </span>
+                                                    <span>{str.slice(bg_end, str.length)}</span>
+                                                </pre>)
+                                        }
+                                        return <pre key={line_no}>{str}</pre>
+                                    })
+                                }
+                            </div>
+                        ) : null
+                    }
                 </div>
 
                 {/* State of the program */}
-                <pre className="program-state">
+                < pre className="program-state" >
+
                     <span>&nbsp;</span>
-                    {Object.keys(this.props.state).map((key, index) => {
-                        // Round numbers to at most three digits for display
-                        var val = this.props.state[key];
-                        var str_val = '';
-                        if (typeof (val) == 'number') {
-                            val = Math.round(val.toFixed(3) * 1000) / 1000;
-                            str_val = String(val);
-                        }
-                        else if (Array.isArray(val)) {
-                            str_val = '[' + val.join(',') + ']';
-                        }
-                        else {
-                            str_val = '{' + (Object.keys(val).map((k) => k + ':' + val[k])).join(',') + '}';
-                        }
-                        return (<>
-                            {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
-                            <span key={index} style={{ marginLeft: "10px" }}>
-                                {key}: {str_val}
-                            </span>
-                        </>)
-                    })}
+
+                    {
+                        Object.keys(this.props.state).map((key, index) => {
+                            // Round numbers to at most three digits for display
+                            var val = this.props.state[key];
+                            var str_val = '';
+                            if (typeof (val) == 'number') {
+                                val = Math.round(val.toFixed(3) * 1000) / 1000;
+                                str_val = String(val);
+                            }
+                            else if (Array.isArray(val)) {
+                                str_val = '[' + val.join(',') + ']';
+                            }
+                            else {
+                                str_val = '{' + (Object.keys(val).map((k) => k + ':' + val[k])).join(',') + '}';
+                            }
+                            return (<>
+                                {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
+                                <span key={index} style={{ marginLeft: "10px" }}>
+                                    {key}: {str_val}
+                                </span>
+                            </>)
+                        })
+                    }
                     <span>&nbsp;&nbsp;</span>
                     <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
-                </pre>
+                </pre >
 
                 {/* Graph of time series */}
-                {(this.state.show_graph && this.props.time_series !== undefined) ?
-                    <canvas id={'chart' + String(this.props.index)} width="400" height="100" /> : null
+                {
+                    (this.state.show_graph && this.props.time_series !== undefined) ?
+                        <canvas id={'chart' + String(this.props.index)} width="400" height="100" /> : null
                 }
-            </div>
+            </div >
         );
     }
 
@@ -195,6 +217,7 @@ class Process extends React.Component {
         }
 
         var canvas = document.getElementById('chart' + String(this.props.index));
+
         const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
         if (typeof this.props.warning_at == 'undefined') { }
         else
@@ -226,6 +249,7 @@ class Process extends React.Component {
                         display: true,
                     }]
                 },
+
             }
         })
         this.chart.update();
@@ -489,7 +513,7 @@ class App extends React.Component {
                     {this.state.hcsp_info.map((info, index) => {
                         const hcsp_name = info.name;
                         if ('parallel' in info) {
-                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')  }</div>
+                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
                         }
                         else if (this.state.history.length === 0) {
                             // No data is available
