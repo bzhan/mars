@@ -137,37 +137,15 @@ class Process extends React.Component {
 
                     <span>&nbsp;</span>
 
-                    {
-                        Object.keys(this.props.state).map((key, index) => {
-                            // Round numbers to at most three digits for display
-                            var val = this.props.state[key];
-                            var str_val = '';
-                            if (typeof (val) == 'number') {
-                                val = Math.round(val.toFixed(3) * 1000) / 1000;
-                                str_val = String(val);
-                            }
-                            else if (Array.isArray(val)) {
-                                str_val = '[' + val.join(',') + ']';
-                            }
-                            else {
-                                str_val = '{' + (Object.keys(val).map((k) => k + ':' + val[k])).join(',') + '}';
-                            }
-                            return (<>
-                                {index > 0 && index % 5 === 0 ? <><br /><span>&nbsp;</span></> : null}
-                                <span key={index} style={{ marginLeft: "10px" }}>
-                                    {key}: {str_val}
-                                </span>
-                            </>)
-                        })
-                    }
+                    
                     {Object.keys(this.props.state).map((key, index) => {
                         var val = this.props.state[key];
                         var str_val = this.displayValue(val);
                         return (<>
                             {index > 0 ? <><br /><span>&nbsp;</span></> : null}
                             <span key={index} style={{ marginLeft: "10px" }}>
-                                <span style={{color: 'indianred'}}> {key}: </span>
-                                <span style={{color: 'black'}}> {str_val} </span>
+                                <span style={{ color: 'indianred' }}> {key}: </span>
+                                <span style={{ color: 'black' }}> {str_val} </span>
                             </span>
                         </>)
                     })}
@@ -603,11 +581,11 @@ class App extends React.Component {
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
                         <span style={{ marginLeft: '20px', fontSize: 'x-large' }}>{this.state.hcspFileName}</span>
                         <label htmlFor="num_steps" className="menu-label">Number of steps:</label>
-                        <input type="text" id="num_steps" name="num_steps" style={{width: '70px'}} value={this.state.num_steps} onChange={this.handleChange} />
+                        <input type="text" id="num_steps" name="num_steps" style={{ width: '70px' }} value={this.state.num_steps} onChange={this.handleChange} />
                         <label htmlFor="num_show" className="menu-label">Showing </label>
                         <input type="text" id="num_show" name="num_show" value={this.state.num_show} onChange={this.handleChange} />
                         <label htmlFor="show_starting" className="menu-label">starting from </label>
-                        <input type="text" id="show_starting" name="show_starting" style={{width: '70px'}} value={this.state.show_starting} onChange={this.handleChange} />
+                        <input type="text" id="show_starting" name="show_starting" style={{ width: '70px' }} value={this.state.show_starting} onChange={this.handleChange} />
                     </Nav>
                 </Navbar>
 
