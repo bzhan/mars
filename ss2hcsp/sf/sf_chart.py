@@ -55,13 +55,10 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
                     m=j
                     for k in range(m,len(hps)-1):
                         if isinstance(hps[k],(Assign)) and  hps[k] == hp_parser.parse("a_"+state_name+":= 0"):
-                            j=k-1
-                            
+                            j=k-1      
                             break
                         else:
-                            j+=1
-                            
-                            
+                            j+=1         
                 _hps.extend(hps[i + 1:j + 1])
                 if len(hps) - 1 >= j + 1:
                     _hps.append(hp.Condition(cond=bexpr_parser.parse("a_" + state_name + " == 1"),
@@ -405,7 +402,7 @@ class SF_Chart(Subsystem):
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-        return self.fun_dict[longest_path]       # 为什莫要是路径最长的
+        return self.fun_dict[longest_path]      
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
