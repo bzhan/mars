@@ -6,12 +6,14 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.sl.get_hcsp import *
 
+
 def printTofile(path,content):
-  f = open(path, "w")    # 打开文件以便写入
-  print(content, file=f)
-  f.close()  #  关闭文件
+    f = open(path, "w")
+    print(content, file=f)
+    f.close()
+
+
 class SfTest(unittest.TestCase):
-    
     def testhis_junction(self):
         location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
         diagram = SL_Diagram(location=location)
@@ -20,8 +22,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
+
     def testSendDirect_event(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
@@ -31,7 +33,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_2.txt",process)
-        print(process)
+
     def testSendDirect_event2(self):
         location = "./Examples/Stateflow/direct_event/direct_event_eg2.xml"
         diagram = SL_Diagram(location=location)
@@ -40,8 +42,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event_eg2.txt",process)
+
     def testSendDirect_event3(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
         diagram = SL_Diagram(location=location)
@@ -50,8 +52,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
         #printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+
     def testSendDirect_event4(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_3.xml"
         diagram = SL_Diagram(location=location)
@@ -60,8 +62,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_3.txt",process)
+
     def testSendDirect_event5(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_4.xml"
         diagram = SL_Diagram(location=location)
@@ -70,8 +72,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_4.txt",process)
+
     def testMessage_eg(self):
         location = "./Examples/Stateflow/Message_eg/Message_eg.xml"
         diagram = SL_Diagram(location=location)
@@ -81,7 +83,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/Message_eg/Message_eg.txt",process)
-        print(process)
+
     def testMessage_eg2(self):
         location = "./Examples/Stateflow/Message_eg/Message_eg2.xml"
         diagram = SL_Diagram(location=location)
@@ -91,7 +93,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/Message_eg/Message_eg2.txt",process)
-        print(process)
+
     def testSend(self):
         location = "./Examples/Stateflow/early_exit/early_return_logic_eg1_1.xml"
         diagram = SL_Diagram(location=location)
@@ -100,8 +102,6 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        #print(process)
-#         #printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
  
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"

@@ -1,0 +1,120 @@
+  ID  P0     P1    
+   2  |    delay 2 
+   3 p2c!   p2c?   
+   5 c2p?   c2p!   
+   7  |    delay 2 
+   8 p2c!   p2c?   
+  10 c2p?   c2p!   
+  12  |    delay 2 
+  13 p2c!   p2c?   
+  15 c2p?   c2p!   
+  17  |    delay 2 
+  18 p2c!   p2c?   
+  20 c2p?   c2p!   
+  22  |    delay 2 
+  23 p2c!   p2c?   
+  25 c2p?   c2p!   
+  27  |    delay 2 
+  28 p2c!   p2c?   
+  30 c2p?   c2p!   
+  32  |    delay 2 
+  33 p2c!   p2c?   
+  35 c2p?   c2p!   
+  37  |    delay 2 
+  38 p2c!   p2c?   
+  40 c2p?   c2p!   
+  42  |    delay 2 
+  43 p2c!   p2c?   
+  45 c2p?   c2p!   
+  47  |    delay 2 
+  48 p2c!   p2c?   
+  50 c2p?   c2p!   
+  52  |    delay 2 
+  53 p2c!   p2c?   
+  55 c2p?   c2p!   
+  57  |    delay 2 
+  58 p2c!   p2c?   
+  60 c2p?   c2p!   
+  62  |    delay 2 
+  63 p2c!   p2c?   
+  65 c2p?   c2p!   
+  67  |    delay 2 
+  68 p2c!   p2c?   
+  70 c2p?   c2p!   
+  72  |    delay 2 
+  73 p2c!   p2c?   
+  75 c2p?   c2p!   
+  77  |    delay 2 
+  78 p2c!   p2c?   
+  80 c2p?   c2p!   
+  82  |    delay 2 
+  83 p2c!   p2c?   
+  85 c2p?   c2p!   
+  87  |    delay 2 
+  88 p2c!   p2c?   
+  90 c2p?   c2p!   
+  92  |    delay 2 
+  93 p2c!   p2c?   
+  95 c2p?   c2p!   
+  97  |    delay 2 
+  98 p2c!   p2c?   
+ 100 c2p?   c2p!   
+ 102  |    delay 2 
+ 103 p2c!   p2c?   
+ 105 c2p?   c2p!   
+ 107  |    delay 2 
+ 108 p2c!   p2c?   
+ 110 c2p?   c2p!   
+ 112  |    delay 2 
+ 113 p2c!   p2c?   
+ 115 c2p?   c2p!   
+ 117  |    delay 2 
+ 118 p2c!   p2c?   
+ 120 c2p?   c2p!   
+ 122  |    delay 2 
+ 123 p2c!   p2c?   
+ 125 c2p?   c2p!   
+ 127  |    delay 2 
+ 128 p2c!   p2c?   
+ 130 c2p?   c2p!   
+ 132  |    delay 2 
+ 133 p2c!   p2c?   
+ 135 c2p?   c2p!   
+ 137  |    delay 2 
+ 138 p2c!   p2c?   
+ 140 c2p?   c2p!   
+ 142  |    delay 2 
+ 143 p2c!   p2c?   
+ 145 c2p?   c2p!   
+ 147  |    delay 2 
+ 148 p2c!   p2c?   
+ 150 c2p?   c2p!   
+ 152  |    delay 2 
+ 153 p2c!   p2c?   
+ 155 c2p?   c2p!   
+ 157  |    delay 2 
+ 158 p2c!   p2c?   
+ 160 c2p?   c2p!   
+ 162  |    delay 2 
+ 163 p2c!   p2c?   
+ 165 c2p?   c2p!   
+ 167  |    delay 2 
+ 168 p2c!   p2c?   
+ 170 c2p?   c2p!   
+ 172  |    delay 2 
+ 173 p2c!   p2c?   
+ 175 c2p?   c2p!   
+ 177  |    delay 2 
+ 178 p2c!   p2c?   
+ 180 c2p?   c2p!   
+ 182  |    delay 2 
+ 183 p2c!   p2c?   
+ 185 c2p?   c2p!   
+ 187  |    delay 2 
+ 188 p2c!   p2c?   
+ 190 c2p?   c2p!   
+ 192  |    delay 2 
+ 193 p2c!   p2c?   
+ 195 c2p?   c2p!   
+ 197  |    delay 2 
+ 198 p2c!   p2c?   

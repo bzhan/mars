@@ -38,7 +38,7 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
     for i in range(len(hps)):
         assert hps[i]
         if isinstance(hps[i], hp.HCSP):
-            if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.startswith("BR") or hps[i].ch_name.startswith("DBR")): #BR收到子图发来的消息广播申请
+            if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.name.startswith("BR") or hps[i].ch_name.name.startswith("DBR")): #BR收到子图发来的消息广播申请
                 # For example, hps[i].expr.name = E_S1
                 #state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1 split
                 state_name = (lambda x: x.split("_")[-1])(hps[i].expr.name)
@@ -46,12 +46,12 @@ def get_hcsp(hps):  # get the hcsp from a list of hps
                 ch_expr = (lambda x: AConst('"' + x[:x.rfind("_")] + '"'))(hps[i].expr.name)
                 _hps.append(hp.OutputChannel(ch_name=hps[i].ch_name, expr=ch_expr))
                 j = i + 1
-                if hps[i].ch_name.startswith("BR"):
+                if hps[i].ch_name.name.startswith("BR"):
                     
                     if hps[j] != hp.Var("X"):  # hps[j] is VIn!
                         j += 1
                 #assert hps[j] == hp.Var("X")
-                if hps[i].ch_name.startswith("DBR"):
+                if hps[i].ch_name.name.startswith("DBR"):
                     m=j
                     for k in range(m,len(hps)-1):
                         if isinstance(hps[k],(Assign)) and  hps[k] == hp_parser.parse("a_"+state_name+":= 0"):
@@ -765,15 +765,15 @@ class SF_Chart(Subsystem):
                 else:
                     assert not isinstance(sub_hp, hp.Parallel)
                     new_hps.append(sub_hp)
-                    if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.startswith("BR"):
-                        assert sub_hp.ch_name == "BR" + str(_num)
+                    if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.name.startswith("BR"):
+                        assert sub_hp.ch_name.name == "BR" + str(_num)
             assert len([sub_hp for sub_hp in _hps  # at least one BR!
-                        if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.startswith("BR")]) <= 1
+                        if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.name.startswith("BR")]) <= 1
 
             index_BR = None
             for _i in range(len(new_hps)):
                 sub_hp = new_hps[_i]
-                if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.startswith("BR"):
+                if isinstance(sub_hp, hp.OutputChannel) and sub_hp.ch_name.name.startswith("BR"):
                     index_BR = _i
                     break
             if index_BR:

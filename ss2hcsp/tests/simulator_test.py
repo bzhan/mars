@@ -3,7 +3,7 @@
 import unittest
 import math
 
-from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp.hcsp import Channel
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
@@ -80,7 +80,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, None)
             self.assertEqual(info.pos, pos2)
@@ -88,24 +88,24 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep2(self):
         test_data = [
-            ("c?x", (), {}, {"comm": [("c", "?")]}),
-            ("c!x", (), {}, {"comm": [("c", "!")]}),
+            ("c?x", (), {}, {"comm": [(Channel("c"), "?")]}),
+            ("c!x", (), {}, {"comm": [(Channel("c"), "!")]}),
             ("wait(3)", (0,), {}, {"delay": 3}),
             ("wait(3)", (1,), {}, {"delay": 2}),
             ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {},
-             {"comm": [("c1", "?"), ("c2", "!")]}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")]}),
             ("x := 1; wait(3)", (1, 0), {}, {"delay": 3}),
             ("(x := 1; wait(3))**", (1, 0), {}, {"delay": 3}),
             ("(x := 1; wait(3))**", (1, 1), {}, {"delay": 2}),
             ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {}, {"delay": 1}),
             ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0},
-             {"comm": [("c1", "?"), ("c2", "!")], "delay": 1.0}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 1.0}),
             ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0.5},
-             {"comm": [("c1", "?"), ("c2", "!")], "delay": 0.5}),
+             {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 0.5}),
         ]
 
         for cmd, pos, state, reason in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, reason)
             self.assertEqual(info.pos, pos)
@@ -116,7 +116,7 @@ class SimulatorTest(unittest.TestCase):
             ("skip", (), {}, None, {}, "end"),
             ("x := 2", (), {}, None, {"x": 2}, "end"),
             ("x := 2; x := x + 1", (0,), {}, None, {"x": 3}, "end"),
-            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [("c", "!")]}),
+            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [(Channel("c"), "!")]}),
             ("wait(3)", (0,), {}, (0,), {}, {"delay": 3}),
             ("(x := x + 1; wait(3))**", (0,), {"x": 2}, (1, 0), {"x": 3}, {"delay": 3}),
             ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 0}, None, {"x": 0}, "end"),
@@ -125,7 +125,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             while info.pos is not None:
                 info.exec_step()
                 if info.reason is not None:
@@ -146,8 +146,8 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            info.exec_input_comm(ch_name, val)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
+            info.exec_input_comm(Channel(ch_name), val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
@@ -162,8 +162,8 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
-            res = info.exec_output_comm(ch_name)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
+            res = info.exec_output_comm(Channel(ch_name))
             self.assertEqual(res, val)
             self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
@@ -183,7 +183,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, pos=pos, state=state)
+            info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertEqual(info.pos, pos2)
@@ -213,7 +213,7 @@ class SimulatorTest(unittest.TestCase):
         ]
 
         for cmd, state, delay, state2 in test_data:
-            info = simulator.HCSPInfo('P0', cmd, state=state)
+            info = simulator.SimInfo('P0', cmd, state=state)
             info.exec_step()  # obtain delay value
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
@@ -247,9 +247,12 @@ class SimulatorTest(unittest.TestCase):
             res = simulator.get_ode_delay(hp, state)
             self.assertAlmostEqual(res, delay, places=5)
 
-    def run_test(self, infos, num_io_events, trace, *, print_time_series=False, print_state=False):
+    def run_test(self, infos, num_io_events, trace, *,
+                 print_time_series=False,  # Show time series
+                 print_state=False,  # Show final state
+                 warning=None):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
+            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel(infos, num_io_events=num_io_events)
         res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
@@ -260,15 +263,18 @@ class SimulatorTest(unittest.TestCase):
         if print_state:
             for info in infos:
                 print(info.state)
+        if warning is not None:
+            self.assertTrue('warning' in res)
+            self.assertEqual(res['warning'], warning)
 
     def run_test_steps(self, infos, res_len, *, start_event):
         for i in range(len(infos)):
-            infos[i] = simulator.HCSPInfo('P' + str(i), infos[i])
+            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
 
         res = simulator.exec_parallel_steps(infos, start_event=start_event)
         self.assertEqual(len(res), res_len)
 
-    def Simulator(self):
+    def testExecParallel1(self):
         self.run_test([
             "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
             "(wait(2); p2c?x; c2p!x-1)**",
@@ -337,7 +343,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel12(self):
         self.run_test([
-            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x > 0>; v := -0.8 * v)**",
+            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x >= 0>; v := -0.8 * v)**",
         ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
 
     def testExecParallel13(self):
@@ -355,7 +361,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             "x := 1; (<x_dot = x & true> |> [](c!x --> skip))**",
             "(wait(10); c?x)**"
-        ], 100, ['delay 10', 'IO c 22026.815', 'delay 10', 'IO c 485180544.948', 'delay 10', 'overflow'])
+        ], 100, ['delay 10', 'IO c 22026.814', 'delay 10', 'IO c 485180534.947', 'delay 10', 'overflow'])
 
     def testExecParallel16(self):
         self.run_test([
@@ -427,7 +433,7 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             'xs := []; (ch_new?new; xs := push(xs, new); x := get_max(xs); ch_max!x; xs := pop_max(xs))**',
             'ch_new![1,2]; ch_max?x; ch_new!3; ch_max?x; ch_new![]; ch_max?x'
-        ], 10, ['IO ch_new (1, 2)', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new ()', 'IO ch_max 1', 'deadlock'])
+        ], 10, ['IO ch_new [1,2]', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new []', 'IO ch_max 1', 'deadlock'])
 
     def testExecParallel28(self):
         self.run_test([
@@ -451,6 +457,103 @@ class SimulatorTest(unittest.TestCase):
         self.run_test([
             'x := 0; <x_dot = 0 * x & x < 0>'
         ], 3, ['delay 0.0', 'deadlock'])
+
+    def testExecParallel32(self):
+        self.run_test([
+            'x := 0; v := 0; <x_dot = v, v_dot = 0 & x <= 0>'
+        ], 3, ['delay 100', 'deadlock'])
+
+    def testExecParallel33(self):
+        self.run_test([
+            'x := 2; assert(x == 2)'
+        ], 2, ['deadlock'])
+
+    def testExecParallel34(self):
+        self.run_test([
+            'x := 2; test(x == 3, "x should equal 3")'
+        ], 3, ['warning: Test x == 3 failed (x should equal 3)', 'deadlock'],
+        warning=(0, "Test x == 3 failed (x should equal 3)"))
+
+    def testExecParallel35(self):
+        self.run_test([
+            'x := 2; log("start")'
+        ], 2, ['-- start --', 'deadlock'])
+
+    def testExecParallel36(self):
+        self.run_test([
+            'x := 0; (<x_dot = 1 & true> |> [](p2c[0]!x --> skip); c2p[0]?x)**',
+            '(wait(2); p2c[0]?x; c2p[0]!x-1)**'
+        ], 6, ['delay 2', 'IO p2c[0] 2.0', 'IO c2p[0] 1.0', 'delay 2', 'IO p2c[0] 3.0', 'IO c2p[0] 2.0'])
+
+    def testExecParallel37(self):
+        self.run_test([
+            'x := 0; i := 0; (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**',
+            'i := 0; (i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1)**'
+        ], 6, ['delay 2', 'IO p2c[1] 2.0', 'IO c2p[1] 1.0', 'delay 2', 'IO p2c[2] 3.0', 'IO c2p[2] 2.0'])
+
+    def testExecParallel38(self):
+        self.run_test([
+            'pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch {x:3,y:2}', 'deadlock'])
+
+    def testExecParallel39(self):
+        self.run_test([
+            'pt := [1, 2]; pt[0] := pt[1] + 1; ch!pt[0]; ch!pt',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch [3,2]', 'deadlock'])
+
+    def testExecParallel40(self):
+        self.run_test([
+            'pt := {x:1, y:2}; pt2 := pt; pt2.y := 3; ch!pt2.y; ch!pt.y',
+            'ch?x; ch?x'
+        ], 3, ['IO ch 3', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel41(self):
+        self.run_test([
+            'pt := {x:1, y:2}; ch!pt; ch!pt.y',
+            'ch?pt; pt.y := 3; ch?y'
+        ], 3, ['IO ch {x:1,y:2}', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel42(self):
+        self.run_test([
+            'pt := {x:1, y:2}; ch!pt.x; ch!pt.y; ch?z; ch?z',
+            'pt := {x:2, y:3}; ch?pt.x; ch?pt.y; ch!pt.x; ch!pt.y'
+        ], 5, ['IO ch 1', 'IO ch 2', 'IO ch 1', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel43(self):
+        self.run_test([
+            "x := 0; (test(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
+                "delay 2", "IO p2c 4.0", "IO c2p 3.0", "warning: Test x <= 2 failed (x is too big)", "delay 2", "IO p2c 5.0", "IO c2p 4.0"],
+        warning=(6, "Test x <= 2 failed (x is too big)"))
+
+    def testExecParallel44(self):
+        self.run_test([
+            "status := [1]; status[0] := {x:1, y:2}; ch!status[0].x; ch!status[0].y",
+            "ch?z; ch?x"
+        ], 3, ['IO ch 1', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel45(self):
+        self.run_test([
+            "a := [[1,2],[3,4]]; ch!a[1][0]; ch!a[0][1]",
+            "ch?x; ch?x"
+        ], 3, ['IO ch 3', 'IO ch 2', 'deadlock'])
+
+    def testExecParallel46(self):
+        self.run_test([
+            "pt := {xs: [1, 2], ys: [3, 4]}; ch!pt.xs[1]; ch!pt.ys[0]",
+            "ch?x; ch?x"
+        ], 3, ['IO ch 2', 'IO ch 3', 'deadlock'])
+
+    def testExecParallel47(self):
+        self.run_test([
+            "x := 0; (assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
+                "delay 2", "IO p2c 4.0", "IO c2p 3.0", "error: x is too big"],
+        warning=(6, "x is too big"))
 
 
 if __name__ == "__main__":

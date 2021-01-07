@@ -4,23 +4,36 @@ The state is given by a dictionary from variable names to numbers.
 
 """
 
-from copy import copy
+import copy
 import itertools
 import math
+import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, ArrayIdxExpr, BConst, LogicExpr, NegExpr, RelExpr, true_expr, \
-    opt_round, get_range, split_conj, split_disj, false_expr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
+    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
+from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
 
 
 class SimulatorException(Exception):
     def __init__(self, error_msg):
         self.error_msg = error_msg
+
+class SimulatorAssertionException(Exception):
+    def __init__(self, expr, error_msg):
+        self.expr = expr
+        self.error_msg = error_msg
+
+    def __str__(self):
+        res = 'Test %s failed' % self.expr
+        if self.error_msg:
+            res += ' (%s)' % self.error_msg
+        return res
 
 
 def eval_expr(expr, state):
@@ -41,13 +54,16 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, PlusExpr):
         # Sum of expressions
-        res = 0
-        for s, e in zip(expr.signs, expr.exprs):
-            if s == '+':
-                res += eval_expr(e, state)
-            else:
-                res -= eval_expr(e, state)
-        return res
+        try:
+            res = 0
+            for s, e in zip(expr.signs, expr.exprs):
+                if s == '+':
+                    res += eval_expr(e, state)
+                else:
+                    res -= eval_expr(e, state)
+            return res
+        except TypeError:
+            raise SimulatorException("Type error when evaluating %s" % expr)
 
     elif isinstance(expr, TimesExpr):
         # Product of expressions
@@ -70,48 +86,80 @@ def eval_expr(expr, state):
             return abs(*args)
         elif expr.fun_name == "gcd":
             return math.gcd(*args)
+        elif expr.fun_name == "div":
+            a, b = args
+            return int(a) // int(b)
         elif expr.fun_name == "push":
             a, b = args
-            assert isinstance(a, tuple)
-            return a + (b,)
+            assert isinstance(a, list)
+            if isinstance(b, list):
+                return a + b
+            else:
+                return a + [b]
         elif expr.fun_name == "pop":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[:-1]
         elif expr.fun_name == "top":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[-1]
         elif expr.fun_name == "bottom":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[0]
         elif expr.fun_name == "get":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[1:]
         elif expr.fun_name == "len":
             a, = args
-            assert isinstance(a, tuple)
+            assert isinstance(a, list)
             return len(a)
         elif expr.fun_name == "get_max":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return max(a)
         elif expr.fun_name == "pop_max":
             a, = args
-            assert isinstance(a, tuple) and len(a) > 0
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
             b = list(a)
             try:
                 b.remove(max(a))
             except TypeError as e:
                 print('value is:', a)
                 raise e
-
-            return tuple(b)
+            return list(b)
         elif expr.fun_name == "sqrt":
-            assert len(args) == 1 and args[0] > 0
+            assert len(args) == 1
+            if args[0] < 0:
+                raise SimulatorException('When evaluating %s: argument %s less than zero' % (expr, args[0]))
             return math.sqrt(args[0])
+        elif expr.fun_name == "bernoulli":
+            assert len(args) == 1
+            if not (args[0] >= 0 and args[0] <= 1):
+                raise SimulatorException('When evaluating %s: argument %s not in range' % (expr, args[0]))
+            if random.uniform(0,1) <= args[0]:
+                return 1
+            else:
+                return 0
+        elif expr.fun_name == "uniform":
+            assert len(args) == 2
+            if args[0] > args[1]:
+                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+            return random.uniform(args[0], args[1])
         else:
             raise NotImplementedError
 
@@ -119,13 +167,25 @@ def eval_expr(expr, state):
         return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
 
     elif isinstance(expr, ListExpr):
-        return tuple(eval_expr(arg, state) for arg in expr.args)
+        return list(eval_expr(arg, state) for arg in expr.args)
+
+    elif isinstance(expr, DictExpr):
+        return dict((k, eval_expr(v, state)) for k, v in expr.dict.items())
 
     elif isinstance(expr, ArrayIdxExpr):
         a = eval_expr(expr.expr1, state)
         i = eval_expr(expr.expr2, state)
-        assert isinstance(a, tuple) and isinstance(i, int) and i < len(a)
+        if not (isinstance(a, list) and isinstance(i, int)):
+            raise SimulatorException('When evaluating %s: type error' % expr)
+        if not i < len(a):
+            raise SimulatorException('When evaluating %s: array out of bounds error' % expr)
         return a[i]
+
+    elif isinstance(expr, FieldNameExpr):
+        a = eval_expr(expr.expr, state)
+        if not isinstance(a, dict) or expr.field not in a:
+            raise SimulatorException('When evaluating %s: field not found' % expr)
+        return a[expr.field]
 
     elif isinstance(expr, BConst):
         return expr.value
@@ -173,7 +233,12 @@ def eval_expr(expr, state):
             raise NotImplementedError
 
     else:
+        print('When evaluating %s' % expr)
         raise NotImplementedError
+
+def eval_channel(ch_name, state):
+    args = tuple(int(eval_expr(arg, state)) for arg in ch_name.args)
+    return hcsp.Channel(ch_name.name, args)
 
 def get_ode_delay(hp, state):
     """Obtain the delay needed for the given ODE, starting at the
@@ -190,7 +255,7 @@ def get_ode_delay(hp, state):
 
     def ode_fun(t, y):
         res = []
-        state2 = copy(state)
+        state2 = copy.copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
         for var_name, expr in hp.eqs:
@@ -199,7 +264,7 @@ def get_ode_delay(hp, state):
 
     def event_gen(t, y, c):
         # Here c is the constraint
-        state2 = copy(state)
+        state2 = copy.copy(state)
         for (var_name, _), yval in zip(hp.eqs, y):
             state2[var_name] = yval
         if isinstance(c, RelExpr):
@@ -214,14 +279,34 @@ def get_ode_delay(hp, state):
             print('!!!!!')
             raise NotImplementedError
 
+    # Compute set of variables that remain zero
+    zero_vars = []
+
     def is_zero(t):
         """Whether the given expression simplifies to 0."""
         if isinstance(t, TimesExpr):
             return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
         elif isinstance(t, AConst):
             return t.value == 0
+        elif isinstance(t, AVar):
+            return t.name in zero_vars
         else:
             return False
+    
+    def is_zero_deriv(name):
+        """Whether the derivative of variable simplifies to 0."""
+        for var_name, eq in hp.eqs:
+            if var_name == name and not is_zero(eq):
+                return False
+        return True
+
+    found = True
+    while found:
+        found = False
+        for name in state:
+            if name not in zero_vars and is_zero_deriv(name) and state[name] == 0:
+                zero_vars.append(name)
+                found = True
 
     changed_vars = []
     for var_name, eq in hp.eqs:
@@ -240,8 +325,11 @@ def get_ode_delay(hp, state):
         elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
         else:
-            print(e)
+            print('occur_var:', e)
             raise NotImplementedError
+
+    def expr_unchanged(e):
+        return all(not occur_var(e, var_name) for var_name in changed_vars)
 
     def test_cond(e):
         if isinstance(e, LogicExpr) and e.op == '||':
@@ -254,11 +342,20 @@ def get_ode_delay(hp, state):
             delay2 = test_cond(e.expr2)
             return min(delay1, delay2)
 
-        if all(not occur_var(e, var_name) for var_name in changed_vars):
+        # Condition never changes
+        if expr_unchanged(e):
             if eval_expr(e, state):
                 return 100
             else:
                 return 0
+
+        # Condition of the form t < constant
+        if isinstance(e, RelExpr) and e.op in ('<', '<=') and \
+            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2):
+            for var_name, deriv in hp.eqs:
+                if var_name == e.expr1.name and expr_unchanged(deriv):
+                    diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
+                    return min(diff / eval_expr(deriv, state), 100.0)
 
         if not eval_expr(e, state):
             return 0
@@ -279,11 +376,7 @@ def get_ode_delay(hp, state):
         delays = [1, 2, 5, 10, 20, 50, 100]
         cur_delay = 100
         for delay in delays:
-            try:
-                sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-3, atol=1e-5)
-            except ValueError:
-                print('error')
-                continue
+            sol = solve_ivp(ode_fun, [0, delay], y0, events=[event], rtol=1e-5, atol=1e-7)
             if sol.t[-1] < delay:
                 cur_delay = opt_round(sol.t[-1])
                 break
@@ -505,7 +598,11 @@ def string_of_pos(hp, pos):
     else:
         return 'p' + '.'.join(str(p) for p in pos[:-1])
 
-class HCSPInfo:
+def disp_of_pos(hp, pos):
+    return string_of_pos(hp, remove_rec(hp, pos))
+
+
+class SimInfo:
     """Represents a (non-parallel) HCSP program together with
     additional information on the current execution position and
     the current state.
@@ -514,7 +611,7 @@ class HCSPInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -526,6 +623,9 @@ class HCSPInfo:
             self.hp = parser.hp_parser.parse(hp)
         else:
             self.hp = hp
+
+        # List of output variables, None indicates output everything.
+        self.outputs = outputs
 
         # Current position of execution
         if isinstance(pos, str):
@@ -549,7 +649,31 @@ class HCSPInfo:
         self.reason = None
 
         # Last step at which the state is changed. Used during simulation.
-        self.last_change = 0
+        self.last_change = None
+
+    def __str__(self):
+        return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
+
+    def exec_assign(self, lname, val, hp):
+        """Make the copy of val into lname. Note deep-copy need to be
+        used to avoid aliasing.
+
+        """
+        if isinstance(lname, AVar):
+            self.state[lname.name] = copy.deepcopy(val)
+        elif isinstance(lname, ArrayIdxExpr):
+            v = eval_expr(lname.expr1, self.state)
+            idx = eval_expr(lname.expr2, self.state)
+            if idx >= len(v):
+                raise SimulatorException('Array index %s out of bounds, when executing %s' % (idx, hp))
+            v[idx] = copy.deepcopy(val)
+        elif isinstance(lname, FieldNameExpr):
+            v = eval_expr(lname.expr, self.state)
+            if lname.field not in v:
+                raise SimulatorException('Field %s does not exist, when executing %s' % (lname.field, hp))
+            v[lname.field] = copy.deepcopy(val)
+        else:
+            raise NotImplementedError
 
     def exec_step(self):
         """Compute a single process for one step.
@@ -572,19 +696,62 @@ class HCSPInfo:
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            if isinstance(cur_hp.var_name, str):
-                self.state[cur_hp.var_name] = eval_expr(cur_hp.expr, self.state)
+            if isinstance(cur_hp.var_name, AExpr):
+                self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state), cur_hp)
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
-                assert isinstance(val, tuple) and len(val) == len(cur_hp.var_name), \
-                    "Multiple assignment: value not a tuple or of the wrong length."
+                assert isinstance(val, list) and len(val) == len(cur_hp.var_name), \
+                    "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
-                    if s != '_':
-                        self.state[s] = val[i]
+                    if s != AVar('_'):
+                        self.exec_assign(s, val[i], cur_hp)
 
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             self.reason = None
+
+        elif cur_hp.type == "assert":
+            # Evaluate an assertion. If fails, immediate stop the execution
+            # (like a runtime error).
+            if not eval_expr(cur_hp.bexpr, self.state):
+                error_msg = ''
+                for msg in cur_hp.msgs:
+                    val = eval_expr(msg, self.state)
+                    if isinstance(val, str):
+                        error_msg += val[1:-1]
+                    else:
+                        error_msg += str(val)
+                raise SimulatorException(error_msg)
+            else:
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.reason = None
+
+        elif cur_hp.type == "test":
+            # Evaluate a test. If fails, output a warning but do not stop
+            # the execution.
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.reason = None
+            if not eval_expr(cur_hp.bexpr, self.state):
+                warning_expr = ''
+                for msg in cur_hp.msgs:
+                    val = eval_expr(msg, self.state)
+                    if isinstance(val, str):
+                        warning_expr += val[1:-1]
+                    else:
+                        warning_expr += str(val)
+                raise SimulatorAssertionException(cur_hp.bexpr, warning_expr)
+
+        elif cur_hp.type == "log":
+            # Output a log item to the simulator
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            log_expr = ''
+            for expr in cur_hp.exprs:
+                val = eval_expr(expr, self.state)
+                if isinstance(val, str):
+                    log_expr += val[1:-1]
+                else:
+                    log_expr += str(val)
+            self.reason = {"log": log_expr}
 
         elif cur_hp.type == "condition":
             # Evaluate the condition, either go inside or step to next
@@ -613,11 +780,11 @@ class HCSPInfo:
 
         elif cur_hp.type == "input_channel":
             # Waiting for input
-            self.reason = {"comm": [(cur_hp.ch_name, "?")]}
+            self.reason = {"comm": [(eval_channel(cur_hp.ch_name, self.state), "?")]}
 
         elif cur_hp.type == "output_channel":
             # Waiting for someone to receive output
-            self.reason = {"comm": [(cur_hp.ch_name, "!")]}
+            self.reason = {"comm": [(eval_channel(cur_hp.ch_name, self.state), "!")]}
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
@@ -632,9 +799,9 @@ class HCSPInfo:
             comms = []
             for io_comm, rest in cur_hp.io_comms:
                 if io_comm.type == "input_channel":
-                    comms.append((io_comm.ch_name, "?"))
+                    comms.append((eval_channel(io_comm.ch_name, self.state), "?"))
                 else:
-                    comms.append((io_comm.ch_name, "!"))
+                    comms.append((eval_channel(io_comm.ch_name, self.state), "!"))
             self.reason = {"comm": comms}
             if cur_hp.constraint != true_expr:
                 self.reason["delay"] = get_ode_delay(cur_hp, self.state)
@@ -644,9 +811,9 @@ class HCSPInfo:
             comms = []
             for comm_hp, out_hp in cur_hp.io_comms:
                 if comm_hp.type == "input_channel":
-                    comms.append((comm_hp.ch_name, "?"))
+                    comms.append((eval_channel(comm_hp.ch_name, self.state), "?"))
                 elif comm_hp.type == "output_channel":
-                    comms.append((comm_hp.ch_name, "!"))
+                    comms.append((eval_channel(comm_hp.ch_name, self.state), "!"))
                 else:
                     raise NotImplementedError
             self.reason = {"comm": comms}
@@ -677,18 +844,18 @@ class HCSPInfo:
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "input_channel":
-            assert cur_hp.ch_name == ch_name
+            assert eval_channel(cur_hp.ch_name, self.state) == ch_name
             if cur_hp.var_name is None:
                 assert x is None
             else:
                 assert x is not None
-                self.state[cur_hp.var_name] = x
+                self.exec_assign(cur_hp.var_name, x, cur_hp)
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
-                    self.state[comm_hp.var_name] = x
+                if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
+                    self.exec_assign(comm_hp.var_name, x, comm_hp)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -697,13 +864,12 @@ class HCSPInfo:
 
         elif cur_hp.type == "select_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "input_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     if comm_hp.var_name is None:
                         assert x is None
                     else:
-                        print(comm_hp)
                         assert x is not None
-                        self.state[comm_hp.var_name] = x
+                        self.exec_assign(comm_hp.var_name, x, comm_hp)
                     self.pos += (i,) + start_pos(out_hp)
                     return
 
@@ -725,13 +891,13 @@ class HCSPInfo:
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
 
         if cur_hp.type == "output_channel":
-            assert cur_hp.ch_name == ch_name
+            assert eval_channel(cur_hp.ch_name, self.state) == ch_name
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
             return eval_expr(cur_hp.expr, self.state)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     val = eval_expr(comm_hp.expr, self.state)
                     self.pos += (i,) + start_pos(out_hp)
                     return val
@@ -741,7 +907,7 @@ class HCSPInfo:
 
         elif cur_hp.type == "select_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
-                if comm_hp.type == "output_channel" and comm_hp.ch_name == ch_name:
+                if comm_hp.type == "output_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     self.pos += (i,) + start_pos(out_hp)
                     return eval_expr(comm_hp.expr, self.state)
 
@@ -783,7 +949,7 @@ class HCSPInfo:
             if delay != 0.0:
                 def ode_fun(t, y):
                     res = []
-                    state2 = copy(self.state)
+                    state2 = copy.copy(self.state)
                     for (var_name, _), yval in zip(cur_hp.eqs, y):
                         state2[var_name] = yval
                     for var_name, expr in cur_hp.eqs:
@@ -802,7 +968,7 @@ class HCSPInfo:
                     for i in range(len(sol.t)):
                         for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
                             self.state[var_name] = opt_round(yval[i])
-                        time_series.append({'time': t_eval[i], 'state': copy(self.state)})
+                        time_series.append({'time': t_eval[i], 'state': copy.copy(self.state)})
 
                 # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
@@ -822,18 +988,35 @@ def extract_event(infos):
     value is one of:
 
     "deadlock" -> the program has deadlocked.
+    ("warning", msg) -> warning message.
+    ("error", msg) -> error message.
     ("delay", n) -> delay for n seconds.
     ("comm", id_out, id_in, ch_name) -> communication.
 
     """
+    # If any process has a warning or error, return it
+    for i, info in enumerate(infos):
+        if 'warning' in info.reason:
+            return ('warning', info.reason['warning'])
+        if 'error' in info.reason:
+            return ('error', info.reason['error'])
+
     # First, attempt to find communication
-    for i, info1 in enumerate(infos):
-        for j, info2 in enumerate(infos):
-            if 'comm' in info1.reason and 'comm' in info2.reason:
-                for ch_name1, dir1 in info1.reason['comm']:
-                    for ch_name2, dir2 in info2.reason['comm']:
-                        if ch_name1 == ch_name2 and dir1 == "!" and dir2 == "?":
-                            return ("comm", i, j, ch_name1)
+    # We keep two dictionaries: out-ready events and in-ready events
+    out_ready = dict()
+    in_ready = dict()
+    for i, info in enumerate(infos):
+        if 'comm' in info.reason:
+            for ch_name, direction in info.reason['comm']:
+                if direction == '!':
+                    out_ready[ch_name] = i
+                elif direction == '?':
+                    in_ready[ch_name] = i
+                else:
+                    raise TypeError
+    for ch_name in out_ready:
+        if ch_name in in_ready:
+            return ('comm', out_ready[ch_name], in_ready[ch_name], ch_name)
 
     # If there is no communication, find minimum delay
     min_delay, delay_pos = None, []
@@ -850,8 +1033,9 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
-    """Given a list of HCSPInfo objects, execute the hybrid programs
+def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
+                  show_starting=None):
+    """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
     The returned result is a dictionary containing the result of the
@@ -870,115 +1054,160 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
-        'time_series': {}  # Evolution of variables, indexed by program
+        'time_series': {},  # Evolution of variables, indexed by program
+        'events': []  # Concise list of event strings
     }
 
-    # Signals the maximum number of steps has been reached.
-    end_run = False
+    # Number of steps so far.
+    num_event = 0
 
     for info in infos:
-        res['time_series'][info.name] = []
+        if info.outputs is None or len(info.outputs) > 0:
+            # Has some variable to output
+            res['time_series'][info.name] = []
 
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
-        nonlocal end_run
-        cur_index = len(res['trace'])
+        nonlocal num_event
+        num_event += 1
+        if num_event % 10000 == 0:
+            print('i:', num_event)
 
         new_event = xargs
         new_event['time'] = res['time']
         new_event['ori_pos'] = ori_pos
+        res['events'].append(new_event['str'])
+
+        if new_event['type'] != 'error' and \
+            ((num_show is not None and len(res['trace']) >= num_show + 1) or \
+             (show_starting is not None and num_event <= show_starting)):
+            return
 
         cur_info = dict()
         for info in infos:
-            if info.name in ori_pos:
-                info_pos = string_of_pos(info.hp, remove_rec(info.hp, info.pos))
-                cur_info[info.name] = {'pos': info_pos, 'state': copy(info.state)}
-                info.last_change = cur_index
+            if new_event['type'] == 'error' or info.name in ori_pos or info.last_change is None:
+                info_pos = disp_of_pos(info.hp, info.pos)
+                cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
+                info.last_change = len(res['trace'])
             else:
                 cur_info[info.name] = info.last_change
 
+        new_event['id'] = num_event - 1
         new_event['infos'] = cur_info
         res['trace'].append(new_event)
-        if len(res['trace']) > num_steps:
-            end_run = True
 
-        
-
-    def log_time_series(name, time, state):
+    def log_time_series(info, time, state):
         """Log the given time series for program with the given name."""
+        if info.name not in res['time_series']:
+            return
+
         new_entry = {
             "time": time,
             "event": len(res['trace']),
             "state": dict()
         }
         for k, v in state.items():
-            if isinstance(v, (int, float)):
+            if (info.outputs is None or any(k in output for output in info.outputs)) and \
+                isinstance(v, (int, float)):
                 new_entry['state'][k] = v
-        series = res['time_series'][name]
+        series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
     # List of processes that have been updated in the last round.
-    updated = [info.name for info in infos]
+    start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
 
     # Record event and time series at the beginning.
-    log_event(ori_pos=updated, type="start", str="start")
+    log_event(ori_pos=start_pos, type="start", str="start")
     for info in infos:
-        log_time_series(info.name, 0, info.state)
+        log_time_series(info, 0, info.state)
 
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            if info.name not in updated:
+            if info.name not in start_pos:
                 continue
 
-            while info.pos is not None and not end_run:
-                info.exec_step()
+            while info.pos is not None and not num_event > num_steps:
+                ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
+                try:
+                    info.exec_step()
+                except SimulatorAssertionException as e:
+                    if 'warning' not in res:
+                        info.reason = {'warning': str(e)}
+                        res['warning'] = (res['time'], str(e))
+                except SimulatorException as e:
+                    info.reason = {'error': str(e)}
+                    res['warning'] = (res['time'], str(e))
+
                 if info.reason is None:
-                    log_event(ori_pos=[info.name], type="step", str="step")
-                    log_time_series(info.name, res['time'], info.state)
+                    log_event(ori_pos=ori_pos, type="step", str="step")
+                    log_time_series(info, res['time'], info.state)
+                elif 'log' in info.reason:
+                    log_event(ori_pos=ori_pos, type="log", str='-- ' + info.reason['log'] + ' --')
+                elif 'warning' in info.reason:
+                    log_event(ori_pos=ori_pos, type="warning", str="warning: " + info.reason['warning'])
+                elif 'error' in info.reason:
+                    log_event(ori_pos=ori_pos, type="error", str="error: " + info.reason['error'])
+                    break
                 else:
                     break
+
             if info.pos is None:
                 info.reason = {'end': None}
 
-        if end_run:
+        if num_event > num_steps:
             break
 
         event = extract_event(infos)
         if event == "deadlock":
-            log_event(ori_pos=[], type="deadlock", str="deadlock")
+            log_event(ori_pos=dict(), type="deadlock", str="deadlock")
+            break
+        elif event[0] == "error":
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
+            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
+
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
             for info in infos:
                 series = []
                 info.exec_delay(min_delay, time_series=series)
                 for entry in series:
-                    log_time_series(info.name, res['time'] + entry['time'], entry['state'])
-                log_time_series(info.name, res['time'] + min_delay, info.state)
+                    log_time_series(info, res['time'] + entry['time'], entry['state'])
+                log_time_series(info, res['time'] + min_delay, info.state)
 
-            updated = [infos[p].name for p in delay_pos]
-            log_event(ori_pos=updated, type="delay", delay_time=min_delay, str=trace_str)
+            log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
         else:
             _, id_out, id_in, ch_name = event
-            val = infos[id_out].exec_output_comm(ch_name)
-            infos[id_in].exec_input_comm(ch_name, val)
+            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos),
+                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos)}
+            try:
+                val = infos[id_out].exec_output_comm(ch_name)
+                infos[id_in].exec_input_comm(ch_name, val)
+            except SimulatorException as e:
+                log_event(ori_pos=ori_pos, type="error", str="error: " + str(e))
+                res['warning'] = (res['time'], str(e))
+                break
+
             if val is None:
                 val_str = ""
             elif isinstance(val, float):
                 val_str = " " + str(round(val, 3))
+            elif isinstance(val, dict):
+                val_str = " {%s}" % (','.join(k + ':' + str(v) for k, v in val.items()))
+            elif isinstance(val, list):
+                val_str = " [%s]" % (','.join(str(v) for v in val))
             else:
                 val_str = " " + str(val)
 
-            updated = [infos[id_in].name, infos[id_out].name]
             trace_str = "IO %s%s" % (ch_name, val_str)
-            log_event(ori_pos=updated, type="comm", ch_name=ch_name, val=val, str=trace_str)
-            log_time_series(infos[id_in].name, res['time'], infos[id_in].state)
+            log_event(ori_pos=ori_pos, inproc=infos[id_in].name, outproc=infos[id_out].name,
+                      type="comm", ch_name=str(ch_name), val=val, str=trace_str)
+            log_time_series(infos[id_in], res['time'], infos[id_in].state)
 
         # Overflow detection
         has_overflow = False
@@ -988,52 +1217,40 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400) :
                     has_overflow = True
 
         if has_overflow:
-            log_event(ori_pos=[], type="overflow", str="overflow")
+            log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
-    
-   
-    # print(res.get("time_series"))
-
-    
+        
     return res
 
-def graph(res, ProgramName, tkplot=False, seperate=True):
+def graph(res, proc_name, tkplot=False, separate=True, variables=None):
     DataState = {}
     temp = res.get("time_series")
-    # for k in temp.keys():
-    lst = temp.get(ProgramName)
+    lst = temp.get(proc_name)
     for t in lst:
         state = t.get("state")
-        # print(t.get('time'))
         for key in state.keys():
-            # if state.get(key) == {}:
-            #     pass
+            if variables is not None and key not in variables:
+                continue
             if key not in DataState.keys():
                 DataState.update({key:([],[])})
-            # print (DataState.get(key))
-            # print (state.get())
             DataState.get(key)[0].append(state.get(key))
             DataState.get(key)[1].append(t.get('time'))
                 
-    # print (DataState)
-    # for l in DataState.keys():
-    #     print(len(DataState.get(l)[0])==len(DataState.get(l)[1]))
     if tkplot:
         app = graph_plot.Graphapp(res)
         app.mainloop()
     else:
-        if seperate:
+        if separate:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
-                # plt.legend()
+                plt.plot(x, y, label=t)
                 plt.show()
         else:
             for t in DataState.keys():
                 x = DataState.get(t)[1]
                 y = DataState.get(t)[0]
-                plt.plot(x,y,label = t)
+                plt.plot(x, y, label=t)
                 plt.legend()
 
 
@@ -1050,6 +1267,8 @@ def check_comms(infos):
             continue
 
         for ch_name, direction in hcsp.get_comm_chs(info.hp):
+            if len(ch_name.args) > 0:  # do not check parameterized channels
+                continue
             if direction == '?':
                 if ch_name not in comm_in_map:
                     comm_in_map[ch_name] = []

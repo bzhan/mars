@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.11</P>
+      <P Name="ComputedModelVersion">1.18</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -59,7 +59,7 @@
           <P Name="LoadSaveID" Class="char">0</P>
           <P Name="Extents" Class="double">[1242.0, 533.0]</P>
           <P Name="ZoomFactor" Class="double">1.0</P>
-          <P Name="Offset" Class="double">[0.0, 0.0]</P>
+          <P Name="Offset" Class="double">[-171.75, -74.375]</P>
         </Object>
         <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -83,9 +83,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Wed Jul 24 11:04:09 2019</P>
-      <P Name="RTWModifiedTimeStamp">485867026</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:11&gt;</P>
+      <P Name="LastModifiedDate">Sat Jan 02 09:45:55 2021</P>
+      <P Name="RTWModifiedTimeStamp">531481552</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:18&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -190,7 +190,7 @@
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="StartTime">0.0</P>
-              <P Name="StopTime">10.0</P>
+              <P Name="StopTime">33</P>
               <P Name="AbsTol">auto</P>
               <P Name="AutoScaleAbsTol">on</P>
               <P Name="FixedStep">auto</P>
@@ -1048,6 +1048,9 @@
         <P Name="LockScale">off</P>
         <P Name="RndMeth">Floor</P>
       </Block>
+      <Block BlockType="Scope">
+        <P Name="DefaultConfigurationName">Simulink.scopes.TimeScopeBlockCfg</P>
+      </Block>
       <Block BlockType="SubSystem">
         <P Name="ShowPortLabels">FromPortIcon</P>
         <P Name="Permissions">ReadWrite</P>
@@ -1127,7 +1130,7 @@
       <P Name="DomainSpecType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
       <P Name="ReportName">simulink-default.rpt</P>
-      <P Name="SIDHighWatermark">47</P>
+      <P Name="SIDHighWatermark">49</P>
       <Block BlockType="SubSystem" Name="control" SID="2">
         <P Name="Ports">[2, 1]</P>
         <P Name="Position">[480, 169, 580, 211]</P>
@@ -1148,6 +1151,14 @@
             <P Name="ZOrder">-1</P>
             <P Name="Port">2</P>
             <P Name="IconDisplay">Port number</P>
+          </Block>
+          <Block BlockType="Scope" Name="Scope" SID="49">
+            <P Name="Ports">[1]</P>
+            <P Name="Position">[435, -91, 465, -59]</P>
+            <P Name="ZOrder">3</P>
+            <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;1434.0625&apos;,&apos;MaxYLimReal&apos;,&apos;2093.4375&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;1434.0625&apos;,&apos;MaxYLimMag&apos;,&apos;2093.4375&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;k&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;MinYLimReal&apos;,&apos;1434.0625&apos;,&apos;MaxYLimReal&apos;,&apos;2093.4375&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;1434.0625&apos;,&apos;MaxYLimMag&apos;,&apos;2093.4375&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863])),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2018a&apos;)),&apos;Version&apos;,&apos;2018a&apos;)</P>
+            <P Name="NumInputPorts">1</P>
+            <P Name="Floating">off</P>
           </Block>
           <Block BlockType="Saturate" Name="W" SID="46">
             <P Name="Ports">[1, 1]</P>
@@ -1272,7 +1283,7 @@
             <P Name="BlockRotation">270</P>
             <P Name="InitialCondition">2027.5</P>
             <P Name="InputProcessing">Elements as channels (sample based)</P>
-            <P Name="SampleTime">128</P>
+            <P Name="SampleTime">0.128</P>
           </Block>
           <Block BlockType="Product" Name="n" SID="5">
             <P Name="Ports">[2, 1]</P>
@@ -1377,9 +1388,19 @@
             <P Name="ZOrder">15</P>
             <P Name="SrcBlock">k</P>
             <P Name="SrcPort">1</P>
-            <P Name="Points">[0, -5; -375, 0; 0, 20]</P>
-            <P Name="DstBlock">X</P>
-            <P Name="DstPort">1</P>
+            <P Name="Points">[0, -5; -122, 0]</P>
+            <Branch>
+              <P Name="ZOrder">53</P>
+              <P Name="Points">[0, -95]</P>
+              <P Name="DstBlock">Scope</P>
+              <P Name="DstPort">1</P>
+            </Branch>
+            <Branch>
+              <P Name="ZOrder">52</P>
+              <P Name="Points">[-253, 0; 0, 20]</P>
+              <P Name="DstBlock">X</P>
+              <P Name="DstPort">1</P>
+            </Branch>
           </Line>
           <Line>
             <P Name="ZOrder">16</P>

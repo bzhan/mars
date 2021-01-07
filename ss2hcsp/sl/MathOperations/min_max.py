@@ -23,6 +23,9 @@ class MinMax(SL_Block):
         return "%s: %s[in = %s, out = %s, st = %s]" % \
                (self.name, self.fun_name, str(self.dest_lines), str(self.src_lines), str(self.st))
 
+    def __repr__(self):
+        return str(self)
+
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]
         expr = FunExpr(self.fun_name, in_vars)

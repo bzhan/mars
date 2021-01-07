@@ -22,8 +22,11 @@ class Saturation(SL_Block):
         self.low_lim = low_lim
 
     def __str__(self):
-        return "%s: Saturation[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+        return "%s: Saturation[in = %s, out = %s, up_lim = %s, low_lim = %s, st = %s]" % \
+               (self.name, self.dest_lines, self.src_lines, self.up_lim, self.low_lim, self.st)
+
+    def __repr__(self):
+        return str(self)
 
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)

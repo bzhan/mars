@@ -15,8 +15,15 @@ class Subsystem(SL_Block):
         self.diagram = None
 
     def __str__(self):
-        return "%s: Subsystem[in = %s, out = %s, diagram = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.diagram))
+        str_diagram = str(self.diagram)
+        res = "%s: Subsystem[in = %s, out = %s, diagram =\n" % (self.name, self.dest_lines, self.src_lines)
+        for line in str_diagram.split('\n'):
+            res += "  " + line + "\n"
+        res += "]"
+        return res
+
+    def __repr__(self):
+        return str(self)
 
 
 class Triggered_Subsystem(Subsystem):
@@ -29,3 +36,6 @@ class Triggered_Subsystem(Subsystem):
     def __str__(self):
         return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), self.trigger_type, str(self.diagram))
+
+    def __repr__(self):
+        return str(self)

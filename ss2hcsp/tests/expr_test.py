@@ -25,7 +25,7 @@ class ExprTest(unittest.TestCase):
             ("a * (b + c)", "Times(*AVar(a), *Plus(+AVar(b), +AVar(c)))"),
             ("a + b - c", "Plus(+Plus(+AVar(a), +AVar(b)), -AVar(c))"),
             ("a + (b - c)", "Plus(+AVar(a), +AVar(b), -AVar(c))"),
-            ("[]", "AConst(())"),
+            ("[]", "AConst([])"),
             ("\"a\"", "AConst(\"a\")"),
             ("[b, 0]", "List(AVar(b),AConst(0))"),
             ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))"),
@@ -40,7 +40,7 @@ class ExprTest(unittest.TestCase):
     def testBExprParser(self):
         test_data = [
             ("a < 1", "Rel(<, AVar(a), AConst(1))"),
-            ("a == 1 && true", "Rel(==, AVar(a), AConst(1))")
+            ("a == 1 && true", "Logic(&&, Rel(==, AVar(a), AConst(1)), BConst(True))")
         ]
 
         for s, res in test_data:
@@ -95,10 +95,10 @@ class ExprTest(unittest.TestCase):
             ("x1 := 3; x2 := 5; skip", "Seq(Assign(x1,3), Assign(x2,5), Skip())"),
             ("(skip)**", "Loop(Skip())"),
             ("x1?x1", "InputC(x1,x1)"),
-            ("x1!x2", "OutputC(x1)"),
+            ("x1!x2", "OutputC(x1,x2)"),
             ("<x_dot = x+1, y_dot = y+1 & x < 3> |> [] (x?x --> skip, y!y --> skip)",
              "ODEComm(x, x+1, y, y+1, x < 3, x?x, skip, y!y, skip)"),
-            ("x?x --> skip $ y!y --> x := 2", "SelectComm(InputC(x,x),Skip(),OutputC(y),Assign(x,2))"),
+            ("x?x --> skip $ y!y --> x := 2", "SelectComm(InputC(x,x),Skip(),OutputC(y,y),Assign(x,2))"),
             ("@A; @B || @C", "Parallel(Seq(Var(A), Var(B)), Var(C))"),
             ("@A; @B || @C; @D", "Parallel(Seq(Var(A), Var(B)), Seq(Var(C), Var(D)))"),
             ("x == 0 -> @A", "Condition(x == 0, Var(A))"),
@@ -117,6 +117,17 @@ class ExprTest(unittest.TestCase):
             ("(a, b) := xs", "Assign([a,b],xs)"),
             ("x := -x", "Assign(x,-x)"),
             ("x := -x+y", "Assign(x,-x+y)"),
+            ("assert(x == 2)", "Assert(Rel(==, AVar(x), AConst(2)))"),
+            ("assert(x == 2,\"message\")", "Assert(Rel(==, AVar(x), AConst(2)),AConst(\"message\"))"),
+            ("log(\"start\")", "Log(AConst(\"start\"))"),
+            ("pt.x := pt.y+1", "Assign(pt.x,pt.y+1)"),
+            ("ch!pt.y", "OutputC(ch,pt.y)"),
+            ("pt := {x:1,y:2}", "Assign(pt,{x:1,y:2})"),
+            ("ch!a[1][2]", "OutputC(ch,a[1][2])"),
+            ("ch!pt.x[2]", "OutputC(ch,pt.x[2])"),
+            ("a[1][2]!x", "OutputC(a[1][2],x)"),
+            ("a[1][2]?pt.x[1]", "InputC(a[1][2],pt.x[1])"),
+            ("@X", "Var(X)"),
         ]
 
         for s, res in test_data:

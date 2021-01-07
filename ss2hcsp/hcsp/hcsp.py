@@ -5,6 +5,53 @@ from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr
 import re
 
 
+class Channel:
+    """Models a channel identifier. It is a string followed by a list
+    of integer arguments.
+
+    The usual channel is modeled by a string without arguments. Further
+    arguments can be given for parameterized channels.
+
+    """
+    def __init__(self, name, args=None):
+        assert isinstance(name, str)
+        if args is None:
+            args = tuple()
+        assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int)) for arg in args)
+
+        self.name = name
+        self.args = args
+
+    def __str__(self):
+        return self.name + ''.join('[' + str(arg) + ']' for arg in self.args)
+    
+    def __repr__(self):
+        if self.args:
+            return "Channel(%s,%s)" % (self.name, ','.join(str(arg) for arg in self.args))
+        else:
+            return "Channel(%s)" % self.name
+
+    def __hash__(self):
+        return hash(("CHANNEL", self.name, self.args))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.args == other.args
+
+    def __le__(self, other):
+        return (self.name, self.args) <= (other.name, other.args)
+
+    def __lt__(self, other):
+        return (self.name, self.args) < (other.name, other.args)
+
+    def subst(self, inst):
+        if self.name in inst:
+            target = inst[self.name]
+            assert isinstance(target, Channel)
+            return Channel(target.name, tuple(arg.subst(inst) for arg in target.args + self.args))
+        else:
+            return Channel(self.name, tuple(arg.subst(inst) for arg in self.args))
+
+
 class HCSP:
     def __init__(self):
         self.type = None
@@ -57,6 +104,55 @@ class HCSP:
                 if sub_hp.contain_hp(name):
                     return True
         return False
+
+    def subst_comm(self, inst):
+        def subst_io_comm(io_comm):
+            return (io_comm[0].subst_comm(inst), io_comm[1].subst_comm(inst))
+
+        def subst_if_hp(if_hp):
+            return (if_hp[0].subst(inst), if_hp[1].subst_comm(inst))
+
+        def subst_ode_eq(ode_eq):
+            return (ode_eq[0], ode_eq[1].subst(inst))
+
+        if self.type in ('var', 'skip'):
+            return self
+        elif self.type == 'wait':
+            return Wait(self.delay.subst(inst))
+        elif self.type == 'assign':
+            return Assign(self.var_name, self.expr.subst(inst))
+        elif self.type == 'assert':
+            return Assert(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
+        elif self.type == 'test':
+            return Test(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
+        elif self.type == 'log':
+            return Log(*[expr.subst(inst) for expr in self.exprs])
+        elif self.type == 'input_channel':
+            return InputChannel(self.ch_name.subst(inst), self.var_name)
+        elif self.type == 'output_channel':
+            return OutputChannel(self.ch_name.subst(inst), self.expr.subst(inst))
+        elif self.type == 'sequence':
+            return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
+        elif self.type == 'ode':
+            return ODE([subst_ode_eq(eq) for eq in self.eqs],
+                       self.constraint.subst(inst), out_hp=self.out_hp.subst_comm(inst))
+        elif self.type == 'ode_comm':
+            return ODE_Comm([subst_ode_eq(eq) for eq in self.eqs],
+                            self.constraint.subst(inst),
+                            [subst_io_comm(io_comm) for io_comm in self.io_comms])
+        elif self.type == 'loop':
+            return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
+        elif self.type == 'condition':
+            return Condition(self.cond.subst(inst), self.hp.subst_comm(inst))
+        elif self.type == 'select_comm':
+            return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
+        elif self.type == 'recursion':
+            return Recursion(self.hp.subst_comm(inst), entry=self.entry)
+        elif self.type == 'ite':
+            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], self.else_hp.subst_comm(inst))
+        else:
+            print(self.type)
+            raise NotImplementedError
 
 
 class Var(HCSP):
@@ -111,51 +207,154 @@ class Wait(HCSP):
 
 
 class Assign(HCSP):
+    """Assignment command.
+
+    Left side is an expression that can serve as a lname. This includes
+    variables, array indices, and field names.
+
+    """
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
         assert isinstance(expr, AExpr)
         if isinstance(var_name, str):
+            var_name = AVar(var_name)
+        if isinstance(var_name, AExpr):
             self.var_name = var_name
         else:
             var_name = tuple(var_name)
-            assert len(var_name) >= 2 and all(isinstance(name, str) for name in var_name)
-            self.var_name = var_name  # string or tuple of strings
+            assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
+            self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr  # AExpr
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
 
     def __repr__(self):
-        if isinstance(self.var_name, str):
-            var_str = self.var_name
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
         else:
-            var_str = "[%s]" % (','.join(self.var_name))
+            var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
         return "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
-        if isinstance(self.var_name, str):
-            var_str = self.var_name
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
         else:
-            var_str = "(%s)" % (', '.join(self.var_name))
+            var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return var_str + " := " + str(self.expr)
 
     def get_vars(self):
-        var_set = {self.var_name} if isinstance(self.var_name, str) else set(self.var_name)
+        if isinstance(self.var_name, AExpr):
+            var_set = {str(self.var_name)}
+        else:
+            var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
 
 
+class Assert(HCSP):
+    def __init__(self, bexpr, msgs):
+        super(Assert, self).__init__()
+        self.type = "assert"
+        assert isinstance(bexpr, BExpr)
+        self.bexpr = bexpr
+        msgs = tuple(msgs)
+        assert all(isinstance(msg, AExpr) for msg in msgs)
+        self.msgs = msgs
+
+    def __eq__(self, other):
+        return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
+
+    def __repr__(self):
+        if self.msgs:
+            return "Assert(%s,%s)" % (repr(self.bexpr), ','.join(repr(msg) for msg in self.msgs))
+        else:
+            return "Assert(%s)" % repr(self.bexpr)
+
+    def __str__(self):
+        if self.msgs:
+            return "assert(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+        else:
+            return "assert(%s)" % self.bexpr
+
+    def get_vars(self):
+        var_set = self.bexpr.get_vars()
+        for msg in self.msgs:
+            var_set.update(msg.get_vars())
+        return var_set
+
+
+class Test(HCSP):
+    def __init__(self, bexpr, msgs):
+        super(Test, self).__init__()
+        self.type = "test"
+        assert isinstance(bexpr, BExpr)
+        self.bexpr = bexpr
+        msgs = tuple(msgs)
+        assert all(isinstance(msg, AExpr) for msg in msgs)
+        self.msgs = msgs
+
+    def __eq__(self, other):
+        return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
+
+    def __repr__(self):
+        if self.msgs:
+            return "Test(%s,%s)" % (repr(self.bexpr), ','.join(repr(msg) for msg in self.msgs))
+        else:
+            return "Test(%s)" % repr(self.bexpr)
+
+    def __str__(self):
+        if self.msgs:
+            return "test(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
+        else:
+            return "test(%s)" % self.bexpr
+
+    def get_vars(self):
+        var_set = self.bexpr.get_vars()
+        for msg in self.msgs:
+            var_set.update(msg.get_vars())
+        return var_set
+
+
+class Log(HCSP):
+    def __init__(self, *exprs):
+        super(Log, self).__init__()
+        self.type = "log"
+        exprs = tuple(exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
+        self.exprs = tuple(exprs)
+
+    def __eq__(self, other):
+        return self.type == other.type and self.exprs == other.exprs
+
+    def __repr__(self):
+        return "Log(%s)" % (','.join(repr(expr) for expr in self.exprs))
+
+    def __str__(self):
+        return "log(%s)" % (','.join(str(expr) for expr in self.exprs))
+
+    def get_vars(self):
+        var_set = set()
+        for expr in self.exprs:
+            var_set.update(expr.get_vars())
+        return var_set
+
+    
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
         super(InputChannel, self).__init__()
         self.type = "input_channel"
-        assert isinstance(ch_name, str)
-        assert var_name is None or isinstance(var_name, str)
-        self.ch_name = ch_name  # string
-        self.var_name = var_name  # string or None
+        if isinstance(ch_name, str):
+            ch_name = Channel(ch_name)
+        assert isinstance(ch_name, Channel)
+        if isinstance(var_name, str):
+            var_name = AVar(str(var_name))
+        assert var_name is None or isinstance(var_name, AExpr)
+        self.ch_name = ch_name  # Channel
+        self.var_name = var_name  # AExpr or None
 
     def __eq__(self, other):
         return self.type == other.type and self.ch_name == other.ch_name and \
@@ -169,15 +368,13 @@ class InputChannel(HCSP):
 
     def __str__(self):
         if self.var_name:
-            return self.ch_name + "?" + str(self.var_name)
+            return str(self.ch_name) + "?" + str(self.var_name)
         else:
-            return self.ch_name + "?"
+            return str(self.ch_name) + "?"
 
     def get_vars(self):
-
-        if self.var_name and not (self.ch_name.startswith("DState") or self.ch_name.startswith("DBR") or self.ch_name.startswith("DBC") or self.ch_name.startswith("DBVIn") or self.ch_name.startswith("DBVOut")):
-            
-            return {self.var_name}
+        if self.var_name:
+            return {str(self.var_name)}
         return set()
 
     def get_chs(self):
@@ -191,28 +388,30 @@ class OutputChannel(HCSP):
     def __init__(self, ch_name, expr=None):
         super(OutputChannel, self).__init__()
         self.type = "output_channel"
-        assert isinstance(ch_name, str)
+        if isinstance(ch_name, str):
+            ch_name = Channel(ch_name)
+        assert isinstance(ch_name, Channel)
         assert expr is None or isinstance(expr, AExpr)
-        self.ch_name = ch_name  # string
+        self.ch_name = ch_name  # Channel
         self.expr = expr  # AExpr or None
 
     def __eq__(self, other):
         return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
 
     def __repr__(self):
-        if self.expr == AExpr():
+        if isinstance(self.expr, AExpr):
             return "OutputC(%s,%s)" % (self.ch_name, self.expr)
         else:
             return "OutputC(%s)" % self.ch_name
 
     def __str__(self):
         if self.expr:
-            return self.ch_name + "!" + str(self.expr)
+            return str(self.ch_name) + "!" + str(self.expr)
         else:
-            return self.ch_name + "!"
+            return str(self.ch_name) + "!"
 
     def get_vars(self):
-        if self.expr and not (self.ch_name.startswith("DState") or self.ch_name.startswith("DBC") or self.ch_name.startswith("DBR") or self.ch_name.startswith("DBVIn") or self.ch_name.startswith("DBVOut")):
+        if self.expr:
             return self.expr.get_vars()
         return set()
 
@@ -664,6 +863,25 @@ def get_comm_chs(hp):
     return list(OrderedDict.fromkeys(collect))
 
 
+class HCSPInfo:
+    """HCSP process with extra information."""
+    def __init__(self, name, hp, *, outputs=None):
+        self.name = name
+        self.hp = hp
+        
+        # List of output variables, None indicates output everything
+        self.outputs = outputs
+
+    def __str__(self):
+        return self.name + ' ::=\n' + str(self.hp)
+
+    def __repr__(self):
+        return "HCSPInfo(%s, %s)" % (self.name, str(self.hp))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.hp == other.hp
+
+
 class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""
     def __init__(self, hps=None):
@@ -746,7 +964,7 @@ class HCSPProcess:
                 break
         sys_def = "systemDef " + system + " ::= " + process.sc_str() + "\n\n"
         var_def = "variableDef ::= " + ("; ".join(self.get_vars())) + "\n\n"
-        ch_def = "channelDef ::= " + ("; ".join(self.get_chs())) + "\n\n"
+        ch_def = "channelDef ::= " + ("; ".join([ch.name for ch in self.get_chs()])) + "\n\n"
         hp_def = "\n".join("processDef " + "%s ::= %s" % (name, hp.sc_str()) for name, hp in self.hps
                            if not isinstance(hp, Parallel))
         return sys_def + var_def + ch_def + hp_def

@@ -1,0 +1,4450 @@
+[
+    {
+        "type": "start",
+        "str": "start",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p0",
+            "P1": "p0"
+        },
+        "id": 0,
+        "infos": {
+            "P0": {
+                "pos": "p0",
+                "state": {}
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {}
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p0"
+        },
+        "id": 1,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 0
+                }
+            },
+            "P1": 0
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 0,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 2,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 0
+                }
+            },
+            "P1": 0
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 0,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 3,
+        "infos": {
+            "P0": 2,
+            "P1": {
+                "pos": "p1",
+                "state": {}
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 2.0,
+        "str": "IO p2c 2.0",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 4,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 2.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 2.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 5,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 2.0
+                }
+            },
+            "P1": 4
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 1.0,
+        "str": "IO c2p 1.0",
+        "time": 2,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 6,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 1.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 2.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 2,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 7,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 1.0
+                }
+            },
+            "P1": 6
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 2,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 8,
+        "infos": {
+            "P0": 7,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 2.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 3.0,
+        "str": "IO p2c 3.0",
+        "time": 4,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 9,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 3.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 3.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 4,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 10,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 3.0
+                }
+            },
+            "P1": 9
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 2.0,
+        "str": "IO c2p 2.0",
+        "time": 4,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 11,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 2.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 3.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 4,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 12,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 2.0
+                }
+            },
+            "P1": 11
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 4,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 13,
+        "infos": {
+            "P0": 12,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 3.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 4.0,
+        "str": "IO p2c 4.0",
+        "time": 6,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 14,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 4.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 4.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 6,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 15,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 4.0
+                }
+            },
+            "P1": 14
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 3.0,
+        "str": "IO c2p 3.0",
+        "time": 6,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 16,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 3.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 4.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 6,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 17,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 3.0
+                }
+            },
+            "P1": 16
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 6,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 18,
+        "infos": {
+            "P0": 17,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 4.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 5.0,
+        "str": "IO p2c 5.0",
+        "time": 8,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 19,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 5.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 5.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 8,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 20,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 5.0
+                }
+            },
+            "P1": 19
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 4.0,
+        "str": "IO c2p 4.0",
+        "time": 8,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 21,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 4.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 5.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 8,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 22,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 4.0
+                }
+            },
+            "P1": 21
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 8,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 23,
+        "infos": {
+            "P0": 22,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 5.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 6.0,
+        "str": "IO p2c 6.0",
+        "time": 10,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 24,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 6.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 6.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 10,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 25,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 6.0
+                }
+            },
+            "P1": 24
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 5.0,
+        "str": "IO c2p 5.0",
+        "time": 10,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 26,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 5.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 6.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 10,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 27,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 5.0
+                }
+            },
+            "P1": 26
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 10,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 28,
+        "infos": {
+            "P0": 27,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 6.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 7.0,
+        "str": "IO p2c 7.0",
+        "time": 12,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 29,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 7.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 7.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 12,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 30,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 7.0
+                }
+            },
+            "P1": 29
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 6.0,
+        "str": "IO c2p 6.0",
+        "time": 12,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 31,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 6.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 7.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 12,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 32,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 6.0
+                }
+            },
+            "P1": 31
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 12,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 33,
+        "infos": {
+            "P0": 32,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 7.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 8.0,
+        "str": "IO p2c 8.0",
+        "time": 14,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 34,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 8.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 8.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 14,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 35,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 8.0
+                }
+            },
+            "P1": 34
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 7.0,
+        "str": "IO c2p 7.0",
+        "time": 14,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 36,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 7.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 8.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 14,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 37,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 7.0
+                }
+            },
+            "P1": 36
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 14,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 38,
+        "infos": {
+            "P0": 37,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 8.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 9.0,
+        "str": "IO p2c 9.0",
+        "time": 16,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 39,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 9.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 9.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 16,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 40,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 9.0
+                }
+            },
+            "P1": 39
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 8.0,
+        "str": "IO c2p 8.0",
+        "time": 16,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 41,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 8.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 9.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 16,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 42,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 8.0
+                }
+            },
+            "P1": 41
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 16,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 43,
+        "infos": {
+            "P0": 42,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 9.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 10.0,
+        "str": "IO p2c 10.0",
+        "time": 18,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 44,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 10.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 10.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 18,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 45,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 10.0
+                }
+            },
+            "P1": 44
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 9.0,
+        "str": "IO c2p 9.0",
+        "time": 18,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 46,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 9.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 10.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 18,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 47,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 9.0
+                }
+            },
+            "P1": 46
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 18,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 48,
+        "infos": {
+            "P0": 47,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 10.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 11.0,
+        "str": "IO p2c 11.0",
+        "time": 20,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 49,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 11.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 11.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 20,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 50,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 11.0
+                }
+            },
+            "P1": 49
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 10.0,
+        "str": "IO c2p 10.0",
+        "time": 20,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 51,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 10.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 11.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 20,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 52,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 10.0
+                }
+            },
+            "P1": 51
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 20,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 53,
+        "infos": {
+            "P0": 52,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 11.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 12.0,
+        "str": "IO p2c 12.0",
+        "time": 22,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 54,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 12.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 12.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 22,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 55,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 12.0
+                }
+            },
+            "P1": 54
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 11.0,
+        "str": "IO c2p 11.0",
+        "time": 22,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 56,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 11.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 12.0
+                }
+            }
+        }
+    },
+    {
+        "type": "warning",
+        "str": "warning: Test x <= 10 failed (x is too large: 11.0 > 10)",
+        "time": 22,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 57,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 11.0
+                }
+            },
+            "P1": 56
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 22,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 58,
+        "infos": {
+            "P0": 57,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 12.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 13.0,
+        "str": "IO p2c 13.0",
+        "time": 24,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 59,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 13.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 13.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 24,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 60,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 13.0
+                }
+            },
+            "P1": 59
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 12.0,
+        "str": "IO c2p 12.0",
+        "time": 24,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 61,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 12.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 13.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 24,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 62,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 12.0
+                }
+            },
+            "P1": 61
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 24,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 63,
+        "infos": {
+            "P0": 62,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 13.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 14.0,
+        "str": "IO p2c 14.0",
+        "time": 26,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 64,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 14.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 14.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 26,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 65,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 14.0
+                }
+            },
+            "P1": 64
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 13.0,
+        "str": "IO c2p 13.0",
+        "time": 26,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 66,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 13.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 14.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 26,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 67,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 13.0
+                }
+            },
+            "P1": 66
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 26,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 68,
+        "infos": {
+            "P0": 67,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 14.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 15.0,
+        "str": "IO p2c 15.0",
+        "time": 28,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 69,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 15.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 15.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 28,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 70,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 15.0
+                }
+            },
+            "P1": 69
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 14.0,
+        "str": "IO c2p 14.0",
+        "time": 28,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 71,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 14.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 15.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 28,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 72,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 14.0
+                }
+            },
+            "P1": 71
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 28,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 73,
+        "infos": {
+            "P0": 72,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 15.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 16.0,
+        "str": "IO p2c 16.0",
+        "time": 30,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 74,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 16.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 16.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 30,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 75,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 16.0
+                }
+            },
+            "P1": 74
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 15.0,
+        "str": "IO c2p 15.0",
+        "time": 30,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 76,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 15.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 16.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 30,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 77,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 15.0
+                }
+            },
+            "P1": 76
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 30,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 78,
+        "infos": {
+            "P0": 77,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 16.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 17.0,
+        "str": "IO p2c 17.0",
+        "time": 32,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 79,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 17.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 17.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 32,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 80,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 17.0
+                }
+            },
+            "P1": 79
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 16.0,
+        "str": "IO c2p 16.0",
+        "time": 32,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 81,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 16.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 17.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 32,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 82,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 16.0
+                }
+            },
+            "P1": 81
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 32,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 83,
+        "infos": {
+            "P0": 82,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 17.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 18.0,
+        "str": "IO p2c 18.0",
+        "time": 34,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 84,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 18.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 18.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 34,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 85,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 18.0
+                }
+            },
+            "P1": 84
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 17.0,
+        "str": "IO c2p 17.0",
+        "time": 34,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 86,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 17.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 18.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 34,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 87,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 17.0
+                }
+            },
+            "P1": 86
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 34,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 88,
+        "infos": {
+            "P0": 87,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 18.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 19.0,
+        "str": "IO p2c 19.0",
+        "time": 36,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 89,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 19.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 19.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 36,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 90,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 19.0
+                }
+            },
+            "P1": 89
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 18.0,
+        "str": "IO c2p 18.0",
+        "time": 36,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 91,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 18.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 19.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 36,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 92,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 18.0
+                }
+            },
+            "P1": 91
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 36,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 93,
+        "infos": {
+            "P0": 92,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 19.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 20.0,
+        "str": "IO p2c 20.0",
+        "time": 38,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 94,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 20.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 20.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 38,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 95,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 20.0
+                }
+            },
+            "P1": 94
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 19.0,
+        "str": "IO c2p 19.0",
+        "time": 38,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 96,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 19.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 20.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 38,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 97,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 19.0
+                }
+            },
+            "P1": 96
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 38,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 98,
+        "infos": {
+            "P0": 97,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 20.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 21.0,
+        "str": "IO p2c 21.0",
+        "time": 40,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 99,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 21.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 21.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 40,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 100,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 21.0
+                }
+            },
+            "P1": 99
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 20.0,
+        "str": "IO c2p 20.0",
+        "time": 40,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 101,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 20.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 21.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 40,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 102,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 20.0
+                }
+            },
+            "P1": 101
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 40,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 103,
+        "infos": {
+            "P0": 102,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 21.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 22.0,
+        "str": "IO p2c 22.0",
+        "time": 42,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 104,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 22.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 22.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 42,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 105,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 22.0
+                }
+            },
+            "P1": 104
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 21.0,
+        "str": "IO c2p 21.0",
+        "time": 42,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 106,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 21.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 22.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 42,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 107,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 21.0
+                }
+            },
+            "P1": 106
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 42,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 108,
+        "infos": {
+            "P0": 107,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 22.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 23.0,
+        "str": "IO p2c 23.0",
+        "time": 44,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 109,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 23.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 23.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 44,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 110,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 23.0
+                }
+            },
+            "P1": 109
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 22.0,
+        "str": "IO c2p 22.0",
+        "time": 44,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 111,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 22.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 23.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 44,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 112,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 22.0
+                }
+            },
+            "P1": 111
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 44,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 113,
+        "infos": {
+            "P0": 112,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 23.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 24.0,
+        "str": "IO p2c 24.0",
+        "time": 46,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 114,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 24.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 24.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 46,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 115,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 24.0
+                }
+            },
+            "P1": 114
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 23.0,
+        "str": "IO c2p 23.0",
+        "time": 46,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 116,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 23.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 24.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 46,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 117,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 23.0
+                }
+            },
+            "P1": 116
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 46,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 118,
+        "infos": {
+            "P0": 117,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 24.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 25.0,
+        "str": "IO p2c 25.0",
+        "time": 48,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 119,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 25.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 25.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 48,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 120,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 25.0
+                }
+            },
+            "P1": 119
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 24.0,
+        "str": "IO c2p 24.0",
+        "time": 48,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 121,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 24.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 25.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 48,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 122,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 24.0
+                }
+            },
+            "P1": 121
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 48,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 123,
+        "infos": {
+            "P0": 122,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 25.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 26.0,
+        "str": "IO p2c 26.0",
+        "time": 50,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 124,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 26.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 26.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 50,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 125,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 26.0
+                }
+            },
+            "P1": 124
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 25.0,
+        "str": "IO c2p 25.0",
+        "time": 50,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 126,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 25.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 26.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 50,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 127,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 25.0
+                }
+            },
+            "P1": 126
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 50,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 128,
+        "infos": {
+            "P0": 127,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 26.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 27.0,
+        "str": "IO p2c 27.0",
+        "time": 52,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 129,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 27.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 27.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 52,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 130,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 27.0
+                }
+            },
+            "P1": 129
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 26.0,
+        "str": "IO c2p 26.0",
+        "time": 52,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 131,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 26.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 27.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 52,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 132,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 26.0
+                }
+            },
+            "P1": 131
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 52,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 133,
+        "infos": {
+            "P0": 132,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 27.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 28.0,
+        "str": "IO p2c 28.0",
+        "time": 54,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 134,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 28.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 28.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 54,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 135,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 28.0
+                }
+            },
+            "P1": 134
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 27.0,
+        "str": "IO c2p 27.0",
+        "time": 54,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 136,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 27.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 28.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 54,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 137,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 27.0
+                }
+            },
+            "P1": 136
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 54,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 138,
+        "infos": {
+            "P0": 137,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 28.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 29.0,
+        "str": "IO p2c 29.0",
+        "time": 56,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 139,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 29.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 29.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 56,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 140,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 29.0
+                }
+            },
+            "P1": 139
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 28.0,
+        "str": "IO c2p 28.0",
+        "time": 56,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 141,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 28.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 29.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 56,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 142,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 28.0
+                }
+            },
+            "P1": 141
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 56,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 143,
+        "infos": {
+            "P0": 142,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 29.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 30.0,
+        "str": "IO p2c 30.0",
+        "time": 58,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 144,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 30.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 30.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 58,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 145,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 30.0
+                }
+            },
+            "P1": 144
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 29.0,
+        "str": "IO c2p 29.0",
+        "time": 58,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 146,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 29.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 30.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 58,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 147,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 29.0
+                }
+            },
+            "P1": 146
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 58,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 148,
+        "infos": {
+            "P0": 147,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 30.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 31.0,
+        "str": "IO p2c 31.0",
+        "time": 60,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 149,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 31.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 31.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 60,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 150,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 31.0
+                }
+            },
+            "P1": 149
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 30.0,
+        "str": "IO c2p 30.0",
+        "time": 60,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 151,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 30.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 31.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 60,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 152,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 30.0
+                }
+            },
+            "P1": 151
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 60,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 153,
+        "infos": {
+            "P0": 152,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 31.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 32.0,
+        "str": "IO p2c 32.0",
+        "time": 62,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 154,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 32.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 32.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 62,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 155,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 32.0
+                }
+            },
+            "P1": 154
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 31.0,
+        "str": "IO c2p 31.0",
+        "time": 62,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 156,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 31.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 32.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 62,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 157,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 31.0
+                }
+            },
+            "P1": 156
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 62,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 158,
+        "infos": {
+            "P0": 157,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 32.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 33.0,
+        "str": "IO p2c 33.0",
+        "time": 64,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 159,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 33.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 33.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 64,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 160,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 33.0
+                }
+            },
+            "P1": 159
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 32.0,
+        "str": "IO c2p 32.0",
+        "time": 64,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 161,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 32.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 33.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 64,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 162,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 32.0
+                }
+            },
+            "P1": 161
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 64,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 163,
+        "infos": {
+            "P0": 162,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 33.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 34.0,
+        "str": "IO p2c 34.0",
+        "time": 66,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 164,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 34.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 34.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 66,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 165,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 34.0
+                }
+            },
+            "P1": 164
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 33.0,
+        "str": "IO c2p 33.0",
+        "time": 66,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 166,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 33.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 34.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 66,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 167,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 33.0
+                }
+            },
+            "P1": 166
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 66,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 168,
+        "infos": {
+            "P0": 167,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 34.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 35.0,
+        "str": "IO p2c 35.0",
+        "time": 68,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 169,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 35.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 35.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 68,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 170,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 35.0
+                }
+            },
+            "P1": 169
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 34.0,
+        "str": "IO c2p 34.0",
+        "time": 68,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 171,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 34.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 35.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 68,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 172,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 34.0
+                }
+            },
+            "P1": 171
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 68,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 173,
+        "infos": {
+            "P0": 172,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 35.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 36.0,
+        "str": "IO p2c 36.0",
+        "time": 70,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 174,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 36.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 36.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 70,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 175,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 36.0
+                }
+            },
+            "P1": 174
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 35.0,
+        "str": "IO c2p 35.0",
+        "time": 70,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 176,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 35.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 36.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 70,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 177,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 35.0
+                }
+            },
+            "P1": 176
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 70,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 178,
+        "infos": {
+            "P0": 177,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 36.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 37.0,
+        "str": "IO p2c 37.0",
+        "time": 72,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 179,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 37.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 37.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 72,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 180,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 37.0
+                }
+            },
+            "P1": 179
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 36.0,
+        "str": "IO c2p 36.0",
+        "time": 72,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 181,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 36.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 37.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 72,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 182,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 36.0
+                }
+            },
+            "P1": 181
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 72,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 183,
+        "infos": {
+            "P0": 182,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 37.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 38.0,
+        "str": "IO p2c 38.0",
+        "time": 74,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 184,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 38.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 38.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 74,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 185,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 38.0
+                }
+            },
+            "P1": 184
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 37.0,
+        "str": "IO c2p 37.0",
+        "time": 74,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 186,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 37.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 38.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 74,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 187,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 37.0
+                }
+            },
+            "P1": 186
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 74,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 188,
+        "infos": {
+            "P0": 187,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 38.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 39.0,
+        "str": "IO p2c 39.0",
+        "time": 76,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 189,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 39.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 39.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 76,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 190,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 39.0
+                }
+            },
+            "P1": 189
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 38.0,
+        "str": "IO c2p 38.0",
+        "time": 76,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 191,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 38.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 39.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 76,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 192,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 38.0
+                }
+            },
+            "P1": 191
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 76,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 193,
+        "infos": {
+            "P0": 192,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 39.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 40.0,
+        "str": "IO p2c 40.0",
+        "time": 78,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 194,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 40.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 40.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 78,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 195,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 40.0
+                }
+            },
+            "P1": 194
+        }
+    },
+    {
+        "inproc": "P0",
+        "outproc": "P1",
+        "type": "comm",
+        "ch_name": "c2p",
+        "val": 39.0,
+        "str": "IO c2p 39.0",
+        "time": 78,
+        "ori_pos": {
+            "P1": "p2",
+            "P0": "p1.2"
+        },
+        "id": 196,
+        "infos": {
+            "P0": {
+                "pos": "p1.0",
+                "state": {
+                    "x": 39.0
+                }
+            },
+            "P1": {
+                "pos": "p0",
+                "state": {
+                    "x": 40.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 78,
+        "ori_pos": {
+            "P0": "p1.0"
+        },
+        "id": 197,
+        "infos": {
+            "P0": {
+                "pos": "p1.1",
+                "state": {
+                    "x": 39.0
+                }
+            },
+            "P1": 196
+        }
+    },
+    {
+        "type": "delay",
+        "delay_time": 2,
+        "str": "delay 2",
+        "time": 78,
+        "ori_pos": {
+            "P1": "p0"
+        },
+        "id": 198,
+        "infos": {
+            "P0": 197,
+            "P1": {
+                "pos": "p1",
+                "state": {
+                    "x": 40.0
+                }
+            }
+        }
+    },
+    {
+        "inproc": "P1",
+        "outproc": "P0",
+        "type": "comm",
+        "ch_name": "p2c",
+        "val": 41.0,
+        "str": "IO p2c 41.0",
+        "time": 80,
+        "ori_pos": {
+            "P0": "p1.1",
+            "P1": "p1"
+        },
+        "id": 199,
+        "infos": {
+            "P0": {
+                "pos": "p1.1.0",
+                "state": {
+                    "x": 41.0
+                }
+            },
+            "P1": {
+                "pos": "p2",
+                "state": {
+                    "x": 41.0
+                }
+            }
+        }
+    },
+    {
+        "type": "step",
+        "str": "step",
+        "time": 80,
+        "ori_pos": {
+            "P0": "p1.1.0"
+        },
+        "id": 200,
+        "infos": {
+            "P0": {
+                "pos": "p1.2",
+                "state": {
+                    "x": 41.0
+                }
+            },
+            "P1": 199
+        }
+    }
+]

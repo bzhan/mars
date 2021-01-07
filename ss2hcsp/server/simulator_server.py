@@ -4,11 +4,16 @@ import lark
 import json
 import math
 import time
+from pstats import Stats
+import cProfile
 
+import sys
+sys.path.append("..")
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
+from ss2hcsp.server.sequence_diagram import print_sequence_diagram
 
 app = Flask(__name__)
 
@@ -26,32 +31,19 @@ def raise_error(err_str):
 def parse_hcsp():
     data = json.loads(request.get_data())
     text = data['text']
-    text_lines = text.strip().split('\n')
-    hcsp_info = []
 
-    # First, read lines from file, each line containing ::= means the
-    # start of a new program.
-    lines = []
-    for line in text_lines:
-        if line.find('::=') != -1:
-            lines.append(line)
+    try:
+        if text.startswith('%type: module'):
+            infos = parser.parse_module_file(text)
         else:
-            lines[-1] += line
+            infos = parser.parse_file(text)
+    except parser.ParseFileException as e:
+        return raise_error(e.error_msg)
 
-    infos = []
-
-    # Now each entry in lines represent the definition of a program.
-    for line in lines:
-        index = line.index('::=')
-        name = line[:index].strip()
-        hp_text = line[index+3:].strip()
-
-        try:
-            hp = parser.hp_parser.parse(hp_text)
-        except (lark.exceptions.UnexpectedToken, lark.exceptions.UnexpectedCharacters) as e:
-            indicator_str = " " * (e.column-1) + "^"
-            return raise_error("Unable to parse:\n  %s\n  %s" % (hp_text, indicator_str))
-
+    sim_infos = []
+    hcsp_info = []
+    for info in infos:
+        name, hp = info.name, info.hp
         if hp.type == 'parallel':
             if not all(sub_hp.type == 'var' for sub_hp in hp.hps):
                 return raise_error("Group definition must be a parallel of variables.\n  %s" % line)
@@ -61,16 +53,17 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            infos.append(simulator.HCSPInfo(name, hp_text))
+            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
             hcsp_info.append({
                 'name': name,
-                'text': hp_text,
+                'text': str(hp),
+                'outputs': info.outputs,
                 'lines': lines,
                 'mapping': mapping
             })
 
-    warnings = simulator.check_comms(infos)
+    warnings = simulator.check_comms(sim_infos)
 
     return json.dumps({
         'hcsp_info': hcsp_info,
@@ -83,12 +76,24 @@ def run_hcsp():
     infos = data['hcsp_info']
     num_io_events = data['num_io_events']
     num_steps = data['num_steps']
+    profile = False
 
-    infos = [simulator.HCSPInfo(info['name'], info['text']) for info in infos if 'parallel' not in info]
+    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'])
+             for info in infos if 'parallel' not in info]
+
+    num_show = data['num_show']
+    show_starting = data['show_starting']
+
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
+
     try:
-        clock = time.clock()
-        res = simulator.exec_parallel(infos, num_steps=num_steps, num_io_events=num_io_events)
-        print("Time:", time.clock() - clock)
+        clock = time.perf_counter()
+        res = simulator.exec_parallel(
+            infos, num_steps=num_steps, num_io_events=num_io_events, num_show=num_show,
+            show_starting=show_starting)
+        print("Time:", time.perf_counter() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
 
@@ -102,19 +107,21 @@ def run_hcsp():
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
 
-    # When limiting to a range, update info so it does not refer to value
-    # outside the range
-    num_show = data['num_show']
-    show_starting = data['show_starting']
-    for i in range(show_starting, min(len(res['trace']), show_starting + num_show)):
-        for name, info in res['trace'][i]['infos'].items():
-            if isinstance(info, int):
-                if info < show_starting:
-                    res['trace'][i]['infos'][name] = res['trace'][info]['infos'][name]
-                else:
-                    res['trace'][i]['infos'][name] = info - show_starting
+    if len(res['trace']) < 2000:
+        with open('event_output.json', 'w', encoding='utf-8') as f:
+            json.dump(res['trace'], f, indent=4, ensure_ascii=False)
 
-    res['trace'] = res['trace'][show_starting : show_starting+num_show]
+    print_sequence_diagram(res['trace'])
+
+    with open('simulator_events.txt', 'w', encoding='utf-8') as f:
+        for i, event in enumerate(res['events']):
+            f.write("%s: %s\n" % (i, event))
+
+    if profile:
+        p = Stats(pr)
+        p.strip_dirs()
+        p.sort_stats('cumtime')
+        p.print_stats()
 
     for key in res.keys():
         print(key, len(json.dumps(res[key])))
