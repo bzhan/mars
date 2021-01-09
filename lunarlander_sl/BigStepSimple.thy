@@ -48,6 +48,7 @@ datatype comm_type = In | Out | IO
 datatype trace_block =
   CommBlock comm_type cname real
 | WaitBlock real "real \<Rightarrow> gstate" rdy_info
+| WaitBlockInf "real \<Rightarrow> gstate" rdy_info
 
 abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
 abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
@@ -86,6 +87,7 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | sendB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}),
              OutBlock ch (e s)] s"
+| sendB3: "big_step (Cm (ch[!]e)) s [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({ch}, {})] s"
 | receiveB1: "big_step (Cm (ch[?]var)) s [InBlock ch v] (s(var := v))"
 | receiveB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[?]var)) s
             [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}),
@@ -211,7 +213,8 @@ theorem Valid_assign:
 
 theorem Valid_send:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)]))}
+               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+              Q s (tr @ [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({ch}, {})])}
        Cm (ch[!]e) {Q}"
   unfolding Valid_def
   by (auto elim: sendE)
@@ -388,6 +391,7 @@ definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
 inductive out_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("Out\<^sub>t") where
   "Out\<^sub>t s ch v [OutBlock ch v]"
 | "d > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch v]"
+| "Out\<^sub>t s ch v [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({ch}, {})]"
 
 inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("In\<^sub>t") where
   "In\<^sub>t s ch v [InBlock ch v]"

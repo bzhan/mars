@@ -11,7 +11,8 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | AssignH: "\<turnstile> {\<lambda>s. Q (s(var := e s))} (var ::= e) {Q}"
 | SendH:
     "\<turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)]))}
+               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+               Q s (tr @ [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({ch}, {})])}
          (Cm (ch[!]e))
        {Q}"
 | ReceiveH: 
@@ -414,6 +415,7 @@ next
 next
   case (SendH Q ch e)
   then show ?case
+    using Valid_send
     by (simp add: Valid_send)
 next
   case (ReceiveH Q var ch)
@@ -611,12 +613,14 @@ lemma wp_Assign: "wp (var ::= e) Q = (\<lambda>s. Q (s(var := e s)))"
 lemma wp_Send:
   "wp (Cm (ch[!]e)) Q =
     (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])))"
+            (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+            Q s (tr @ [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({ch}, {})]))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: sendE)
      apply (simp add: sendB1)
-    using sendB2 by blast
+    using sendB2 apply blast
+    using sendB3 by blast
   done
 
 lemma wp_Receive:

@@ -292,7 +292,8 @@ subsection \<open>Simple examples of proofs\<close>
 text \<open>Send 1\<close>
 lemma testHL1:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
-              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]))}
+              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1])) \<and>
+              Q s (tr @ [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State s) ({''ch''}, {})])}
         Cm (''ch''[!](\<lambda>_. 1))
       {Q}"
   by (rule Valid_send)
@@ -303,24 +304,12 @@ lemma testHL1':
         Cm (''ch''[!](\<lambda>_. 1))
       {\<lambda>s t. s = st \<and>
            (t = tr @ [OutBlock ''ch'' 1] \<or>
-             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1]))}"
+             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1]) \<or>
+            t = tr @ [WaitBlockInf (\<lambda>\<tau>\<in>{0..}. State st) ({''ch''}, {})])}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule Valid_send)
   unfolding entails_def by auto
-
-text \<open>Send 1, then send 2\<close>
-lemma testHL2:
-  "\<Turnstile> {\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
-              (\<forall>d>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>da>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
-                             [WaitBlock da (\<lambda>\<tau>\<in>{0..da}. State s) ({''ch''}, {}), OutBlock ''ch'' 2])))}
-        Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2))
-      {Q}"
-  apply (rule Valid_seq)
-    prefer 2 apply (rule Valid_send)
-  by (rule Valid_send)
 
 text \<open>Receive from ch\<close>
 lemma testHL3:
@@ -342,36 +331,6 @@ lemma testHL3':
    prefer 2
    apply (rule testHL3)
   unfolding entails_def by auto
-
-text \<open>Communication\<close>
-lemma testHL4:
-  "\<Turnstile>\<^sub>p {pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2)}
-        Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
-                 (Single (Cm (''ch''[?]X)))
-      {\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1]}"
-  apply (rule ParValid_conseq)
-    apply (rule ParValid_Parallel)
-  apply (rule ParValid_Single[OF testHL1'])
-  apply (rule ParValid_Single[OF testHL3'])
-   apply (simp add: pair_assn_def)
-  subgoal for s tr
-    apply (cases s)
-    subgoal by auto
-    subgoal for s1 s2
-      apply (cases s1) apply auto apply (cases s2) apply (auto simp add: pair_assn_def)
-      using combine_blocks_elim2a apply blast
-      using combine_blocks_elim2b apply blast
-        apply (cases s2) apply auto
-         apply (metis combine_blocks_elim1 combine_blocks_elim2a singletonI)
-      using combine_blocks_elim2b apply blast
-       apply (cases s2) apply auto
-      using combine_blocks_elim2d apply blast
-       apply (auto elim!: combine_blocks_elim4a)
-      apply (cases s2) apply auto
-      using combine_blocks_elim2d apply blast
-      by (auto elim!: combine_blocks_elim4a)
-    done
-  done
 
 
 subsection \<open>Simple examples redone\<close>

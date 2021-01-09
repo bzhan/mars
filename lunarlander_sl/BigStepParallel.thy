@@ -64,7 +64,29 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
    combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
                   (WaitBlock t2 hist rdy # blks)"
-
+| combine_blocks_wait4:
+  "combine_blocks comms (WaitBlockInf (\<lambda>\<tau>\<in>{0..}. hist1 (\<tau> + t)) rdy1 # blks1) blks2 blks \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   t > 0 \<Longrightarrow>
+   hist = (\<lambda>\<tau>\<in>{0..t}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   combine_blocks comms (WaitBlockInf hist1 rdy1 # blks1) (WaitBlock t hist2 rdy2 # blks2)
+                  (WaitBlock t hist rdy # blks)"
+| combine_blocks_wait5:
+  "combine_blocks comms blks1 (WaitBlockInf (\<lambda>\<tau>\<in>{0..}. hist2 (\<tau> + t)) rdy2 # blks2) blks \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   t > 0 \<Longrightarrow>
+   hist = (\<lambda>\<tau>\<in>{0..t}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   combine_blocks comms (WaitBlock t hist1 rdy1 # blks1) (WaitBlockInf hist2 rdy2 # blks2)
+                  (WaitBlock t hist rdy # blks)"
+| combine_blocks_wait6:
+  "combine_blocks comms blks1 blks2 blks \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   hist = (\<lambda>\<tau>\<in>{0..}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   combine_blocks comms (WaitBlockInf hist1 rdy1 # blks1) (WaitBlockInf hist2 rdy2 # blks2)
+                  (WaitBlockInf hist rdy # blks)"
 
 subsection \<open>Basic elimination rules\<close>
 
@@ -90,8 +112,16 @@ lemma combine_blocks_elim2b:
   "combine_blocks comms (CommBlock ch_type ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim2c:
+  "combine_blocks comms (CommBlock ch_type ch v # blks1) (WaitBlockInf p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 lemma combine_blocks_elim2d:
   "combine_blocks comms (WaitBlock d p rdy # blks1) (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim2e:
+  "combine_blocks comms (WaitBlockInf p rdy # blks1) (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim2f:
@@ -137,12 +167,35 @@ lemma combine_blocks_elim4a:
    \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim4a_inf1:
+  "combine_blocks comms (WaitBlockInf p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
+   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4a_inf2:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlockInf p2 rdy2 # blks2) blks \<Longrightarrow>
+   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4a_inf3:
+  "combine_blocks comms (WaitBlockInf p1 rdy1 # blks1) (WaitBlockInf p2 rdy2 # blks2) blks \<Longrightarrow>
+   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 lemma combine_blocks_elim4b:
   "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) [] blks \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+lemma combine_blocks_elim4b_inf:
+  "combine_blocks comms (WaitBlockInf p1 rdy1 # blks1) [] blks \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 lemma combine_blocks_elim4c:
   "combine_blocks comms [] (WaitBlock d1 p1 rdy1 # blks1) blks \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_elim4c_inf:
+  "combine_blocks comms [] (WaitBlockInf p1 rdy1 # blks1) blks \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_elim4d:
@@ -299,14 +352,14 @@ lemma combine_assn_emp_out:
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
+  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c combine_blocks_elim4c_inf)
 
 lemma combine_assn_out_emp:
   "ch \<in> chs \<Longrightarrow> combine_assn chs (Out\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
+  by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b combine_blocks_elim4b_inf)
 
 lemma combine_assn_out_in:
   "ch \<in> chs \<Longrightarrow>
@@ -316,7 +369,8 @@ lemma combine_assn_out_in:
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+                  combine_blocks_elim2d combine_blocks_elim2e combine_blocks_elim4a
+                  combine_blocks_elim4a_inf1)
 
 lemma combine_assn_out_in':
   "ch \<in> chs \<Longrightarrow>
@@ -326,7 +380,8 @@ lemma combine_assn_out_in':
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def
                         io_assn.simps out_assn.simps in_assn.simps)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+                  combine_blocks_elim2d combine_blocks_elim2e combine_blocks_elim4a
+                  combine_blocks_elim4a_inf1)
 
 lemma combine_assn_in_out:
   "ch \<in> chs \<Longrightarrow>
@@ -336,7 +391,8 @@ lemma combine_assn_in_out:
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
   by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+                  combine_blocks_elim2c combine_blocks_elim2d combine_blocks_elim4a
+                  combine_blocks_elim4a_inf2)
 
 lemma combine_assn_wait_emp:
   "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
