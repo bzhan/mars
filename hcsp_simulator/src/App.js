@@ -70,7 +70,7 @@ class Process extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            show_process: true,
+            show_process: false,
             show_graph: false,
         }
         this.canvas = document.getElementById('chart' + String(this.props.index));
