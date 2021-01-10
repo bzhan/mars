@@ -219,7 +219,12 @@ class ModExpr(AExpr):
         return "Mod(%s, %s)" % (repr(self.expr1), str(repr(self.expr2)))
 
     def __str__(self):
-        return "%s%%%s" % (str(self.expr1), str(self.expr2))
+        s1, s2 = str(self.expr1), str(self.expr2)
+        if isinstance(self.expr1, PlusExpr):
+            s1 = '(' + s1 + ')'
+        if isinstance(self.expr2, PlusExpr):
+            s2 = '(' + s2 + ')'
+        return "%s%%%s" % (s1, s2)
 
     def __eq__(self, other):
         return isinstance(other, ModExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
