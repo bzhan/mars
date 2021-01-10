@@ -161,6 +161,108 @@ lemma combine_blocks_elim4e:
             combine_blocks comms (WaitBlock (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
+subsection \<open>Alternative set of combination rules\<close>
+
+lemma combine_blocks_pairE:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
+   (\<And>tr'. ch1 = ch2 \<Longrightarrow> v1 = v2 \<Longrightarrow> (ch_type1 = In \<and> ch_type2 = Out \<or> ch_type1 = Out \<and> ch_type2 = In) \<Longrightarrow>
+   tr = IOBlock ch1 v1 # tr' \<Longrightarrow> combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_unpairE1:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<notin> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_unpairE1':
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> ch2 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_unpairE2:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<notin> comms \<Longrightarrow> ch2 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_pairE2:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_pairE2':
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch2 \<in> comms \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_unpairE3:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   ch1 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (WaitBlock d2 p2 rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_unpairE3':
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch2 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_waitE1:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases) by auto
+
+lemma combine_blocks_waitE2:
+  "combine_blocks comms (WaitBlock d p1 rdy1 # tr1) (WaitBlock d p2 rdy2 # tr2) tr \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_waitE3:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   d1 < d2 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlock d1 (\<lambda>t\<in>{0..d1}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (WaitBlock (d2 - d1) (\<lambda>t\<in>{0..d2-d1}. p2 (t + d1)) rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_waitE4:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   d1 > d2 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms (WaitBlock (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE1:
+  "combine_blocks comms [] [] tr \<Longrightarrow> tr = []"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE2:
+  "combine_blocks comms (WaitBlock d1 p1 rdy1 # tr1) [] tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE3:
+  "combine_blocks comms [] (WaitBlock d2 p2 rdy2 # tr2) tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE4:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) [] tr \<Longrightarrow>
+   (\<And>tr'. ch1 \<notin> comms \<Longrightarrow> tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 [] tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 
 subsection \<open>Big-step semantics for parallel processes.\<close>
 
