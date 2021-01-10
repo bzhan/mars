@@ -273,7 +273,7 @@ lemma test_combine1:
 lemma test_combine1_unique:
   "combine_blocks {''ch''} [InBlock ''ch'' v] [OutBlock ''ch'' v] blks \<Longrightarrow>
    blks = [IOBlock ''ch'' v]"
-  by (auto elim: combine_blocks_elim1 combine_blocks_elim2)
+  by (auto elim: sync_elims)
 
 lemma test_combine2:
   "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] [InBlock ''ch1'' v, OutBlock ''ch2'' w]"
@@ -283,9 +283,7 @@ lemma test_combine2_unique:
   "combine_blocks {} [InBlock ''ch1'' v] [OutBlock ''ch2'' w] blks \<Longrightarrow>
    blks = [InBlock ''ch1'' v, OutBlock ''ch2'' w] \<or>
    blks = [OutBlock ''ch2'' w, InBlock ''ch1'' v]"
-  by (auto elim!: combine_blocks_elim3 combine_blocks_elim3a combine_blocks_elim3b
-      combine_blocks_elim1)
-
+  apply (elim combine_blocks_unpairE2) by (auto elim: sync_elims)
 
 subsection \<open>Simple examples of proofs\<close>
 
@@ -342,36 +340,6 @@ lemma testHL3':
    prefer 2
    apply (rule testHL3)
   unfolding entails_def by auto
-
-text \<open>Communication\<close>
-lemma testHL4:
-  "\<Turnstile>\<^sub>p {pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2)}
-        Parallel (Single (Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
-                 (Single (Cm (''ch''[?]X)))
-      {\<lambda>s tr. pair_assn (\<lambda>s. s = st1) (\<lambda>s. s = st2(X := 1)) s \<and> tr = [IOBlock ''ch'' 1]}"
-  apply (rule ParValid_conseq)
-    apply (rule ParValid_Parallel)
-  apply (rule ParValid_Single[OF testHL1'])
-  apply (rule ParValid_Single[OF testHL3'])
-   apply (simp add: pair_assn_def)
-  subgoal for s tr
-    apply (cases s)
-    subgoal by auto
-    subgoal for s1 s2
-      apply (cases s1) apply auto apply (cases s2) apply (auto simp add: pair_assn_def)
-      using combine_blocks_elim2a apply blast
-      using combine_blocks_elim2b apply blast
-        apply (cases s2) apply auto
-         apply (metis combine_blocks_elim1 combine_blocks_elim2a singletonI)
-      using combine_blocks_elim2b apply blast
-       apply (cases s2) apply auto
-      using combine_blocks_elim2d apply blast
-       apply (auto elim!: combine_blocks_elim4a)
-      apply (cases s2) apply auto
-      using combine_blocks_elim2d apply blast
-      by (auto elim!: combine_blocks_elim4a)
-    done
-  done
 
 
 subsection \<open>Simple examples redone\<close>

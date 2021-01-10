@@ -1555,7 +1555,7 @@ next
     obtain blks' where a2:
       "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (restrict p2 {0..d2} t) ((\<lambda>\<tau>\<in>{0..d2}. hist2 (\<tau> + t1)) t)) rdy' # blks'"
       "combine_blocks comms tr' blks2 blks'"
-      using combine_blocks_elim4[OF combine_blocks_wait2(1)[unfolded a1]]
+      using combine_blocks_waitE2[OF combine_blocks_wait2(1)[unfolded a1]]
             combine_blocks_wait2(3,7) by auto
     show ?thesis
       unfolding a2(1)
@@ -1578,7 +1578,7 @@ next
     obtain blks' where b2:
       "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (restrict p2 {0..d2} t) ((\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) t)) rdy' # blks'"
       "combine_blocks comms tr' (WaitBlock (t2-t1-d2) (\<lambda>t\<in>{0..t2-t1-d2}. (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) (t + d2)) rdy2 # blks2) blks'"
-      using combine_blocks_elim4d[OF combine_blocks_wait2(1) b1 combine_blocks_wait2(3)]
+      using combine_blocks_waitE3[OF combine_blocks_wait2(1) b1 combine_blocks_wait2(3)]
             combine_blocks_wait2(7) by auto
     have b3: "t2 - t1 - d2 = t2 - (t1 + d2)"
       by auto
@@ -1609,7 +1609,7 @@ next
     obtain blks' where c2:
       "blks = WaitBlock (t2 - t1) (\<lambda>t\<in>{0..t2-t1}. ParState (restrict p2 {0..d2} t) ((\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) t)) rdy' # blks'"
       "combine_blocks comms (WaitBlock (d2 - (t2 - t1)) (\<lambda>t\<in>{0..d2-(t2-t1)}. restrict p2 {0..d2} (t + (t2 - t1))) rdy # tr') blks2 blks'"
-      using combine_blocks_elim4e[OF combine_blocks_wait2(1) c1 combine_blocks_wait2(3)]
+      using combine_blocks_waitE4[OF combine_blocks_wait2(1) c1 combine_blocks_wait2(3)]
             combine_blocks_wait2(7) by auto
     have c3: "WaitBlock t2 (\<lambda>\<tau>\<in>{0..t2}. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy' =
               WaitBlock (t1 + (t2 - t1)) (\<lambda>\<tau>\<in>{0..t1+(t2-t1)}. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy'"
@@ -1727,7 +1727,7 @@ next
     obtain blks' where a2:
       "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState ((\<lambda>\<tau>\<in>{0..d2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
       "combine_blocks comms blks1 tr' blks'"
-      using combine_blocks_elim4[OF combine_blocks_wait3(1)[unfolded a1]]
+      using combine_blocks_waitE2[OF combine_blocks_wait3(1)[unfolded a1]]
             combine_blocks_wait3(3,7) by auto
     show ?thesis
       unfolding a2(1)
@@ -1750,7 +1750,7 @@ next
     obtain blks' where b2:
       "blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState ((\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
       "combine_blocks comms (WaitBlock (t1-t2-d2) (\<lambda>t\<in>{0..t1-t2-d2}. (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) (t + d2)) rdy1 # blks1) tr' blks'"
-      using combine_blocks_elim4e[OF combine_blocks_wait3(1) b1 combine_blocks_wait3(3)]
+      using combine_blocks_waitE4[OF combine_blocks_wait3(1) b1 combine_blocks_wait3(3)]
             combine_blocks_wait3(7) by auto
     have b3: "t1 - t2 - d2 = t1 - (t2 + d2)"
       by auto
@@ -1781,7 +1781,7 @@ next
     obtain blks' where c2:
       "blks = WaitBlock (t1 - t2) (\<lambda>t\<in>{0..t1-t2}. ParState ((\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) t) (restrict p2 {0..d2} t)) rdy' # blks'"
       "combine_blocks comms blks1 (WaitBlock (d2 - (t1 - t2)) (\<lambda>t\<in>{0..d2-(t1-t2)}. restrict p2 {0..d2} (t + (t1 - t2))) rdy # tr') blks'"
-      using combine_blocks_elim4d[OF combine_blocks_wait3(1) c1 combine_blocks_wait3(3)]
+      using combine_blocks_waitE3[OF combine_blocks_wait3(1) c1 combine_blocks_wait3(3)]
             combine_blocks_wait3(7) by auto
     have c3: "WaitBlock t1 (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' =
               WaitBlock (t2 + (t1 - t2)) (\<lambda>\<tau>\<in>{0..t2+(t1-t2)}. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy'"
