@@ -360,10 +360,14 @@ class App extends React.Component {
             show_event_only: false,
 
             // Warnings from checks of channel mismatches.
-            warnings: []
+            warnings: [],
+
+            // Whether pic is clicked
+            
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
+        this.picclicked=false;
     }
 
     handleChange = (e) => {
@@ -427,8 +431,9 @@ class App extends React.Component {
         
     }
     componentDidUpdate() {
-        if(document.getElementsByClassName('event-list-hl')[0])
+        if(document.getElementsByClassName('event-list-hl')[0] && this.picclicked===true)
             document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
+            this.picclicked=false;
     }
 
     handleFileSelect = (e) => {
@@ -563,7 +568,9 @@ class App extends React.Component {
             index = this.state.num_show;
         this.setState({
             history_pos: index,
+            
         })
+        this.picclicked=true;
     }
 
     showDetails = async () => {
