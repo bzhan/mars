@@ -1,120 +1,143 @@
-  ID  P0     P1    
-   2  |    delay 2 
-   3 p2c!   p2c?   
-   5 c2p?   c2p!   
-   7  |    delay 2 
-   8 p2c!   p2c?   
-  10 c2p?   c2p!   
-  12  |    delay 2 
-  13 p2c!   p2c?   
-  15 c2p?   c2p!   
-  17  |    delay 2 
-  18 p2c!   p2c?   
-  20 c2p?   c2p!   
-  22  |    delay 2 
-  23 p2c!   p2c?   
-  25 c2p?   c2p!   
-  27  |    delay 2 
-  28 p2c!   p2c?   
-  30 c2p?   c2p!   
-  32  |    delay 2 
-  33 p2c!   p2c?   
-  35 c2p?   c2p!   
-  37  |    delay 2 
-  38 p2c!   p2c?   
-  40 c2p?   c2p!   
-  42  |    delay 2 
-  43 p2c!   p2c?   
-  45 c2p?   c2p!   
-  47  |    delay 2 
-  48 p2c!   p2c?   
-  50 c2p?   c2p!   
-  52  |    delay 2 
-  53 p2c!   p2c?   
-  55 c2p?   c2p!   
-  57  |    delay 2 
-  58 p2c!   p2c?   
-  60 c2p?   c2p!   
-  62  |    delay 2 
-  63 p2c!   p2c?   
-  65 c2p?   c2p!   
-  67  |    delay 2 
-  68 p2c!   p2c?   
-  70 c2p?   c2p!   
-  72  |    delay 2 
-  73 p2c!   p2c?   
-  75 c2p?   c2p!   
-  77  |    delay 2 
-  78 p2c!   p2c?   
-  80 c2p?   c2p!   
-  82  |    delay 2 
-  83 p2c!   p2c?   
-  85 c2p?   c2p!   
-  87  |    delay 2 
-  88 p2c!   p2c?   
-  90 c2p?   c2p!   
-  92  |    delay 2 
-  93 p2c!   p2c?   
-  95 c2p?   c2p!   
-  97  |    delay 2 
-  98 p2c!   p2c?   
- 100 c2p?   c2p!   
- 102  |    delay 2 
- 103 p2c!   p2c?   
- 105 c2p?   c2p!   
- 107  |    delay 2 
- 108 p2c!   p2c?   
- 110 c2p?   c2p!   
- 112  |    delay 2 
- 113 p2c!   p2c?   
- 115 c2p?   c2p!   
- 117  |    delay 2 
- 118 p2c!   p2c?   
- 120 c2p?   c2p!   
- 122  |    delay 2 
- 123 p2c!   p2c?   
- 125 c2p?   c2p!   
- 127  |    delay 2 
- 128 p2c!   p2c?   
- 130 c2p?   c2p!   
- 132  |    delay 2 
- 133 p2c!   p2c?   
- 135 c2p?   c2p!   
- 137  |    delay 2 
- 138 p2c!   p2c?   
- 140 c2p?   c2p!   
- 142  |    delay 2 
- 143 p2c!   p2c?   
- 145 c2p?   c2p!   
- 147  |    delay 2 
- 148 p2c!   p2c?   
- 150 c2p?   c2p!   
- 152  |    delay 2 
- 153 p2c!   p2c?   
- 155 c2p?   c2p!   
- 157  |    delay 2 
- 158 p2c!   p2c?   
- 160 c2p?   c2p!   
- 162  |    delay 2 
- 163 p2c!   p2c?   
- 165 c2p?   c2p!   
- 167  |    delay 2 
- 168 p2c!   p2c?   
- 170 c2p?   c2p!   
- 172  |    delay 2 
- 173 p2c!   p2c?   
- 175 c2p?   c2p!   
- 177  |    delay 2 
- 178 p2c!   p2c?   
- 180 c2p?   c2p!   
- 182  |    delay 2 
- 183 p2c!   p2c?   
- 185 c2p?   c2p!   
- 187  |    delay 2 
- 188 p2c!   p2c?   
- 190 c2p?   c2p!   
- 192  |    delay 2 
- 193 p2c!   p2c?   
- 195 c2p?   c2p!   
- 197  |    delay 2 
- 198 p2c!   p2c?   
+  ID   P0a      P0b      P1a      P1b   
+   2    |        |     delay 2  delay 2 
+   3 p2c[0]!     |     p2c[0]?     |    
+   5 c2p[0]?     |     c2p[0]!     |    
+   6    |     p2c[1]!     |     p2c[1]? 
+   8    |     c2p[1]?     |     c2p[1]! 
+   9    |        |     delay 2  delay 2 
+  10 p2c[0]!     |     p2c[0]?     |    
+  12 c2p[0]?     |     c2p[0]!     |    
+  13    |     p2c[1]!     |     p2c[1]? 
+  15    |     c2p[1]?     |     c2p[1]! 
+  16    |        |     delay 2  delay 2 
+  17 p2c[0]!     |     p2c[0]?     |    
+  19 c2p[0]?     |     c2p[0]!     |    
+  20    |     p2c[1]!     |     p2c[1]? 
+  22    |     c2p[1]?     |     c2p[1]! 
+  23    |        |     delay 2  delay 2 
+  24 p2c[0]!     |     p2c[0]?     |    
+  26 c2p[0]?     |     c2p[0]!     |    
+  27    |     p2c[1]!     |     p2c[1]? 
+  29    |     c2p[1]?     |     c2p[1]! 
+  30    |        |     delay 2  delay 2 
+  31 p2c[0]!     |     p2c[0]?     |    
+  33 c2p[0]?     |     c2p[0]!     |    
+  34    |     p2c[1]!     |     p2c[1]? 
+  36    |     c2p[1]?     |     c2p[1]! 
+  37    |        |     delay 2  delay 2 
+  38 p2c[0]!     |     p2c[0]?     |    
+  40 c2p[0]?     |     c2p[0]!     |    
+  41    |     p2c[1]!     |     p2c[1]? 
+  43    |     c2p[1]?     |     c2p[1]! 
+  44    |        |     delay 2  delay 2 
+  45 p2c[0]!     |     p2c[0]?     |    
+  47 c2p[0]?     |     c2p[0]!     |    
+  48    |     p2c[1]!     |     p2c[1]? 
+  50    |     c2p[1]?     |     c2p[1]! 
+  51    |        |     delay 2  delay 2 
+  52 p2c[0]!     |     p2c[0]?     |    
+  54 c2p[0]?     |     c2p[0]!     |    
+  55    |     p2c[1]!     |     p2c[1]? 
+  57    |     c2p[1]?     |     c2p[1]! 
+  58    |        |     delay 2  delay 2 
+  59 p2c[0]!     |     p2c[0]?     |    
+  61 c2p[0]?     |     c2p[0]!     |    
+  62    |     p2c[1]!     |     p2c[1]? 
+  64    |     c2p[1]?     |     c2p[1]! 
+  65    |        |     delay 2  delay 2 
+  66 p2c[0]!     |     p2c[0]?     |    
+  68 c2p[0]?     |     c2p[0]!     |    
+  69    |     p2c[1]!     |     p2c[1]? 
+  71    |     c2p[1]?     |     c2p[1]! 
+  72    |        |     delay 2  delay 2 
+  73 p2c[0]!     |     p2c[0]?     |    
+  75 c2p[0]?     |     c2p[0]!     |    
+  76    |     p2c[1]!     |     p2c[1]? 
+  78    |     c2p[1]?     |     c2p[1]! 
+  79    |        |     delay 2  delay 2 
+  80 p2c[0]!     |     p2c[0]?     |    
+  82 c2p[0]?     |     c2p[0]!     |    
+  83    |     p2c[1]!     |     p2c[1]? 
+  85    |     c2p[1]?     |     c2p[1]! 
+  86    |        |     delay 2  delay 2 
+  87 p2c[0]!     |     p2c[0]?     |    
+  89 c2p[0]?     |     c2p[0]!     |    
+  90    |     p2c[1]!     |     p2c[1]? 
+  92    |     c2p[1]?     |     c2p[1]! 
+  93    |        |     delay 2  delay 2 
+  94 p2c[0]!     |     p2c[0]?     |    
+  96 c2p[0]?     |     c2p[0]!     |    
+  97    |     p2c[1]!     |     p2c[1]? 
+  99    |     c2p[1]?     |     c2p[1]! 
+ 100    |        |     delay 2  delay 2 
+ 101 p2c[0]!     |     p2c[0]?     |    
+ 103 c2p[0]?     |     c2p[0]!     |    
+ 104    |     p2c[1]!     |     p2c[1]? 
+ 106    |     c2p[1]?     |     c2p[1]! 
+ 107    |        |     delay 2  delay 2 
+ 108 p2c[0]!     |     p2c[0]?     |    
+ 110 c2p[0]?     |     c2p[0]!     |    
+ 111    |     p2c[1]!     |     p2c[1]? 
+ 113    |     c2p[1]?     |     c2p[1]! 
+ 114    |        |     delay 2  delay 2 
+ 115 p2c[0]!     |     p2c[0]?     |    
+ 117 c2p[0]?     |     c2p[0]!     |    
+ 118    |     p2c[1]!     |     p2c[1]? 
+ 120    |     c2p[1]?     |     c2p[1]! 
+ 121    |        |     delay 2  delay 2 
+ 122 p2c[0]!     |     p2c[0]?     |    
+ 124 c2p[0]?     |     c2p[0]!     |    
+ 125    |     p2c[1]!     |     p2c[1]? 
+ 127    |     c2p[1]?     |     c2p[1]! 
+ 128    |        |     delay 2  delay 2 
+ 129 p2c[0]!     |     p2c[0]?     |    
+ 131 c2p[0]?     |     c2p[0]!     |    
+ 132    |     p2c[1]!     |     p2c[1]? 
+ 134    |     c2p[1]?     |     c2p[1]! 
+ 135    |        |     delay 2  delay 2 
+ 136 p2c[0]!     |     p2c[0]?     |    
+ 138 c2p[0]?     |     c2p[0]!     |    
+ 139    |     p2c[1]!     |     p2c[1]? 
+ 141    |     c2p[1]?     |     c2p[1]! 
+ 142    |        |     delay 2  delay 2 
+ 143 p2c[0]!     |     p2c[0]?     |    
+ 145 c2p[0]?     |     c2p[0]!     |    
+ 146    |     p2c[1]!     |     p2c[1]? 
+ 148    |     c2p[1]?     |     c2p[1]! 
+ 149    |        |     delay 2  delay 2 
+ 150 p2c[0]!     |     p2c[0]?     |    
+ 152 c2p[0]?     |     c2p[0]!     |    
+ 153    |     p2c[1]!     |     p2c[1]? 
+ 155    |     c2p[1]?     |     c2p[1]! 
+ 156    |        |     delay 2  delay 2 
+ 157 p2c[0]!     |     p2c[0]?     |    
+ 159 c2p[0]?     |     c2p[0]!     |    
+ 160    |     p2c[1]!     |     p2c[1]? 
+ 162    |     c2p[1]?     |     c2p[1]! 
+ 163    |        |     delay 2  delay 2 
+ 164 p2c[0]!     |     p2c[0]?     |    
+ 166 c2p[0]?     |     c2p[0]!     |    
+ 167    |     p2c[1]!     |     p2c[1]? 
+ 169    |     c2p[1]?     |     c2p[1]! 
+ 170    |        |     delay 2  delay 2 
+ 171 p2c[0]!     |     p2c[0]?     |    
+ 173 c2p[0]?     |     c2p[0]!     |    
+ 174    |     p2c[1]!     |     p2c[1]? 
+ 176    |     c2p[1]?     |     c2p[1]! 
+ 177    |        |     delay 2  delay 2 
+ 178 p2c[0]!     |     p2c[0]?     |    
+ 180 c2p[0]?     |     c2p[0]!     |    
+ 181    |     p2c[1]!     |     p2c[1]? 
+ 183    |     c2p[1]?     |     c2p[1]! 
+ 184    |        |     delay 2  delay 2 
+ 185 p2c[0]!     |     p2c[0]?     |    
+ 187 c2p[0]?     |     c2p[0]!     |    
+ 188    |     p2c[1]!     |     p2c[1]? 
+ 190    |     c2p[1]?     |     c2p[1]! 
+ 191    |        |     delay 2  delay 2 
+ 192 p2c[0]!     |     p2c[0]?     |    
+ 194 c2p[0]?     |     c2p[0]!     |    
+ 195    |     p2c[1]!     |     p2c[1]? 
+ 197    |     c2p[1]?     |     c2p[1]! 
+ 198    |        |     delay 2  delay 2 
+ 199 p2c[0]!     |     p2c[0]?     |    

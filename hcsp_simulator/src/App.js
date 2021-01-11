@@ -72,9 +72,13 @@ class Process extends React.Component {
         this.state = {
             show_process: false,
             show_graph: false,
+            
         }
-        this.canvas = document.getElementById('chart' + String(this.props.index));
+        
+
     }
+    
+   
 
 
     displayValue(val) {
@@ -102,7 +106,7 @@ class Process extends React.Component {
                 {/* Program text, with highlight on current location */}
                 <div>Process: {this.props.name}{'  '}
 
-                    <a href="#" style={{fontSize:14}} onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"} </a>
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"} </a>
                 </div>
                 <div className="program-text">
 
@@ -169,16 +173,29 @@ class Process extends React.Component {
                 {/* Graph of time series */}
                 {
                     (this.state.show_graph && this.props.time_series !== undefined) ?
-                        <canvas id={'chart' + String(this.props.index)} width="400" height="100" /> : null
+                        <canvas onClick={this.getCurPosition} id={'chart' + String(this.props.index)} width="400" height="100" /> : null
                 }
             </div >
         );
+    }
+
+    getCurPosition =(e) =>{
+        const x = e.clientX;
+        const map = this.canvas.getBoundingClientRect();
+        const ptx=(x - map.left-this.chart.chartArea.left);
+        //console.log('ptx',ptx,'end',this.chart.scales["x-axis-0"].end,'out',ptx/map.width*this.chart.scales["x-axis-0"].end)
+        //console.log(this.chart)
+        
+        this.props.onClick(e, ptx/(this.chart.chartArea.right-this.chart.chartArea.left)*this.chart.scales["x-axis-0"].end);
+        
+        
     }
 
     toggleShowGraph = (e) => {
         this.setState((state) => ({
             show_graph: !state.show_graph,
         }))
+        
     }
 
     componentDidUpdate() {
@@ -218,13 +235,13 @@ class Process extends React.Component {
             })
         }
 
-        var canvas = document.getElementById('chart' + String(this.props.index));
+        this.canvas = document.getElementById('chart' + String(this.props.index));
 
         const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
         if (typeof this.props.warning_at == 'undefined') { }
         else
             var warningAtIndex = this.props.warning_at[0];
-        this.chart = new Chart(canvas, {
+        this.chart = new Chart(this.canvas, {
             type: 'line',
             data: {
                 datasets: datasets
@@ -254,6 +271,7 @@ class Process extends React.Component {
 
             }
         })
+       
         this.chart.update();
     }
 }
@@ -270,6 +288,7 @@ class Events extends React.Component {
                             <pre key={index} title={"time: " + event.time} onClick={(e) => this.props.onClick(e, index)}>
                                 <span className={index === this.props.current_index ? "event-list-hl" : ""}>
                                     {event.id + ' ' + event.str}
+                                    
                                 </span>
                             </pre>
                         )
@@ -391,6 +410,11 @@ class App extends React.Component {
 
     componentDidMount() {
         this.fileSelector = this.buildFileSelector();
+        
+    }
+    componentDidUpdate() {
+        if(document.getElementsByClassName('event-list-hl')[0])
+            document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
     }
 
     handleFileSelect = (e) => {
@@ -515,6 +539,20 @@ class App extends React.Component {
         }))
     }
 
+    picOnClick = (e, i) => {
+        var index=0;
+        while(this.state.history[index]['time']<i){
+            //console.log(this.state.history[index].time)
+            index++;
+            if(this.state.history[index]===undefined)
+                break;
+        }
+        if(index>this.state.num_show)
+            index=this.state.num_show;
+        this.setState({
+            history_pos: index,
+        })
+    }
     render() {
         const left = this.state.error !== undefined ?
             <pre className="error-message">
@@ -535,7 +573,7 @@ class App extends React.Component {
                             return <Process key={index} index={index} lines={info.lines}
                                 name={hcsp_name} pos={undefined} state={[]}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
-                                npos={undefined} warning_at={this.state.sim_warning} />
+                                npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
@@ -561,7 +599,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={undefined} warning_at={this.state.sim_warning} />
+                                    npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                             } else {
                                 var npos = false;
                                 var pos = info.mapping[pos];
@@ -574,7 +612,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={pos} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={npos} warning_at={this.state.sim_warning} />
+                                    npos={npos} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                             }
                         }
                     })}
