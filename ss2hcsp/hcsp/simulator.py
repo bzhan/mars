@@ -253,6 +253,13 @@ def get_ode_delay(hp, state):
     if not eval_expr(hp.constraint, state):
         return 0.0
 
+    def get_deriv(name):
+        """Returns the derivative of a variable."""
+        for var_name, eq in hp.eqs:
+            if var_name == name:
+                return eq
+        return AConst(0)
+        
     def ode_fun(t, y):
         res = []
         state2 = copy.copy(state)
@@ -273,10 +280,10 @@ def get_ode_delay(hp, state):
             elif c.op in ('>', '>='):
                 return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
             else:
-                print('!!!!!')
+                print('get_ode_delay: cannot handle constraint %s' % c)
                 raise NotImplementedError
         else:
-            print('!!!!!')
+            print('get_ode_delay: cannot handle constraint %s' % c)
             raise NotImplementedError
 
     # Compute set of variables that remain zero
@@ -292,26 +299,18 @@ def get_ode_delay(hp, state):
             return t.name in zero_vars
         else:
             return False
-    
-    def is_zero_deriv(name):
-        """Whether the derivative of variable simplifies to 0."""
-        for var_name, eq in hp.eqs:
-            if var_name == name and not is_zero(eq):
-                return False
-        return True
 
+    # List of variables that are guaranteed to stay zero.
     found = True
     while found:
         found = False
         for name in state:
-            if name not in zero_vars and is_zero_deriv(name) and state[name] == 0:
+            if name not in zero_vars and is_zero(get_deriv(name)) and state[name] == 0:
                 zero_vars.append(name)
                 found = True
 
-    changed_vars = []
-    for var_name, eq in hp.eqs:
-        if not is_zero(eq):
-            changed_vars.append(var_name)
+    # List of variables that are changed.
+    changed_vars = [var_name for var_name, eq in hp.eqs if not is_zero(eq)]
 
     def occur_var(e, var_name):
         if isinstance(e, RelExpr):
@@ -349,13 +348,19 @@ def get_ode_delay(hp, state):
             else:
                 return 0
 
-        # Condition of the form t < constant
-        if isinstance(e, RelExpr) and e.op in ('<', '<=') and \
-            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2):
-            for var_name, deriv in hp.eqs:
-                if var_name == e.expr1.name and expr_unchanged(deriv):
-                    diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
-                    return min(diff / eval_expr(deriv, state), 100.0)
+        # Condition comparing a variable to a constant, where the derivative
+        # of the variable is also a constant.
+        if (isinstance(e, RelExpr) and e.op in ('<', '<=', '>', '>=') and
+            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2) and
+            expr_unchanged(get_deriv(e.expr1.name))):
+            deriv = eval_expr(get_deriv(e.expr1.name), state)
+            diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
+            if e.op in ('<', '<='):
+                assert diff >= 0  # would be caught earlier
+                return min(diff / deriv, 100.0) if deriv > 0 else 100.0
+            else:
+                assert diff <= 0  # would be caught earlier
+                return min(diff / deriv, 100.0) if deriv < 0 else 100.0        
 
         if not eval_expr(e, state):
             return 0

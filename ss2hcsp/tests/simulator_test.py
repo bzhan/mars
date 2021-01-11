@@ -241,6 +241,7 @@ class SimulatorTest(unittest.TestCase):
 
             # Conjunction
             ("<x_dot = 1, y_dot = 1 & x < 3 && y < 2>", {"x": 0, "y": 0}, 2.0),
+            ("<x_dot = 1, y_dot = -1 & x < 3 && y >= 0>", {"x": 0, "y": 1}, 1.0),
         ]
 
         for cmd, state, delay in test_data:
