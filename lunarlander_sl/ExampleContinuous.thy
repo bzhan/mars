@@ -2,6 +2,33 @@ theory ExampleContinuous
   imports ExampleSimple
 begin
 
+
+lemma example_ode:
+  "\<Turnstile> {\<lambda>s tr. \<forall>s'. (ODE\<^sub>t (s(X := s X + 1)) ode b s' @- Q s') tr}
+       X ::= (\<lambda>s. s X + 1); Cont ode b
+      {Q}"
+  apply (rule Valid_seq)
+   prefer 2 apply (rule Valid_ode')
+  by (rule Valid_assign)
+
+lemma example_ode':
+  assumes "b st"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> Q s tr}
+      Cont ode b; X ::= (\<lambda>s. s X + 1)
+    {\<lambda>s tr. \<exists>s'. s = s'(X := s' X + 1) \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
+  apply (rule Valid_seq)
+  apply (rule Valid_ode_sp)
+    apply (rule assms)
+  apply (rule Valid_ex_pre)
+  subgoal for s2
+    apply (rule Valid_strengthen_post)
+     prefer 2
+     apply (rule Valid_assign_sp)
+    by (auto simp add: entails_def)
+  done
+
+
 subsection \<open>Version of interrupt with two communications\<close>
 
 theorem Valid_interrupt_InIn:
