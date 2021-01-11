@@ -565,9 +565,9 @@ def parse_pos(hp, pos):
         return start_pos(hp)
     
     assert len(pos) > 0 and pos[0] == 'p'
-    pos = pos[1:].split('.')
+    pos = pos[1:].split(',')
     if len(pos) > 0 and pos[-1].startswith('w'):
-        pos = tuple([int(p) for p in pos[:-1]] + [int(pos[-1][1:])])
+        pos = tuple([int(p) for p in pos[:-1]] + [float(pos[-1][1:])])
         assert get_pos(hp, pos).type == 'wait'
     else:
         pos = tuple(int(p) for p in pos)
@@ -599,9 +599,9 @@ def string_of_pos(hp, pos):
     if pos is None:
         return 'end'
     elif get_pos(hp, pos).type != 'wait':
-        return 'p' + '.'.join(str(p) for p in pos)
+        return 'p' + ','.join(str(p) for p in pos)
     else:
-        return 'p' + '.'.join(str(p) for p in pos[:-1])
+        return 'p' + ','.join(str(p) for p in pos[:-1]) + ',w' + str(pos[-1])
 
 def disp_of_pos(hp, pos):
     return string_of_pos(hp, remove_rec(hp, pos))
@@ -790,11 +790,17 @@ class SimInfo:
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            self.reason = {"delay": eval_expr(cur_hp.delay, self.state) - self.pos[-1]}
+            delay = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
+            if delay < 0:
+                print(self.name, cur_hp, eval_expr(cur_hp.delay, self.state), self.pos)
+                raise AssertionError("exec_step: delay for wait less than zero")
+            self.reason = {"delay": delay}
 
         elif cur_hp.type == "ode":
             # Find delay of ODE
-            self.reason = {"delay": get_ode_delay(cur_hp, self.state)}
+            delay = get_ode_delay(cur_hp, self.state)
+            assert delay >= 0, "exec_step: delay for ode less than zero"
+            self.reason = {"delay": delay}
 
         elif cur_hp.type == "ode_comm":
             # Run ODE until one of the communication events (or the boundary)
@@ -806,7 +812,9 @@ class SimInfo:
                     comms.append((eval_channel(io_comm.ch_name, self.state), "!"))
             self.reason = {"comm": comms}
             if cur_hp.constraint != true_expr:
-                self.reason["delay"] = get_ode_delay(cur_hp, self.state)
+                delay = get_ode_delay(cur_hp, self.state)
+                assert delay >= 0, "exec_step: delay for ode_comm less than zero"
+                self.reason["delay"] = delay
 
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
@@ -1120,6 +1128,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         for info in infos:
             info.pos = parse_pos(info.hp, start_event['infos'][info.name]['pos'])
             info.state = start_event['infos'][info.name]['state']
+
     else:
         # Otherwise use default starting position
         num_event = 0
@@ -1138,6 +1147,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
                 # Has some variable to output
                 res['time_series'][info.name] = []
 
+    start_id = num_event
     if num_io_events is None:
         num_io_events = num_steps
 
@@ -1145,7 +1155,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            while info.pos is not None and not num_event > num_steps:
+            while info.pos is not None and not num_event >= start_id + num_steps:
                 ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
                 try:
                     info.exec_step()
@@ -1173,7 +1183,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             if info.pos is None:
                 info.reason = {'end': None}
 
-        if num_event > num_steps:
+        if num_event >= start_id + num_steps:
             break
 
         event = extract_event(infos)
@@ -1184,6 +1194,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
+            assert min_delay >= 0, "min_delay %s less than zero" % min_delay
             ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
 
             trace_str = "delay %s" % str(round(min_delay, 3))

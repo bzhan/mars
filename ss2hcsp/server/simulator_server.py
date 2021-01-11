@@ -114,7 +114,8 @@ def run_hcsp():
         with open('event_output.json', 'w', encoding='utf-8') as f:
             json.dump(res['trace'], f, indent=4, ensure_ascii=False)
 
-    print_sequence_diagram(res['trace'])
+    if len(res['trace']) > 0:
+        print_sequence_diagram(res['trace'])
 
     with open('simulator_events.txt', 'w', encoding='utf-8') as f:
         for i, event in enumerate(res['events']):
