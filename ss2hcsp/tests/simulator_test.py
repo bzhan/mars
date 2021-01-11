@@ -40,12 +40,12 @@ class SimulatorTest(unittest.TestCase):
     def testStringOfPos(self):
         test_data = [
             ("x := 1; x := x + 1", (1,), "p1"),
-            ("x := 1; wait(1)", (1, 0), "p1"),
+            ("x := 1; wait(1)", (1, 0), "p1,w0"),
             ("rec X.(x := 1; wait(1); @X)", (), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0.2"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
             ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0.0"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0.1"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,w0"),
         ]
 
         for hp, pos, expected_pos in test_data:
@@ -589,7 +589,7 @@ class SimulatorTest(unittest.TestCase):
         ], num_steps=10, num_show=3,
         start_event = {
             'id': 4,
-            'infos': {'P0': {'pos': 'p1.1', 'state': {'x': 2.0}},
+            'infos': {'P0': {'pos': 'p1,1', 'state': {'x': 2.0}},
                       'P1': {'pos': 'p2', 'state': {'x': 2.0}}},
             'time': 2},
         ids=[5,6,7,8])
