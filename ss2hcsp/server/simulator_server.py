@@ -74,7 +74,6 @@ def parse_hcsp():
 def run_hcsp():
     data = json.loads(request.get_data())
     infos = data['hcsp_info']
-    num_io_events = data['num_io_events']
     num_steps = data['num_steps']
     profile = False
 
@@ -82,7 +81,11 @@ def run_hcsp():
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
-    show_starting = data['show_starting']
+    show_interval = 1000 if num_show > 1000 else None
+    if 'start_event' in data:
+        start_event = data['start_event']
+    else:
+        start_event = None
 
     if profile:
         pr = cProfile.Profile()
@@ -91,8 +94,8 @@ def run_hcsp():
     try:
         clock = time.perf_counter()
         res = simulator.exec_parallel(
-            infos, num_steps=num_steps, num_io_events=num_io_events, num_show=num_show,
-            show_starting=show_starting)
+            infos, num_steps=num_steps, num_show=num_show, show_interval=show_interval,
+            start_event=start_event)
         print("Time:", time.perf_counter() - clock)
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)

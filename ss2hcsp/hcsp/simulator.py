@@ -648,9 +648,6 @@ class SimInfo:
         # possible keys 'comm' and 'delay'.
         self.reason = None
 
-        # Last step at which the state is changed. Used during simulation.
-        self.last_change = None
-
     def __str__(self):
         return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
 
@@ -1033,8 +1030,8 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
-                  show_starting=None):
+def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
+                  show_interval=None, start_event=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1058,14 +1055,6 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
         'events': []  # Concise list of event strings
     }
 
-    # Number of steps so far.
-    num_event = 0
-
-    for info in infos:
-        if info.outputs is None or len(info.outputs) > 0:
-            # Has some variable to output
-            res['time_series'][info.name] = []
-
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
         nonlocal num_event
@@ -1074,26 +1063,31 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
             print('i:', num_event)
 
         new_event = xargs
+
+        # Append the first 2000 events
+        if num_event <= 2000:
+            res['events'].append(new_event['str'])
+
+        # Determine whether to append the current event
+        if new_event['type'] != 'error':
+            if num_show is not None and len(res['trace']) >= num_show + 1:
+                return
+            if show_interval is not None and (num_event - 1) % show_interval != 0:
+                return
+
+        # Fill in additional information about the event
+        new_event['id'] = num_event - 1
         new_event['time'] = res['time']
         new_event['ori_pos'] = ori_pos
-        res['events'].append(new_event['str'])
 
-        if new_event['type'] != 'error' and \
-            ((num_show is not None and len(res['trace']) >= num_show + 1) or \
-             (show_starting is not None and num_event <= show_starting)):
-            return
-
+        # Fill in information about current position
         cur_info = dict()
         for info in infos:
-            if new_event['type'] == 'error' or info.name in ori_pos or info.last_change is None:
-                info_pos = disp_of_pos(info.hp, info.pos)
-                cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
-                info.last_change = len(res['trace'])
-            else:
-                cur_info[info.name] = info.last_change
-
-        new_event['id'] = num_event - 1
+            info_pos = disp_of_pos(info.hp, info.pos)
+            cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
         new_event['infos'] = cur_info
+
+        # Finally add to trace
         res['trace'].append(new_event)
 
     def log_time_series(info, time, state):
@@ -1114,21 +1108,38 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
-    # List of processes that have been updated in the last round.
-    start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
+    if start_event:
+        # If has a starting event, modify starting position accordingly
+        num_event = start_event['id'] + 1
+        res['time'] = start_event['time']
+        for info in infos:
+            info.pos = parse_pos(info.hp, start_event['infos'][info.name]['pos'])
+            info.state = start_event['infos'][info.name]['state']
+    else:
+        # Otherwise use default starting position
+        num_event = 0
 
-    # Record event and time series at the beginning.
-    log_event(ori_pos=start_pos, type="start", str="start")
-    for info in infos:
-        log_time_series(info, 0, info.state)
+        # List of processes that have been updated in the last round.
+        start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
+
+        # Record event and time series at the beginning.
+        log_event(ori_pos=start_pos, type="start", str="start")
+        for info in infos:
+            log_time_series(info, 0, info.state)
+
+        # Initialize time_series
+        for info in infos:
+            if info.outputs is None or len(info.outputs) > 0:
+                # Has some variable to output
+                res['time_series'][info.name] = []
+
+    if num_io_events is None:
+        num_io_events = num_steps
 
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            if info.name not in start_pos:
-                continue
-
             while info.pos is not None and not num_event > num_steps:
                 ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
                 try:

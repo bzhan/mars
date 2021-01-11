@@ -2,6 +2,7 @@
 
 import unittest
 import math
+import pprint
 
 from ss2hcsp.hcsp.hcsp import Channel
 from ss2hcsp.hcsp import simulator
@@ -554,6 +555,43 @@ class SimulatorTest(unittest.TestCase):
         ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "error: x is too big"],
         warning=(6, "x is too big"))
+
+    def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
+                       show_interval=None, start_event=None, print_trace=False):
+        for i in range(len(infos)):
+            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
+
+        res = simulator.exec_parallel(
+            infos, num_steps=num_steps, num_show=num_show,
+            show_interval=show_interval, start_event=start_event)
+        if print_trace:
+            pprint.pprint(res['trace'])
+        if ids:
+            self.assertEqual(ids, [event['id'] for event in res['trace']])
+
+    def testTrace1(self):
+        self.run_test_trace([
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], num_steps=10, num_show=5, ids=[0,1,2,3,4,5])
+
+    def testTrace2(self):
+        self.run_test_trace([
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], num_steps=10, num_show=5, show_interval=2, ids=[0,2,4,6,8,10])
+
+    def testTrace3(self):
+        self.run_test_trace([
+            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "(wait(2); p2c?x; c2p!x-1)**",
+        ], num_steps=10, num_show=3,
+        start_event = {
+            'id': 4,
+            'infos': {'P0': {'pos': 'p1.1', 'state': {'x': 2.0}},
+                      'P1': {'pos': 'p2', 'state': {'x': 2.0}}},
+            'time': 2},
+        ids=[5,6,7,8])
 
 
 if __name__ == "__main__":
