@@ -180,14 +180,25 @@ class Process extends React.Component {
     }
 
     getCurPosition =(e) =>{
-        const x = e.clientX;
         const map = this.canvas.getBoundingClientRect();
-        const ptx=(x - map.left-this.chart.chartArea.left);
+        const x = e.clientX-map.left;
+        const y =e.clientY-map.top;
+        //console.log('x',x,'y',y,'left',this.chart.chartArea.left,'right',this.chart.chartArea.right,'top',this.chart.chartArea.top,'bottom',this.chart.chartArea.bottom)
+        if(x>this.chart.chartArea.left &&
+            x<this.chart.chartArea.right &&
+            y<this.chart.chartArea.bottom &&
+            y>this.chart.chartArea.top)
+        {    
+        const ptx=(x -this.chart.chartArea.left);
         //console.log('ptx',ptx,'end',this.chart.scales["x-axis-0"].end,'out',ptx/map.width*this.chart.scales["x-axis-0"].end)
         //console.log(this.chart)
-        
         this.props.onClick(e, ptx/(this.chart.chartArea.right-this.chart.chartArea.left)*this.chart.scales["x-axis-0"].end);
-        
+        }
+        else
+        {
+            //console.log(this.chart)
+            this.chart.handleEvent(e)
+        }
         
     }
 
