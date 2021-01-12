@@ -4,6 +4,7 @@ theory HHLProver
     Complete
     ExampleContinuous
     Repetition
+    ContinuousInv
 begin
 
 

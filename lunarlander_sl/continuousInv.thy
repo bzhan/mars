@@ -1,4 +1,4 @@
-theory continuousInv
+theory ContinuousInv
   imports Complete
 begin
 
