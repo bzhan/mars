@@ -25,12 +25,12 @@ theorem Valid_inv:
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) = 0"
     shows "\<Turnstile> {\<lambda>s tr. inv s = r \<and> tr = tra \<and> b s}
        Cont ode b
-      {\<lambda>s tr. (\<exists>p d. tr = tra @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})] \<and> (\<forall>t\<in>{0..d}. inv (p t) = r))}"
+      {\<lambda>s tr. (\<exists>p d. tr = tra @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] \<and> (\<forall>t\<in>{0..d}. inv (p t) = r))}"
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal for d p
     apply (rule exI[where x="p"])
-    apply auto
+    apply (auto simp add: WaitBlk_def)
     subgoal premises pre for \<tau>
     proof-
       have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
@@ -56,7 +56,7 @@ theorem Valid_inv:
 
 text \<open>ODE with invariant\<close>
 inductive ode_inv_assn :: "(state \<Rightarrow> bool) \<Rightarrow> tassn" where
-  "\<forall>t\<in>{0..d}. f (p t) \<Longrightarrow> ode_inv_assn f [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
+  "\<forall>t\<in>{0..d}. f (p t) \<Longrightarrow> ode_inv_assn f [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
 
 theorem Valid_inv':
   fixes inv :: "state \<Rightarrow> real"

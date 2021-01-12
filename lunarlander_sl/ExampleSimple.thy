@@ -17,7 +17,7 @@ lemma test1b: "big_step (Cm (''ch''[!](\<lambda>s. s X + 1)))
 
 text \<open>Send 1 after delay 2\<close>
 lemma test1c: "big_step (Cm (''ch''[!](\<lambda>_. 1)))
-  (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({''ch''}, {}),
+  (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({''ch''}, {}),
            OutBlock ''ch'' 1] (\<lambda>_. 0)"
   by (rule sendB2, auto)
 
@@ -28,7 +28,7 @@ lemma test2a: "big_step (Cm (''ch''[?]X))
 
 text \<open>Receive 1 after delay 2\<close>
 lemma test2b: "big_step (Cm (''ch''[?]X))
-  (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {''ch''}),
+  (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {''ch''}),
            InBlock ''ch'' 1] ((\<lambda>_. 0)(X := 1))"
   by (rule receiveB2, auto)
 
@@ -46,12 +46,12 @@ lemma test3: "par_big_step (
 
 text \<open>Wait\<close>
 lemma test4: "big_step (Wait 2)
-  (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
+  (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule waitB1) by auto
 
 text \<open>Seq\<close>
 lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
-  (\<lambda>_. 0) [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}), OutBlock ''ch'' 1] (\<lambda>_. 0)"
+  (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}), OutBlock ''ch'' 1] (\<lambda>_. 0)"
   apply (rule big_step_cong) apply (rule seqB[OF test4 test1a]) by auto
 
 text \<open>Communication after delay 2\<close>
@@ -59,7 +59,7 @@ lemma test6: "par_big_step (
   Parallel (Single (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
            (Single (Cm (''ch''[?]X))))
   (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
-    [WaitBlock 2 (\<lambda>_\<in>{0..2}. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch''}), IOBlock ''ch'' 1]
+    [WaitBlk 2 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch''}), IOBlock ''ch'' 1]
   (ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1))))"
   apply (rule ParallelB)
     apply (rule SingleB[OF test5])
@@ -87,14 +87,14 @@ lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lam
 text \<open>External choice 1\<close>
 lemma test9a: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
-  (\<lambda>_. 0) [OutBlock ''ch1'' 1, WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
+  (\<lambda>_. 0) [OutBlock ''ch1'' 1, WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=0])
   apply auto apply (rule waitB1) by auto
 
 text \<open>External choice 2\<close>
 lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
                                   (''ch2''[!](\<lambda>_. 2), Wait 2)])
-  (\<lambda>_. 0) [OutBlock ''ch2'' 2, WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
+  (\<lambda>_. 0) [OutBlock ''ch2'' 2, WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=1])
   apply auto apply (rule waitB1) by auto
 
@@ -104,7 +104,7 @@ lemma test10: "par_big_step (
                              (''ch2''[!](\<lambda>_. 2), Wait 2)])) {''ch1'', ''ch2''}
            (Single (Cm (''ch1''[?]X); Wait 1)))
   (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
-    [IOBlock ''ch1'' 1, WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1)))) ({}, {})]
+    [IOBlock ''ch1'' 1, WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1)))) ({}, {})]
   (ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1))))"
   apply (rule ParallelB)
     apply (rule SingleB[OF test9a])
@@ -115,7 +115,7 @@ lemma test10: "par_big_step (
 
 text \<open>ODE Example 1\<close>
 lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
-  (\<lambda>_. 0) [WaitBlock 1 (\<lambda>t\<in>{0..1}. State ((\<lambda>_. 0)(X := t))) ({}, {})] ((\<lambda>_. 0)(X := 1))"
+  (\<lambda>_. 0) [WaitBlk 1 (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({}, {})] ((\<lambda>_. 0)(X := 1))"
   apply (rule ContB2)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
   apply (rule has_vector_derivative_projI)
@@ -126,7 +126,7 @@ text \<open>Interrupt examples\<close>
 text \<open>Exit through boundary\<close>
 lemma test_interrupt1:
   "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 0))])
-    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>t\<in>{0..2}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {})] ((\<lambda>_. 0)(X := 2))"
+    (\<lambda>_. 0) [WaitBlk 2 (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {})] ((\<lambda>_. 0)(X := 2))"
   apply (rule InterruptB2)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
   apply (rule has_vector_derivative_projI)
@@ -143,7 +143,7 @@ lemma test_interrupt2:
 text \<open>Communication in the middle\<close>
 lemma test_interrupt3:
   "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 3))])
-    (\<lambda>_. 0) [WaitBlock 1 (\<lambda>t\<in>{0..1}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
+    (\<lambda>_. 0) [WaitBlk 1 (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
@@ -154,7 +154,7 @@ lemma test_interrupt3:
 text \<open>Note with current definition, communication at the end is also possible\<close>
 lemma test_interrupt4:
   "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 3))])
-    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>t\<in>{0..2}. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
+    (\<lambda>_. 0) [WaitBlk 2 (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
   apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
@@ -171,7 +171,7 @@ which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_internal:
   "big_step (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))
-    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>\<tau>\<in>{0..2}. State (\<lambda>_. 0)) ({''ch2''}, {}),
+    (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({''ch2''}, {}),
              OutBlock ''ch2'' 2,
              OutBlock ''ch1'' 1] (\<lambda>_. 0)"
   apply (rule RepetitionB2)
@@ -188,7 +188,7 @@ produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_external:
   "big_step (Rep (EChoice [(''ch1''[!](\<lambda>_. 1), Skip), (''ch2''[!](\<lambda>_. 2), Skip)]))
-    (\<lambda>_. 0) [WaitBlock 2 (\<lambda>\<tau>\<in>{0..2}. State (\<lambda>_. 0)) ({''ch1'', ''ch2''}, {}),
+    (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({''ch1'', ''ch2''}, {}),
              OutBlock ''ch2'' 2,
              OutBlock ''ch1'' 1] (\<lambda>_. 0)"
   apply (rule RepetitionB2)
@@ -207,20 +207,20 @@ lemma test_internal_other:
   "par_big_step (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
                           (Single (Wait 2; Cm (''ch2''[?]X))))
     (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
-    [WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {}),
-     WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch1''}),
+    [WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {}),
+     WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch1''}),
      InBlock ''ch2'' 2,
      InBlock ''ch1'' 1]
     (ParState (State ((\<lambda>_. 0)(X := 1))) (State ((\<lambda>_. 0)(X := 2))))"
 proof -
   have left: "big_step (Wait 1; Cm (''ch1''[?]X)) (\<lambda>_. 0)
-    [WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {}),
-     WaitBlock 1 (\<lambda>_\<in>{0..1}. State (\<lambda>_. 0)) ({}, {''ch1''}),
+    [WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}),
+     WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {''ch1''}),
      InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
     apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
     apply auto apply (rule receiveB2) by auto
   have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
-    [WaitBlock 2 (\<lambda>_\<in>{0..2}. State (\<lambda>_. 0)) ({}, {}),
+    [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}),
      InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
     apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
     apply auto by (rule receiveB1)
@@ -246,10 +246,10 @@ lemma test_internal_parallel:
   "par_big_step (Parallel
     (Single (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))) {''ch1'', ''ch2''}
     (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
-                          (Single (Wait 2; Cm (''ch2''[?]X)))))
+              (Single (Wait 2; Cm (''ch2''[?]X)))))
     (ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))))
-    [WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {}),
-     WaitBlock 1 (\<lambda>_\<in>{0..1}. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {''ch1''}),
+    [WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {}),
+     WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {''ch1''}),
      IOBlock ''ch2'' 2,
      IOBlock ''ch1'' 1]
     (ParState (State (\<lambda>_. 0))
@@ -290,7 +290,7 @@ subsection \<open>Simple examples of proofs\<close>
 text \<open>Send 1\<close>
 lemma testHL1:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
-              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]))}
+              (\<forall>d>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]))}
         Cm (''ch''[!](\<lambda>_. 1))
       {Q}"
   by (rule Valid_send)
@@ -301,7 +301,7 @@ lemma testHL1':
         Cm (''ch''[!](\<lambda>_. 1))
       {\<lambda>s t. s = st \<and>
            (t = tr @ [OutBlock ''ch'' 1] \<or>
-             (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({''ch''}, {}), OutBlock ''ch'' 1]))}"
+             (\<exists>d>0. t = tr @ [WaitBlk d (\<lambda>_. State st) ({''ch''}, {}), OutBlock ''ch'' 1]))}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule Valid_send)
@@ -310,10 +310,10 @@ lemma testHL1':
 text \<open>Send 1, then send 2\<close>
 lemma testHL2:
   "\<Turnstile> {\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
-              (\<forall>d>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>da>0. Q s ((tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
-                             [WaitBlock da (\<lambda>\<tau>\<in>{0..da}. State s) ({''ch''}, {}), OutBlock ''ch'' 2])))}
+               (\<forall>d>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
+              (\<forall>d>0. Q s ((tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
+               (\<forall>da>0. Q s ((tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
+                             [WaitBlk da (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 2])))}
         Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2))
       {Q}"
   apply (rule Valid_seq)
@@ -324,7 +324,7 @@ text \<open>Receive from ch\<close>
 lemma testHL3:
   "\<Turnstile> {\<lambda>s tr.
         (\<forall>v. Q (s(X := v)) (tr @ [InBlock ''ch'' v])) \<and>
-        (\<forall>d>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {''ch''}), InBlock ''ch'' v]))}
+        (\<forall>d>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {''ch''}), InBlock ''ch'' v]))}
        Cm (''ch''[?]X)
       {Q}"
   by (rule Valid_receive)
@@ -335,7 +335,7 @@ lemma testHL3':
        (Cm (''ch''[?]X))
       {\<lambda>s t. (\<exists>v. s = st(X := v) \<and>
               (t = tr @ [InBlock ''ch'' v]) \<or>
-                 (\<exists>d>0. t = tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State st) ({}, {''ch''}), InBlock ''ch'' v]))}"
+                 (\<exists>d>0. t = tr @ [WaitBlk d (\<lambda>_. State st) ({}, {''ch''}), InBlock ''ch'' v]))}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule testHL3)
@@ -531,9 +531,9 @@ theorem Valid_echoice_InIn:
     and "\<Turnstile> {Q2} p2 {R}"
   shows "\<Turnstile>
     {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
-            (\<forall>d>0. \<forall>v. Q1 (s(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch1 v])) \<and>
+            (\<forall>d>0. \<forall>v. Q1 (s(var1 := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch1, ch2}), InBlock ch1 v])) \<and>
             (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
-            (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch1, ch2}), InBlock ch2 v]))}
+            (\<forall>d>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch1, ch2}), InBlock ch2 v]))}
       EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
     {R}"
   apply (rule Valid_echoice)
