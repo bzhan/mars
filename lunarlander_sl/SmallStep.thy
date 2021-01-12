@@ -790,6 +790,26 @@ qed
 
 text \<open>Small-step generating WaitBlock can always be split into two smaller WaitBlocks\<close>
 
+lemma WaitBlk_cong:
+  "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
+  unfolding WaitBlk_def by auto
+
+lemma WaitBlk_split:
+  assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+        "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
+proof -
+  have a: "restrict p1 {0..t} = restrict p2 {0..t}"
+    using assms(1) unfolding WaitBlk_def by auto
+  show "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+    using restrict_cong_to_eq[OF a] assms(2-3)
+    unfolding WaitBlk_def by auto
+  show "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
+    using restrict_cong_to_eq[OF a] assms(2-3)
+    unfolding WaitBlk_def by auto
+qed
+
 lemma small_step_split:
   "small_step p1 s1 (Some (WaitBlk t2 hist rdy)) p2 s2 \<Longrightarrow>
    0 < t1 \<Longrightarrow> t1 < t2 \<Longrightarrow>
@@ -808,133 +828,111 @@ proof (induct p1 s1 "Some (WaitBlk t2 hist rdy)" p2 s2 rule: small_step.induct)
     by (rule small_step.seqS1[OF a(2)])
 next
   case (waitS1 d1 d s)
-  have a: "d1 = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State s)" "rdy = ({}, {})"
-    using waitS1(3) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto 
+  have a: "d1 = t2" "({}, {}) = rdy"
+    using WaitBlk_cong[OF waitS1(3)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF waitS1(3)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
   have d: "d - d1 = (d - t1) - (t2 - t1)"
-    by (auto simp add: a(1)) 
+    by (auto simp add: a(1))
   show ?case
     apply (rule exI[where x="Wait (d - t1)"]) apply (rule exI[where x=s])
-    unfolding WaitBlk_def apply auto
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.waitS1) using waitS1 \<open>d1 = t2\<close> by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(3) d
+      unfolding a(2)[symmetric] d
       apply (rule small_step.waitS1) using waitS1 \<open>d1 = t2\<close> by auto
     done
 next
   case (waitS2 d s)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State s)" "rdy = ({}, {})"
-    using waitS2(2) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto 
+  have a: "d = t2" "({}, {}) = rdy"
+    using WaitBlk_cong[OF waitS2(2)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF waitS2(2)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
   show ?case
     apply (rule exI[where x="Wait (t2 - t1)"]) apply (rule exI[where x=s])
-    unfolding WaitBlk_def apply auto
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(1,3)
+      unfolding a(1) a(2)[symmetric]
       apply (rule small_step.waitS1) using waitS2 by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.waitS2) using waitS2 by auto
     done
 next
   case (sendS2 d ch e s)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State s)" "rdy = ({ch}, {})"
-    using sendS2(2) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto 
+  have a: "d = t2" "({ch}, {}) = rdy"
+    using WaitBlk_cong[OF sendS2(2)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF sendS2(2)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
   show ?case
-    apply (rule exI[where x="Cm (ch[!]e)"])
-    apply (rule exI[where x=s])
-    unfolding WaitBlk_def apply auto
+    apply (rule exI[where x="Cm (ch[!]e)"]) apply (rule exI[where x=s])
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(1,3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.sendS2) using sendS2 by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.sendS2) using sendS2 by auto
     done
 next
   case (receiveS2 d ch var s)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State s)" "rdy = ({}, {ch})"
-    using receiveS2(2) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto 
+  have a: "d = t2" "({}, {ch}) = rdy"
+    using WaitBlk_cong[OF receiveS2(2)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF receiveS2(2)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
   show ?case
-    apply (rule exI[where x="Cm (ch[?]var)"])
-    apply (rule exI[where x=s])
-    unfolding WaitBlk_def apply auto
+    apply (rule exI[where x="Cm (ch[?]var)"]) apply (rule exI[where x=s])
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(1,3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.receiveS2) using receiveS2 by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.receiveS2) using receiveS2 by auto
     done
 next
   case (EChoiceS1 d cs s)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State s)" "rdy = rdy_of_echoice cs"
-    using EChoiceS1(2) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State s)"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto 
+  have a: "d = t2" "rdy_of_echoice cs = rdy"
+    using WaitBlk_cong[OF EChoiceS1(2)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF EChoiceS1(2)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
   show ?case
-    apply (rule exI[where x="EChoice cs"])
-    apply (rule exI[where x=s])
-    unfolding WaitBlk_def apply auto
+    apply (rule exI[where x="EChoice cs"]) apply (rule exI[where x=s])
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(1,3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.EChoiceS1) using EChoiceS1 by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.EChoiceS1) using EChoiceS1 by auto
     done
 next
   case (ContS1 d ode p b s)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State (p \<tau>))" "rdy = ({}, {})"
-    using ContS1(5) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State (p \<tau>))"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State (p (\<tau> + t1)))"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto
-  have d: "p t2 = (\<lambda>t. p (t + t1)) (t2 - t1)"
+  have a: "d = t2" "({}, {}) = rdy"
+    using WaitBlk_cong[OF ContS1(5)] by auto
+  have b: "WaitBlk t1 (\<lambda>\<tau>. State (p \<tau>)) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State (p (t + t1))) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF ContS1(5)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
+  have c: "p t2 = (\<lambda>t. p (t + t1)) (t2 - t1)"
     by auto
   show ?case
-    apply (rule exI[where x="Cont ode b"])
-    apply (rule exI[where x="p t1"])
-    unfolding WaitBlk_def apply auto
+    apply (rule exI[where x="Cont ode b"]) apply (rule exI[where x="p t1"])
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.ContS1)
          apply (simp add: ContS1.prems(1))
         apply (rule ODEsol_split(1)[OF ContS1(2)])
       using ContS1 a(1) by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(1,3) d
+      unfolding a(2)[symmetric] a(1) c
       apply (rule small_step.ContS1)
          apply (simp add: ContS1.prems(2))
         apply (rule ODEsol_split(2))
@@ -943,28 +941,24 @@ next
     done
 next
   case (InterruptS1 d ode p b s cs)
-  have a: "d = t2" "restrict hist {0..t2} = (\<lambda>\<tau>\<in>{0..t2}. State (p \<tau>))" "rdy = rdy_of_echoice cs"
-    using InterruptS1(5) unfolding WaitBlk_def by auto
-  have b: "restrict hist {0..t1} = (\<lambda>\<tau>\<in>{0..t1}. State (p \<tau>))"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 < t2\<close> by auto
-  have c: "(\<lambda>\<tau>\<in>{0..t2-t1}. hist (\<tau> + t1)) = (\<lambda>\<tau>\<in>{0..t2-t1}. State (p (\<tau> + t1)))"
-    apply (rule ext)
-    using restrict_cong_to_eq[OF a(2)] using \<open>t1 > 0\<close> by auto
-  have d: "p t2 = (\<lambda>t. p (t + t1)) (t2 - t1)"
+  have a: "d = t2" "rdy_of_echoice cs = rdy"
+    using WaitBlk_cong[OF InterruptS1(5)] by auto
+  have b: "WaitBlk t1 (\<lambda>\<tau>. State (p \<tau>)) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk (t2 - t1) (\<lambda>t. State (p (t + t1))) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF InterruptS1(5)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
+  have c: "p t2 = (\<lambda>t. p (t + t1)) (t2 - t1)"
     by auto
   show ?case
-    apply (rule exI[where x="Interrupt ode b cs"])
-    apply (rule exI[where x="p t1"])
-    unfolding WaitBlk_def apply auto
+    apply (rule exI[where x="Interrupt ode b cs"]) apply (rule exI[where x="p t1"])
+    unfolding b[symmetric] apply auto
     subgoal
-      unfolding b WaitBlk_def[symmetric] a(3)
+      unfolding a(2)[symmetric]
       apply (rule small_step.InterruptS1)
          apply (simp add: InterruptS1.prems(1))
         apply (rule ODEsol_split(1)[OF InterruptS1(2)])
       using InterruptS1 a(1) by auto
     subgoal
-      unfolding c WaitBlk_def[symmetric] a(1,3) d
+      unfolding a(2)[symmetric] a(1) c
       apply (rule small_step.InterruptS1)
          apply (simp add: InterruptS1.prems(2))
         apply (rule ODEsol_split(2))
