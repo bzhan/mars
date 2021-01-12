@@ -154,10 +154,19 @@ lemma combine_blocks_waitE2 [sync_elims]:
    (\<And>tr'. tr = WaitBlk d (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
            combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
 proof (induct rule: combine_blocks.cases)
-  case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 rdy t)
-  then show ?case
-    using restrict_combine_cong[of p1 d hist1 p2 hist2]
-    by (metis (mono_tags, lifting) WaitBlk_def list.inject trace_block.inject(2))
+  case (combine_blocks_wait1 comms' blks1 blks2 blks rdy1' rdy2' hist hist1 hist2 rdy t)
+  have a: "d = t" "rdy1 = rdy1'" "rdy2 = rdy2'"
+          "restrict p1 {0..d} = restrict hist1 {0..d}" "restrict p2 {0..d} = restrict hist2 {0..d}"
+          "tr1 = blks1" "tr2 = blks2" 
+    using combine_blocks_wait1(2,3) unfolding WaitBlk_def by auto
+  have b: "restrict (\<lambda>\<tau>. ParState (hist1 \<tau>) (hist2 \<tau>)) {0..t} = restrict (\<lambda>\<tau>. ParState (p1 \<tau>) (p2 \<tau>)) {0..t}"
+    apply (rule restrict_combine_cong)
+    using a by auto
+  show ?case
+    apply (rule combine_blocks_wait1)
+    thm combine_blocks_wait1
+    using combine_blocks_wait1(4) unfolding WaitBlk_def a b combine_blocks_wait1(7,8)
+    by (auto simp add: combine_blocks_wait1(1,5))
 qed (auto simp add: WaitBlk_def)
 
 lemma combine_blocks_waitE3 [sync_elims]:
