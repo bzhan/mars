@@ -443,6 +443,18 @@ lemma entails_tassn_cancel_left:
   "Q \<Longrightarrow>\<^sub>t R \<Longrightarrow> P @\<^sub>t Q \<Longrightarrow>\<^sub>t P @\<^sub>t R"
   by (auto simp add: entails_tassn_def join_assn_def)
 
+lemma entails_tassn_cancel_right:
+  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> P @\<^sub>t R \<Longrightarrow>\<^sub>t Q @\<^sub>t R"
+  by (auto simp add: entails_tassn_def join_assn_def)
+
+lemma entails_tassn_cancel_both:
+  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> R \<Longrightarrow>\<^sub>t S \<Longrightarrow> P @\<^sub>t R \<Longrightarrow>\<^sub>t Q @\<^sub>t S"
+  by (auto simp add: entails_tassn_def join_assn_def)
+
+lemma entails_tassn_conj:
+  "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> P \<Longrightarrow>\<^sub>t R \<Longrightarrow> P \<Longrightarrow>\<^sub>t (Q \<and>\<^sub>t R)"
+  by (auto simp add: entails_tassn_def conj_assn_def)
+
 text \<open>Simpler forms of weakest precondition\<close>
 
 theorem Valid_send':
