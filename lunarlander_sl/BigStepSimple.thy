@@ -56,6 +56,11 @@ abbreviation "IOBlock ch v \<equiv> CommBlock IO ch v"
 definition WaitBlk :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rdy_info \<Rightarrow> trace_block" where
   "WaitBlk d p rdy = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
 
+lemma WaitBlk_not_Comm [simp]:
+  "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
+  "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
+  by (auto simp add: WaitBlk_def)
+
 type_synonym trace = "trace_block list"
 
 type_synonym tassn = "trace \<Rightarrow> bool"

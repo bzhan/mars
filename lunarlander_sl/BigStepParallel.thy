@@ -75,24 +75,21 @@ lemma combine_blocks_pairE [sync_elims]:
    ch1 \<in> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
    (\<And>tr'. ch1 = ch2 \<Longrightarrow> v1 = v2 \<Longrightarrow> (ch_type1 = In \<and> ch_type2 = Out \<or> ch_type1 = Out \<and> ch_type2 = In) \<Longrightarrow>
    tr = IOBlock ch1 v1 # tr' \<Longrightarrow> combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_unpairE1 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
    (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
            combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_unpairE1' [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
    ch1 \<in> comms \<Longrightarrow> ch2 \<notin> comms \<Longrightarrow>
    (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
            combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_unpairE2 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
@@ -101,36 +98,31 @@ lemma combine_blocks_unpairE2 [sync_elims]:
            combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow>
    (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
            combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_pairE2 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
    ch1 \<in> comms \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_pairE2' [sync_elims]:
   "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
    ch2 \<in> comms \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_unpairE3 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow>
    (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
            combine_blocks comms tr1 (WaitBlk d2 p2 rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_unpairE3' [sync_elims]:
   "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
    ch2 \<notin> comms \<Longrightarrow>
    (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
            combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_waitE1 [sync_elims]:
   "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
@@ -229,13 +221,11 @@ lemma combine_blocks_emptyE1 [sync_elims]:
 
 lemma combine_blocks_emptyE2 [sync_elims]:
   "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) [] tr \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_emptyE2' [sync_elims]:
   "combine_blocks comms [] (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow> P"
-  apply (induct rule: combine_blocks.cases)
-  by (auto simp add: WaitBlk_def)
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_emptyE3 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) [] tr \<Longrightarrow>
