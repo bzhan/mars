@@ -14,10 +14,10 @@ inductive small_step :: "proc \<Rightarrow> state \<Rightarrow> trace_block opti
 | seqS2: "small_step (Seq Skip c) s None c s"
 | condS1: "b s \<Longrightarrow> small_step (Cond b c1 c2) s None c1 s"
 | condS2: "\<not>b s \<Longrightarrow> small_step (Cond b c1 c2) s None c2 s"
-| waitS1: "d1 > 0 \<Longrightarrow> d1 < d \<Longrightarrow> small_step (Wait d) s (Some (WaitBlk d1 (\<lambda>_. State s) ({}, {})))
-                                 (Wait (d - d1)) s"
-| waitS2: "d > 0 \<Longrightarrow> small_step (Wait d) s (Some (WaitBlk d (\<lambda>_. State s) ({}, {}))) Skip s"
-| waitS3: "\<not>d > 0 \<Longrightarrow> small_step (Wait d) s None Skip s"
+| waitS1: "d1 > 0 \<Longrightarrow> d1 < e s \<Longrightarrow> small_step (Wait e) s (Some (WaitBlk d1 (\<lambda>_. State s) ({}, {})))
+                                 (Wait (\<lambda>s. e s - d1)) s"
+| waitS2: "e s > 0 \<Longrightarrow> small_step (Wait e) s (Some (WaitBlk (e s) (\<lambda>_. State s) ({}, {}))) Skip s"
+| waitS3: "\<not>e s > 0 \<Longrightarrow> small_step (Wait e) s None Skip s"
 | sendS1: "small_step (Cm (ch[!]e)) s (Some (OutBlock ch (e s))) Skip s"
 | sendS2: "d > 0 \<Longrightarrow> small_step (Cm (ch[!]e)) s (Some (WaitBlk d (\<lambda>_. State s) ({ch}, {})))
                                 (Cm (ch[!]e)) s"
@@ -402,24 +402,24 @@ proof (induction arbitrary: tr2 s3 rule: small_step.induct)
     using b(1) reduce_trace_append apply fastforce
     by (rule seqB[OF b(2) a(3)])
 next
-  case (waitS1 d1 d s)
-  have a: "tr2 = [WaitBlk (d - d1) (\<lambda>_. State s) ({}, {})]" "s3 = s" "0 < d - d1"
+  case (waitS1 d1 e s)
+  have a: "tr2 = [WaitBlk (e s - d1) (\<lambda>_. State s) ({}, {})]" "s3 = s" "0 < e s - d1"
     using waitE[OF waitS1(4)] by (auto simp add: waitS1(1,2))
   have b: "ev = WaitBlk d1 (\<lambda>_. State s) ({}, {})"
     using waitS1(3) by auto
-  have c: "WaitBlk d (\<lambda>_. State s) ({}, {}) =
-           WaitBlk (d1 + (d - d1)) (\<lambda>\<tau>. if \<tau> < d1 then State s else State s) ({}, {})"
+  have c: "WaitBlk (e s) (\<lambda>_. State s) ({}, {}) =
+           WaitBlk (d1 + (e s - d1)) (\<lambda>\<tau>. if \<tau> < d1 then State s else State s) ({}, {})"
     by auto
   show ?case
-    apply (rule exI[where x="[WaitBlk d (\<lambda>_. State s) ({}, {})]"])
+    apply (rule exI[where x="[WaitBlk (e s) (\<lambda>_. State s) ({}, {})]"])
     unfolding a b apply auto
     unfolding c apply (rule reduce_trace_merge)
        apply (auto simp add: waitS1)
      apply (rule waitB1)
     using waitS1 by auto
 next
-  case (waitS2 d s)
-  have a: "ev = WaitBlk d (\<lambda>_. State s) ({}, {})"
+  case (waitS2 e s)
+  have a: "ev = WaitBlk (e s) (\<lambda>_. State s) ({}, {})"
     using waitS2(2) by auto
   have b: "tr2 = []"
     using waitS2(3) apply (rule skipE) by auto
@@ -427,7 +427,7 @@ next
     using waitS2(3) apply (rule skipE) by auto
   show ?case
     unfolding a b c
-    apply (rule exI[where x="[WaitBlk d (\<lambda>_. State s) ({}, {})]"])
+    apply (rule exI[where x="[WaitBlk (e s) (\<lambda>_. State s) ({}, {})]"])
     apply auto
     apply (rule waitB1) by (rule waitS2(1))
 next
@@ -827,16 +827,16 @@ proof (induct p1 s1 "Some (WaitBlk t2 hist rdy)" p2 s2 rule: small_step.induct)
      apply (rule small_step.seqS1[OF a(1)])
     by (rule small_step.seqS1[OF a(2)])
 next
-  case (waitS1 d1 d s)
+  case (waitS1 d1 e s)
   have a: "d1 = t2" "({}, {}) = rdy"
     using WaitBlk_cong[OF waitS1(3)] by auto
   have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
           "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
     using WaitBlk_split[OF waitS1(3)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
-  have d: "d - d1 = (d - t1) - (t2 - t1)"
+  have d: "(\<lambda>s. e s - d1) = (\<lambda>s. (e s - t1) - (t2 - t1))"
     by (auto simp add: a(1))
   show ?case
-    apply (rule exI[where x="Wait (d - t1)"]) apply (rule exI[where x=s])
+    apply (rule exI[where x="Wait (\<lambda>s. e s - t1)"]) apply (rule exI[where x=s])
     unfolding b[symmetric] apply auto
     subgoal
       unfolding a(2)[symmetric]
@@ -846,21 +846,23 @@ next
       apply (rule small_step.waitS1) using waitS1 \<open>d1 = t2\<close> by auto
     done
 next
-  case (waitS2 d s)
-  have a: "d = t2" "({}, {}) = rdy"
+  case (waitS2 e s)
+  have a: "e s = t2" "({}, {}) = rdy"
     using WaitBlk_cong[OF waitS2(2)] by auto
   have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
           "WaitBlk (t2 - t1) (\<lambda>t. State s) rdy = WaitBlk (t2 - t1) (\<lambda>t. hist (t + t1)) rdy"
     using WaitBlk_split[OF waitS2(2)[unfolded a] \<open>0 < t1\<close> \<open>t1 < t2\<close>] by auto
+  have c: "t2 - t1 = (\<lambda>s. e s - t1) s"
+    using a by auto
   show ?case
-    apply (rule exI[where x="Wait (t2 - t1)"]) apply (rule exI[where x=s])
+    apply (rule exI[where x="Wait (\<lambda>s. e s - t1)"]) apply (rule exI[where x=s])
     unfolding b[symmetric] apply auto
     subgoal
       unfolding a(1) a(2)[symmetric]
-      apply (rule small_step.waitS1) using waitS2 by auto
+      apply (rule small_step.waitS1) using waitS2 a by auto
     subgoal
-      unfolding a(2)[symmetric]
-      apply (rule small_step.waitS2) using waitS2 by auto
+      unfolding a(2)[symmetric] c
+      apply (rule small_step.waitS2) using waitS2 a by auto
     done
 next
   case (sendS2 d ch e s)

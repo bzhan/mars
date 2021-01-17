@@ -45,18 +45,18 @@ lemma test3: "par_big_step (
   by (auto intro: combine_blocks.intros)
 
 text \<open>Wait\<close>
-lemma test4: "big_step (Wait 2)
+lemma test4: "big_step (Wait (\<lambda>_. 2))
   (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule waitB1) by auto
 
 text \<open>Seq\<close>
-lemma test5: "big_step (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))
+lemma test5: "big_step (Wait (\<lambda>_. 2); Cm (''ch''[!](\<lambda>_. 1)))
   (\<lambda>_. 0) [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}), OutBlock ''ch'' 1] (\<lambda>_. 0)"
   apply (rule big_step_cong) apply (rule seqB[OF test4 test1a]) by auto
 
 text \<open>Communication after delay 2\<close>
 lemma test6: "par_big_step (
-  Parallel (Single (Wait 2; Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
+  Parallel (Single (Wait (\<lambda>_. 2); Cm (''ch''[!](\<lambda>_. 1)))) {''ch''}
            (Single (Cm (''ch''[?]X))))
   (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
     [WaitBlk 2 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch''}), IOBlock ''ch'' 1]
@@ -85,24 +85,24 @@ lemma test8: "big_step (Rep (Assign X (\<lambda>s. s X + 1); Cm (''ch''[!](\<lam
   by auto
 
 text \<open>External choice 1\<close>
-lemma test9a: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
-                                  (''ch2''[!](\<lambda>_. 2), Wait 2)])
+lemma test9a: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait (\<lambda>_. 1)),
+                                  (''ch2''[!](\<lambda>_. 2), Wait (\<lambda>_. 2))])
   (\<lambda>_. 0) [OutBlock ''ch1'' 1, WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=0])
   apply auto apply (rule waitB1) by auto
 
 text \<open>External choice 2\<close>
-lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
-                                  (''ch2''[!](\<lambda>_. 2), Wait 2)])
+lemma test9b: "big_step (EChoice [(''ch1''[!](\<lambda>_. 1), Wait (\<lambda>_. 1)),
+                                  (''ch2''[!](\<lambda>_. 2), Wait (\<lambda>_. 2))])
   (\<lambda>_. 0) [OutBlock ''ch2'' 2, WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {})] (\<lambda>_. 0)"
   apply (rule EChoiceSendB1[where i=1])
   apply auto apply (rule waitB1) by auto
 
 text \<open>Communication with external choice\<close>
 lemma test10: "par_big_step (
-  Parallel (Single (EChoice [(''ch1''[!](\<lambda>_. 1), Wait 1),
-                             (''ch2''[!](\<lambda>_. 2), Wait 2)])) {''ch1'', ''ch2''}
-           (Single (Cm (''ch1''[?]X); Wait 1)))
+  Parallel (Single (EChoice [(''ch1''[!](\<lambda>_. 1), Wait (\<lambda>_. 1)),
+                             (''ch2''[!](\<lambda>_. 2), Wait (\<lambda>_. 2))])) {''ch1'', ''ch2''}
+           (Single (Cm (''ch1''[?]X); Wait (\<lambda>_. 1))))
   (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
     [IOBlock ''ch1'' 1, WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1)))) ({}, {})]
   (ParState (State (\<lambda>_. 0)) (State ((\<lambda>_. 0)(X := 1))))"
@@ -204,8 +204,8 @@ text \<open>The other side is the process
 which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
 \<close>
 lemma test_internal_other:
-  "par_big_step (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
-                          (Single (Wait 2; Cm (''ch2''[?]X))))
+  "par_big_step (Parallel (Single (Wait (\<lambda>_. 1); Cm (''ch1''[?]X))) {}
+                          (Single (Wait (\<lambda>_. 2); Cm (''ch2''[?]X))))
     (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))
     [WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {}),
      WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))) ({}, {''ch1''}),
@@ -213,13 +213,13 @@ lemma test_internal_other:
      InBlock ''ch1'' 1]
     (ParState (State ((\<lambda>_. 0)(X := 1))) (State ((\<lambda>_. 0)(X := 2))))"
 proof -
-  have left: "big_step (Wait 1; Cm (''ch1''[?]X)) (\<lambda>_. 0)
+  have left: "big_step (Wait (\<lambda>_. 1); Cm (''ch1''[?]X)) (\<lambda>_. 0)
     [WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}),
      WaitBlk 1 (\<lambda>_. State (\<lambda>_. 0)) ({}, {''ch1''}),
      InBlock ''ch1'' 1] ((\<lambda>_. 0)(X := 1))"
     apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
     apply auto apply (rule receiveB2) by auto
-  have right: "big_step (Wait 2; Cm (''ch2''[?]X)) (\<lambda>_. 0)
+  have right: "big_step (Wait (\<lambda>_. 2); Cm (''ch2''[?]X)) (\<lambda>_. 0)
     [WaitBlk 2 (\<lambda>_. State (\<lambda>_. 0)) ({}, {}),
      InBlock ''ch2'' 2] ((\<lambda>_. 0)(X := 2))"
     apply (rule big_step_cong) apply (rule seqB) apply (rule waitB1)
@@ -245,8 +245,8 @@ synchronized, since the test of compat_rdy fails in the time interval (1,2).
 lemma test_internal_parallel:
   "par_big_step (Parallel
     (Single (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))) {''ch1'', ''ch2''}
-    (Parallel (Single (Wait 1; Cm (''ch1''[?]X))) {}
-              (Single (Wait 2; Cm (''ch2''[?]X)))))
+    (Parallel (Single (Wait (\<lambda>_. 1); Cm (''ch1''[?]X))) {}
+              (Single (Wait (\<lambda>_. 2); Cm (''ch2''[?]X)))))
     (ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0))))
     [WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {}),
      WaitBlk 1 (\<lambda>_. ParState (State (\<lambda>_. 0)) (ParState (State (\<lambda>_. 0)) (State (\<lambda>_. 0)))) ({''ch2''}, {''ch1''}),

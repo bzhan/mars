@@ -24,13 +24,10 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | CondH:
     "\<turnstile> {P1} c1 {Q} \<Longrightarrow> \<turnstile> {P2} c2 {Q} \<Longrightarrow>
      \<turnstile> {\<lambda>s. if b s then P1 s else P2 s} (Cond b c1 c2) {Q}"
-| WaitH1:
-    "d > 0 \<Longrightarrow>
-     \<turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {})])}
-         (Wait d)
+| WaitH:
+    "\<turnstile> {\<lambda>s tr. if e s > 0 then Q s (tr @ [WaitBlk (e s) (\<lambda>_. State s) ({}, {})]) else Q s tr}
+         (Wait e)
        {Q}"
-| WaitH2:
-    "\<not>d > 0 \<Longrightarrow> \<turnstile> {Q} Wait d {Q}"
 | RepH:
     "\<turnstile> {P} c {P} \<Longrightarrow> \<turnstile> {P} (Rep c) {P}"
 | IChoiceH:
@@ -428,13 +425,9 @@ next
   then show ?case
     by (simp add: Valid_cond)
 next
-  case (WaitH1 Q d)
+  case (WaitH Q d)
   then show ?case
     by (simp add: Valid_wait)
-next
-  case (WaitH2 Q d)
-  then show ?case
-    by (simp add: Valid_wait2)
 next
   case (RepH P c)
   then show ?case
@@ -644,26 +637,14 @@ lemma wp_Cond: "wp (Cond b c1 c2) Q = (\<lambda>s. if b s then wp c1 Q s else wp
     using condB1 condB2 by auto
   done
 
-lemma wp_Wait1:
-  assumes "d > 0"
-  shows "wp (Wait d) Q =
-    (\<lambda>s tr. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {})]))"
+lemma wp_Wait:
+  "wp (Wait e) Q =
+    (\<lambda>s tr. if e s > 0 then Q s (tr @ [WaitBlk (e s) (\<lambda>_. State s) ({}, {})]) else Q s tr)"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
-    apply (auto simp add: wp_def elim: waitE)
-    using assms waitB1 apply blast
-    using assms waitE by blast
-  done
-
-lemma wp_Wait2:
-  assumes "\<not>d > 0"
-  shows "wp (Wait d) Q = Q"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (auto simp add: wp_def elim: waitE)
-    using assms waitB2 apply fastforce
-    apply (elim waitE)
-    using assms by auto
+    apply (auto simp add: wp_def elim!: waitE)
+    using waitB1[of e s] waitB2[of e s] apply auto
+    by fastforce
   done
 
 lemma wp_IChoice:
@@ -901,19 +882,9 @@ next
   then show ?case
     unfolding wp_Cond by (rule CondH)
 next
-  case (Wait d)
-  show ?case
-  proof (cases "d > 0")
-    case True
-    then show ?thesis
-      unfolding wp_Wait1[OF True]
-      by (rule WaitH1)
-  next
-    case False
-    then show ?thesis
-      unfolding wp_Wait2[OF False]
-      by (rule WaitH2)
-  qed
+  case (Wait e)
+  then show ?case
+    unfolding wp_Wait by (rule WaitH)
 next
   case (IChoice c1 c2)
   then show ?case

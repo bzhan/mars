@@ -434,7 +434,7 @@ lemma last_iright_blocks_snoc [simp]:
 lemma testHL14b:
   "\<Turnstile>
     {\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>t tr}
-      Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))
+      Rep (Wait (\<lambda>_. 1); Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))
     {\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
@@ -520,7 +520,7 @@ lemma testHL14:
      Parallel
       (Single (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
                Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
-      (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
+      (Single (Rep (Wait (\<lambda>_. 1); Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
     {\<exists>\<^sub>g n. trace_gassn (tot_blocks2 n)}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')

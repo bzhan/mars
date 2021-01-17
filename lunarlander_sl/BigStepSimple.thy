@@ -24,7 +24,7 @@ datatype proc =
 | Assign var exp             ("_ ::= _" [99,95] 94)
 | Seq proc proc           ("_; _" [91,90] 90)
 | Cond fform proc proc        ("IF _ THEN _ ELSE _ FI" [95,94] 93)
-| Wait real  \<comment> \<open>Waiting for a specified amount of time\<close>
+| Wait exp  \<comment> \<open>Waiting for a specified amount of time\<close>
 | IChoice proc proc  \<comment> \<open>Nondeterminism\<close>
 | EChoice "(comm \<times> proc) list"  \<comment> \<open>External choice\<close>
 | Rep proc   \<comment> \<open>Nondeterministic repetition\<close>
@@ -88,8 +88,8 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
          big_step (p1; p2) s1 (tr1 @ tr2) s3"
 | condB1: "b s1 \<Longrightarrow> big_step p1 s1 tr s2 \<Longrightarrow> big_step (IF b THEN p1 ELSE p2 FI) s1 tr s2"
 | condB2: "\<not> b s1 \<Longrightarrow> big_step p2 s1 tr s2 \<Longrightarrow> big_step (IF b THEN p1 ELSE p2 FI) s1 tr s2"
-| waitB1: "d > 0 \<Longrightarrow> big_step (Wait d) s [WaitBlk d (\<lambda>_. State s) ({}, {})] s"
-| waitB2: "\<not> d > 0 \<Longrightarrow> big_step (Wait d) s [] s"
+| waitB1: "e s > 0 \<Longrightarrow> big_step (Wait e) s [WaitBlk (e s) (\<lambda>_. State s) ({}, {})] s"
+| waitB2: "\<not> e s > 0 \<Longrightarrow> big_step (Wait e) s [] s"
 | sendB1: "big_step (Cm (ch[!]e)) s [OutBlock ch (e s)] s"
 | sendB2: "d > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlk d (\<lambda>_. State s) ({ch}, {}),
@@ -244,12 +244,9 @@ theorem Valid_cond:
   by (auto elim: condE)
 
 theorem Valid_wait:
-  "d > 0 \<Longrightarrow> \<Turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {})])} Wait d {Q}"
-  unfolding Valid_def
-  by (auto elim: waitE)
-
-theorem Valid_wait2:
-  "\<not> d > 0 \<Longrightarrow> \<Turnstile> {Q} Wait d {Q}"
+  "\<Turnstile> {\<lambda>s tr. if e s > 0 then 
+                Q s (tr @ [WaitBlk (e s) (\<lambda>_. State s) ({}, {})])
+              else Q s tr} Wait e {Q}"
   unfolding Valid_def
   by (auto elim: waitE)
 
@@ -481,9 +478,9 @@ theorem Valid_receive':
   by (auto intro: in_assn.intros)
 
 theorem Valid_wait':
-  "d > 0 \<Longrightarrow> \<Turnstile>
-    {\<lambda>s. WaitS\<^sub>t d (\<lambda>_. s) ({}, {}) @- Q s}
-      Wait d
+  "\<Turnstile>
+    {\<lambda>s. if e s > 0 then WaitS\<^sub>t (e s) (\<lambda>_. s) ({}, {}) @- Q s else Q s}
+      Wait e
     {Q}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait)
@@ -527,13 +524,13 @@ theorem Valid_receive_sp:
   done
 
 theorem Valid_wait_sp:
-  "d > 0 \<Longrightarrow> \<Turnstile>
+  "\<Turnstile>
     {\<lambda>s tr. s = st \<and> P s tr}
-      Wait d
-    {\<lambda>s tr. s = st \<and> (P s @\<^sub>t WaitS\<^sub>t d (\<lambda>_. st) ({}, {})) tr}"
+      Wait e
+    {\<lambda>s tr. s = st \<and> (P s @\<^sub>t (if e s > 0 then WaitS\<^sub>t (e s) (\<lambda>_. st) ({}, {}) else emp\<^sub>t)) tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait')
-  by (auto simp add: entails_def join_assn_def magic_wand_assn_def)
+  by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
 
 subsection \<open>Rules for internal and external choice\<close>
 
