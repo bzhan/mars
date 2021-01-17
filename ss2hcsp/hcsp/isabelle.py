@@ -19,7 +19,7 @@ def getVariableTable(vars):
 
     init_code = ""
     mapping = dict()
-    for i, var in enumerate(vars):
+    for i, var in enumerate(sorted(list(vars))):
         camelCase = var[0].upper() + var[1:].lower()
         char = chr(97 + i)  # starting from 'a'
         init_code += "definition %s :: char where \"%s = CHR ''%s''\"\n" % (camelCase, camelCase, char)
@@ -29,7 +29,7 @@ def getVariableTable(vars):
 
 code_pattern = """
 theory %s
-    imports continuousInv
+    imports HHLProver.HHLProver
 begin
 
 text \<open>Variables\<close>
@@ -120,8 +120,19 @@ def translate_isabelle(process, name):
     def trans_ode_pair(v, eq):
         return "%s := %s" % (mapping[v], trans_lambda_expr(eq))
 
+    def trans_io_comm(io, proc):
+        if io.type == 'output_channel':
+            io_str = "''%s''[!]%s" % (io.ch_name, trans_lambda_expr(io.expr))
+        elif io.type == 'input_channel':
+            io_str = "''%s''[?]%s" % (io.ch_name, mapping[io.var_name.name])
+        else:
+            raise NotImplementedError
+        return "(%s, %s)" % (io_str, trans(proc))
+
     def trans(proc):
-        if proc.type == 'assign':
+        if proc.type == 'skip':
+            return "Skip"
+        elif proc.type == 'assign':
             return "%s ::= %s" % (mapping[proc.var_name.name], trans_lambda_expr(proc.expr))
         elif proc.type == 'sequence':
             return ";\n".join(trans(p) for p in proc.hps)
@@ -144,9 +155,16 @@ def translate_isabelle(process, name):
             indent_else = '\n'.join('  ' + line for line in body.split('\n'))
             return "IF (%s) THEN\n%s\nELSE\n%s\nFI" % (
                 trans_lambda_expr(cond), indent_body, indent_else)
+        elif proc.type == 'wait':
+            return "Wait (%s)" % trans_lambda_expr(proc.delay)
         elif proc.type == 'ode':
             return "Cont (ODE ((\<lambda>_ _. 0)(%s))) (%s)" % (
                 ', '.join(trans_ode_pair(v, eq) for v, eq in proc.eqs), trans_lambda_expr(proc.constraint))
+        elif proc.type == 'ode_comm':
+            return "Interrupt (ODE ((\<lambda>_ _. 0)(%s))) (%s)\n[%s]" % (
+                ', '.join(trans_ode_pair(v, eq) for v, eq in proc.eqs),
+                trans_lambda_expr(proc.constraint),
+                ', '.join(trans_io_comm(io, proc) for io, proc in proc.io_comms))
         else:
             print(proc.type, proc)
             raise NotImplementedError

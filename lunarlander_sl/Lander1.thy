@@ -1,14 +1,14 @@
 
 theory Lander1
-    imports continuousInv
+    imports HHLProver.HHLProver
 begin
 
 text \<open>Variables\<close>
 
-definition M :: char where "M = CHR ''a''"
-definition Fc :: char where "Fc = CHR ''b''"
-definition V :: char where "V = CHR ''c''"
-definition T :: char where "T = CHR ''d''"
+definition Fc :: char where "Fc = CHR ''a''"
+definition M :: char where "M = CHR ''b''"
+definition T :: char where "T = CHR ''c''"
+definition V :: char where "V = CHR ''d''"
 
 
 text \<open>Processes\<close>
