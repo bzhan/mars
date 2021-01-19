@@ -1572,8 +1572,7 @@ next
     apply (rule WaitBlk_eq_combine)
     using b combine_blocks_wait1(6) a by auto
   have d: "WaitBlk d2 (\<lambda>\<tau>. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) rdy = WaitBlk d2 p2 rdy"
-    apply (rule WaitBlk_ext)
-      apply auto apply (rule ext) using a by auto
+    apply (rule WaitBlk_ext) using a by auto
   show ?case
     apply (rule exI[where x="WaitBlk t hist rdy' # blks"])
     apply auto unfolding c
@@ -1584,8 +1583,8 @@ next
     using combine_blocks_wait1 a by auto
 next
   case (combine_blocks_wait2 comms t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy')
-  have pre: "d1 = t1" "restrict hist1 {0..t1} = restrict p1 {0..t1}" "rdy1 = rdy"
-    using combine_blocks_wait2(8) unfolding WaitBlk_def by auto
+  have pre: "d1 = t1" "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> hist1 t = p1 t" "rdy1 = rdy"
+    using combine_blocks_wait2(8) WaitBlk_cong WaitBlk_cong2 by blast+
   have a: ?case if "t1 + d2 = t2"
   proof -
     have a1: "t2 - t1 = d2"
@@ -1602,7 +1601,7 @@ next
       subgoal
         unfolding combine_blocks_wait2(6)
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait2(9-11) restrict_cong_to_eq[OF pre(2)] pre(1) by auto
+        using combine_blocks_wait2(9-11) pre(1,2) by auto
       subgoal
         unfolding pre(1) that
         apply (rule combine_blocks.combine_blocks_wait1)
@@ -1628,7 +1627,7 @@ next
       subgoal
         unfolding combine_blocks_wait2(6)
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait2(9-11) restrict_cong_to_eq[OF pre(2)] b1 pre(1) by auto
+        using combine_blocks_wait2(9-11) b1 pre(1,2) by auto
       subgoal
         unfolding pre(1)
         apply (rule combine_blocks.combine_blocks_wait2)
@@ -1659,7 +1658,7 @@ next
       subgoal
         unfolding combine_blocks_wait2(6) c3
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait2(4,9-11) restrict_cong_to_eq[OF pre(2)] c1 pre(1) by auto
+        using combine_blocks_wait2(4,9-11) c1 pre(1,2) by auto
       subgoal
         unfolding pre(1)
         apply (rule combine_blocks.combine_blocks_wait3)
@@ -1688,14 +1687,13 @@ next
   have c: "WaitBlk (t1 - t2 + d2) (\<lambda>\<tau>. if \<tau> < t1 - t2 then p1 (\<tau> + t2) else p2 (\<tau> - (t1 - t2))) rdy =
            WaitBlk (d1 + d2 - t2) (\<lambda>\<tau>. if \<tau> + t2 < d1 then p1 (\<tau> + t2) else p2 (\<tau> + t2 - d1)) rdy"
     apply (rule WaitBlk_ext)
-    apply (auto simp add: pre(1)) apply (rule ext)
-    by (simp add: diff_diff_eq2 pre(1))
+    by (auto simp add: diff_diff_eq2 pre(1))
   have d: "WaitBlk t2 hist rdy' = WaitBlk t2 (\<lambda>\<tau>. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy'"
     unfolding combine_blocks_wait3(6,7)
     apply (rule WaitBlk_eq_combine)
      apply (auto simp add: combine_blocks_wait3(4))
-    unfolding pre2(1) apply (rule WaitBlk_ext) apply auto
-    apply (rule ext) using \<open>t2 < t1\<close> by auto
+    unfolding pre2(1) apply (rule WaitBlk_ext)
+    using \<open>t2 < t1\<close> by auto
   show ?case
     apply (rule exI[where x="WaitBlk t2 hist rdy' # tr''"])
     apply auto
@@ -1728,8 +1726,7 @@ next
     apply (rule WaitBlk_eq_combine)
     using b combine_blocks_wait1(6) a by auto
   have d: "WaitBlk d2 (\<lambda>\<tau>. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) rdy = WaitBlk d2 p2 rdy"
-    apply (rule WaitBlk_ext)
-      apply auto apply (rule ext) using a by auto
+    apply (rule WaitBlk_ext) using a by auto
   show ?case
     apply (rule exI[where x="WaitBlk t hist rdy' # blks"])
     apply auto unfolding c
@@ -1762,8 +1759,8 @@ next
     unfolding combine_blocks_wait2(6,7)
     apply (rule WaitBlk_eq_combine)
      apply (auto simp add: combine_blocks_wait2(4))
-    unfolding pre2(1) apply (rule WaitBlk_ext) apply auto
-    apply (rule ext) using pre2 \<open>t1 < t2\<close> by auto
+    unfolding pre2(1) apply (rule WaitBlk_ext)
+    using pre2 \<open>t1 < t2\<close> by auto
   show ?case
     apply (rule exI[where x="WaitBlk t1 hist rdy' # tr''"])
     apply auto
@@ -1773,8 +1770,8 @@ next
     using combine_blocks_wait2(3-11) pre by auto
 next
   case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks rdy2 hist hist2 rdy')
-  have pre: "d1 = t2" "restrict hist2 {0..t2} = restrict p1 {0..t2}" "rdy2 = rdy"
-    using combine_blocks_wait3(8) unfolding WaitBlk_def by auto
+  have pre: "d1 = t2" "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> hist2 t = p1 t" "rdy2 = rdy"
+    using combine_blocks_wait3(8) WaitBlk_cong WaitBlk_cong2 by blast+
   have a: ?case if "t2 + d2 = t1"
   proof -
     have a1: "t1 - t2 = d2"
@@ -1791,7 +1788,7 @@ next
       subgoal
         unfolding combine_blocks_wait3(6)
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait3(9-11) restrict_cong_to_eq[OF pre(2)] pre(1) by auto
+        using combine_blocks_wait3(9-11) pre(1,2) by auto
       subgoal
         unfolding pre(1) that
         apply (rule combine_blocks.combine_blocks_wait1)
@@ -1817,7 +1814,7 @@ next
       subgoal
         unfolding combine_blocks_wait3(6)
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait3(9-11) restrict_cong_to_eq[OF pre(2)] b1 pre(1) by auto
+        using combine_blocks_wait3(9-11) b1 pre(1,2) by auto
       subgoal
         unfolding pre(1)
         apply (rule combine_blocks.combine_blocks_wait3)
@@ -1848,7 +1845,7 @@ next
       subgoal
         unfolding combine_blocks_wait3(6) c3
         apply (rule reduce_trace_merge')
-        using combine_blocks_wait3(4,9-11) restrict_cong_to_eq[OF pre(2)] c1 pre(1) by auto
+        using combine_blocks_wait3(4,9-11) c1 pre(1,2) by auto
       subgoal
         unfolding pre(1)
         apply (rule combine_blocks.combine_blocks_wait2)

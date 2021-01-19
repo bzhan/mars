@@ -65,20 +65,18 @@ lemma restrict_cong_to_eq:
   "restrict p1 {0..t} = restrict p2 {0..t} \<Longrightarrow> 0 \<le> x \<Longrightarrow> x \<le> t \<Longrightarrow> p1 x = p2 x"
   apply (auto simp add: restrict_def) by metis
 
-lemma restrict_combine_cong:
-  "restrict p1 {0..t} = restrict p1' {0..t} \<Longrightarrow>
-   restrict p2 {0..t} = restrict p2' {0..t} \<Longrightarrow>
-   (\<lambda>\<tau>\<in>{0..t}. ParState (p1 \<tau>) (p2 \<tau>)) = (\<lambda>\<tau>\<in>{0..t}. ParState (p1' \<tau>) (p2' \<tau>))"
-  apply (rule ext) using restrict_cong_to_eq by (auto simp add: restrict_def)
-
 lemma WaitBlk_ext:
-  "t1 = t2 \<Longrightarrow> (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) = (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
+  "t1 = t2 \<Longrightarrow> (\<And>\<tau>. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
    WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
-  unfolding WaitBlk_def by auto
+  unfolding WaitBlk_def restrict_def by auto
 
 lemma WaitBlk_cong:
   "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
   unfolding WaitBlk_def by auto
+
+lemma WaitBlk_cong2:
+  "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> 0 \<le> t \<Longrightarrow> t \<le> t1 \<Longrightarrow> hist1 t = hist2 t"
+  unfolding WaitBlk_def using restrict_cong_to_eq by auto
 
 lemma WaitBlk_split:
   assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"

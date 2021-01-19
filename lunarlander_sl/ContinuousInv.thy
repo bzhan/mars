@@ -29,8 +29,9 @@ theorem Valid_inv:
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal for d p
-    apply (rule exI[where x="p"])
-    apply (auto simp add: WaitBlk_def)
+    apply (rule exI[where x=p])
+    apply (rule exI[where x=d])
+    apply auto
     subgoal premises pre for \<tau>
     proof-
       have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"

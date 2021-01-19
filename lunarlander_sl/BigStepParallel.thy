@@ -13,12 +13,21 @@ text \<open>Merge two rdy infos\<close>
 fun merge_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
   "merge_rdy (r11, r12) (r21, r22) = (r11 \<union> r21, r12 \<union> r22)"
 
+
 lemma WaitBlk_eq_combine:
-  "WaitBlk d1 p1 rdy1 = WaitBlk d1' p1' rdy1' \<Longrightarrow>
-   WaitBlk d1 p2 rdy2 = WaitBlk d1' p2' rdy2' \<Longrightarrow>
-   WaitBlk d1 (\<lambda>\<tau>. ParState (p1 \<tau>) (p2 \<tau>)) (merge_rdy rdy1 rdy2) =
-   WaitBlk d1' (\<lambda>\<tau>. ParState (p1' \<tau>) (p2' \<tau>)) (merge_rdy rdy1' rdy2')"
-  unfolding WaitBlk_def using restrict_combine_cong by blast
+  assumes "WaitBlk d1 p1 rdy1 = WaitBlk d1' p1' rdy1'"
+    and "WaitBlk d1 p2 rdy2 = WaitBlk d1' p2' rdy2'"
+   shows "WaitBlk d1 (\<lambda>\<tau>. ParState (p1 \<tau>) (p2 \<tau>)) (merge_rdy rdy1 rdy2) =
+          WaitBlk d1' (\<lambda>\<tau>. ParState (p1' \<tau>) (p2' \<tau>)) (merge_rdy rdy1' rdy2')"
+proof -
+  have a: "d1 = d1'" "rdy1 = rdy1'" "rdy2 = rdy2'"
+    using assms WaitBlk_cong by blast+
+  show ?thesis
+    unfolding WaitBlk_def a apply auto
+    apply (rule ext) apply auto
+    using assms unfolding WaitBlk_def
+    using restrict_cong_to_eq by (auto simp add: restrict_def)
+qed
 
 
 text \<open>combine_blocks comms tr1 tr2 tr means tr1 and tr2 combines to tr, where

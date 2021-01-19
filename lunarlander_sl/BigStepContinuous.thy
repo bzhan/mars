@@ -296,16 +296,14 @@ proof -
     have s7: "d = d2" using s5 s6 by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 s7 by (metis vec_state_map1)
-    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
-      using s7 s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
     have s11: "WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) = WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})"
-      apply (rule WaitBlk_ext) using s7 s9 by auto
+      apply (rule WaitBlk_ext) using s7 s8 by auto
     have s12: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
       unfolding s11[symmetric]
       by (rule wait_assn.intros)
-    show ?thesis using s7 s9 s10 s12 by auto
+    show ?thesis using s7 s8 s10 s12 by auto
   qed
   show ?thesis
     using assms(7) apply (auto simp add: ode_assn.simps)
@@ -519,7 +517,7 @@ theorem Valid_ode_out_unique_solution_aux:
   shows
     "\<exists>d. st' = p d \<and> WaitOut\<^sub>t d p ch e rdy tr"
 proof -
-  have main: "p2 d = p d \<and> (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>))"
+  have main: "p2 d = p d \<and> (\<forall>\<tau>\<in>{0..d}. State (p2 \<tau>) = State (p \<tau>))"
     if cond: "0 < d"
        "ODEsol ode p2 d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p2 t)"
@@ -541,11 +539,9 @@ proof -
       using cond that by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 by (metis vec_state_map1)
-    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>))"
-      using s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 that(1) by auto
-    show ?thesis using s9 s10 by auto
+    show ?thesis using s8 s10 by auto
   qed
   show ?thesis
     using assms(5) apply (elim ode_out_assn.cases)
