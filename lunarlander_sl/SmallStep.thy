@@ -124,10 +124,10 @@ lemma reduce_trace_merge':
   shows "reduce_trace (WaitBlk d1 hist1 rdy # WaitBlk d2 hist2 rdy # tr)
                       (WaitBlk (d1 + d2) hist rdy # tr)"
 proof -
-  have a: "(\<lambda>\<tau>\<in>{0..d1+d2}. hist \<tau>) = (\<lambda>\<tau>\<in>{0..d1+d2}. if \<tau> < d1 then hist1 \<tau> else hist2 (\<tau> - d1))"
-    using assms by auto
+  have a: "WaitBlk (d1 + d2) hist rdy = WaitBlk (d1 + d2) (\<lambda>\<tau>. if \<tau> < d1 then hist1 \<tau> else hist2 (\<tau> - d1)) rdy"
+    apply (rule WaitBlk_ext) using assms by auto
   show ?thesis
-    unfolding WaitBlk_def a apply (rule reduce_trace_merge[unfolded WaitBlk_def])
+    unfolding a apply (rule reduce_trace_merge)
     using assms by auto
 qed
 
@@ -601,7 +601,7 @@ next
     (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2       
   proof -
     have c1: "?rhs = [WaitBlk (d + d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) ({}, {})]"
-      by (auto simp add: WaitBlk_def)
+      apply auto apply (rule WaitBlk_ext) by auto
     show ?thesis
       unfolding c1 apply (rule reduce_trace_merge)
       by (auto simp add: that ContS1)
@@ -682,7 +682,7 @@ next
   proof -
     have e2: "?rhs = WaitBlk (d + d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
                      OutBlock ch (e (p2 d2)) # tr2'"
-      by (auto simp add: WaitBlk_def)
+      apply auto apply (rule WaitBlk_ext) by auto
     show ?thesis
       unfolding e2 apply (rule reduce_trace_merge)
       by (auto simp add: InterruptS1 that)
@@ -694,7 +694,7 @@ next
   proof -
     have f2: "?rhs = WaitBlk (d + d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
                      InBlock ch v # tr2'"
-      by (auto simp add: WaitBlk_def)
+      apply auto apply (rule WaitBlk_ext) by auto
     show ?thesis
       unfolding f2 apply (rule reduce_trace_merge)
       by (auto simp add: that InterruptS1)
@@ -705,7 +705,7 @@ next
     (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2
   proof -
     have g1: "?rhs = [WaitBlk (d + d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]"
-      by (auto simp add: WaitBlk_def)
+      apply auto apply (rule WaitBlk_ext) by auto
     show ?thesis
       unfolding g1 apply (rule reduce_trace_merge)
       by (auto simp add: that InterruptS1)
@@ -947,7 +947,7 @@ next
       using a(1) InterruptS1(2) apply auto[1]
       using InterruptS1 a(1) by auto
     done
-qed (auto simp add: WaitBlk_def)
+qed (auto)
 
 
 subsection \<open>Parallel case\<close>
@@ -1165,14 +1165,16 @@ proof (induct p1 s1 "Some (WaitBlk t2 hist rdy)" p2 s2 arbitrary: hist rdy rule:
     by (rule par_small_step.SingleS[OF a(2)])
 next
   case (ParDelayS rdy1 rdy2 hist' hist1 hist2 rdy' p1 s1 t p2 s2 p3 s3 p4 s4 chs)
-  have a: "t = t2" "restrict hist {0..t2} = restrict hist' {0..t2}" "rdy = rdy'"
-    using ParDelayS(8) unfolding WaitBlk_def by auto
+  have a: "t = t2" "rdy = rdy'"
+    using ParDelayS(8) WaitBlk_cong by blast+
   have a2: "WaitBlk t1 hist rdy' = WaitBlk t1 hist' rdy'"
-    using restrict_cong_to_eq[OF a(2)] unfolding WaitBlk_def
-    apply auto apply (rule ext) using \<open>t1 < t2\<close> by auto
+    apply (rule WaitBlk_split(1))
+    apply (rule ParDelayS(8)[symmetric,unfolded a])
+    using \<open>0 < t1\<close> \<open>t1 < t2\<close> by auto
   have a3: "WaitBlk (t2 - t1) (\<lambda>\<tau>. hist (\<tau> + t1)) rdy' = WaitBlk (t2 - t1) (\<lambda>\<tau>. hist' (\<tau> + t1)) rdy'"
-    using restrict_cong_to_eq[OF a(2)] unfolding WaitBlk_def
-    apply auto apply (rule ext) using \<open>t1 < t2\<close> \<open>0 < t1\<close> by auto
+    apply (rule WaitBlk_split(2))
+    apply (rule ParDelayS(8)[symmetric,unfolded a])
+    using \<open>t1 < t2\<close> \<open>0 < t1\<close> by auto
   obtain p1' s1' where b:
     "par_small_step p1 s1 (Some (WaitBlk t1 hist1 rdy1)) p1' s1'"
     "par_small_step p1' s1' (Some (WaitBlk (t2 - t1) (\<lambda>\<tau>. hist1 (\<tau> + t1)) rdy1)) p2 s2"
@@ -1186,14 +1188,14 @@ next
     apply (rule exI[where x="ParState s1' s3'"])
     apply auto
     subgoal
-      unfolding a(3) a2
+      unfolding a(2) a2
       by (rule par_small_step.ParDelayS[OF ParDelayS(1-3) b(1) c(1)])
     subgoal
-      unfolding a(3) a3
+      unfolding a(2) a3
       apply (rule par_small_step.ParDelayS[OF ParDelayS(1) _ ParDelayS(3) b(2) c(2)])
       using ParDelayS(2) by auto
     done
-qed (auto simp add: WaitBlk_def)
+qed (auto)
 
 
 inductive is_skip :: "pproc \<Rightarrow> bool" where
@@ -1560,23 +1562,25 @@ proof (induct chs "WaitBlk d1 p1 rdy # WaitBlk d2 p2 rdy # tr'" tr2 tr
     using combine_blocks.combine_blocks_unpair2 reduce_trace_cons by blast
 next
   case (combine_blocks_wait1 chs blks2 blks rdy1 rdy2 hist hist1 hist2 rdy' t)
-  have a: "t = d1" "restrict hist1 {0..t} = restrict p1 {0..t}" "rdy = rdy1"
-    using combine_blocks_wait1(6) unfolding WaitBlk_def by auto
-  have b: "(\<lambda>\<tau>\<in>{0..d2}. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
-    apply (rule restrict_ext)
-    by (auto simp add: a(1))
+  have a: "t = d1" "rdy = rdy1"
+    using combine_blocks_wait1(6) using WaitBlk_cong by blast+
+  have b: "WaitBlk t p1 rdy1 = WaitBlk t (\<lambda>\<tau>. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy1"
+    apply (rule WaitBlk_ext)
+    using a combine_blocks_wait1 by auto
   have c: "WaitBlk t hist rdy' = WaitBlk t (\<lambda>\<tau>. ParState (if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) (hist2 \<tau>)) rdy'"
-    unfolding WaitBlk_def apply (auto simp add: combine_blocks_wait1(4))
-    apply (rule ext)
-    using restrict_combine_cong[OF a(2)]
-    by (auto simp add: a combine_blocks_wait1(7))
+    unfolding combine_blocks_wait1(4,5)
+    apply (rule WaitBlk_eq_combine)
+    using b combine_blocks_wait1(6) a by auto
+  have d: "WaitBlk d2 (\<lambda>\<tau>. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) rdy = WaitBlk d2 p2 rdy"
+    apply (rule WaitBlk_ext)
+      apply auto apply (rule ext) using a by auto
   show ?case
     apply (rule exI[where x="WaitBlk t hist rdy' # blks"])
     apply auto unfolding c
     apply (rule combine_blocks_wait3)
     subgoal
-      apply (auto simp add: a(1) WaitBlk_def b)
-      using combine_blocks_wait1(1)[unfolded WaitBlk_def] by auto
+      apply (auto simp add: a(1) b d)
+      using combine_blocks_wait1(1) by auto
     using combine_blocks_wait1 a by auto
 next
   case (combine_blocks_wait2 comms t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy')
@@ -1615,8 +1619,8 @@ next
       using combine_blocks_waitE3[OF combine_blocks_wait2(1,11) b1]
             combine_blocks_wait2(3,7) unfolding pre(3) by auto
     have b3: "WaitBlk (t2 - t1 - d2) (\<lambda>t. hist2 (t + d2 + t1)) rdy2 = WaitBlk (t2 - (t1 + d2)) (\<lambda>\<tau>. hist2 (\<tau> + (t1 + d2))) rdy2"
-      apply (auto simp add: WaitBlk_def)
-      apply (rule ext) by (auto simp add: add.commute add.left_commute)
+      apply (rule WaitBlk_ext) 
+      by (auto simp add: add.commute add.left_commute)
     show ?thesis
       unfolding b2(1)
       apply (rule exI[where x="WaitBlk (t1 + d2) (\<lambda>\<tau>. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy' # blks'"])
@@ -1646,8 +1650,8 @@ next
       by auto
     have c4: "WaitBlk (d2 - (t2 - t1)) (\<lambda>t. p2 (t + (t2 - t1))) rdy =
               WaitBlk (t1 + d2 - t2) (\<lambda>\<tau>. if \<tau> + t2 < t1 then p1 (\<tau> + t2) else p2 (\<tau> + t2 - t1)) rdy"
-      apply (auto simp add: WaitBlk_def)
-      apply (rule ext) using c1 pre(1) by (simp add: add_diff_eq)
+      apply (rule WaitBlk_ext)
+      using c1 pre(1) by (auto simp add: add_diff_eq)
     show ?thesis
       unfolding c2(1)
       apply (rule exI[where x="WaitBlk t2 (\<lambda>\<tau>. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy' # blks'"])
@@ -1667,36 +1671,39 @@ next
     using a b c by fastforce
 next
   case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks2 blks rdy2 hist hist2 rdy')
-  have pre: "d1 = t1" "restrict hist1 {0..t1} = restrict p1 {0..t1}" "rdy1 = rdy"
-    using combine_blocks_wait3(8) unfolding WaitBlk_def by auto
-  have pre2: "WaitBlk (t1 - t2) (\<lambda>\<tau>. hist1 (\<tau> + t2)) rdy = WaitBlk (t1 - t2) (\<lambda>\<tau>. p1 (\<tau> + t2)) rdy"
-    apply (auto simp add: WaitBlk_def) apply (rule ext)
-    using restrict_cong_to_eq[OF pre(2)] combine_blocks_wait3.hyps(5) by auto
+  have pre: "d1 = t1" "rdy1 = rdy"
+    using combine_blocks_wait3(8) WaitBlk_cong by blast+
+  have pre2: "WaitBlk t2 hist1 rdy1 = WaitBlk t2 p1 rdy1"
+    "WaitBlk (t1 - t2) (\<lambda>\<tau>. hist1 (\<tau> + t2)) rdy = WaitBlk (t1 - t2) (\<lambda>\<tau>. p1 (\<tau> + t2)) rdy"
+    using WaitBlk_split[OF combine_blocks_wait3(8)[unfolded pre]]
+    by (auto simp add: combine_blocks_wait3 pre(2))
   have "\<exists>tr''. reduce_trace blks tr'' \<and>
           combine_blocks comms (WaitBlk (t1 - t2 + d2) (\<lambda>\<tau>. if \<tau> < t1 - t2 then p1 (\<tau> + t2) else p2 (\<tau> - (t1 - t2))) rdy # tr') blks2 tr''"
     apply (rule combine_blocks_wait3(2))
-    using combine_blocks_wait3(3-11) restrict_cong_to_eq[OF pre(2)] pre(1,3) pre2 by auto
+    using combine_blocks_wait3(3-11) pre pre2(2) by auto
   then obtain tr'' where a:
     "reduce_trace blks tr''"
     "combine_blocks comms (WaitBlk (t1 - t2 + d2) (\<lambda>\<tau>. if \<tau> < t1 - t2 then p1 (\<tau> + t2) else p2 (\<tau> - (t1 - t2))) rdy # tr') blks2 tr''"
     by auto
   have c: "WaitBlk (t1 - t2 + d2) (\<lambda>\<tau>. if \<tau> < t1 - t2 then p1 (\<tau> + t2) else p2 (\<tau> - (t1 - t2))) rdy =
            WaitBlk (d1 + d2 - t2) (\<lambda>\<tau>. if \<tau> + t2 < d1 then p1 (\<tau> + t2) else p2 (\<tau> + t2 - d1)) rdy"
-    apply (auto simp add: WaitBlk_def pre(1)) apply (rule ext)
+    apply (rule WaitBlk_ext)
+    apply (auto simp add: pre(1)) apply (rule ext)
     by (simp add: diff_diff_eq2 pre(1))
   have d: "WaitBlk t2 hist rdy' = WaitBlk t2 (\<lambda>\<tau>. ParState (if \<tau> < t1 then p1 \<tau> else p2 (\<tau> - t1)) (hist2 \<tau>)) rdy'"
-    unfolding WaitBlk_def apply (auto simp add: combine_blocks_wait3(4))
-    unfolding combine_blocks_wait3(6)
-    apply (rule restrict_combine_cong)
-    apply auto apply (rule ext) using restrict_cong_to_eq[OF pre(2)] \<open>t2 < t1\<close> by auto
+    unfolding combine_blocks_wait3(6,7)
+    apply (rule WaitBlk_eq_combine)
+     apply (auto simp add: combine_blocks_wait3(4))
+    unfolding pre2(1) apply (rule WaitBlk_ext) apply auto
+    apply (rule ext) using \<open>t2 < t1\<close> by auto
   show ?case
     apply (rule exI[where x="WaitBlk t2 hist rdy' # tr''"])
     apply auto
     subgoal apply (rule reduce_trace_cons) by (rule a(1))
     unfolding d apply (rule combine_blocks.combine_blocks_wait3)
     subgoal using a(2) unfolding c by auto
-    using combine_blocks_wait3(3-11) pre(1,3) by auto
-qed (auto simp add: WaitBlk_def)
+    using combine_blocks_wait3(3-11) pre by auto
+qed (auto)
 
 lemma combine_blocks_merge_right:
   "combine_blocks chs tr1 (WaitBlk d1 p1 rdy # WaitBlk d2 p2 rdy # tr') tr \<Longrightarrow>
@@ -1711,55 +1718,59 @@ proof (induct chs tr1 "WaitBlk d1 p1 rdy # WaitBlk d2 p2 rdy # tr'" tr
     using combine_blocks.combine_blocks_unpair1 reduce_trace_cons by blast
 next
   case (combine_blocks_wait1 chs blks1 blks rdy1 rdy2 hist hist1 hist2 rdy' t)
-  have a: "t = d1" "restrict hist2 {0..t} = restrict p1 {0..t}" "rdy = rdy2"
-    using combine_blocks_wait1(6) unfolding WaitBlk_def by auto
-  have b: "(\<lambda>\<tau>\<in>{0..d2}. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) = (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>)"
-    apply (rule restrict_ext)
-    by (auto simp add: a(1))
+  have a: "t = d1" "rdy = rdy2"
+    using combine_blocks_wait1(6) using WaitBlk_cong by blast+
+  have b: "WaitBlk t p1 rdy2 = WaitBlk t (\<lambda>\<tau>. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy2"
+    apply (rule WaitBlk_ext)
+    using a combine_blocks_wait1 by auto
   have c: "WaitBlk t hist rdy' = WaitBlk t (\<lambda>\<tau>. ParState (hist1 \<tau>) (if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1))) rdy'"
-    unfolding WaitBlk_def apply (auto simp add: combine_blocks_wait1(4))
-    apply (rule ext)
-    using restrict_combine_cong[OF _ a(2)]
-    by (auto simp add: a combine_blocks_wait1(7))
+    unfolding combine_blocks_wait1(4,5)
+    apply (rule WaitBlk_eq_combine)
+    using b combine_blocks_wait1(6) a by auto
+  have d: "WaitBlk d2 (\<lambda>\<tau>. if \<tau> < 0 then p1 (\<tau> + t) else p2 (\<tau> + t - d1)) rdy = WaitBlk d2 p2 rdy"
+    apply (rule WaitBlk_ext)
+      apply auto apply (rule ext) using a by auto
   show ?case
     apply (rule exI[where x="WaitBlk t hist rdy' # blks"])
     apply auto unfolding c
     apply (rule combine_blocks_wait2)
     subgoal
-      apply (auto simp add: a(1) WaitBlk_def b)
-      using combine_blocks_wait1(1)[unfolded WaitBlk_def] by auto
+      apply (auto simp add: a(1) b d)
+      using combine_blocks_wait1(1) by auto
     using combine_blocks_wait1 a by auto
 next
   case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks rdy1 hist hist1 rdy')
-  have pre: "d1 = t2" "restrict hist2 {0..t2} = restrict p1 {0..t2}" "rdy2 = rdy"
-    using combine_blocks_wait2(8) unfolding WaitBlk_def by auto
-  have pre2: "WaitBlk (t2 - t1) (\<lambda>\<tau>. hist2 (\<tau> + t1)) rdy = WaitBlk (t2 - t1) (\<lambda>\<tau>. p1 (\<tau> + t1)) rdy"
-    apply (auto simp add: WaitBlk_def) apply (rule ext)
-    using restrict_cong_to_eq[OF pre(2)] combine_blocks_wait2.hyps(5) by auto
+  have pre: "d1 = t2" "rdy2 = rdy"
+    using combine_blocks_wait2(8) WaitBlk_cong by blast+
+  have pre2: "WaitBlk t1 hist2 rdy2 = WaitBlk t1 p1 rdy2"
+    "WaitBlk (t2 - t1) (\<lambda>\<tau>. hist2 (\<tau> + t1)) rdy = WaitBlk (t2 - t1) (\<lambda>\<tau>. p1 (\<tau> + t1)) rdy"
+    using WaitBlk_split[OF combine_blocks_wait2(8)[unfolded pre]]
+    by (auto simp add: combine_blocks_wait2 pre(2))
   have "\<exists>tr''. reduce_trace blks tr'' \<and>
           combine_blocks comms blks1 (WaitBlk (t2 - t1 + d2) (\<lambda>\<tau>. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy # tr') tr''"
     apply (rule combine_blocks_wait2(2))
-    using combine_blocks_wait2(3-11) restrict_cong_to_eq[OF pre(2)] pre(1,3) pre2 by auto
+    using combine_blocks_wait2(3-11) pre pre2 by auto
   then obtain tr'' where a:
     "reduce_trace blks tr''"
     "combine_blocks comms blks1 (WaitBlk (t2 - t1 + d2) (\<lambda>\<tau>. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy # tr') tr''"
     by auto
   have c: "WaitBlk (t2 - t1 + d2) (\<lambda>\<tau>. if \<tau> < t2 - t1 then p1 (\<tau> + t1) else p2 (\<tau> - (t2 - t1))) rdy =
            WaitBlk (d1 + d2 - t1) (\<lambda>\<tau>. if \<tau> + t1 < d1 then p1 (\<tau> + t1) else p2 (\<tau> + t1 - d1)) rdy"
-    apply (auto simp add: WaitBlk_def pre(1)) apply (rule ext)
-    by (simp add: diff_diff_eq2 pre(1))
+    apply (rule WaitBlk_ext)
+    by (auto simp add: diff_diff_eq2 pre(1))
   have d: "WaitBlk t1 hist rdy' = WaitBlk t1 (\<lambda>\<tau>. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy'"
-    unfolding WaitBlk_def apply (auto simp add: combine_blocks_wait2(4))
-    unfolding combine_blocks_wait2(6)
-    apply (rule restrict_combine_cong)
-    apply auto apply (rule ext) using restrict_cong_to_eq[OF pre(2)] \<open>t1 < t2\<close> by auto
+    unfolding combine_blocks_wait2(6,7)
+    apply (rule WaitBlk_eq_combine)
+     apply (auto simp add: combine_blocks_wait2(4))
+    unfolding pre2(1) apply (rule WaitBlk_ext) apply auto
+    apply (rule ext) using pre2 \<open>t1 < t2\<close> by auto
   show ?case
     apply (rule exI[where x="WaitBlk t1 hist rdy' # tr''"])
     apply auto
     subgoal apply (rule reduce_trace_cons) by (rule a(1))
     unfolding d apply (rule combine_blocks.combine_blocks_wait2)
     subgoal using a(2) unfolding c by auto
-    using combine_blocks_wait2(3-11) pre(1,3) by auto
+    using combine_blocks_wait2(3-11) pre by auto
 next
   case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks rdy2 hist hist2 rdy')
   have pre: "d1 = t2" "restrict hist2 {0..t2} = restrict p1 {0..t2}" "rdy2 = rdy"
@@ -1797,8 +1808,8 @@ next
       using combine_blocks_waitE4[OF combine_blocks_wait3(1,11) b1]
             combine_blocks_wait3(3,7) unfolding pre(3) by auto
     have b3: "WaitBlk (t1 - t2 - d2) (\<lambda>t. hist1 (t + d2 + t2)) rdy1 = WaitBlk (t1 - (t2 + d2)) (\<lambda>\<tau>. hist1 (\<tau> + (t2 + d2))) rdy1"
-      apply (auto simp add: WaitBlk_def)
-      apply (rule ext) by (auto simp add: add.commute add.left_commute)
+      apply (rule WaitBlk_ext)
+      by (auto simp add: add.commute add.left_commute)
     show ?thesis
       unfolding b2(1)
       apply (rule exI[where x="WaitBlk (t2 + d2) (\<lambda>\<tau>. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' # blks'"])
@@ -1828,8 +1839,8 @@ next
       by auto
     have c4: "WaitBlk (d2 - (t1 - t2)) (\<lambda>t. p2 (t + (t1 - t2))) rdy =
               WaitBlk (t2 + d2 - t1) (\<lambda>\<tau>. if \<tau> + t1 < t2 then p1 (\<tau> + t1) else p2 (\<tau> + t1 - t2)) rdy"
-      apply (auto simp add: WaitBlk_def)
-      apply (rule ext) using c1 pre(1) by (simp add: add_diff_eq)
+      apply (rule WaitBlk_ext)
+      using c1 pre(1) by (auto simp add: add_diff_eq)
     show ?thesis
       unfolding c2(1)
       apply (rule exI[where x="WaitBlk t1 (\<lambda>\<tau>. ParState (hist1 \<tau>) (if \<tau> < t2 then p1 \<tau> else p2 (\<tau> - t2))) rdy' # blks'"])
@@ -1847,7 +1858,7 @@ next
   qed
   show ?case
     using a b c by fastforce
-qed (auto simp add: WaitBlk_def)
+qed (auto)
 
 
 lemma combine_blocks_equiv_left:
