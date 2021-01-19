@@ -61,6 +61,42 @@ lemma WaitBlk_not_Comm [simp]:
   "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
   by (auto simp add: WaitBlk_def)
 
+lemma restrict_cong_to_eq:
+  "restrict p1 {0..t} = restrict p2 {0..t} \<Longrightarrow> 0 \<le> x \<Longrightarrow> x \<le> t \<Longrightarrow> p1 x = p2 x"
+  apply (auto simp add: restrict_def) by metis
+
+lemma restrict_combine_cong:
+  "restrict p1 {0..t} = restrict p1' {0..t} \<Longrightarrow>
+   restrict p2 {0..t} = restrict p2' {0..t} \<Longrightarrow>
+   (\<lambda>\<tau>\<in>{0..t}. ParState (p1 \<tau>) (p2 \<tau>)) = (\<lambda>\<tau>\<in>{0..t}. ParState (p1' \<tau>) (p2' \<tau>))"
+  apply (rule ext) using restrict_cong_to_eq by (auto simp add: restrict_def)
+
+lemma WaitBlk_ext:
+  "t1 = t2 \<Longrightarrow> (\<lambda>\<tau>\<in>{0..t1}. hist1 \<tau>) = (\<lambda>\<tau>\<in>{0..t2}. hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
+   WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
+  unfolding WaitBlk_def by auto
+
+lemma WaitBlk_cong:
+  "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
+  unfolding WaitBlk_def by auto
+
+lemma WaitBlk_split:
+  assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
+    and "0 < t1" "t1 < t"
+  shows "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+        "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
+proof -
+  have a: "restrict p1 {0..t} = restrict p2 {0..t}"
+    using assms(1) unfolding WaitBlk_def by auto
+  show "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
+    using restrict_cong_to_eq[OF a] assms(2-3)
+    unfolding WaitBlk_def by auto
+  show "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
+    using restrict_cong_to_eq[OF a] assms(2-3)
+    unfolding WaitBlk_def by auto
+qed
+
+
 type_synonym trace = "trace_block list"
 
 type_synonym tassn = "trace \<Rightarrow> bool"

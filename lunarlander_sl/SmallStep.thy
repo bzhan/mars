@@ -790,26 +790,6 @@ qed
 
 text \<open>Small-step generating WaitBlock can always be split into two smaller WaitBlocks\<close>
 
-lemma WaitBlk_cong:
-  "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
-  unfolding WaitBlk_def by auto
-
-lemma WaitBlk_split:
-  assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
-    and "0 < t1" "t1 < t"
-  shows "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
-        "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
-proof -
-  have a: "restrict p1 {0..t} = restrict p2 {0..t}"
-    using assms(1) unfolding WaitBlk_def by auto
-  show "WaitBlk t1 p1 rdy = WaitBlk t1 p2 rdy"
-    using restrict_cong_to_eq[OF a] assms(2-3)
-    unfolding WaitBlk_def by auto
-  show "WaitBlk (t - t1) (\<lambda>t. p1 (t + t1)) rdy = WaitBlk (t - t1) (\<lambda>t. p2 (t + t1)) rdy"
-    using restrict_cong_to_eq[OF a] assms(2-3)
-    unfolding WaitBlk_def by auto
-qed
-
 lemma small_step_split:
   "small_step p1 s1 (Some (WaitBlk t2 hist rdy)) p2 s2 \<Longrightarrow>
    0 < t1 \<Longrightarrow> t1 < t2 \<Longrightarrow>

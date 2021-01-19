@@ -300,13 +300,12 @@ proof -
       using s7 s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
-    have s11: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
-      unfolding WaitBlk_def
-      apply (subst s9[symmetric])
-      apply (subst s7[symmetric])
-      unfolding WaitBlk_def[symmetric]
+    have s11: "WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) = WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})"
+      apply (rule WaitBlk_ext) using s7 s9 by auto
+    have s12: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
+      unfolding s11[symmetric]
       by (rule wait_assn.intros)
-    show ?thesis using s7 s9 s10 s11 by auto
+    show ?thesis using s7 s9 s10 s12 by auto
   qed
   show ?thesis
     using assms(7) apply (auto simp add: ode_assn.simps)
@@ -557,7 +556,7 @@ proof -
     subgoal for d p2 rdy1 rdy2
       apply (rule exI[where x=d])
       apply (auto simp add: wait_out_assn.simps)
-      using main[of d p2] WaitBlk_def by auto
+      using main[of d p2] by (auto intro: WaitBlk_ext)
     done
 qed
 
