@@ -179,10 +179,10 @@ inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarr
 
 inductive ode_out_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEout\<^sub>t") where
   "ODEout\<^sub>t s ode b s ch e rdy [OutBlock ch (e s)]"
-| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+| "0 < (d::real) \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
     ODEout\<^sub>t s ode b (p d) ch e rdy
-      [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
+      [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
 
 text \<open>ODE with interrupt, but reached boundary\<close>
 inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODErdy\<^sub>t") where
@@ -299,7 +299,7 @@ proof -
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
     have s11: "WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) = WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})"
-      apply (rule WaitBlk_ext) using s7 s8 by auto
+      apply (rule WaitBlk_ext_real) using s7 s8 by auto
     have s12: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
       unfolding s11[symmetric]
       by (rule wait_assn.intros)
@@ -375,7 +375,7 @@ proof -
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
-      using Q by (auto simp add: entails_def magic_wand_assn_def ode_out_assn.intros)
+      using Q ode_out_assn.intros by (auto simp add: entails_def magic_wand_assn_def)
   qed
   have 2: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
@@ -392,7 +392,7 @@ proof -
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
-      using Q by (auto simp add: entails_def magic_wand_assn_def ode_in_assn.intros)
+      using Q ode_in_assn.intros by (auto simp add: entails_def magic_wand_assn_def)
   qed
   have 3: "R s tr"
     if "\<forall>s'. (ODErdy\<^sub>t s ode b s' (rdy_of_echoice cs) @- R s') tr" "\<not> b s" for s tr
@@ -426,7 +426,7 @@ proof -
     subgoal apply (rule entails_trans[OF assms(2)])
       by (auto simp add: entails_def 3)
     subgoal apply (rule entails_trans[OF assms(2)])
-      by (auto simp add: entails_def 4)
+      using 4 entails_def by auto
     done
 qed
 
@@ -552,7 +552,7 @@ proof -
     subgoal for d p2 rdy1 rdy2
       apply (rule exI[where x=d])
       apply (auto simp add: wait_out_assn.simps)
-      using main[of d p2] by (auto intro: WaitBlk_ext)
+      using main[of d p2] by (auto simp: WaitBlk.simps)
     done
 qed
 

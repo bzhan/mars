@@ -57,7 +57,7 @@ theorem Valid_inv:
 
 text \<open>ODE with invariant\<close>
 inductive ode_inv_assn :: "(state \<Rightarrow> bool) \<Rightarrow> tassn" where
-  "\<forall>t\<in>{0..d}. f (p t) \<Longrightarrow> ode_inv_assn f [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+  "\<forall>t\<in>{0..d::real}. f (p t) \<Longrightarrow> ode_inv_assn f [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
 
 theorem Valid_inv':
   fixes inv :: "state \<Rightarrow> real"
@@ -72,7 +72,7 @@ theorem Valid_inv':
     apply(simp add: join_assn_def)
     apply(rule exI [where x="tr1"])
     apply auto
-    apply(auto intro!: ode_inv_assn.intros)
+    apply (auto intro!: ode_inv_assn.intros)
   subgoal premises pre for \<tau>
     proof-
       have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
