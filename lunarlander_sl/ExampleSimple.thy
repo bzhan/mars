@@ -290,52 +290,43 @@ subsection \<open>Simple examples of proofs\<close>
 text \<open>Send 1\<close>
 lemma testHL1:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ''ch'' 1]) \<and>
-              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]))}
+              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1])) \<and>
+              Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({''ch''}, {})])}
         Cm (''ch''[!](\<lambda>_. 1))
       {Q}"
   by (rule Valid_send)
 
 text \<open>This implies the strongest postcondition form\<close>
-lemma testHL1':
+lemma testHL2:
   "\<Turnstile> {\<lambda>s t. s = st \<and> t = tr}
         Cm (''ch''[!](\<lambda>_. 1))
       {\<lambda>s t. s = st \<and>
            (t = tr @ [OutBlock ''ch'' 1] \<or>
-             (\<exists>d::real>0. t = tr @ [WaitBlk d (\<lambda>_. State st) ({''ch''}, {}), OutBlock ''ch'' 1]))}"
+           (\<exists>d::real>0. t = tr @ [WaitBlk d (\<lambda>_. State st) ({''ch''}, {}), OutBlock ''ch'' 1])) \<or>
+           (t = tr @ [WaitBlk \<infinity> (\<lambda>_. State st) ({''ch''}, {})])}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule Valid_send)
   unfolding entails_def by auto
 
-text \<open>Send 1, then send 2\<close>
-lemma testHL2:
-  "\<Turnstile> {\<lambda>s tr. (Q s ((tr @ [OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>d::real>0. Q s ((tr @ [OutBlock ''ch'' 1]) @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 2]))) \<and>
-              (\<forall>d::real>0. Q s ((tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @ [OutBlock ''ch'' 2]) \<and>
-               (\<forall>da::real>0. Q s ((tr @ [WaitBlk d (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 1]) @
-                             [WaitBlk da (\<lambda>_. State s) ({''ch''}, {}), OutBlock ''ch'' 2])))}
-        Cm (''ch''[!](\<lambda>_. 1)); Cm (''ch''[!](\<lambda>_. 2))
-      {Q}"
-  apply (rule Valid_seq)
-    prefer 2 apply (rule Valid_send)
-  by (rule Valid_send)
-
 text \<open>Receive from ch\<close>
 lemma testHL3:
   "\<Turnstile> {\<lambda>s tr.
         (\<forall>v. Q (s(X := v)) (tr @ [InBlock ''ch'' v])) \<and>
-        (\<forall>d::real>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {''ch''}), InBlock ''ch'' v]))}
+        (\<forall>d::real>0. \<forall>v. Q (s(X := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {''ch''}), InBlock ''ch'' v])) \<and>
+        Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {''ch''})])}
        Cm (''ch''[?]X)
       {Q}"
   by (rule Valid_receive)
 
 text \<open>Strongest postcondition form\<close>
-lemma testHL3':
+lemma testHL4:
   "\<Turnstile> {\<lambda>s t. s = st \<and> t = tr}
        (Cm (''ch''[?]X))
-      {\<lambda>s t. (\<exists>v. s = st(X := v) \<and>
-              (t = tr @ [InBlock ''ch'' v]) \<or>
-                 (\<exists>d::real>0. t = tr @ [WaitBlk d (\<lambda>_. State st) ({}, {''ch''}), InBlock ''ch'' v]))}"
+      {\<lambda>s t. (\<exists>v. s = st(X := v) \<and> t = tr @ [InBlock ''ch'' v]) \<or>
+             (\<exists>v. \<exists>d::real>0. s = st(X := v) \<and>
+                t = tr @ [WaitBlk d (\<lambda>_. State st) ({}, {''ch''}), InBlock ''ch'' v]) \<or>
+             (s = st \<and> t = tr @ [WaitBlk \<infinity> (\<lambda>_. State st) ({}, {''ch''})])}"
   apply (rule Valid_weaken_pre)
    prefer 2
    apply (rule testHL3)

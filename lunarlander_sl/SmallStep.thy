@@ -22,10 +22,12 @@ inductive small_step :: "proc \<Rightarrow> state \<Rightarrow> trace_block opti
 | sendS2: "(d::real) > 0 \<Longrightarrow>
               small_step (Cm (ch[!]e)) s (Some (WaitBlk d (\<lambda>_. State s) ({ch}, {})))
                          (Cm (ch[!]e)) s"
+| sendS3: "small_step (Cm (ch[!]e)) s (Some (WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {}))) Skip s"
 | receiveS1: "small_step (Cm (ch[?]var)) s (Some (InBlock ch v)) Skip (s(var := v))"
 | receiveS2: "(d::real) > 0 \<Longrightarrow>
                  small_step (Cm (ch[?]var)) s (Some (WaitBlk d (\<lambda>_. State s) ({}, {ch})))
                             (Cm (ch[?]var)) s"
+| receiveS3: "small_step (Cm (ch[?]var)) s (Some (WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch}))) Skip s"
 | IChoiceS1: "small_step (IChoice p1 p2) s None p1 s"
 | IChoiceS2: "small_step (IChoice p1 p2) s None p2 s"
 | EChoiceS1: "(d::real) > 0 \<Longrightarrow>
@@ -138,6 +140,13 @@ proof -
     using assms by (auto simp add: zero_ereal_def)
 qed
 
+lemma reduce_trace_merge2:
+  fixes d1 :: real and d2 :: ereal
+  shows "d1 > 0 \<Longrightarrow> d2 > 0 \<Longrightarrow> p1 d1 = p2 0 \<Longrightarrow>
+   tr2 = WaitBlk (d1 + d2) (\<lambda>\<tau>. if \<tau> < d1 then p1 \<tau> else p2 (\<tau> - d1)) rdy # tr \<Longrightarrow>
+   reduce_trace (WaitBlk d1 p1 rdy # WaitBlk d2 p2 rdy # tr) tr2"
+  using reduce_trace_merge by auto
+
 theorem big_to_small:
   "big_step p s1 tr s2 \<Longrightarrow> small_step_closure p s1 tr Skip s2"
 proof (induction rule: big_step.induct)
@@ -193,6 +202,11 @@ next
     apply (rule small_step_closure_single_Some)
     by (rule sendS1)
 next
+  case (sendB3 ch e s)
+  show ?case
+    apply (rule small_step_closure_single_Some)
+    by (rule sendS3)
+next
   case (receiveB1 ch var s v)
   then show ?case
     apply (rule small_step_closure_single_Some)
@@ -204,6 +218,11 @@ next
      apply (rule receiveS2) apply (rule receiveB2)
     apply (rule small_step_closure_single_Some)
     by (rule receiveS1)
+next
+  case (receiveB3 ch var s)
+  show ?case
+    apply (rule small_step_closure_single_Some)
+    by (rule receiveS3)
 next
   case (IChoiceB1 p1 s1 tr s2 p2)
   show ?case
@@ -414,15 +433,12 @@ next
     using waitE[OF waitS1(4)] by (auto simp add: waitS1(1,2))
   have b: "ev = WaitBlk d1 (\<lambda>_. State s) ({}, {})"
     using waitS1(3) by auto
-  have c: "WaitBlk (e s) (\<lambda>_. State s) ({}, {}) =
-           WaitBlk (ereal d1 + ereal (e s - d1)) (\<lambda>\<tau>. if \<tau> < d1 then State s else State s) ({}, {})"
-    by auto
   show ?case
     apply (rule exI[where x="[WaitBlk (e s) (\<lambda>_. State s) ({}, {})]"])
     unfolding a b apply auto
-    unfolding c apply (rule reduce_trace_merge)
-       apply (auto simp add: waitS1)
-     apply (rule waitB1)
+     apply (rule reduce_trace_merge2)
+        apply (auto simp add: waitS1)
+    apply (rule waitB1)
     using waitS1 by auto
 next
   case (waitS2 e s)
@@ -454,16 +470,6 @@ next
   case (sendS2 d ch e s)
   have a: "ev = WaitBlk d (\<lambda>_. State s) ({ch}, {})"
     using sendS2(2) by auto
-  have b: "reduce_trace [WaitBlk d (\<lambda>_. State s) ({ch}, {}), WaitBlk d2 (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]
-           [WaitBlk (d + d2) (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]" (is "reduce_trace ?lhs ?rhs") if "d2 > 0" for d2
-  proof -
-    have b2: "?rhs = [WaitBlk (ereal d + ereal d2)
-                        (\<lambda>\<tau>. if \<tau> < d then State s else State s) ({ch}, {}), OutBlock ch (e s)]"
-      by auto
-    show ?thesis
-      unfolding b2 apply (rule reduce_trace_merge)
-      by (auto simp add: sendS2 that)
-  qed
   show ?case
     using sendS2(3) apply (elim sendE)
     subgoal
@@ -473,9 +479,31 @@ next
     subgoal for d2
       apply (rule exI[where x="[WaitBlk (d + d2) (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]"])
       apply (auto simp add: a)
-      subgoal by (rule b)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: sendS2(1))
       apply (rule sendB2) using sendS2(1) by auto
+    subgoal
+      apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})]"])
+      apply (auto simp add: a)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        using sendS2(1) by auto
+      by (rule sendB3)
     done
+next
+  case (sendS3 ch e s)
+  have a: "ev = WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})"
+    using sendS3(1) by auto
+  have b: "tr2 = []"
+    using sendS3(2) apply (rule skipE) by auto
+  have c: "s3 = s"
+    using sendS3(2) apply (rule skipE) by auto
+  show ?case
+    unfolding a b c
+    apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})]"])
+    apply auto
+    by (rule sendB3)
 next
   case (receiveS1 ch var s v)
   have a: "ev = InBlock ch v"
@@ -492,16 +520,6 @@ next
   case (receiveS2 d ch var s)
   have a: "ev = WaitBlk d (\<lambda>_. State s) ({}, {ch})"
     using receiveS2(2) by auto
-  have b: "reduce_trace [WaitBlk d (\<lambda>_. State s) ({}, {ch}), WaitBlk d2 (\<lambda>_. State s) ({}, {ch}), InBlock ch v]
-           [WaitBlk (d + d2) (\<lambda>_. State s) ({}, {ch}), InBlock ch v]" (is "reduce_trace ?lhs ?rhs") if "d2 > 0" for v d2
-  proof -
-    have b2: "?rhs = [WaitBlk (ereal d + ereal d2)
-                        (\<lambda>\<tau>. if \<tau> < d then State s else State s) ({}, {ch}), InBlock ch v]"
-      by auto
-    show ?thesis
-      unfolding b2 apply (rule reduce_trace_merge)
-      by (auto simp add: receiveS2 that)
-  qed
   show ?case
     using receiveS2(3) apply (elim receiveE)
     subgoal for v
@@ -512,39 +530,36 @@ next
     subgoal for d2 v
       apply (rule exI[where x="[WaitBlk (d + d2) (\<lambda>_. State s) ({}, {ch}), InBlock ch v]"])
       apply (auto simp add: a)
-      subgoal by (rule b)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: receiveS2)
       apply (subst fun_upd_def[symmetric])
       apply (rule receiveB2) using receiveS2(1) by auto
+    subgoal
+      apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})]"])
+      apply (auto simp add: a)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: receiveS2)
+      by (rule receiveB3)
     done
+next
+  case (receiveS3 ch var s)
+  have a: "ev = WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})"
+    using receiveS3(1) by auto
+  have b: "tr2 = []"
+    using receiveS3(2) apply (rule skipE) by auto
+  have c: "s3 = s"
+    using receiveS3(2) apply (rule skipE) by auto
+  show ?case
+    unfolding a b c
+    apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})]"])
+    apply auto
+    by (rule receiveB3)
 next
   case (EChoiceS1 d cs s)
   have a: "ev = WaitBlk d (\<lambda>_. State s) (rdy_of_echoice cs)"
     using EChoiceS1(2) by auto
-  have b: "reduce_trace
-     (WaitBlk d (\<lambda>_. State s) (rdy_of_echoice cs) #
-      WaitBlk d2 (\<lambda>_. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')
-     (WaitBlk (d + d2) (\<lambda>_. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2')"
-    (is "reduce_trace ?lhs ?rhs") if "d2 > 0" for d2 ch e tr2'
-  proof -
-    have b2: "?rhs = WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State s else State s) (rdy_of_echoice cs) #
-                     OutBlock ch (e s) # tr2'"
-      by auto
-    show ?thesis
-      unfolding b2 apply (rule reduce_trace_merge)
-      by (auto simp add: EChoiceS1 that)
-  qed
-  have c: "reduce_trace
-     (WaitBlk d (\<lambda>_. State s) (rdy_of_echoice cs) #
-      WaitBlk d2 (\<lambda>_. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')
-     (WaitBlk (d + d2) (\<lambda>_. State s) (rdy_of_echoice cs) # InBlock ch v # tr2')"
-    (is "reduce_trace ?lhs ?rhs") if "d2 > 0" for d2 ch v tr2'
-  proof -
-    have c2: "?rhs = WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State s else State s) (rdy_of_echoice cs) # InBlock ch v # tr2'"
-      by auto
-    show ?thesis
-      unfolding c2 apply (rule reduce_trace_merge)
-      by (auto simp add: EChoiceS1 that)
-  qed
   show ?case
     using EChoiceS1(3) apply (elim echoiceE)
     subgoal for i ch e p2 tr2'
@@ -553,7 +568,10 @@ next
       by (auto simp add: EChoiceS1)
     subgoal for d2 i ch e p2 tr2'
       apply (rule exI[where x="WaitBlk (d + d2) (\<lambda>_. State s) (rdy_of_echoice cs) # OutBlock ch (e s) # tr2'"])
-      unfolding a apply auto subgoal by (rule b)
+      unfolding a apply auto
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: EChoiceS1)
       apply (rule EChoiceSendB2)
          apply (auto simp add: EChoiceS1)
       using EChoiceS1(1) by auto
@@ -563,7 +581,10 @@ next
       by (auto simp add: EChoiceS1)
     subgoal for d2 i ch var p2 v tr2'
       apply (rule exI[where x="WaitBlk (d + d2) (\<lambda>_. State s) (rdy_of_echoice cs) # InBlock ch v # tr2'"])
-      unfolding a apply auto subgoal by (rule c)
+      unfolding a apply auto
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: EChoiceS1)
       apply (rule EChoiceReceiveB2)
          apply (auto simp add: EChoiceS1)
       using EChoiceS1(1) by auto
@@ -605,16 +626,6 @@ next
       subgoal using ContS1(1,4) by auto
       done
   qed
-  have c: "reduce_trace [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}), WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]
-     [WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})]"
-    (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2       
-  proof -
-    have c1: "?rhs = [WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) ({}, {})]"
-      apply auto apply (rule WaitBlk_ext) by auto
-    show ?thesis
-      unfolding c1 apply (rule reduce_trace_merge)
-      by (auto simp add: that ContS1)
-  qed
   show ?case
     using ContS1(6) apply (elim contE)
     subgoal
@@ -624,7 +635,9 @@ next
     subgoal for d2 p2
       apply (rule exI[where x="[WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) ({}, {})]"])
       unfolding a apply auto
-      subgoal by (rule c)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: ContS1 intro: WaitBlk_ext)
       using b by auto
     done
 next
@@ -683,42 +696,6 @@ next
       subgoal using InterruptS1(1,4) by auto
       by auto
   qed
-  have e: "reduce_trace
-     (WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs) #
-      WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')
-     (WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # OutBlock ch (e (p2 d2)) # tr2')"
-    (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2 ch e tr2'
-  proof -
-    have e2: "?rhs = WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
-                     OutBlock ch (e (p2 d2)) # tr2'"
-      apply auto apply (rule WaitBlk_ext) by auto
-    show ?thesis
-      unfolding e2 apply (rule reduce_trace_merge)
-      by (auto simp add: InterruptS1 that)
-  qed
-  have f: "reduce_trace
-     (WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs) # WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2')
-     (WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) # InBlock ch v # tr2')"
-    (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2 ch v tr2'
-  proof -
-    have f2: "?rhs = WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs) #
-                     InBlock ch v # tr2'"
-      apply auto apply (rule WaitBlk_ext) by auto
-    show ?thesis
-      unfolding f2 apply (rule reduce_trace_merge)
-      by (auto simp add: that InterruptS1)
-  qed
-  have g: "reduce_trace [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
-                         WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) (rdy_of_echoice cs)]
-     [WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)]"
-    (is "reduce_trace ?lhs ?rhs") if "p2 0 = p d" "d2 > 0" for d2 p2
-  proof -
-    have g1: "?rhs = [WaitBlk (ereal d + ereal d2) (\<lambda>\<tau>. if \<tau> < d then State (p \<tau>) else State (p2 (\<tau> - d))) (rdy_of_echoice cs)]"
-      apply auto apply (rule WaitBlk_ext) by auto
-    show ?thesis
-      unfolding g1 apply (rule reduce_trace_merge)
-      by (auto simp add: that InterruptS1)
-  qed
   show ?case
     using InterruptS1(6) apply (elim interruptE)
     subgoal for i ch e p2 tr2'
@@ -729,7 +706,9 @@ next
       apply (rule exI[where x="WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) #
                                OutBlock ch (e (p2 d2)) # tr2'"])
       unfolding a apply auto
-      subgoal by (rule e)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: InterruptS1 intro: WaitBlk_ext)
       using b by auto
     subgoal for i ch var p2 v tr2'
       apply (rule exI[where x="WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2'"])
@@ -739,7 +718,9 @@ next
       apply (rule exI[where x="WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs) #
                                InBlock ch v # tr2'"])
       unfolding a apply auto
-      subgoal by (rule f)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: InterruptS1 intro: WaitBlk_ext)
       using c by auto
     subgoal
       apply (rule exI[where x="[WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs)]"])
@@ -749,7 +730,9 @@ next
     subgoal for d2 p2
       apply (rule exI[where x="[WaitBlk (d + d2) (\<lambda>\<tau>. State (if \<tau> < d then p \<tau> else p2 (\<tau> - d))) (rdy_of_echoice cs)]"])
       unfolding a apply auto
-      subgoal by (rule g)
+      subgoal
+        apply (rule reduce_trace_merge2)
+        by (auto simp add: InterruptS1 intro: WaitBlk_ext)
       using d by auto
     done
 next
@@ -878,6 +861,10 @@ next
       apply (rule small_step.sendS2) using sendS2 by auto
     done
 next
+  case (sendS3 ch e s)
+  then show ?case
+    unfolding WaitBlk_simps by auto
+next
   case (receiveS2 d ch var s)
   have a: "d = t2" "({}, {ch}) = rdy"
     using WaitBlk_cong[OF receiveS2(2)] by auto
@@ -896,6 +883,10 @@ next
       unfolding a(2)[symmetric]
       apply (rule small_step.receiveS2) using receiveS2 by auto
     done
+next
+  case (receiveS3 ch var s)
+  then show ?case
+    unfolding WaitBlk_simps by auto
 next
   case (EChoiceS1 d cs s)
   have a: "d = t2" "rdy_of_echoice cs = rdy"
@@ -975,22 +966,56 @@ qed (auto)
 
 lemma small_step_split_pinf:
   fixes t1 :: real
-  shows "small_step p1 s1 (Some (WaitBlk PInfty hist rdy)) p2 s2 \<Longrightarrow>
+  shows "small_step p1 s1 (Some (WaitBlk \<infinity> hist rdy)) p2 s2 \<Longrightarrow>
    0 < t1 \<Longrightarrow>
    \<exists>p' s'. small_step p1 s1 (Some (WaitBlk t1 hist rdy)) p' s' \<and>
-           small_step p' s' (Some (WaitBlk PInfty (\<lambda>\<tau>. hist (\<tau> + t1)) rdy)) p2 s2"
-proof (induct p1 s1 "Some (WaitBlk PInfty hist rdy)" p2 s2 rule: small_step.induct)
+           small_step p' s' (Some (WaitBlk \<infinity> (\<lambda>\<tau>. hist (\<tau> + t1)) rdy)) p2 s2"
+proof (induct p1 s1 "Some (WaitBlk \<infinity> hist rdy)" p2 s2 rule: small_step.induct)
   case (seqS1 c1 s c1' s2 c2)
   obtain p' s' where a:
     "small_step c1 s (Some (WaitBlk t1 hist rdy)) p' s'"
-    "small_step p' s' (Some (WaitBlk PInfty (\<lambda>\<tau>. hist (\<tau> + t1)) rdy)) c1' s2"
+    "small_step p' s' (Some (WaitBlk \<infinity> (\<lambda>\<tau>. hist (\<tau> + t1)) rdy)) c1' s2"
     using seqS1 by auto
   show ?case
     apply (rule exI[where x="p'; c2"]) apply (rule exI[where x=s'])
-    apply (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
+    apply auto
      apply (rule small_step.seqS1[OF a(1)])
     by (rule small_step.seqS1[OF a(2)])
-qed (auto simp add: WaitBlk.simps simp del: PInfty_eq_infinity MInfty_eq_minfinity)
+next
+  case (sendS3 ch e s)
+  have a: "({ch}, {}) = rdy"
+    using WaitBlk_cong[OF sendS3(1)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk \<infinity> (\<lambda>t. State s) rdy = WaitBlk \<infinity> (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF sendS3(1)[unfolded a] sendS3(2)] by auto
+  show ?case
+    apply (rule exI[where x="Cm (ch[!]e)"]) apply (rule exI[where x=s])
+    unfolding b[symmetric] apply auto
+    subgoal
+      unfolding a[symmetric]
+      apply (rule small_step.sendS2) using sendS3 by auto
+    subgoal 
+      unfolding a[symmetric]
+      by (rule small_step.sendS3)
+    done
+next
+  case (receiveS3 ch var s)
+  have a: "({}, {ch}) = rdy"
+    using WaitBlk_cong[OF receiveS3(1)] by auto
+  have b: "WaitBlk t1 (\<lambda>_. State s) rdy = WaitBlk t1 hist rdy"
+          "WaitBlk \<infinity> (\<lambda>t. State s) rdy = WaitBlk \<infinity> (\<lambda>t. hist (t + t1)) rdy"
+    using WaitBlk_split[OF receiveS3(1)[unfolded a] receiveS3(2)] by auto
+  show ?case
+    apply (rule exI[where x="Cm (ch[?]var)"]) apply (rule exI[where x=s])
+    unfolding b[symmetric] apply auto
+    subgoal
+      unfolding a[symmetric]
+      apply (rule small_step.receiveS2) using receiveS3 by auto
+    subgoal 
+      unfolding a[symmetric]
+      by (rule small_step.receiveS3)
+    done
+qed (auto simp add: WaitBlk_simps)
 
 lemma small_step_split:
   fixes t1 :: real
@@ -1005,7 +1030,7 @@ proof (cases t2)
     using assms by (auto simp add: small_step_split_real)
 next
   case PInf
-  have a: "t2 - ereal t1 = PInfty"
+  have a: "t2 - ereal t1 = \<infinity>"
     using PInf by auto
   show ?thesis
     unfolding a apply (rule small_step_split_pinf)

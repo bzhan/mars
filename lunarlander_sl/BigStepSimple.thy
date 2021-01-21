@@ -58,17 +58,20 @@ fun WaitBlk :: "ereal \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rd
 | "WaitBlk PInfty p rdy = WaitBlock PInfty (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
 | "WaitBlk MInfty p rdy = WaitBlock MInfty (\<lambda>_. undefined) rdy"
 
+lemma WaitBlk_simps [simp]:
+  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
+  "WaitBlk \<infinity> p rdy = WaitBlock \<infinity> (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
+  "WaitBlk (-\<infinity>) p rdy = WaitBlock (-\<infinity>) (\<lambda>_. undefined) rdy"
+  apply auto
+  using WaitBlk.simps(2) infinity_ereal_def apply presburger
+  using WaitBlk.simps(3) by auto
+
+declare WaitBlk.simps [simp del]
+
 lemma WaitBlk_not_Comm [simp]:
   "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
   "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
-proof -
-  show "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
-    apply (cases d) unfolding infinity_ereal_def
-    by (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
-  show "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
-    apply (cases d) unfolding infinity_ereal_def
-    by (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
-qed  
+  by (cases d, auto)+
 
 lemma restrict_cong_to_eq:
   fixes x :: real
@@ -86,8 +89,8 @@ lemma WaitBlk_ext:
   shows "t1 = t2 \<Longrightarrow>
    (\<And>\<tau>::real. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
    WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
-  apply (cases t1) unfolding infinity_ereal_def
-  apply (auto simp add: restrict_def simp del: PInfty_eq_infinity MInfty_eq_minfinity)
+  apply (cases t1)
+  apply (auto simp add: restrict_def)
   apply (rule ext) by auto
 
 lemma WaitBlk_ext_real:
@@ -99,9 +102,7 @@ lemma WaitBlk_ext_real:
 
 lemma WaitBlk_cong:
   "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
-  apply (cases t1)
-  by (cases t2, auto simp add: infinity_ereal_def
-      simp del: PInfty_eq_infinity MInfty_eq_minfinity)+
+  apply (cases t1) by (cases t2, auto)+
 
 lemma WaitBlk_cong2:
   assumes "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
@@ -123,9 +124,7 @@ proof -
     have PInf2: "t2 = \<infinity>"
       using PInf a by auto
     show ?thesis
-      using assms(1)[unfolded PInf PInf2 infinity_ereal_def]
-      apply (auto simp del: PInfty_eq_infinity)
-      using restrict_cong_to_eq2 assms by auto
+      using assms(1)[unfolded PInf PInf2] restrict_cong_to_eq2 assms by auto
   next
     case MInf
     show ?thesis
@@ -149,9 +148,7 @@ next
   case PInf
   show ?thesis
     apply auto apply (rule ext) subgoal for x
-      using assms[unfolded PInf infinity_ereal_def]
-      apply (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
-      using restrict_cong_to_eq2[of p1 p2 x] by auto
+      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 x] by auto
     done
 next
   case MInf
@@ -171,20 +168,18 @@ proof (cases t)
     unfolding real by auto
   show ?thesis
     unfolding a apply auto apply (rule ext) subgoal for x
-      using assms[unfolded real] 
+      using assms[unfolded real]
       using restrict_cong_to_eq[of p1 r p2 "x + t1"] by auto
     done
 next
   case PInf
-  have a: "t - ereal t1 = PInfty"
+  have a: "t - ereal t1 = \<infinity>"
     unfolding PInf by auto
   show ?thesis
     unfolding a
-    apply (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
+    apply auto
     apply (rule ext) subgoal for x
-      using assms[unfolded PInf infinity_ereal_def]
-      apply (auto simp del: PInfty_eq_infinity MInfty_eq_minfinity)
-      using restrict_cong_to_eq2[of p1 p2 "x + t1"] by auto
+      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 "x + t1"] by auto
     done
 next
   case MInf
@@ -193,9 +188,7 @@ next
 qed
 
 lemmas WaitBlk_split = WaitBlk_split1 WaitBlk_split2
-
-declare WaitBlk.simps [simp del]
-
+declare WaitBlk_simps [simp del]
 
 type_synonym trace = "trace_block list"
 
@@ -230,10 +223,12 @@ inductive big_step :: "proc \<Rightarrow> state \<Rightarrow> trace \<Rightarrow
 | sendB2: "(d::real) > 0 \<Longrightarrow> big_step (Cm (ch[!]e)) s
             [WaitBlk d (\<lambda>_. State s) ({ch}, {}),
              OutBlock ch (e s)] s"
+| sendB3: "big_step (Cm (ch[!]e)) s [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})] s"
 | receiveB1: "big_step (Cm (ch[?]var)) s [InBlock ch v] (s(var := v))"
 | receiveB2: "(d::real) > 0 \<Longrightarrow> big_step (Cm (ch[?]var)) s
             [WaitBlk d (\<lambda>_. State s) ({}, {ch}),
              InBlock ch v] (s(var := v))"
+| receiveB3: "big_step (Cm (ch[?]var)) s [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})] s"
 | IChoiceB1: "big_step p1 s1 tr s2 \<Longrightarrow> big_step (IChoice p1 p2) s1 tr s2"
 | IChoiceB2: "big_step p2 s1 tr s2 \<Longrightarrow> big_step (IChoice p1 p2) s1 tr s2"
 | EChoiceSendB1: "i < length cs \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
@@ -355,15 +350,17 @@ theorem Valid_assign:
 
 theorem Valid_send:
   "\<Turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-               (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]))}
+              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+              Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})])}
        Cm (ch[!]e) {Q}"
   unfolding Valid_def
   by (auto elim: sendE)
 
 theorem Valid_receive:
   "\<Turnstile> {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-               (\<forall>d::real>0. \<forall>v. Q (s(var := v))
-                           (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v]))}
+              (\<forall>d::real>0. \<forall>v. Q (s(var := v))
+                (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
+              Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})])}
        Cm (ch[?]var) {Q}"
   unfolding Valid_def
   by (auto elim: receiveE)
@@ -529,10 +526,12 @@ definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
 inductive out_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("Out\<^sub>t") where
   "Out\<^sub>t s ch v [OutBlock ch v]"
 | "(d::real) > 0 \<Longrightarrow> Out\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. State s) ({ch}, {}), OutBlock ch v]"
+| "Out\<^sub>t s ch v [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})]"
 
 inductive in_assn :: "state \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> tassn" ("In\<^sub>t") where
   "In\<^sub>t s ch v [InBlock ch v]"
 | "(d::real) > 0 \<Longrightarrow> In\<^sub>t s ch v [WaitBlk (ereal d) (\<lambda>_. State s) ({}, {ch}), InBlock ch v]"
+| "In\<^sub>t s ch v [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})]"
 
 inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> tassn" ("IO\<^sub>t") where
   "IO\<^sub>t ch v [IOBlock ch v]"
@@ -611,7 +610,7 @@ theorem Valid_receive':
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_receive)
   unfolding entails_def magic_wand_assn_def all_assn_def
-  using in_assn.intros by blast
+  by (metis fun_upd_triv in_assn.intros)
 
 theorem Valid_wait':
   "\<Turnstile>
@@ -657,6 +656,10 @@ theorem Valid_receive_sp:
     apply (rule exI[where x=v])
     apply auto apply (rule exI[where x=tr])
     using in_assn.intros(2) by auto
+  subgoal for tr
+    apply (rule exI[where x="st var"])
+    apply auto apply (rule exI[where x=tr])
+    by (metis in_assn.intros(3) infinity_ereal_def)
   done
 
 theorem Valid_wait_sp:

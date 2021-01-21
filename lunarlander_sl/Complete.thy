@@ -11,12 +11,14 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | AssignH: "\<turnstile> {\<lambda>s. Q (s(var := e s))} (var ::= e) {Q}"
 | SendH:
     "\<turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-               (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)]))}
+               (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+               Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})])}
          (Cm (ch[!]e))
        {Q}"
 | ReceiveH: 
     "\<turnstile> {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-           (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v]))}
+               (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
+               Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})])}
          (Cm (ch[?]var))
        {Q}"
 | SeqH:
@@ -606,23 +608,27 @@ lemma wp_Assign: "wp (var ::= e) Q = (\<lambda>s. Q (s(var := e s)))"
 lemma wp_Send:
   "wp (Cm (ch[!]e)) Q =
     (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-              (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])))"
+            (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+            Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})]))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: sendE)
      apply (simp add: sendB1)
-    using sendB2 by blast
+    using sendB2 apply blast
+    using sendB3 by blast
   done
 
 lemma wp_Receive:
   "wp (Cm (ch[?]var)) Q =
     (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-           (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])))"
+            (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
+            Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})]))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: receiveE)
      apply (simp add: receiveB1)
-    using receiveB2 by blast
+    using receiveB2 apply blast
+    using receiveB3 by blast
   done   
 
 lemma wp_Seq: "wp (c1; c2) Q = wp c1 (wp c2 Q)"
