@@ -356,10 +356,12 @@ def get_ode_delay(hp, state):
             deriv = eval_expr(get_deriv(e.expr1.name), state)
             diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
             if e.op in ('<', '<='):
-                assert diff >= 0  # would be caught earlier
+                if diff < 0:
+                    return 0.0
                 return min(diff / deriv, 100.0) if deriv > 0 else 100.0
             else:
-                assert diff <= 0  # would be caught earlier
+                if diff > 0:
+                    return 0.0
                 return min(diff / deriv, 100.0) if deriv < 0 else 100.0        
 
         if not eval_expr(e, state):
