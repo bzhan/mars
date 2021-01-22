@@ -1246,7 +1246,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         if has_overflow:
             log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
-        
     return res
 
 def graph(res, proc_name, tkplot=False, separate=True, variables=None):
