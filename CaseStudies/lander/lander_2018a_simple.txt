@@ -1,4 +1,15 @@
 Lander ::= @Control || @UnitDelay || @Plant
-Control ::= gM := 3.732; c2 := 0.6; v_slw := -1.5; F1500 := 1500; c3 := 0.01; (ch_m?m; ch_Fc_delay?Fc_delay; ch_v?v; Fc_in := max(-(Fc_delay/m-gM)*c3+gM-(v-v_slw)*c2, F1500/m)*m; if Fc_in < 1500 then Fc := 1500 elif Fc_in > 5000 then Fc := 5000 else Fc := Fc_in endif; ch_Fc_0!Fc; ch_Fc_1!Fc; wait(0.128))**
+Control ::= gM := 3.732; c2 := 0.6; v_slw := -1.5; F1500 := 1500; c3 := 0.01;
+            (ch_m?m; ch_Fc_delay?Fc_delay; ch_v?v;
+             Fc_in := max(-(Fc_delay/m-gM)*c3+gM-(v-v_slw)*c2, F1500/m)*m;
+             if Fc_in < 1500 then Fc := 1500
+             elif Fc_in > 5000 then Fc := 5000
+             else Fc := Fc_in endif;
+             ch_Fc_0!Fc; ch_Fc_1!Fc; wait(0.128))**
 UnitDelay ::= Fc := 2835; ch_Fc_delay!Fc; (ch_Fc_0?Fc; wait(0.128); ch_Fc_delay!Fc)**
-Plant ::= s := 20; v := -1.5; m := 759.5; ch_m!m; ch_v!v; ch_Fc_1?Fc; (if Fc <= 2000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2254*(-1) & Fc <= 2000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) elif Fc <= 3000 && Fc > 2000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2548*(-1) & Fc <= 3000 && Fc > 2000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) elif Fc <= 6000 && Fc > 4000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2695*(-1) & Fc <= 6000 && Fc > 4000> |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) elif Fc <= 4000 && Fc > 3000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2744*(-1) & Fc <= 4000 && Fc > 3000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) else <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2900.8*(-1) & Fc > 6000> |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) endif)**
+Plant ::= s := 20; v := -1.5; m := 759.5; ch_m!m; ch_v!v; ch_Fc_1?Fc;
+          (if Fc <= 2000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2254*(-1) & Fc <= 2000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc))
+           elif Fc <= 3000 && Fc > 2000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2548*(-1) & Fc <= 3000 && Fc > 2000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc))
+           elif Fc <= 6000 && Fc > 4000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2695*(-1) & Fc <= 6000 && Fc > 4000> |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc))
+           elif Fc <= 4000 && Fc > 3000 then <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2744*(-1) & Fc <= 4000 && Fc > 3000 > |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc))
+           else <s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/2900.8*(-1) & Fc > 6000> |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc)) endif)**
