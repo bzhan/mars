@@ -514,6 +514,9 @@ definition magic_wand_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (i
 definition all_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<forall>\<^sub>t" 10) where
   "(\<forall>\<^sub>tv. P v) = (\<lambda>tr. \<forall>v. P v tr)"
 
+definition ex_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<exists>\<^sub>t" 10) where
+  "(\<exists>\<^sub>tv. P v) = (\<lambda>tr. \<exists>v. P v tr)"
+
 definition conj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<and>\<^sub>t" 35) where
   "(P \<and>\<^sub>t Q) = (\<lambda>tr. P tr \<and> Q tr)"
 
@@ -591,6 +594,10 @@ lemma entails_tassn_cancel_both:
 lemma entails_tassn_conj:
   "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> P \<Longrightarrow>\<^sub>t R \<Longrightarrow> P \<Longrightarrow>\<^sub>t (Q \<and>\<^sub>t R)"
   by (auto simp add: entails_tassn_def conj_assn_def)
+
+lemma entails_tassn_exI:
+  "P \<Longrightarrow>\<^sub>t Q x \<Longrightarrow> P \<Longrightarrow>\<^sub>t (\<exists>\<^sub>t x. Q x)"
+  unfolding ex_assn_def entails_tassn_def by auto
 
 text \<open>Simpler forms of weakest precondition\<close>
 
