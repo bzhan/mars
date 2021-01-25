@@ -1,0 +1,16 @@
+Lander ::= @Control || @UnitDelay || @Plant
+Control ::= gM := 3.732; c2 := 0.6; v_slw := -1.5; F1500 := 1500; c3 := 0.01;
+            (ch_m?m; ch_Fc_delay?Fc_delay; ch_v?v;
+             Fc_in := max(-(Fc_delay/m-gM)*c3+gM-(v-v_slw)*c2, F1500/m)*m;
+             if Fc_in < 1500 then Fc := 1500
+             elif Fc_in > 5000 then Fc := 5000
+             else Fc := Fc_in endif;
+             if Fc <= 2000 then lsp := 2254*(-1)
+             elif Fc <= 3000 && Fc > 2000 then lsp := 2548*(-1)
+             elif Fc <= 4000 && Fc > 3000 then lsp := 2744*(-1)
+             elif Fc <= 6000 && Fc > 4000 then lsp := 2695*(-1)
+             else lsp := 2900.8*(-1) endif;
+             ch_Fc_0!Fc; ch_Fc_1!Fc; ch_lsp!lsp; wait(0.128))**
+UnitDelay ::= Fc := 2835; ch_Fc_delay!Fc; (ch_Fc_0?Fc; wait(0.128); ch_Fc_delay!Fc)**
+Plant ::= s := 20; v := -1.5; m := 759.5; ch_m!m; ch_v!v; ch_Fc_1?Fc; ch_lsp?lsp;
+          (<s_dot = v, v_dot = Fc/m-3.732, m_dot = Fc/lsp & true> |> [] (ch_m!m --> (ch_v!v; ch_Fc_1?Fc; ch_lsp?lsp)))**
