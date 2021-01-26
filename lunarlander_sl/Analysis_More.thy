@@ -86,6 +86,84 @@ proof -
 qed
 
 
+lemma real_inv_le:
+  fixes p :: "real \<Rightarrow>real"
+ assumes "\<forall>t\<in>{-1<..}. (p has_derivative q t) (at t within {-1<..}) "
+  and "d \<ge> 0"
+  and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> (\<forall>s\<ge>0. q t s < 0))"
+  and "p 0 \<le> 0 "
+  and "x \<in> {0 .. d}"
+  shows "p x \<le> 0"
+proof(rule ccontr)
+  assume a:" \<not> p x \<le> 0"
+  have 1:"p x > 0"
+    using a by auto
+  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-1<..}) p"
+    using assms
+    using has_derivative_continuous by fastforce
+  have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-1<..}" p]
+      using 2 assms(5) by auto
+    done
+  have 4:"{y. p y = 0 \<and> y \<in> {0 .. x}} \<noteq> {}"
+    using IVT[of p 0 0 x] using 3 1 assms 
+    by auto
+  have 5: "{y. p y = 0 \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {0})"
+    by auto
+  have 6: "closed ({0 .. x} \<inter> p -` {0})"
+    using 3 assms(5) apply simp
+    apply (rule continuous_closed_preimage)
+      apply auto
+    by (simp add: continuous_at_imp_continuous_on)
+  have 7: "compact {0 .. x}"
+    using assms
+    by blast
+  have 8: "compact {y. p y = 0 \<and> y \<in> {0 .. x}}"
+    apply auto
+    using 4 5 6 7 
+    by (smt Collect_cong Int_left_absorb atLeastAtMost_iff compact_Int_closed)
+  obtain t where t1:"t \<in> {y. p y = 0 \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = 0 \<and> y \<in> {0 .. x}}. tt \<le>t"
+    using compact_attains_sup[of "{y. p y = 0 \<and> y \<in> {0 .. x}}"] 4 8 
+    by blast
+  have 9:"t<x"
+    using t1 1 
+    using leI by fastforce
+  have 10:"p tt > 0" if "tt\<in>{t<..x}" for tt
+  proof(rule ccontr)
+    assume "\<not> 0 < p tt"
+    then have not:"p tt \<le>0" by auto
+    have "\<exists> t' \<in> {t<..x}. p t' = 0"
+    proof(cases "p tt = 0")
+      case True
+      then show ?thesis using that by auto
+    next
+      case False
+      then have "p tt < 0"
+        using not by auto
+      then have "{y. p y = 0 \<and> y \<in> {tt .. x}} \<noteq> {}"
+        using IVT[of p tt 0 x] using 3 1 assms that t1 
+        by auto
+      then show ?thesis using that by auto
+    qed
+    then show False using t1 t2 9 
+      using atLeastAtMost_iff greaterThanAtMost_iff by auto
+  qed     
+  have 11:"(p has_derivative q t) (at t within {-1<..})"
+    using assms t1 by auto
+  then have 12:"\<forall>s . q t s = q t 1 * s"
+    using has_derivative_bounded_linear[of p "q t" "(at t within {- 1<..})"]
+    using real_bounded_linear by auto
+  have 13:"(p has_real_derivative q t 1) (at t within {-1<..})"
+    using 11 12 
+    by (metis has_derivative_imp_has_field_derivative mult.commute)
+  have 14:"q t 1 < 0" using t1 assms 9 by auto
+  have 15:"\<exists>d>0. \<forall>h>0. t + h \<in> {- 1<..} \<longrightarrow> h < d \<longrightarrow> p (t + h) < p t"
+    using has_real_derivative_neg_dec_right[of p "q t 1" t "{- 1<..}"] 13 14 by auto
+  show False using 15 10 t1 
+    by (smt "12" "9" assms(3) assms(5) atLeastAtMost_iff atLeastLessThan_iff mem_Collect_eq mult_cancel_right1)
+qed
+
 subsection \<open>Definition of states\<close>
 
 text \<open>Variable names\<close>
