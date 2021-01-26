@@ -90,11 +90,11 @@ lemma real_inv_le:
   fixes p :: "real \<Rightarrow>real"
  assumes "\<forall>t\<in>{-1<..}. (p has_derivative q t) (at t within {-1<..}) "
   and "d \<ge> 0"
-  and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> (\<forall>s\<ge>0. q t s < 0))"
+  and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> q t 1 < 0)"
   and "p 0 \<le> 0 "
   and "x \<in> {0 .. d}"
-  shows "p x \<le> 0"
-proof(rule ccontr)
+shows "p x \<le> 0" 
+proof(rule ccontr) 
   assume a:" \<not> p x \<le> 0"
   have 1:"p x > 0"
     using a by auto
@@ -160,9 +160,18 @@ proof(rule ccontr)
   have 14:"q t 1 < 0" using t1 assms 9 by auto
   have 15:"\<exists>d>0. \<forall>h>0. t + h \<in> {- 1<..} \<longrightarrow> h < d \<longrightarrow> p (t + h) < p t"
     using has_real_derivative_neg_dec_right[of p "q t 1" t "{- 1<..}"] 13 14 by auto
-  show False using 15 10 t1 
-    by (smt "12" "9" assms(3) assms(5) atLeastAtMost_iff atLeastLessThan_iff mem_Collect_eq mult_cancel_right1)
-qed
+  then obtain dd where d1:"\<forall>h>0. t + h \<in> {- 1<..} \<longrightarrow> h < dd \<longrightarrow> p (t + h) < p t" and d2:"dd>0" by auto
+  then have 16:"min (dd/2) (x-t)/2 < dd" and "min (dd/2) (x-t)/2 > 0"
+    using 9 by auto
+  then have 17:"p (t + min (dd/2) (x-t)/2) < p t"
+    using d1 t1 by auto
+  have 18:"(t + min (dd/2) (x-t)/2)> t" and "(t + min (dd/2) (x-t)/2) < x"
+    using d2 9  apply simp 
+    by (smt "9" field_sum_of_halves)
+  then have 19:"p (t + min (dd/2) (x-t)/2)>0" using 10 by auto
+  show False using 17 19 t1
+    by auto 
+  qed
 
 subsection \<open>Definition of states\<close>
 
