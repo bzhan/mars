@@ -117,7 +117,9 @@ text \<open>ODE Example 1\<close>
 lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1))
   (\<lambda>_. 0) [WaitBlk (1::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({}, {})] ((\<lambda>_. 0)(X := 1))"
   apply (rule ContB2)
-  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+      apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+  apply(rule exI[where x="1"])
+  apply auto
   apply (rule has_vector_derivative_projI)
   by (auto intro!: derivative_intros)
 
@@ -128,7 +130,9 @@ lemma test_interrupt1:
   "big_step (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 2) [(''ch''[!](\<lambda>_. 1), Assign X (\<lambda>_. 0))])
     (\<lambda>_. 0) [WaitBlk (2::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {})] ((\<lambda>_. 0)(X := 2))"
   apply (rule InterruptB2)
-  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+        apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+apply(rule exI[where x="1"])
+  apply auto
   apply (rule has_vector_derivative_projI)
   by (auto intro!: derivative_intros)
 
@@ -146,7 +150,9 @@ lemma test_interrupt3:
     (\<lambda>_. 0) [WaitBlk (1::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
-  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+         apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+apply(rule exI[where x="1"])
+  apply auto
   apply (rule has_vector_derivative_projI)
    apply (auto intro!: derivative_intros)
   apply (rule big_step_cong) apply (rule assignB) by auto
@@ -157,7 +163,9 @@ lemma test_interrupt4:
     (\<lambda>_. 0) [WaitBlk (2::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
-  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+         apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+apply(rule exI[where x="1"])
+  apply auto
   apply (rule has_vector_derivative_projI)
   apply (auto intro!: derivative_intros)
   apply (rule big_step_cong) apply (rule assignB) by auto

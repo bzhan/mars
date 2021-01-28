@@ -263,12 +263,12 @@ proof -
       apply standard
       using assms(6) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
-      using assms(2) unfolding ODEsol_def solves_ode_def by auto
+      using assms(2) using ODEsol_old[OF assms(2)] unfolding ODEsol_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(1,5))
     have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)] unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond(1,5) that by auto
@@ -528,12 +528,12 @@ proof -
       apply standard
       using assms(4) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
-      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
+      using assms(1) using ODEsolInf_old[OF assms(1)] unfolding ODEsolInf_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(3))
     have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)]unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond that by auto
@@ -578,12 +578,12 @@ proof -
       apply standard
       using assms(4) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
-      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
+      using assms(1) using ODEsolInf_old[OF assms(1)] unfolding ODEsolInf_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d1}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(3))
     have s3: "((\<lambda>t. state2vec(p1 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d1} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)] unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p1 t)" if "t\<in>{0..d1}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond that by auto

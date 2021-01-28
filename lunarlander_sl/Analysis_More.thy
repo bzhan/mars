@@ -30,6 +30,11 @@ lemma has_derivative_coords [simp,derivative_intros]:
   "((\<lambda>t. t$i) has_derivative (\<lambda>t. t$i)) (at x)"
   unfolding has_derivative_def by auto
 
+lemma has_vector_derivative_divide[derivative_intros]:
+  fixes a:: "'a::real_normed_field"
+  shows "(f has_vector_derivative x) F \<Longrightarrow> ((\<lambda>x. f x / a) has_vector_derivative (x/a)) F"
+  unfolding divide_inverse by(fact has_vector_derivative_mult_left)
+
 
 text \<open>If the derivative is always 0, then the function is always 0.\<close>
 lemma mvt_real_eq:
@@ -88,23 +93,25 @@ qed
 
 lemma real_inv_le:
   fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{-1<..}. (p has_derivative q t) (at t within {-1<..}) "
+ assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e}) "
   and "d \<ge> 0"
   and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> q t 1 < 0)"
   and "p 0 \<le> 0 "
   and "x \<in> {0 .. d}"
+  and "e>0"
 shows "p x \<le> 0" 
 proof(rule ccontr) 
   assume a:" \<not> p x \<le> 0"
   have 1:"p x > 0"
     using a by auto
-  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-1<..}) p"
-    using assms
-    using has_derivative_continuous by fastforce
+  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
+    using assms has_derivative_subset
+    using has_derivative_continuous 
+    by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
   have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
     apply auto subgoal for t
-      using continuous_within_open[of t "{-1<..}" p]
-      using 2 assms(5) by auto
+      using continuous_within_open[of t "{-e<..<d+e}" p]
+      using 2 assms(5) assms(6) by auto
     done
   have 4:"{y. p y = 0 \<and> y \<in> {0 .. x}} \<noteq> {}"
     using IVT[of p 0 0 x] using 3 1 assms 
@@ -149,27 +156,29 @@ proof(rule ccontr)
     then show False using t1 t2 9 
       using atLeastAtMost_iff greaterThanAtMost_iff by auto
   qed     
-  have 11:"(p has_derivative q t) (at t within {-1<..})"
+  have 11:"(p has_derivative q t) (at t within {-e..d+e})"
     using assms t1 by auto
   then have 12:"\<forall>s . q t s = q t 1 * s"
-    using has_derivative_bounded_linear[of p "q t" "(at t within {- 1<..})"]
+    using has_derivative_bounded_linear[of p "q t" "(at t within {-e..d+e})"]
     using real_bounded_linear by auto
-  have 13:"(p has_real_derivative q t 1) (at t within {-1<..})"
+  have 13:"(p has_real_derivative q t 1) (at t within {-e..d+e})"
     using 11 12 
     by (metis has_derivative_imp_has_field_derivative mult.commute)
   have 14:"q t 1 < 0" using t1 assms 9 by auto
-  have 15:"\<exists>d>0. \<forall>h>0. t + h \<in> {- 1<..} \<longrightarrow> h < d \<longrightarrow> p (t + h) < p t"
-    using has_real_derivative_neg_dec_right[of p "q t 1" t "{- 1<..}"] 13 14 by auto
-  then obtain dd where d1:"\<forall>h>0. t + h \<in> {- 1<..} \<longrightarrow> h < dd \<longrightarrow> p (t + h) < p t" and d2:"dd>0" by auto
+  have 15:"\<exists>dd>0. \<forall>h>0. t + h \<in> {-e..d+e} \<longrightarrow> h < dd \<longrightarrow> p (t + h) < p t"
+    using has_real_derivative_neg_dec_right[of p "q t 1" t "{-e..d+e}"] 13 14 
+    by auto
+  then obtain dd where d1:"\<forall>h>0. t + h \<in> {-e..d+e} \<longrightarrow> h < dd \<longrightarrow> p (t + h) < p t" and d2:"dd>0" by auto
   then have 16:"min (dd/2) (x-t)/2 < dd" and "min (dd/2) (x-t)/2 > 0"
     using 9 by auto
-  then have 17:"p (t + min (dd/2) (x-t)/2) < p t"
-    using d1 t1 by auto
-  have 18:"(t + min (dd/2) (x-t)/2)> t" and "(t + min (dd/2) (x-t)/2) < x"
-    using d2 9  apply simp 
-    by (smt "9" field_sum_of_halves)
-  then have 19:"p (t + min (dd/2) (x-t)/2)>0" using 10 by auto
-  show False using 17 19 t1
+  then have 17:"(t + min (dd/2) (x-t)/2)> t" "(t + min (dd/2) (x-t)/2) < x" 
+    apply auto
+    using d2 9
+     by (smt field_sum_of_halves)
+   then have 18:"p (t + min (dd/2) (x-t)/2) < p t"
+    using d1 t1 16 assms(5) assms(6) by auto
+  have 19:"p (t + min (dd/2) (x-t)/2)>0" using 10 17 by auto
+  show False using 18 19 t1
     by auto 
   qed
 
@@ -222,14 +231,34 @@ fun ODE2Vec :: "ODE \<Rightarrow> state \<Rightarrow> vec" where
 
 text \<open>History p on time {0 .. d} is a solution to ode.\<close>
 definition ODEsol :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> real \<Rightarrow> bool" where
-  "ODEsol ode p d = (d \<ge> 0 \<and> (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}))"
+  "ODEsol ode p d = (d \<ge> 0 \<and> (\<exists>\<epsilon>>0. ((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-\<epsilon> .. d+\<epsilon>}))"
 
 text \<open>History p on time {0 ..} is a solution to ode.\<close>
 definition ODEsolInf :: "ODE \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> bool" where
-  "ODEsolInf ode p = (((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 ..})"
+  "ODEsolInf ode p = (\<exists>\<epsilon>>0. ((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-\<epsilon> ..})"
 
 
 subsection \<open>Further results in analysis\<close>
+
+lemma ODEsol_old:
+  assumes "ODEsol ode p d"
+  shows "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 .. d}"
+proof-
+  obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-e .. d+e}"
+    using assms(1) unfolding ODEsol_def by blast
+  then show ?thesis 
+    using e(1) has_vderiv_on_subset[OF e(2)] by auto
+qed
+
+lemma ODEsolInf_old:
+   assumes "ODEsolInf  ode p"
+   shows "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {0 ..}"
+proof-
+  obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-e ..}"
+    using assms(1) unfolding ODEsolInf_def by blast
+  then show ?thesis 
+    using e(1) has_vderiv_on_subset[OF e(2)] by auto
+qed
 
 lemma ODEsol_merge:
   assumes "ODEsol ode p d"
@@ -250,21 +279,38 @@ lemma ODEsol_merge:
       using step1 by auto
     have step4:"({d..d + d2} \<union> closure {d..d + d2} \<inter> closure {0..d}) = {d..d+d2}"
       using step1 by auto
-    have step5:"(((\<lambda>t. (t-d)) has_vderiv_on (\<lambda>t.1)) {d .. d+d2})"
+    obtain e1 where e1: "e1 > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-e1 .. d+e1}"
+      using assms(1) unfolding ODEsol_def by blast
+    obtain e2 where e2: "e2 > 0" "((\<lambda>t. state2vec (p2 t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 t))) {-e2 .. d2+e2}"
+      using assms(2) unfolding ODEsol_def by blast
+    obtain e where e: "e > 0" "e < e1" "e < e2"
+      using e1(1) e2(1) field_lbound_gt_zero by auto
+    then have stepe:"{0 .. d2+e}\<subseteq>{- e2..d2 + e2}" "{-e .. d}\<subseteq>{- e1..d + e1}" "{- e..d + d2 + e} = {- e..d} \<union> {d..d + d2 + e}"
+      using step1  by auto
+    have stepclo1:"({- e..d} \<union> closure {d..d + d2 + e} \<inter> closure {- e..d}) = {- e..d}"
+      using e step1 by auto 
+    have stepclo2:" ({d..d + d2 + e} \<union> closure {d..d + d2 + e} \<inter> closure {- e..d}) = {d..d + d2 + e}"
+      using e step1 by auto
+    have stepclo3: "x \<in> closure {d..d + d2 + e} \<Longrightarrow>
+          x \<in> closure {- e..d} \<Longrightarrow> x = d" for x
+      using e step1  by auto
+    have step5: "((\<lambda>t. t - d) has_vderiv_on (\<lambda>t. 1)) {d .. d+d2+e}"
       by (auto intro!: derivative_intros)
-    then have step6:"(((\<lambda>t. state2vec (p2 (t-d))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 (t-d)))) {d .. d+d2})"
-      using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p2 (t)))" "(\<lambda>t. ODE2Vec ode (p2 (t)))" "{0 .. d2}" "(\<lambda>t. (t-d))" "(\<lambda>t.1)" "{d .. d+d2}"]
-      using assms(2) unfolding ODEsol_def
+    then have step6: "((\<lambda>t. state2vec (p2 (t-d))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p2 (t-d)))) {d .. d+d2+e}"
+      using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p2 t))" "(\<lambda>t. ODE2Vec ode (p2 (t)))" "{0 .. d2+e}" "(\<lambda>t. (t-d))" "(\<lambda>t. 1)" "{d .. d+d2+e}"]
+      using e2 e unfolding ODEsol_def
+      using has_vderiv_on_subset[OF e2(2) stepe(1)] by auto
+     have step7:" ((\<lambda>t. if t \<in> {-e..d} then state2vec (p t) else state2vec (p2 (t - d))) has_vderiv_on
+     (\<lambda>t. if t \<in> {-e..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))){-e..d + d2+e}"
+      using has_vderiv_on_If[of "{-e .. d+d2+e}" "{-e .. d}" "{d .. d+d2+e}" "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec ode (p t))" "(\<lambda>t. state2vec (p2 (t-d)))" "(\<lambda>t. ODE2Vec ode (p2 (t-d)))"]
+      using step1 step2 step3 step4 step6 stepclo1 stepclo2 stepclo3
+      using has_vderiv_on_subset[OF e1(2) stepe(2)] e stepe assms(3)
       by auto
-    have step7:" ((\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d))) has_vderiv_on
-     (\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))){0..d + d2}"
-      using has_vderiv_on_If[of "{0 .. d+d2}" "{0 .. d}" "{d .. d+d2}" "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec ode (p t))" "(\<lambda>t. state2vec (p2 (t-d)))" "(\<lambda>t. ODE2Vec ode (p2 (t-d)))"]
-      using step1 step2 step3 step4 step6
-      using assms(1) assms(3) unfolding ODEsol_def 
-      by auto
-    then show ?thesis 
-      using has_vderiv_eq[of "(\<lambda>t. if t \<in> {0..d} then state2vec (p t) else state2vec (p2 (t - d)))" "(\<lambda>t. if t \<in> {0..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))" "{0..d + d2}" "(\<lambda>t. state2vec (if t < d then p t else p2 (t - d)))" "(\<lambda>t. ODE2Vec ode (if t < d then p t else p2 (t - d)))" "{0..d + d2}"]
-      using assms(3) step1 
+    show ?thesis
+      apply(rule exI[where x=e])
+      using has_vderiv_eq[of "(\<lambda>t. if t \<in> {-e..d} then state2vec (p t) else state2vec (p2 (t - d)))" "(\<lambda>t. if t \<in> {-e..d} then ODE2Vec ode (p t) else ODE2Vec ode (p2 (t - d)))" "{-e..d + d2+e}" "(\<lambda>t. state2vec (if t < d then p t else p2 (t - d)))" "(\<lambda>t. ODE2Vec ode (if t < d then p t else p2 (t - d)))" "{-e..d + d2+e}"]
+      using step7
+      using assms(3) step1 e
       by auto
   qed
   done
@@ -275,21 +321,33 @@ lemma ODEsol_split:
   shows "ODEsol ode p t1"
         "ODEsol ode (\<lambda>t. p (t + t1)) (d - t1)"
   subgoal
-    using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{0..t1}"]
+  proof-
+    obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-e .. d+e}"
+      using assms(1) unfolding ODEsol_def by blast
+    then show ?thesis unfolding ODEsol_def
+    using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{-e .. d+e}" "{-e..t1+e}"]
     using assms unfolding ODEsol_def by auto
+qed
   subgoal
     unfolding ODEsol_def apply auto
     subgoal using assms by auto
     subgoal 
     proof-
-      have step1:"((\<lambda>t. state2vec (p (t))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p (t)))) {t1..d}"
-        using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{0..d}" "{t1..d}"]
-        using assms unfolding ODEsol_def by auto
-      have step2:"((\<lambda>t.(t+t1)) has_vderiv_on (\<lambda>t. 1)) {0..d-t1}"
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) {-e .. d+e}"
+        using assms(1) unfolding ODEsol_def by blast
+      have step1:"((\<lambda>t. state2vec (p (t))) has_vderiv_on (\<lambda>t. ODE2Vec ode (p (t)))) {t1-e..d+e}"
+        using has_vderiv_on_subset[of "(\<lambda>t. state2vec (p t))" " (\<lambda>t. ODE2Vec ode (p t))" "{-e..d+e}" "{t1-e..d+e}"]
+        using e assms  by auto
+      have step2:"((\<lambda>t.(t+t1)) has_vderiv_on (\<lambda>t. 1)) {-e..d-t1+e}"
         by (auto intro!: derivative_intros)
+      have step3:"t \<in> {- e..d - t1 + e} \<Longrightarrow> t + t1 \<in> {t1 - e..d + e}" for t
+        using e assms by auto
       show ?thesis
-        using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p (t)))" "(\<lambda>t. ODE2Vec ode (p (t)))" "{t1..d}" "(\<lambda>t.(t+t1))" "(\<lambda>t. 1)" " {0..d-t1}"]
-        using step1 step2 assms by auto
+        apply(rule exI[where x=e])
+        apply auto 
+        subgoal using e by auto
+        using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p (t)))" "(\<lambda>t. ODE2Vec ode (p (t)))" "{t1-e..d+e}" "(\<lambda>t.(t+t1))" "(\<lambda>t. 1)" " {-e..d-t1+e}"]
+        using step1 step2 step3  by auto
     qed
     done
   done
