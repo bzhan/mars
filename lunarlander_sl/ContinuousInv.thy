@@ -1,5 +1,5 @@
 theory ContinuousInv
-  imports Complete
+  imports BigStepContinuous
 begin
 
 lemma chainrule:
@@ -112,12 +112,6 @@ theorem Valid_inv':
     qed
     done
   done
-
-definition supp :: "state \<Rightarrow> var set" where
-  "supp s = {v. s v \<noteq> 0}"
-
-fun ode_supp :: "ODE \<Rightarrow> var set" where
-  "ode_supp (ODE ode) = {v. ode v \<noteq> (\<lambda>_. 0)}"
 
 theorem Valid_inv_new':
   fixes inv :: "state \<Rightarrow> real"

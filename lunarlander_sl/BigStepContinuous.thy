@@ -500,6 +500,69 @@ theorem Valid_interrupt_Out_sp:
   apply (rule Valid_interrupt_sp)
   using assms by (auto simp add: Valid_def entails_def)
 
+lemma ODErdy_false:
+  "ODErdy\<^sub>t st ode b s rdy tr \<Longrightarrow> b = (\<lambda>_. True) \<Longrightarrow> False"
+  apply (induct rule: ode_rdy_assn.induct) by auto
+
+definition supp :: "state \<Rightarrow> var set" where
+  "supp s = {v. s v \<noteq> 0}"
+
+fun ode_supp :: "ODE \<Rightarrow> var set" where
+  "ode_supp (ODE ode) = {v. ode v \<noteq> (\<lambda>_. 0)}"
+
+theorem Valid_interrupt_Out_sp2:
+  assumes "\<Turnstile> {\<lambda>s tr. \<exists>st'. s = st' \<and> supp st' \<subseteq> VS \<and>
+                (P st @\<^sub>t ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) st' ch e ({ch}, {})) tr} p {Q}"
+    and "ode_supp (ODE ode) \<subseteq> VS"
+    and "supp st \<subseteq> VS"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt (ODE ode) (\<lambda>_. True) [(ch[!]e, p)]
+    {Q}"
+  apply (rule Valid_strengthen_post)
+   prefer 2
+   apply (rule Valid_interrupt_Out_sp)
+   apply (rule Valid_weaken_pre)
+    prefer 2 apply (rule assms)
+  apply (auto simp add: entails_def)
+   apply (auto simp add: Valid_def entails_def join_assn_def)
+  subgoal for s x tr1 tr2
+    subgoal premises pre
+    proof(rule ccontr)
+      assume cond:"x \<notin> VS"
+    have 1:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 =  [OutBlock ch (e s)] \<Longrightarrow> st = s"
+      apply (induct rule: ode_out_assn.induct) by auto
+    have 2:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 =  [OutBlock ch (e s)] \<Longrightarrow> False"
+      using 1 pre cond assms(3) unfolding supp_def by auto
+    have 3:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>
+\<exists> p d. (0 < (d::real) \<and>  ODEsol (ODE ode) p d \<and> p 0 = st \<and>
+    s = p d \<and> tr2 = [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))])"
+      apply (induct rule: ode_out_assn.induct) by auto
+    have 4:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>False"
+      subgoal premises pre1
+      proof-
+        obtain p and d where condd:"0 < (d::real)"" ODEsol (ODE ode) p d""p 0 = st"" s = p d "
+          using pre1 3 by auto
+        have a1:"p 0 x = 0" using pre condd cond assms(3) unfolding supp_def by auto
+        have a2:"ode x = (\<lambda>_. 0)"
+          using assms(2) cond by auto
+        have a3:"((\<lambda>t. p t x) has_vderiv_on (\<lambda>t. 0)) {0 .. d}"
+          using ODEsol_old[OF condd(2)]
+          using has_vderiv_on_proj[of "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec (ODE ode) (p t))"  "{0 .. d}" x]
+          apply auto
+          unfolding state2vec_def apply auto
+          using a2 by auto
+        then have 4:"p 0 x = p d x"
+          unfolding has_vderiv_on_def has_vector_derivative_def
+          using mvt_real_eq[of d "(\<lambda>t. p t x)" "\<lambda>t. (\<lambda>x. x *\<^sub>R 0)" d] 
+          using condd by auto
+        then show ?thesis using a1 cond pre condd unfolding supp_def by auto
+      qed
+      done
+    show False using 2 4 pre by auto
+  qed
+  done
+  using ODErdy_false by blast
 
 inductive wait_in_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("WaitIn\<^sub>t") where
   "WaitIn\<^sub>t 0 p ch v rdy [InBlock ch v]"

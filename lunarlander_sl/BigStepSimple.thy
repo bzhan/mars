@@ -511,10 +511,10 @@ definition join_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr 
 definition magic_wand_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "@-" 65) where
   "Q @- P = (\<lambda>tr. \<forall>tr1. Q tr1 \<longrightarrow> P (tr @ tr1))"
 
-definition all_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<forall>\<^sub>t" 10) where
+definition all_assn :: "('a \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<forall>\<^sub>t" 10) where
   "(\<forall>\<^sub>tv. P v) = (\<lambda>tr. \<forall>v. P v tr)"
 
-definition ex_assn :: "(real \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<exists>\<^sub>t" 10) where
+definition ex_assn :: "('a \<Rightarrow> tassn) \<Rightarrow> tassn" (binder "\<exists>\<^sub>t" 10) where
   "(\<exists>\<^sub>tv. P v) = (\<lambda>tr. \<exists>v. P v tr)"
 
 definition conj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<and>\<^sub>t" 35) where
@@ -629,6 +629,8 @@ theorem Valid_wait':
   unfolding entails_def magic_wand_assn_def
   by (auto intro: wait_assn.intros)
 
+
+
 text \<open>Strongest postcondition forms\<close>
 
 theorem Valid_assign_sp:
@@ -678,6 +680,22 @@ theorem Valid_wait_sp:
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
 
+
+theorem Valid_send_sp2:
+  "\<Turnstile> {\<lambda>s t. s = st \<and> P' s \<and> P s t}
+       Cm (ch[!]e)
+      {\<lambda>s t. s = st \<and> P' s \<and> (P st @\<^sub>t Out\<^sub>t st ch (e st)) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_send')
+  by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
+
+theorem Valid_receive_sp2:
+  "\<Turnstile> {\<lambda>s t. s = st \<and> P' s \<and> P s t}
+        Cm (ch[?]var)
+      {\<lambda>s t. \<exists>v. s = st(var := v) \<and> P' st \<and> (P st @\<^sub>t In\<^sub>t st ch v) t}"
+  apply (rule Valid_strengthen_post)
+   prefer 2 apply (rule Valid_receive_sp)
+  by (auto simp add: entails_def join_assn_def)
 subsection \<open>Rules for internal and external choice\<close>
 
 text \<open>Additional assertions\<close>

@@ -1,6 +1,6 @@
 
 theory Lander1
-  imports HHLProver.HHLProver
+  imports HHLProver.ContinuousInv
 begin
 
 

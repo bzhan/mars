@@ -1,5 +1,5 @@
 theory Velocity
-  imports ContinuousInv
+  imports ContinuousInv BigStepParallel
 begin
 
 
@@ -34,6 +34,8 @@ proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s A), T := (\<lambda>_. 1))))
                   (\<lambda>t. (\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t)) 1"
     unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+    apply(rule exI[where x = "1"])
     apply auto
     apply (rule has_vector_derivative_projI)
     apply (auto simp add: state2vec_def A_def V_def T_def)
@@ -296,7 +298,7 @@ theorem system_prop:
     apply (rule and_entails_gassn2[OF entails_trace_gassn])
     apply (rule combine[OF assms])
     by (auto simp add: entails_tassn_def entails_gassn_def and_gassn_def)
-  done
+  done                                              
 
 
 end
