@@ -10,7 +10,7 @@ theorem Valid_ode:
   "Valid
     (\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
             (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                   Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})])))
+                   Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])))
     (Cont ode b)
     Q"
   unfolding Valid_def
@@ -28,19 +28,19 @@ theorem Valid_interrupt:
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                         (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                        Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
+                        Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
                                        OutBlock ch (e (p d))]))))
     | (ch[?]var, p2) \<Rightarrow>
         (\<exists>Q. \<Turnstile> {Q} p2 {R} \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
              (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                         (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                        Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
+                        Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
                                                    InBlock ch v]))))"
     and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<not>b s \<longrightarrow> R s tr)"
     and "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                    (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                   R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)])))"
+                   R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs)])))"
   shows "\<Turnstile> {P} Interrupt ode b cs {R}"
 proof -
   have a: "R s2 (tr1 @ OutBlock ch (e s1) # tr2)"
@@ -58,7 +58,7 @@ proof -
     then show ?thesis
       using *(4) 1(1) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p d)) # tr2)"
+  have b: "R s2 (tr1 @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs) # OutBlock ch (e (p d)) # tr2)"
     if *: "P (p 0) tr1"
           "0 < d"
           "ODEsol ode p d"
@@ -71,10 +71,10 @@ proof -
       "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                  (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                 Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
+                 Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
                                 OutBlock ch (e (p d))]))"
       using *(5,6) by fastforce
-    have "Q (p d) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
+    have "Q (p d) (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
                           OutBlock ch (e (p d))])"
       using 1(2) *(1-4) unfolding entails_def by auto
     then show ?thesis
@@ -95,7 +95,7 @@ proof -
     then show ?thesis
       using *(4) 1(1) unfolding Valid_def by fastforce
   qed
-  have d: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2a)"
+  have d: "R s2 (tr1 @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs) # InBlock ch v # tr2a)"
     if *: "P (p 0) tr1"
           "0 < d"
           "ODEsol ode p d"
@@ -108,10 +108,10 @@ proof -
       "\<Turnstile> {Q} p2 {R}"
       "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                  (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                 Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs),
+                 Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs),
                                             InBlock ch v]))"
       using *(5,6) by fastforce
-    have "Q ((p d)(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v])"
+    have "Q ((p d)(var := v)) (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v])"
       using 1(2) *(1-4) unfolding entails_def by auto
     then show ?thesis
       using *(7) 1(1) unfolding Valid_def by fastforce
@@ -130,12 +130,12 @@ theorem Valid_interrupt_In:
     {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch}),
+                Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch}),
                                            InBlock ch v])) \<and>
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch})]))}
+                R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch})]))}
       Interrupt ode b [(ch[?]var, p)]
     {R}"
   apply (rule Valid_interrupt)
@@ -148,12 +148,12 @@ theorem Valid_interrupt_Out:
     {\<lambda>s tr. (Q s (tr @ [OutBlock ch (e s)])) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {}),
+                Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {}),
                                OutBlock ch (e (p d))])) \<and>
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({ch}, {})]))}
+                R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {})]))}
       Interrupt ode b [(ch[!]e, p)]
     {R}"
   apply (rule Valid_interrupt)
@@ -167,7 +167,7 @@ text \<open>ODE without interrupt\<close>
 inductive ode_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> tassn" ("ODE\<^sub>t") where
   "\<not>b s \<Longrightarrow> ODE\<^sub>t s ode b s []"
 | "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow> \<not>b (p d) \<Longrightarrow>
-     ODE\<^sub>t s ode b (p d) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
+     ODE\<^sub>t s ode b (p d) [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
 
 text \<open>ODE interrupted by communication\<close>
 inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> var \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEin\<^sub>t") where
@@ -175,14 +175,14 @@ inductive ode_in_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarr
 | "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
     ODEin\<^sub>t s ode b ((p d)(var := v)) ch var rdy
-      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, InBlock ch v]"
+      [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy, InBlock ch v]"
 
 inductive ode_out_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODEout\<^sub>t") where
   "ODEout\<^sub>t s ode b s ch e rdy [OutBlock ch (e s)]"
-| "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
+| "0 < (d::real) \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow>
     ODEout\<^sub>t s ode b (p d) ch e rdy
-      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
+      [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
 
 text \<open>ODE with interrupt, but reached boundary\<close>
 inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightarrow> state \<Rightarrow> rdy_info \<Rightarrow> tassn" ("ODErdy\<^sub>t") where
@@ -190,7 +190,7 @@ inductive ode_rdy_assn :: "state \<Rightarrow> ODE \<Rightarrow> fform \<Rightar
 | "0 < d \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s \<Longrightarrow>
     \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t) \<Longrightarrow> \<not>b (p d) \<Longrightarrow>
     ODErdy\<^sub>t s ode b (p d) rdy
-      [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy]"
+      [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy]"
 
 
 subsection \<open>Simpler rules for ODE\<close>
@@ -210,13 +210,13 @@ proof -
     ultimately show ?thesis
       by (auto simp add: magic_wand_assn_def)
   qed
-  have 2: "Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})])"
+  have 2: "Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
     if "\<forall>s'. (ODE\<^sub>t (p 0) ode b s' @- Q s') tr"
        "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for p d tr
   proof -
     have "(ODE\<^sub>t (p 0) ode b (p d) @- Q (p d)) tr"
       using that(1) by auto
-    moreover have "ODE\<^sub>t (p 0) ode b (p d) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]"
+    moreover have "ODE\<^sub>t (p 0) ode b (p d) [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
       apply (rule ode_assn.intros)
       using that by auto
     ultimately show ?thesis
@@ -251,7 +251,7 @@ proof -
   have "b st"
     using assms(1,3,5) by auto
   have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
-              WaitS\<^sub>t d p ({}, {}) [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
+              WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
@@ -263,12 +263,12 @@ proof -
       apply standard
       using assms(6) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
-      using assms(2) unfolding ODEsol_def solves_ode_def by auto
+      using assms(2) using ODEsol_old[OF assms(2)] unfolding ODEsol_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(1,5))
     have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d2} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)] unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d2}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond(1,5) that by auto
@@ -296,15 +296,14 @@ proof -
     have s7: "d = d2" using s5 s6 by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 s7 by (metis vec_state_map1)
-    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>))"
-      using s7 s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 by (simp add: assms(1) less_eq_real_def)
-    have s11: "WaitS\<^sub>t d p ({}, {}) [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) ({}, {})]"
-      apply (subst s9[symmetric])
-      apply (subst s7[symmetric])
+    have s11: "WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) = WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})"
+      apply (rule WaitBlk_ext_real) using s7 s8 by auto
+    have s12: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
+      unfolding s11[symmetric]
       by (rule wait_assn.intros)
-    show ?thesis using s7 s9 s10 s11 by auto
+    show ?thesis using s7 s8 s10 s12 by auto
   qed
   show ?thesis
     using assms(7) apply (auto simp add: ode_assn.simps)
@@ -368,7 +367,7 @@ proof -
                 \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
                           p 0 = s \<longrightarrow>
                           (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                          Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), OutBlock ch (e (p d))])))"
+                          Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs), OutBlock ch (e (p d))])))"
     if *: "i < length cs" "cs ! i = (ch[!]e, p)" for i ch e p
   proof -
     from assms(1) obtain Q where
@@ -376,7 +375,7 @@ proof -
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
-      using Q by (auto simp add: entails_def magic_wand_assn_def ode_out_assn.intros)
+      using Q ode_out_assn.intros by (auto simp add: entails_def magic_wand_assn_def)
   qed
   have 2: "\<exists>Q. \<Turnstile> {Q} p {R} \<and>
            (P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v]))) \<and>
@@ -385,7 +384,7 @@ proof -
                 \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
                           p 0 = s \<longrightarrow>
                           (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                          (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v]))))"
+                          (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs), InBlock ch v]))))"
     if *: "i < length cs" "cs ! i = (ch[?]var, p)" for i ch var p
   proof -
     from assms(1) obtain Q where
@@ -393,7 +392,7 @@ proof -
       using * by fastforce
     show ?thesis
       apply (rule exI[where x=Q])
-      using Q by (auto simp add: entails_def magic_wand_assn_def ode_in_assn.intros)
+      using Q ode_in_assn.intros by (auto simp add: entails_def magic_wand_assn_def)
   qed
   have 3: "R s tr"
     if "\<forall>s'. (ODErdy\<^sub>t s ode b s' (rdy_of_echoice cs) @- R s') tr" "\<not> b s" for s tr
@@ -405,14 +404,14 @@ proof -
     ultimately show ?thesis
       by (auto simp add: magic_wand_assn_def)
   qed
-  have 4: "R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)])"
+  have 4: "R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs)])"
     if "\<forall>s'. (ODErdy\<^sub>t (p 0) ode b s' (rdy_of_echoice cs) @- R s') tr"
        "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "\<not> b (p d)" for p d tr
   proof -
     have "(ODErdy\<^sub>t (p 0) ode b (p d) (rdy_of_echoice cs) @- R (p d)) tr"
       using that(1) by auto
-    moreover have "ODErdy\<^sub>t (p 0) ode b (p d) (rdy_of_echoice cs) [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice cs)]"
+    moreover have "ODErdy\<^sub>t (p 0) ode b (p d) (rdy_of_echoice cs) [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice cs)]"
       apply (rule ode_rdy_assn.intros)
       using that by auto
     ultimately show ?thesis
@@ -427,7 +426,7 @@ proof -
     subgoal apply (rule entails_trans[OF assms(2)])
       by (auto simp add: entails_def 3)
     subgoal apply (rule entails_trans[OF assms(2)])
-      by (auto simp add: entails_def 4)
+      using 4 entails_def by auto
     done
 qed
 
@@ -501,14 +500,77 @@ theorem Valid_interrupt_Out_sp:
   apply (rule Valid_interrupt_sp)
   using assms by (auto simp add: Valid_def entails_def)
 
+lemma ODErdy_false:
+  "ODErdy\<^sub>t st ode b s rdy tr \<Longrightarrow> b = (\<lambda>_. True) \<Longrightarrow> False"
+  apply (induct rule: ode_rdy_assn.induct) by auto
+
+definition supp :: "state \<Rightarrow> var set" where
+  "supp s = {v. s v \<noteq> 0}"
+
+fun ode_supp :: "ODE \<Rightarrow> var set" where
+  "ode_supp (ODE ode) = {v. ode v \<noteq> (\<lambda>_. 0)}"
+
+theorem Valid_interrupt_Out_sp2:
+  assumes "\<Turnstile> {\<lambda>s tr. \<exists>st'. s = st' \<and> supp st' \<subseteq> VS \<and>
+                (P st @\<^sub>t ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) st' ch e ({ch}, {})) tr} p {Q}"
+    and "ode_supp (ODE ode) \<subseteq> VS"
+    and "supp st \<subseteq> VS"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> P s tr}
+      Interrupt (ODE ode) (\<lambda>_. True) [(ch[!]e, p)]
+    {Q}"
+  apply (rule Valid_strengthen_post)
+   prefer 2
+   apply (rule Valid_interrupt_Out_sp)
+   apply (rule Valid_weaken_pre)
+    prefer 2 apply (rule assms)
+  apply (auto simp add: entails_def)
+   apply (auto simp add: Valid_def entails_def join_assn_def)
+  subgoal for s x tr1 tr2
+    subgoal premises pre
+    proof(rule ccontr)
+      assume cond:"x \<notin> VS"
+    have 1:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 =  [OutBlock ch (e s)] \<Longrightarrow> st = s"
+      apply (induct rule: ode_out_assn.induct) by auto
+    have 2:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 =  [OutBlock ch (e s)] \<Longrightarrow> False"
+      using 1 pre cond assms(3) unfolding supp_def by auto
+    have 3:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>
+\<exists> p d. (0 < (d::real) \<and>  ODEsol (ODE ode) p d \<and> p 0 = st \<and>
+    s = p d \<and> tr2 = [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({ch}, {}), OutBlock ch (e (p d))])"
+      apply (induct rule: ode_out_assn.induct) by auto
+    have 4:"ODEout\<^sub>t st (ODE ode) (\<lambda>_. True) s ch e ({ch}, {}) tr2 \<Longrightarrow> tr2 \<noteq>  [OutBlock ch (e s)] \<Longrightarrow>False"
+      subgoal premises pre1
+      proof-
+        obtain p and d where condd:"0 < (d::real)"" ODEsol (ODE ode) p d""p 0 = st"" s = p d "
+          using pre1 3 by auto
+        have a1:"p 0 x = 0" using pre condd cond assms(3) unfolding supp_def by auto
+        have a2:"ode x = (\<lambda>_. 0)"
+          using assms(2) cond by auto
+        have a3:"((\<lambda>t. p t x) has_vderiv_on (\<lambda>t. 0)) {0 .. d}"
+          using ODEsol_old[OF condd(2)]
+          using has_vderiv_on_proj[of "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec (ODE ode) (p t))"  "{0 .. d}" x]
+          apply auto
+          unfolding state2vec_def apply auto
+          using a2 by auto
+        then have 4:"p 0 x = p d x"
+          unfolding has_vderiv_on_def has_vector_derivative_def
+          using mvt_real_eq[of d "(\<lambda>t. p t x)" "\<lambda>t. (\<lambda>x. x *\<^sub>R 0)" d] 
+          using condd by auto
+        then show ?thesis using a1 cond pre condd unfolding supp_def by auto
+      qed
+      done
+    show False using 2 4 pre by auto
+  qed
+  done
+  using ODErdy_false by blast
 
 inductive wait_in_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> real \<Rightarrow> rdy_info \<Rightarrow> tassn" ("WaitIn\<^sub>t") where
   "WaitIn\<^sub>t 0 p ch v rdy [InBlock ch v]"
-| "d > 0 \<Longrightarrow> WaitIn\<^sub>t d p ch v rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, InBlock ch v]"
+| "d > 0 \<Longrightarrow> WaitIn\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy, InBlock ch v]"
 
 inductive wait_out_assn :: "real \<Rightarrow> (real \<Rightarrow> state) \<Rightarrow> cname \<Rightarrow> exp \<Rightarrow> rdy_info \<Rightarrow> tassn" ("WaitOut\<^sub>t") where
   "WaitOut\<^sub>t 0 p ch e rdy [OutBlock ch (e (p 0))]"
-| "d > 0 \<Longrightarrow> WaitOut\<^sub>t d p ch e rdy [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
+| "d > 0 \<Longrightarrow> WaitOut\<^sub>t d p ch e rdy [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy, OutBlock ch (e (p d))]"
 
 theorem Valid_ode_out_unique_solution_aux:
   assumes
@@ -518,7 +580,7 @@ theorem Valid_ode_out_unique_solution_aux:
   shows
     "\<exists>d. st' = p d \<and> WaitOut\<^sub>t d p ch e rdy tr"
 proof -
-  have main: "p2 d = p d \<and> (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>))"
+  have main: "p2 d = p d \<and> (\<forall>\<tau>\<in>{0..d}. State (p2 \<tau>) = State (p \<tau>))"
     if cond: "0 < d"
        "ODEsol ode p2 d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p2 t)"
@@ -529,22 +591,20 @@ proof -
       apply standard
       using assms(4) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
-      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
+      using assms(1) using ODEsolInf_old[OF assms(1)] unfolding ODEsolInf_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(3))
     have s3: "((\<lambda>t. state2vec(p2 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)]unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p2 t)" if "t\<in>{0..d}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond that by auto
     have s8: "t\<in>{0..d} \<Longrightarrow> p2 t = p t" for t
       using s2 s4 by (metis vec_state_map1)
-    have s9: "(\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d}. State (p2 \<tau>))"
-      using s8 unfolding restrict_def by auto
     have s10: "p d = p2 d"
       using s8 that(1) by auto
-    show ?thesis using s9 s10 by auto
+    show ?thesis using s8 s10 by auto
   qed
   show ?thesis
     using assms(5) apply (elim ode_out_assn.cases)
@@ -555,7 +615,7 @@ proof -
     subgoal for d p2 rdy1 rdy2
       apply (rule exI[where x=d])
       apply (auto simp add: wait_out_assn.simps)
-      using main[of d p2] by auto
+      using main[of d p2] by (auto simp: WaitBlk.simps)
     done
 qed
 
@@ -581,12 +641,12 @@ proof -
       apply standard
       using assms(4) by auto
     have s1: "((\<lambda>t. state2vec (p t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..} UNIV"
-      using assms(1) unfolding ODEsolInf_def solves_ode_def by auto
+      using assms(1) using ODEsolInf_old[OF assms(1)] unfolding ODEsolInf_def solves_ode_def by auto
     have s2: "(loc.flow 0 (state2vec st)) t = (\<lambda>t. state2vec (p t)) t" if "t \<in> {0..d1}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s1])
       using that by (auto simp add: state2vec_def assms(3))
     have s3: "((\<lambda>t. state2vec(p1 t)) solves_ode ((\<lambda>t v. ODE2Vec ode (vec2state v)))) {0..d1} UNIV"
-      using cond(2) unfolding ODEsol_def solves_ode_def by auto
+      using cond(2) using ODEsol_old[OF cond(2)] unfolding ODEsol_def solves_ode_def by auto
     have s4: "loc.flow 0 (state2vec st) t = state2vec (p1 t)" if "t\<in>{0..d1}" for t
       apply (rule loc.maximal_existence_flow(2)[OF s3])
       using cond that by auto

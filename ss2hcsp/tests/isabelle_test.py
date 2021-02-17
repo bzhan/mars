@@ -16,6 +16,14 @@ class IsabelleTest(unittest.TestCase):
         with open('lunarlander_sl/Lander1.thy', 'w', encoding='utf-8') as f:
             f.write(output)
 
+    def testTranslate2(self):
+        with open('CaseStudies/lander/lander_simple2.txt', 'r', encoding='utf-8') as f:
+            text = f.read()
+        process = parser.parse_file(text)
+        output = isabelle.translate_isabelle(process, "Lander2")
+        with open('lunarlander_sl/Lander2.thy', 'w', encoding='utf-8') as f:
+            f.write(output)
+
 
 if __name__ == "__main__":
     unittest.main()

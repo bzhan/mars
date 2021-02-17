@@ -11,12 +11,14 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | AssignH: "\<turnstile> {\<lambda>s. Q (s(var := e s))} (var ::= e) {Q}"
 | SendH:
     "\<turnstile> {\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-               (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)]))}
+               (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+               Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})])}
          (Cm (ch[!]e))
        {Q}"
 | ReceiveH: 
     "\<turnstile> {\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-           (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v]))}
+               (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
+               Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})])}
          (Cm (ch[?]var))
        {Q}"
 | SeqH:
@@ -24,13 +26,10 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | CondH:
     "\<turnstile> {P1} c1 {Q} \<Longrightarrow> \<turnstile> {P2} c2 {Q} \<Longrightarrow>
      \<turnstile> {\<lambda>s. if b s then P1 s else P2 s} (Cond b c1 c2) {Q}"
-| WaitH1:
-    "d > 0 \<Longrightarrow>
-     \<turnstile> {\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})])}
-         (Wait d)
+| WaitH:
+    "\<turnstile> {\<lambda>s tr. if e s > 0 then Q s (tr @ [WaitBlk (e s) (\<lambda>_. State s) ({}, {})]) else Q s tr}
+         (Wait e)
        {Q}"
-| WaitH2:
-    "\<not>d > 0 \<Longrightarrow> \<turnstile> {Q} Wait d {Q}"
 | RepH:
     "\<turnstile> {P} c {P} \<Longrightarrow> \<turnstile> {P} (Rep c) {P}"
 | IChoiceH:
@@ -42,14 +41,14 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
     "\<turnstile> {Q} p2 {R} \<Longrightarrow>
      es ! n = (ch[!]e, p2) \<Longrightarrow>
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)])) \<Longrightarrow>
-     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)])) \<Longrightarrow>
      echoice_hoare P n es R \<Longrightarrow>
      echoice_hoare P (Suc n) es R"
 | EChoiceH3:
     "\<turnstile> {Q} p2 {R} \<Longrightarrow>
      es ! n = (ch[?]var, p2) \<Longrightarrow>
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<Longrightarrow>
-     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])) \<Longrightarrow>
+     P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v])) \<Longrightarrow>
      echoice_hoare P n es R \<Longrightarrow>
      echoice_hoare P (Suc n) es R"
 | EChoiceH4:
@@ -59,14 +58,14 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
 | ContH:
     "\<turnstile> {\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
              (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                   Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})]))}
+                   Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]))}
          (Cont ode b)
        {Q}"
 | InterruptH1:
     "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<not>b s \<longrightarrow> R s tr) \<Longrightarrow>
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-               R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es)]))) \<Longrightarrow>
+               R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es)]))) \<Longrightarrow>
      interrupt_hoare P 0 ode b es R"
 | InterruptH2:
     "\<turnstile> {Q} p2 {R} \<Longrightarrow>
@@ -74,7 +73,7 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)])) \<Longrightarrow>
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-               Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+               Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                               OutBlock ch (e (p d))])) \<Longrightarrow>
      interrupt_hoare P n ode b es R \<Longrightarrow>
      interrupt_hoare P (Suc n) ode b es R"
@@ -84,7 +83,7 @@ inductive hoare :: "assn \<Rightarrow> proc \<Rightarrow> assn \<Rightarrow> boo
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<Longrightarrow>
      P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-               Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+               Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                                           InBlock ch v])) \<Longrightarrow>
      interrupt_hoare P n ode b es R \<Longrightarrow>
      interrupt_hoare P (Suc n) ode b es R"
@@ -99,16 +98,16 @@ inductive big_step_echoice :: "nat \<Rightarrow> (comm \<times> proc) list \<Rig
   "i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     big_step p2 s1 tr2 s2 \<Longrightarrow>
     big_step_echoice n cs s1 (OutBlock ch (e s1) # tr2) s2"
-| "d > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
+| "(d::real) > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
     big_step p2 s1 tr2 s2 \<Longrightarrow>
-    big_step_echoice n cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice cs) #
+    big_step_echoice n cs s1 (WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice cs) #
                               OutBlock ch (e s1) # tr2) s2"
 | "i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow>
     big_step_echoice n cs s1 (InBlock ch v # tr2) s2"
-| "d > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
+| "(d::real) > 0 \<Longrightarrow> i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
     big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow>
-    big_step_echoice n cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice cs) #
+    big_step_echoice n cs s1 (WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice cs) #
                               InBlock ch v # tr2) s2"
 
 inductive_cases big_step_echoiceE: "big_step_echoice n cs s1 tr s2"
@@ -118,14 +117,15 @@ lemma big_step_echoice_next_rev1:
    es ! n = (Send ch e, p2) \<Longrightarrow>
    (big_step_echoice n es s1 tr s2 \<Longrightarrow> P) \<Longrightarrow>
    (\<And>tr2. tr = OutBlock ch (e s1) # tr2 \<Longrightarrow> big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
-   (\<And>d tr2. d > 0 \<Longrightarrow> tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) #
-                           OutBlock ch (e s1) # tr2 \<Longrightarrow> big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>d tr2. (d::real) > 0 \<Longrightarrow>
+       tr = WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es) #
+            OutBlock ch (e s1) # tr2 \<Longrightarrow> big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
    P"
   apply (auto elim!: big_step_echoiceE)
   subgoal for i ch' e' p2' tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(1))
-    using less_antisym by fastforce
+    by (metis Pair_inject comm.inject(1) less_antisym)
   subgoal for d i ch' e' p2' tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(2))
@@ -133,7 +133,7 @@ lemma big_step_echoice_next_rev1:
   subgoal for i ch' var p2' v tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(3))
-    using less_antisym by fastforce
+    by (metis Pair_inject comm.distinct(1) less_SucE)
   subgoal for d i ch' var p2' v tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(4))
@@ -145,14 +145,15 @@ lemma big_step_echoice_next_rev2:
    es ! n = (Receive ch var, p2) \<Longrightarrow>
    (big_step_echoice n es s1 tr s2 \<Longrightarrow> P) \<Longrightarrow>
    (\<And>tr2 v. tr = InBlock ch v # tr2 \<Longrightarrow> big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
-   (\<And>d tr2 v. d > 0 \<Longrightarrow> tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) #
-                           InBlock ch v # tr2 \<Longrightarrow> big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>d tr2 v. (d::real) > 0 \<Longrightarrow>
+       tr = WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es) #
+            InBlock ch v # tr2 \<Longrightarrow> big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
    P"
   apply (auto elim!: big_step_echoiceE)
   subgoal for i ch' e' p2' tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(1))
-    using less_antisym by fastforce
+    by (metis Pair_inject comm.distinct(1) less_SucE)
   subgoal for d i ch' e' p2' tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(2))
@@ -160,11 +161,11 @@ lemma big_step_echoice_next_rev2:
   subgoal for i ch' var' p2' v tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(3))
-    using less_antisym by fastforce
+    by (metis comm.inject(2) less_antisym old.prod.inject)
   subgoal for d i ch' var' p2' v tr2
     apply (cases "i < n")
      apply (simp add: big_step_echoice.intros(4))
-    by (metis comm.inject(2) less_antisym old.prod.inject)
+    by (metis Pair_inject comm.inject(2) less_SucE)
   done
 
 lemma big_step_echoice_final:
@@ -180,10 +181,10 @@ lemma big_step_echoice_provable:
       case es ! i of
         (ch[!]e, p2) \<Rightarrow>
           wp p2 Q s (tr @ [OutBlock ch (e s)]) \<and>
-          (\<forall>d>0. wp p2 Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+          (\<forall>d::real>0. wp p2 Q s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
       | (ch[?]var, p2) \<Rightarrow>
           (\<forall>v. wp p2 Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-          (\<forall>d>0. \<forall>v. wp p2 Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])))
+          (\<forall>d::real>0. \<forall>v. wp p2 Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v])))
     n es Q"
 proof (induction n)
   case 0
@@ -239,7 +240,7 @@ inductive big_step_interrupt :: "nat \<Rightarrow> ODE \<Rightarrow> fform \<Rig
    i < n \<Longrightarrow> cs ! i = (Send ch e, p2) \<Longrightarrow>
    rdy = rdy_of_echoice cs \<Longrightarrow>
    big_step p2 (p d) tr2 s2 \<Longrightarrow>
-   big_step_interrupt n ode b cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy #
+   big_step_interrupt n ode b cs s1 (WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy #
                                      OutBlock ch (e (p d)) # tr2) s2"
 | "i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
    big_step p2 (s(var := v)) tr2 s2 \<Longrightarrow>
@@ -249,14 +250,14 @@ inductive big_step_interrupt :: "nat \<Rightarrow> ODE \<Rightarrow> fform \<Rig
    i < n \<Longrightarrow> cs ! i = (Receive ch var, p2) \<Longrightarrow>
    rdy = rdy_of_echoice cs \<Longrightarrow>
    big_step p2 ((p d)(var := v)) tr2 s2 \<Longrightarrow>
-   big_step_interrupt n ode b cs s1 (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy #
+   big_step_interrupt n ode b cs s1 (WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy #
                                      InBlock ch v # tr2) s2"
 | "\<not>b s \<Longrightarrow> big_step_interrupt n ode b cs s [] s"
 | "d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow>
    (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
    \<not>b (p d) \<Longrightarrow> p 0 = s1 \<Longrightarrow> p d = s2 \<Longrightarrow>
    rdy = rdy_of_echoice cs \<Longrightarrow>
-   big_step_interrupt n ode b cs s1 [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy] s2"
+   big_step_interrupt n ode b cs s1 [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy] s2"
 
 inductive_cases big_step_interruptE: "big_step_interrupt n ode b cs s1 tr s2"
 
@@ -267,7 +268,7 @@ lemma big_step_interrupt_next_rev1:
    (\<And>tr2. tr = OutBlock ch (e s1) # tr2 \<Longrightarrow>
       big_step p2 s1 tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
    (\<And>p d tr2.
-      tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) #
+      tr = WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) #
            OutBlock ch (e (p d)) # tr2 \<Longrightarrow>
       d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
       (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
@@ -299,7 +300,7 @@ lemma big_step_interrupt_next_rev2:
    (\<And>v tr2. tr = InBlock ch v # tr2 \<Longrightarrow>
       big_step p2 (s1(var := v)) tr2 s2 \<Longrightarrow> P) \<Longrightarrow>
    (\<And>p d v tr2.
-      tr = WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) #
+      tr = WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) #
            InBlock ch v # tr2 \<Longrightarrow>
       d > 0 \<Longrightarrow> ODEsol ode p d \<Longrightarrow> p 0 = s1 \<Longrightarrow>
       (\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)) \<Longrightarrow>
@@ -339,18 +340,18 @@ lemma big_step_interrupt_provable:
           wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
           (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
              (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-             wp p2 R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+             wp p2 R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                                   OutBlock ch (e (p d))]))
       | (ch[?]var, p2) \<Rightarrow>
           (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
           (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
              (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-             wp p2 R ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+             wp p2 R ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                                               InBlock ch v]))) \<and>
         (\<not>b s \<longrightarrow> R s tr) \<and>
         (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
            (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-           R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es)])))
+           R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es)])))
     n ode b es R"
 proof (induction n)
   case 0
@@ -428,13 +429,9 @@ next
   then show ?case
     by (simp add: Valid_cond)
 next
-  case (WaitH1 Q d)
+  case (WaitH Q d)
   then show ?case
     by (simp add: Valid_wait)
-next
-  case (WaitH2 Q d)
-  then show ?case
-    by (simp add: Valid_wait2)
 next
   case (RepH P c)
   then show ?case
@@ -459,11 +456,11 @@ next
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2')"
-    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
-       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" "d > 0" for d s1 tr1 s2 tr2'
+  have b: "R s2 (tr1 @ WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es) # OutBlock ch (e s1) # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)]))"
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 s1 tr2' s2" "(d::real) > 0" for d s1 tr1 s2 tr2'
   proof -
-    have "Q s1 (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
+    have "Q s1 (tr1 @ [WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es), OutBlock ch (e s1)])"
       using that(1,3,5) unfolding entails_def by auto
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
@@ -483,11 +480,11 @@ next
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es) # InBlock ch v # tr2')"
-    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
-       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "d > 0" for s2 tr1 d v tr2' s1
+  have b: "R s2 (tr1 @ WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es) # InBlock ch v # tr2')"
+    if "P \<Longrightarrow>\<^sub>A (\<lambda>s tr. \<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v]))"
+       "\<Turnstile> {Q} p2 {R}" "P s1 tr1" "big_step p2 (s1(var := v)) tr2' s2" "(d::real) > 0" for s2 tr1 d v tr2' s1
   proof -
-    have "Q (s1(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s1) (rdy_of_echoice es), InBlock ch v])"
+    have "Q (s1(var := v)) (tr1 @ [WaitBlk d (\<lambda>_. State s1) (rdy_of_echoice es), InBlock ch v])"
       using that(1,3,5) unfolding entails_def by auto
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
@@ -525,17 +522,17 @@ next
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) # OutBlock ch (e (p d)) # tr2')"
+  have b: "R s2 (tr1 @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) # OutBlock ch (e (p d)) # tr2')"
     if "P \<Longrightarrow>\<^sub>A
        (\<lambda>s tr.
            \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                     Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))"
+                     Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))"
        "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 (p d) tr2' s2" for s2 tr1 d p tr2'
   proof -
-    have "Q (p d) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
+    have "Q (p d) (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
       using that(1,3-6) unfolding entails_def by auto
     then show ?thesis
       using that(2,7) unfolding Valid_def by fastforce
@@ -555,17 +552,17 @@ next
     then show ?thesis
       using that(2,4) unfolding Valid_def by fastforce
   qed
-  have b: "R s2 (tr1 @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) # InBlock ch v # tr2')"
+  have b: "R s2 (tr1 @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) # InBlock ch v # tr2')"
     if "P \<Longrightarrow>\<^sub>A
        (\<lambda>s tr.
            \<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
                      p 0 = s \<longrightarrow>
                      (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                     (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])))"
+                     (\<forall>v. Q ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])))"
        "\<Turnstile> {Q} p2 {R}" "P (p 0) tr1" "0 < d" "ODEsol ode p d"
        "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "big_step p2 ((p d)(var := v)) tr2' s2" for s2 tr1 d p v tr2'
   proof -
-    have "Q ((p d)(var := v)) (tr1 @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"
+    have "Q ((p d)(var := v)) (tr1 @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"
       using that(1,3-6) unfolding entails_def by auto
     then show ?thesis
       using that(2,7) unfolding Valid_def by fastforce
@@ -611,23 +608,27 @@ lemma wp_Assign: "wp (var ::= e) Q = (\<lambda>s. Q (s(var := e s)))"
 lemma wp_Send:
   "wp (Cm (ch[!]e)) Q =
     (\<lambda>s tr. Q s (tr @ [OutBlock ch (e s)]) \<and>
-              (\<forall>d>0. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({ch}, {}), OutBlock ch (e s)])))"
+            (\<forall>d::real>0. Q s (tr @ [WaitBlk d (\<lambda>_. State s) ({ch}, {}), OutBlock ch (e s)])) \<and>
+            Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({ch}, {})]))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: sendE)
      apply (simp add: sendB1)
-    using sendB2 by blast
+    using sendB2 apply blast
+    using sendB3 by blast
   done
 
 lemma wp_Receive:
   "wp (Cm (ch[?]var)) Q =
     (\<lambda>s tr. (\<forall>v. Q (s(var := v)) (tr @ [InBlock ch v])) \<and>
-           (\<forall>d>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {ch}), InBlock ch v])))"
+            (\<forall>d::real>0. \<forall>v. Q (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch}), InBlock ch v])) \<and>
+            Q s (tr @ [WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch})]))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: receiveE)
      apply (simp add: receiveB1)
-    using receiveB2 by blast
+    using receiveB2 apply blast
+    using receiveB3 by blast
   done   
 
 lemma wp_Seq: "wp (c1; c2) Q = wp c1 (wp c2 Q)"
@@ -644,26 +645,14 @@ lemma wp_Cond: "wp (Cond b c1 c2) Q = (\<lambda>s. if b s then wp c1 Q s else wp
     using condB1 condB2 by auto
   done
 
-lemma wp_Wait1:
-  assumes "d > 0"
-  shows "wp (Wait d) Q =
-    (\<lambda>s tr. Q s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) ({}, {})]))"
+lemma wp_Wait:
+  "wp (Wait e) Q =
+    (\<lambda>s tr. if e s > 0 then Q s (tr @ [WaitBlk (e s) (\<lambda>_. State s) ({}, {})]) else Q s tr)"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
-    apply (auto simp add: wp_def elim: waitE)
-    using assms waitB1 apply blast
-    using assms waitE by blast
-  done
-
-lemma wp_Wait2:
-  assumes "\<not>d > 0"
-  shows "wp (Wait d) Q = Q"
-  apply (rule ext) apply (rule ext)
-  subgoal for s tr
-    apply (auto simp add: wp_def elim: waitE)
-    using assms waitB2 apply fastforce
-    apply (elim waitE)
-    using assms by auto
+    apply (auto simp add: wp_def elim!: waitE)
+    using waitB1[of e s] waitB2[of e s] apply auto
+    by fastforce
   done
 
 lemma wp_IChoice:
@@ -678,7 +667,7 @@ lemma wp_ODE:
   "wp (Cont ode b) Q =
     (\<lambda>s tr. (\<not>b s \<longrightarrow> Q s tr) \<and>
             (\<forall>d p. 0 < d \<longrightarrow> ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow> (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                   Q (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {})])))"
+                   Q (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])))"
   apply (rule ext) apply (rule ext)
   subgoal for s tr
     apply (auto simp add: wp_def elim: contE)
@@ -692,20 +681,20 @@ lemma wp_echoice:
       case es ! i of
         (ch[!]e, p2) \<Rightarrow>
           wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
-          (\<forall>d>0. wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+          (\<forall>d::real>0. wp p2 R s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
       | (ch[?]var, p2) \<Rightarrow>
           (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
-          (\<forall>d>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))))"
+          (\<forall>d::real>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v]))))"
 proof -
   have a: "R s' (tr @ tr')" if assms_a:
     "\<forall>i<length es.
        case es ! i of
        (ch[!]e, p2) \<Rightarrow>
          wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
-         (\<forall>d>0. wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
+         (\<forall>d::real>0. wp p2 R s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)]))
        | (ch[?]var, p2) \<Rightarrow>
            (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
-           (\<forall>d>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v]))"
+           (\<forall>d::real>0. \<forall>v. wp p2 R (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v]))"
     "big_step (EChoice es) s tr' s'" for s s' tr tr'
   proof -
     have a1: "R s' (tr @ OutBlock ch (e s) # tr2)"
@@ -716,10 +705,10 @@ proof -
       then show ?thesis
         unfolding wp_def using that(3) by auto
     qed
-    have a2: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es) # OutBlock ch (e s) # tr2)"
-      if "0 < d" "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 s tr2 s'" for d ch e tr2 i p2
+    have a2: "R s' (tr @ WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es) # OutBlock ch (e s) # tr2)"
+      if "0 < (d::real)" "i < length es" "es ! i = (ch[!]e, p2)" "big_step p2 s tr2 s'" for d ch e tr2 i p2
     proof -
-      have "wp p2 R s (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), OutBlock ch (e s)])"
+      have "wp p2 R s (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), OutBlock ch (e s)])"
         using assms_a(1) that(1-3) by fastforce
       then show ?thesis
         unfolding wp_def using that(4) by auto
@@ -732,10 +721,10 @@ proof -
       then show ?thesis
         unfolding wp_def using that(3) by auto
     qed
-    have a4: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es) # InBlock ch v # tr2)"
-      if "0 < d" "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (s(var := v)) tr2 s'" for d ch v tr2 i var p2
+    have a4: "R s' (tr @ WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es) # InBlock ch v # tr2)"
+      if "0 < (d::real)" "i < length es" "es ! i = (ch[?]var, p2)" "big_step p2 (s(var := v)) tr2 s'" for d ch v tr2 i var p2
     proof -
-      have "wp p2 R (s(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State s) (rdy_of_echoice es), InBlock ch v])"
+      have "wp p2 R (s(var := v)) (tr @ [WaitBlk d (\<lambda>_. State s) (rdy_of_echoice es), InBlock ch v])"
         using assms_a(1) that(1-3) by fastforce
       then show ?thesis
         unfolding wp_def using that(4) by auto
@@ -769,18 +758,18 @@ lemma wp_interrupt:
           wp p2 R s (tr @ [OutBlock ch (e s)]) \<and>
           (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
              (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-             wp p2 R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+             wp p2 R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                                   OutBlock ch (e (p d))]))
       | (ch[?]var, p2) \<Rightarrow>
           (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
           (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
              (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-             wp p2 R ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es),
+             wp p2 R ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es),
                                               InBlock ch v]))) \<and>
         (\<not>b s \<longrightarrow> R s tr) \<and>
         (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
            (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-           R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es)])))"
+           R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es)])))"
 proof -
   have a: "R s tr" if "\<forall>s' tr'. big_step (Interrupt ode b es) s tr' s' \<longrightarrow> R s' (tr @ tr')" "\<not> b s" for s tr
   proof -
@@ -797,18 +786,18 @@ proof -
          (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
                     p 0 = s \<longrightarrow>
                     (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                    wp p2 R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))
+                    wp p2 R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))]))
        | (ch[?]var, p2) \<Rightarrow>
            (\<forall>v. wp p2 R (s(var := v)) (tr @ [InBlock ch v])) \<and>
            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow>
                         p 0 = s \<longrightarrow>
                         (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                        wp p2 R ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v]))"
+                        wp p2 R ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v]))"
     "\<not> b s \<longrightarrow> R s tr"
     "\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow>
               p 0 = s \<longrightarrow>
               (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-              \<not> b (p d) \<longrightarrow> R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es)])"
+              \<not> b (p d) \<longrightarrow> R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es)])"
     "big_step (Interrupt ode b es) s tr' s'" for s s' tr tr'
   proof -
     have b1: "R s' (tr @ OutBlock ch (e s) # tr2)"
@@ -819,11 +808,11 @@ proof -
       then show ?thesis
         unfolding wp_def using that(3) by auto
     qed
-    have b2: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) # OutBlock ch (e (p d)) # tr2)"
+    have b2: "R s' (tr @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) # OutBlock ch (e (p d)) # tr2)"
       if "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "i < length es" "es ! i = (ch[!]e, p2)"
          "big_step p2 (p d) tr2 s'" "s = p 0" for ch e p d tr2 p2 i
     proof -
-      have "wp p2 R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
+      have "wp p2 R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), OutBlock ch (e (p d))])"
         using assms_b(1) that(1-5,7) by fastforce
       then show ?thesis
         unfolding wp_def using that(6) by auto
@@ -836,11 +825,11 @@ proof -
       then show ?thesis
         unfolding wp_def using that(3) by auto
     qed
-    have b4: "R s' (tr @ WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es) # InBlock ch v # tr2)"
+    have b4: "R s' (tr @ WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es) # InBlock ch v # tr2)"
       if "0 < d" "ODEsol ode p d" "\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)" "i < length es" "es ! i = (ch[?]var, p2)"
        "big_step p2 ((p d)(var := v)) tr2 s'" "s = p 0" for d ch v tr2 i var p2 p
     proof -
-      have "wp p2 R ((p d)(var := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"
+      have "wp p2 R ((p d)(var := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) (rdy_of_echoice es), InBlock ch v])"
         using assms_b(1) that(1-5,7) by fastforce
       then show ?thesis
         unfolding wp_def using that(6) by auto
@@ -901,19 +890,9 @@ next
   then show ?case
     unfolding wp_Cond by (rule CondH)
 next
-  case (Wait d)
-  show ?case
-  proof (cases "d > 0")
-    case True
-    then show ?thesis
-      unfolding wp_Wait1[OF True]
-      by (rule WaitH1)
-  next
-    case False
-    then show ?thesis
-      unfolding wp_Wait2[OF False]
-      by (rule WaitH2)
-  qed
+  case (Wait e)
+  then show ?case
+    unfolding wp_Wait by (rule WaitH)
 next
   case (IChoice c1 c2)
   then show ?case

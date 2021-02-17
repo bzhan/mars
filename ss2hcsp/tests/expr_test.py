@@ -31,6 +31,7 @@ class ExprTest(unittest.TestCase):
             ("a[0]", "ArrayIdxExpr(AVar(a),AConst(0))"),
             ("-x", "Plus(-AVar(x))"),
             ("-x + y", "Plus(-AVar(x), +AVar(y))"),
+            ("(a - b) % m", "Mod(Plus(+AVar(a), -AVar(b)), AVar(m))"),
         ]
         
         for s, res in test_data:
@@ -128,6 +129,7 @@ class ExprTest(unittest.TestCase):
             ("a[1][2]!x", "OutputC(a[1][2],x)"),
             ("a[1][2]?pt.x[1]", "InputC(a[1][2],pt.x[1])"),
             ("@X", "Var(X)"),
+            ("x := (a-b)%m", "Assign(x,(a-b)%m)"),
         ]
 
         for s, res in test_data:

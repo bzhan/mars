@@ -1,5 +1,5 @@
 theory Bouncing
-  imports continuousInv
+  imports ContinuousInv
 begin
 
 lemma has_vector_derivative_divide[derivative_intros]:

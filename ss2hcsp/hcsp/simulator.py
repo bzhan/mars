@@ -253,6 +253,13 @@ def get_ode_delay(hp, state):
     if not eval_expr(hp.constraint, state):
         return 0.0
 
+    def get_deriv(name):
+        """Returns the derivative of a variable."""
+        for var_name, eq in hp.eqs:
+            if var_name == name:
+                return eq
+        return AConst(0)
+        
     def ode_fun(t, y):
         res = []
         state2 = copy.copy(state)
@@ -273,10 +280,10 @@ def get_ode_delay(hp, state):
             elif c.op in ('>', '>='):
                 return eval_expr(c.expr2, state2) - eval_expr(c.expr1, state2)
             else:
-                print('!!!!!')
+                print('get_ode_delay: cannot handle constraint %s' % c)
                 raise NotImplementedError
         else:
-            print('!!!!!')
+            print('get_ode_delay: cannot handle constraint %s' % c)
             raise NotImplementedError
 
     # Compute set of variables that remain zero
@@ -292,26 +299,18 @@ def get_ode_delay(hp, state):
             return t.name in zero_vars
         else:
             return False
-    
-    def is_zero_deriv(name):
-        """Whether the derivative of variable simplifies to 0."""
-        for var_name, eq in hp.eqs:
-            if var_name == name and not is_zero(eq):
-                return False
-        return True
 
+    # List of variables that are guaranteed to stay zero.
     found = True
     while found:
         found = False
         for name in state:
-            if name not in zero_vars and is_zero_deriv(name) and state[name] == 0:
+            if name not in zero_vars and is_zero(get_deriv(name)) and state[name] == 0:
                 zero_vars.append(name)
                 found = True
 
-    changed_vars = []
-    for var_name, eq in hp.eqs:
-        if not is_zero(eq):
-            changed_vars.append(var_name)
+    # List of variables that are changed.
+    changed_vars = [var_name for var_name, eq in hp.eqs if not is_zero(eq)]
 
     def occur_var(e, var_name):
         if isinstance(e, RelExpr):
@@ -349,13 +348,21 @@ def get_ode_delay(hp, state):
             else:
                 return 0
 
-        # Condition of the form t < constant
-        if isinstance(e, RelExpr) and e.op in ('<', '<=') and \
-            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2):
-            for var_name, deriv in hp.eqs:
-                if var_name == e.expr1.name and expr_unchanged(deriv):
-                    diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
-                    return min(diff / eval_expr(deriv, state), 100.0)
+        # Condition comparing a variable to a constant, where the derivative
+        # of the variable is also a constant.
+        if (isinstance(e, RelExpr) and e.op in ('<', '<=', '>', '>=') and
+            isinstance(e.expr1, AVar) and expr_unchanged(e.expr2) and
+            expr_unchanged(get_deriv(e.expr1.name))):
+            deriv = eval_expr(get_deriv(e.expr1.name), state)
+            diff = eval_expr(e.expr2, state) - eval_expr(e.expr1, state)
+            if e.op in ('<', '<='):
+                if diff < 0:
+                    return 0.0
+                return min(diff / deriv, 100.0) if deriv > 0 else 100.0
+            else:
+                if diff > 0:
+                    return 0.0
+                return min(diff / deriv, 100.0) if deriv < 0 else 100.0        
 
         if not eval_expr(e, state):
             return 0
@@ -560,9 +567,9 @@ def parse_pos(hp, pos):
         return start_pos(hp)
     
     assert len(pos) > 0 and pos[0] == 'p'
-    pos = pos[1:].split('.')
+    pos = pos[1:].split(',')
     if len(pos) > 0 and pos[-1].startswith('w'):
-        pos = tuple([int(p) for p in pos[:-1]] + [int(pos[-1][1:])])
+        pos = tuple([int(p) for p in pos[:-1]] + [float(pos[-1][1:])])
         assert get_pos(hp, pos).type == 'wait'
     else:
         pos = tuple(int(p) for p in pos)
@@ -594,9 +601,9 @@ def string_of_pos(hp, pos):
     if pos is None:
         return 'end'
     elif get_pos(hp, pos).type != 'wait':
-        return 'p' + '.'.join(str(p) for p in pos)
+        return 'p' + ','.join(str(p) for p in pos)
     else:
-        return 'p' + '.'.join(str(p) for p in pos[:-1])
+        return 'p' + ','.join(str(p) for p in pos[:-1]) + ',w' + str(pos[-1])
 
 def disp_of_pos(hp, pos):
     return string_of_pos(hp, remove_rec(hp, pos))
@@ -647,9 +654,6 @@ class SimInfo:
         # currently waiting. If not None, then it is a dictionary with
         # possible keys 'comm' and 'delay'.
         self.reason = None
-
-        # Last step at which the state is changed. Used during simulation.
-        self.last_change = None
 
     def __str__(self):
         return str({'name': self.name, 'hp': self.hp, 'pos': self.pos, 'state': self.state, 'reason': self.reason})
@@ -788,11 +792,17 @@ class SimInfo:
 
         elif cur_hp.type == "wait":
             # Waiting for some number of seconds
-            self.reason = {"delay": eval_expr(cur_hp.delay, self.state) - self.pos[-1]}
+            delay = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
+            if delay < 0:
+                print(self.name, cur_hp, eval_expr(cur_hp.delay, self.state), self.pos)
+                raise AssertionError("exec_step: delay for wait less than zero")
+            self.reason = {"delay": delay}
 
         elif cur_hp.type == "ode":
             # Find delay of ODE
-            self.reason = {"delay": get_ode_delay(cur_hp, self.state)}
+            delay = get_ode_delay(cur_hp, self.state)
+            assert delay >= 0, "exec_step: delay for ode less than zero"
+            self.reason = {"delay": delay}
 
         elif cur_hp.type == "ode_comm":
             # Run ODE until one of the communication events (or the boundary)
@@ -804,7 +814,9 @@ class SimInfo:
                     comms.append((eval_channel(io_comm.ch_name, self.state), "!"))
             self.reason = {"comm": comms}
             if cur_hp.constraint != true_expr:
-                self.reason["delay"] = get_ode_delay(cur_hp, self.state)
+                delay = get_ode_delay(cur_hp, self.state)
+                assert delay >= 0, "exec_step: delay for ode_comm less than zero"
+                self.reason["delay"] = delay
 
         elif cur_hp.type == "select_comm":
             # Waiting for one of the input/outputs
@@ -1033,8 +1045,8 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
-                  show_starting=None):
+def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
+                  show_interval=None, start_event=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1058,14 +1070,6 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
         'events': []  # Concise list of event strings
     }
 
-    # Number of steps so far.
-    num_event = 0
-
-    for info in infos:
-        if info.outputs is None or len(info.outputs) > 0:
-            # Has some variable to output
-            res['time_series'][info.name] = []
-
     def log_event(ori_pos, **xargs):
         """Log the given event, starting with the given event info."""
         nonlocal num_event
@@ -1074,26 +1078,31 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
             print('i:', num_event)
 
         new_event = xargs
+
+        # Append the first 2000 events
+        if num_event <= 2000:
+            res['events'].append(new_event['str'])
+
+        # Determine whether to append the current event
+        if new_event['type'] != 'error':
+            if num_show is not None and len(res['trace']) >= num_show + 1:
+                return
+            if show_interval is not None and (num_event - 1) % show_interval != 0:
+                return
+
+        # Fill in additional information about the event
+        new_event['id'] = num_event - 1
         new_event['time'] = res['time']
         new_event['ori_pos'] = ori_pos
-        res['events'].append(new_event['str'])
 
-        if new_event['type'] != 'error' and \
-            ((num_show is not None and len(res['trace']) >= num_show + 1) or \
-             (show_starting is not None and num_event <= show_starting)):
-            return
-
+        # Fill in information about current position
         cur_info = dict()
         for info in infos:
-            if new_event['type'] == 'error' or info.name in ori_pos or info.last_change is None:
-                info_pos = disp_of_pos(info.hp, info.pos)
-                cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
-                info.last_change = len(res['trace'])
-            else:
-                cur_info[info.name] = info.last_change
-
-        new_event['id'] = num_event - 1
+            info_pos = disp_of_pos(info.hp, info.pos)
+            cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
         new_event['infos'] = cur_info
+
+        # Finally add to trace
         res['trace'].append(new_event)
 
     def log_time_series(info, time, state):
@@ -1114,22 +1123,41 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
 
-    # List of processes that have been updated in the last round.
-    start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
+    if start_event:
+        # If has a starting event, modify starting position accordingly
+        num_event = start_event['id'] + 1
+        res['time'] = start_event['time']
+        for info in infos:
+            info.pos = parse_pos(info.hp, start_event['infos'][info.name]['pos'])
+            info.state = start_event['infos'][info.name]['state']
 
-    # Record event and time series at the beginning.
-    log_event(ori_pos=start_pos, type="start", str="start")
-    for info in infos:
-        log_time_series(info, 0, info.state)
+    else:
+        # Otherwise use default starting position
+        num_event = 0
+
+        # List of processes that have been updated in the last round.
+        start_pos = dict((info.name, disp_of_pos(info.hp, info.pos)) for info in infos)
+
+        # Record event and time series at the beginning.
+        log_event(ori_pos=start_pos, type="start", str="start")
+        for info in infos:
+            log_time_series(info, 0, info.state)
+
+        # Initialize time_series
+        for info in infos:
+            if info.outputs is None or len(info.outputs) > 0:
+                # Has some variable to output
+                res['time_series'][info.name] = []
+
+    start_id = num_event
+    if num_io_events is None:
+        num_io_events = num_steps
 
     for iteration in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
-            if info.name not in start_pos:
-                continue
-
-            while info.pos is not None and not num_event > num_steps:
+            while info.pos is not None and not num_event >= start_id + num_steps:
                 ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
                 try:
                     info.exec_step()
@@ -1157,7 +1185,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
             if info.pos is None:
                 info.reason = {'end': None}
 
-        if num_event > num_steps:
+        if num_event >= start_id + num_steps:
             break
 
         event = extract_event(infos)
@@ -1168,6 +1196,7 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
             break
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
+            assert min_delay >= 0, "min_delay %s less than zero" % min_delay
             ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
 
             trace_str = "delay %s" % str(round(min_delay, 3))
@@ -1219,7 +1248,6 @@ def exec_parallel(infos, *, num_io_events=100, num_steps=400, num_show=None,
         if has_overflow:
             log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
-        
     return res
 
 def graph(res, proc_name, tkplot=False, separate=True, variables=None):

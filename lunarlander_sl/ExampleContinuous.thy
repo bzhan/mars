@@ -2,6 +2,33 @@ theory ExampleContinuous
   imports ExampleSimple
 begin
 
+
+lemma example_ode:
+  "\<Turnstile> {\<lambda>s tr. \<forall>s'. (ODE\<^sub>t (s(X := s X + 1)) ode b s' @- Q s') tr}
+       X ::= (\<lambda>s. s X + 1); Cont ode b
+      {Q}"
+  apply (rule Valid_seq)
+   prefer 2 apply (rule Valid_ode')
+  by (rule Valid_assign)
+
+lemma example_ode':
+  assumes "b st"
+  shows "\<Turnstile>
+    {\<lambda>s tr. s = st \<and> Q s tr}
+      Cont ode b; X ::= (\<lambda>s. s X + 1)
+    {\<lambda>s tr. \<exists>s'. s = s'(X := s' X + 1) \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
+  apply (rule Valid_seq)
+  apply (rule Valid_ode_sp)
+    apply (rule assms)
+  apply (rule Valid_ex_pre)
+  subgoal for s2
+    apply (rule Valid_strengthen_post)
+     prefer 2
+     apply (rule Valid_assign_sp)
+    by (auto simp add: entails_def)
+  done
+
+
 subsection \<open>Version of interrupt with two communications\<close>
 
 theorem Valid_interrupt_InIn:
@@ -11,17 +38,17 @@ theorem Valid_interrupt_InIn:
     {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q1 ((p d)(var1 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
+                Q1 ((p d)(var1 := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2}),
                                              InBlock ch1 v])) \<and>
             (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
             (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q2 ((p d)(var2 := v)) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2}),
+                Q2 ((p d)(var2 := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2}),
                                              InBlock ch2 v])) \<and>
             (\<not>b s \<longrightarrow> R s tr) \<and>
             (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
                 (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) ({}, {ch1, ch2})]))}
+                R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2})]))}
       Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)]
     {R}"
   apply (rule Valid_interrupt)
@@ -43,6 +70,8 @@ proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
      using assms apply auto
+apply(rule exI[where x="1"])
+  apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -81,6 +110,8 @@ proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
      using assms apply auto
+apply(rule exI[where x="1"])
+  apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -311,6 +342,8 @@ proof -
   have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
      apply auto
+apply(rule exI[where x="1"])
+  apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -407,7 +440,7 @@ lemma last_iright_blocks_snoc [simp]:
 lemma testHL14b:
   "\<Turnstile>
     {\<lambda>s tr. s = (\<lambda>_. 0)(Y := a) \<and> emp\<^sub>t tr}
-      Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))
+      Rep (Wait (\<lambda>_. 1); Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))
     {\<lambda>s tr. \<exists>vs. s = (\<lambda>_. 0)(Y := last_iright_blocks a vs) \<and> iright_blocks a vs tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
@@ -493,7 +526,7 @@ lemma testHL14:
      Parallel
       (Single (Rep (Interrupt (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>_. True) [(''ch1''[!](\<lambda>s. s X), Skip)];
                Cm (''ch2''[?]X)))) {''ch1'', ''ch2''}
-      (Single (Rep (Wait 1; Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
+      (Single (Rep (Wait (\<lambda>_. 1); Cm (''ch1''[?]Y); Cm (''ch2''[!](\<lambda>s. s Y - 1)))))
     {\<exists>\<^sub>g n. trace_gassn (tot_blocks2 n)}"
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')

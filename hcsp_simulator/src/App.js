@@ -18,6 +18,7 @@ const verticalLinePlugin = {
         return (xval - xstart) / (xend - xstart) * (right - left) + left;
     },
 
+    // Renders black or grey line showing location of the current event.
     renderVerticalLine: function (chartInstance, pointIndex) {
         const scale = chartInstance.scales['y-axis-0'];
         const context = chartInstance.chart.ctx;
@@ -38,6 +39,7 @@ const verticalLinePlugin = {
         }
     },
 
+    // Renders the red line showing a warning
     renderVerticalLineRed: function (chartInstance, pointIndex) {
         const scale = chartInstance.scales['y-axis-0'];
         const context = chartInstance.chart.ctx;
@@ -70,22 +72,26 @@ class Process extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            show_process: true,
-            show_graph: false,
+            // Whether to show program text
+            show_process: false,
+
+            // Whether to show graph
+            show_graph: false,   
         }
-        this.canvas = document.getElementById('chart' + String(this.props.index));
     }
-
-
+    
+    // Convert the value of a variable to string for display.
     displayValue(val) {
         if (typeof (val) == 'number') {
-            // Round numbers to at most three digits for display
+            // Round numbers to at most three digits
             return String(Math.round(val.toFixed(3) * 1000) / 1000);
         }
         else if (Array.isArray(val)) {
+            // Display of lists
             return '[' + val.map((k) => this.displayValue(k)).join(',') + ']';
         }
         else {
+            // Display of dictionary (structs)
             return '{' + (Object.keys(val).map((k) => k + ':' + this.displayValue(val[k]))).join(',') + '}';
         }
     }
@@ -96,16 +102,22 @@ class Process extends React.Component {
         }))
     }
 
+    toggleShowGraph = (e) => {
+        this.setState((state) => ({
+            show_graph: !state.show_graph,
+        }))
+    }
+
     render() {
         return (
             <div>
                 {/* Program text, with highlight on current location */}
                 <div>Process: {this.props.name}{'  '}
-
-                    <a href="#" style={{fontSize:14}} onClick={this.toggleShowText}>{this.state.show_process ? "Hide Process" : "Show Process"} </a>
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.toggleShowText}>
+                        {this.state.show_process ? "Hide Process" : "Show Process"}
+                    </a>
                 </div>
                 <div className="program-text">
-
                     {
                         this.state.show_process ? (
                             <div>
@@ -163,22 +175,42 @@ class Process extends React.Component {
                         </>)
                     })}
                     <span>&nbsp;&nbsp;</span>
-                    <a href="#" onClick={this.toggleShowGraph}>{this.state.show_graph ? "Hide graph" : "Show graph"}</a>
+                    <a href="#" onClick={this.toggleShowGraph}>
+                        {this.state.show_graph ? "Hide graph" : "Show graph"}
+                    </a>
                 </pre >
 
                 {/* Graph of time series */}
                 {
                     (this.state.show_graph && this.props.time_series !== undefined) ?
-                        <canvas id={'chart' + String(this.props.index)} width="400" height="100" /> : null
+                        <canvas onClick={this.getCurPosition}
+                                id={'chart' + String(this.props.index)}
+                                width="400" height="100"/> : null
                 }
             </div >
         );
     }
 
-    toggleShowGraph = (e) => {
-        this.setState((state) => ({
-            show_graph: !state.show_graph,
-        }))
+    getCurPosition = (e) => {
+        const map = this.canvas.getBoundingClientRect();
+        const x = e.clientX - map.left;
+        const y = e.clientY - map.top;
+        //console.log('x',x,'y',y,'left',this.chart.chartArea.left,'right',this.chart.chartArea.right,'top',this.chart.chartArea.top,'bottom',this.chart.chartArea.bottom)
+        if (x > this.chart.chartArea.left &&
+            x < this.chart.chartArea.right &&
+            y < this.chart.chartArea.bottom &&
+            y > this.chart.chartArea.top)
+        {    
+            const ptx = x - this.chart.chartArea.left;
+            //console.log('ptx',ptx,'end',this.chart.scales["x-axis-0"].end,'out',ptx/map.width*this.chart.scales["x-axis-0"].end)
+            //console.log(this.chart)
+            this.props.onClick(e, ptx/(this.chart.chartArea.right-this.chart.chartArea.left)*this.chart.scales["x-axis-0"].end);
+        }
+        else
+        {
+            //console.log(this.chart)
+            this.chart.handleEvent(e)
+        }
     }
 
     componentDidUpdate() {
@@ -218,13 +250,13 @@ class Process extends React.Component {
             })
         }
 
-        var canvas = document.getElementById('chart' + String(this.props.index));
+        this.canvas = document.getElementById('chart' + String(this.props.index));
 
         const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
         if (typeof this.props.warning_at == 'undefined') { }
         else
             var warningAtIndex = this.props.warning_at[0];
-        this.chart = new Chart(canvas, {
+        this.chart = new Chart(this.canvas, {
             type: 'line',
             data: {
                 datasets: datasets
@@ -254,6 +286,7 @@ class Process extends React.Component {
 
             }
         })
+       
         this.chart.update();
     }
 }
@@ -327,10 +360,14 @@ class App extends React.Component {
             show_event_only: false,
 
             // Warnings from checks of channel mismatches.
-            warnings: []
+            warnings: [],
+
+            // Whether pic is clicked
+            
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
+        this.picclicked=false;
     }
 
     handleChange = (e) => {
@@ -391,6 +428,12 @@ class App extends React.Component {
 
     componentDidMount() {
         this.fileSelector = this.buildFileSelector();
+        
+    }
+    componentDidUpdate() {
+        if(document.getElementsByClassName('event-list-hl')[0] && this.picclicked===true)
+            document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
+            this.picclicked=false;
     }
 
     handleFileSelect = (e) => {
@@ -406,10 +449,8 @@ class App extends React.Component {
         })
         const response = await axios.post("/run_hcsp", {
             hcsp_info: this.state.hcsp_info,
-            num_io_events: this.state.num_steps,
             num_steps: this.state.num_steps,
             num_show: this.state.num_show,
-            show_starting: this.state.show_starting,
         })
         if ('error' in response.data) {
             this.setState({
@@ -515,6 +556,61 @@ class App extends React.Component {
         }))
     }
 
+    picOnClick = (e, i) => {
+        var index = 0;
+        while (this.state.history[index]['time']<i){
+            //console.log(this.state.history[index].time)
+            index++;
+            if (this.state.history[index] === undefined)
+                break;
+        }
+        if (index > this.state.num_show)
+            index = this.state.num_show;
+        this.setState({
+            history_pos: index,
+            
+        })
+        this.picclicked=true;
+    }
+
+    showDetails = async () => {
+        var cur_pos = this.state.history_pos;
+        var start_pos = this.state.history[cur_pos];
+        var start_event = {
+            id: start_pos.id,
+            infos: start_pos.infos,
+            time: start_pos.time
+        }
+        this.setState({
+            querying: true
+        })
+        const response = await axios.post("/run_hcsp", {
+            hcsp_info: this.state.hcsp_info,
+            num_steps: 999,
+            num_show: 999,
+            start_event: start_event
+        })
+        console.log(response);
+        if ('error' in response.data) {
+            this.setState({
+                error: response.data.error,
+                history: [],
+                history_pos: 0,
+                time_series: [],
+                querying: false
+            })
+        } else {
+            this.setState({
+                error: undefined,
+                history: this.state.history.slice(0, cur_pos-1).concat(response.data.trace,
+                         this.state.history.slice(cur_pos-1, this.state.history.length)),
+                history_pos: cur_pos,
+                sim_warning: response.data.warning,
+                querying: false
+            })
+        }
+    }
+
     render() {
         const left = this.state.error !== undefined ?
             <pre className="error-message">
@@ -535,7 +631,7 @@ class App extends React.Component {
                             return <Process key={index} index={index} lines={info.lines}
                                 name={hcsp_name} pos={undefined} state={[]}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
-                                npos={undefined} warning_at={this.state.sim_warning} />
+                                npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
@@ -561,7 +657,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={undefined} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={undefined} warning_at={this.state.sim_warning} />
+                                    npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                             } else {
                                 var npos = false;
                                 var pos = info.mapping[pos];
@@ -574,7 +670,7 @@ class App extends React.Component {
                                 return <Process key={index} index={index} lines={info.lines}
                                     name={hcsp_name} pos={pos} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={npos} warning_at={this.state.sim_warning} />
+                                    npos={npos} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                             }
                         }
                     })}
@@ -642,8 +738,10 @@ class App extends React.Component {
                             onClick={this.toggleShowEvent}>
                             {this.state.show_event_only ? 'Show all steps' : 'Show events only'}
                         </a>
-
-
+                        <a href="#" style={{ marginLeft: '10px', marginRight: '10px', marginTop: 'auto', marginBottom: 'auto' }}
+                            onClick={this.showDetails}>
+                            {'Show details'}
+                        </a>
                     </ButtonToolbar>
                 </div>
 

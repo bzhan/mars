@@ -13,6 +13,52 @@ text \<open>Merge two rdy infos\<close>
 fun merge_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
   "merge_rdy (r11, r12) (r21, r22) = (r11 \<union> r21, r12 \<union> r22)"
 
+
+lemma WaitBlk_eq_combine:
+  assumes "WaitBlk d1 p1 rdy1 = WaitBlk d1' p1' rdy1'"
+    and "WaitBlk d1 p2 rdy2 = WaitBlk d1' p2' rdy2'"
+   shows "WaitBlk d1 (\<lambda>\<tau>. ParState (p1 \<tau>) (p2 \<tau>)) (merge_rdy rdy1 rdy2) =
+          WaitBlk d1' (\<lambda>\<tau>. ParState (p1' \<tau>) (p2' \<tau>)) (merge_rdy rdy1' rdy2')"
+proof -
+  have a1: "d1 = d1'" "rdy1 = rdy1'" "rdy2 = rdy2'"
+    using assms WaitBlk_cong by blast+
+  have a2: "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> p1 t = p1' t"
+    using assms(1) WaitBlk_cong2 by auto
+  have a3: "\<And>t. 0 \<le> t \<Longrightarrow> t \<le> d1 \<Longrightarrow> p2 t = p2' t"
+    using assms(2) WaitBlk_cong2 by auto
+  show ?thesis
+  proof (cases d1)
+    case (real r)
+    have b: "d1' = ereal r"
+      using real a1(1) by auto
+    show ?thesis
+      unfolding real b apply (auto simp add: WaitBlk_simps)
+       apply (rule ext) apply auto
+      subgoal for x apply (rule a2) by (auto simp add: real)
+      subgoal for x apply (rule a3) by (auto simp add: real)
+      using a1 by auto
+  next
+    case PInf
+    have b: "d1' = \<infinity>"
+      using PInf a1 by auto
+    show ?thesis
+      unfolding PInf b infinity_ereal_def
+      apply (auto simp: WaitBlk_simps)
+       apply (rule ext) apply auto
+      subgoal for x apply (rule a2) by (auto simp add: PInf)
+      subgoal for x apply (rule a3) by (auto simp add: PInf)
+      using a1 by auto
+  next
+    case MInf
+    have b: "d1' = - \<infinity>"
+      using MInf a1 by auto
+    show ?thesis
+      unfolding MInf b
+      by (auto simp: a1 WaitBlk_simps)
+  qed
+qed
+
+
 text \<open>combine_blocks comms tr1 tr2 tr means tr1 and tr2 combines to tr, where
 comms is the list of internal communication channels.\<close>
 inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> trace \<Rightarrow> bool" where
@@ -44,121 +90,232 @@ inductive combine_blocks :: "cname set \<Rightarrow> trace \<Rightarrow> trace \
 | combine_blocks_wait1:
   "combine_blocks comms blks1 blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   hist = (\<lambda>\<tau>\<in>{0..t}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   hist = (\<lambda>\<tau>. ParState ((\<lambda>x::real. hist1 x) \<tau>) ((\<lambda>x::real. hist2 x) \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlock t hist1 rdy1 # blks1) (WaitBlock t hist2 rdy2 # blks2)
-                  (WaitBlock t hist rdy # blks)"
+   combine_blocks comms (WaitBlk t (\<lambda>x::real. hist1 x) rdy1 # blks1)
+                        (WaitBlk t (\<lambda>x::real. hist2 x) rdy2 # blks2)
+                        (WaitBlk t hist rdy # blks)"
 | combine_blocks_wait2:
-  "combine_blocks comms blks1 (WaitBlock (t2 - t1) (\<lambda>\<tau>\<in>{0..t2-t1}. hist2 (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
+  "combine_blocks comms blks1 (WaitBlk (t2 - t1) (\<lambda>\<tau>. (\<lambda>x::real. hist2 x) (\<tau> + t1)) rdy2 # blks2) blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 < t2 \<Longrightarrow> t1 > 0 \<Longrightarrow>
-   hist = (\<lambda>\<tau>\<in>{0..t1}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   hist = (\<lambda>\<tau>. ParState ((\<lambda>x::real. hist1 x) \<tau>) ((\<lambda>x::real. hist2 x) \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
-                  (WaitBlock t1 hist rdy # blks)"
+   combine_blocks comms (WaitBlk t1 (\<lambda>x::real. hist1 x) rdy1 # blks1)
+                        (WaitBlk t2 (\<lambda>x::real. hist2 x) rdy2 # blks2)
+                        (WaitBlk t1 hist rdy # blks)"
 | combine_blocks_wait3:
-  "combine_blocks comms (WaitBlock (t1 - t2) (\<lambda>\<tau>\<in>{0..t1-t2}. hist1 (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
+  "combine_blocks comms (WaitBlk (t1 - t2) (\<lambda>\<tau>. (\<lambda>x::real. hist1 x) (\<tau> + t2)) rdy1 # blks1) blks2 blks \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
    t1 > t2 \<Longrightarrow> t2 > 0 \<Longrightarrow>
-   hist = (\<lambda>\<tau>\<in>{0..t2}. ParState (hist1 \<tau>) (hist2 \<tau>)) \<Longrightarrow>
+   hist = (\<lambda>\<tau>. ParState ((\<lambda>x::real. hist1 x) \<tau>) ((\<lambda>x::real. hist2 x) \<tau>)) \<Longrightarrow>
    rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
-   combine_blocks comms (WaitBlock t1 hist1 rdy1 # blks1) (WaitBlock t2 hist2 rdy2 # blks2)
-                  (WaitBlock t2 hist rdy # blks)"
-
+   combine_blocks comms (WaitBlk t1 (\<lambda>x::real. hist1 x) rdy1 # blks1)
+                        (WaitBlk t2 (\<lambda>x::real. hist2 x) rdy2 # blks2)
+                        (WaitBlk t2 hist rdy # blks)"
 
 subsection \<open>Basic elimination rules\<close>
 
-text \<open>Empty case\<close>
-lemma combine_blocks_elim1:
-  "combine_blocks comms [] [] blks \<Longrightarrow> blks = []"
+named_theorems sync_elims
+
+lemma combine_blocks_pairE [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
+   (\<And>tr'. ch1 = ch2 \<Longrightarrow> v1 = v2 \<Longrightarrow> (ch_type1 = In \<and> ch_type2 = Out \<or> ch_type1 = Out \<and> ch_type2 = In) \<Longrightarrow>
+   tr = IOBlock ch1 v1 # tr' \<Longrightarrow> combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-text \<open>IO cases\<close>
-lemma combine_blocks_elim2:
-  "combine_blocks comms (InBlock ch v # blks1) (OutBlock ch w # blks2) blks \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. w = v \<Longrightarrow> blks = IOBlock ch v # blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+lemma combine_blocks_unpairE1 [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<notin> comms \<Longrightarrow> ch2 \<in> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim2a:
-  "combine_blocks comms (OutBlock ch v # blks1) (InBlock ch w # blks2) blks \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow>
-   (\<And>blks'. w = v \<Longrightarrow> blks = IOBlock ch v # blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+lemma combine_blocks_unpairE1' [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> ch2 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim2b:
-  "combine_blocks comms (CommBlock ch_type ch v # blks1) (WaitBlock d p rdy # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+lemma combine_blocks_unpairE2 [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch1 \<notin> comms \<Longrightarrow> ch2 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (CommBlock ch_type2 ch2 v2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim2d:
-  "combine_blocks comms (WaitBlock d p rdy # blks1) (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+lemma combine_blocks_pairE2 [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   ch1 \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim2f:
-  "combine_blocks comms [] (CommBlock ch_type ch v # blks2) blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
+lemma combine_blocks_pairE2' [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   ch2 \<in> comms \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim2h:
-  "combine_blocks comms (CommBlock ch_type ch v # blks2) [] blks \<Longrightarrow> ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-
-text \<open>IO cases, unpaired\<close>
-lemma combine_blocks_elim3:
-  "combine_blocks comms (InBlock ch1 v # blks1) (OutBlock ch2 w # blks2) blks \<Longrightarrow>
+lemma combine_blocks_unpairE3 [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
    ch1 \<notin> comms \<Longrightarrow>
+   (\<And>tr'. tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (WaitBlk d2 p2 rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_unpairE3' [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
    ch2 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = InBlock ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 (OutBlock ch2 w # blks2) blks' \<Longrightarrow> P) \<Longrightarrow>
-   (\<And>blks'. blks = OutBlock ch2 w # blks' \<Longrightarrow> combine_blocks comms (InBlock ch1 v # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+   (\<And>tr'. tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim3a:
-  "combine_blocks comms (CommBlock ch_type ch1 v # blks1) [] blks \<Longrightarrow>
-   ch1 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = CommBlock ch_type ch1 v # blks' \<Longrightarrow> combine_blocks comms blks1 [] blks' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim3b:
-  "combine_blocks comms [] (CommBlock ch_type ch2 w # blks2) blks \<Longrightarrow>
-   ch2 \<notin> comms \<Longrightarrow>
-   (\<And>blks'. blks = CommBlock ch_type ch2 w # blks' \<Longrightarrow> combine_blocks comms [] blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-text \<open>Wait cases\<close>
-lemma combine_blocks_elim4:
-  "combine_blocks comms (WaitBlock d p1 rdy1 # blks1) (WaitBlock d p2 rdy2 # blks2) blks \<Longrightarrow>
-   compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>blks'. blks = WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
-            combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim4a:
-  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
+lemma combine_blocks_waitE1 [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
    \<not>compat_rdy rdy1 rdy2 \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+proof (induct rule: combine_blocks.cases)
+  case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 rdy t)
+  then show ?case
+    by (metis WaitBlk_cong list.inject)
+next
+  case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy)
+  then show ?case 
+    by (metis WaitBlk_cong list.inject)
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
+  then show ?case 
+    by (metis WaitBlk_cong list.inject)
+qed (auto)
 
-lemma combine_blocks_elim4b:
-  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) [] blks \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim4c:
-  "combine_blocks comms [] (WaitBlock d1 p1 rdy1 # blks1) blks \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
-
-lemma combine_blocks_elim4d:
-  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
-   d1 < d2 \<Longrightarrow>
+lemma combine_blocks_waitE2 [sync_elims]:
+  "combine_blocks comms (WaitBlk d p1 rdy1 # tr1) (WaitBlk d p2 rdy2 # tr2) tr \<Longrightarrow>
    compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>blks'. blks = WaitBlock d1 (\<lambda>t\<in>{0..d1}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
-            combine_blocks comms blks1 (WaitBlock (d2 - d1) (\<lambda>t\<in>{0..d2-d1}. p2 (t + d1)) rdy2 # blks2) blks' \<Longrightarrow> P) \<Longrightarrow> P"
+   (\<And>tr'. tr = WaitBlk d (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms tr1 tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+proof (induct rule: combine_blocks.cases)
+  case (combine_blocks_wait1 comms' blks1 blks2 blks rdy1' rdy2' hist hist1 hist2 rdy t)
+  have a: "d = t" "rdy1 = rdy1'" "rdy2 = rdy2'" "tr1 = blks1" "tr2 = blks2" 
+    using combine_blocks_wait1(2,3) by (auto simp add: WaitBlk_cong)
+  have b: "WaitBlk d (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) =
+           WaitBlk t (\<lambda>t. ParState (hist1 t) (hist2 t)) (merge_rdy rdy1' rdy2')"
+    apply (rule WaitBlk_eq_combine) using combine_blocks_wait1(2,3) by auto 
+  show ?case
+    apply (rule combine_blocks_wait1)
+    unfolding b using combine_blocks_wait1(4) unfolding a combine_blocks_wait1(7,8)
+    by (auto simp add: combine_blocks_wait1(1,5))
+next
+  case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy)
+  have a: "d = ereal t1" "d = t2"
+    using combine_blocks_wait2(2,3) by (auto simp add: WaitBlk_cong)
+  show ?case
+    using a combine_blocks_wait2(7) by auto
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
+  have a: "d = ereal t2" "d = t1"
+    using combine_blocks_wait3(2,3) by (auto simp add: WaitBlk_cong)
+  show ?case
+    using a combine_blocks_wait3(7) by auto
+qed (auto)
+
+lemma combine_blocks_waitE3 [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   0 < d1 \<Longrightarrow> d1 < d2 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlk d1 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms tr1 (WaitBlk (d2 - d1) (\<lambda>t. p2 (t + d1)) rdy2 # tr2) tr' \<Longrightarrow> P) \<Longrightarrow> P"
+proof (induct rule: combine_blocks.cases)
+  case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 rdy t)
+  have a: "t = ereal d1" "t = d2"
+    using combine_blocks_wait1(2,3) WaitBlk_cong by blast+
+  then show ?case
+    using combine_blocks_wait1(10) by auto
+next
+  case (combine_blocks_wait2 comms' blks1 t2 t1 hist2 rdy2' blks2 blks rdy1' hist hist1 rdy)
+  have a: "d1 = t1" "d2 = t2" "rdy1 = rdy1'" "rdy2 = rdy2'" "tr1 = blks1" "tr2 = blks2" 
+    using combine_blocks_wait2(2,3) using WaitBlk_cong by blast+
+  have a2: "WaitBlk d2 p2 rdy2 = WaitBlk d2 hist2 rdy2"
+    using combine_blocks_wait2(3) unfolding a[symmetric] by auto
+  have a3: "WaitBlk d1 p2 rdy2 = WaitBlk d1 hist2 rdy2"
+           "WaitBlk (d2 - d1) (\<lambda>\<tau>. p2 (\<tau> + d1)) rdy2 = WaitBlk (d2 - d1) (\<lambda>\<tau>. hist2 (\<tau> + d1)) rdy2"
+    using WaitBlk_split[OF a2] combine_blocks_wait2 by auto
+  have b: "WaitBlk d1 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) =
+           WaitBlk t1 (\<lambda>t. ParState (hist1 t) (hist2 t)) (merge_rdy rdy1' rdy2')"
+    apply (rule WaitBlk_eq_combine)
+    using combine_blocks_wait2.hyps(2) a(1,4) a3 by auto
+  show ?case
+    apply (rule combine_blocks_wait2) unfolding a3 b
+    using combine_blocks_wait2(4) unfolding combine_blocks_wait2(9,10)
+    by (auto simp add: a combine_blocks_wait2(1,5))
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1 blks1 blks2 blks rdy2 hist hist2 rdy)
+  have "ereal d1 = t1" "d2 = ereal t2"
+    using combine_blocks_wait3(2,3) by (auto simp add: WaitBlk_cong)
+  then show ?case
+    using combine_blocks_wait3(7,12) by auto
+qed (auto)
+
+lemma combine_blocks_waitE4 [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
+   0 < d2 \<Longrightarrow> d2 < d1 \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   (\<And>tr'. tr = WaitBlk d2 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # tr' \<Longrightarrow>
+           combine_blocks comms (WaitBlk (d1 - d2) (\<lambda>t. p1 (t + d2)) rdy1 # tr1) tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
+proof (induct rule: combine_blocks.cases)
+  case (combine_blocks_wait1 comms blks1 blks2 blks rdy1 rdy2 hist hist1 hist2 rdy t)
+  have "d1 = t" "ereal d2 = t"
+    using combine_blocks_wait1(2,3) by (auto simp add: WaitBlk_cong)
+  then show ?case
+    using combine_blocks_wait1(10) by auto
+next
+  case (combine_blocks_wait2 comms blks1 t2 t1 hist2 rdy2 blks2 blks rdy1 hist hist1 rdy)
+  have "d1 = ereal t1" "ereal d2 = t2"
+    using combine_blocks_wait2(2,3) by (auto simp add: WaitBlk_cong)
+  then show ?case
+    using combine_blocks_wait2(7,12) by auto
+next
+  case (combine_blocks_wait3 comms t1 t2 hist1 rdy1' blks1 blks2 blks rdy2' hist hist2 rdy)
+  have a: "d1 = t1" "d2 = t2" "rdy1 = rdy1'" "rdy2 = rdy2'"
+          "tr1 = blks1" "tr2 = blks2" 
+    using combine_blocks_wait3(2,3) using WaitBlk_cong by blast+
+  have a2: "WaitBlk d1 p1 rdy1 = WaitBlk d1 hist1 rdy1"
+    using combine_blocks_wait3(2) unfolding a[symmetric] by auto
+  have a3: "WaitBlk d2 p1 rdy1 = WaitBlk d2 hist1 rdy1"
+           "WaitBlk (d1 - d2) (\<lambda>\<tau>. p1 (\<tau> + d2)) rdy1 = WaitBlk (d1 - d2) (\<lambda>\<tau>. hist1 (\<tau> + d2)) rdy1"
+    using WaitBlk_split[OF a2] combine_blocks_wait3 by auto
+  have b: "WaitBlk d2 (\<lambda>t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) =
+           WaitBlk d2 (\<lambda>t. ParState (hist1 t) (hist2 t)) (merge_rdy rdy1' rdy2')"
+    apply (rule WaitBlk_eq_combine)
+    using combine_blocks_wait3 a(2,3) a3 by auto
+  show ?case
+    apply (rule combine_blocks_wait3) unfolding a3 b
+    using combine_blocks_wait3(4) unfolding combine_blocks_wait3(9,10)
+    by (auto simp add: a combine_blocks_wait3)
+qed (auto)
+
+lemma combine_blocks_emptyE1 [sync_elims]:
+  "combine_blocks comms [] [] tr \<Longrightarrow> tr = []"
   by (induct rule: combine_blocks.cases, auto)
 
-lemma combine_blocks_elim4e:
-  "combine_blocks comms (WaitBlock d1 p1 rdy1 # blks1) (WaitBlock d2 p2 rdy2 # blks2) blks \<Longrightarrow>
-   d1 > d2 \<Longrightarrow>
-   compat_rdy rdy1 rdy2 \<Longrightarrow>
-   (\<And>blks'. blks = WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) # blks' \<Longrightarrow>
-            combine_blocks comms (WaitBlock (d1 - d2) (\<lambda>t\<in>{0..d1-d2}. p1 (t + d2)) rdy1 # blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+lemma combine_blocks_emptyE2 [sync_elims]:
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) [] tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE2' [sync_elims]:
+  "combine_blocks comms [] (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE3 [sync_elims]:
+  "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) [] tr \<Longrightarrow>
+   (\<And>tr'. ch1 \<notin> comms \<Longrightarrow> tr = CommBlock ch_type1 ch1 v1 # tr' \<Longrightarrow>
+           combine_blocks comms tr1 [] tr' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_emptyE3' [sync_elims]:
+  "combine_blocks comms [] (CommBlock ch_type2 ch2 v2 # tr2) tr \<Longrightarrow>
+   (\<And>tr'. ch2 \<notin> comms \<Longrightarrow> tr = CommBlock ch_type2 ch2 v2 # tr' \<Longrightarrow>
+           combine_blocks comms [] tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto)
 
 
@@ -276,8 +433,7 @@ lemma combine_assn_emp [simp]:
   "combine_assn chs emp\<^sub>t emp\<^sub>t = emp\<^sub>t"
   unfolding combine_assn_def
   apply (rule ext)
-  apply (auto simp add: emp_assn_def)
-   apply (elim combine_blocks_elim1)
+  apply (auto simp add: emp_assn_def elim: sync_elims)
   by (rule combine_blocks_empty)
 
 lemma combine_assn_emp_in:
@@ -285,28 +441,28 @@ lemma combine_assn_emp_in:
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_assn.cases)
-  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_in_emp:
   "ch \<in> chs \<Longrightarrow> combine_assn chs (In\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_assn.cases)
-  by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_emp_out:
   "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>t (Out\<^sub>t s ch v @\<^sub>t P) = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2f combine_blocks_elim4c)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_out_emp:
   "ch \<in> chs \<Longrightarrow> combine_assn chs (Out\<^sub>t s ch v @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_assn.cases)
-  by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_out_in:
   "ch \<in> chs \<Longrightarrow>
@@ -315,8 +471,9 @@ lemma combine_assn_out_in:
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+  subgoal by (auto elim: sync_elims)
+  subgoal apply (elim combine_blocks_pairE) by auto
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_out_in':
   "ch \<in> chs \<Longrightarrow>
@@ -325,8 +482,7 @@ lemma combine_assn_out_in':
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def
                         io_assn.simps out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2a combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_in_out:
   "ch \<in> chs \<Longrightarrow>
@@ -335,20 +491,21 @@ lemma combine_assn_in_out:
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_assn.simps
                         out_assn.simps in_assn.simps)
-  by (auto elim!: combine_blocks_elim1 combine_blocks_elim2 combine_blocks_elim2b
-                  combine_blocks_elim2d combine_blocks_elim4a)
+  subgoal by (auto elim: sync_elims)
+  subgoal apply (elim combine_blocks_pairE) by auto
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_wait_emp:
   "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
-  by (auto elim!: combine_blocks_elim4b)
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_emp_wait:
   "combine_assn chs emp\<^sub>t (Wait\<^sub>t d p rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def false_assn_def)
-  by (auto elim!: combine_blocks_elim4c)
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_wait:
   "compat_rdy rdy1 rdy2 \<Longrightarrow>
@@ -356,8 +513,7 @@ lemma combine_assn_wait:
    (Wait\<^sub>t d (\<lambda>t. ParState (p t) (q t)) (merge_rdy rdy1 rdy2) @\<^sub>t combine_assn chs P Q)"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def wait_assn.simps)
-  apply (auto elim!: combine_blocks_elim4) by auto
-
+  apply (elim combine_blocks_waitE2) by auto
 
 lemma combine_assn_wait_in:
   assumes "ch \<in> chs"
@@ -375,27 +531,27 @@ proof -
     from that(2)[unfolded join_assn_def]
     obtain tr21 tr22 where b: "In\<^sub>t s ch v tr21" "Q tr22" "tr2 = tr21 @ tr22"
       by auto
-    have c: "tr11 = [WaitBlock d (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy1]"
+    have c: "tr11 = [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy1]"
       using a(1) wait_assn.cases by blast
-    have d: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
-      if "compat_rdy rdy1 ({}, {ch})" "0 < d2"
-         "combine_blocks chs (WaitBlock d (restrict p {0..d}) rdy1 # tr12)
-          (WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. State s) ({}, {ch}) # InBlock ch v # tr22) tr" for d2
+    have d: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t
+             combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
+      if "0 < (d2::real)"
+         "combine_blocks chs (WaitBlk d p rdy1 # tr12)
+          (WaitBlk d2 (\<lambda>\<tau>. State s) ({}, {ch}) # InBlock ch v # tr22) tr" for d2
     proof -
       have "d < d2 \<or> d = d2 \<or> d > d2" by auto
       then show ?thesis
       proof (elim disjE)
         assume d1: "d < d2"
-        have rw: "WaitBlock (d2 - d) (\<lambda>t\<in>{0..d2 - d}. (\<lambda>\<tau>\<in>{0..d2}. State s) (t + d)) ({}, {ch}) =
-                  WaitBlock (d2 - d) (\<lambda>t\<in>{0..d2 - d}. State s) ({}, {ch})"
-          apply auto apply (rule ext) using assms(3) by auto
+        have d1': "ereal d < ereal d2"
+          using d1 by auto
         show ?thesis
-          using that(3)
-          apply (elim combine_blocks_elim4d)
-            apply (rule d1) using that(1) apply simp
+          using that(2)
+          apply (elim combine_blocks_waitE3)
+            apply (rule assms(3)) apply (rule d1') using assms(2) apply simp
           subgoal for blks'
             apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch}))]"])
+            apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch}))]"])
             apply (rule exI[where x=blks'])
             apply (rule conjI)
             subgoal by (simp add: wait_assn.simps)
@@ -403,25 +559,25 @@ proof -
              prefer 2 subgoal using d1 by auto
             unfolding combine_assn_def
             apply (rule exI[where x=tr12])
-            apply (rule exI[where x="WaitBlock (d2 - d) (\<lambda>t\<in>{0..d2 - d}. State s) ({}, {ch}) # InBlock ch v # tr22"])
+            apply (rule exI[where x="WaitBlk (d2 - d) (\<lambda>t. State s) ({}, {ch}) # InBlock ch v # tr22"])
             apply (rule conjI)
             subgoal by (rule a(2))
             apply (rule conjI)
-             prefer 2 subgoal unfolding rw by auto
+             prefer 2 subgoal by auto
             apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlock (d2 - d) (\<lambda>t\<in>{0..d2 - d}. State s) ({}, {ch}), InBlock ch v]"])
+            apply (rule exI[where x="[WaitBlk (d2 - d) (\<lambda>t. State s) ({}, {ch}), InBlock ch v]"])
             apply (rule exI[where x=tr22])
             using b(2) d1 by (auto intro: in_assn.intros)
           done
       next
         assume d2: "d = d2"
         show ?thesis
-          using that(3) unfolding d2[symmetric]
-          apply (elim combine_blocks_elim4)
-          using that(1) apply simp
+          using that(2) unfolding d2[symmetric]
+          apply (elim combine_blocks_waitE2)
+          using assms(2) apply simp
           subgoal for blks'
             apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlock d (\<lambda>t\<in>{0..d}. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch}))]"])
+            apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch}))]"])
             apply (rule exI[where x=blks'])
             apply (rule conjI)
             subgoal by (simp add: wait_assn.simps)
@@ -441,22 +597,60 @@ proof -
           done
       next
         assume d3: "d > d2"
+        have d3': "ereal d > ereal d2"
+          using d3 by auto
         show ?thesis
-          using that(3)
-          apply (elim combine_blocks_elim4e)
-          apply (rule d3)
-           using that(1) apply simp
-          apply (elim combine_blocks_elim2d)
+          using that(2)
+          apply (elim combine_blocks_waitE4)
+          apply (rule that(1)) apply (rule d3')
+           using assms(2) apply simp
+          apply (elim combine_blocks_pairE2')
           using assms by auto
       qed
+    qed
+    have e: "(Wait\<^sub>t d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch})) @\<^sub>t
+             combine_assn chs P (In\<^sub>t s ch v @\<^sub>t Q)) tr"
+      if "combine_blocks chs (WaitBlk d p rdy1 # tr12)
+          (WaitBlk \<infinity> (\<lambda>_. State s) ({}, {ch}) # tr22) tr"
+    proof -
+      have e1: "\<infinity> - ereal d = \<infinity>"
+        by auto
+      show ?thesis
+        using that
+        apply (elim combine_blocks_waitE3)
+           apply (rule assms(3)) apply simp using assms(2) apply simp
+        subgoal for blks'
+          apply (subst join_assn_def)
+          apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (p t) (State s)) (merge_rdy rdy1 ({}, {ch}))]"])
+          apply (rule exI[where x=blks'])
+          apply (rule conjI)
+            subgoal by (simp add: wait_assn.simps)
+            apply (rule conjI)
+             prefer 2 apply simp
+            unfolding combine_assn_def
+            apply (rule exI[where x=tr12])
+            apply (rule exI[where x="WaitBlk \<infinity> (\<lambda>t. State s) ({}, {ch}) # tr22"])
+            apply (rule conjI)
+            subgoal by (rule a(2))
+            apply (rule conjI)
+             prefer 2 apply auto
+            apply (subst join_assn_def)
+            apply (rule exI[where x="[WaitBlk \<infinity> (\<lambda>t. State s) ({}, {ch})]"])
+            apply (rule exI[where x=tr22])
+            using b(2) apply (auto intro: in_assn.intros)
+          done
+        done
     qed
     show ?thesis
       using b(1) apply (cases rule: in_assn.cases)
       subgoal
-        by (metis Cons_eq_appendI a(3) assms(1) b(3) c combine_blocks_elim2d that(3))
+        by (metis Cons_eq_appendI a(3) assms(1) b(3) c combine_blocks_pairE2' that(3))
       subgoal for d2
         using that(3) unfolding a(3) b(3) c
         using d assms(2) by auto
+      subgoal
+        using that(3) unfolding a(3) b(3) c
+        using e assms(2) by auto
       done
   qed
   show ?thesis
@@ -486,45 +680,44 @@ proof -
     from that(2)[unfolded join_assn_def]
     obtain tr21 tr22 where b: "Wait\<^sub>t d2 p2 rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
       by auto
-    have c: "tr21 = [WaitBlock d2 (\<lambda>\<tau>\<in>{0..d2}. p2 \<tau>) rdy2]"
+    have c: "tr21 = [WaitBlk d2 p2 rdy2]"
       using b(1) wait_assn.cases by blast
     have d: "(\<up> (d2 \<le> d) \<and>\<^sub>t
              Wait\<^sub>t d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2) @\<^sub>t
              combine_assn chs (WaitOut\<^sub>t (d - d2) (\<lambda>t. p (t + d2)) ch e rdy @\<^sub>t P) Q) tr"
-      if "0 < d"
-         "combine_blocks chs (WaitBlock d (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) rdy # OutBlock ch (e (p d)) # tr12)
-                             (WaitBlock d2 (restrict p2 {0..d2}) rdy2 # tr22) tr"
+      if "0 < (d::real)"
+         "combine_blocks chs (WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) rdy # OutBlock ch (e (p d)) # tr12)
+                             (WaitBlk d2 p2 rdy2 # tr22) tr"
     proof -
       have "d < d2 \<or> d = d2 \<or> d > d2" by auto
       then show ?thesis
       proof (elim disjE)
         assume d1: "d < d2"
+        have d1': "ereal d < ereal d2"
+          using d1 by auto
         show ?thesis
           using that(2)
-          apply (elim combine_blocks_elim4d)
-            apply (rule d1) apply (rule assms(2))
-          using assms(1) combine_blocks_elim2b by blast
+          apply (elim combine_blocks_waitE3) apply (rule that(1))
+            apply (rule d1') apply (rule assms(2))
+          using assms(1) combine_blocks_pairE2 by blast
       next
         assume d2: "d = d2"
-        have rw: "WaitBlock d (\<lambda>t\<in>{0..d}. ParState ((\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) t) (restrict p2 {0..d} t)) (merge_rdy rdy rdy2) =
-                  WaitBlock d (\<lambda>t\<in>{0..d}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)"
-          by auto
         show ?thesis
           using that(2)
           unfolding d2[symmetric]
-          apply (elim combine_blocks_elim4)
+          apply (elim combine_blocks_waitE2)
            apply (rule assms(2))
           subgoal for blks'
             unfolding pure_assn_def conj_assn_def
             apply (rule conjI)
             subgoal by auto
             apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlock d (\<lambda>t\<in>{0..d}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
+            apply (rule exI[where x="[WaitBlk d (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
             apply (rule exI[where x=blks'])
             apply (rule conjI)
             subgoal by (auto intro: wait_assn.intros)
             apply (rule conjI)
-             prefer 2 subgoal unfolding rw by auto
+             prefer 2 subgoal by auto
             unfolding combine_assn_def
             apply (rule exI[where x="OutBlock ch (e (p d)) # tr12"])
             apply (rule exI[where x=tr22])
@@ -537,32 +730,31 @@ proof -
           done
       next
         assume d3: "d > d2"
-        have rw: "WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) (t + d2)) rdy =
-                  WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy"
-          apply auto apply (rule ext) using d3 that(1) assms(3) by auto
+        have d3': "ereal d > ereal d2"
+          using d3 by auto
         show ?thesis
           using that(2)
-          apply (elim combine_blocks_elim4e)
-            apply (rule d3) apply (rule assms(2))
+          apply (elim combine_blocks_waitE4) apply (rule \<open>0 < d2\<close>)
+            apply (rule d3') apply (rule assms(2))
           subgoal for blks'
             unfolding pure_assn_def conj_assn_def
             apply (rule conjI)
             subgoal using d3 by auto
             apply (subst join_assn_def)
-            apply (rule exI[where x="[WaitBlock d2 (\<lambda>t\<in>{0..d2}. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
+            apply (rule exI[where x="[WaitBlk d2 (\<lambda>t. ParState (State (p t)) (p2 t)) (merge_rdy rdy rdy2)]"])
             apply (rule exI[where x=blks'])
             apply (rule conjI)
             subgoal by (auto intro: wait_assn.intros)
             apply (rule conjI)
-             prefer 2 subgoal apply auto apply (rule ext) using d3 by auto
+             prefer 2 subgoal by auto
             unfolding combine_assn_def
-            apply (rule exI[where x="WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy # OutBlock ch (e (p d)) # tr12"])
+            apply (rule exI[where x="WaitBlk (d - d2) (\<lambda>t. State (p (t + d2))) rdy # OutBlock ch (e (p d)) # tr12"])
             apply (rule exI[where x=tr22])
             apply (rule conjI)
              prefer 2 subgoal apply (rule conjI)
-               apply (rule b(2)) unfolding rw by auto
+               apply (rule b(2)) by auto
             unfolding join_assn_def
-            apply (rule exI[where x="[WaitBlock (d - d2) (\<lambda>t\<in>{0..d - d2}. State (p (t + d2))) rdy, OutBlock ch (e (p d))]"])
+            apply (rule exI[where x="[WaitBlk (d - d2) (\<lambda>t. State (p (t + d2))) rdy, OutBlock ch (e (p d))]"])
             apply (rule exI[where x=tr12])
             apply (rule conjI)
             subgoal
@@ -577,7 +769,7 @@ proof -
       subgoal
         using that(3) unfolding a(3) b(3) c
         apply auto
-        using assms combine_blocks_elim2b by blast
+        using assms combine_blocks_pairE2 by blast
       subgoal
         using that(3) unfolding a(3) b(3) c
         apply auto using d by auto
@@ -613,19 +805,26 @@ proof -
         using b(1) apply (cases rule: in_assn.cases)
         subgoal
           using that(3) unfolding a(3) b(3) apply auto
-          apply (elim combine_blocks_elim2a)
-          apply (rule assms(1))
+          apply (elim combine_blocks_pairE) using assms(1) apply auto
           apply (auto simp add: conj_assn_def pure_assn_def join_assn_def)
           apply (rule exI[where x="[IOBlock ch (e (p 0))]"])
           apply (auto intro: io_assn.intros)
           unfolding combine_assn_def using a(2) b(2) by auto
-        using that(3) unfolding a(3) b(3) apply auto
-        apply (elim combine_blocks_elim2b) by (rule assms)
+        subgoal
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_pairE2) by (rule assms)
+        subgoal
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_pairE2) by (rule assms)
+        done
       using b(1) apply (cases rule: in_assn.cases)
       using that(3) unfolding a(3) b(3) apply auto
-       apply (elim combine_blocks_elim2d) apply (rule assms)
-      apply (elim combine_blocks_elim4a)
-      using assms(2) apply (cases rdy) by auto
+      subgoal apply (elim combine_blocks_pairE2') by (rule assms)
+      subgoal for d' apply (elim combine_blocks_waitE1)
+        using assms(2) apply (cases rdy) by auto
+      subgoal apply (elim combine_blocks_waitE1)
+        using assms(2) apply (cases rdy) by auto
+      done
   qed
   show ?thesis
     apply (subst combine_assn_def)
@@ -638,7 +837,7 @@ lemma combine_assn_waitout_emp:
   shows "combine_assn chs (WaitOut\<^sub>t d p ch e rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_assn.simps)
-  using assms by (auto elim!: combine_blocks_elim2h combine_blocks_elim4b)
+  using assms by (auto elim: sync_elims)
 
 subsection \<open>Assertions for global states\<close>
 
