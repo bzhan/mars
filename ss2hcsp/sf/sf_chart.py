@@ -1,8 +1,8 @@
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem,Triggered_Subsystem
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.sf.sf_message import SF_Message
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.hcsp.expr import AConst, BExpr, conj
+from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 import re
@@ -139,6 +139,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     # else:
     #     Message=SF_Message("")
     name_lists=get_name_from_mesg_list()
+    trigger_edge_osig =0
     for act in acts:
         if re.match(pattern="^\\w+ *:=.+$", string=act) and "." not in act:  # an assigment   
             hps.append(hp_parser.parse(act))
@@ -168,19 +169,28 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
         if (re.match(pattern="^\\w+$", string=act) and (str(act) not in name_lists) ) or (re.match(pattern="send\\(.*?\\)", string=act) and (str(act.strip('send(').strip(')')) not in name_lists)):
             if (re.match(pattern="^\\w+$", string=act)) or re.match(pattern="send\\(.*?,.*?\\)", string=act) or (re.match(pattern="send\\(.*?\\)", string=act)):  # an event
                 assert isinstance(root.chart, SF_Chart)
-                root.chart.has_event = True
+                # root.chart.has_event = True
                 root_num = re.findall(pattern="\\d+", string=root.name)
                 assert len(root_num) == 1
                 root_num = root_num[0]
                 if re.match(pattern="^\\w+$", string=act) :
-                    event = act + "_" + location.name
-                    hps.append(hp_parser.parse("BR" + root_num + "!" + event))
-                    hps.append(hp.Var("X"))
+                    flag =0
+                    for e in root.chart.event_list:
+                        if e.name == act and e.scope == "OUTPUT_EVENT" :
+                            if e.trigger == "FUNCTION_CALL_EVENT":
+                                hps.append(hp_parser.parse("tri" + "!" +e.name ))
+                            flag=1
+                            break
+                    if flag == 0: 
+                        root.chart.has_event = True
+                        event = act + "_" + location.name
+                        hps.append(hp_parser.parse("BR" + root_num + "!" + event))
+                        hps.append(hp.Var("X"))
                 
                 if re.match(pattern="send\\(.*?\\)", string=act):
                     acts=act.strip('send(').strip(')')
                     if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
-
+                        root.chart.has_event = True
                         if re.match(pattern="send\\(.*?,.*?\\)", string=act):
                             event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
                             path=dest_state_name1.split(".")
@@ -234,24 +244,118 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         #     else:
                         #         hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
                         
-                    else:
-
-                        event = (act.strip('send(').strip(')')) + "_" + location.name
-                        hps.append(hp_parser.parse("BR" + root_num + "!" +event ))
-            
-                        hps.append(hp.Var("X"))
+                    elif re.match(pattern="send\\(.*?\\)", string=act):
+                        event_name=act.strip('send(').strip(')')
+                        flag =0
+                        for dest_chart in root.chart.sf_charts:
+                            for  dest_tri in root.chart.trigger_dest:
+                                if dest_tri == dest_chart.name:
+                        
+                                    if dest_chart.trigger_type == "function-call":
+                                        hps.append(hp_parser.parse("tri" + '!"' +event_name+'"' ))
+                                    else:
+                                        wait_time=root.chart.max_step
+                                        # if dest_chart.trigger_type == "rising":
+                                            # conds=list()
+                                            # conds.append(bexpr_parser.parse("osig <= 0"))
+                                            # conds.append(bexpr_parser.parse("out_tri"+" > 0"))
+                                            # cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                                            # conds1=list()
+                                            # conds1.append(bexpr_parser.parse("osig < 0"))
+                                            # conds1.append(bexpr_parser.parse("out_tri"+" >= 0"))
+                                            # cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                            # final_cond=disj(cond,cond1)
+                                            # tri_event="true"
+                                        if trigger_edge_osig == 0:
+                                            hps.append(hp.Sequence(
+                                                        hp.Assign("out_tri", AConst(trigger_edge_osig)),
+                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
+                                                        hp.Wait(AConst(wait_time)),
+                                                        hp.Assign("out_tri", AConst(1)),
+                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
+                                                        # hp.Assign("out_tri",AConst(1)), 
+                                                        # hp.Condition(cond=final_cond, hp=hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
+                                                        ))
+                                            trigger_edge_osig =1
+                                        else:
+                                            hps.append(hp.Sequence(
+                                                        hp.Assign("out_tri", AConst(trigger_edge_osig)),
+                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
+                                                        hp.Wait(AConst(wait_time)),
+                                                        hp.Assign("out_tri", AConst(0)),
+                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
+                                                        
+                                                        ))
+                                            trigger_edge_osig =0
+                                        # elif dest_chart.trigger_type == "falling":
+                                        #     conds=list()
+                                        #     conds.append(bexpr_parser.parse("osig >= 0"))
+                                        #     conds.append(bexpr_parser.parse("out_tri"+" < 0"))
+                                        #     cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                                        #     conds1=list()
+                                        #     conds1.append(bexpr_parser.parse("osig > 0"))
+                                        #     conds1.append(bexpr_parser.parse("out_tri"+" <= 0"))
+                                        #     cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                        #     final_cond=disj(cond,cond1)
+                                        #     tri_event="true"
+                                        #     if trigger_edge_osig == 0:
+                                        #         hps.append(hp.Sequence(
+                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
+                                        #                     hp.Wait(AConst(wait_time)),
+                                        #                     hp.Assign("out_tri",AConst(1)) 
+                                                            
+                                        #                     ))
+                                        #         trigger_edge_osig =1
+                                        #     else:
+                                        #         hps.append(hp.Sequence(
+                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
+                                        #                     hp.Wait(AConst(wait_time)),
+                                        #                     hp.Assign("out_tri",AConst(0)),
+                                        #                     hp.Condition(cond=final_cond, hp=hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
+                                                            
+                                        #                     ))
+                                        #         trigger_edge_osig =0
+                                        # else:
+                                        #     tri_event="true"
+                                        #     if trigger_edge_osig == 0:
+                                        #         hps.append(hp.Sequence(
+                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
+                                        #                     hp.Wait(AConst(wait_time)),
+                                        #                     hp.Assign("out_tri",AConst(1)),
+                                        #                     hp.Sequence(hp_parser.parse("tri"+'! "'+tri_event+'"'+"")) 
+                                                            
+                                        #                     ))
+                                        #         trigger_edge_osig =1
+                                        #     else:
+                                        #         hps.append(hp.Sequence(
+                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
+                                        #                     hp.Wait(AConst(wait_time)),
+                                        #                     hp.Assign("out_tri",AConst(0)),
+                                        #                     hp.Sequence(hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
+                                                            
+                                        #                     ))
+                                        #         trigger_edge_osig =0
+                        for e in root.chart.event_list:
+                            if e.name == event_name and e.scope == "OUTPUT_EVENT" :
+                                flag=1
+                                break
+                        if flag == 0: 
+                            root.chart.has_event = True
+                            event = (act.strip('send(').strip(')')) + "_" + location.name
+                            hps.append(hp_parser.parse("BR" + root_num + "!" +event ))
+                            hps.append(hp.Var("X"))
         
             
     return hps
 
 
 class SF_Chart(Subsystem):
-    def __init__(self, name, state, data, num_src, num_dest, st=1,input_message_queue=[],local_message_queue=[]):
+    def __init__(self, name, state, data, num_src, num_dest, st=1,input_message_queue=[],local_message_queue=[],event_list=[], is_triggered_chart=False,trigger_dest=[],trigger_type="",sf_charts={},max_step=0.2):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
 
-        assert isinstance(state, AND_State)
+        assert isinstance(state, (AND_State,OR_State))
         self.diagram = state
         self.diagram.chart = self
 
@@ -272,6 +376,8 @@ class SF_Chart(Subsystem):
 
         self.port_to_in_var = dict()
         self.port_to_out_var = dict()
+        self.triggerport_to_in_var=dict()
+        self.triggerport_to_out_var=dict()
 
         self.dest_state_root_num=-1
         self.dest_state_name=""
@@ -279,12 +385,18 @@ class SF_Chart(Subsystem):
         self.input_message_queue=input_message_queue
         self.local_message_queue=local_message_queue
 
+        self.event_list=event_list
+        self.is_triggered_chart=is_triggered_chart
+        self.trigger_dest=trigger_dest
+        self.trigger_type=trigger_type
+        self.sf_charts=[]
+        self.max_step=max_step
 
-        self.add_names()
-        self.find_root_for_states()
-        self.find_root_and_loc_for_trans()
+        # self.add_names()
+        # self.find_root_for_states()
+        # self.find_root_and_loc_for_trans()
 
-        self.parse_acts_on_states_and_trans()
+        # self.parse_acts_on_states_and_trans()
 
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.diagram))
@@ -375,6 +487,13 @@ class SF_Chart(Subsystem):
                     tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, self.get_state_by_ssid(tran.src))
                     tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, self.get_state_by_ssid(tran.src))
             elif isinstance(state, Junction):
+                if hasattr(state, "default_tran") and state.default_tran:
+                    cond_acts = state.default_tran.cond_acts
+                    tran_acts = state.default_tran.tran_acts
+                    root = state.default_tran.root
+                    location = state.default_tran.location
+                    state.default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
+                    state.default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
                 for tran in state.out_trans:
                     tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
                     tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
@@ -417,6 +536,7 @@ class SF_Chart(Subsystem):
             if isinstance(obj, hp.ITE) and len(obj.if_hps) == 1 and obj.else_hp == hp.Skip(): 
                 return hp.Condition(cond=obj.if_hps[0][0], hp=obj.if_hps[0][1])
             return obj
+        
         message=None
         for message in self.input_message_queue+self.local_message_queue:
             message=message
@@ -427,7 +547,9 @@ class SF_Chart(Subsystem):
         assert isinstance(in_tran_hp, (hp.Skip, hp.ITE))
 
         # Get during action
-        during_hp = get_hcsp(state.du) if state.du else hp.Skip()
+        during_hp=hp.Skip()
+        if isinstance(state,(OR_State,AND_State)):
+            during_hp = get_hcsp(state.du) if state.du else hp.Skip()
 
         # Composite out_tran_hp, during_hp and in_tran_hp
         comp = [out_tran_hp, during_hp, in_tran_hp]
@@ -487,19 +609,41 @@ class SF_Chart(Subsystem):
         :param event_var: event variable, E default
         :return: an hcsp (an ITE or Skip object) of execution result
         """
+        hp_loop=list()
+        def get_loop_hps(dst_state,dst_trans):
+            for tran in dst_trans:
+                        dst_state1 = self.all_states[tran.dst]
+                        if dst_state1.visited:
+                            if dst_state1 == dst_state:
+                                # process_name = dst_state.processes[-1][0]
+                                # hp_loop.append(hp.Var(process_name))
+                                break
+                            else:
+                                process_name1 = dst_state1.processes[-1][0]
+                                hp_loop.append(hp.Var(process_name1))
+                                get_loop_hps(dst_state,dst_state1.out_trans)
+            return hp_loop
         assert tran_type in ["out_trans", "inner_trans"]
 
         # An AND-state has no outgoing transitions
         # A Junction has no inner transitions
+        default_trans=list()
+        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction):
+            state = state.children[0]
+            num = len(state.processes)
+            process_name = state.name+str(num)
+            state.processes.append((process_name,hp.Skip()))
+            state.visited =True
         if isinstance(state, AND_State) and tran_type == "out_trans" \
                 or isinstance(state, Junction) and tran_type == "inner_trans":
             return hp.Skip()
         if tran_type == "out_trans":
             assert isinstance(state, (OR_State, Junction))
             trans = state.out_trans
-        else:  # tran_type == "inner_trans"
+        elif tran_type == "inner_trans":  # tran_type == "inner_trans"
             assert isinstance(state, (OR_State, AND_State))
             trans = state.inner_trans
+
         # state must be the source of each transition in trans
         assert all(state.ssid == tran.src for tran in trans)
 
@@ -510,18 +654,26 @@ class SF_Chart(Subsystem):
                     event_var = "M_"+tran.event
                     self.mesg_hp.append(hp_parser.parse("ML_"+tran.event+" != [] ->( M_"+tran.event+" :=top(ML_"+tran.event+"); ML_"+tran.event+" :=pop(ML_"+tran.event+"))" ))
             conds = list()
+            trigger_conds=list()
             if isinstance(state,(AND_State,OR_State)):
                 root_num=re.findall(pattern="\\d+", string=state.root.name)
                 if self.dest_state_root_num == root_num[0]:
-                    conds.append(bexpr_parser.parse( "state" +'=="'+"a_"+state.name +'"'))
+                    conds.append(bexpr_parser.parse( "state" +'== "'+"a_"+state.name +'"'))
             if tran.event:
-                conds.append(bexpr_parser.parse(event_var + ' == "' + tran.event + '"'))
+                conds.append(bexpr_parser.parse(event_var +'== "'+ tran.event +'"'))
+                if self.is_triggered_chart and self.trigger_type == "function-call":
+                    trigger_conds.append(bexpr_parser.parse(event_var + ' == "'+ tran.event +'"'))
+                    trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
+                    conds.clear()
+                    conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
             if tran.condition:
                 conds.append(tran.condition)
+
             conds.append(bexpr_parser.parse("done == 0"))
             cond = conj(*conds) if len(conds) >= 2 else conds[0]    
 
             dst_state = self.all_states[tran.dst]
+            src_state = self.all_states[tran.src]
             current_tran_act_Q = list(tran_act_Q) + tran.tran_acts
             common_ancestor = get_common_ancestor(state, dst_state)
             assert common_ancestor == get_common_ancestor(dst_state, state)
@@ -530,28 +682,68 @@ class SF_Chart(Subsystem):
             enter_into_dst = common_ancestor.enter_into(dst_state)
 
             hps = list()
+            hps1=list()
             if isinstance(dst_state, (AND_State, OR_State)):
                 assert not isinstance(dst_state, AND_State) or tran_type == "inner_trans"
+
                 hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
                       + [hp_parser.parse("done := 1")]
             elif isinstance(dst_state, Junction):
                 if not dst_state.visited:  # has not been visited in this round
                     dst_state.visited = True
+                    hp_list=list()
                     assert isinstance(dst_state.processes, list)
                     num = len(dst_state.processes)
-                    process_name = dst_state.name + str(num)
-                    assert all(process_name != name for name, _ in dst_state.processes)
-                    process = self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
-                                                            tran_act_Q=current_tran_act_Q)
-                    assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
-                    dst_state.processes.append((process_name, process))
-                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
-                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                          + enter_into_dst + ([] if process == hp.Skip() else [process])
+                    process_name = dst_state.name+str(num)
+                    
+                    #dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    hps1 =tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                          + enter_into_dst
+                    #assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
+                    hp_list.append((cond, get_hcsp(hps1)))  #？？？？
+                    if len(hps1) >= 1:
+                        process=hp.ITE(hp_list, hp.Skip())
+                        dst_state.processes.append((process_name,process ))
+                    else:
+                        dst_state.processes.append((process_name, hp.Skip()))
+                    # hps = hps+tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                    #        + enter_into_dst + ( [hp.Var(process_name)])
+                    process1=self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
+                                                             tran_act_Q=current_tran_act_Q)
+                    # assert all(process_name != name for name, _ in dst_state.processes)
+                    #self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
+                     #                                        tran_act_Q=current_tran_act_Q)
+                    # print(process_name)
+                    
+                    # assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
+                    # dst_state.processes.append((process_name, process))
+                    #dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    hps =tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                            + enter_into_dst + ( [process1])
                 else:  # visited in this round
+                    hps1 = hps+tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
+                              + enter_into_dst 
+                    hp_list=list()
+                    hp_list.append((cond, get_hcsp(hps1)))
+                    num1=0
+                    num = len(dst_state.processes)
+                    
+                    for process in dst_state.processes:
+                        if process[1] == hp.ITE(hp_list, hp.Skip()):
+                            num1=num1+1
+                    if num1 ==0:
+                        process_name = dst_state.name+str(num)
+                        dst_state.processes.append((process_name,hp.ITE(hp_list, hp.Skip()) ))
+                    
                     process_name = dst_state.processes[-1][0]
-                    hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
-                          + enter_into_dst + [hp.Var(process_name)]
+                    dst_trans=dst_state.out_trans
+                    hp_loop_local=get_loop_hps(dst_state,dst_trans)
+                    process_name1 = dst_state.processes[-1][0]
+                    
+                    hps =  [hp.Loop(hp.Sequence(hp.Var(process_name1),*hp_loop_local),cond)]
+
+                        
+                    
             # if len(mesg_hp)>=1:
             #     if_hps.append(hp.Sequence(mesg_hp,cond, get_hcsp(hps)))
             if_hps.append((cond, get_hcsp(hps)))  #？？？？
@@ -667,6 +859,7 @@ class SF_Chart(Subsystem):
         return hp_M, hp_M_main, state_num
 
     def get_process(self, event_var="E"):
+        
         def get_S_du_and_P_diag(_state, _hps):
             _s_du = list()
             _p_diag = list()
@@ -676,7 +869,7 @@ class SF_Chart(Subsystem):
             #     _s_du.extend(_state.du)
             if isinstance(_state, OR_State) and _state.has_aux_var("state_time"):
                 _s_du.append(hp_parser.parse("state_time := state_time+" + str(self.st)))
-            if not all(not isinstance(_child, (AND_State, OR_State)) for _child in _state.children):
+            if isinstance(_state, (AND_State, OR_State)) and not all(not isinstance(_child, (AND_State, OR_State)) for _child in _state.children):
                 _s_du.append(hp.Var(_p_diag_name))  # P_diag
 
                 if isinstance(_state.children[0], AND_State):
@@ -684,7 +877,6 @@ class SF_Chart(Subsystem):
                 else:  # OR_State
                     _p_diag = [(_child.activated(), hp.Var(_child.name))
                                for _child in _state.children if isinstance(_child, OR_State)]
-
             if len(_s_du) == 0:
                 _s_du = hp.Skip()
             elif len(_s_du) == 1:
@@ -694,11 +886,13 @@ class SF_Chart(Subsystem):
             # _s_du = dur; P_diag
 
             # _hps is TTN(...)
-            if _hps != hp.Skip():  # generated from an OR-state
-                init = hp_parser.parse("done := 0")
-                _s_du = hp.Sequence(init, _hps) if _s_du == hp.Skip() \
-                    else hp.Sequence(init, _hps, hp.Condition(cond=bexpr_parser.parse("done == 0"), hp=_s_du))
+            if isinstance(_state, (AND_State, OR_State)):
+                if _hps != hp.Skip():  # generated from an OR-state
+                    init = hp_parser.parse("done := 0")
+                    _s_du = hp.Sequence(init, _hps) if _s_du == hp.Skip() \
+                        else hp.Sequence(init, _hps, hp.Condition(cond=bexpr_parser.parse("done == 0"), hp=_s_du))
                 # _s_du = done := False; TTN(...); \neg done -> (P_diag)
+            
             return _s_du, _p_diag, _p_diag_name
 
         # Analyse P_diag recursively
@@ -867,11 +1061,78 @@ class SF_Chart(Subsystem):
                 # if hp.Var("X") in hp.decompose(process):
                 if process.contain_hp(name="X"):
                     contain_X = True
-                    s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),
+                    if not self.is_triggered_chart :
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),
                                            hp.Loop(hp.Recursion(s_i_proc)))
+                    else:
+                        if self.trigger_type == "function-call":
+                            conds=list()
+                            conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
+                            cond = conj(*conds) if len(conds) >= 2 else conds[0] 
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri?tri_event "),hp.Condition(cond, get_hcsp(s_i.activate()),
+                                               hp.Recursion(s_i_proc)))))
+                        elif self.trigger_type == "rising":
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig <= 0"))
+                            conds.append(bexpr_parser.parse("out_tri > 0"))
+                            cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig < 0"))
+                            conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond,cond)
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()),
+                                               hp.Recursion(s_i_proc)))))
+                        elif self.trigger_type == "falling":
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig >= 0"))
+                            conds.append(bexpr_parser.parse("out_tri < 0"))
+                            cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig > 0"))
+                            conds1.append(bexpr_parser.parse("out_tri <= 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond,cond)
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()),
+                                               hp.Recursion(s_i_proc)))))
+                        else:
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate()),
+                                               hp.Recursion(s_i_proc)))))
                     break
             if not contain_X:
-                s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()), hp.Loop(s_i_proc))
+                if not self.is_triggered_chart :
+                    s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()), hp.Loop(s_i_proc))
+                
+                else:
+                    if self.trigger_type == "function-call":
+                        conds=list()
+                        conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
+                        cond = conj(*conds) if len(conds) >= 2 else conds[0] 
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond, get_hcsp(s_i.activate()), s_i_proc))))
+                    elif self.trigger_type =="rising":
+                        conds=list()
+                        conds.append(bexpr_parser.parse("osig <= 0"))
+                        conds.append(bexpr_parser.parse("out_tri > 0"))
+                        cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                        conds1=list()
+                        conds1.append(bexpr_parser.parse("osig < 0"))
+                        conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                        final_cond=disj(cond,cond1)
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()), s_i_proc))))
+                    elif self.trigger_type == "falling":
+                        conds=list()
+                        conds.append(bexpr_parser.parse("osig >= 0"))
+                        conds.append(bexpr_parser.parse("out_tri < 0"))
+                        cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                        conds1=list()
+                        conds1.append(bexpr_parser.parse("osig > 0"))
+                        conds1.append(bexpr_parser.parse("out_tri < 0"))
+                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                        final_cond=disj(cond,cond1)
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()), s_i_proc))))
+                    else:
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate()), s_i_proc))))
                 #s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),s_i_proc)
 
             # The output order is after D, M and M_main
@@ -902,7 +1163,6 @@ class SF_Chart(Subsystem):
     def get_pure_process(self):
         assert not self.has_event
         get_S_du_and_P_diag, analyse_P_diag = self.get_process()
-
         # Initialise variables
         init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
         # Initialise and Activate states
@@ -913,7 +1173,7 @@ class SF_Chart(Subsystem):
             init_states.extend(s_i.init())
             activate_states.extend(s_i.activate())
         for sub_hp in init_states + activate_states:
-            assert isinstance(sub_hp, (hp.Assign, hp.Sequence,hp.OutputChannel,hp.InputChannel))
+            #assert isinstance(sub_hp, (hp.Assign, hp.Sequence,hp.OutputChannel,hp.InputChannel))
             if isinstance(sub_hp, hp.Sequence):
                 assert all(isinstance(_hp, hp.Assign) for _hp in sub_hp.hps)
         # Null channel operations at the first round
@@ -930,7 +1190,10 @@ class SF_Chart(Subsystem):
                 out_chs.append(hp_parser.parse(ch_name + "!" + out_var))
 
         # Initialzation of the process
-        init_hps = init_vars + init_states + activate_states + in_chs + out_chs
+        if not self.is_triggered_chart:
+            init_hps = init_vars + init_states + activate_states + in_chs + out_chs
+        else:
+            init_hps = init_vars+init_states
         # Delay one period at the first round
         init_hp = hp.Sequence(*init_hps, hp.Wait(AConst(self.st)))
 
@@ -938,7 +1201,40 @@ class SF_Chart(Subsystem):
         # Get main process
         main_body = [hp.Var(state.name) for state in parallel_states]
         main_processes = in_chs + main_body + out_chs
-        main_process = hp.Sequence(init_hp, hp.Loop(hp.Sequence(*main_processes, hp.Wait(AConst(self.st)))))
+        if not self.is_triggered_chart:
+            main_process = hp.Sequence(init_hp, hp.Loop(hp.Sequence(*main_processes, hp.Wait(AConst(self.st)))))
+        else:
+            if self.trigger_type == "function-call":
+                conds=list()
+                conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
+                cond = conj(*conds) if len(conds) >= 2 else conds[0]   
+                main_process = hp.Sequence(init_hp,hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'), hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)))))
+            elif self.trigger_type == "rising":
+                conds=list()
+
+                conds.append(bexpr_parser.parse("osig <= 0"))
+                conds.append(bexpr_parser.parse("out_tri > 0"))
+                cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                conds1=list()
+                conds1.append(bexpr_parser.parse("osig < 0"))
+                conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                final_cond=disj(cond,cond1)
+                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
+            elif self.trigger_type == "falling":
+                conds=list()
+
+                conds.append(bexpr_parser.parse("osig > 0"))
+                conds.append(bexpr_parser.parse("out_tri <= 0"))
+                cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                conds1=list()
+                conds1.append(bexpr_parser.parse("osig >= 0"))
+                conds1.append(bexpr_parser.parse("out_tri < 0"))
+                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                final_cond=disj(cond,cond1)
+                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
+            else:
+                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
         processes.add(self.name, main_process)
 
         # Get each S_i process
@@ -946,9 +1242,20 @@ class SF_Chart(Subsystem):
         for s_i in parallel_states:  # for each S_i state
             i += 1
             assert s_i.name == "S" + str(i)
+            # if isinstance (s_i.children[0],Junction):
+            #     num = len(s_i.children[0].processes)
+            #     process_name = s_i.children[0].name+str(num)
+            #     s_i.children[0].processes.append((process_name, hp.Skip()))
+            #     s_i.children[0].visited =True
+            #     s_du =self.execute_one_step_from_state(s_i.children[0])
+                
+            #     processes.add(s_i.name, s_du)
+
+            # else:
 
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i,
-                                                            _hps=self.execute_one_step_from_state(s_i))
+                                                        _hps=self.execute_one_step_from_state(s_i))
+        
             assert isinstance(s_du, hp.HCSP) and isinstance(p_diag, list)
             assert all(isinstance(s, (hp.Var, tuple)) for s in p_diag)
             processes.add(s_i.name, s_du)
@@ -965,14 +1272,16 @@ class SF_Chart(Subsystem):
                 assert p_diag_name
                 processes.add(p_diag_name, p_diag_proc)
                 analyse_P_diag(p_diag, processes)  # analyse P_diag recursively
+            
 
         # Add Junction processes
         for state in self.all_states.values():
+
             if isinstance(state, Junction) and state.type != "HISTORY_JUNCTION":
-                assert state.processes
+                #assert state.processes
                 for process_name, process in state.processes:
                     processes.add(process_name, process)
         substituted = processes.substitute()
         processes.hps = [(self.name, substituted[self.name])]
-
+        
         return processes

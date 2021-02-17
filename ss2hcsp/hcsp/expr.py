@@ -71,7 +71,7 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-        super(AConst, self).__init__()
+        super(AConst, self).__init__()  
         assert isinstance(value, (int, float, list, str))
         if isinstance(value, list):
             self.value = list(value)
@@ -179,10 +179,10 @@ class TimesExpr(AExpr):
 class FunExpr(AExpr):
     def __init__(self, fun_name, exprs):
         super(FunExpr, self).__init__()
-        assert fun_name in [
-            "min", "max", "abs", "gcd", "delay", "sqrt", "div",
-            "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
-            "bernoulli", "uniform"]
+        # assert fun_name in [
+        #     "min", "max", "abs", "gcd", "delay", "sqrt", "div",
+        #     "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
+        #     "bernoulli", "uniform"]
         self.fun_name = fun_name
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)

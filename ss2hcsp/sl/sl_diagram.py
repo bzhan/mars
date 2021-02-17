@@ -3,6 +3,7 @@ from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
+# from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -16,12 +17,14 @@ from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
-from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
+from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
+from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message
+from ss2hcsp.sf.sf_event import SF_Event
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 
 from xml.dom.minidom import parse, Element
@@ -60,7 +63,6 @@ def get_gcd(sample_times):
             scaling_positions.append(0)
         else:  # isinstance(st, float)
             scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
-
     scale = pow(10, max(scaling_positions))
     scaling_sample_times = [int(st * scale) for st in sample_times]
     result_gcd = reduce(gcd, scaling_sample_times)
@@ -267,7 +269,7 @@ class SL_Diagram:
                             out_trans.append(tran)
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
-                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type))
+                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
                 
             return _states, _junctions, _functions
 
@@ -277,7 +279,6 @@ class SL_Diagram:
             all_out_trans=dict()
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
-
             # A chart is wrapped into an AND-state
             chart_state = AND_State(ssid=chart_id, name=chart_name)
             states, junctions, functions = get_children(block=chart)
@@ -295,6 +296,15 @@ class SL_Diagram:
             chart_data = dict()
             local_message_list=list()
             input_message_list=list()
+            event_list=list()
+            if (len(chart.getElementsByTagName(name="event"))>=1):
+                for e in chart.getElementsByTagName(name="event"):
+                    event_name=get_attribute_value(e, "name")
+                    event_scope=get_attribute_value(e, "scope")
+                    event_trigger=get_attribute_value(e, "trigger") if (len(get_attribute_value(e, "trigger"))>=1) else None
+                    event=SF_Event(name=event_name,scope=event_scope,trigger=event_trigger)
+                    event_list.append(event)
+
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
                 assert var_name and var_name not in chart_data
@@ -317,7 +327,7 @@ class SL_Diagram:
                     chart_data[var_name] = value
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list}
+            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
 
     def parse_xml(self, model_name="", default_SampleTimes=()):
         # Extract BlockParameterDefaults
@@ -337,11 +347,30 @@ class SL_Diagram:
         assert len(models) <= 1
         if models:
             model_name = models[0].getAttribute("Name")
-
         system = self.model.getElementsByTagName("System")[0]
+        max_step=0.2
+        start_time=0.0
+        if len(self.model.getElementsByTagName("ConfigurationSet")) >0 :
+            configurationSet=self.model.getElementsByTagName("ConfigurationSet")[0]
+            array = [child for child in configurationSet.childNodes if child.nodeName == "Array"]
+            for node in array:
+                if node.nodeName  ==  "Array":
+                    objs = [child for child in node.childNodes if child.nodeName == "Object"]
+                    for obj in objs:
+                        if obj.nodeName == "Object":
+                            arr= [child for child in obj.childNodes if child.nodeName == "Array"]
+                            for a in arr:
+                                if  a.nodeName == "Array":
+                                    obj_childs = [child for child in a.childNodes if child.nodeName == "Object"]
+                                    start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
+                                    stop_time = float(get_attribute_value(obj_childs[0], "StopTime"))
+                                    max_step=float(get_attribute_value(obj_childs[0], "MaxStep")) if get_attribute_value(obj_childs[0], "MaxStep")!="auto" else stop_time/50
+                                break
+                        break
+                break
+
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
-
         # The following dictionary is used to replace the port names as formatted ones.
         # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
         # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
@@ -351,9 +380,13 @@ class SL_Diagram:
             # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            if not sample_time:
-                sample_time = default_SampleTimes[block_type]
+            # if not sample_time:
+                
+            #     sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
+         
+            # if  block_type == "Clock":
+            #     self.add_block(Clock(name=block_name,max_step=max_step,start_time=start_time))
             if block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
@@ -430,24 +463,111 @@ class SL_Diagram:
                 threshold = get_attribute_value(block, "Threshold")
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
+            elif  block_type == "DiscretePulseGenerator":
+                amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1        
+                pluseType=get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
+                if pluseType == "Sample based":
+                    period = int(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
+                    pluseWidth=int(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
+                    phaseDelay=int(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
+                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
+                    is_continuous = False
+                else:
+                    period = float(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
+                    pluseWidth=float(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
+                    phaseDelay=float(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
+                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
+                    is_continuous = False
+                timeSource=get_attribute_value(block, "TimeSource") if get_attribute_value(block, "TimeSource") else "Use simulation time"
+                self.add_block(DiscretePulseGenerator(name=block_name,amplitude=amplitude,period=period,pluseType=pluseType,pluseWidth=pluseWidth,phaseDelay=phaseDelay,timeSource=timeSource,sampleTime=sampleTime,is_continuous=is_continuous))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
             
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
-                if sf_block_type == "Chart":     
+                if sf_block_type == "Chart":  
+                    
                     assert block_name in self.chart_parameters
-
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                     if len(ports) == 0:
                         ports = [0, 0]
                     elif len(ports) == 1:
                         ports.append(0)
-
                     num_dest, num_src = ports[:2]
+                    triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
+                            child.getAttribute("BlockType") == "TriggerPort"]
+                    trigger_dest=list()
+                    lines = [child for child in system.childNodes if child.nodeName == "Line"]
+                    for line in lines:
+                        # line_name = get_attribute_value(block=line, attribute="Name")
+                        # if not line_name:
+                        #     line_name = "?"
+                        # ch_name = "?"
+                        src_block = get_attribute_value(block=line, attribute="SrcBlock")
+                        if src_block == block_name:
+
+                        # if src_block in port_name_dict:  # an input port
+                        #     ch_name = model_name + "_" + src_block
+                        #     src_block = port_name_dict[src_block]
+                        # src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
+                            branches = [branch for branch in line.getElementsByTagName(name="Branch")
+                                        if not branch.getElementsByTagName(name="Branch")]
+                            if not branches:
+                                branches = [line]
+                            # if branches:
+                            for branch in branches:
+                                dest_block = get_attribute_value(block=branch, attribute="DstBlock")
+                                trigger_dest.append(dest_block)
+                            #     assert ch_name == "?"
+                            #     ch_name = model_name + "_" + dest_block
+                            #     dest_block = port_name_dict[dest_block]
+                            # dest_port = get_attribute_value(block=branch, attribute="DstPort")
+                            # dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
+                            # if dest_block in self.blocks_dict:
+                            #     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
+                            #                   name=line_name, ch_name=ch_name)
+
+                    assert len(triggers) <= 1
+                    is_triggered_chart=False
+                    trigger_type=""
+                    sf_charts=dict()
+                    for b in blocks:
+                        block_type1 = b.getAttribute("BlockType")
+                        # Delete spaces in block_name
+                        block_name1 = b.getAttribute("Name")
+                        if block_type1 == "SubSystem":
+                        # Check if it is a stateflow chart
+                            sf_block_type = get_attribute_value(b, "SFBlockType")
+                        
+                            if sf_block_type == "Chart":
+                                # stateflow1 = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
+                                #              num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
+                                #              input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
+                                #              is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts)
+                                sf_charts[block_name1] = b
+
+                    if triggers:
+                        is_triggered_chart=True
+                        ###
+                        
+                        for child in subsystem.childNodes :
+                            if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
+                                trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
+                        # event_list=chart_paras["event_list"]
+                        # if trigger_type == "":
+                        #     for event in event_list:
+                        #         if event.scope == "INPUT_EVENT" and event.trigger != None:
+                        #             if event.trigger == "RISING_EDGE_EVENT":
+                        #                 trigger_type ="rising"
+                        #             elif event.trigger == "FALLING_EDGE_EVENT":
+                        #                 trigger_type="falling"
+
+                        ###    
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],input_message_queue=chart_paras["input_message"])
+                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
+                                         input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
+                                         is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
                         if child.nodeName == "Block":
@@ -456,13 +576,23 @@ class SL_Diagram:
                                 port_id = get_attribute_value(child, "Port")
                                 port_id = int(port_id) - 1 if port_id else 0
                                 assert port_id not in stateflow.port_to_in_var
-                                stateflow.port_to_in_var[port_id] = in_var
+                                event_name_list=[]
+                                for event in chart_paras["event_list"]:
+                                    event_name_list.append(event.name)
+                                if in_var not in event_name_list:
+                                    stateflow.port_to_in_var[port_id] = in_var
                             elif child.getAttribute("BlockType") == "Outport":
                                 out_var = child.getAttribute("Name")
-                                port_id = get_attribute_value(child, "Port")
-                                port_id = int(port_id) - 1 if port_id else 0
-                                assert port_id not in stateflow.port_to_out_var
-                                stateflow.port_to_out_var[port_id] = out_var
+                                if out_var.find("()") == -1:
+                                    port_id = get_attribute_value(child, "Port")
+                                    port_id = int(port_id) - 1 if port_id else 0
+                                    assert port_id not in stateflow.port_to_out_var
+                                    event_name_list=[]
+                                    for event in chart_paras["event_list"]:
+                                        event_name_list.append(event.name)
+                                    if out_var not in event_name_list:
+                                        stateflow.port_to_out_var[port_id] = out_var
+
                     self.add_block(stateflow)
                     continue
 
@@ -474,7 +604,7 @@ class SL_Diagram:
                     trigger_type = get_attribute_value(triggers[0], "TriggerType")
                     if not trigger_type:
                         trigger_type = "rising"
-                    assert trigger_type in ["rising", "falling", "either"]
+                    assert trigger_type in ["rising", "falling", "either","function-call"]
                     ports = get_attribute_value(block, "Ports")
                     num_dest, num_src, _, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
                     subsystem = Triggered_Subsystem(block_name, num_src, num_dest, trigger_type)
@@ -502,6 +632,8 @@ class SL_Diagram:
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
                 self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
+        
+
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
         for line in lines:
@@ -522,7 +654,7 @@ class SL_Diagram:
             for branch in branches:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                 if dest_block in port_name_dict:  # an output port
-                    assert ch_name == "?"
+                    #assert ch_name == "?"
                     ch_name = model_name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
@@ -544,7 +676,8 @@ class SL_Diagram:
         line = SL_Line(src, dest, src_port, dest_port, name=name, ch_name=ch_name)
         src_block = self.blocks_dict[line.src]
         dest_block = self.blocks_dict[line.dest]
-        
+        line.src_block=src_block
+        line.dest_block=dest_block
         src_block.add_src(line.src_port, line)
         dest_block.add_dest(line.dest_port, line)
 
@@ -575,12 +708,13 @@ class SL_Diagram:
             # Give name to the group of lines containing each
             # incoming line (if no name is given already).
             for i, line in enumerate(block.dest_lines):
-                src, src_port = line.src, line.src_port
-                line_group = self.blocks_dict[src].src_lines[src_port]
-                if line_group[0].name == "?":
-                    for line2 in line_group:
-                        line2.name = "x" + str(num_lines)
-                    num_lines += 1
+                if line !=None:
+                    src, src_port = line.src, line.src_port
+                    line_group = self.blocks_dict[src].src_lines[src_port]
+                    if line_group[0].name == "?":
+                        for line2 in line_group:
+                            line2.name = "x" + str(num_lines)
+                        num_lines += 1
 
             # Give name to each group of outgoing lines (if no
             # name is given already).
@@ -593,9 +727,10 @@ class SL_Diagram:
         # Add channel name for each line
         for block in self.blocks_dict.values():
             for line in block.dest_lines:
-                assert line.name != "?"
-                if line.ch_name == "?":
-                    line.ch_name = "ch_" + line.name + "_" + str(line.branch)
+                if line !=None:
+                    assert line.name != "?"
+                    if line.ch_name == "?":
+                        line.ch_name = "ch_" + line.name + "_" + str(line.branch)
             for lines in block.src_lines:
                 for line in lines:
                     assert line.name != "?"
@@ -612,7 +747,7 @@ class SL_Diagram:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
-                        if not isinstance(in_block, SF_Chart) and in_block.st >= 0:
+                        if not isinstance(in_block, SF_Chart) and in_block.st >= 0:  
                             in_st.append(in_block.st)
                         else:
                             in_st = None
@@ -622,6 +757,7 @@ class SL_Diagram:
                         if block.st == 0:
                             block.is_continuous = True
                         terminate = False
+                
         # Re-classify the constant blocks
         for block in self.blocks_dict.values():
             if block.type == "constant":
@@ -741,7 +877,6 @@ class SL_Diagram:
         # delete in and out-ports
         blocks_dict = {name: block for name, block in self.blocks_dict.items()
                        if block.type not in ['in_port', 'out_port']}
-
         # Get stateflow charts and then delete them from block_dict
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
@@ -754,7 +889,9 @@ class SL_Diagram:
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
         for name in [block.name for block in buffers]:
             del blocks_dict[name]
-
+        discretePulseGenerator=[block for block in blocks_dict.values() if block.type == "DiscretePulseGenerator"]
+        for name in [block.name for block in discretePulseGenerator]:
+            del blocks_dict[name]  
         # Seperating: search SCC by BFS
         discrete_subdiagrams = []
         continuous_subdiagrams = []
@@ -772,11 +909,12 @@ class SL_Diagram:
                             scc.append(blocks_dict[dest_name])
                             del blocks_dict[dest_name]
                 for dest_line in b.dest_lines:
-                    src_name = dest_line.src
-                    if src_name in blocks_dict and blocks_dict[src_name].is_continuous == block.is_continuous:
-                        bs.append(blocks_dict[src_name])
-                        scc.append(blocks_dict[src_name])
-                        del blocks_dict[src_name]
+                    if dest_line !=None:
+                        src_name = dest_line.src
+                        if src_name in blocks_dict and blocks_dict[src_name].is_continuous == block.is_continuous:
+                            bs.append(blocks_dict[src_name])
+                            scc.append(blocks_dict[src_name])
+                            del blocks_dict[src_name]
             if block.is_continuous:
                 continuous_subdiagrams.append(scc)
             else:
@@ -792,7 +930,8 @@ class SL_Diagram:
                 for block in scc_dict.values():
                     src_set = set()
                     for dest_line in block.dest_lines:
-                        src_set.add(dest_line.src)
+                        if dest_line !=None:
+                            src_set.add(dest_line.src)
                     if src_set.isdisjoint(set(scc_dict.keys())):
                         sorted_scc.append(block)
                         delete_blocks.append(block.name)
@@ -800,7 +939,7 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator
 
     def add_buffers(self):
         buffers = []

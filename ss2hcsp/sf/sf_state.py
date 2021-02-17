@@ -109,6 +109,7 @@ class SF_State:
     def activate(self):  # return a list of hps
         hps = list()
         hps.append(self._activate())
+        
         if self.en:
             hps.extend(self.en)
         if isinstance(self, OR_State) and self.has_history_junc == True and self.acth != None:   
@@ -119,39 +120,76 @@ class SF_State:
                         if isinstance(child, AND_State):
                                 # hps.append(child._activate())
                             child_hps.extend(child.activate())
-                        elif isinstance(child, OR_State):
+                        elif isinstance(child, (OR_State)):
                                 # Activate the state with default transition
                                 
                             if child.default_tran:
+                                
                                 if child.default_tran.cond_acts:
-                                    child_hps.extend(child.default_tran.cond_acts)
+                                    if child.default_tran.condition:
+                                        child_hps.extend((condition,child.default_tran.cond_acts))
+                                        
+                                    else:
+                                        child_hps.extend(child.default_tran.cond_acts)
+
                                 if child.default_tran.tran_acts:
                                     child_hps.extend(child.default_tran.tran_acts)
                                 child_hps.extend(child.activate())
+                                # child_hps.extend(hp_parser.parse("done := 1"))
                             else:
                                 child_hps.extend(child.activate())
                                 
                         elif isinstance(child, Junction):
-                            pass
+
+                            if child.default_tran:  
+                                if child.default_tran.cond_acts:
+                                    if child.default_tran.condition:
+                                        child_hps.extend((condition,child.default_tran.cond_acts))
+                                        
+                                    else:
+                                        child_hps.extend(child.default_tran.cond_acts)
+
+                                if child.default_tran.tran_acts:
+                                    child_hps.extend(child.default_tran.tran_acts)
+                            else:
+                                pass
                         hps.append((bexpr_parser.parse(self.name+"_"+"acth" +' == "' +"a_"+ child.name + '"'), child_hps))
-                    
+
+
         else:
                 # Activate children
                 for child in self.children:
                     if isinstance(child, AND_State):
                         # hps.append(child._activate())
                         hps.extend(child.activate())
-                    elif isinstance(child, OR_State) and child.default_tran:
+                    elif isinstance(child, (OR_State)) :
                         # Activate the state with default transition
+                        if  child.default_tran:
+                           
+                            if child.default_tran.cond_acts:
+                                if child.default_tran.condition:
+                                        hps.extend((condition,child.default_tran.cond_acts))          
+                                else:
+                                        hps.extend(child.default_tran.cond_acts)
+                            if child.default_tran.tran_acts:
+                                hps.extend(child.default_tran.tran_acts)
+                            hps.extend(child.activate())
+                            break
+                            # hps.extend(hp_parser.parse("done := 1"))
                         
-                        if child.default_tran.cond_acts:
-                            hps.extend(child.default_tran.cond_acts)
-                        if child.default_tran.tran_acts:
-                            hps.extend(child.default_tran.tran_acts)
-                        hps.extend(child.activate())
-                        break
                     elif isinstance(child, Junction):
-                        pass
+                        if  child.default_tran:
+                            if child.default_tran.cond_acts:
+                                if child.default_tran.condition:
+                                        hps.extend((condition,child.default_tran.cond_acts))          
+                                else:
+                                        hps.extend(child.default_tran.cond_acts)
+                            if child.default_tran.tran_acts:
+                                hps.extend(child.default_tran.tran_acts)
+                        else:
+                            pass
+                            #hps.extend(hp_parser.parse("done := 1"))
+                     
         hps = [_hp for _hp in hps if _hp]  # delete Nones
         return hps
 #历史节点修改
@@ -230,7 +268,7 @@ class SF_State:
             descendants[child.ssid] = child
             if isinstance(child, (AND_State, OR_State)):
                 child_descendants = child.get_all_descendants()
-                assert all(ssid not in descendants for ssid in child_descendants.keys())
+                #assert all(ssid not in descendants for ssid in child_descendants.keys())
                 descendants.update(child_descendants)
         return descendants
 
@@ -255,7 +293,7 @@ class SF_State:
                         + (self.du if self.du else list()) \
                         + (self.ex if self.ex else list())
         for act in en_du_ex_acts:
-            assert isinstance(act, hp.HCSP)
+            #assert isinstance(act, hp.HCSP)
             if isinstance(act, (hp.Assign, hp.Sequence)):
                 var_set = var_set.union(act.get_vars())
         for tran in self.inner_trans:                         #并行状态中只能有内部转换，or状态中3种转换都可以有
@@ -292,7 +330,7 @@ class SF_State:
 
 
 class OR_State(SF_State):
-    def __init__(self, ssid, out_trans, inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
+    def __init__(self, ssid, out_trans=(), inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
         super(OR_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
         self.out_trans = out_trans
         self.default_tran = default_tran  # The default transition to this state
@@ -316,7 +354,7 @@ class AND_State(SF_State):
 
 
 class Junction:
-    def __init__(self, ssid, out_trans, name="",junc_type=""):
+    def __init__(self, ssid, out_trans, name="",junc_type="", default_tran=None):
         self.ssid = ssid
         self.out_trans = out_trans
         self.name = name
@@ -325,6 +363,7 @@ class Junction:
         self.type=junc_type
         self.processes = list()
         self.tran_acts = list()  # the queue to store transition actions
+        self.default_tran = default_tran
 
         # Variables modified in this junction
         # self.modified_vars = sorted(list(self.get_modified_vars()))

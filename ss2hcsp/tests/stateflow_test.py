@@ -14,6 +14,26 @@ def printTofile(path,content):
 
 
 class SfTest(unittest.TestCase):
+    def testPlus_generator_edge_trigger(self):
+        location = "./Examples/trigger_subsystem/plus_generator_edge_trigger.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process) 
+        printTofile("./Examples/trigger_subsystem/plus_generator_edge_trigger.txt",process)
+    def testFun_call_outputEvent_mulBrodcast(self):
+        location = "./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_eg.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process) 
+        printTofile("./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_ege.txt",process)
     def testhis_junction(self):
         location = "./Examples/Stateflow/his_junction/his_junction_example.xml"
         diagram = SL_Diagram(location=location)
@@ -22,8 +42,18 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
         printTofile("./Examples/Stateflow/his_junction/his_junction_example.txt",process)
-
+    def testEdge_trigger_multiplyoutputEvent(self):
+        location = "./Examples/Stateflow/edge_trigger_multiplyoutputEvent_eg/edge_trigger_multiplyoutputEvent_eg.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/edge_trigger_multiplyoutputEvent_eg/edge_trigger_multiplyoutputEvent_eg.txt",process)
     def testSendDirect_event(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_2.xml"
         diagram = SL_Diagram(location=location)
@@ -33,7 +63,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_2.txt",process)
-
+        print(process)
     def testSendDirect_event2(self):
         location = "./Examples/Stateflow/direct_event/direct_event_eg2.xml"
         diagram = SL_Diagram(location=location)
@@ -42,8 +72,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event_eg2.txt",process)
-
     def testSendDirect_event3(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_1.xml"
         diagram = SL_Diagram(location=location)
@@ -52,8 +82,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
         #printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
-
     def testSendDirect_event4(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_3.xml"
         diagram = SL_Diagram(location=location)
@@ -62,8 +92,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_3.txt",process)
-
     def testSendDirect_event5(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_4.xml"
         diagram = SL_Diagram(location=location)
@@ -72,8 +102,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
         printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_4.txt",process)
-
     def testMessage_eg(self):
         location = "./Examples/Stateflow/Message_eg/Message_eg.xml"
         diagram = SL_Diagram(location=location)
@@ -83,7 +113,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/Message_eg/Message_eg.txt",process)
-
+        print(process)
     def testMessage_eg2(self):
         location = "./Examples/Stateflow/Message_eg/Message_eg2.xml"
         diagram = SL_Diagram(location=location)
@@ -93,7 +123,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         printTofile("./Examples/Stateflow/Message_eg/Message_eg2.txt",process)
-
+        print(process)
     def testSend(self):
         location = "./Examples/Stateflow/early_exit/early_return_logic_eg1_1.xml"
         diagram = SL_Diagram(location=location)
@@ -102,6 +132,8 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1_1.txt",process)
  
     def testEarlyExit(self):
         location = "./Examples/Stateflow/early_exit/early_exit.xml"
@@ -111,7 +143,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        #print(process)
+        print(process)
         printTofile("./Examples/Stateflow/early_exit/early_exit.txt",process)
         res = [
             ("P", "@M || @S1"),
@@ -195,7 +227,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         # diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
+#         print(process)
 
         res = [
             ("P", "ACKNACK := 0; ResponseDelay := 0; cansend := 0; flag := 0; re_changes := 0; a_S1 := 0; "
@@ -216,7 +248,7 @@ class SfTest(unittest.TestCase):
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
             expected_process.add(name, hp_parser.parse(_hp))
-        # print(expected_process)
+#         print(expected_process)
 
         self.assertEqual(process, expected_process)
 
@@ -228,7 +260,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
+#         print(process)
 
         res = [
             ("P", "@PD0 || @PD1 || @PC0 || @PC1 || @Chart || @buffer0 || @buffer1"),
@@ -250,7 +282,7 @@ class SfTest(unittest.TestCase):
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
             expected_process.add(name, hp_parser.parse(_hp))
-        # print(expected_process)
+#         print(expected_process)
 
         self.assertEqual(process, expected_process)
 
@@ -304,6 +336,6 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        #print(process)
+        print(process)
 if __name__ == "__main__":
     unittest.main()

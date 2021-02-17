@@ -36,7 +36,6 @@ class Transition:
 
     def parse(self):
         label = self.label if self.label else ""
-
         # Get transition condition
         cond_pattern = "\\[.*?\\]"
         conditions = re.findall(pattern=cond_pattern, string=label)
@@ -45,7 +44,6 @@ class Transition:
             condition = conditions[0].strip("[]")    #删除开头和结尾的[]
             if re.match(pattern="after\\(.*?,.*?\\)", string=condition):
                 # Parse after(number, event) condition
-                # print(condition)
                 # number, event = condition[6:-1].split(",")
                 number, event = [e.strip() for e in condition[6:-1].split(",")]
                 if event == "sec":
@@ -84,13 +82,11 @@ class Transition:
             self.cond_acts = [act.strip() for act in
                               re.sub(pattern="=", repl=":=", string=cond_acts[0].strip("{;}")).split(";")]
         # Delete condition action
-        # print(self.cond_acts)
         label = re.sub(pattern=cond_act_pattern, repl="", string=label)
         #没处理完条件或条件操作或转换操作将其置为空
         # Get event
-        assert all(symbol not in label for symbol in "[]{}/;")
+        #assert all(symbol not in label for symbol in "[]{}/;")
         self.event = label
-
         # Assertion on default transitions
         if self.src is None:  # a default transition
             assert self.condition is None and self.event == ""

@@ -54,7 +54,8 @@ class SL_Block:
     def add_dest(self, port_id, sl_line):
         """Add a destination line."""
         assert port_id < self.num_dest
-        self.dest_lines[port_id] = sl_line
+        if len(self.dest_lines):
+            self.dest_lines[port_id] = sl_line
 
     def get_src_blocks(self):
         return set(line.src for line in self.dest_lines)
