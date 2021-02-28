@@ -794,8 +794,7 @@ class SimInfo:
             # Waiting for some number of seconds
             delay = eval_expr(cur_hp.delay, self.state) - self.pos[-1]
             if delay < 0:
-                print(self.name, cur_hp, eval_expr(cur_hp.delay, self.state), self.pos)
-                raise AssertionError("exec_step: delay for wait less than zero")
+                raise SimulatorException("When executing %s: delay %s less than zero" % (cur_hp, delay))
             self.reason = {"delay": delay}
 
         elif cur_hp.type == "ode":
