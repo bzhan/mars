@@ -501,7 +501,7 @@ class RelExpr(BExpr):
     def __init__(self, op, expr1, expr2):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
-        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        #assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2

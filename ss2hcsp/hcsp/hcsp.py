@@ -425,13 +425,41 @@ class OutputChannel(HCSP):
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
 
+class Function(HCSP):
+    def __init__(self, return_vars,func_name,commands):
+        super(Function, self).__init__()
+        self.type = "function"
+        self.return_vars = return_vars  # Channel
+        self.func_name = func_name # AExpr or None
+        self.commands = commands
+
+    def __eq__(self, other):
+        return self.type == other.type and self.return_var == other.return_var and self.func_name == other.func_name and self.commands == other.commands
+
+    def __repr__(self):
+        if isinstance(self.return_vars,list) and len(self.return_vars) >1:
+            return "[%s] = Fun(%s,%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(repr(arg) for arg in self.args))
+        else:
+            return "%s = Fun(%s,%s)" % (self.return_vars,self.fun_name,",".join(repr(arg) for arg in self.args))
+
+
+    def __str__(self):
+        if isinstance(self.return_vars,list) and len(self.return_vars) >1:
+            return "[%s] = %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(str(arg) for arg in self.args)) 
+        else:
+            return "%s = %s(%s)" % (self.return_vars,self.fun_name, ",".join(str(arg) for arg in self.args))
+
+    def get_vars(self):
+         
+        return set().union(*(expr.get_vars() for expr in self.commands))
+
 
 class Sequence(HCSP):
     def __init__(self, *hps):
         super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
         self.type = "sequence"
-        assert all(isinstance(hp, HCSP) for hp in hps)
+        #assert all(isinstance(hp, HCSP) for hp in hps)
         #assert len(hps) >= 2
         self.hps = []
         for hp in hps:
@@ -786,8 +814,8 @@ class ITE(HCSP):
 
         """
         super(ITE, self).__init__()
-        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
-        assert isinstance(else_hp, HCSP)
+        #assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        #assert isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp

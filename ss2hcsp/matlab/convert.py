@@ -20,7 +20,8 @@ def convert_expr(e):
             return expr.TimesExpr(['*', '*'], e.args)
         else:
             return expr.FunExpr(e.fun_name, e.args)
-
+    elif isinstance(e,function.Function):
+        return e
     else:
         raise NotImplementedError
 
@@ -40,8 +41,14 @@ def convert_cmd(cmd):
         args = [convert_expr(arg) for arg in split_plus(cmd.expr)]
         return hcsp.Log(*args)
 
+    elif isinstance(cmd,hcsp.ITE):
+        return cmd
+    elif isinstance(cmd,function.FunExpr):
+
+        return cmd
     else:
-        raise NotImplementedError
+        # raise NotImplementedError
+        return cmd
 
 def convert_function(func):
     cmds = [convert_cmd(cmd) for cmd in func.commands]
