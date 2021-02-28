@@ -86,6 +86,10 @@ class Process extends React.Component {
             // Round numbers to at most three digits
             return String(Math.round(val.toFixed(3) * 1000) / 1000);
         }
+        else if (typeof (val) == 'string') {
+            // Display of strings
+            return val;
+        }
         else if (Array.isArray(val)) {
             // Display of lists
             return '[' + val.map((k) => this.displayValue(k)).join(',') + ']';
