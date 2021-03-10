@@ -97,6 +97,21 @@ def run_hcsp():
             infos, num_steps=num_steps, num_show=num_show, show_interval=show_interval,
             start_event=start_event)
         print("Time:", time.perf_counter() - clock)
+
+        # # export the time series data of Plant to files
+        # directory = "/Users/BEAR/Projects/mars/CaseStudies/lander/"
+        # plant_file = open(directory + 'HCSP_data.txt', 'w')
+        # for time_states in res['time_series']['Plant']:
+        #     if len(time_states['state']) < 4:
+        #         continue
+        #     plant_file.write(str(time_states['time']) + '\t')
+        #     plant_file.write(str(time_states['state']['s']) + '\t')
+        #     plant_file.write(str(time_states['state']['v']) + '\t')
+        #     plant_file.write(str(time_states['state']['m']) + '\t')
+        #     plant_file.write(str(time_states['state']['Fc']) + '\n')
+        # plant_file.close()
+
+
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
 

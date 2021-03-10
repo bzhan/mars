@@ -102,6 +102,12 @@ def eval_expr(expr, state):
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[:-1]
+        elif expr.fun_name == "dequeue":
+            a, = args
+            assert isinstance(a, list)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
+            return a[1:]
         elif expr.fun_name == "top":
             a, = args
             assert isinstance(a, list)
