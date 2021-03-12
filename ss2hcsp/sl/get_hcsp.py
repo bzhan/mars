@@ -2,11 +2,12 @@
 
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-from ss2hcsp.sl import sl_diagram
+# from ss2hcsp.sl import sl_diagram
 from ss2hcsp.sl.sl_diagram import get_gcd
+from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+# from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 
 
 def translate_continuous(diagram):
@@ -44,6 +45,28 @@ def translate_continuous(diagram):
             out_var = out_vars.pop()
             ode_eqs.append((out_var, AConst(0)))
     # assert init_hps
+
+    # Deal with Signal Builders
+    signal_builders = [block for block in block_dict.values() if block.type == "signalBuilder"]
+    # Merge multiple Signal Builders
+    merged_signal_builder_name = "_".join(block.name for block in signal_builders)
+    signal_names = []  # Merge signal_names,
+    time_axises = []   # time_axises and
+    data_axises = []   # data_axises
+    for signal_builder in signal_builders:
+        for signal_name in signal_builder.signal_names:
+            signal_names.append(signal_name)
+        for time_axis in signal_builder.time_axises:
+            time_axises.append(time_axis)
+        for data_axis in signal_builder.data_axises:
+            data_axises.append(data_axis)
+    assert len(signal_names) == len(set(signal_names))
+    assert not time_axises or all(time_axis[-1] == time_axises[0][-1] for time_axis in time_axises)
+    merged_signal_builder = SignalBuilder(name=merged_signal_builder_name,
+                                          signal_names=signal_names, time_axises=time_axises, data_axises=data_axises)
+    # Delete Signal Builders from block_dict
+    for block in signal_builders:
+        del block_dict[block.name]
 
     # Delete integrator blocks
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
@@ -128,25 +151,32 @@ def translate_continuous(diagram):
             else:
                 new_out_channels.append(hp.OutputChannel(ch_name=out_ch.ch_name, expr=out_ch.expr))
         io_comms = [(io_ch, hp.Skip()) for io_ch in in_channels + new_out_channels]
-        ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=cond, io_comms=io_comms))
+        if io_comms:
+            ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=cond, io_comms=io_comms))
+        else:
+            ode_hps.append(hp.ODE(eqs=new_ode_eqs, constraint=cond))
 
     # Initialise input variables
     initialised_vars = [init_hp.var_name for init_hp in init_hps]
     assert len(initialised_vars) == len(set(initialised_vars))  # no repeated initialised varaibles
     for ode_hp in ode_hps:
-        for io_comm in ode_hp.io_comms:
-            ch_hp = io_comm[0]
-            if isinstance(ch_hp, hp.InputChannel):
-                var_name = ch_hp.var_name
-                if var_name not in initialised_vars:
-                    # update by lqq
-                    init_hps.append(hp.Assign(var_name, AConst(1)))
-                    initialised_vars.append(var_name)
-    init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
+        if isinstance(ode_hp, hp.ODE_Comm):
+            for io_comm in ode_hp.io_comms:
+                ch_hp = io_comm[0]
+                if isinstance(ch_hp, hp.InputChannel):
+                    var_name = ch_hp.var_name
+                    if var_name not in initialised_vars:
+                        # updated by lqq
+                        init_hps.append(hp.Assign(var_name, AConst(1)))
+                        initialised_vars.append(var_name)
+    init_ode = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
+
+    if signal_builders:
+        return merged_signal_builder.get_hp(init_ode=init_ode, ode_hps=ode_hps)
 
     assert ode_hps
-    result_hp = hp.Sequence(init_hp, hp.Loop(ode_hps[0])) if len(ode_hps) == 1 \
-        else hp.Sequence(init_hp, hp.Loop(hp.Sequence(*ode_hps)))
+    result_hp = hp.Sequence(init_ode, hp.Loop(ode_hps[0])) if len(ode_hps) == 1 \
+        else hp.Sequence(init_ode, hp.Loop(hp.Sequence(*ode_hps)))
     return result_hp
 
 

@@ -262,18 +262,18 @@ class SimTest(unittest.TestCase):
 
         # self.assertEqual(real_hp, expected_hp)
 
-    def testUnitDelay(self):
-        directory = "./Examples/UnitDelay/"
-        xml_file = "UnitDelay2018.xml"
-        diagram = SL_Diagram(location=directory+xml_file)
-        diagram.parse_xml()
-        diagram.delete_subsystems()
-        diagram.comp_inher_st()
-        diagram.add_buffers()
-        diagram.add_line_name()
-        # print(diagram)
-        real_hp = get_hcsp(*diagram.seperate_diagram(), "UnitDelay")
-        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
+    # def testUnitDelay(self):
+    #     directory = "./Examples/UnitDelay/"
+    #     xml_file = "UnitDelay2018.xml"
+    #     diagram = SL_Diagram(location=directory+xml_file)
+    #     diagram.parse_xml()
+    #     diagram.delete_subsystems()
+    #     diagram.comp_inher_st()
+    #     diagram.add_buffers()
+    #     diagram.add_line_name()
+    #     # print(diagram)
+    #     real_hp = get_hcsp(*diagram.seperate_diagram(), "UnitDelay")
+    #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
     def testHCS(self):
         directory = "./ss2hcsp/case_studies/"
@@ -382,6 +382,17 @@ class SimTest(unittest.TestCase):
         # print(expected_hp)
 
         # self.assertEqual(real_hp, expected_hp)
+
+    def testSignalBuilder(self):
+        directory = "./Examples/signalBuilder/"
+        xml_file = "testSignalBuilder.xml"
+        diagram = SL_Diagram(location=directory + xml_file)
+        model_name = diagram.parse_xml()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
+        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
 
 if __name__ == "__main__":
