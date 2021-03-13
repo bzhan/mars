@@ -15,8 +15,8 @@ class SL_Line:
 
         self.branch = None
 
-        self.src_block=None
-        self.dest_block=None
+        self.src_block = None
+        self.dest_block = None
 
     def __str__(self):
         return self.name
