@@ -170,7 +170,9 @@ def eval_expr(expr, state):
             raise NotImplementedError
 
     elif isinstance(expr, ModExpr):
-        return eval_expr(expr.expr1, state) % eval_expr(expr.expr2, state)
+        multiple = 100
+        return (round(eval_expr(expr.expr1, state) * multiple) %
+                round(eval_expr(expr.expr2, state) * multiple)) / multiple
 
     elif isinstance(expr, ListExpr):
         return list(eval_expr(arg, state) for arg in expr.args)
