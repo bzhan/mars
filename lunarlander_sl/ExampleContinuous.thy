@@ -1,5 +1,5 @@
 theory ExampleContinuous
-  imports ExampleSimple
+  imports BigStepParallel
 begin
 
 
@@ -24,7 +24,7 @@ lemma example_ode':
   subgoal for s2
     apply (rule Valid_strengthen_post)
      prefer 2
-     apply (rule Valid_assign_sp)
+     apply (rule Valid_assign_sp_st)
     by (auto simp add: entails_def)
   done
 
@@ -65,13 +65,13 @@ lemma testHL12:
   shows "\<Turnstile>
     {\<lambda>s tr. s = ((\<lambda>_. 0)(X := a)) \<and> Q tr}
       Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\<lambda>s. s X < 1)
-    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})) tr}"
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(X := 1)) \<and> (Q @\<^sub>t Wait\<^sub>t (1 - a) (\<lambda>t. State ((\<lambda>_. 0)(X := t + a))) ({}, {})) tr}"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
      using assms apply auto
-apply(rule exI[where x="1"])
-  apply auto
+     apply (rule exI[where x="1"])
+     apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -103,15 +103,15 @@ lemma testHL13a':
       Cm (''ch1''[!](\<lambda>s. s X));
       Cm (''ch2''[?]X)
     {\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {})
-               @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1
-               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v) tr}"
+            (Q @\<^sub>t Wait\<^sub>t (1 - a) (\<lambda>t. State ((\<lambda>_. 0)(X := t + a))) ({}, {})
+               @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch1'' 1
+               @\<^sub>t In\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch2'' v) tr}"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) (1 - a)"
      unfolding ODEsol_def solves_ode_def has_vderiv_on_def
      using assms apply auto
-apply(rule exI[where x="1"])
-  apply auto
+     apply (rule exI[where x="1"])
+     apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -130,9 +130,9 @@ apply(rule exI[where x="1"])
     apply (rule Valid_seq)
      apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
         using assms apply auto apply (rule Valid_seq)
-     apply (rule Valid_send_sp)
+     apply (rule Valid_send_sp_st)
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_receive_sp)
+     prefer 2 apply (rule Valid_receive_sp_st)
     by (auto simp add: entails_def join_assoc)
 qed
 
@@ -144,15 +144,15 @@ lemma testHL13a'':
       Cm (''ch1''[!](\<lambda>s. s X));
       Cm (''ch2''[?]X)
     {\<lambda>s tr. \<exists>v. s = (\<lambda>_. 0)(X := v) \<and>
-            (Q @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch1'' a
-               @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v) tr}"
+            (Q @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch1'' a
+               @\<^sub>t In\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch2'' v) tr}"
   apply (rule Valid_seq)
    apply (rule Valid_ode_exit)
   using assms apply auto[1]
   apply (rule Valid_seq)
-  apply (rule Valid_send_sp)
+  apply (rule Valid_send_sp_st)
   apply (rule Valid_strengthen_post)
-   prefer 2 apply (rule Valid_receive_sp)
+   prefer 2 apply (rule Valid_receive_sp_st)
   by (auto simp add: entails_def join_assoc)
 
 
@@ -161,24 +161,32 @@ fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "left_blocks a [] = emp\<^sub>t"
 | "left_blocks a (v # rest) =
     (if a < 1 then
-       WaitS\<^sub>t (1 - a) (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ({}, {}) @\<^sub>t
-       Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
-       In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v @\<^sub>t left_blocks v rest
+       Wait\<^sub>t (1 - a) (\<lambda>t. State ((\<lambda>_. 0)(X := t + a))) ({}, {}) @\<^sub>t
+       Out\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch1'' 1 @\<^sub>t
+       In\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch2'' v @\<^sub>t left_blocks v rest
      else
-       Out\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch1'' a @\<^sub>t
-       In\<^sub>t ((\<lambda>_. 0)(X := a)) ''ch2'' v @\<^sub>t left_blocks v rest)"
+       Out\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch1'' a @\<^sub>t
+       In\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch2'' v @\<^sub>t left_blocks v rest)"
+
+fun last_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
+  "last_val a [] = a"
+| "last_val a (x # xs) = last_val x xs"
+
+lemma last_val_snoc [simp]:
+  "last_val a (xs @ [v]) = v"
+  by (induct xs arbitrary: a, auto)
 
 lemma left_blocks_snoc:
   "left_blocks a (vs @ [v]) =
     (if last_val a vs < 1 then
       left_blocks a vs @\<^sub>t
-      WaitS\<^sub>t (1 - last_val a vs) (\<lambda>t. (\<lambda>_. 0)(X := t + last_val a vs)) ({}, {}) @\<^sub>t
-      Out\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch1'' 1 @\<^sub>t
-      In\<^sub>t ((\<lambda>_. 0)(X := 1)) ''ch2'' v
+      Wait\<^sub>t (1 - last_val a vs) (\<lambda>t. State ((\<lambda>_. 0)(X := t + last_val a vs))) ({}, {}) @\<^sub>t
+      Out\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch1'' 1 @\<^sub>t
+      In\<^sub>t (State ((\<lambda>_. 0)(X := 1))) ''ch2'' v
     else
       left_blocks a vs @\<^sub>t
-      Out\<^sub>t ((\<lambda>_. 0)(X := last_val a vs)) ''ch1'' (last_val a vs) @\<^sub>t
-      In\<^sub>t ((\<lambda>_. 0)(X := last_val a vs)) ''ch2'' v)"
+      Out\<^sub>t (State ((\<lambda>_. 0)(X := last_val a vs))) ''ch1'' (last_val a vs) @\<^sub>t
+      In\<^sub>t (State ((\<lambda>_. 0)(X := last_val a vs))) ''ch2'' v)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -213,15 +221,15 @@ lemma testHL13a:
 fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "right_blocks a [] = emp\<^sub>t"
 | "right_blocks a (v # rest) =
-    In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
-    Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(Y := a))) ''ch1'' v @\<^sub>t
+    Out\<^sub>t (State ((\<lambda>_. 0)(Y := v))) ''ch2'' (v - 1) @\<^sub>t
     right_blocks v rest"
 
 lemma right_blocks_snoc:
   "right_blocks a (vs @ [v]) =
     right_blocks a vs @\<^sub>t
-    In\<^sub>t ((\<lambda>_. 0)(Y := last_val a vs)) ''ch1'' v @\<^sub>t
-    Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+    In\<^sub>t (State ((\<lambda>_. 0)(Y := last_val a vs))) ''ch1'' v @\<^sub>t
+    Out\<^sub>t (State ((\<lambda>_. 0)(Y := v))) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -236,11 +244,11 @@ lemma testHL13b:
   apply (rule Valid_ex_pre)
   subgoal for ws
     apply (rule Valid_seq)
-     apply (rule Valid_receive_sp)
+     apply (rule Valid_receive_sp_st)
     apply (rule Valid_ex_pre)
     subgoal for w
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_send_sp)
+     prefer 2 apply (rule Valid_send_sp_st)
     apply (auto simp add: entails_def)
     subgoal for tr
       apply (rule exI[where x="ws@[w]"])
@@ -342,8 +350,8 @@ proof -
   have 1: "ODEsolInf (ODE ((\<lambda>_ _. 0)(X := \<lambda>_. 1))) (\<lambda>t. (\<lambda>_. 0)(X := t + a))"
      unfolding ODEsolInf_def solves_ode_def has_vderiv_on_def
      apply auto
-apply(rule exI[where x="1"])
-  apply auto
+     apply (rule exI[where x="1"])
+     apply auto
      apply (rule has_vector_derivative_projI)
      apply (auto simp add: state2vec_def)
      apply (rule has_vector_derivative_eq_rhs)
@@ -369,7 +377,7 @@ fun ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> 
   "ileft_blocks a [] = emp\<^sub>t"
 | "ileft_blocks a ((d, v) # rest) =
    WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + a)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(X := a + d)) ''ch2'' v @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(X := a + d))) ''ch2'' v @\<^sub>t
    ileft_blocks v rest"
 
 fun last_ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> real" where
@@ -380,7 +388,7 @@ lemma ileft_blocks_snoc:
   "ileft_blocks a (ps @ [(d, v)]) =
    ileft_blocks a ps @\<^sub>t
      WaitOut\<^sub>t d (\<lambda>t. (\<lambda>_. 0)(X := t + last_ileft_blocks a ps)) ''ch1'' (\<lambda>s. s X) ({''ch1''}, {}) @\<^sub>t
-     In\<^sub>t ((\<lambda>_. 0)(X := d + last_ileft_blocks a ps)) ''ch2'' v"
+     In\<^sub>t (State ((\<lambda>_. 0)(X := d + last_ileft_blocks a ps))) ''ch2'' v"
   apply (induct ps arbitrary: a)
   by (auto simp add: join_assoc add.commute)
 
@@ -405,9 +413,10 @@ lemma testHL14a:
       apply (rule Valid_strengthen_post)
        prefer 2 apply (rule Valid_receive_sp)
       apply (auto simp add: entails_def)
-      subgoal for tr v
+      subgoal for s tr x v
         apply (rule exI[where x="ps@[(d,v)]"])
-        by (auto simp add: ileft_blocks_snoc join_assoc)
+        apply (auto simp add: conj_assn_def pure_assn_def ileft_blocks_snoc join_assoc)
+        by (metis fun_upd_idem_iff fun_upd_upd)
       done
     done
   apply (auto simp add: entails_def)
@@ -417,9 +426,9 @@ lemma testHL14a:
 fun iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "iright_blocks a [] = emp\<^sub>t"
 | "iright_blocks a (v # rest) =
-   WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(Y := a)) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch1'' v @\<^sub>t
-   Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
+   Wait\<^sub>t 1 (\<lambda>t. State ((\<lambda>_. 0)(Y := a))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(Y := a))) ''ch1'' v @\<^sub>t
+   Out\<^sub>t (State ((\<lambda>_. 0)(Y := v))) ''ch2'' (v - 1) @\<^sub>t iright_blocks v rest"
 
 fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_iright_blocks a [] = a"
@@ -427,9 +436,9 @@ fun last_iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> real" wher
 
 lemma iright_blocks_snoc:
   "iright_blocks a (vs @ [v]) =
-   iright_blocks a vs @\<^sub>t WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(Y := last_iright_blocks a vs)) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(Y := last_iright_blocks a vs)) ''ch1'' v @\<^sub>t
-   Out\<^sub>t ((\<lambda>_. 0)(Y := v)) ''ch2'' (v - 1)"
+   iright_blocks a vs @\<^sub>t Wait\<^sub>t 1 (\<lambda>t. State ((\<lambda>_. 0)(Y := last_iright_blocks a vs))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(Y := last_iright_blocks a vs))) ''ch1'' v @\<^sub>t
+   Out\<^sub>t (State ((\<lambda>_. 0)(Y := v))) ''ch2'' (v - 1)"
   apply (induct vs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -450,13 +459,15 @@ lemma testHL14b:
     apply (rule Valid_wait_sp) apply simp
     apply (rule Valid_seq)
      apply (rule Valid_receive_sp)
-    apply (rule Valid_ex_pre)
-    subgoal for v
+    apply (intro Valid_ex_pre)
+    subgoal for x v
       apply (rule Valid_strengthen_post)
        prefer 2 apply (rule Valid_send_sp)
       apply (auto simp add: entails_def)
       apply (rule exI[where x="vs@[v]"])
-      by (auto simp add: iright_blocks_snoc join_assoc)
+      apply (auto simp add: conj_assn_def pure_assn_def iright_blocks_snoc join_assoc)
+       apply (metis fun_upd_idem fun_upd_upd)
+      by (metis fun_upd_triv fun_upd_upd)
     done
   apply (auto simp add: entails_def)
   apply (rule exI[where x="[]"])

@@ -1,5 +1,5 @@
 theory Velocity
-  imports ContinuousInv BigStepParallel
+  imports BigStepParallel
 begin
 
 
@@ -29,13 +29,13 @@ lemma plant_ODE:
   "\<Turnstile> {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0, A := a0, T := 0) \<and> P tr}
         Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s A), T := (\<lambda>_. 1)))) (\<lambda>s. s T < 1)
       {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0 + a0 * 1, A := a0, T := 1) \<and>
-              (P @\<^sub>t WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t)) ({}, {})) tr}"
+              (P @\<^sub>t Wait\<^sub>t 1 (\<lambda>t. State ((\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t))) ({}, {})) tr}"
 proof -
   have 1: "ODEsol (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s A), T := (\<lambda>_. 1))))
                   (\<lambda>t. (\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t)) 1"
     unfolding ODEsol_def has_vderiv_on_def
     apply auto
-    apply(rule exI[where x = "1"])
+    apply(rule exI[where x=1])
     apply auto
     apply (rule has_vector_derivative_projI)
     apply (auto simp add: state2vec_def A_def V_def T_def)
@@ -71,9 +71,9 @@ qed
 fun plant_inv :: "real \<times> real \<times> real \<Rightarrow> real list \<Rightarrow> tassn" where
   "plant_inv (v0, a0, t0) [] = emp\<^sub>t"
 | "plant_inv (v0, a0, t0) (a # as) =
-     WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t)) ({}, {}) @\<^sub>t
-     Out\<^sub>t ((\<lambda>_. 0)(V := v0 + a0, A := a0, T := 1)) ''p2c'' (v0 + a0) @\<^sub>t
-     In\<^sub>t ((\<lambda>_. 0)(V := v0 + a0, A := a0, T := 1)) ''c2p'' a @\<^sub>t
+     Wait\<^sub>t 1 (\<lambda>t. State ((\<lambda>_. 0)(V := v0 + a0 * t, A := a0, T := t))) ({}, {}) @\<^sub>t
+     Out\<^sub>t (State ((\<lambda>_. 0)(V := v0 + a0, A := a0, T := 1))) ''p2c'' (v0 + a0) @\<^sub>t
+     In\<^sub>t (State ((\<lambda>_. 0)(V := v0 + a0, A := a0, T := 1))) ''c2p'' a @\<^sub>t
      plant_inv (v0 + a0, a, 1) as"
 
 fun plant_end_state :: "real \<times> real \<times> real \<Rightarrow> real list \<Rightarrow> state" where
@@ -96,13 +96,13 @@ lemma plant_end_state_snoc:
 lemma plant_inv_snoc:
   "plant_inv (v0, a0, t0) (xs @ [a]) =
   (plant_inv (v0, a0, t0) xs @\<^sub>t
-   WaitS\<^sub>t 1 (\<lambda>t. (\<lambda>_. 0) (V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A * t,
-                          A := plant_end_state (v0, a0, t0) xs A, T := t)) ({}, {})) @\<^sub>t
-   Out\<^sub>t ((\<lambda>_. 0) (V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A,
-                  A := plant_end_state (v0, a0, t0) xs A, T := 1))
+   Wait\<^sub>t 1 (\<lambda>t. State ((\<lambda>_. 0)(V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A * t,
+                               A := plant_end_state (v0, a0, t0) xs A, T := t))) ({}, {})) @\<^sub>t
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A,
+                        A := plant_end_state (v0, a0, t0) xs A, T := 1)))
        ''p2c'' (plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0) (V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A,
-                 A := plant_end_state (v0, a0, t0) xs A, T := 1))
+   In\<^sub>t (State ((\<lambda>_. 0) (V := plant_end_state (v0, a0, t0) xs V + plant_end_state (v0, a0, t0) xs A,
+                        A := plant_end_state (v0, a0, t0) xs A, T := 1)))
        ''c2p'' a"
 proof (induct xs arbitrary: v0 a0 t0)
   case Nil
@@ -131,14 +131,14 @@ lemma plant_prop:
   apply (rule Valid_ex_pre)
   subgoal for xs
     apply (rule Valid_seq)
-    apply (rule Valid_assign_sp)
+    apply (rule Valid_assign_sp_st)
     apply (rule Valid_seq)
     unfolding plant_end_state_rw
      apply (rule plant_ODE)
     apply (rule Valid_seq)
-     apply (rule Valid_send_sp)
+     apply (rule Valid_send_sp_st)
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_receive_sp)
+     prefer 2 apply (rule Valid_receive_sp_st)
     apply (auto simp add: entails_def)
     subgoal for tr a
       apply (rule exI[where x="xs @ [a]"])
@@ -151,8 +151,8 @@ lemma plant_prop:
 fun control_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "control_inv v0 [] = emp\<^sub>t"
 | "control_inv v0 (v # vs) =
-   In\<^sub>t ((\<lambda>_. 0)(V := v0)) ''p2c'' v @\<^sub>t
-   Out\<^sub>t ((\<lambda>_. 0)(V := v)) ''c2p'' (if v < 10 then 1 else -1) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v0))) ''p2c'' v @\<^sub>t
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := v))) ''c2p'' (if v < 10 then 1 else -1) @\<^sub>t
    control_inv v vs"
 
 fun control_end_state :: "real \<Rightarrow> real list \<Rightarrow> state" where
@@ -165,7 +165,8 @@ lemma control_end_state_snoc:
 
 lemma control_inv_snoc:
   "control_inv v0 (vs @ [v]) =
-   control_inv v0 vs @\<^sub>t In\<^sub>t (control_end_state v0 vs) ''p2c'' v @\<^sub>t Out\<^sub>t ((control_end_state v0 vs)(V := v)) ''c2p''
+   control_inv v0 vs @\<^sub>t In\<^sub>t (State (control_end_state v0 vs)) ''p2c'' v @\<^sub>t
+                        Out\<^sub>t (State ((control_end_state v0 vs)(V := v))) ''c2p''
    (if v < 10 then 1 else -1)"
 proof (induct vs arbitrary: v0)
   case Nil
@@ -176,7 +177,7 @@ proof (induct vs arbitrary: v0)
   show ?case
     by (auto simp add: a aa)
 next
-  case (Cons a vs)
+  case (Cons a vs v0)
   then show ?case
     by (auto simp add: join_assoc)
 qed
@@ -193,11 +194,11 @@ lemma control_prop:
    apply (rule Valid_ex_pre)
   subgoal for vs
     apply (rule Valid_seq)
-     apply (rule Valid_receive_sp)
+     apply (rule Valid_receive_sp_st)
     apply (rule Valid_ex_pre)
     subgoal for v
       apply (rule Valid_strengthen_post)
-       prefer 2 apply (rule Valid_send_sp)
+       prefer 2 apply (rule Valid_send_sp_st)
       apply (auto simp add: entails_def)
       apply (rule exI[where x="vs @ [v]"])
        apply (auto simp add: control_end_state_snoc control_inv_snoc join_assoc)
