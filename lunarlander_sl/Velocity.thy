@@ -3,7 +3,7 @@ theory Velocity
 begin
 
 
-subsection \<open>Test of velocity control\<close>
+subsection \<open>Case study: velocity control\<close>
 
 definition V :: char where "V = CHR ''v''"
 definition A :: char where "A = CHR ''a''"
@@ -12,16 +12,26 @@ definition T :: char where "T = CHR ''t''"
 lemma [simp]: "V \<noteq> A" "A \<noteq> V" "V \<noteq> T" "T \<noteq> V" "A \<noteq> T" "T \<noteq> A"
   by (auto simp add: V_def A_def T_def)
 
+text \<open>
+  plant ::= (t := 0; \<langle>v_dot = a, t_dot = 1 & t < 1\<rangle>; p2c!v; c2p?a)*
+\<close>
 definition plant :: proc where
   "plant = Rep (T ::= (\<lambda>_. 0);
                 Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s A), T := (\<lambda>_. 1)))) (\<lambda>s. s T < 1);
                 Cm (''p2c''[!](\<lambda>s. s V));
                 Cm (''c2p''[?]A))"
 
+text \<open>
+  control ::= (p2c?v; if v < 10 then c2p!1 else c2p!(-1))*
+\<close>
 definition control :: proc where
   "control = Rep (Cm (''p2c''[?]V);
-                  Cm (''c2p''[!](\<lambda>s. if s V < 10 then 1 else -1)))"
+                  IF (\<lambda>s. s V < 10) THEN Cm (''c2p''[!](\<lambda>_. 1))
+                  ELSE Cm (''c2p''[!](\<lambda>_. -1)) FI)"
 
+text \<open>
+  system ::= plant || control
+\<close>
 definition system :: pproc where
   "system = Parallel (Single plant) {''p2c'', ''c2p''} (Single control)"
 
@@ -198,10 +208,12 @@ lemma control_prop:
     apply (rule Valid_ex_pre)
     subgoal for v
       apply (rule Valid_strengthen_post)
-       prefer 2 apply (rule Valid_send_sp_st)
+       prefer 2 apply (rule Valid_cond_sp)
+        apply (rule Valid_send_sp)
+      apply (rule Valid_send_sp)
       apply (auto simp add: entails_def)
       apply (rule exI[where x="vs @ [v]"])
-       apply (auto simp add: control_end_state_snoc control_inv_snoc join_assoc)
+       apply (auto simp add: control_end_state_snoc control_inv_snoc conj_assn_def pure_assn_def join_assoc)
       apply (rule exI[where x="vs @ [v]"])
       by (auto simp add: control_end_state_snoc control_inv_snoc join_assoc)
     done

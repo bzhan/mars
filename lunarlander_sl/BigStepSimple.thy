@@ -698,6 +698,15 @@ theorem Valid_wait_sp:
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
 
+theorem Valid_cond_sp:
+  assumes "\<Turnstile> {\<lambda>s t. b s \<and> P s t} c1 {Q1}"
+    and "\<Turnstile> {\<lambda>s t. \<not>b s \<and> P s t} c2 {Q2}"
+  shows "\<Turnstile> {\<lambda>s t. P s t}
+             IF b THEN c1 ELSE c2 FI
+            {\<lambda>s t. Q1 s t \<or> Q2 s t}"
+  using assms unfolding Valid_def
+  by (auto elim!: condE)
+
 theorem Valid_assign_sp_st:
   "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
         x ::= e
