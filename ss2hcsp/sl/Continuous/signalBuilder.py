@@ -1,7 +1,7 @@
 from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
-from ss2hcsp.hcsp.expr import conj
+from ss2hcsp.hcsp.expr import conj, true_expr
 
 
 class SignalBuilder(SL_Block):
@@ -81,13 +81,16 @@ class SignalBuilder(SL_Block):
         # Merge uniformed_time_axis and signal_matrix to get a new matrix in the form of
         # [[time, data0, data1, ...], [...], ...]
         signals = [[uniformed_time_axis[i]]+[row[i] for row in signal_matrix] for i in range(len(signal_matrix[0]))]
-        if all(e == 0 for e in signals[0]):
-            signals = signals[1:]
+        # if all(e == 0 for e in signals[0]):
+        #     signals = signals[1:]
 
         # Generate the HCSP process
-        init = "signals := " + str(signals) + "; t := 0; " +\
-               "".join(signal_name + " := 0; " for signal_name in self.signal_names)
-        init_hp = hp_parser.parse(init[:-2])
+        assert len(self.signal_names) + 1 == len(signals[0])
+        init = "t := " + str(signals[0][0]) + "; " +\
+               "".join(signal_name + " := " + str(value) + "; "
+                       for signal_name, value in zip(self.signal_names, signals[0][1:]))\
+               + "signals := " + str(signals[1:])
+        init_hp = hp_parser.parse(init)
 
         pop_t = "next_t_datas := bottom(signals); signals := get(signals); next_t := bottom(next_t_datas); "
         pop_datas = "next_datas := get(next_t_datas); " + "".join("next_" + signal_name +
@@ -104,16 +107,24 @@ class SignalBuilder(SL_Block):
         # Insert the ode of the Signal Builder into the odes of integrators
         ode = hp_parser.parse("<" + "".join(signal_name + "_dot = slope_" + signal_name + ", "
                                             for signal_name in self.signal_names) + "t_dot = 1 & t < next_t>")
+
+        cond_ode_hps = []
         for ode_hp in ode_hps:
             assert isinstance(ode_hp, (hp.ODE, hp.ODE_Comm))
+            if ode_hp.constraint == true_expr:
+                cond_ode_hps.append(ode_hp)
+            else:
+                cond_ode_hps.append(hp.Condition(cond=ode_hp.constraint, hp=ode_hp))
             ode_hp.eqs.extend(ode.eqs)
             ode_hp.constraint = conj(ode_hp.constraint, ode.constraint)
-        if not ode_hps:  # ode_hps is empty
-            ode_hps = [ode]
-        final_ode_hp = ode_hps[0] if len(ode_hps) == 1 else hp.Sequence(*ode_hps)
+        if not cond_ode_hps:  # ode_hps is empty
+            cond_ode_hps = [ode]
+        final_ode_hp = cond_ode_hps[0] if len(cond_ode_hps) == 1 else hp.Sequence(*cond_ode_hps)
+        if isinstance(final_ode_hp, hp.ODE_Comm):
+            final_ode_hp = hp.Loop(hp=final_ode_hp, constraint=final_ode_hp.constraint)
 
         # The while-loop is the main body of the generated HCSP process
         while_loop = hp.Loop(hp=hp.Sequence(body_hp, final_ode_hp), constraint=bexpr_parser.parse("len(signals) > 0"))
-        result_hp = hp.Sequence(init_ode, init_hp, while_loop)
+        result_hp = hp.Sequence(init_hp, init_ode, while_loop)
 
         return result_hp

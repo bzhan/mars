@@ -380,9 +380,8 @@ class SL_Diagram:
             # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            # if not sample_time:
-                
-            #     sample_time = default_SampleTimes[block_type]
+            if not sample_time:
+                sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
          
             # if  block_type == "Clock":
@@ -484,19 +483,45 @@ class SL_Diagram:
                 subsystem = block.getElementsByTagName("System")[0]
 
                 # Check if it is a Signal Builder
-                signal_names = []
-                time_axises = []
-                data_axises = []
-                for node in subsystem.getElementsByTagName("Array"):
-                    if node.getAttribute("PropName") == "Signals":
-                        assert node.getAttribute("Type") == "SigSuiteSignal"
-                        for obj in node.getElementsByTagName("Object"):
-                            signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
-                            time_axises.append(tuple(
-                                float(e) for e in get_attribute_value(obj, "XData").split("\n")[1][1:-1].split(',')))
-                            data_axises.append(tuple(
-                                float(e) for e in get_attribute_value(obj, "YData").split("\n")[1][1:-1].split(',')))
-                if signal_names:  # It is a Signal Builder
+                is_signal_builder = False
+                for child in block.childNodes:
+                    if child.nodeName == "Object" and child.getAttribute("PropName") == "MaskObject":
+                        if get_attribute_value(block=child, attribute="Type") == "Sigbuilder block":
+                            is_signal_builder = True
+                            break
+                if is_signal_builder:
+                    signal_names = []
+                    time_axises = []
+                    data_axises = []
+
+                    for node in subsystem.getElementsByTagName("Array"):
+                        if node.getAttribute("PropName") == "Signals":
+                            # assert node.getAttribute("Type") == "SigSuiteSignal"
+                            for obj in node.getElementsByTagName("Object"):
+                                signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
+                                xData = get_attribute_value(obj, "XData")
+                                if "\n" in xData:
+                                    xData = xData.split("\n")[1]
+                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                yData = get_attribute_value(obj, "YData")
+                                if "\n" in yData:
+                                    yData = yData.split("\n")[1]
+                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+
+                    if not signal_names:
+                        for node in subsystem.getElementsByTagName("Object"):
+                            if node.getAttribute("PropName") == "Signals":
+                                signal_names.append(block_name + "_" + get_attribute_value(node, "Name"))
+                                xData = get_attribute_value(node, "XData")
+                                if "\n" in xData:
+                                    xData = xData.split("\n")[1]
+                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                yData = get_attribute_value(node, "YData")
+                                if "\n" in yData:
+                                    yData = yData.split("\n")[1]
+                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+
+                    assert signal_names
                     self.add_block(SignalBuilder(name=block_name, signal_names=tuple(signal_names),
                                                  time_axises=time_axises, data_axises=data_axises))
                     continue
@@ -728,6 +753,12 @@ class SL_Diagram:
 
     def add_line_name(self):
         """Give each group of lines a name."""
+
+        # Set names of out-going lines from Signal Builders as the correspoding signals
+        for block in self.blocks_dict.values():
+            if isinstance(block, SignalBuilder):
+                block.rename_src_lines()
+
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
@@ -807,7 +838,7 @@ class SL_Diagram:
             if block.type == "subsystem":
                 # Collect all subsystems to be deleted
                 subsystems.append(block.name)
-                # The sussystem is treated as a diagram
+                # The subsystem is treated as a diagram
                 subsystem = block.diagram
                 # Delete subsystems recursively
                 subsystem.delete_subsystems()
