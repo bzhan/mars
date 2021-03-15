@@ -645,7 +645,7 @@ theorem Valid_wait':
 text \<open>Strongest postcondition forms\<close>
 
 theorem Valid_assign_sp:
-  "\<Turnstile> {\<lambda>s. P s}
+  "\<Turnstile> {\<lambda>s t. P s t}
        Assign var e
       {\<lambda>s t. \<exists>x. s var = e (s(var := x)) \<and> P (s(var := x)) t}"
   apply (rule Valid_weaken_pre)
@@ -657,15 +657,15 @@ theorem Valid_assign_sp:
   done
 
 theorem Valid_send_sp:
-  "\<Turnstile> {\<lambda>s. P s}
+  "\<Turnstile> {\<lambda>s t. P s t}
        Cm (ch[!]e)
-     {\<lambda>s. (P s @\<^sub>t Out\<^sub>t (State s) ch (e s))}"
+     {\<lambda>s t. (P s @\<^sub>t Out\<^sub>t (State s) ch (e s)) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send')
   by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
 
 theorem Valid_receive_sp:
-  "\<Turnstile> {\<lambda>s. P s}
+  "\<Turnstile> {\<lambda>s t. P s t}
        Cm (ch[?]var)
       {\<lambda>s t. \<exists>x v. (\<up>(s var = v) \<and>\<^sub>t (P(s(var := x)) @\<^sub>t In\<^sub>t (State (s(var := x))) ch v)) t}"
   apply (rule Valid_weaken_pre)
@@ -691,7 +691,7 @@ theorem Valid_receive_sp:
   done
 
 theorem Valid_wait_sp:
-  "\<Turnstile> {\<lambda>s. P s}
+  "\<Turnstile> {\<lambda>s t. P s t}
       Wait e
      {\<lambda>s t. (P s @\<^sub>t (if e s > 0 then Wait\<^sub>t (e s) (\<lambda>_. State s) ({}, {}) else emp\<^sub>t)) t}"
   apply (rule Valid_weaken_pre)

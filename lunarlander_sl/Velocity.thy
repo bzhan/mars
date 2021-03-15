@@ -64,7 +64,7 @@ proof -
       done
   qed
   show ?thesis
-    apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
+    apply (rule Valid_ode_unique_solution_st[OF _ 1 _ _ _ 2])
     by auto
 qed
 
@@ -282,7 +282,7 @@ theorem system_prop:
     {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(V := v0, A := a0, T := t0)))
                (\<lambda>s. s = ((\<lambda>_. 0)(V := v0')))}
       system
-    {\<exists>\<^sub>g n. trace_gassn (system_inv n)}"
+    {\<exists>\<^sub>gn. trace_gassn (system_inv n)}"
   unfolding system_def
   apply (rule ParValid_conseq')
   apply (rule ParValid_Parallel')

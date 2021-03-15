@@ -12,20 +12,17 @@ lemma example_ode:
   by (rule Valid_assign)
 
 lemma example_ode':
-  assumes "b st"
-  shows "\<Turnstile>
-    {\<lambda>s tr. s = st \<and> Q s tr}
-      Cont ode b; X ::= (\<lambda>s. s X + 1)
-    {\<lambda>s tr. \<exists>s'. s = s'(X := s' X + 1) \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
+  "\<Turnstile> {\<lambda>s tr. s = st \<and> Q s tr}
+        Cont ode b; X ::= (\<lambda>s. s X + 1)
+      {\<lambda>s tr. \<exists>s'. s = s'(X := s' X + 1) \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
   apply (rule Valid_seq)
-  apply (rule Valid_ode_sp)
-    apply (rule assms)
-  apply (rule Valid_ex_pre)
-  subgoal for s2
-    apply (rule Valid_strengthen_post)
-     prefer 2
-     apply (rule Valid_assign_sp_st)
-    by (auto simp add: entails_def)
+   apply (rule Valid_ode_sp_st)
+  apply (rule Valid_strengthen_post)
+   prefer 2 apply (rule Valid_assign_sp)
+  apply (auto simp add: entails_def)
+  subgoal for s tr x
+    apply (rule exI[where x="s(X := x)"])
+    by auto
   done
 
 
@@ -88,7 +85,7 @@ proof -
   qed
   show ?thesis
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
+     prefer 2 apply (rule Valid_ode_unique_solution_st[OF _ 1 _ _ _ 2])
     using assms by (auto simp add: entails_def)
 qed
 
@@ -128,7 +125,7 @@ proof -
   qed
   show ?thesis
     apply (rule Valid_seq)
-     apply (rule Valid_ode_unique_solution'[OF _ 1 _ _ _ 2])
+     apply (rule Valid_ode_unique_solution_st[OF _ 1 _ _ _ 2])
         using assms apply auto apply (rule Valid_seq)
      apply (rule Valid_send_sp_st)
     apply (rule Valid_strengthen_post)
@@ -147,7 +144,7 @@ lemma testHL13a'':
             (Q @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch1'' a
                @\<^sub>t In\<^sub>t (State ((\<lambda>_. 0)(X := a))) ''ch2'' v) tr}"
   apply (rule Valid_seq)
-   apply (rule Valid_ode_exit)
+   apply (rule Valid_ode_exit_st)
   using assms apply auto[1]
   apply (rule Valid_seq)
   apply (rule Valid_send_sp_st)
