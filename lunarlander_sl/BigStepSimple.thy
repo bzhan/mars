@@ -901,4 +901,16 @@ theorem Valid_echoice_InIn':
   apply (auto simp add: entails_def magic_wand_assn_def conj_assn_def all_assn_def)
   by (auto simp add: inrdy_assn.intros)
 
+theorem Valid_echoice_InIn_sp:
+  assumes "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr} p1 {Q1 v}"
+    and "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr} p2 {Q2 v}"
+  shows
+   "\<Turnstile> {\<lambda>s tr. s = st \<and> P s tr}
+        EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
+       {\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr)}"
+  apply (rule Valid_echoice_sp)
+  apply (rule InIn_lemma)
+  using assms apply (auto simp add: Valid_def) by blast+
+
+
 end

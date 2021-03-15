@@ -3,7 +3,15 @@ theory ExampleSimple
 begin
 
 
-subsection \<open>Test of big-step semantics\<close>
+text \<open>Some common variables\<close>
+definition X :: char where "X = CHR ''x''"
+definition Y :: char where "Y = CHR ''y''"
+definition Z :: char where "Z = CHR ''z''"
+
+lemma vars_distinct [simp]: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z" "Y \<noteq> X" "Z \<noteq> X" "Z \<noteq> Y"
+  unfolding X_def Y_def Z_def by auto
+
+subsection \<open>Big-step semantics: simple examples\<close>
 
 text \<open>Send 1 immediately\<close>
 lemma test1a: "big_step (Cm (''ch''[!](\<lambda>_. 1)))
@@ -123,7 +131,7 @@ lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\
   apply (rule has_vector_derivative_projI)
   by (auto intro!: derivative_intros)
 
-text \<open>Interrupt examples\<close>
+subsection \<open>Big-step semantics: interrupt\<close>
 
 text \<open>Exit through boundary\<close>
 lemma test_interrupt1:
@@ -150,10 +158,10 @@ lemma test_interrupt3:
     (\<lambda>_. 0) [WaitBlk (1::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
-         apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
-apply(rule exI[where x="1"])
-  apply auto
-  apply (rule has_vector_derivative_projI)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+   apply (rule exI[where x="1"])
+   apply auto
+   apply (rule has_vector_derivative_projI)
    apply (auto intro!: derivative_intros)
   apply (rule big_step_cong) apply (rule assignB) by auto
 
@@ -172,10 +180,11 @@ lemma test_interrupt4:
 
 subsection \<open>Difference between internal and external choice\<close>
 
-text \<open>This example shows the difference between semantics of internal
-and external choice. We begin with the process with internal choice,
-  (ch1!1 \<squnion> ch2!2)*,
-which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
+text \<open>
+  This example shows the difference between semantics of internal
+  and external choice. We begin with the process with internal choice,
+    (ch1!1 \<squnion> ch2!2)*,
+  which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_internal:
   "big_step (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))
@@ -190,9 +199,10 @@ lemma test_internal:
      apply (rule sendB1) apply (rule RepetitionB1)
   by auto
 
-text \<open>For external choice, the process
-  (ch1!1 \<rightarrow> skip $ ch2!2 \<rightarrow> skip)*
-produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
+text \<open>
+  For external choice, the process
+    (ch1!1 \<rightarrow> skip $ ch2!2 \<rightarrow> skip)*
+  produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_external:
   "big_step (Rep (EChoice [(''ch1''[!](\<lambda>_. 1), Skip), (''ch2''[!](\<lambda>_. 2), Skip)]))
@@ -207,9 +217,10 @@ lemma test_external:
       apply auto apply (rule skipB)
   by (rule RepetitionB1)
 
-text \<open>The other side is the process
-  (wait 1; ch1?x) || (wait 2; ch2?x),
-which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
+text \<open>
+  The other side is the process
+    (wait 1; ch1?x) || (wait 2; ch2?x),
+  which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
 \<close>
 lemma test_internal_other:
   "par_big_step (Parallel (Single (Wait (\<lambda>_. 1); Cm (''ch1''[?]X))) {}
@@ -243,12 +254,13 @@ proof -
     by (rule combine_blocks_empty)
 qed
 
-text \<open>The two sides can be synchronized, so the process
-  (ch1!1 \<squnion> ch2!2)* || ((wait 1; ch1?x) || (wait 2; ch2?x))
-can produce the trace (1,s,{ch2!})^(1,s,{ch1?,ch2!})^(ch2,2)^(ch1,1).
+text \<open>
+  The two sides can be synchronized, so the process
+    (ch1!1 \<squnion> ch2!2)* || ((wait 1; ch1?x) || (wait 2; ch2?x))
+  can produce the trace (1,s,{ch2!})^(1,s,{ch1?,ch2!})^(ch2,2)^(ch1,1).
 
-However, for the case of external choice, the two sides cannot be
-synchronized, since the test of compat_rdy fails in the time interval (1,2).
+  However, for the case of external choice, the two sides cannot be
+  synchronized, since the test of compat_rdy fails in the time interval (1,2).
 \<close>
 lemma test_internal_parallel:
   "par_big_step (Parallel
@@ -293,7 +305,7 @@ lemma test_combine2_unique:
    blks = [OutBlock ''ch2'' w, InBlock ''ch1'' v]"
   apply (elim combine_blocks_unpairE2) by (auto elim: sync_elims)
 
-subsection \<open>Simple examples of proofs\<close>
+subsection \<open>Examples of proofs using bare assertions\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1:
@@ -340,8 +352,7 @@ lemma testHL4:
    apply (rule testHL3)
   unfolding entails_def by auto
 
-
-subsection \<open>Simple examples redone\<close>
+subsection \<open>Examples of proofs using simplified assertions\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1s:
@@ -475,7 +486,7 @@ lemma testHL5sp:
     by (auto simp add: entails_def join_assoc conj_assn_def pure_assn_def)      
   done
 
-subsection \<open>Test for internal choice\<close>
+subsection \<open>Examples of proofs: internal choice\<close>
 
 text \<open>Contrast this with the case of internal choice\<close>
 lemma ichoice_test1:
@@ -490,7 +501,6 @@ lemma ichoice_test1:
   unfolding entails_def conj_assn_def by auto
 
 text \<open>Strongest postcondition form\<close>
-
 lemma ichoice_test1':
   "\<Turnstile>
     {\<lambda>s. P s}
@@ -502,20 +512,10 @@ lemma ichoice_test1':
     apply (rule Valid_receive_sp)
   apply (rule Valid_receive_sp) by auto
 
-subsection \<open>Test for external choice\<close>
+subsection \<open>Examples of proofs: external choice\<close>
 
-theorem Valid_echoice_InIn_sp:
-  assumes "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr} p1 {Q1 v}"
-    and "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr} p2 {Q2 v}"
-  shows
-   "\<Turnstile> {\<lambda>s tr. s = st \<and> P s tr}
-        EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
-       {\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr)}"
-  apply (rule Valid_echoice_sp)
-  apply (rule InIn_lemma)
-  using assms apply (auto simp add: Valid_def) by blast+
-
-lemma echoice_test1:
+text \<open>A simple test\<close>
+lemma echoice_test:
   "\<Turnstile>
     {\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch1'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))) \<and>\<^sub>t
          (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch2'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v))))}
@@ -526,7 +526,7 @@ lemma echoice_test1:
   by (rule Valid_skip)
 
 text \<open>Strongest postcondition form\<close>
-lemma testEChoice1:
+lemma echoice_test_sp:
   "\<Turnstile>
     {\<lambda>s tr. s = st \<and> P s tr}
       EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]
@@ -539,6 +539,14 @@ lemma testEChoice1:
    apply (rule Valid_assign_sp_st)
   by auto
 
+text \<open>
+  Now we do a more complex example. The program is:
+    (ch1?x -> y := y + x [] ch2?x -> y := y - x)*
+
+  The loop invariant takes two arguments: the current state and
+  a list of direction-value pairs, where direction is either CH1 or CH2,
+  specifying from which channel is the value received.
+\<close>
 datatype dir = CH1 | CH2
 
 fun echoice_ex_inv :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> tassn" where
@@ -603,10 +611,11 @@ lemma testEChoice:
   by (auto simp add: emp_assn_def)
 
 
-subsection \<open>Examples for loops\<close>
+subsection \<open>Example of loops\<close>
 
-text \<open>First example simply counts up variable X.\<close>
-
+text \<open>First example simply counts up variable X:
+  c1 ::= (x := x + 1; ch!x)*
+\<close>
 fun count_up_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
   "count_up_inv a 0 = emp\<^sub>t"
 | "count_up_inv a (Suc n) = Out\<^sub>t (State ((\<lambda>_. 0)(X := a + 1))) ''ch'' (a + 1) @\<^sub>t count_up_inv (a + 1) n"
@@ -642,7 +651,9 @@ lemma testLoop1:
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
 
-text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
+text \<open>Second example: in each iteration, increment by 1, output, then increment by 2:
+  c2 ::= (x := x + 1; ch!x; x := x + 2)*
+\<close>
 fun count_up3_inv :: "nat \<Rightarrow> tassn" where
   "count_up3_inv 0 = emp\<^sub>t"
 | "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := 3 * real n + 1))) ''ch'' (3 * real n + 1)"
@@ -677,9 +688,13 @@ lemma testLoop2:
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
 
-text \<open>Example that repeatedly receives on X\<close>
+text \<open>Third example: repeatedly receive value to variable y:
+  c3 ::= (ch?y)*
+\<close>
 
-text \<open>Here a is the starting value of X\<close>
+text \<open>Loop invariant, here
+  - a is the starting value of y.
+\<close>
 fun receive_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "receive_inv a [] = emp\<^sub>t"
 | "receive_inv a (x # xs) = In\<^sub>t (State ((\<lambda>_. 0)(Y := a))) ''ch'' x @\<^sub>t receive_inv x xs"
@@ -718,9 +733,14 @@ lemma testLoop3:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
-text \<open>Example that repeated receives, and add the input values\<close>
+text \<open>Fourth example: repeated receives and adds the input values:
+  c4 ::= (ch?y; x := x + y)*
+\<close>
 
-text \<open>Here a is the starting value of X, b is the starting value of Y\<close>
+text \<open>Loop invariant, here
+  - a is the starting value of x,
+  - b is the starting value of y.
+\<close>
 fun receive_add_inv :: "real \<Rightarrow> real \<Rightarrow> real list \<Rightarrow> tassn" where
   "receive_add_inv a b [] = emp\<^sub>t"
 | "receive_add_inv a b (x # xs) = In\<^sub>t (State ((\<lambda>_. 0)(X := a, Y := b))) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
@@ -769,6 +789,11 @@ lemma testLoop4:
 
 subsection \<open>Example of parallel\<close>
 
+text \<open>
+  We consider the parallel of c1 || c3. Recall
+    c1 ::= (x := x + 1; ch!x)*
+    c3 ::= (ch?y)*
+\<close>
 fun count_up_io_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
   "count_up_io_inv a 0 = emp\<^sub>t"
 | "count_up_io_inv a (Suc n) = IO\<^sub>t ''ch'' (a + 1) @\<^sub>t count_up_io_inv (a + 1) n"
