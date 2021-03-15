@@ -348,10 +348,10 @@ obtain tr1 and tr2 where a:"(((Wait\<^sub>t Period (\<lambda>t. ParState (State 
   done
 
 lemma tol_inv_ind_suc':
-"\<up>((ODEsol(ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732),
+"\<up>(((ODEsol(ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732),
                            W := (\<lambda>s. (s W)^2 / 2500 ),
-                           T := (\<lambda>_. 1)))))  (p) (Period)) \<and>\<^sub>t
-       \<up>(p 0 = (\<lambda>_. 0)(V := v1, W := w1))\<and>\<^sub>t
+                           T := (\<lambda>_. 1)))))  (p) (Period)) \<and>
+       (p 0 = (\<lambda>_. 0)(V := v1, W := w1))) \<and>\<^sub>t
  (((Wait\<^sub>t Period (\<lambda>t. ParState (State ((\<lambda>_. 0)(V := v0, W := w0))) (State (p t))) ({''ch_v''}, {}) 
     @\<^sub>t IO\<^sub>t ''ch_v'' (p Priod V)) @\<^sub>t IO\<^sub>t ''ch_m '' (p Priod W)) @\<^sub>t IO\<^sub>t ''ch_Fc '' (W_upd (p Priod V) (p Priod W)))
     @\<^sub>t tol_inv_ind (p Priod V) (p Priod W) (p Priod V) (W_upd (p Priod V) (p Priod W)) n
@@ -370,6 +370,37 @@ lemma combine_assn_emp_ODEout:
   shows "combine_assn chs emp\<^sub>t (ODEout\<^sub>t s ode b s' ch e rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
   using combine_assn_emp_ODEout' assms by auto
   
+
+lemma combine_assn_wait_odeout:
+  assumes "ch \<in> chs"
+    and "compat_rdy rdy rdy2"
+  shows "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) (ODEout\<^sub>t s ode b s' ch e rdy2 @\<^sub>t Q)\<Longrightarrow>\<^sub>t 
+         (\<up>(ODEsol ode p3 d \<and> p3 0 = s) \<and>\<^sub>t
+          (Wait\<^sub>t d (\<lambda>t. ParState (p t) (State (p3 t))) (merge_rdy rdy rdy2) @\<^sub>t
+          combine_assn chs P Q))"
+proof -
+  have *: "(\<up>(ODEsol ode p3 d \<and> p3 0 = s) \<and>\<^sub>t (Wait\<^sub>t d (\<lambda>t. ParState (p t) (State (p3 t))) (merge_rdy rdy rdy2) @\<^sub>t
+                        combine_assn chs P Q)) tr"
+    if "(Wait\<^sub>t d p rdy @\<^sub>t P) tr1"
+       "(ODEout\<^sub>t s ode b s' ch e rdy2 @\<^sub>t Q) tr2"
+       "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+proof -
+    from that(1)[unfolded join_assn_def]
+    obtain tr11 tr12 where a: "Wait\<^sub>t d p rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+      by auto
+    from that(2)[unfolded join_assn_def]
+    obtain tr21 tr22 where b: "ODEout\<^sub>t s ode b s' ch e rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
+      by auto
+    have c: "tr11 = [WaitBlk d p rdy]"
+      using a(1) wait_assn.cases by blast
+    show ?thesis
+      using b(1) apply (cases rule: ode_out_assn.cases)
+      subgoal
+        using that(3) unfolding a(3) b(3) c
+        apply auto
+        using assms combine_blocks_pairE2' by blast
+      subgoal for d p3'
+
 
 lemma combine_tol:
 "combine_assn {''ch_v'', ''ch_m'', ''ch_Fc''} (P0_inv (v0,w0) p0list) (P1_inv_ind v1 w1 p1list v1e w1e) \<Longrightarrow>\<^sub>t
@@ -430,7 +461,7 @@ next
         subgoal for s'
           apply (rule entails_tassn_trans)
            prefer 2 apply(rule tol_inv_ind_suc')
-using con1
+            using con1
         sorry
     qed
 qed
