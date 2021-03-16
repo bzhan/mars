@@ -45,10 +45,10 @@ definition P0 :: proc where
 fun P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<Rightarrow> tassn" where
   "P0_inv (v, w) [] = emp\<^sub>t"
 | "P0_inv (v, w) ((v', w') # vwrest) = 
-   WaitS\<^sub>t Period (\<lambda>t. (\<lambda>_. 0)(V := v, W := w)) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(V := v, W := w)) ''ch_v'' v' @\<^sub>t 
-   In\<^sub>t ((\<lambda>_. 0)(V := v', W := w)) ''ch_m'' w' @\<^sub>t 
-   Out\<^sub>t ((\<lambda>_. 0)(V := v', W := w')) ''ch_Fc'' (W_upd v' w') @\<^sub>t
+   Wait\<^sub>t Period (\<lambda>t. State ((\<lambda>_. 0)(V := v, W := w))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v, W := w))) ''ch_v'' v' @\<^sub>t 
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w))) ''ch_m'' w' @\<^sub>t 
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w'))) ''ch_Fc'' (W_upd v' w') @\<^sub>t
    P0_inv (v', w') (vwrest)"
 
 fun last_P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<Rightarrow> real\<times>real" where
@@ -57,10 +57,10 @@ fun last_P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<
 
 lemma P0_inv_snoc:
   "P0_inv (v, w) (vwlist @ [(v', w')]) =
-   P0_inv (v, w) vwlist @\<^sub>t WaitS\<^sub>t Period (\<lambda>t. (\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist))) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist))) ''ch_v'' v' @\<^sub>t 
-   In\<^sub>t ((\<lambda>_. 0)(V := v', W := snd(last_P0_inv (v, w) vwlist))) ''ch_m'' w' @\<^sub>t 
-   Out\<^sub>t ((\<lambda>_. 0)(V := v', W := w')) ''ch_Fc'' (W_upd v' w')"
+   P0_inv (v, w) vwlist @\<^sub>t Wait\<^sub>t Period (\<lambda>t. State ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist)))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist)))) ''ch_v'' v' @\<^sub>t 
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v', W := snd(last_P0_inv (v, w) vwlist)))) ''ch_m'' w' @\<^sub>t 
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w'))) ''ch_Fc'' (W_upd v' w')"
   apply (induct vwlist arbitrary: v w)
   by (auto simp add: join_assoc)
 
