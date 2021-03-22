@@ -274,22 +274,41 @@ lemma P1_rep:
     apply (rule Valid_ex_pre)
     subgoal for st'
       apply (rule Valid_seq)
-       apply (rule Valid_send_sp2)
+       apply (rule Valid_send_sp)
       apply (rule Valid_seq)
-       apply (rule Valid_receive_sp2)
+       apply (rule Valid_receive_sp)
       apply (rule Valid_ex_pre)
-      subgoal for Fc1
+      subgoal for w'
         apply (rule Valid_strengthen_post)
          prefer 2 apply (rule Valid_assign_sp)
-        apply (auto simp add: entails_def)
-        subgoal for tr
-          apply (rule exI[where x="st' V"])
-          apply (rule exI[where x="Fc1"])
-          apply auto
-          subgoal apply (rule ext) by (auto simp add: supp_def)
-        apply (rule exI[where x="Fc @ [Fc1]"])
-          apply (rule P1_inv_snoc'[where v=v and w=w])
-          by (auto simp add: join_assoc)
+        apply (auto simp add: entails_def pure_assn_def conj_assn_def)
+        subgoal for s tr x
+          apply (rule exI[where x="s V"])
+          apply (rule exI[where x="s W"])
+          apply auto 
+          subgoal
+            apply (rule ext) 
+            apply auto
+            subgoal premises pre for xa
+            proof(rule ccontr)
+              assume a:"s xa \<noteq> 0"
+              then have 1:"xa \<noteq> T"
+                using pre(1) by auto
+              then have 2:"(s (T := x, W := w')) xa \<noteq> 0"
+                using pre(5,6) a by auto
+              then have 3:"xa \<in> {V, W, T}"
+                using pre(3) unfolding supp_def by auto
+              have 4:"xa\<notin> {V, W, T}"
+                using pre(5,6) 1 by auto
+              show False using 3 4 by auto
+            qed
+            done
+          apply (rule exI[where x="Fc @ [s W]"])
+          subgoal premises pre 
+            using P1_inv_snoc'[of v0 w0 Fc v w "s(T := x, W := w')" "s W" tr]
+            using pre(1,4) apply simp
+            by (simp add: join_assoc)
+          done
         done
       done
     apply (auto simp add: supp_def)
