@@ -2,8 +2,9 @@
 
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-from ss2hcsp.sl import sl_diagram
+# from ss2hcsp.sl import sl_diagram
 from ss2hcsp.sl.sl_diagram import get_gcd
+from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
@@ -44,6 +45,28 @@ def translate_continuous(diagram):
             out_var = out_vars.pop()
             ode_eqs.append((out_var, AConst(0)))
     # assert init_hps
+
+    # Deal with Signal Builders
+    signal_builders = [block for block in block_dict.values() if block.type == "signalBuilder"]
+    # Merge multiple Signal Builders
+    merged_signal_builder_name = "_".join(block.name for block in signal_builders)
+    signal_names = []  # Merge signal_names,
+    time_axises = []   # time_axises and
+    data_axises = []   # data_axises
+    for signal_builder in signal_builders:
+        for signal_name in signal_builder.signal_names:
+            signal_names.append(signal_name)
+        for time_axis in signal_builder.time_axises:
+            time_axises.append(time_axis)
+        for data_axis in signal_builder.data_axises:
+            data_axises.append(data_axis)
+    assert len(signal_names) == len(set(signal_names))
+    assert not time_axises or all(time_axis[-1] == time_axises[0][-1] for time_axis in time_axises)
+    merged_signal_builder = SignalBuilder(name=merged_signal_builder_name,
+                                          signal_names=signal_names, time_axises=time_axises, data_axises=data_axises)
+    # Delete Signal Builders from block_dict
+    for block in signal_builders:
+        del block_dict[block.name]
 
     # Delete integrator blocks
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
@@ -128,25 +151,67 @@ def translate_continuous(diagram):
             else:
                 new_out_channels.append(hp.OutputChannel(ch_name=out_ch.ch_name, expr=out_ch.expr))
         io_comms = [(io_ch, hp.Skip()) for io_ch in in_channels + new_out_channels]
-        ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=cond, io_comms=io_comms))
+        if io_comms:
+            ode_hps.append(hp.ODE_Comm(eqs=new_ode_eqs, constraint=cond, io_comms=io_comms))
+        else:
+            ode_hps.append(hp.ODE(eqs=new_ode_eqs, constraint=cond))
 
-    # Initialise input variables
+    # Initialise input variables (Xiong: It seems not necessary, because initially,
+    # input variables should receive initial values along input channels
+    # from the environment (discrete processes) )
     initialised_vars = [init_hp.var_name for init_hp in init_hps]
     assert len(initialised_vars) == len(set(initialised_vars))  # no repeated initialised varaibles
+    # Xiong: Initially, the continous process should send the initial values of all output variables,
+    # and then receive the intial values of all input variables.
+    out_comms = []
+    in_comms = []
     for ode_hp in ode_hps:
-        for io_comm in ode_hp.io_comms:
-            ch_hp = io_comm[0]
-            if isinstance(ch_hp, hp.InputChannel):
-                var_name = ch_hp.var_name
-                if var_name not in initialised_vars:
-                    # update by lqq
-                    init_hps.append(hp.Assign(var_name, AConst(1)))
-                    initialised_vars.append(var_name)
-    init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
+        if isinstance(ode_hp, hp.ODE_Comm):
+            for io_comm in ode_hp.io_comms:
+                if isinstance(io_comm[0], hp.OutputChannel):
+                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                elif isinstance(io_comm[0], hp.InputChannel):
+                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                else:
+                    raise RuntimeError("It must be a channel operation!")
+
+    send_out_vars = hp.Skip()  # no output channel operations
+    if len(out_comms) == 1:
+        send_out_vars = out_comms[0][0]
+    elif len(out_comms) >= 2:
+        send_out_vars = hp.Sequence(hp_parser.parse("num := %s" % len(out_comms)),
+                                    hp.Loop(hp=hp.SelectComm(*out_comms), constraint=bexpr_parser.parse("num > 0")))
+
+    receive_in_vars = hp.Skip()  # no input channel operations
+    if len(in_comms) == 1:
+        receive_in_vars = in_comms[0][0]
+    elif len(in_comms) >= 2:
+        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s" % len(in_comms)),
+                                      hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
+
+    init_hps.extend([send_out_vars, receive_in_vars])
+    # ch_hp = io_comm[0]
+    # if isinstance(ch_hp, hp.InputChannel):
+    #     var_name = ch_hp.var_name
+    #     if var_name not in initialised_vars:
+    #         # updated by lqq
+    #         init_hps.append(hp.Assign(var_name, AConst(1)))
+    #         initialised_vars.append(var_name)
+    init_ode = hp.Sequence(*init_hps)
+
+    if signal_builders:
+        return merged_signal_builder.get_hp(init_ode=init_ode, ode_hps=ode_hps)
 
     assert ode_hps
-    result_hp = hp.Sequence(init_hp, hp.Loop(ode_hps[0])) if len(ode_hps) == 1 \
-        else hp.Sequence(init_hp, hp.Loop(hp.Sequence(*ode_hps)))
+    cond_ode_hps = []
+    for ode_hp in ode_hps:
+        assert isinstance(ode_hp, (hp.ODE, hp.ODE_Comm))
+        if ode_hp.constraint == true_expr:
+            cond_ode_hps.append(ode_hp)
+        else:
+            cond_ode_hps.append(hp.Condition(cond=ode_hp.constraint, hp=ode_hp))
+    result_hp = hp.Sequence(init_ode, hp.Loop(cond_ode_hps[0])) if len(cond_ode_hps) == 1 \
+        else hp.Sequence(init_ode, hp.Loop(hp.Sequence(*cond_ode_hps)))
     return result_hp
 
 

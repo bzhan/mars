@@ -45,10 +45,10 @@ definition P0 :: proc where
 fun P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<Rightarrow> tassn" where
   "P0_inv (v, w) [] = emp\<^sub>t"
 | "P0_inv (v, w) ((v', w') # vwrest) = 
-   WaitS\<^sub>t Period (\<lambda>t. (\<lambda>_. 0)(V := v, W := w)) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(V := v, W := w)) ''ch_v'' v' @\<^sub>t 
-   In\<^sub>t ((\<lambda>_. 0)(V := v', W := w)) ''ch_m'' w' @\<^sub>t 
-   Out\<^sub>t ((\<lambda>_. 0)(V := v', W := w')) ''ch_Fc'' (W_upd v' w') @\<^sub>t
+   Wait\<^sub>t Period (\<lambda>t. State ((\<lambda>_. 0)(V := v, W := w))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v, W := w))) ''ch_v'' v' @\<^sub>t 
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w))) ''ch_m'' w' @\<^sub>t 
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w'))) ''ch_Fc'' (W_upd v' w') @\<^sub>t
    P0_inv (v', w') (vwrest)"
 
 fun last_P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<Rightarrow> real\<times>real" where
@@ -57,10 +57,10 @@ fun last_P0_inv :: "real \<times> real \<Rightarrow> (real\<times> real) list \<
 
 lemma P0_inv_snoc:
   "P0_inv (v, w) (vwlist @ [(v', w')]) =
-   P0_inv (v, w) vwlist @\<^sub>t WaitS\<^sub>t Period (\<lambda>t. (\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist))) ({}, {}) @\<^sub>t
-   In\<^sub>t ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist))) ''ch_v'' v' @\<^sub>t 
-   In\<^sub>t ((\<lambda>_. 0)(V := v', W := snd(last_P0_inv (v, w) vwlist))) ''ch_m'' w' @\<^sub>t 
-   Out\<^sub>t ((\<lambda>_. 0)(V := v', W := w')) ''ch_Fc'' (W_upd v' w')"
+   P0_inv (v, w) vwlist @\<^sub>t Wait\<^sub>t Period (\<lambda>t. State ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist)))) ({}, {}) @\<^sub>t
+   In\<^sub>t (State ((\<lambda>_. 0)(V := fst(last_P0_inv (v, w) vwlist), W := snd(last_P0_inv (v, w) vwlist)))) ''ch_v'' v' @\<^sub>t 
+   In\<^sub>t (State ((\<lambda>_. 0)(V := v', W := snd(last_P0_inv (v, w) vwlist)))) ''ch_m'' w' @\<^sub>t 
+   Out\<^sub>t (State ((\<lambda>_. 0)(V := v', W := w'))) ''ch_Fc'' (W_upd v' w')"
   apply (induct vwlist arbitrary: v w)
   by (auto simp add: join_assoc)
 
@@ -80,17 +80,17 @@ lemma P0_rep:
    apply (rule Valid_ex_pre)
   subgoal for vwlist
     apply (rule Valid_seq)
-    apply (rule Valid_wait_sp) apply (auto simp add:Period_def)
+    apply (rule Valid_wait_sp_st) apply (auto simp add:Period_def)
     apply (rule Valid_seq)
-     apply (rule Valid_receive_sp)
+     apply (rule Valid_receive_sp_st)
     apply (rule Valid_ex_pre)
     subgoal for v'
        apply (rule Valid_seq)
-        apply (rule Valid_receive_sp)
+        apply (rule Valid_receive_sp_st)
       apply (rule Valid_ex_pre)
       subgoal for w'
         apply (rule Valid_strengthen_post)
-        prefer 2 apply (rule Valid_send_sp)
+        prefer 2 apply (rule Valid_send_sp_st)
       apply (auto simp add: entails_def)
       apply (rule exI[where x="vwlist@[(v',w')]"])
         apply (auto simp add: P0_inv_snoc join_assoc Period_def)
@@ -117,8 +117,8 @@ fun P1_inv :: "real \<times> real \<Rightarrow> real list \<Rightarrow> tassn" w
       ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
         (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500), T := (\<lambda>_. 1))))
         ((\<lambda>_. True)) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-      Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-      In\<^sub>t st' ''ch_Fc'' Fc1 @\<^sub>t
+      Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+      In\<^sub>t (State st') ''ch_Fc'' Fc1 @\<^sub>t
       P1_inv (st' V, Fc1) Fcs) tr)"
 
 inductive P1_inv_ind :: "real \<Rightarrow> real \<Rightarrow> real list \<Rightarrow> real \<Rightarrow> real \<Rightarrow> tassn" where
@@ -126,8 +126,8 @@ inductive P1_inv_ind :: "real \<Rightarrow> real \<Rightarrow> real list \<Right
 | "(ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
       (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500), T := (\<lambda>_. 1))))
       ((\<lambda>_. True)) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1) tr1 \<Longrightarrow>
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1) tr1 \<Longrightarrow>
    P1_inv_ind (st' V) Fc1 Fcs v' w' tr2 \<Longrightarrow>
    P1_inv_ind v w (Fc1 # Fcs) v' w' (tr1 @ tr2)"
 
@@ -144,8 +144,8 @@ lemma P1_inv_ind_cons1:
    (\<exists>\<^sub>tst'. (ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
       (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500), T := (\<lambda>_. 1))))
       ((\<lambda>_. True)) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w')"
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w')"
   apply (auto simp add: entails_tassn_def ex_assn_def)
   subgoal for tr
   proof (induct v w "Fc1 # Fcs" v' w' tr rule: P1_inv_ind.induct)
@@ -161,8 +161,8 @@ lemma P1_inv_ind_cons2:
   "(\<exists>\<^sub>tst'. (ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
       (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500), T := (\<lambda>_. 1))))
       ((\<lambda>_. True)) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w') \<Longrightarrow>\<^sub>t
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w') \<Longrightarrow>\<^sub>t
   P1_inv_ind v w (Fc1 # Fcs) v' w'"
   apply (auto simp add: entails_tassn_def ex_assn_def)
   subgoal premises pre for tr st'
@@ -170,7 +170,8 @@ lemma P1_inv_ind_cons2:
     obtain tr1 tr2 where a: "((ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
        (ODE ((\<lambda>_ _. 0)(V := \<lambda>s. s W - 933 / 250, W := \<lambda>s. (s W)\<^sup>2 / 2500, T := \<lambda>_. 1)))
        (\<lambda>_. True) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-      Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t In\<^sub>t st' ''ch_Fc'' Fc1) tr1)"
+      Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+      In\<^sub>t (State st') ''ch_Fc'' Fc1) tr1)"
      "P1_inv_ind (st' V) Fc1 Fcs v' w' tr2"
      "tr = tr1 @ tr2"
       using pre join_assnE by blast
@@ -185,8 +186,8 @@ lemma P1_inv_ind_cons:
    (\<exists>\<^sub>tst'. (ODEout\<^sub>t ((\<lambda>_. 0)(V := v, W := w))
       (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500), T := (\<lambda>_. 1))))
       ((\<lambda>_. True)) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w')"
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1) @\<^sub>t P1_inv_ind (st' V) Fc1 Fcs v' w')"
   using P1_inv_ind_cons1 P1_inv_ind_cons2 entails_tassn_def by auto
 
 lemma P1_inv_ind_empty':
@@ -211,8 +212,9 @@ lemma P1_inv_snoc:
                (V := \<lambda>s. s W - 3.732, W := \<lambda>s. (s W)\<^sup>2 / 2500,
                 T := \<lambda>_. 1)))
             (\<lambda>_. True) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1) tr2 \<Longrightarrow> P1_inv_ind v0 w0 (Fcs @ [Fc1]) (st' V) Fc1 (tr1 @ tr2)"
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1) tr2 \<Longrightarrow>
+  P1_inv_ind v0 w0 (Fcs @ [Fc1]) (st' V) Fc1 (tr1 @ tr2)"
 proof (induct rule: P1_inv_ind.induct)
   case (1 v w)
   have "P1_inv_ind v w (Fc1 # []) (st' V) Fc1 (tr2 @ [])"
@@ -243,8 +245,8 @@ lemma P1_inv_snoc':
                (V := \<lambda>s. s W - 3.732, W := \<lambda>s. (s W)\<^sup>2 / 2500,
                 T := \<lambda>_. 1)))
             (\<lambda>_. True) st' ''ch_v'' (\<lambda>s. s V) ({''ch_v''}, {}) @\<^sub>t
-    Out\<^sub>t st' ''ch_m'' (st' W) @\<^sub>t
-    In\<^sub>t st' ''ch_Fc'' Fc1)) tr \<Longrightarrow> P1_inv_ind v0 w0 (Fcs @ [Fc1]) (st' V) Fc1 tr"
+    Out\<^sub>t (State st') ''ch_m'' (st' W) @\<^sub>t
+    In\<^sub>t (State st') ''ch_Fc'' Fc1)) tr \<Longrightarrow> P1_inv_ind v0 w0 (Fcs @ [Fc1]) (st' V) Fc1 tr"
   unfolding join_assn_def
   apply auto
   subgoal for tr1 tr2a tr2b tr2c
@@ -272,22 +274,41 @@ lemma P1_rep:
     apply (rule Valid_ex_pre)
     subgoal for st'
       apply (rule Valid_seq)
-       apply (rule Valid_send_sp2)
+       apply (rule Valid_send_sp)
       apply (rule Valid_seq)
-       apply (rule Valid_receive_sp2)
+       apply (rule Valid_receive_sp)
       apply (rule Valid_ex_pre)
-      subgoal for Fc1
+      subgoal for w'
         apply (rule Valid_strengthen_post)
          prefer 2 apply (rule Valid_assign_sp)
-        apply (auto simp add: entails_def)
-        subgoal for tr
-          apply (rule exI[where x="st' V"])
-          apply (rule exI[where x="Fc1"])
-          apply auto
-          subgoal apply (rule ext) by (auto simp add: supp_def)
-        apply (rule exI[where x="Fc @ [Fc1]"])
-          apply (rule P1_inv_snoc'[where v=v and w=w])
-          by (auto simp add: join_assoc)
+        apply (auto simp add: entails_def pure_assn_def conj_assn_def)
+        subgoal for s tr x
+          apply (rule exI[where x="s V"])
+          apply (rule exI[where x="s W"])
+          apply auto 
+          subgoal
+            apply (rule ext) 
+            apply auto
+            subgoal premises pre for xa
+            proof(rule ccontr)
+              assume a:"s xa \<noteq> 0"
+              then have 1:"xa \<noteq> T"
+                using pre(1) by auto
+              then have 2:"(s (T := x, W := w')) xa \<noteq> 0"
+                using pre(5,6) a by auto
+              then have 3:"xa \<in> {V, W, T}"
+                using pre(3) unfolding supp_def by auto
+              have 4:"xa\<notin> {V, W, T}"
+                using pre(5,6) 1 by auto
+              show False using 3 4 by auto
+            qed
+            done
+          apply (rule exI[where x="Fc @ [s W]"])
+          subgoal premises pre 
+            using P1_inv_snoc'[of v0 w0 Fc v w "s(T := x, W := w')" "s W" tr]
+            using pre(1,4) apply simp
+            by (simp add: join_assoc)
+          done
         done
       done
     apply (auto simp add: supp_def)
@@ -348,10 +369,10 @@ obtain tr1 and tr2 where a:"(((Wait\<^sub>t Period (\<lambda>t. ParState (State 
   done
 
 lemma tol_inv_ind_suc':
-"\<up>((ODEsol(ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732),
+"\<up>(((ODEsol(ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732),
                            W := (\<lambda>s. (s W)^2 / 2500 ),
-                           T := (\<lambda>_. 1)))))  (p) (Period)) \<and>\<^sub>t
-       \<up>(p 0 = (\<lambda>_. 0)(V := v1, W := w1))\<and>\<^sub>t
+                           T := (\<lambda>_. 1)))))  (p) (Period)) \<and>
+       (p 0 = (\<lambda>_. 0)(V := v1, W := w1))) \<and>\<^sub>t
  (((Wait\<^sub>t Period (\<lambda>t. ParState (State ((\<lambda>_. 0)(V := v0, W := w0))) (State (p t))) ({''ch_v''}, {}) 
     @\<^sub>t IO\<^sub>t ''ch_v'' (p Priod V)) @\<^sub>t IO\<^sub>t ''ch_m '' (p Priod W)) @\<^sub>t IO\<^sub>t ''ch_Fc '' (W_upd (p Priod V) (p Priod W)))
     @\<^sub>t tol_inv_ind (p Priod V) (p Priod W) (p Priod V) (W_upd (p Priod V) (p Priod W)) n
@@ -370,6 +391,37 @@ lemma combine_assn_emp_ODEout:
   shows "combine_assn chs emp\<^sub>t (ODEout\<^sub>t s ode b s' ch e rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t false\<^sub>A"
   using combine_assn_emp_ODEout' assms by auto
   
+
+lemma combine_assn_wait_odeout:
+  assumes "ch \<in> chs"
+    and "compat_rdy rdy rdy2"
+  shows "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) (ODEout\<^sub>t s ode b s' ch e rdy2 @\<^sub>t Q)\<Longrightarrow>\<^sub>t 
+         (\<up>(ODEsol ode p3 d \<and> p3 0 = s) \<and>\<^sub>t
+          (Wait\<^sub>t d (\<lambda>t. ParState (p t) (State (p3 t))) (merge_rdy rdy rdy2) @\<^sub>t
+          combine_assn chs P Q))"
+proof -
+  have *: "(\<up>(ODEsol ode p3 d \<and> p3 0 = s) \<and>\<^sub>t (Wait\<^sub>t d (\<lambda>t. ParState (p t) (State (p3 t))) (merge_rdy rdy rdy2) @\<^sub>t
+                        combine_assn chs P Q)) tr"
+    if "(Wait\<^sub>t d p rdy @\<^sub>t P) tr1"
+       "(ODEout\<^sub>t s ode b s' ch e rdy2 @\<^sub>t Q) tr2"
+       "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+proof -
+    from that(1)[unfolded join_assn_def]
+    obtain tr11 tr12 where a: "Wait\<^sub>t d p rdy tr11" "P tr12" "tr1 = tr11 @ tr12"
+      by auto
+    from that(2)[unfolded join_assn_def]
+    obtain tr21 tr22 where b: "ODEout\<^sub>t s ode b s' ch e rdy2 tr21" "Q tr22" "tr2 = tr21 @ tr22"
+      by auto
+    have c: "tr11 = [WaitBlk d p rdy]"
+      using a(1) wait_assn.cases by blast
+    show ?thesis
+      using b(1) apply (cases rule: ode_out_assn.cases)
+      subgoal
+        using that(3) unfolding a(3) b(3) c
+        apply auto
+        using assms combine_blocks_pairE2' by blast
+      subgoal for d p3'
+
 
 lemma combine_tol:
 "combine_assn {''ch_v'', ''ch_m'', ''ch_Fc''} (P0_inv (v0,w0) p0list) (P1_inv_ind v1 w1 p1list v1e w1e) \<Longrightarrow>\<^sub>t
@@ -430,7 +482,7 @@ next
         subgoal for s'
           apply (rule entails_tassn_trans)
            prefer 2 apply(rule tol_inv_ind_suc')
-using con1
+            using con1
         sorry
     qed
 qed

@@ -2,9 +2,9 @@ theory HHLProver
   imports
     SmallStep
     Complete
+    ExampleSimple
     ExampleContinuous
-    Repetition
-    ContinuousInv
+    Velocity
 begin
 
 

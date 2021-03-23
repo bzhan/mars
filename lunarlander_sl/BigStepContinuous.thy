@@ -228,17 +228,28 @@ proof -
     unfolding entails_def using 1 2 by auto
 qed
 
+text \<open>Strongest postcondition rule for ODE\<close>
 theorem Valid_ode_sp:
-  assumes "b st"
-  shows "\<Turnstile>
-    {\<lambda>s tr. s = st \<and> Q s tr}
-      Cont ode b
-    {\<lambda>s tr. \<exists>s'. s = s' \<and> (Q st @\<^sub>t ODE\<^sub>t st ode b s') tr}"
+  "\<Turnstile> {\<lambda>s t. P s t}
+        Cont ode b
+      {\<lambda>s t. \<exists>s'. (P s' @\<^sub>t ODE\<^sub>t s' ode b s) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_ode')
+  by (auto simp add: entails_def magic_wand_assn_def join_assn_def)  
+
+text \<open>Strongest postcondition rule for ODE with fixed initial state\<close>
+theorem Valid_ode_sp_st:
+  "\<Turnstile> {\<lambda>s t. s = s0 \<and> Q s t}
+        Cont ode b
+      {\<lambda>s t. (Q s0 @\<^sub>t ODE\<^sub>t s0 ode b s) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_ode')
   apply (auto simp add: entails_def)
   using entails_mp by (simp add: entails_tassn_def)
 
+text \<open>Auxiliary lemma, converting ODE assertion to Wait assertion
+  when the ODE can be solved exactly.
+\<close>
 theorem Valid_ode_unique_solution_aux:
   assumes
     "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
@@ -246,12 +257,12 @@ theorem Valid_ode_unique_solution_aux:
     "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
     "ODE\<^sub>t st ode b st' tr"
   shows
-    "st' = p d \<and> WaitS\<^sub>t d p ({}, {}) tr"
+    "st' = p d \<and> Wait\<^sub>t d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) tr"
 proof -
   have "b st"
     using assms(1,3,5) by auto
   have main: "d2 = d \<and> p d = p2 d2 \<and> (\<lambda>\<tau>\<in>{0..d}. State (p \<tau>)) = (\<lambda>\<tau>\<in>{0..d2}. State (p2 \<tau>)) \<and>
-              WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
+              Wait\<^sub>t d (\<lambda>s. State (p s)) ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
     if cond: "0 < d2"
        "ODEsol ode p2 d2"
        "(\<forall>t. 0 \<le> t \<and> t < d2 \<longrightarrow> b (p2 t))"
@@ -300,7 +311,7 @@ proof -
       using s8 by (simp add: assms(1) less_eq_real_def)
     have s11: "WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {}) = WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})"
       apply (rule WaitBlk_ext_real) using s7 s8 by auto
-    have s12: "WaitS\<^sub>t d p ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
+    have s12: "Wait\<^sub>t d (\<lambda>s. State (p s)) ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
       unfolding s11[symmetric]
       by (rule wait_assn.intros)
     show ?thesis using s7 s8 s10 s12 by auto
@@ -316,7 +327,47 @@ proof -
     done
 qed
 
-theorem Valid_ode_unique_solution':
+text \<open>Strongest postcondition rule for ODE when the ODE can be solved exactly\<close>
+theorem Valid_ode_unique_solution_sp:
+  assumes "\<And>s. b s \<Longrightarrow> d s > 0 \<and> ODEsol ode (p s) (d s) \<and>
+                (\<forall>t. t \<ge> 0 \<and> t < d s \<longrightarrow> b (p s t)) \<and>
+                \<not>b (p s (d s)) \<and> p s 0 = s"
+    and "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
+  shows "\<Turnstile>
+    {\<lambda>s t. P s t}
+      Cont ode b
+    {\<lambda>s t. \<exists>s'. if b s' then (\<up>(s = p s' (d s')) \<and>\<^sub>t P s' @\<^sub>t Wait\<^sub>t (d s') (\<lambda>\<tau>. State (p s' \<tau>)) ({}, {})) t
+                else (\<up>(s = s') \<and>\<^sub>t P s') t}"
+proof -
+  have a: "s' = p s (d s) \<and> Wait\<^sub>t (d s) (\<lambda>\<tau>. State (p s \<tau>)) ({}, {}) tr2"
+    if "ODE\<^sub>t s ode b s' tr2" "b s" for s s' tr2
+  proof -
+    have a1: "d s > 0" "ODEsol ode (p s) (d s)" "\<forall>t. 0 \<le> t \<and> t < d s \<longrightarrow> b (p s t)"
+             "\<not>b (p s (d s))" "p s 0 = s"
+      using assms(1) that(2) by auto
+    show ?thesis
+      using Valid_ode_unique_solution_aux[OF a1(1-2) _ a1(4-5) assms(2) that(1)] a1(3)
+      by auto
+  qed
+  have b: "ODE\<^sub>t s ode b s' tr2 \<Longrightarrow> \<not>b s \<Longrightarrow> s = s' \<and> tr2 = []" for s s' tr2
+    apply (induct rule: ode_assn.induct) by auto
+  show ?thesis
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_ode')
+    apply (auto simp add: entails_def magic_wand_assn_def)
+    subgoal for s tr1 s' tr2
+      apply (rule exI[where x=s])
+      apply (auto simp add: join_assn_def conj_assn_def pure_assn_def)
+      apply (auto simp add: a)
+      using b apply auto
+      by fastforce
+    done
+qed
+
+text \<open>Strongest postcondition rule for ODE when the ODE can be solved exactly,
+  for fixed initial state.
+\<close>
+theorem Valid_ode_unique_solution_st:
   assumes
     "d > 0" "ODEsol ode p d" "\<forall>t. t \<ge> 0 \<and> t < d \<longrightarrow> b (p t)"
     "\<not> b (p d)" "p 0 = st"
@@ -324,19 +375,20 @@ theorem Valid_ode_unique_solution':
   shows "\<Turnstile>
     {\<lambda>s tr. s = st \<and> Q s tr}
       Cont ode b
-    {\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t WaitS\<^sub>t d p ({}, {})) tr}"
+    {\<lambda>s tr. s = p d \<and> (Q st @\<^sub>t Wait\<^sub>t d (\<lambda>\<tau>. State (p \<tau>)) ({}, {})) tr}"
 proof -
   have "b st"
     using assms(1,3,5) by auto
-  have *: "ODE\<^sub>t st ode b s tr2 \<Longrightarrow> s = p d \<and> WaitS\<^sub>t d p ({}, {}) tr2" for s tr2
+  have *: "ODE\<^sub>t st ode b s tr2 \<Longrightarrow> s = p d \<and> Wait\<^sub>t d (\<lambda>s. State (p s)) ({}, {}) tr2" for s tr2
     using Valid_ode_unique_solution_aux[OF assms(1-6)] by auto
   show ?thesis
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_ode_sp)
+     prefer 2 apply (rule Valid_ode_sp_st)
     by (auto simp add: \<open>b st\<close> entails_def join_assn_def *)
 qed
 
-theorem Valid_ode_exit:
+text \<open>Case where the initial state does not satisfy domain\<close>
+theorem Valid_ode_exit_st:
   assumes "\<not> b st"
   shows "\<Turnstile>
     {\<lambda>s tr. s = st \<and> Q tr}

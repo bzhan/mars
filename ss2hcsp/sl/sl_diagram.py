@@ -3,7 +3,7 @@ from ss2hcsp.matlab import function
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
-# from ss2hcsp.sl.Continuous.clock import Clock
+from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -396,9 +396,8 @@ class SL_Diagram:
             # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            # if not sample_time:
-                
-            #     sample_time = default_SampleTimes[block_type]
+            if not sample_time:
+                sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
          
             # if  block_type == "Clock":
@@ -479,7 +478,7 @@ class SL_Diagram:
                 threshold = get_attribute_value(block, "Threshold")
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
-            elif  block_type == "DiscretePulseGenerator":
+            elif block_type == "DiscretePulseGenerator":
                 amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1        
                 pluseType=get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
                 if pluseType == "Sample based":
@@ -498,11 +497,55 @@ class SL_Diagram:
                 self.add_block(DiscretePulseGenerator(name=block_name,amplitude=amplitude,period=period,pluseType=pluseType,pluseWidth=pluseWidth,phaseDelay=phaseDelay,timeSource=timeSource,sampleTime=sampleTime,is_continuous=is_continuous))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
+
+                # Check if it is a Signal Builder
+                is_signal_builder = False
+                for child in block.childNodes:
+                    if child.nodeName == "Object" and child.getAttribute("PropName") == "MaskObject":
+                        if get_attribute_value(block=child, attribute="Type") == "Sigbuilder block":
+                            is_signal_builder = True
+                            break
+                if is_signal_builder:
+                    signal_names = []
+                    time_axises = []
+                    data_axises = []
+
+                    for node in subsystem.getElementsByTagName("Array"):
+                        if node.getAttribute("PropName") == "Signals":
+                            # assert node.getAttribute("Type") == "SigSuiteSignal"
+                            for obj in node.getElementsByTagName("Object"):
+                                signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
+                                xData = get_attribute_value(obj, "XData")
+                                if "\n" in xData:
+                                    xData = xData.split("\n")[1]
+                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                yData = get_attribute_value(obj, "YData")
+                                if "\n" in yData:
+                                    yData = yData.split("\n")[1]
+                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+
+                    if not signal_names:
+                        for node in subsystem.getElementsByTagName("Object"):
+                            if node.getAttribute("PropName") == "Signals":
+                                signal_names.append(block_name + "_" + get_attribute_value(node, "Name"))
+                                xData = get_attribute_value(node, "XData")
+                                if "\n" in xData:
+                                    xData = xData.split("\n")[1]
+                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                yData = get_attribute_value(node, "YData")
+                                if "\n" in yData:
+                                    yData = yData.split("\n")[1]
+                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+
+                    assert signal_names
+                    self.add_block(SignalBuilder(name=block_name, signal_names=tuple(signal_names),
+                                                 time_axises=time_axises, data_axises=data_axises))
+                    continue
             
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
-                if sf_block_type == "Chart":  
-                    
+                if sf_block_type == "Chart":
+
                     assert block_name in self.chart_parameters
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
@@ -648,7 +691,6 @@ class SL_Diagram:
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
                 self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
-        
 
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
@@ -661,6 +703,8 @@ class SL_Diagram:
             if src_block in port_name_dict:  # an input port
                 ch_name = model_name + "_" + src_block
                 src_block = port_name_dict[src_block]
+            elif src_block not in self.blocks_dict:
+                continue
             src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
             branches = [branch for branch in line.getElementsByTagName(name="Branch")
                         if not branch.getElementsByTagName(name="Branch")]
@@ -670,7 +714,7 @@ class SL_Diagram:
             for branch in branches:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                 if dest_block in port_name_dict:  # an output port
-                    #assert ch_name == "?"
+                    # assert ch_name == "?"
                     ch_name = model_name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
@@ -678,6 +722,12 @@ class SL_Diagram:
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
+
+        # The line name should keep consistent with the corresponding signals
+        # if its src_block is a Signal Builder.
+        for block in self.blocks:
+            if block.type == "signalBuilder":
+                block.rename_src_lines()
 
         return model_name
 
@@ -692,8 +742,8 @@ class SL_Diagram:
         line = SL_Line(src, dest, src_port, dest_port, name=name, ch_name=ch_name)
         src_block = self.blocks_dict[line.src]
         dest_block = self.blocks_dict[line.dest]
-        line.src_block=src_block
-        line.dest_block=dest_block
+        line.src_block = src_block
+        line.dest_block = dest_block
         src_block.add_src(line.src_port, line)
         dest_block.add_dest(line.dest_port, line)
 
@@ -719,12 +769,18 @@ class SL_Diagram:
 
     def add_line_name(self):
         """Give each group of lines a name."""
+
+        # Set names of out-going lines from Signal Builders as the correspoding signals
+        for block in self.blocks_dict.values():
+            if isinstance(block, SignalBuilder):
+                block.rename_src_lines()
+
         num_lines = 0
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
             # incoming line (if no name is given already).
             for i, line in enumerate(block.dest_lines):
-                if line !=None:
+                if line:
                     src, src_port = line.src, line.src_port
                     line_group = self.blocks_dict[src].src_lines[src_port]
                     if line_group[0].name == "?":
@@ -743,7 +799,7 @@ class SL_Diagram:
         # Add channel name for each line
         for block in self.blocks_dict.values():
             for line in block.dest_lines:
-                if line !=None:
+                if line:
                     assert line.name != "?"
                     if line.ch_name == "?":
                         line.ch_name = "ch_" + line.name + "_" + str(line.branch)
@@ -798,7 +854,7 @@ class SL_Diagram:
             if block.type == "subsystem":
                 # Collect all subsystems to be deleted
                 subsystems.append(block.name)
-                # The sussystem is treated as a diagram
+                # The subsystem is treated as a diagram
                 subsystem = block.diagram
                 # Delete subsystems recursively
                 subsystem.delete_subsystems()

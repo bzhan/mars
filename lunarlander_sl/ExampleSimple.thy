@@ -3,7 +3,15 @@ theory ExampleSimple
 begin
 
 
-subsection \<open>Test of big-step semantics\<close>
+text \<open>Some common variables\<close>
+definition X :: char where "X = CHR ''x''"
+definition Y :: char where "Y = CHR ''y''"
+definition Z :: char where "Z = CHR ''z''"
+
+lemma vars_distinct [simp]: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z" "Y \<noteq> X" "Z \<noteq> X" "Z \<noteq> Y"
+  unfolding X_def Y_def Z_def by auto
+
+subsection \<open>Big-step semantics: simple examples\<close>
 
 text \<open>Send 1 immediately\<close>
 lemma test1a: "big_step (Cm (''ch''[!](\<lambda>_. 1)))
@@ -123,7 +131,7 @@ lemma test11: "big_step (Cont (ODE ((\<lambda>_ _. 0)(X := (\<lambda>_. 1)))) (\
   apply (rule has_vector_derivative_projI)
   by (auto intro!: derivative_intros)
 
-text \<open>Interrupt examples\<close>
+subsection \<open>Big-step semantics: interrupt\<close>
 
 text \<open>Exit through boundary\<close>
 lemma test_interrupt1:
@@ -150,10 +158,10 @@ lemma test_interrupt3:
     (\<lambda>_. 0) [WaitBlk (1::real) (\<lambda>t. State ((\<lambda>_. 0)(X := t))) ({''ch''}, {}),
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
-         apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
-apply(rule exI[where x="1"])
-  apply auto
-  apply (rule has_vector_derivative_projI)
+  apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
+   apply (rule exI[where x="1"])
+   apply auto
+   apply (rule has_vector_derivative_projI)
    apply (auto intro!: derivative_intros)
   apply (rule big_step_cong) apply (rule assignB) by auto
 
@@ -164,7 +172,7 @@ lemma test_interrupt4:
              OutBlock ''ch'' 1] ((\<lambda>_. 0)(X := 3))"
   apply (rule InterruptSendB2)
          apply (auto simp add: ODEsol_def state2vec_def fun_upd_def has_vderiv_on_def)
-apply(rule exI[where x="1"])
+   apply (rule exI[where x="1"])
   apply auto
   apply (rule has_vector_derivative_projI)
   apply (auto intro!: derivative_intros)
@@ -172,10 +180,11 @@ apply(rule exI[where x="1"])
 
 subsection \<open>Difference between internal and external choice\<close>
 
-text \<open>This example shows the difference between semantics of internal
-and external choice. We begin with the process with internal choice,
-  (ch1!1 \<squnion> ch2!2)*,
-which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
+text \<open>
+  This example shows the difference between semantics of internal
+  and external choice. We begin with the process with internal choice,
+    (ch1!1 \<squnion> ch2!2)*,
+  which can produce the trace (2,s,{ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_internal:
   "big_step (Rep (IChoice (Cm (''ch1''[!](\<lambda>_. 1))) (Cm (''ch2''[!](\<lambda>_. 2)))))
@@ -190,9 +199,10 @@ lemma test_internal:
      apply (rule sendB1) apply (rule RepetitionB1)
   by auto
 
-text \<open>For external choice, the process
-  (ch1!1 \<rightarrow> skip $ ch2!2 \<rightarrow> skip)*
-produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
+text \<open>
+  For external choice, the process
+    (ch1!1 \<rightarrow> skip $ ch2!2 \<rightarrow> skip)*
+  produces the trace (2,s,{ch1!,ch2!})^(ch2!,2)^(ch1!,1).
 \<close>
 lemma test_external:
   "big_step (Rep (EChoice [(''ch1''[!](\<lambda>_. 1), Skip), (''ch2''[!](\<lambda>_. 2), Skip)]))
@@ -207,9 +217,10 @@ lemma test_external:
       apply auto apply (rule skipB)
   by (rule RepetitionB1)
 
-text \<open>The other side is the process
-  (wait 1; ch1?x) || (wait 2; ch2?x),
-which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
+text \<open>
+  The other side is the process
+    (wait 1; ch1?x) || (wait 2; ch2?x),
+  which can produce the trace (1,s,{})^(1,s,{ch1?})^(ch2?,2)^(ch1?,1).
 \<close>
 lemma test_internal_other:
   "par_big_step (Parallel (Single (Wait (\<lambda>_. 1); Cm (''ch1''[?]X))) {}
@@ -243,12 +254,13 @@ proof -
     by (rule combine_blocks_empty)
 qed
 
-text \<open>The two sides can be synchronized, so the process
-  (ch1!1 \<squnion> ch2!2)* || ((wait 1; ch1?x) || (wait 2; ch2?x))
-can produce the trace (1,s,{ch2!})^(1,s,{ch1?,ch2!})^(ch2,2)^(ch1,1).
+text \<open>
+  The two sides can be synchronized, so the process
+    (ch1!1 \<squnion> ch2!2)* || ((wait 1; ch1?x) || (wait 2; ch2?x))
+  can produce the trace (1,s,{ch2!})^(1,s,{ch1?,ch2!})^(ch2,2)^(ch1,1).
 
-However, for the case of external choice, the two sides cannot be
-synchronized, since the test of compat_rdy fails in the time interval (1,2).
+  However, for the case of external choice, the two sides cannot be
+  synchronized, since the test of compat_rdy fails in the time interval (1,2).
 \<close>
 lemma test_internal_parallel:
   "par_big_step (Parallel
@@ -293,7 +305,7 @@ lemma test_combine2_unique:
    blks = [OutBlock ''ch2'' w, InBlock ''ch1'' v]"
   apply (elim combine_blocks_unpairE2) by (auto elim: sync_elims)
 
-subsection \<open>Simple examples of proofs\<close>
+subsection \<open>Examples of proofs using bare assertions\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1:
@@ -340,26 +352,25 @@ lemma testHL4:
    apply (rule testHL3)
   unfolding entails_def by auto
 
-
-subsection \<open>Simple examples redone\<close>
+subsection \<open>Examples of proofs using simplified assertions\<close>
 
 text \<open>Send 1\<close>
 lemma testHL1s:
-  "\<Turnstile> {\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- P s}
+  "\<Turnstile> {\<lambda>s. Out\<^sub>t (State s) ''ch'' (s X) @- P s}
        Cm (''ch''[!](\<lambda>s. s X))
       {P}"
   by (rule Valid_send')
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL1s':
-  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+  "\<Turnstile> {\<lambda>s. P s}
        Cm (''ch''[!](\<lambda>s. s X))
-      {\<lambda>s tr. s = st \<and> (P @\<^sub>t Out\<^sub>t st ''ch'' (st X)) tr}"
+      {\<lambda>s. (P s @\<^sub>t Out\<^sub>t (State s) ''ch'' (s X))}"
   by (rule Valid_send_sp)
 
 text \<open>Send 1, then send 2\<close>
 lemma testHL2s:
-  "\<Turnstile> {\<lambda>s. Out\<^sub>t s ''ch'' (s X) @- Out\<^sub>t s ''ch'' (s Y) @- P s}
+  "\<Turnstile> {\<lambda>s. Out\<^sub>t (State s) ''ch'' (s X) @- Out\<^sub>t (State s) ''ch'' (s Y) @- P s}
         Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y))
       {P}"
   apply (rule Valid_seq)
@@ -368,32 +379,32 @@ lemma testHL2s:
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL2s':
-  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+  "\<Turnstile> {\<lambda>s. P s}
         Cm (''ch''[!](\<lambda>s. s X)); Cm (''ch''[!](\<lambda>s. s Y))
-      {\<lambda>s tr. s = st \<and> (P @\<^sub>t (Out\<^sub>t s ''ch'' (s X)) @\<^sub>t (Out\<^sub>t s ''ch'' (s Y))) tr}"
+      {\<lambda>s. (P s @\<^sub>t (Out\<^sub>t (State s) ''ch'' (s X)) @\<^sub>t (Out\<^sub>t (State s) ''ch'' (s Y)))}"
   apply (rule Valid_seq)
    apply (rule Valid_send_sp)
   apply (rule Valid_strengthen_post)
    prefer 2 apply (rule Valid_send_sp)
-  by (auto simp add: entails_def join_assoc)
+  by (auto simp add: join_assoc)
 
 text \<open>Receive from ch\<close>
 lemma testHL3s:
-  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- P (s(X := v))}
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t (State s) ''ch'' v @- P (s(X := v))}
         Cm (''ch''[?]X)
       {P}"
   by (rule Valid_receive')
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL3s':
-  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+  "\<Turnstile> {\<lambda>s. P s}
        Cm (''ch''[?]X)
-      {\<lambda>s tr. \<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v) tr}"
+      {\<lambda>s t. \<exists>x v. (\<up>(s X = v) \<and>\<^sub>t (P(s(X := x)) @\<^sub>t In\<^sub>t (State (s(X := x))) ''ch'' v)) t}"
   by (rule Valid_receive_sp)
 
 text \<open>Receive two values in a row\<close>
 lemma testHL3a:
-  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch'' v @- (\<forall>\<^sub>tw. In\<^sub>t (s(X := v)) ''ch'' w @- P (s(X := w)))}
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t (State s) ''ch'' v @- (\<forall>\<^sub>tw. In\<^sub>t (State (s(X := v))) ''ch'' w @- P (s(X := w)))}
         Cm (''ch''[?]X); Cm (''ch''[?]X)
       {P}"
   apply (rule Valid_weaken_pre) prefer 2
@@ -404,17 +415,20 @@ lemma testHL3a:
 
 text \<open>Strongest postcondition form\<close>
 lemma testHL3a':
-  "\<Turnstile> {\<lambda>s tr. s = st \<and> P tr}
+  "\<Turnstile> {\<lambda>s. P s}
         Cm (''ch''[?]X); Cm (''ch''[?]X)
-      {\<lambda>s tr. \<exists>v w. s = st(X := w) \<and> (P @\<^sub>t In\<^sub>t st ''ch'' v @\<^sub>t In\<^sub>t (st(X := v)) ''ch'' w) tr}"
+      {\<lambda>s t. \<exists>x v w. (\<up>(s X = w) \<and>\<^sub>t (P(s(X := x)) @\<^sub>t In\<^sub>t (State (s(X := x))) ''ch'' v @\<^sub>t In\<^sub>t (State (s(X := v))) ''ch'' w)) t}"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
-  apply (rule Valid_ex_pre)
-  subgoal for v apply (rule Valid_ex_post)
+  apply (rule Valid_ex_pre) apply (rule Valid_ex_pre)
+  subgoal for x v apply (rule Valid_ex_post)
+    apply (rule exI[where x=x])
+    apply (rule Valid_ex_post)
     apply (rule exI[where x=v])
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_receive_sp)
-    by (auto simp add: entails_def join_assoc)
+    apply (auto simp add: entails_def join_assoc)
+    by (auto simp add: conj_assn_def pure_assn_def)
   done
 
 text \<open>Communication\<close>
@@ -431,19 +445,24 @@ lemma testHL4s:
      apply (rule testHL1s')
     apply (rule testHL3s')
    apply auto[1]
-  apply (auto simp add: sing_gassn_ex sing_gassn_split)
-  apply (rule sync_gassn_ex_pre_right)
-  subgoal for v
-    unfolding sync_gassn_state_left sync_gassn_state_right
-    apply (rule and_entails_gassn2[OF sync_gassn_traces])
-    apply (rule and_entails_gassn2[OF entails_trace_gassn])
-     apply (rule combine_assn_out_in') apply auto
-    by (auto simp add: entails_gassn_def and_gassn_def conj_assn_def pure_assn_def trace_gassn_def)
+  apply (auto simp add: sing_gassn_ex)
+  apply (intro sync_gassn_ex_pre_right)
+  subgoal for x v
+    apply (auto simp add: entails_gassn_def)
+    subgoal for s tr
+      apply (elim sync_gassn_expand)
+      subgoal for s1 s2
+        apply (auto simp add: combine_assn_and_left combine_assn_and_right)
+        apply (auto simp add: conj_assn_def pure_assn_def)
+        apply (drule combine_assn_out_in'_tr)
+        by (auto simp add: and_gassn_def trace_gassn_def)
+      done
+    done
   done
 
 text \<open>Receive then send\<close>
 lemma testHL5:
-  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Out\<^sub>t (s(X := v)) ''ch2'' (v + 1) @- Q (s(X := v))}
+  "\<Turnstile> {\<lambda>s. \<forall>\<^sub>tv. In\<^sub>t (State s) ''ch1'' v @- Out\<^sub>t (State (s(X := v))) ''ch2'' (v + 1) @- Q (s(X := v))}
         Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1))
       {Q}"
   apply (rule Valid_weaken_pre)
@@ -455,25 +474,25 @@ lemma testHL5:
 text \<open>Receive then send, strongest postcondition version\<close>
 lemma testHL5sp:
   "\<Turnstile>
-    {\<lambda>s tr. s = st \<and> P s tr}
+    {\<lambda>s. P s}
       Cm (''ch1''[?]X); Cm (''ch2''[!](\<lambda>s. s X + 1))
-    {\<lambda>s tr. \<exists>v. s = st(X := v) \<and> ((P st @\<^sub>t In\<^sub>t st ''ch1'' v) @\<^sub>t Out\<^sub>t (st(X := v)) ''ch2'' (v + 1)) tr}"
+    {\<lambda>s t. \<exists>x v. (P(s(X := x)) @\<^sub>t In\<^sub>t (State (s(X := x))) ''ch1'' v @\<^sub>t Out\<^sub>t (State s) ''ch2'' (v + 1)) t}"
   apply (rule Valid_seq)
    apply (rule Valid_receive_sp)
-  apply (rule Valid_ex_pre)
-  subgoal for v
+  apply (rule Valid_ex_pre) apply (rule Valid_ex_pre)
+  subgoal for x v
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_send_sp)
-    by (auto simp add: entails_def)
+    by (auto simp add: entails_def join_assoc conj_assn_def pure_assn_def)      
   done
 
-subsection \<open>Test for internal choice\<close>
+subsection \<open>Examples of proofs: internal choice\<close>
 
 text \<open>Contrast this with the case of internal choice\<close>
 lemma ichoice_test1:
   "\<Turnstile>
-    {\<lambda>s. (\<forall>\<^sub>tv. In\<^sub>t s ''ch1'' v @- Q (s(X := v))) \<and>\<^sub>t
-         (\<forall>\<^sub>tv. In\<^sub>t s ''ch2'' v @- Q (s(X := v)))}
+    {\<lambda>s. (\<forall>\<^sub>tv. In\<^sub>t (State s) ''ch1'' v @- Q (s(X := v))) \<and>\<^sub>t
+         (\<forall>\<^sub>tv. In\<^sub>t (State s) ''ch2'' v @- Q (s(X := v)))}
       IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X))
     {Q}"
   apply (rule Valid_weaken_pre)
@@ -482,91 +501,21 @@ lemma ichoice_test1:
   unfolding entails_def conj_assn_def by auto
 
 text \<open>Strongest postcondition form\<close>
-
 lemma ichoice_test1':
   "\<Turnstile>
-    {\<lambda>s tr. s = st \<and> P tr}
+    {\<lambda>s. P s}
       IChoice (Cm (''ch1''[?]X)) (Cm (''ch2''[?]X))
-    {\<lambda>s tr. (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch1'' v) tr) \<or>
-            (\<exists>v. s = st(X := v) \<and> (P @\<^sub>t In\<^sub>t st ''ch2'' v) tr)}"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule ichoice_test1)
-  apply (auto simp add: entails_def conj_assn_def magic_wand_assn_def join_assn_def all_assn_def)
-  subgoal for tr v tr'
-    apply (rule exI[where x=v])
-    apply auto
-    apply (rule exI[where x=tr])
-    by auto
-  done
+    {\<lambda>s tr. (\<exists>x v. (\<up>(s X = v) \<and>\<^sub>t (P(s(X := x)) @\<^sub>t In\<^sub>t (State (s(X := x))) ''ch1'' v)) tr) \<or>
+            (\<exists>x v. (\<up>(s X = v) \<and>\<^sub>t (P(s(X := x)) @\<^sub>t In\<^sub>t (State (s(X := x))) ''ch2'' v)) tr)}"
+  apply (rule Valid_strengthen_post)
+   prefer 2 apply (rule Valid_ichoice_sp)
+    apply (rule Valid_receive_sp)
+  apply (rule Valid_receive_sp) by auto
 
-subsection \<open>Test for external choice\<close>
+subsection \<open>Examples of proofs: external choice\<close>
 
-text \<open>Some special cases of EChoice\<close>
-
-lemma InIn_lemma:
-  assumes "Q ch1 var1 p1"
-    and "Q ch2 var2 p2"
-    and "i < length [(ch1[?]var1, p1), (ch2[?]var2, p2)]"
-  shows "case [(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i of
-            (ch[!]e, p1) \<Rightarrow> P ch e p1
-          | (ch[?]var, p1) \<Rightarrow> Q ch var p1"
-proof -
-  have "case comm of ch[!]e \<Rightarrow> P ch e p | ch[?]var \<Rightarrow> Q ch var p"
-    if "i < Suc (Suc 0)"
-       "[(ch1[?]var1, p1), (ch2[?]var2, p2)] ! i = (comm, p)" for comm p i
-  proof -
-    have "i = 0 \<or> i = 1"
-      using that(1) by auto
-    then show ?thesis
-      apply (rule disjE)
-      using that(2) assms by auto
-  qed
-  then show ?thesis
-    using assms(3) by auto
-qed
-
-theorem Valid_echoice_InIn:
-  assumes "\<Turnstile> {Q1} p1 {R}"
-    and "\<Turnstile> {Q2} p2 {R}"
-  shows "\<Turnstile>
-    {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
-            (\<forall>d::real>0. \<forall>v. Q1 (s(var1 := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch1, ch2}), InBlock ch1 v])) \<and>
-            (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
-            (\<forall>d::real>0. \<forall>v. Q2 (s(var2 := v)) (tr @ [WaitBlk d (\<lambda>_. State s) ({}, {ch1, ch2}), InBlock ch2 v]))}
-      EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
-    {R}"
-  apply (rule Valid_echoice)
-  apply (rule InIn_lemma)
-  subgoal apply (rule exI[where x=Q1])
-    by (auto simp add: assms entails_def)
-  apply (rule exI[where x=Q2])
-  by (auto simp add: assms entails_def)
-
-theorem Valid_echoice_InIn':
-  assumes "\<Turnstile> {Q1} p1 {R}"
-    and "\<Turnstile> {Q2} p2 {R}"
-  shows "\<Turnstile>
-    {\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch1 v ({}, {ch1, ch2})) @- Q1 (s(var1 := v)))) \<and>\<^sub>t
-         (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ch2 v ({}, {ch1, ch2})) @- Q2 (s(var2 := v))))}
-      EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
-    {R}"
-  apply (rule Valid_weaken_pre)
-   prefer 2 apply (rule Valid_echoice_InIn[OF assms(1-2)])
-  apply (auto simp add: entails_def magic_wand_assn_def conj_assn_def all_assn_def)
-  by (auto simp add: inrdy_assn.intros)
-
-theorem Valid_echoice_InIn_sp:
-  assumes "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var1 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch1 v ({}, {ch1, ch2})) tr} p1 {Q1 v}"
-    and "\<And>v. \<Turnstile> {\<lambda>s tr. s = st(var2 := v) \<and> (P st @\<^sub>t Inrdy\<^sub>t st ch2 v ({}, {ch1, ch2})) tr} p2 {Q2 v}"
-  shows
-   "\<Turnstile> {\<lambda>s tr. s = st \<and> P s tr}
-        EChoice [(ch1[?]var1, p1), (ch2[?]var2, p2)]
-       {\<lambda>s tr. (\<exists>v. Q1 v s tr) \<or> (\<exists>v. Q2 v s tr)}"
-  apply (rule Valid_echoice_sp)
-  apply (rule InIn_lemma)
-  using assms apply (auto simp add: Valid_def) by blast+
-
-lemma echoice_test1:
+text \<open>A simple test\<close>
+lemma echoice_test:
   "\<Turnstile>
     {\<lambda>s. (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch1'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v)))) \<and>\<^sub>t
          (\<forall>\<^sub>tv. ((Inrdy\<^sub>t s ''ch2'' v ({}, {''ch1'', ''ch2''})) @- Q (s(X := v))))}
@@ -577,7 +526,7 @@ lemma echoice_test1:
   by (rule Valid_skip)
 
 text \<open>Strongest postcondition form\<close>
-lemma testEChoice1:
+lemma echoice_test_sp:
   "\<Turnstile>
     {\<lambda>s tr. s = st \<and> P s tr}
       EChoice [(''ch1''[?]X, Y ::= (\<lambda>s. s Y + s X)), (''ch2''[?]X, Y ::= (\<lambda>s. s Y - s X))]
@@ -586,10 +535,18 @@ lemma testEChoice1:
   apply (rule Valid_strengthen_post)
   prefer 2
    apply (rule Valid_echoice_InIn_sp)
-    apply (rule Valid_assign_sp)
-   apply (rule Valid_assign_sp)
+    apply (rule Valid_assign_sp_st)
+   apply (rule Valid_assign_sp_st)
   by auto
 
+text \<open>
+  Now we do a more complex example. The program is:
+    (ch1?x -> y := y + x [] ch2?x -> y := y - x)*
+
+  The loop invariant takes two arguments: the current state and
+  a list of direction-value pairs, where direction is either CH1 or CH2,
+  specifying from which channel is the value received.
+\<close>
 datatype dir = CH1 | CH2
 
 fun echoice_ex_inv :: "state \<Rightarrow> (dir \<times> real) list \<Rightarrow> tassn" where
@@ -639,8 +596,8 @@ lemma testEChoice:
     apply (rule Valid_strengthen_post)
     prefer 2
      apply (rule Valid_echoice_InIn_sp)
-    apply (rule Valid_assign_sp)
-     apply (rule Valid_assign_sp)
+    apply (rule Valid_assign_sp_st)
+     apply (rule Valid_assign_sp_st)
     apply (auto simp add: entails_def)
     subgoal for tr v
       apply (rule exI[where x="ins@[(CH1,v)]"])
@@ -654,16 +611,17 @@ lemma testEChoice:
   by (auto simp add: emp_assn_def)
 
 
-subsection \<open>Examples for loops\<close>
+subsection \<open>Example of loops\<close>
 
-text \<open>First example simply counts up variable X.\<close>
-
+text \<open>First example simply counts up variable X:
+  c1 ::= (x := x + 1; ch!x)*
+\<close>
 fun count_up_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
   "count_up_inv a 0 = emp\<^sub>t"
-| "count_up_inv a (Suc n) = Out\<^sub>t ((\<lambda>_. 0)(X := a + 1)) ''ch'' (a + 1) @\<^sub>t count_up_inv (a + 1) n"
+| "count_up_inv a (Suc n) = Out\<^sub>t (State ((\<lambda>_. 0)(X := a + 1))) ''ch'' (a + 1) @\<^sub>t count_up_inv (a + 1) n"
 
 lemma count_up_inv_Suc:
-  "count_up_inv a (Suc n) = count_up_inv a n @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := a + real n + 1)) ''ch'' (a + real n + 1)"
+  "count_up_inv a (Suc n) = count_up_inv a n @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := a + real n + 1))) ''ch'' (a + real n + 1)"
   apply (induct n arbitrary: a)
    apply (auto simp add: join_assoc)
   by (smt join_assoc)
@@ -678,20 +636,27 @@ lemma testLoop1:
   apply (rule Valid_ex_pre)
   subgoal for n
     apply (rule Valid_seq)
-    apply (rule Valid_assign_sp)
+     apply (rule Valid_assign_sp)
+    apply (rule Valid_ex_pre)
+    subgoal for x
   apply (rule Valid_strengthen_post) prefer 2
      apply (rule Valid_send_sp)
     apply (auto simp add: entails_def)
     apply (rule exI[where x="Suc n"])
-    by (auto simp add: count_up_inv_Suc simp del: count_up_inv.simps)    
+      apply (auto simp add: count_up_inv_Suc conj_assn_def pure_assn_def simp del: count_up_inv.simps)
+       apply (metis add.commute add.left_commute fun_upd_idem_iff fun_upd_upd)
+      by (metis fun_upd_same fun_upd_triv fun_upd_upd)
+    done
   apply (auto simp add: entails_def)
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
 
-text \<open>In each iteration, increment by 1, output, then increment by 2.\<close>
+text \<open>Second example: in each iteration, increment by 1, output, then increment by 2:
+  c2 ::= (x := x + 1; ch!x; x := x + 2)*
+\<close>
 fun count_up3_inv :: "nat \<Rightarrow> tassn" where
   "count_up3_inv 0 = emp\<^sub>t"
-| "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>t ((\<lambda>_. 0)(X := 3 * real n + 1)) ''ch'' (3 * real n + 1)"
+| "count_up3_inv (Suc n) = count_up3_inv n @\<^sub>t Out\<^sub>t (State ((\<lambda>_. 0)(X := 3 * real n + 1))) ''ch'' (3 * real n + 1)"
 
 lemma testLoop2:
   "\<Turnstile>
@@ -704,30 +669,42 @@ lemma testLoop2:
   subgoal for n
     apply (rule Valid_seq)
      apply (rule Valid_assign_sp)
+    apply (rule Valid_ex_pre)
+    subgoal for x
     apply (rule Valid_seq)
      apply (rule Valid_send_sp)
     apply (rule Valid_strengthen_post)
-     prefer 2 apply (rule Valid_assign_sp)
+       prefer 2 apply (rule Valid_assign_sp)
     apply (auto simp add: entails_def)
     apply (rule exI[where x="Suc n"])
-    by auto
+      apply (auto simp add: conj_assn_def pure_assn_def)
+       apply (frule fun_upd_eqD)
+      apply auto apply (metis fun_upd_idem_iff fun_upd_upd)
+      apply (frule fun_upd_eqD)
+      apply auto
+      by (metis (full_types) fun_upd_upd)
+    done
     apply (auto simp add: entails_def)
   apply (rule exI[where x=0])
   by (auto simp add: emp_assn_def)
 
-text \<open>Example that repeatedly receives on X\<close>
+text \<open>Third example: repeatedly receive value to variable y:
+  c3 ::= (ch?y)*
+\<close>
 
-text \<open>Here a is the starting value of X\<close>
+text \<open>Loop invariant, here
+  - a is the starting value of y.
+\<close>
 fun receive_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "receive_inv a [] = emp\<^sub>t"
-| "receive_inv a (x # xs) = In\<^sub>t ((\<lambda>_. 0)(Y := a)) ''ch'' x @\<^sub>t receive_inv x xs"
+| "receive_inv a (x # xs) = In\<^sub>t (State ((\<lambda>_. 0)(Y := a))) ''ch'' x @\<^sub>t receive_inv x xs"
 
 fun last_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_val a [] = a"
 | "last_val a (x # xs) = last_val x xs"
 
 lemma receive_inv_snoc:
-  "receive_inv a (xs @ [v]) = receive_inv a xs @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(Y := last_val a xs)) ''ch'' v"
+  "receive_inv a (xs @ [v]) = receive_inv a xs @\<^sub>t In\<^sub>t (State ((\<lambda>_. 0)(Y := last_val a xs))) ''ch'' v"
   apply (induct xs arbitrary: a)
   by (auto simp add: join_assoc)
 
@@ -747,27 +724,35 @@ lemma testLoop3:
     apply (rule Valid_strengthen_post)
      prefer 2 apply (rule Valid_receive_sp)
     apply (auto simp add: entails_def)
-    subgoal for tr v
+    subgoal for s tr x v
       apply (rule exI[where x="xs@[v]"])
-      by (auto simp add: receive_inv_snoc)
+      apply (auto simp add: conj_assn_def pure_assn_def receive_inv_snoc)
+      by (metis fun_upd_triv fun_upd_upd)
     done
   apply (auto simp add: entails_def)
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
-text \<open>Example that repeated receives, and add the input values\<close>
+text \<open>Fourth example: repeated receives and adds the input values:
+  c4 ::= (ch?y; x := x + y)*
+\<close>
 
-text \<open>Here a is the starting value of X, b is the starting value of Y\<close>
+text \<open>Loop invariant, here
+  - a is the starting value of x,
+  - b is the starting value of y.
+\<close>
 fun receive_add_inv :: "real \<Rightarrow> real \<Rightarrow> real list \<Rightarrow> tassn" where
   "receive_add_inv a b [] = emp\<^sub>t"
-| "receive_add_inv a b (x # xs) = In\<^sub>t ((\<lambda>_. 0)(X := a, Y := b)) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
+| "receive_add_inv a b (x # xs) = In\<^sub>t (State ((\<lambda>_. 0)(X := a, Y := b))) ''ch'' x @\<^sub>t receive_add_inv (a + x) x xs"
 
 fun last_add_val :: "real \<Rightarrow> real list \<Rightarrow> real" where
   "last_add_val a [] = a"
 | "last_add_val a (x # xs) = last_add_val (a + x) xs"
 
 lemma receive_add_inv_snoc:
-  "receive_add_inv a b (xs @ [v]) = receive_add_inv a b xs @\<^sub>t In\<^sub>t ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs)) ''ch'' v"
+  "receive_add_inv a b (xs @ [v]) =
+    receive_add_inv a b xs @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(X := last_add_val a xs, Y := last_val b xs))) ''ch'' v"
   apply (induct xs arbitrary: a b)
   by (auto simp add: join_assoc)
 
@@ -786,15 +771,16 @@ lemma testLoop4:
   subgoal for xs
     apply (rule Valid_seq)
      apply (rule Valid_receive_sp)
-    apply (rule Valid_ex_pre)
-    subgoal for v
+    apply (intro Valid_ex_pre)
+    subgoal for x v
       apply (rule Valid_strengthen_post)
        prefer 2
        apply (rule Valid_assign_sp)
     apply (auto simp add: entails_def)
-    subgoal for tr
+    subgoal for s tr x'
       apply (rule exI[where x="xs@[v]"])
-      by (auto simp add: receive_add_inv_snoc)
+      apply (auto simp add: receive_add_inv_snoc conj_assn_def pure_assn_def)
+      by (smt fun_upd_same fun_upd_triv fun_upd_twist fun_upd_upd)
     done
   done
   apply (auto simp add: entails_def)
@@ -803,6 +789,11 @@ lemma testLoop4:
 
 subsection \<open>Example of parallel\<close>
 
+text \<open>
+  We consider the parallel of c1 || c3. Recall
+    c1 ::= (x := x + 1; ch!x)*
+    c3 ::= (ch?y)*
+\<close>
 fun count_up_io_inv :: "real \<Rightarrow> nat \<Rightarrow> tassn" where
   "count_up_io_inv a 0 = emp\<^sub>t"
 | "count_up_io_inv a (Suc n) = IO\<^sub>t ''ch'' (a + 1) @\<^sub>t count_up_io_inv (a + 1) n"
