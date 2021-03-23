@@ -396,7 +396,7 @@ class SL_Diagram:
             # Delete spaces in block_name
             block_name = block.getAttribute("Name")
             sample_time = get_attribute_value(block, "SampleTime")
-            if not sample_time:
+            if (not sample_time) and block_type in default_SampleTimes:
                 sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
          
