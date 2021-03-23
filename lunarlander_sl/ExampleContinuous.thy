@@ -2,6 +2,15 @@ theory ExampleContinuous
   imports BigStepParallel
 begin
 
+text \<open>Some common variables\<close>
+definition X :: char where "X = CHR ''x''"
+definition Y :: char where "Y = CHR ''y''"
+definition Z :: char where "Z = CHR ''z''"
+
+lemma vars_distinct [simp]: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z" "Y \<noteq> X" "Z \<noteq> X" "Z \<noteq> Y"
+  unfolding X_def Y_def Z_def by auto
+
+subsection \<open>Examples of ODE\<close>
 
 lemma example_ode:
   "\<Turnstile> {\<lambda>s tr. \<forall>s'. (ODE\<^sub>t (s(X := s X + 1)) ode b s' @- Q s') tr}
@@ -26,37 +35,11 @@ lemma example_ode':
   done
 
 
-subsection \<open>Version of interrupt with two communications\<close>
-
-theorem Valid_interrupt_InIn:
-  assumes "\<Turnstile> {Q1} p1 {R}"
-    and "\<Turnstile> {Q2} p2 {R}"
-  shows "\<Turnstile>
-    {\<lambda>s tr. (\<forall>v. Q1 (s(var1 := v)) (tr @ [InBlock ch1 v])) \<and>
-            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
-                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q1 ((p d)(var1 := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2}),
-                                             InBlock ch1 v])) \<and>
-            (\<forall>v. Q2 (s(var2 := v)) (tr @ [InBlock ch2 v])) \<and>
-            (\<forall>d>0. \<forall>p v. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
-                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow>
-                Q2 ((p d)(var2 := v)) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2}),
-                                             InBlock ch2 v])) \<and>
-            (\<not>b s \<longrightarrow> R s tr) \<and>
-            (\<forall>d>0. \<forall>p. ODEsol ode p d \<longrightarrow> p 0 = s \<longrightarrow>
-                (\<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> b (p t)) \<longrightarrow> \<not>b (p d) \<longrightarrow>
-                R (p d) (tr @ [WaitBlk d (\<lambda>\<tau>. State (p \<tau>)) ({}, {ch1, ch2})]))}
-      Interrupt ode b [(ch1[?]var1, p1), (ch2[?]var2, p2)]
-    {R}"
-  apply (rule Valid_interrupt)
-  apply (rule InIn_lemma)
-  subgoal apply (rule exI[where x=Q1])
-    by (auto simp add: assms entails_def)
-  apply (rule exI[where x=Q2])
-  unfolding entails_def using assms by auto  
-
 subsection \<open>Tests for ODE\<close>
 
+text \<open>
+  c ::= <x_dot = 1 & x < 1>
+\<close>
 lemma testHL12:
   assumes "a < 1"
   shows "\<Turnstile>
@@ -92,6 +75,17 @@ qed
 
 subsection \<open>Test with ODE, loop and parallel\<close>
 
+text \<open>
+  The system to be analyzed is c1 || c2, where
+    c1 ::= (<x_dot = 1 & x < 1>; ch1!x; ch2?x>)*
+    c2 ::= (ch1?y; ch2!(y-1))*
+\<close>
+
+text \<open>
+  For the left side, there are two cases for analyzing the loop body:
+   - if initial value of x is less than 1 (testHL13a') and
+   - if initial value of x is not less than 1 (testHL13a'').
+\<close>
 lemma testHL13a':
   assumes "a < 1"
   shows "\<Turnstile>
@@ -152,8 +146,12 @@ lemma testHL13a'':
    prefer 2 apply (rule Valid_receive_sp_st)
   by (auto simp add: entails_def join_assoc)
 
-
-text \<open>a is the initial value of X\<close>
+text \<open>
+  Trace invariant to be satisfied by the left side.
+  Here
+   - a is the initial value of variable x,
+   - vs is the list of values received from channel ch2.
+\<close>
 fun left_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "left_blocks a [] = emp\<^sub>t"
 | "left_blocks a (v # rest) =
@@ -215,6 +213,12 @@ lemma testHL13a:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
+text \<open>
+  Trace invariant to be satisfied by the right side.
+  Here
+   - a is the initial value of variable y,
+   - vs is the list of values received from channel ch1.
+\<close>
 fun right_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "right_blocks a [] = emp\<^sub>t"
 | "right_blocks a (v # rest) =
@@ -256,6 +260,9 @@ lemma testHL13b:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
+text \<open>
+  Trace invariant for the overall system.
+\<close>
 fun tot_blocks :: "nat \<Rightarrow> tassn" where
   "tot_blocks 0 = emp\<^sub>t"
 | "tot_blocks (Suc n) = (
@@ -337,6 +344,15 @@ lemma testHL13:
 
 subsection \<open>Test with interrupt, loop and parallel\<close>
 
+text \<open>
+  The system to be analyzed is c1 || c2, where
+    c1 ::= (<x_dot = 1 & True> |> [](ch1!x -> skip); ch2?x)*
+    c2 ::= (wait 1; ch1?y; ch2!(y-1))*
+\<close>
+
+text \<open>
+  For the left side, first anlyze the ODE with interrupt.
+\<close>
 lemma testHL14o:
   "\<Turnstile>
     {\<lambda>s tr. s = (\<lambda>_. 0)(X := a) \<and> P tr}
@@ -370,6 +386,12 @@ proof -
      apply (rule Valid_skip) by auto
 qed
 
+text \<open>
+  Trace invariant to be satisfied by the left side.
+  Here
+   - a is the initial value of variable x,
+   - ps is a list of pairs (d, v), where d is delay and v is received value.
+\<close>
 fun ileft_blocks :: "real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
   "ileft_blocks a [] = emp\<^sub>t"
 | "ileft_blocks a ((d, v) # rest) =
@@ -420,6 +442,12 @@ lemma testHL14a:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
+text \<open>
+  Trace invariant to be satisfied by the right side.
+  Here
+   - a is the initial value of variable y,
+   - vs is the list of values received from channel ch1.
+\<close>
 fun iright_blocks :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "iright_blocks a [] = emp\<^sub>t"
 | "iright_blocks a (v # rest) =
@@ -470,6 +498,9 @@ lemma testHL14b:
   apply (rule exI[where x="[]"])
   by (auto simp add: emp_assn_def)
 
+text \<open>
+  Trace invariant for the overall system.
+\<close>
 fun tot_blocks2 :: "nat \<Rightarrow> tassn" where
   "tot_blocks2 0 = emp\<^sub>t"
 | "tot_blocks2 (Suc n) = (

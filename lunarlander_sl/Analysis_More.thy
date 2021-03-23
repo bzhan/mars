@@ -92,15 +92,15 @@ qed
 
 
 lemma real_inv_le:
-  fixes p :: "real \<Rightarrow>real"
- assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e}) "
-  and "d \<ge> 0"
-  and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> q t 1 < 0)"
-  and "p 0 \<le> 0 "
-  and "x \<in> {0 .. d}"
-  and "e>0"
-shows "p x \<le> 0" 
-proof(rule ccontr) 
+  fixes p :: "real \<Rightarrow> real"
+  assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e})"
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> q t 1 < 0)"
+    and "p 0 \<le> 0 "
+    and "x \<in> {0 .. d}"
+    and "e > 0"
+  shows "p x \<le> 0" 
+proof (rule ccontr) 
   assume a:" \<not> p x \<le> 0"
   have 1:"p x > 0"
     using a by auto
@@ -186,14 +186,6 @@ subsection \<open>Definition of states\<close>
 
 text \<open>Variable names\<close>
 type_synonym var = char
-
-text \<open>Some common variables\<close>
-definition X :: char where "X = CHR ''x''"
-definition Y :: char where "Y = CHR ''y''"
-definition Z :: char where "Z = CHR ''z''"
-
-lemma vars_distinct [simp]: "X \<noteq> Y" "X \<noteq> Z" "Y \<noteq> Z" "Y \<noteq> X" "Z \<noteq> X" "Z \<noteq> Y"
-  unfolding X_def Y_def Z_def by auto
 
 text \<open>State\<close>
 type_synonym state = "var \<Rightarrow> real"
@@ -343,11 +335,11 @@ qed
       have step3:"t \<in> {- e..d - t1 + e} \<Longrightarrow> t + t1 \<in> {t1 - e..d + e}" for t
         using e assms by auto
       show ?thesis
-        apply(rule exI[where x=e])
+        apply (rule exI[where x=e])
         apply auto 
         subgoal using e by auto
         using has_vderiv_on_compose2[of "(\<lambda>t. state2vec (p (t)))" "(\<lambda>t. ODE2Vec ode (p (t)))" "{t1-e..d+e}" "(\<lambda>t.(t+t1))" "(\<lambda>t. 1)" " {-e..d-t1+e}"]
-        using step1 step2 step3  by auto
+        using step1 step2 step3 by auto
     qed
     done
   done

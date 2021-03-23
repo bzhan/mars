@@ -277,12 +277,17 @@ class SF_State:
         if self.funs:
             for fun in self.funs:
                 assert (self.name, fun.name) not in fun_dict
-                fun_dict[(self.name, fun.name)] = fun.parse()
+                name=str(fun.name)
+                if "(" in name:
+                    name=name[:name.index("(")]
+
+                fun_dict[(fun.return_var,self.name, name)] = fun.parse()
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
                 child_fun_dict = child.get_fun_dict()
                 for path, hcsp in child_fun_dict.items():
-                    new_path = (self.name,) + path
+                    path1=path[1:]
+                    new_path = (path[0],self.name,) + path1
                     assert new_path not in fun_dict
                     fun_dict[new_path] = hcsp
         return fun_dict
@@ -388,17 +393,20 @@ class Junction:
 
 
 class Function:
-    def __init__(self, ssid, name, script):
+    def __init__(self, ssid, name, script,return_var):
         self.ssid = ssid
         self.name = name
         self.script = script
+        self.return_var = return_var
 
     def parse(self):
-        assert "==" not in self.script
-        script = re.sub(pattern="=", repl=":=", string=self.script)
-        acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        assert re.match(pattern="function \\w+", string=acts[0])
-        hps = [hp_parser.parse(act) for act in acts[1:]]
-        assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        return result_hp
+        # assert "==" not in self.script
+        # script = re.sub(pattern="=", repl=":=", string=self.script)
+        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
+        # assert re.match(pattern="function \\w+", string=acts[0])
+        # hps = [hp_parser.parse(act) for act in acts[1:]]
+        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
+        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
+        
+        return self.script
+    

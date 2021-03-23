@@ -35,6 +35,11 @@ text \<open>
 definition system :: pproc where
   "system = Parallel (Single plant) {''p2c'', ''c2p''} (Single control)"
 
+text \<open>
+  Analysis of the ODE for plant. This involves checking the solution and
+  showing that the ODE satisfies the Lipschitz condition (and hence has
+  unique solutions).
+\<close>
 lemma plant_ODE:
   "\<Turnstile> {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0, A := a0, T := 0) \<and> P tr}
         Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s A), T := (\<lambda>_. 1)))) (\<lambda>s. s T < 1)
@@ -78,6 +83,11 @@ proof -
     by auto
 qed
 
+text \<open>
+  Trace invariant for plant. Here
+   - v0, a0, t0 is the starting velocity, acceleration, and time.
+   - as is the list of acceleration commands received from c2p.
+\<close>
 fun plant_inv :: "real \<times> real \<times> real \<Rightarrow> real list \<Rightarrow> tassn" where
   "plant_inv (v0, a0, t0) [] = emp\<^sub>t"
 | "plant_inv (v0, a0, t0) (a # as) =
@@ -86,6 +96,9 @@ fun plant_inv :: "real \<times> real \<times> real \<Rightarrow> real list \<Rig
      In\<^sub>t (State ((\<lambda>_. 0)(V := v0 + a0, A := a0, T := 1))) ''c2p'' a @\<^sub>t
      plant_inv (v0 + a0, a, 1) as"
 
+text \<open>
+  Final state given the initial v0, a0, t0 and acceleration commands as.
+\<close>
 fun plant_end_state :: "real \<times> real \<times> real \<Rightarrow> real list \<Rightarrow> state" where
   "plant_end_state (v0, a0, t0) [] = ((\<lambda>_. 0)(V := v0, A := a0, T := t0))"
 | "plant_end_state (v0, a0, t0) (a # as) =
@@ -158,6 +171,11 @@ lemma plant_prop:
   apply (rule exI[where x="[]"])
   by auto
 
+text \<open>
+  Trace invariant for control. Here
+   - v0 is the initial value of velocity
+   - vs is the list of velocity values received from p2c.
+\<close>
 fun control_inv :: "real \<Rightarrow> real list \<Rightarrow> tassn" where
   "control_inv v0 [] = emp\<^sub>t"
 | "control_inv v0 (v # vs) =
@@ -221,12 +239,20 @@ lemma control_prop:
   apply (rule exI[where x="[]"])
   by auto
 
-
+text \<open>
+  Loop invariant:
+   - velocity always stays in the interval [9, 11].
+   - acceleration is 1 if v < 10, and -1 if otherwise.
+\<close>
 fun loop_inv :: "real \<times> real \<Rightarrow> bool" where
   "loop_inv (v, a) \<longleftrightarrow> (v \<ge> 9 \<and> v \<le> 11 \<and> a = (if v < 10 then 1 else -1))"
 
 declare loop_inv.simps [simp del]
 
+text \<open>
+  Trace invariant for the whole system. Note it includes the
+  invariant on velocity and acceleration.
+\<close>
 fun system_inv :: "nat \<Rightarrow> tassn" where
   "system_inv 0 = emp\<^sub>t"
 | "system_inv (Suc n) = (\<exists>\<^sub>tv0 a0 v0'. \<up>(loop_inv (v0, a0)) \<and>\<^sub>t
@@ -238,13 +264,16 @@ fun system_inv :: "nat \<Rightarrow> tassn" where
 lemma combine:
   "loop_inv (v0, a0) \<Longrightarrow>
    combine_assn {''p2c'', ''c2p''}
-    (plant_inv (v0, a0, t0) as) (control_inv v0' vs) \<Longrightarrow>\<^sub>t system_inv (length as)"
+    (plant_inv (v0, a0, t0) as) (control_inv v0' vs) \<Longrightarrow>\<^sub>t
+     system_inv (length as)"
 proof (induct as arbitrary: v0 a0 t0 v0' vs)
   case Nil
+  note Nil1 = Nil
   then show ?case
   proof (cases vs)
     case Nil
-    then show ?thesis by auto
+    then show ?thesis
+      using Nil1 by (auto simp add: conj_assn_def pure_assn_def)
   next
     case (Cons a list)
     then show ?thesis
@@ -267,7 +296,7 @@ next
       apply (auto simp add: Cons split del: if_split)
       apply (rule entails_tassn_trans)
       apply (rule combine_assn_wait_in)
-      apply (auto split del: if_split)
+         apply (auto split del: if_split)
       apply (rule entails_tassn_exI[where x=v0])
       apply (rule entails_tassn_exI[where x=a0])
       apply (rule entails_tassn_exI[where x=v0'])
@@ -311,7 +340,7 @@ theorem system_prop:
     apply (rule and_entails_gassn2[OF entails_trace_gassn])
     apply (rule combine[OF assms])
     by (auto simp add: entails_tassn_def entails_gassn_def and_gassn_def)
-  done                                              
+  done
 
 
 end

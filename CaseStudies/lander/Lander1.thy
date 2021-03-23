@@ -96,7 +96,7 @@ lemma ContODE:
   done
 
 
-lemma P0_prop:
+lemma P0_prop_st:
   "\<Turnstile> {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0, W := w0, T := Period) \<and>
                   landerinv 0 v0 w0 \<le> 0 \<and> emp\<^sub>t tr}
      P0
@@ -110,7 +110,7 @@ lemma P0_prop:
   apply (rule Valid_ex_pre)
   subgoal for n v w
     apply (rule Valid_seq)
-     apply (rule Valid_assign_sp)
+     apply (rule Valid_assign_sp_st)
     apply (rule Valid_seq)
      apply (rule Valid_weaken_pre)
       prefer 2 
@@ -131,7 +131,7 @@ lemma P0_prop:
     apply (rule Valid_ex_pre)
     subgoal for v w
     apply (rule Valid_strengthen_post)
-       prefer 2 apply (rule Valid_assign_sp)
+       prefer 2 apply (rule Valid_assign_sp_st)
       apply (auto simp add: entails_def)
       apply (rule exI[where x="Suc n"])
       apply (rule exI[where x=v]) apply (rule exI[where x="W_upd v w"])
@@ -141,5 +141,60 @@ lemma P0_prop:
   apply (auto simp add: entails_def)
   apply (rule exI[where x=0]) apply (rule exI[where x=v0])
   apply (rule exI[where x=w0]) by auto
-  
+
+
+lemma P0_prop:
+  "\<Turnstile> {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0, W := w0, T := Period) \<and>
+                  landerinv 0 v0 w0 \<le> 0 \<and> emp\<^sub>t tr}
+     P0
+   {\<lambda>s tr. \<exists>n v w. s = (\<lambda>_. 0)(V := v, W := w, T := Period) \<and>
+                   landerinv 0 v w \<le> 0 \<and> P0_inv n tr}"
+  unfolding P0_def
+  apply (rule Valid_weaken_pre)
+   prefer 2
+  apply (rule Valid_rep)
+  apply (rule Valid_ex_pre) apply (rule Valid_ex_pre)
+  apply (rule Valid_ex_pre)
+  subgoal for n v w
+    apply (rule Valid_seq)
+     apply (rule Valid_assign_sp)
+    apply (rule Valid_seq)
+     apply (rule Valid_weaken_pre)
+      prefer 2 
+    apply (rule ContODE[where P="P0_inv n"])
+     apply auto
+    subgoal
+    proof-
+      have "s T = 0 \<and> (\<exists>x. s(T := x) = (\<lambda>_. 0)(V := vv, W := ww, T := PP)) \<Longrightarrow> (s = (\<lambda>_. 0)(V := vv, W := ww, T := 0))" for s and vv and ww and PP
+        by (metis fun_upd_triv fun_upd_upd)
+      then show ?thesis
+     apply (auto simp add: entails_def landerInv_def supp_def Period_def)
+         apply (smt fun_upd_other fun_upd_same train_vars_distinct(1) train_vars_distinct(2) train_vars_distinct(4))
+        by (smt fun_upd_apply)
+    qed
+    apply (rule Valid_weaken_pre[where P'=
+          "\<lambda>s tr. \<exists>v w. s = ((\<lambda>_. 0)(V := v, W := w, T := Period)) \<and>
+                        landerInv s \<le> 0 \<and>
+                        (P0_inv n @\<^sub>t ode_inv_assn (\<lambda>s. landerInv s \<le> 0)) tr"])
+    subgoal
+      apply (auto simp add: entails_def frontier_closed_open supp_def)
+      subgoal for s tr
+        apply (rule exI[where x="s V"]) apply (rule exI[where x="s W"])
+        apply (rule ext) by auto
+      done
+    apply (rule Valid_ex_pre)
+    apply (rule Valid_ex_pre)
+    subgoal for v w
+    apply (rule Valid_strengthen_post)
+       prefer 2 apply (rule Valid_assign_sp)
+      apply (auto simp add: entails_def)
+      apply (rule exI[where x="Suc n"])
+      apply (rule exI[where x=v]) apply (rule exI[where x="W_upd v w"])
+      apply (auto simp add: P0_inv_Suc)
+       apply (auto simp add: landerInv_def landerinv_prop2)
+      by (smt fun_upd_apply fun_upd_triv fun_upd_twist fun_upd_upd train_vars_distinct(1) train_vars_distinct(2) train_vars_distinct(4))
+    done
+  apply (auto simp add: entails_def)
+  apply (rule exI[where x=0]) apply (rule exI[where x=v0])
+  apply (rule exI[where x=w0]) by auto
 end

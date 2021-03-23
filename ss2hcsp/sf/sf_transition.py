@@ -1,4 +1,6 @@
 import re
+import html
+from ss2hcsp.sf.sf_parser import parser
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
@@ -35,6 +37,20 @@ class Transition:
                (self.ssid, self.label, self.order, self.src, self.dst)
 
     def parse(self):
+        # print(111)
+        # print(self.label)
+        # if self.label is not None:
+        #     func = parser.transition_parser.parse(html.unescape(self.label))
+
+        #     print(func.cond_act)
+        #     self.condition = func.cond
+        #     self.cond_acts=[cond_act for cond_act in func.cond_act.hps] if isinstance(func.cond_act,hp.Sequence) else func.cond_act
+        #     self.tran_acts=[tran_act for tran_act in func.tran_act.hps] if isinstance(func.tran_act,hp.Sequence) else func.tran_act
+        #     self.event =func.event
+        #     print(type(func.cond))
+        #     print(self.cond_acts)
+        # else:
+        #     self.condition = None
         label = self.label if self.label else ""
         # Get transition condition
         cond_pattern = "\\[.*?\\]"

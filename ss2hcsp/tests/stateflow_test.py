@@ -14,6 +14,16 @@ def printTofile(path,content):
 
 
 class SfTest(unittest.TestCase):
+    def testEarly_exit_has_function(self):
+        location = "./Examples/Stateflow/early_exit/early_return_logic_eg1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1.txt",process) 
     def testPlus_generator_edge_trigger(self):
         location = "./Examples/trigger_subsystem/plus_generator_edge_trigger.xml"
         diagram = SL_Diagram(location=location)
@@ -309,7 +319,7 @@ class SfTest(unittest.TestCase):
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
             expected_process.add(name, hp_parser.parse(_hp))
-        # print(expected_process)
+        print(expected_process)
 
         self.assertEqual(process, expected_process)
 
@@ -323,7 +333,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        #print(process)
+        print(process)
 
     # To be implemented
     def testJunctionPriority(self):

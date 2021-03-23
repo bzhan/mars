@@ -13,13 +13,8 @@ def convert_expr(e):
     elif isinstance(e, function.Const):
         return expr.AConst(e.value)
 
-    elif isinstance(e, function.FunExpr):
-        if e.fun_name == '+':
-            return expr.PlusExpr(['+', '+'], e.args)
-        elif e.fun_name == '*':
-            return expr.TimesExpr(['*', '*'], e.args)
-        else:
-            return expr.FunExpr(e.fun_name, e.args)
+    elif isinstance(e, (function.TimesExpr,function.PlusExpr,function.FunExpr,function.ModExpr)):
+        return e
     elif isinstance(e,function.Function):
         return e
     else:
@@ -45,11 +40,32 @@ def convert_cmd(cmd):
         return cmd
     elif isinstance(cmd,function.FunExpr):
 
-        return cmd
+        return hcsp.Function("",cmd.fun_name,cmd.exprs)
+    elif isinstance(cmd,function.matFunExpr):
+        return hcsp.Function(cmd.return_vars,cmd.fun_name,cmd.exprs)
+
     else:
-        # raise NotImplementedError
-        return cmd
+        raise NotImplementedError
 
 def convert_function(func):
     cmds = [convert_cmd(cmd) for cmd in func.commands]
+    if isinstance(func.name,function.matFunExpr):
+        hp=hcsp.Sequence(*cmds)
+        func.commands_hp=[hp]
+        var_set=hp.get_vars()
+        print(999999)
+        print(var_set)
+        var_set.update(func.name.get_vars())
+        if isinstance(func.name,function.matFunExpr):
+            if isinstance(func.name.return_vars,function.ListExpr):
+                for return_var in func.name.return_vars:
+                    for var in var_set:
+                        if str(return_var) == str(var):
+                            func.returnVars.append(var)                          
+            else:
+                for var in var_set:
+                    if str(func.name.return_vars) == str(var):
+                        func.returnVars.append(var)
     return hcsp.Sequence(*cmds)
+# def get_vars(self):
+#         return set().union(*(expr.get_vars() for expr in [hcsp.Sequence(self.commands)]))

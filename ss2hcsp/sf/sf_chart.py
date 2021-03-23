@@ -5,6 +5,7 @@ from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
+from ss2hcsp.matlab import function
 import re
 
 
@@ -141,11 +142,41 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     name_lists=get_name_from_mesg_list()
     trigger_edge_osig =0
     for act in acts:
-        if re.match(pattern="^\\w+ *:=.+$", string=act) and "." not in act:  # an assigment   
-            hps.append(hp_parser.parse(act))
+        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
+            left,right=act.split(":=")
+            strs=left.strip('[').strip(']')
+            left=list(strs.split(",")) if  "," in strs else list(strs)
+            if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) :  # a function
+                assert isinstance(root.chart, SF_Chart)
+                # states=root.chart.all_states
+                # path = root.chart.name
+                # for state in states:
+                #     if len(state.children) > 0:
+                #         for child in state.children:
+                #             for fun in child.funs:
+                #                 if str(right) == str(fun.fun_name):
+                #                     path =path+"."+state.name+"."+child.name
+                #                     break
+                #     else:
+                #         for fun in state.funs:
+                #             if str(right) == str(fun.fun_name):
+                #                 path =path+"."+state.name
+                longest_path=root.chart.get_fun_by_path(str(right))
+                hps.append(root.chart.fun_dict[longest_path])
+
+                return_var=longest_path[0]
+                if return_var is not None:
+                    if isinstance(return_var,function.ListExpr):
+                        for  var in range(0,len(return_var)):
+                            hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                    else:
+                        hps.append(hp_parser.parse(str(left[0])+":="+str(return_var)))
+            else:
+                hps.append(hp_parser.parse(act))
         elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act) and not re.match(pattern="send\\(.*?\\)", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
-            hps.append(root.chart.get_fun_by_path(act))
+            hps.append(root.chart.fun_dict[root.chart.get_fun_by_path(str(act))])
+    
         if len(Message_list)>=1:
             if re.match(pattern="^\\w+\\.\\w+ *:=.+$", string=act):
                 left,right=act.split(":=")
@@ -255,17 +286,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                         hps.append(hp_parser.parse("tri" + '!"' +event_name+'"' ))
                                     else:
                                         wait_time=root.chart.max_step
-                                        # if dest_chart.trigger_type == "rising":
-                                            # conds=list()
-                                            # conds.append(bexpr_parser.parse("osig <= 0"))
-                                            # conds.append(bexpr_parser.parse("out_tri"+" > 0"))
-                                            # cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                                            # conds1=list()
-                                            # conds1.append(bexpr_parser.parse("osig < 0"))
-                                            # conds1.append(bexpr_parser.parse("out_tri"+" >= 0"))
-                                            # cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                                            # final_cond=disj(cond,cond1)
-                                            # tri_event="true"
                                         if trigger_edge_osig == 0:
                                             hps.append(hp.Sequence(
                                                         hp.Assign("out_tri", AConst(trigger_edge_osig)),
@@ -287,54 +307,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                         
                                                         ))
                                             trigger_edge_osig =0
-                                        # elif dest_chart.trigger_type == "falling":
-                                        #     conds=list()
-                                        #     conds.append(bexpr_parser.parse("osig >= 0"))
-                                        #     conds.append(bexpr_parser.parse("out_tri"+" < 0"))
-                                        #     cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                                        #     conds1=list()
-                                        #     conds1.append(bexpr_parser.parse("osig > 0"))
-                                        #     conds1.append(bexpr_parser.parse("out_tri"+" <= 0"))
-                                        #     cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                                        #     final_cond=disj(cond,cond1)
-                                        #     tri_event="true"
-                                        #     if trigger_edge_osig == 0:
-                                        #         hps.append(hp.Sequence(
-                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
-                                        #                     hp.Wait(AConst(wait_time)),
-                                        #                     hp.Assign("out_tri",AConst(1)) 
-                                                            
-                                        #                     ))
-                                        #         trigger_edge_osig =1
-                                        #     else:
-                                        #         hps.append(hp.Sequence(
-                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
-                                        #                     hp.Wait(AConst(wait_time)),
-                                        #                     hp.Assign("out_tri",AConst(0)),
-                                        #                     hp.Condition(cond=final_cond, hp=hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
-                                                            
-                                        #                     ))
-                                        #         trigger_edge_osig =0
-                                        # else:
-                                        #     tri_event="true"
-                                        #     if trigger_edge_osig == 0:
-                                        #         hps.append(hp.Sequence(
-                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
-                                        #                     hp.Wait(AConst(wait_time)),
-                                        #                     hp.Assign("out_tri",AConst(1)),
-                                        #                     hp.Sequence(hp_parser.parse("tri"+'! "'+tri_event+'"'+"")) 
-                                                            
-                                        #                     ))
-                                        #         trigger_edge_osig =1
-                                        #     else:
-                                        #         hps.append(hp.Sequence(
-                                        #                     hp.Assign("osig", AConst(trigger_edge_osig)),
-                                        #                     hp.Wait(AConst(wait_time)),
-                                        #                     hp.Assign("out_tri",AConst(0)),
-                                        #                     hp.Sequence(hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
-                                                            
-                                        #                     ))
-                                        #         trigger_edge_osig =0
                         for e in root.chart.event_list:
                             if e.name == event_name and e.scope == "OUTPUT_EVENT" :
                                 flag=1
@@ -492,7 +464,7 @@ class SF_Chart(Subsystem):
                 out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
                 inner_trans = list(state.inner_trans) if hasattr(state, "inner_trans") else list()
                 for tran in out_trans + inner_trans:
-                    tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, self.get_state_by_ssid(tran.src))
+                    tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, self.get_state_by_ssid(tran.src))                  
                     tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, self.get_state_by_ssid(tran.src))
             elif isinstance(state, Junction):
                 if hasattr(state, "default_tran") and state.default_tran:
@@ -517,19 +489,25 @@ class SF_Chart(Subsystem):
         for state in self.all_states.values():
             if state.ssid == ssid:
                 return state
-    def get_fun_by_path(self, fun_path):
+    def get_fun_by_path(self, fun_path):       
         assert isinstance(fun_path, str)
+        fun_path1=fun_path
         fun_path = tuple(fun_path[:fun_path.index("(")].split("."))
+       
         matched_paths = []
         for path, fun in self.fun_dict.items():
-            assert len(fun_path) <= len(path) and isinstance(fun, hp.HCSP)
-            if path[-len(fun_path):] == fun_path:
+          
+            return_var=path[0]
+            path1=path[1:]
+           
+            assert len(fun_path) <= len(path1) and isinstance(fun, hp.HCSP)
+            if path1[-len(fun_path):] == fun_path :
                 matched_paths.append(path)
         assert matched_paths
         path_lengths = [len(path) for path in matched_paths]
         assert len(path_lengths) == len(set(path_lengths))
         longest_path = matched_paths[path_lengths.index(max(path_lengths))]
-        return self.fun_dict[longest_path]      
+        return longest_path     
 
     # Execute one step from a state
     def execute_one_step_from_state(self, state):
@@ -635,8 +613,8 @@ class SF_Chart(Subsystem):
 
         # An AND-state has no outgoing transitions
         # A Junction has no inner transitions
-        default_trans=list()
-        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction):
+        # default_trans=list()
+        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction) and  state.children[0].default_tran is not None:
             state = state.children[0]
             num = len(state.processes)
             process_name = state.name+str(num)
@@ -651,6 +629,7 @@ class SF_Chart(Subsystem):
         elif tran_type == "inner_trans":  # tran_type == "inner_trans"
             assert isinstance(state, (OR_State, AND_State))
             trans = state.inner_trans
+       
 
         # state must be the source of each transition in trans
         assert all(state.ssid == tran.src for tran in trans)
@@ -669,11 +648,14 @@ class SF_Chart(Subsystem):
                     conds.append(bexpr_parser.parse( "state" +'== "'+"a_"+state.name +'"'))
             if tran.event:
                 conds.append(bexpr_parser.parse(event_var +'== "'+ tran.event +'"'))
-                if self.is_triggered_chart and self.trigger_type == "function-call":
-                    trigger_conds.append(bexpr_parser.parse(event_var + ' == "'+ tran.event +'"'))
-                    trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
-                    conds.clear()
-                    conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
+                for event in self.event_list:
+                    if event.name == tran.event:
+
+                        if self.is_triggered_chart and self.trigger_type == "function-call" and event.scope == "INPUT_EVENT":
+                            trigger_conds.append(bexpr_parser.parse(event_var + ' == "'+ tran.event +'"'))
+                            trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
+                            conds.clear()
+                            conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
             if tran.condition:
                 conds.append(tran.condition)
 
@@ -725,7 +707,7 @@ class SF_Chart(Subsystem):
                     
                     # assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     # dst_state.processes.append((process_name, process))
-                    #dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
+                    dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps =tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                             + enter_into_dst + ( [process1])
                 else:  # visited in this round
@@ -1009,7 +991,12 @@ class SF_Chart(Subsystem):
                 for tran in _state.out_trans:
                     tran.cond_acts = add_VIn_after_BR_in_list(_num, tran.cond_acts, _modified_vars)
                     tran.tran_acts = add_VIn_after_BR_in_list(_num, tran.tran_acts, _modified_vars)
-
+                if _state.default_tran:
+                        _state.default_tran.cond_acts = add_VIn_after_BR_in_list(_num, _state.default_tran.cond_acts,
+                                                                                 _modified_vars)
+                        _state.default_tran.tran_acts = add_VIn_after_BR_in_list(_num, _state.default_tran.tran_acts,
+                                                                                _modified_vars)
+                       
         # If there is no event, return two functions and move to get_pure_process()
         if not self.has_event:
             return get_S_du_and_P_diag, analyse_P_diag
@@ -1077,8 +1064,8 @@ class SF_Chart(Subsystem):
                             conds=list()
                             conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                             cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri?tri_event "),hp.Condition(cond, get_hcsp(s_i.activate()),
-                                               hp.Recursion(s_i_proc)))))
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri?tri_event "),hp.Condition(cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                                               ))))
                         elif self.trigger_type == "rising":
                             conds=list()
                             conds.append(bexpr_parser.parse("osig <= 0"))
@@ -1089,8 +1076,8 @@ class SF_Chart(Subsystem):
                             conds1.append(bexpr_parser.parse("out_tri >= 0"))
                             cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                             final_cond=disj(cond,cond)
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()),
-                                               hp.Recursion(s_i_proc)))))
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                                              ))))
                         elif self.trigger_type == "falling":
                             conds=list()
                             conds.append(bexpr_parser.parse("osig >= 0"))
@@ -1101,11 +1088,11 @@ class SF_Chart(Subsystem):
                             conds1.append(bexpr_parser.parse("out_tri <= 0"))
                             cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                             final_cond=disj(cond,cond)
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()),
-                                               hp.Recursion(s_i_proc)))))
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                                               ))))
                         else:
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate()),
-                                               hp.Recursion(s_i_proc)))))
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                                               ))))
                     break
             if not contain_X:
                 if not self.is_triggered_chart :
@@ -1116,7 +1103,7 @@ class SF_Chart(Subsystem):
                         conds=list()
                         conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                         cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond, get_hcsp(s_i.activate()), s_i_proc))))
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond, get_hcsp(s_i.activate())), s_i_proc)))
                     elif self.trigger_type =="rising":
                         conds=list()
                         conds.append(bexpr_parser.parse("osig <= 0"))
@@ -1127,7 +1114,7 @@ class SF_Chart(Subsystem):
                         conds1.append(bexpr_parser.parse("out_tri >= 0"))
                         cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                         final_cond=disj(cond,cond1)
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()), s_i_proc))))
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate())), s_i_proc)))
                     elif self.trigger_type == "falling":
                         conds=list()
                         conds.append(bexpr_parser.parse("osig >= 0"))
@@ -1138,9 +1125,9 @@ class SF_Chart(Subsystem):
                         conds1.append(bexpr_parser.parse("out_tri < 0"))
                         cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                         final_cond=disj(cond,cond1)
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate()), s_i_proc))))
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate())), s_i_proc)))
                     else:
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate()), s_i_proc))))
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate())), s_i_proc)))
                 #s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),s_i_proc)
 
             # The output order is after D, M and M_main
@@ -1180,10 +1167,10 @@ class SF_Chart(Subsystem):
         for s_i in parallel_states:
             init_states.extend(s_i.init())
             activate_states.extend(s_i.activate())
-        for sub_hp in init_states + activate_states:
-            #assert isinstance(sub_hp, (hp.Assign, hp.Sequence,hp.OutputChannel,hp.InputChannel))
-            if isinstance(sub_hp, hp.Sequence):
-                assert all(isinstance(_hp, hp.Assign) for _hp in sub_hp.hps)
+        # for sub_hp in init_states + activate_states:
+        #     #assert isinstance(sub_hp, (hp.Assign, hp.Sequence,hp.OutputChannel,hp.InputChannel))
+        #     if isinstance(sub_hp, hp.Sequence):
+        #         assert all(isinstance(_hp, hp.Assign) for _hp in sub_hp.hps)
         # Null channel operations at the first round
         in_chs = []
         for port_id, in_var in self.port_to_in_var.items():
