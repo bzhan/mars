@@ -185,7 +185,7 @@ class FunExpr(AExpr):
         #     "bernoulli", "uniform"]
         self.fun_name = fun_name
         exprs = tuple(exprs)
-        assert all(isinstance(expr, AExpr) for expr in exprs)
+        # assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
 
     def __repr__(self):
@@ -401,7 +401,7 @@ class LogicExpr(BExpr):
     def __init__(self, op, expr1, expr2):
         super(LogicExpr, self).__init__()
         assert op in ["&&", "||", "-->", "<-->"]
-        assert isinstance(expr1, BExpr) and isinstance(expr2, BExpr)
+        # assert isinstance(expr1, BExpr) and isinstance(expr2, BExpr)
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2

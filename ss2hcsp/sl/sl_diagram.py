@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_line import SL_Line
-
+from ss2hcsp.matlab import function
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
@@ -31,6 +31,8 @@ from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
+from ss2hcsp.matlab import parser
+from ss2hcsp.matlab import convert
 import re
 import operator
 
@@ -170,7 +172,16 @@ class SL_Diagram:
                         # Get functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
-                        _functions.append(Function(ssid, fun_name, fun_script))
+                        func = parser.function_parser.parse(fun_script)
+                        hp = convert.convert_function(func)
+                        if isinstance(func.name,(function.Var,function.FunExpr)):
+                            fun_name =func.name
+                            return_var=None
+                        else:
+                            fun_name = func.name.fun_name
+                            return_var = func.name.return_vars
+                        _functions.append(Function(ssid, fun_name, hp, return_var))
+                        # _functions.append(Function(ssid, fun_name,fun_script))
                         continue
 
                     # Extract AND- and OR-states
@@ -183,9 +194,14 @@ class SL_Diagram:
                     act = ""
                     for label in labels[:0:-1]:
                         act = label + act
-                        if re.match(pattern="(en)|(du)|(ex)", string=act):
-                            acts.append(act)
-                            act = ""
+                        if act != "":
+                            if re.match(pattern="(en)|(du)|(ex)", string=act):
+                                acts.append(act)
+                                act = ""
+                            else:
+                                acts.append("en:"+act)
+                                act = ""
+
                     en, du, ex = None, None, None
                     for act in acts:
                         assert "==" not in act
