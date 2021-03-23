@@ -320,7 +320,8 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers,discretePulseGenerator, model_name="P"):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers,
+             discretePulseGenerator, model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.
     
     The arguments are:
@@ -333,7 +334,7 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
     """
     processes = hp.HCSPProcess()
     main_processes = []
-    triggered_process=[]
+    # triggered_process = []
     # Compute the discrete processes from discrete subdiagrams
     num = 0
     for diag in dis_subdiag_with_chs:
@@ -353,16 +354,13 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
         main_processes.append(hp.Var(name))
         num += 1
 
-   
     for block in discretePulseGenerator:
-        plus_hcsp=block.get_hcsp()
-        name="DPG"
+        plus_hcsp = block.get_hcsp()
+        name = "DPG"
         processes.add(name, plus_hcsp)
         main_processes.append(hp.Var(name))
 
     # Compute the stateflow processes
-    
-    
     for chart in sf_charts:
         chart.sf_charts=sf_charts
         chart.add_names()
@@ -374,7 +372,7 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
         for name, sf_process in sf_processes.hps:
             assert not isinstance(sf_process, hp.Parallel)
             process_name = name.replace(" ", "_")
-            #if chart.is_triggered_chart == False:
+            # if chart.is_triggered_chart == False:
             processes.add(process_name, sf_process)
             main_processes.append(hp.Var(process_name))
     # Compute the unit_delay processes

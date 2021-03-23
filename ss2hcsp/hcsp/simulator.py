@@ -102,12 +102,6 @@ def eval_expr(expr, state):
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[:-1]
-        elif expr.fun_name == "dequeue":
-            a, = args
-            assert isinstance(a, list)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[1:]
         elif expr.fun_name == "top":
             a, = args
             assert isinstance(a, list)
@@ -126,6 +120,21 @@ def eval_expr(expr, state):
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[1:]
+        elif expr.fun_name == "del_proc":
+            a, b = args
+            assert isinstance(a, list)
+            assert isinstance(b, str)
+            procs = []
+            for e in a:
+                assert isinstance(e, list) and len(e) == 2  # [prior, process]
+                if e[1] == b:
+                    procs.append(e)
+            assert len(procs) <= 1
+            if len(procs) == 1:
+                c = list(a)
+                c.remove(procs[0])
+                a = list(c)
+            return a
         elif expr.fun_name == "len":
             a, = args
             assert isinstance(a, list)
@@ -684,6 +693,8 @@ class SimInfo:
             if lname.field not in v:
                 raise SimulatorException('Field %s does not exist, when executing %s' % (lname.field, hp))
             v[lname.field] = copy.deepcopy(val)
+        elif lname is None:
+            pass
         else:
             raise NotImplementedError
 
