@@ -1,5 +1,4 @@
 """Translation from diagrams to HCSP processes."""
-
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
 # from ss2hcsp.sl import sl_diagram
