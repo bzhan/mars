@@ -220,7 +220,8 @@ class FunExpr(Expr):
         exprs = tuple(exprs)
         # assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
-
+    def priority(self):
+            return 100
     def __repr__(self):
         return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
 
@@ -240,8 +241,10 @@ class FunExpr(Expr):
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 class matFunExpr(Expr):
-    def __init__(self,return_vars,fun_name,*exprs):
+    def __init__(self,return_vars,fun_name,exprs):
+        super(matFunExpr, self).__init__()
         self.return_vars=return_vars
+        exprs = tuple(exprs)
         self.exprs = exprs
         if str(fun_name) == 'rand':
             self.fun_name = "uniform"
@@ -264,7 +267,8 @@ class matFunExpr(Expr):
         if isinstance(self.return_vars,list) and len(self.return_vars) >1:
             return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(str(arg) for arg in self.exprs)) 
         else:
-            return "%s := %s(%s)" % (self.return_vars,self.fun_name, ",".join(str(arg) for arg in self.exprs))
+           
+            return "%s := %s(%s)" % (self.return_vars,self.fun_name, ", ".join(str(expr) for expr in self.exprs))
            
     def __repr__(self):
         if isinstance(self.return_vars,list) and len(self.return_vars) >1:
@@ -297,7 +301,8 @@ class Assign(Command):
 
     def __repr__(self):
         return "Assign(%s,%s)" % (self.var_name, str(self.expr))
-
+    def priority(self):
+            return 100
     def get_vars(self):
         if isinstance(self.var_name,Expr):
             var_set = {str(self.var_name)}
