@@ -516,26 +516,40 @@ class SL_Diagram:
                             for obj in node.getElementsByTagName("Object"):
                                 signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
                                 xData = get_attribute_value(obj, "XData")
-                                if "\n" in xData:
-                                    xData = xData.split("\n")[1]
-                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                # if "\n" in xData:
+                                #     xData = xData.split("\n")[1]
+                                assert xData.count('[') == xData.count(']') == 1
+                                start = xData.index('[')
+                                end = xData.index(']')
+                                time_axises.append(tuple(float(e) for e in xData[start+1:end].split(',')))
                                 yData = get_attribute_value(obj, "YData")
-                                if "\n" in yData:
-                                    yData = yData.split("\n")[1]
-                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+                                # if "\n" in yData:
+                                #     yData = yData.split("\n")[1]
+                                assert yData.count('[') == yData.count(']') == 1
+                                start = yData.index('[')
+                                end = yData.index(']')
+                                data_axises.append(tuple(float(e) for e in yData[start+1:end].split(',')))
 
                     if not signal_names:
                         for node in subsystem.getElementsByTagName("Object"):
                             if node.getAttribute("PropName") == "Signals":
                                 signal_names.append(block_name + "_" + get_attribute_value(node, "Name"))
                                 xData = get_attribute_value(node, "XData")
-                                if "\n" in xData:
-                                    xData = xData.split("\n")[1]
-                                time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                # if "\n" in xData:
+                                #     xData = xData.split("\n")[1]
+                                # time_axises.append(tuple(float(e) for e in xData[1:-1].split(',')))
+                                assert xData.count('[') == xData.count(']') == 1
+                                start = xData.index('[')
+                                end = xData.index(']')
+                                time_axises.append(tuple(float(e) for e in xData[start + 1:end].split(',')))
                                 yData = get_attribute_value(node, "YData")
-                                if "\n" in yData:
-                                    yData = yData.split("\n")[1]
-                                data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+                                # if "\n" in yData:
+                                #     yData = yData.split("\n")[1]
+                                # data_axises.append(tuple(float(e) for e in yData[1:-1].split(',')))
+                                assert yData.count('[') == yData.count(']') == 1
+                                start = yData.index('[')
+                                end = yData.index(']')
+                                data_axises.append(tuple(float(e) for e in yData[start + 1:end].split(',')))
 
                     assert signal_names
                     self.add_block(SignalBuilder(name=block_name, signal_names=tuple(signal_names),

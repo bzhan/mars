@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.17</P>
+      <P Name="ComputedModelVersion">1.22</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -61,31 +61,18 @@
           <P Name="ZoomFactor" Class="double">1.0</P>
           <P Name="Offset" Class="double">[0.0, 0.0]</P>
         </Object>
-        <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*2">
-          <Object ObjectID="6">
-            <P Name="Type" Class="char">GLUE2:DDG Component</P>
-            <P Name="ID" Class="char">SymbolManager</P>
-            <P Name="Visible" Class="logical">0</P>
-            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
-            <P Name="UserData" Class="char">0</P>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">254</P>
-            <P Name="Height" Class="int32">642</P>
-          </Object>
-          <Object ObjectID="7">
-            <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
-            <P Name="ID" Class="char">Property Inspector</P>
-            <P Name="Visible" Class="logical">0</P>
-            <P Name="CreateCallback" Class="char"/>
-            <P Name="UserData" Class="char"/>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">640</P>
-            <P Name="Height" Class="int32">480</P>
-          </Object>
-        </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAECAAACUPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAEYAAAJQAAAALgD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgAAAAEKAAABjAAAABgA////AAAFAAAAAlAAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAD/////8AAAAAAP////8AAAAAAAAAAP////8BAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAAhP////8AAAAAAAAAAP////8BAAAA9v////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAABev////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAD3/////8AAAAAAAAAAP////8BAAAEDv////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAA==</P>
+        <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
+          <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
+          <P Name="ID" Class="char">Property Inspector</P>
+          <P Name="Visible" Class="logical">0</P>
+          <P Name="CreateCallback" Class="char"/>
+          <P Name="UserData" Class="char"/>
+          <P Name="Floating" Class="logical">0</P>
+          <P Name="DockPosition" Class="char">Right</P>
+          <P Name="Width" Class="int32">640</P>
+          <P Name="Height" Class="int32">480</P>
+        </Object>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAECAAACUPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAEYAAAJQAAAALgD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgAAAAEKAAABjAAAAAAAAAAAAAAFAAAAAlAAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAD/////8AAAAAAP////8AAAAAAAAAAP////8BAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAAhP////8AAAAAAAAAAP////8BAAAA9v////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAABev////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAD3/////8AAAAAAAAAAP////8BAAAEDv////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAA==</P>
       </Object>
     </Object>
     <P Name="HideAutomaticNames">on</P>
@@ -96,9 +83,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Mar 12 22:13:05 2021</P>
-      <P Name="RTWModifiedTimeStamp">537487973</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:17&gt;</P>
+      <P Name="LastModifiedDate">Tue Mar 23 16:55:26 2021</P>
+      <P Name="RTWModifiedTimeStamp">538417867</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:22&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -154,14 +141,14 @@
       <P Name="AccelTemplateMakefile">accel_default_tmf</P>
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
-      <Object PropName="DataLoggingOverride" ObjectID="8" ClassName="Simulink.SimulationData.ModelLoggingInfo">
+      <Object PropName="DataLoggingOverride" ObjectID="7" ClassName="Simulink.SimulationData.ModelLoggingInfo">
         <P Name="model_" Class="char">velocity_control</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
           <Cell Class="char">velocity_control</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
-          <Cell>[]</Cell>
+          <Cell Class="double">[]</Cell>
         </Array>
       </Object>
     </SimulationSettings>
@@ -195,11 +182,11 @@
     </ModelReferenceSettings>
     <ConfigurationSet>
       <Array PropName="ConfigurationSets" Type="Handle" Dimension="1*1">
-        <Object ObjectID="9" Version="1.18.0" ClassName="Simulink.ConfigSet">
+        <Object ObjectID="8" Version="1.18.0" ClassName="Simulink.ConfigSet">
           <P Name="DisabledProps">[]</P>
           <P Name="Description"/>
           <Array PropName="Components" Type="Handle" Dimension="1*10">
-            <Object ObjectID="10" Version="1.18.0" ClassName="Simulink.SolverCC">
+            <Object ObjectID="9" Version="1.18.0" ClassName="Simulink.SolverCC">
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="StartTime">0.0</P>
@@ -238,7 +225,7 @@
               <P Name="DecoupledContinuousIntegration">off</P>
               <P Name="MinimalZcImpactIntegration">off</P>
             </Object>
-            <Object ObjectID="11" Version="1.18.0" ClassName="Simulink.DataIOCC">
+            <Object ObjectID="10" Version="1.18.0" ClassName="Simulink.DataIOCC">
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="Decimation">1</P>
@@ -277,7 +264,7 @@
               <P Name="LoggingFileName">out.mat</P>
               <P Name="LoggingIntervals">[-inf, inf]</P>
             </Object>
-            <Object ObjectID="12" Version="1.18.0" ClassName="Simulink.OptimizationCC">
+            <Object ObjectID="11" Version="1.18.0" ClassName="Simulink.OptimizationCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*8">
                 <Cell Class="char">BooleansAsBitfields</Cell>
                 <Cell Class="char">PassReuseOutputArgsAs</Cell>
@@ -339,7 +326,7 @@
               <P Name="UseRowMajorAlgorithm">off</P>
               <P Name="LabelGuidedReuse">off</P>
             </Object>
-            <Object ObjectID="13" Version="1.18.0" ClassName="Simulink.DebuggingCC">
+            <Object ObjectID="12" Version="1.18.0" ClassName="Simulink.DebuggingCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*1">
                 <Cell Class="char">UseOnlyExistingSharedCode</Cell>
               </Array>
@@ -451,7 +438,7 @@
               <P Name="ForceCombineOutputUpdateInSim">off</P>
               <P Name="UnitDatabase"/>
             </Object>
-            <Object ObjectID="14" Version="1.18.0" ClassName="Simulink.HardwareCC">
+            <Object ObjectID="13" Version="1.18.0" ClassName="Simulink.HardwareCC">
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="ProdBitPerChar">8</P>
@@ -497,7 +484,7 @@
               <P Name="UseEmbeddedCoderFeatures">on</P>
               <P Name="UseSimulinkCoderFeatures">on</P>
             </Object>
-            <Object ObjectID="15" Version="1.18.0" ClassName="Simulink.ModelReferenceCC">
+            <Object ObjectID="14" Version="1.18.0" ClassName="Simulink.ModelReferenceCC">
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="UpdateModelReferenceTargets">IfOutOfDateOrStructuralChange</P>
@@ -514,7 +501,7 @@
               <P Name="PropagateSignalLabelsOutOfModel">on</P>
               <P Name="SupportModelReferenceSimTargetCustomCode">off</P>
             </Object>
-            <Object ObjectID="16" Version="1.18.0" ClassName="Simulink.SFSimCC">
+            <Object ObjectID="15" Version="1.18.0" ClassName="Simulink.SFSimCC">
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="SimCustomSourceCode"/>
@@ -541,7 +528,7 @@
               <P Name="MATLABDynamicMemAlloc">on</P>
               <P Name="MATLABDynamicMemAllocThreshold">65536</P>
             </Object>
-            <Object BackupClass="Simulink.RTWCC" ObjectID="17" Version="1.18.0" ClassName="Simulink.RTWCC">
+            <Object BackupClass="Simulink.RTWCC" ObjectID="16" Version="1.18.0" ClassName="Simulink.RTWCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*16">
                 <Cell Class="char">IncludeHyperlinkInReport</Cell>
                 <Cell Class="char">GenerateTraceInfo</Cell>
@@ -621,7 +608,7 @@
               <P Name="CheckMdlBeforeBuild">Off</P>
               <P Name="SharedConstantsCachingThreshold">1024</P>
               <Array PropName="Components" Type="Handle" Dimension="1*2">
-                <Object ObjectID="18" Version="1.18.0" ClassName="Simulink.CodeAppCC">
+                <Object ObjectID="17" Version="1.18.0" ClassName="Simulink.CodeAppCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*28">
                     <Cell Class="char">IgnoreCustomStorageClasses</Cell>
                     <Cell Class="char">IgnoreTestpoints</Cell>
@@ -703,7 +690,7 @@
                   <P Name="UseSimReservedNames">off</P>
                   <P Name="ReservedNameArray">[]</P>
                 </Object>
-                <Object BackupClass="Simulink.TargetCC" ObjectID="19" Version="1.18.0" ClassName="Simulink.GRTTargetCC">
+                <Object BackupClass="Simulink.TargetCC" ObjectID="18" Version="1.18.0" ClassName="Simulink.GRTTargetCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*15">
                     <Cell Class="char">IncludeMdlTerminateFcn</Cell>
                     <Cell Class="char">SuppressErrorStatus</Cell>
@@ -799,7 +786,7 @@
                 </Object>
               </Array>
             </Object>
-            <Object ObjectID="20" Version="1.18.0" ClassName="SlCovCC.ConfigComp">
+            <Object ObjectID="19" Version="1.18.0" ClassName="SlCovCC.ConfigComp">
               <P Name="DisabledProps">[]</P>
               <P Name="Description">Simulink Coverage Configuration Component</P>
               <P Name="Name">Simulink Coverage</P>
@@ -837,7 +824,7 @@
               <P Name="CovStopTime">0</P>
               <P Name="CovMcdcMode">Masking</P>
             </Object>
-            <Object ObjectID="21" Version="1.18.0" ClassName="hdlcoderui.hdlcc">
+            <Object ObjectID="20" Version="1.18.0" ClassName="hdlcoderui.hdlcc">
               <P Name="DisabledProps">[]</P>
               <P Name="Description">HDL Coder custom configuration component</P>
               <P Name="Name">HDL Coder</P>
@@ -853,10 +840,10 @@
           <P Name="ConfigPrmDlgPosition">[ 145, 177, 1135, 847 ]</P>
         </Object>
       </Array>
-      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="9" ClassName="Simulink.ConfigSet"/>
+      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="8" ClassName="Simulink.ConfigSet"/>
     </ConfigurationSet>
     <ConcurrentExecutionSettings>
-      <Object PropName="DataTransfer" ObjectID="22" ClassName="Simulink.GlobalDataTransfer">
+      <Object PropName="DataTransfer" ObjectID="21" ClassName="Simulink.GlobalDataTransfer">
         <P Name="DefaultTransitionBetweenSyncTasks" Class="char">Ensure deterministic transfer (maximum delay)</P>
         <P Name="DefaultTransitionBetweenAsyncTasks" Class="char">Ensure data integrity only</P>
         <P Name="DefaultTransitionBetweenContTasks" Class="char">Ensure deterministic transfer (minimum delay)</P>
@@ -1139,7 +1126,7 @@
         <P Name="Ports">[1]</P>
         <P Name="Position">[955, 334, 985, 366]</P>
         <P Name="ZOrder">17</P>
-        <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true,&apos;DataLoggingVariableName&apos;,&apos;ScopeData1&apos;),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;-0.73549&apos;,&apos;MaxYLimReal&apos;,&apos;1.19283&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;1.19283&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;speed_control&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;MinYLimReal&apos;,&apos;-0.73549&apos;,&apos;MaxYLimReal&apos;,&apos;1.19283&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;1.19283&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863])),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2018a&apos;)),&apos;Version&apos;,&apos;2018a&apos;,&apos;VisibleAtModelOpen&apos;,&apos;on&apos;)</P>
+        <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true,&apos;DataLoggingVariableName&apos;,&apos;ScopeData1&apos;),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;-0.73549&apos;,&apos;MaxYLimReal&apos;,&apos;1.19283&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;1.19283&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,0,&apos;LineNames&apos;,{{[]}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;MinYLimReal&apos;,&apos;-0.73549&apos;,&apos;MaxYLimReal&apos;,&apos;1.19283&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;1.19283&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863])),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2018a&apos;)),&apos;Version&apos;,&apos;2018a&apos;)</P>
         <P Name="NumInputPorts">1</P>
         <P Name="Floating">off</P>
       </Block>
@@ -1210,7 +1197,7 @@
             <P Name="RequestExecContextInheritance">off</P>
             <P Name="MaskHideContents">on</P>
             <P Name="ContentPreviewEnabled">on</P>
-            <Object PropName="MaskObject" ObjectID="23" ClassName="Simulink.Mask">
+            <Object PropName="MaskObject" ObjectID="22" ClassName="Simulink.Mask">
               <P Name="Type" Class="char">Sigbuilder block</P>
               <P Name="Description" Class="char">Simulink:masks:SigbuilderBlock_MD</P>
               <P Name="Initialization" Class="char">if ~strcmp(get_param(bdroot(gcbh),&apos;SimulationStatus&apos;),&apos;stopped&apos;) tuvar = sigbuilder_block(&apos;maskInit&apos;); end</P>
@@ -1219,7 +1206,7 @@
               <P Name="IconOpaque" Class="char">transparent</P>
               <P Name="IconRotate" Class="char">port</P>
               <P Name="Capabilities" Class="char">slmaskedcaps(gcbh)</P>
-              <Object PropName="Parameters" ObjectID="24" ClassName="Simulink.MaskParameter">
+              <Object PropName="Parameters" ObjectID="23" ClassName="Simulink.MaskParameter">
                 <P Name="Type" Class="char">edit</P>
                 <P Name="Name" Class="char">tuvar</P>
                 <P Name="Prompt" Class="char"/>
@@ -1277,7 +1264,7 @@
                     <Array PropName="axes" Type="Struct" Dimension="1*2">
                       <MATStruct>
                         <Field Name="channels" Class="double">2.0</Field>
-                        <Field Name="yLim" Class="double">[-1.0, 1.0]</Field>
+                        <Field Name="yLim" Class="double">[-0.1, 0.15000000000000002]</Field>
                         <Field Name="labelPos" Class="char">TL</Field>
                       </MATStruct>
                       <MATStruct>
@@ -1308,19 +1295,28 @@
                     <Field Name="dataSetIdx" Class="double">1.0</Field>
                     <Field Name="isVerificationVisible" Class="double">0.0</Field>
                     <Array PropName="sbobj" Type="SigSuite" Dimension="1*1">
-                      <Object ObjectID="25">
-                        <Object PropName="Groups" ObjectID="26" ClassName="SigSuiteGroup">
+                      <Object ObjectID="24">
+                        <Object PropName="Groups" ObjectID="25" ClassName="SigSuiteGroup">
                           <P Name="Name" Class="char">Group 1</P>
                           <Array PropName="Signals" Type="SigSuiteSignal" Dimension="1*2">
-                            <Object ObjectID="27">
+                            <Object ObjectID="26">
                               <P Name="Name" Class="char">valid</P>
                               <P Name="XData" Class="double">[0.0, 4.0, 6.0, 20.0]</P>
                               <P Name="YData" Class="double">[1.0, 1.0, 1.0, 1.0]</P>
                             </Object>
-                            <Object ObjectID="28">
+                            <Object ObjectID="27">
                               <P Name="Name" Class="char">error</P>
-                              <P Name="XData" Class="double">[0.0, 20.0]</P>
-                              <P Name="YData" Class="double">[0.0, 0.0]</P>
+                              <P Name="XData" Class="double">Vector(58)
+[0.0, 0.14, 0.14, 0.26, 0.26, 0.38, 0.38, 0.46, 0.46, 0.6, 0.6, 0.72, 0.72, 0.86, 0.86, 1.0, 1.0, 1.28, 1.28, 
+1.6400000000000001, 1.6400000000000001, 2.0, 2.0, 2.3000000000000003, 2.3000000000000003, 2.62, 2.62, 3.0, 3.0, 3.48, 
+3.48, 4.0, 4.0, 4.48, 4.48, 5.0, 5.0, 5.46, 5.46, 6.0, 6.0, 6.48, 6.48, 7.0, 7.0, 7.46, 7.46, 8.0, 8.0, 8.48, 8.48, 
+9.0, 9.0, 9.58, 9.58, 10.0, 10.0, 20.0]</P>
+                              <P Name="YData" Class="double">Vector(58)
+[0.07, 0.07, 0.028, 0.028, -0.036000000000000004, -0.036000000000000004, 0.1, 0.1, -0.02, -0.02, 0.1, 0.1, -0.038, 
+-0.038, 0.068, 0.068, -0.024, -0.024, 0.024, 0.024, 0.06, 0.06, -0.014, -0.014, 0.082, 0.082, -0.032, -0.032, -0.01, 
+-0.01, -0.072000000000000008, -0.072000000000000008, 0.068, 0.068, 0.032, 0.032, -0.084, -0.084, 0.084, 0.084, 0.06, 
+0.06, 0.022, 0.022, -0.034, -0.034, 0.038, 0.038, -0.074, -0.074, 0.062, 0.062, -0.028, -0.028, 0.018000000000000002, 
+0.018000000000000002, 0.0, 0.0]</P>
                             </Object>
                           </Array>
                           <P Name="TimeRange" Class="double">[0.0, 20.0]</P>
@@ -1447,7 +1443,7 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="MaskHideContents">on</P>
         <P Name="ContentPreviewEnabled">on</P>
-        <Object PropName="MaskObject" ObjectID="29" ClassName="Simulink.Mask">
+        <Object PropName="MaskObject" ObjectID="28" ClassName="Simulink.Mask">
           <P Name="Type" Class="char">Sigbuilder block</P>
           <P Name="Description" Class="char">Simulink:masks:SigbuilderBlock_MD</P>
           <P Name="Initialization" Class="char">if ~strcmp(get_param(bdroot(gcbh),&apos;SimulationStatus&apos;),&apos;stopped&apos;) tuvar = sigbuilder_block(&apos;maskInit&apos;); end</P>
@@ -1456,7 +1452,7 @@
           <P Name="IconOpaque" Class="char">transparent</P>
           <P Name="IconRotate" Class="char">port</P>
           <P Name="Capabilities" Class="char">slmaskedcaps(gcbh)</P>
-          <Object PropName="Parameters" ObjectID="30" ClassName="Simulink.MaskParameter">
+          <Object PropName="Parameters" ObjectID="29" ClassName="Simulink.MaskParameter">
             <P Name="Type" Class="char">edit</P>
             <P Name="Name" Class="char">tuvar</P>
             <P Name="Prompt" Class="char"/>
@@ -1529,10 +1525,10 @@
                 <Field Name="dataSetIdx" Class="double">1.0</Field>
                 <Field Name="isVerificationVisible" Class="double">0.0</Field>
                 <Array PropName="sbobj" Type="SigSuite" Dimension="1*1">
-                  <Object ObjectID="31">
-                    <Object PropName="Groups" ObjectID="32" ClassName="SigSuiteGroup">
+                  <Object ObjectID="30">
+                    <Object PropName="Groups" ObjectID="31" ClassName="SigSuiteGroup">
                       <P Name="Name" Class="char">Group 1</P>
-                      <Object PropName="Signals" ObjectID="33" ClassName="SigSuiteSignal">
+                      <Object PropName="Signals" ObjectID="32" ClassName="SigSuiteSignal">
                         <P Name="Name" Class="char">image</P>
                         <P Name="XData" Class="double">[0.0, 4.0, 6.0, 20.0]</P>
                         <P Name="YData" Class="double">[-1.0, -1.0, -1.0, -1.0]</P>
@@ -1747,7 +1743,7 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="MaskHideContents">on</P>
         <P Name="ContentPreviewEnabled">on</P>
-        <Object PropName="MaskObject" ObjectID="34" ClassName="Simulink.Mask">
+        <Object PropName="MaskObject" ObjectID="33" ClassName="Simulink.Mask">
           <P Name="Type" Class="char">Sigbuilder block</P>
           <P Name="Description" Class="char">Simulink:masks:SigbuilderBlock_MD</P>
           <P Name="Initialization" Class="char">if ~strcmp(get_param(bdroot(gcbh),&apos;SimulationStatus&apos;),&apos;stopped&apos;) tuvar = sigbuilder_block(&apos;maskInit&apos;); end</P>
@@ -1756,7 +1752,7 @@
           <P Name="IconOpaque" Class="char">transparent</P>
           <P Name="IconRotate" Class="char">port</P>
           <P Name="Capabilities" Class="char">slmaskedcaps(gcbh)</P>
-          <Object PropName="Parameters" ObjectID="35" ClassName="Simulink.MaskParameter">
+          <Object PropName="Parameters" ObjectID="34" ClassName="Simulink.MaskParameter">
             <P Name="Type" Class="char">edit</P>
             <P Name="Name" Class="char">tuvar</P>
             <P Name="Prompt" Class="char"/>
@@ -1769,11 +1765,11 @@
           <P Name="SetDomainSpec">off</P>
           <P Name="DomainSpecType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
-          <P Name="SIDHighWatermark">4</P>
+          <P Name="SIDHighWatermark">5</P>
           <Block BlockType="Demux" Name="Demux" SID="6:1">
             <P Name="Tag">STV Demux</P>
             <P Name="Ports">[1, 1]</P>
-            <P Name="Position">[150, 34, 160, 606]</P>
+            <P Name="Position">[150, 38, 160, 612]</P>
             <P Name="ZOrder">-1</P>
             <P Name="Outputs">1</P>
           </Block>
@@ -1793,7 +1789,7 @@
                     <Field Name="stepY" Class="double">0.0</Field>
                     <Field Name="yMin" Class="double">-Inf</Field>
                     <Field Name="yMax" Class="double">Inf</Field>
-                    <Field Name="color" Class="double">[0.8431, 0.0, 0.0]</Field>
+                    <Field Name="color" Class="double">[1.0, 0.0, 0.0]</Field>
                     <Field Name="lineStyle" Class="char">-</Field>
                     <Field Name="lineWidth" Class="double">1.5</Field>
                     <Field Name="label" Class="char">position</Field>
@@ -1803,7 +1799,7 @@
                 <Array PropName="axes" Type="Struct" Dimension="1*1">
                   <MATStruct>
                     <Field Name="channels" Class="double">1.0</Field>
-                    <Field Name="yLim" Class="double">[-5.0, 25.0]</Field>
+                    <Field Name="yLim" Class="double">[-5.0, 50.0]</Field>
                     <Field Name="labelPos" Class="char">TL</Field>
                   </MATStruct>
                 </Array>
@@ -1829,15 +1825,15 @@
                 <Field Name="dataSetIdx" Class="double">1.0</Field>
                 <Field Name="isVerificationVisible" Class="double">0.0</Field>
                 <Array PropName="sbobj" Type="SigSuite" Dimension="1*1">
-                  <Object ObjectID="36">
-                    <Object PropName="Groups" ObjectID="37" ClassName="SigSuiteGroup">
+                  <Object ObjectID="35">
+                    <Object PropName="Groups" ObjectID="36" ClassName="SigSuiteGroup">
                       <P Name="Name" Class="char">Group 1</P>
-                      <Object PropName="Signals" ObjectID="38" ClassName="SigSuiteSignal">
+                      <Object PropName="Signals" ObjectID="37" ClassName="SigSuiteSignal">
                         <P Name="Name" Class="char">position</P>
-                        <P Name="XData" Class="double">Vector(7)
-[0.0, 4.0, 4.0, 6.0, 10.0, 10.0, 20.0]</P>
-                        <P Name="YData" Class="double">Vector(7)
-[0.0, 0.0, 10.0, 10.0, 20.0, 0.0, 0.0]</P>
+                        <P Name="XData" Class="double">Vector(8)
+[0.0, 6.0, 6.0, 10.0, 10.0, 14.0, 14.0, 20.0]</P>
+                        <P Name="YData" Class="double">Vector(8)
+[0.0, 0.0, 25.0, 30.0, 0.0, 0.0, 45.0, 45.0]</P>
                       </Object>
                       <P Name="TimeRange" Class="double">[0.0, 20.0]</P>
                     </Object>
@@ -1862,26 +1858,24 @@
               </MATStruct>
             </Array>
           </Block>
-          <Block BlockType="Outport" Name="position" SID="6:3">
+          <Block BlockType="Outport" Name="position" SID="6:5">
             <P Name="Tag">STV Outport</P>
             <P Name="Position">[280, 30, 300, 40]</P>
-            <P Name="ZOrder">-3</P>
+            <P Name="ZOrder">1</P>
             <P Name="IconDisplay">Port number</P>
           </Block>
-          <Line>
-            <P Name="ZOrder">1</P>
-            <P Name="SrcBlock">Demux</P>
-            <P Name="SrcPort">1</P>
-            <P Name="Points">[50, 0; 0, -285]</P>
-            <P Name="DstBlock">position</P>
-            <P Name="DstPort">1</P>
-          </Line>
           <Line>
             <P Name="ZOrder">2</P>
             <P Name="SrcBlock">FromWs</P>
             <P Name="SrcPort">1</P>
-            <P Name="Points">[5, 0; 0, -5]</P>
             <P Name="DstBlock">Demux</P>
+            <P Name="DstPort">1</P>
+          </Line>
+          <Line>
+            <P Name="ZOrder">4</P>
+            <P Name="SrcBlock">Demux</P>
+            <P Name="SrcPort">1</P>
+            <P Name="DstBlock">position</P>
             <P Name="DstPort">1</P>
           </Line>
         </System>
@@ -2487,7 +2481,7 @@
             <P Name="RequestExecContextInheritance">off</P>
             <P Name="MaskHideContents">on</P>
             <P Name="ContentPreviewEnabled">on</P>
-            <Object PropName="MaskObject" ObjectID="39" ClassName="Simulink.Mask">
+            <Object PropName="MaskObject" ObjectID="38" ClassName="Simulink.Mask">
               <P Name="Type" Class="char">Sigbuilder block</P>
               <P Name="Description" Class="char">Simulink:masks:SigbuilderBlock_MD</P>
               <P Name="Initialization" Class="char">if ~strcmp(get_param(bdroot(gcbh),&apos;SimulationStatus&apos;),&apos;stopped&apos;) tuvar = sigbuilder_block(&apos;maskInit&apos;); end</P>
@@ -2496,7 +2490,7 @@
               <P Name="IconOpaque" Class="char">transparent</P>
               <P Name="IconRotate" Class="char">port</P>
               <P Name="Capabilities" Class="char">slmaskedcaps(gcbh)</P>
-              <Object PropName="Parameters" ObjectID="40" ClassName="Simulink.MaskParameter">
+              <Object PropName="Parameters" ObjectID="39" ClassName="Simulink.MaskParameter">
                 <P Name="Type" Class="char">edit</P>
                 <P Name="Name" Class="char">tuvar</P>
                 <P Name="Prompt" Class="char"/>
@@ -2585,16 +2579,16 @@
                     <Field Name="dataSetIdx" Class="double">1.0</Field>
                     <Field Name="isVerificationVisible" Class="double">0.0</Field>
                     <Array PropName="sbobj" Type="SigSuite" Dimension="1*1">
-                      <Object ObjectID="41">
-                        <Object PropName="Groups" ObjectID="42" ClassName="SigSuiteGroup">
+                      <Object ObjectID="40">
+                        <Object PropName="Groups" ObjectID="41" ClassName="SigSuiteGroup">
                           <P Name="Name" Class="char">Group 1</P>
                           <Array PropName="Signals" Type="SigSuiteSignal" Dimension="1*2">
-                            <Object ObjectID="43">
+                            <Object ObjectID="42">
                               <P Name="Name" Class="char">valid</P>
                               <P Name="XData" Class="double">[0.0, 4.0, 6.0, 20.0]</P>
                               <P Name="YData" Class="double">[-1.0, -1.0, -1.0, -1.0]</P>
                             </Object>
-                            <Object ObjectID="44">
+                            <Object ObjectID="43">
                               <P Name="Name" Class="char">error</P>
                               <P Name="XData" Class="double">[0.0, 20.0]</P>
                               <P Name="YData" Class="double">[0.0, 0.0]</P>
@@ -2703,13 +2697,6 @@
           </Line>
         </System>
       </Block>
-      <Line>
-        <P Name="ZOrder">2</P>
-        <P Name="SrcBlock">obstacle_radar</P>
-        <P Name="SrcPort">1</P>
-        <P Name="DstBlock">obstacle_detection</P>
-        <P Name="DstPort">2</P>
-      </Line>
       <Line>
         <P Name="ZOrder">91</P>
         <P Name="SrcBlock">obstacle_camera</P>
@@ -2852,6 +2839,13 @@
           <P Name="DstBlock">speed_control</P>
           <P Name="DstPort">1</P>
         </Branch>
+      </Line>
+      <Line>
+        <P Name="ZOrder">114</P>
+        <P Name="SrcBlock">obstacle_radar</P>
+        <P Name="SrcPort">1</P>
+        <P Name="DstBlock">obstacle_detection</P>
+        <P Name="DstPort">2</P>
       </Line>
     </System>
   </Model>

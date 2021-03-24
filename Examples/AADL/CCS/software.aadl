@@ -1,0 +1,150 @@
+package software
+public
+	-- obstacle detector
+	process obs_det
+		features
+			img: in data port;
+			obs_pos_radar: in data port;
+			obs_pos: out data port;
+	end obs_det;
+	
+	process implementation obs_det.imp
+		subcomponents
+			img_acq_imp: thread img_acq.imp;
+			comp_obs_pos_imp: thread comp_obs_pos.imp;
+		connections
+			tran_img: port img -> img_acq_imp.img;
+			tran_proc_img: port img_acq_imp.proc_img -> comp_obs_pos_imp.proc_img;
+			tran_radar_obs_pos: port obs_pos_radar -> comp_obs_pos_imp.obs_pos_radar;
+			tran_obs_pos: port comp_obs_pos_imp.obs_pos -> obs_pos;
+	end obs_det.imp;
+	
+	-- image acquisition
+	thread img_acq
+		features
+			img: in data port;
+			proc_img: out data port;
+		properties
+			dispatch_protocol => periodic;
+			period => 50ms;
+			compute_execution_time => 10ms..40ms;
+	end img_acq;
+	
+	thread implementation img_acq.imp
+		annex Simulink{** **};
+	end img_acq.imp;
+	
+	-- compute obstacle position
+	thread comp_obs_pos
+		features
+			proc_img: in data port;
+			obs_pos_radar: in data port;
+			obs_pos: out data port;
+		properties
+			dispatch_protocol => periodic;
+			period => 100ms;
+			compute_execution_time => 20ms..50ms;
+	end comp_obs_pos;
+	
+	thread implementation comp_obs_pos.imp
+		annex Simulink{** **};
+	end comp_obs_pos.imp;
+	
+	-- velocity controller
+	process velo_ctr
+		features
+			obs_pos: in data port;
+			veh_pos: in data port;
+			laser_valid: in data port;
+			laser_v: in data port;
+			wheel_valid: in data port;
+			wheel_v: in data port;
+			des_v: in data port;
+			cmd: out data port;
+	end velo_ctr;
+	
+	process implementation velo_ctr.imp
+		subcomponents
+			comp_acc_imp: thread comp_acc.imp;
+			velo_voter_imp: thread velo_voter.imp;
+		connections
+			tran_obs_pos: port obs_pos -> comp_acc_imp.obs_pos;
+			tran_cmd: port comp_acc_imp.cmd -> cmd;
+			tran_veh_pos: port veh_pos -> comp_acc_imp.veh_pos;
+			tran_veh_v: port velo_voter_imp.veh_v -> comp_acc_imp.veh_v;
+			tran_des_v: port des_v -> comp_acc_imp.des_v;
+			tran_laser_valid: port laser_valid -> velo_voter_imp.laser_valid;
+			tran_laser_v: port laser_v -> velo_voter_imp.laser_v;
+			tran_wheel_valid: port wheel_valid -> velo_voter_imp.wheel_valid;
+			tran_wheel_v: port wheel_v -> velo_voter_imp.wheel_v;
+	end velo_ctr.imp;
+	
+	-- compute acceleration
+	thread comp_acc
+		features
+			obs_pos: in data port;
+			veh_pos: in data port;
+			veh_v: in data port;
+			des_v: in data port;
+			cmd: out data port;
+		properties
+			dispatch_protocol => periodic;
+			period => 5ms;
+			compute_execution_time => 1ms..1ms;
+	end comp_acc;
+	
+	thread implementation comp_acc.imp
+		annex Simulink{** **};
+	end comp_acc.imp;
+	
+	-- velocity voter
+	thread velo_voter
+		features
+			laser_valid: in data port;
+			laser_v: in data port;
+			wheel_valid: in data port;
+			wheel_v: in data port;
+			veh_v: out data port;
+		properties
+			dispatch_protocol => periodic;
+			period => 8ms;
+			compute_execution_time => 1ms..1ms;
+	end velo_voter;
+	
+	thread implementation velo_voter.imp
+		annex Simulink{** **};
+	end velo_voter.imp;
+	
+	-- panel controller
+	process pan_ctr
+		features
+			inc: in event port;
+			dec: in event port;
+			des_v: out data port;
+	end pan_ctr;
+	
+	process implementation pan_ctr.imp
+		subcomponents
+			pan_ctr_th_imp: thread pan_ctr_th.imp;
+		connections
+			tran_inc: port inc -> pan_ctr_th_imp.inc;
+			tran_dec: port dec -> pan_ctr_th_imp.dec;
+			tran_des_v: port pan_ctr_th_imp.des_v -> des_v;
+	end pan_ctr.imp;
+	
+	-- panel controller thread
+	thread pan_ctr_th
+		features
+			inc: in event port;
+			dec: in event port;
+			des_v: out data port;
+		properties
+			dispatch_protocol => aperiodic;
+			compute_execution_time => 1ms..1ms;
+			deadline => 100ms;
+	end pan_ctr_th;
+	
+	thread implementation pan_ctr_th.imp
+		annex Stateflow{** **};
+	end pan_ctr_th.imp;
+end software;

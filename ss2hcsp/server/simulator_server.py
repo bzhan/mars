@@ -81,7 +81,7 @@ def run_hcsp():
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
-    show_interval = 1000 if num_show > 1000 else None
+    show_interval = 10000 if num_show > 10000 else None
     if 'start_event' in data:
         start_event = data['start_event']
     else:
@@ -115,13 +115,13 @@ def run_hcsp():
     except simulator.SimulatorException as e:
         return raise_error(e.error_msg)
 
-    # Process time series, so that each process has at most 1000 events
+    # Process time series, so that each process has at most 10000 events
     for key in res['time_series']:
         l = len(res['time_series'][key])
-        if l > 1000:
+        if l > 10000:
             new_series = []
-            for i in range(1000):
-                idx = math.floor(i * (l / 1000.0))
+            for i in range(10000):
+                idx = math.floor(i * (l / 10000.0))
                 new_series.append(res['time_series'][key][idx])
             res['time_series'][key] = new_series
 

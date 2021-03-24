@@ -1,0 +1,86 @@
+package devices
+public
+	device camera
+		features
+			img: out data port;
+		properties
+			period => 200ms;
+			compute_execution_time => 20ms..50ms;
+	end camera;
+	
+	device implementation camera.imp
+		annex Simulink{** **};
+	end camera.imp;
+	
+	device radar
+		features
+			obs_pos_radar: out data port;
+		properties
+			period => 10ms;
+			compute_execution_time => 6ms..8ms;
+	end radar;
+	
+	device implementation radar.imp
+		annex Simulink{** **};
+	end radar.imp;
+	
+	device actuator
+		features
+			cmd: in data port;
+			veh_a: out data port;
+		properties
+			period => 2ms;
+	end actuator;
+	
+	device implementation actuator.imp
+	end actuator.imp;
+	
+	device GPS
+		features
+			veh_s: in data port;
+			veh_pos: out data port;
+		properties
+			period => 6ms;
+	end GPS;
+	
+	device implementation GPS.imp
+	end GPS.imp;
+	
+	device laser
+		features
+			veh_l_v: in data port;
+			laser_valid: out data port;
+			laser_v: out data port;
+		properties
+			period => 10ms;
+			compute_execution_time => 6ms..9ms;
+	end laser;
+	
+	device implementation laser.imp
+		annex Simulink{** **};
+	end laser.imp;
+	
+	device wheel
+		features
+			veh_w_v: in data port;
+			wheel_valid: out data port;
+			wheel_v : out data port;
+		properties
+			period => 10ms;
+			compute_execution_time => 6ms..9ms;
+	end wheel;
+	
+	device implementation wheel.imp
+		annex Simulink{** **};
+	end wheel.imp;
+	
+	device user_panel
+		features
+			inc: out event port;
+			dec: out event port;
+	end user_panel;
+	
+	device implementation user_panel.imp
+		annex Simulink{** **};
+	end user_panel.imp;
+end devices;
