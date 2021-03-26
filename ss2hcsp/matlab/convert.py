@@ -53,8 +53,6 @@ def convert_function(func):
         hp=hcsp.Sequence(*cmds)
         func.commands_hp=[hp]
         var_set=hp.get_vars()
-        print(999999)
-        print(var_set)
         var_set.update(func.name.get_vars())
         if isinstance(func.name,function.matFunExpr):
             if isinstance(func.name.return_vars,function.ListExpr):
