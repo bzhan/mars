@@ -61,14 +61,21 @@ scheduler = """
 
 /************* RMS algorithm **************/
 
-void sched_RMS(struct Thread** threads)
+void sched_RMS(struct Thread** threads, int threadNum, int iterCount)
 {
     return;
 }
 
 /************* FIFO algorithm *************/
 
-void sched_FCFS(struct Thread** threads)
+void sched_FCFS(struct Thread** threads, int threadNum, int iterCount)
+{
+    return;
+}
+
+/************* EDF algorithm *************/
+
+void sched_EDF(struct Thread** threads, int threadNum, int iterCount)
 {
     return;
 }
@@ -176,10 +183,10 @@ void Scheduler(struct Process* process, int iterCount)
 
     // Scheduling protocol will be selected depend on different algorithms
     if (strcmp(sched_pro, "RMS") == 0) {
-        sched_RMS(threads);
+        sched_RMS(threads, threadNum, iterCount);
     }
     else if (strcmp(sched_pro, "FCFS") == 0) {
-        sched_FCFS(threads);
+        sched_FCFS(threads, threadNum, iterCount);
     }
     else if (strcmp(sched_pro, "HPF") == 0) {
         sched_HPF(threads, threadNum, iterCount);
