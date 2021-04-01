@@ -111,14 +111,21 @@ void behaviorExecution(char *threadName)
 
 /************* RMS algorithm **************/
 
-void sched_RMS(struct Thread** threads)
+void sched_RMS(struct Thread** threads, int threadNum, int iterCount)
 {
     return;
 }
 
 /************* FIFO algorithm *************/
 
-void sched_FCFS(struct Thread** threads)
+void sched_FCFS(struct Thread** threads, int threadNum, int iterCount)
+{
+    return;
+}
+
+/************* EDF algorithm *************/
+
+void sched_EDF(struct Thread** threads, int threadNum, int iterCount)
 {
     return;
 }
