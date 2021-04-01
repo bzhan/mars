@@ -51,11 +51,10 @@ typedef struct Processor
 
 /******************Behavior Execution******************/
 
-float heatCommand;
 float measuredTemp;
-float diff;
 float boxTemp;
-
+float diff;
+float heatCommand;
 
 void thread_actuator()
 {
@@ -83,7 +82,6 @@ void thread_controller()
     else {
         diff = 0.0;
     }
-
 };
 
 void thread_sensor()
@@ -91,7 +89,6 @@ void thread_sensor()
     float e;
     e = 1.0;
     measuredTemp = boxTemp+e;
-
 };
 
 void behaviorExecution(char *threadName)
@@ -199,7 +196,6 @@ void sched_HPF(struct Thread **threads, int threadNum, int iterCount)
             {
                 threads[i]->runCount += 1;
                 behaviorExecution(threads[i]->threadName);
-            
 
                 if (threads[i]->runCount >= threads[i]->minExecutionTime) // Runnning Over
                 {
@@ -232,8 +228,7 @@ void Scheduler(struct Process* process, int iterCount)
         threads[i]->state = "INITIAL";
     }
 
-    // Scheduling protocol will be selected
-    // depend on different algorithms
+    // Scheduling protocol will be selected depend on different algorithms
     if (strcmp(sched_pro, "RMS") == 0) {
         sched_RMS(threads, threadNum, iterCount);
     }
@@ -242,9 +237,6 @@ void Scheduler(struct Process* process, int iterCount)
     }
     else if (strcmp(sched_pro, "HPF") == 0) {
         sched_HPF(threads, threadNum, iterCount);
-    }
-    else if (strcmp(sched_pro, "EDF") == 0) {
-        sched_EDF(threads, threadNum, iterCount);
     }
     else {
         printf("No matching scheduling protocol, quit!\n");
@@ -261,9 +253,9 @@ int main()
     actuator->priority = 6; 
     actuator->deadline = 10; 
     actuator->state = "HALTED"; 
-    actuator->dispatch_protocol = "Sporadic"; 
-    actuator->maxExecutionTime = 1; 
-    actuator->minExecutionTime = 1;
+    actuator->dispatch_protocol = "Periodic"; 
+    actuator->maxExecutionTime = 3; 
+    actuator->minExecutionTime = 5;
 
     Thread *controller = (Thread *)malloc(sizeof(Thread));
     controller->tid = 2;
@@ -273,7 +265,7 @@ int main()
     controller->priority = 8; 
     controller->deadline = 10; 
     controller->state = "HALTED"; 
-    controller->dispatch_protocol = "Sporadic"; 
+    controller->dispatch_protocol = "Periodic"; 
     controller->maxExecutionTime = 1; 
     controller->minExecutionTime = 1;
 
