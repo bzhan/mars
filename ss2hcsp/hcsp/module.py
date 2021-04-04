@@ -102,7 +102,8 @@ try:
         for line in f.readlines():
             hcsp_import_path.append(os.path.abspath(line.strip()))
 except FileNotFoundError:
-    print('Warning: import_path.txt not found.')
+    pass
+    # print('Warning: import_path.txt not found.')
 
 def read_file(filename):
     """Given file name, attempt to locate the file in the import paths
