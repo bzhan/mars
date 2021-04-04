@@ -6,7 +6,7 @@ from ss2hcsp.hcsp.expr import conj, true_expr
 
 class SignalBuilder(SL_Block):
     """Block for Signal Builder."""
-    def __init__(self, name, signal_names=(), time_axises=(), data_axises=()):
+    def __init__(self, name, signal_names=(), time_axises=(), data_axises=(),out_index=()):
         super(SignalBuilder, self).__init__()
         self.name = name
         self.type = "signalBuilder"
@@ -15,7 +15,7 @@ class SignalBuilder(SL_Block):
         self.signal_names = signal_names
         self.time_axises = time_axises
         self.data_axises = data_axises
-
+        self.out_indexs=out_index
         self.num_src = len(signal_names)
         self.num_dest = 0
         self.src_lines = [[] for _ in range(self.num_src)]  # DO NOT USE [[]]*self.num_src !!!
@@ -34,7 +34,6 @@ class SignalBuilder(SL_Block):
         for i in range(len(self.signal_names)):
             for line in self.src_lines[i]:
                 line.name = self.signal_names[i]
-
     def get_hp(self, init_ode=hp.Skip(), ode_hps=()):
         assert isinstance(init_ode, hp.HCSP)
         assert all(isinstance(ode_hp, (hp.ODE, hp.ODE_Comm)) for ode_hp in ode_hps)

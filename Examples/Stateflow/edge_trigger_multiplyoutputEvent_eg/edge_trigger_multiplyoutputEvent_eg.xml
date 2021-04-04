@@ -1330,11 +1330,7 @@
             </state>
             <state SSID="3">
               <P Name="labelString">A
-en:
-send(out_cmd);
-send(out_cmd);
-send(out_cmd);
-send(out_cmd);</P>
+en:send(out_cmd);send(out_cmd);send(out_cmd);send(out_cmd);</P>
               <P Name="position">[218 81.5 151.5 102.5]</P>
               <P Name="fontSize">12</P>
               <P Name="subviewer">15</P>
