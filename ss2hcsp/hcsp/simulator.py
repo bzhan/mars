@@ -175,6 +175,19 @@ def eval_expr(expr, state):
             if args[0] > args[1]:
                 raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
             return random.uniform(args[0], args[1])
+        elif expr.fun_name == "protected_curve":
+            assert len(args) == 4
+            obs_pos, veh_pos, max_v, min_a = args
+            if obs_pos <= 0:
+                return max_v
+            assert min_a < 0
+            distance = obs_pos - veh_pos
+            if distance > max_v * max_v / (-2 * min_a):
+                return max_v
+            elif distance >= 0:
+                return math.sqrt(-2 * min_a * distance)
+            else:
+                return 0
         else:
             raise NotImplementedError
 
