@@ -7,7 +7,8 @@ from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
-
+from ss2hcsp.sf.sf_chart import SF_Chart
+from ss2hcsp.sl.mux.mux import Mux
 
 def translate_continuous(diagram):
     # Get block dictionary
@@ -320,7 +321,7 @@ def translate_discrete(diagram):
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers,
-             discretePulseGenerator, model_name="P"):
+             discretePulseGenerator,muxs,model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.
     
     The arguments are:
@@ -352,12 +353,27 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
         processes.add(name, continuous_process)
         main_processes.append(hp.Var(name))
         num += 1
-
+    num=0
     for block in discretePulseGenerator:
-        plus_hcsp = block.get_hcsp()
-        name = "DPG"
-        processes.add(name, plus_hcsp)
+        for line in block.src_lines:
+            for branch in line:
+                if isinstance(branch.dest_block,Mux):
+                    plus_hcsp = block.get_hcsp()
+                    name = "DPG" + str(num)
+                    processes.add(name, plus_hcsp)
+                    main_processes.append(hp.Var(name))
+                else:
+                    plus_hcsp = block.get_hcsp1()
+                    name = "DPG" + str(num)
+                    processes.add(name, plus_hcsp)
+                    main_processes.append(hp.Var(name))
+        num += 1
+    num1=0
+    for block in muxs:
+        name="Mux"+str(num1)
+        processes.add(name, block.get_hp())
         main_processes.append(hp.Var(name))
+        num1+=1
 
     # Compute the stateflow processes
     for chart in sf_charts:

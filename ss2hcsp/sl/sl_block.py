@@ -39,18 +39,15 @@ class SL_Block:
         """Add a source line."""
         assert port_id < self.num_src
         assert isinstance(sl_line, SL_Line)
-
         # First check if there is a branch that is currently None
         for branch in range(len(self.src_lines[port_id])):
             if self.src_lines[port_id][branch] is None:
                 sl_line.branch = branch
                 self.src_lines[port_id][branch] = sl_line
                 return
-
         # If all filled, append at the end.
         sl_line.branch = len(self.src_lines[port_id])
         self.src_lines[port_id].append(sl_line)
-
     def add_dest(self, port_id, sl_line):
         """Add a destination line."""
         assert port_id < self.num_dest

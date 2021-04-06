@@ -557,6 +557,12 @@ class SimulatorTest(unittest.TestCase):
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "error: x is too big"],
         warning=(6, "x is too big"))
 
+    def testExecParallel48(self):
+        self.run_test([
+            "(x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread))**",
+            "ch[0]!; out?x; ch[1]!; out?x"
+        ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
+
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
                        show_interval=None, start_event=None, print_trace=False):
         for i in range(len(infos)):

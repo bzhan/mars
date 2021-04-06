@@ -14,6 +14,28 @@ def printTofile(path,content):
 
 
 class SfTest(unittest.TestCase):
+    def testMytest(self):
+        location = "./Examples/signalBuilder/mytest.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/signalBuilder/mytest.txt",process)
+    def testVelocity_control_with_stateflow(self):
+        location = "./Examples/signalBuilder/velocity_control_with_stateflow.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.comp_inher_st()
+#         diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/signalBuilder/velocity_control_with_stateflow.txt",process)
     def testEarly_exit_has_function(self):
         location = "./Examples/Stateflow/early_exit/early_return_logic_eg1.xml"
         diagram = SL_Diagram(location=location)
@@ -25,7 +47,7 @@ class SfTest(unittest.TestCase):
         print(process)
         printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1.txt",process) 
     def testPlus_generator_edge_trigger(self):
-        location = "./Examples/trigger_subsystem/plus_generator_edge_trigger.xml"
+        location = "./Examples/trigger_subsystem/plus_generator_edge_trigger1.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
@@ -93,7 +115,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
-        #printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
+        printTofile("./Examples/Stateflow/direct_event/direct_event1_eg_1.txt",process)
     def testSendDirect_event4(self):
         location = "./Examples/Stateflow/direct_event/direct_event1_eg_3.xml"
         diagram = SL_Diagram(location=location)
@@ -184,15 +206,15 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
+        print(process)
 
         res = [
             ("P", "a := 0; cansend := 0; flag := 0; unsent := 0; a_S1 := 0; a_pushing := 0; a_idle := 0; "
-                  "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(-1); "
+                  "a_S1 := 1; unsent := 5; cansend := 1; a_idle := 1; wait(0.1); "
                   "(if a_pushing == 1 then done := 0; if done == 0 && unsent <= 0 then a_pushing := 0; a_idle := 1; "
                   "done := 1 elif cansend == 1 && done == 0 then a_pushing := 0; unsent := unsent-1; a_pushing := 1; "
                   "done := 1 else flag := 0 endif elif a_idle == 1 then done := 0; if done == 0 && unsent > 0 "
-                  "then a_idle := 0; a_pushing := 1; done := 1 else flag := 1 endif else skip endif; wait(-1))**"),
+                  "then a_idle := 0; a_pushing := 1; done := 1 else flag := 1 endif else skip endif; wait(0.1))**"),
         ]
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
@@ -270,7 +292,7 @@ class SfTest(unittest.TestCase):
         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
-#         print(process)
+        print(process)
 
         res = [
             ("P", "@PD0 || @PD1 || @PC0 || @PC1 || @Chart || @buffer0 || @buffer1"),
@@ -292,7 +314,7 @@ class SfTest(unittest.TestCase):
         expected_process = hcsp.HCSPProcess()
         for name, _hp in res:
             expected_process.add(name, hp_parser.parse(_hp))
-#         print(expected_process)
+        print(expected_process)
 
         self.assertEqual(process, expected_process)
 
@@ -305,7 +327,7 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         # print(diagram)
         process = get_hcsp(*diagram.seperate_diagram())
-        # print(process)
+        print(process)
 
         res = [
             ("P", "out := 0; a_S1 := 0; a_super := 0; a_sub1 := 0; a_sub2 := 0; a_S1 := 1; a_super := 1; "

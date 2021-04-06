@@ -89,11 +89,6 @@ class SF_State:
                 hps.extend(child.init())
         return hps
 
-
-#_activate和activated的区别
-
-
-
     def _activate(self):  # turn on
         time_process = "state_time := 0; " if isinstance(self, OR_State) and self.has_aux_var("state_time") else ""
         activate_process = "a_" + self.name + " := 1" #等于1表示该状态处于活动状态
@@ -105,6 +100,9 @@ class SF_State:
 
     def activated(self):
         return bexpr_parser.parse("a_" + self.name + " == 1")
+
+    def exited(self):
+        return bexpr_parser.parse("a_" + self.name + " == 0")
 #历史节点需修改
     def activate(self):  # return a list of hps
         hps = list()

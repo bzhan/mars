@@ -148,19 +148,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             left=list(strs.split(",")) if  "," in strs else list(strs)
             if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) :  # a function
                 assert isinstance(root.chart, SF_Chart)
-                # states=root.chart.all_states
-                # path = root.chart.name
-                # for state in states:
-                #     if len(state.children) > 0:
-                #         for child in state.children:
-                #             for fun in child.funs:
-                #                 if str(right) == str(fun.fun_name):
-                #                     path =path+"."+state.name+"."+child.name
-                #                     break
-                #     else:
-                #         for fun in state.funs:
-                #             if str(right) == str(fun.fun_name):
-                #                 path =path+"."+state.name
                 longest_path=root.chart.get_fun_by_path(str(right))
                 hps.append(root.chart.fun_dict[longest_path])
 
@@ -209,7 +196,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                     for e in root.chart.event_list:
                         if e.name == act and e.scope == "OUTPUT_EVENT" :
                             if e.trigger == "FUNCTION_CALL_EVENT":
-                                hps.append(hp_parser.parse("tri" + "!" +e.name ))
+                                hps.append(hp_parser.parse("tri" + '!"' +e.name +'"'))
                             flag=1
                             break
                     if flag == 0: 
@@ -278,45 +265,40 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                     elif re.match(pattern="send\\(.*?\\)", string=act):
                         event_name=act.strip('send(').strip(')')
                         flag =0
-                        for dest_chart in root.chart.sf_charts:
-                            for  dest_tri in root.chart.trigger_dest:
-                                if dest_tri == dest_chart.name:
-                        
-                                    if dest_chart.trigger_type == "function-call":
-                                        hps.append(hp_parser.parse("tri" + '!"' +event_name+'"' ))
-                                    else:
-                                        wait_time=root.chart.max_step
-                                        if trigger_edge_osig == 0:
-                                            hps.append(hp.Sequence(
-                                                        hp.Assign("out_tri", AConst(trigger_edge_osig)),
-                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
-                                                        hp.Wait(AConst(wait_time)),
-                                                        hp.Assign("out_tri", AConst(1)),
-                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
-                                                        # hp.Assign("out_tri",AConst(1)), 
-                                                        # hp.Condition(cond=final_cond, hp=hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
-                                                        ))
-                                            trigger_edge_osig =1
-                                        else:
-                                            hps.append(hp.Sequence(
-                                                        hp.Assign("out_tri", AConst(trigger_edge_osig)),
-                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
-                                                        hp.Wait(AConst(wait_time)),
-                                                        hp.Assign("out_tri", AConst(0)),
-                                                        hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
-                                                        
-                                                        ))
-                                            trigger_edge_osig =0
-                        for e in root.chart.event_list:
-                            if e.name == event_name and e.scope == "OUTPUT_EVENT" :
-                                flag=1
-                                break
+                        for event in root.chart.event_list:
+                            flag=1                           
+                            if event_name == event.name and event.scope == "OUTPUT_EVENT" and event.trigger == "FUNCTION_CALL_EVENT":
+                                hps.append(hp_parser.parse("tri" + '!"' +event_name+'"' ))
+                            else:
+                                wait_time=root.chart.max_step
+                                if trigger_edge_osig == 0:
+                                    hps.append(hp.Sequence(
+                                                hp.Assign("out_tri", AConst(trigger_edge_osig)),
+                                                hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
+                                                hp.Wait(AConst(wait_time)),
+                                                hp.Assign("out_tri", AConst(1)),
+                                                hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
+                                                # hp.Assign("out_tri",AConst(1)), 
+                                                # hp.Condition(cond=final_cond, hp=hp_parser.parse("tri"+'! "'+tri_event+'"'+""))              
+                                                ))
+                                    trigger_edge_osig =1
+                                else:
+                                    hps.append(hp.Sequence(
+                                                hp.Assign("out_tri", AConst(trigger_edge_osig)),
+                                                hp.OutputChannel('ch_' + 'trig', AVar("out_tri")),
+                                                hp.Wait(AConst(wait_time)),
+                                                hp.Assign("out_tri", AConst(0)),
+                                                hp.OutputChannel('ch_' + 'trig', AVar("out_tri"))
+                                                
+                                                ))
+                                    trigger_edge_osig =0
+               
                         if flag == 0: 
                             root.chart.has_event = True
                             event = (act.strip('send(').strip(')')) + "_" + location.name
                             hps.append(hp_parser.parse("BR" + root_num + "!" +event ))
                             hps.append(hp.Var("X"))
-        
+             
             
     return hps
 
@@ -326,6 +308,10 @@ class SF_Chart(Subsystem):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
+        self.num_src = 10
+        self.num_dest = num_dest
+        self.src_lines = [[] for _ in range(self.num_src)]  # [[]] * self.num_src
+        self.dest_lines = [None] * self.num_dest
 
         assert isinstance(state, (AND_State,OR_State))
         self.diagram = state
@@ -375,9 +361,7 @@ class SF_Chart(Subsystem):
         # self.add_names()
         # self.find_root_for_states()
         # self.find_root_and_loc_for_trans()
-
         # self.parse_acts_on_states_and_trans()
-
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.diagram))
 
@@ -641,21 +625,27 @@ class SF_Chart(Subsystem):
                     event_var = "M_"+tran.event
                     self.mesg_hp.append(hp_parser.parse("ML_"+tran.event+" != [] ->( M_"+tran.event+" :=top(ML_"+tran.event+"); ML_"+tran.event+" :=pop(ML_"+tran.event+"))" ))
             conds = list()
+            edge_trigger_cond=""
             trigger_conds=list()
             if isinstance(state,(AND_State,OR_State)):
                 root_num=re.findall(pattern="\\d+", string=state.root.name)
                 if self.dest_state_root_num == root_num[0]:
                     conds.append(bexpr_parser.parse( "state" +'== "'+"a_"+state.name +'"'))
             if tran.event:
-                conds.append(bexpr_parser.parse(event_var +'== "'+ tran.event +'"'))
+                flag=0
                 for event in self.event_list:
-                    if event.name == tran.event:
+                    if event.name == tran.event and ( event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                        flag=1
+                        conds.append(bexpr_parser.parse('"'+event.name +'"== "'+ tran.event +'"'))
+                        break
+                if flag == 0:
+                    conds.append(bexpr_parser.parse(event_var +'== "'+ tran.event +'"'))      
 
-                        if self.is_triggered_chart and self.trigger_type == "function-call" and event.scope == "INPUT_EVENT":
-                            trigger_conds.append(bexpr_parser.parse(event_var + ' == "'+ tran.event +'"'))
-                            trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
-                            conds.clear()
-                            conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
+                    if self.is_triggered_chart and self.trigger_type == "function-call" and event.scope == "INPUT_EVENT":
+                        trigger_conds.append(bexpr_parser.parse(event_var + ' == "'+ tran.event +'"'))
+                        trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
+                        conds.clear()
+                        conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
             if tran.condition:
                 conds.append(tran.condition)
 
@@ -670,14 +660,47 @@ class SF_Chart(Subsystem):
             descendant_exit = list() if isinstance(state, Junction) else state.all_descendant_exit()
             exit_to_ancestor = state.exit_to(common_ancestor)
             enter_into_dst = common_ancestor.enter_into(dst_state)
-
             hps = list()
             hps1=list()
             if isinstance(dst_state, (AND_State, OR_State)):
                 assert not isinstance(dst_state, AND_State) or tran_type == "inner_trans"
-
-                hps = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
+                hps=tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
                       + [hp_parser.parse("done := 1")]
+                hps2 = tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q + enter_into_dst \
+                      + [hp_parser.parse("done := 1")]
+                final_cond=""
+                for event in self.event_list:
+                    if event.name == tran.event and ( event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                        
+                        if event.trigger == "RISING_EDGE_EVENT":
+                            conds2=list()
+                            conds2.append(bexpr_parser.parse("osig"+str(event.port)+" <= 0"))
+                            conds2.append(bexpr_parser.parse("out_tri"+str(event.port)+" > 0"))
+                            cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig"+str(event.port)+" < 0"))
+                            conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" >= 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond2,cond1)
+                        elif event.trigger == "FALLING_EDGE_EVENT":
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig"+str(event.port)+" >= 0"))
+                            conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" < 0"))
+                            cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig"+str(event.port)+" > 0"))
+                            conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" <= 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond,cond1)
+                        else:
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig"+str(event.port)+"!=out_tri"+str(event.port)))
+                           
+                            final_cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                        
+                        hps=[ hp.Sequence( hp.Condition(final_cond,
+                                          get_hcsp(hps2)))]
+
             elif isinstance(dst_state, Junction):
                 if not dst_state.visited:  # has not been visited in this round
                     dst_state.visited = True
@@ -1013,13 +1036,26 @@ class SF_Chart(Subsystem):
         for num in range(state_num):
             process = hp.Parallel(process, hp.Var("S" + str(num + 1)))
         processes.insert(0, "D", process)
-
+        if self.st == -1 or self.st == 0:
+            self.st= 0.1
         # Get each S_i process
         parallel_states = self.diagram.children if self.diagram.name == "S0" else [self.diagram]
         assert len(parallel_states) == state_num
+        state_root=""
+        cond_exit=""
+        state_root=parallel_states[0].root
+        exit_states=list()
+        for child in state_root.children:
+            if isinstance(child,(AND_State,OR_State)):
+                exit_states.append(child.exited()) 
+        if len(exit_states)>0:
+            cond_exit=conj(*exit_states) if len(exit_states) >= 2 else exit_states[0]
+        else:
+            cond_exit=bexpr_parser.parse('"true"'+' =="true"')
         i = 1
         for s_i in parallel_states:  # for each S_i state
             assert s_i.name == "S" + str(i)
+
             vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
             add_VIn_after_BR_in_state(i, s_i, vars_in_s_i)
 
@@ -1061,38 +1097,141 @@ class SF_Chart(Subsystem):
                                            hp.Loop(hp.Recursion(s_i_proc)))
                     else:
                         if self.trigger_type == "function-call":
+                            # conds=list()
+                            # conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
+                            # cond = conj(*conds) if len(conds) >= 2 else conds[0] 
+                            # s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri?tri_event "),hp.Condition(cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                            #                    ))))
                             conds=list()
                             conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                             cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri?tri_event "),hp.Condition(cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
-                                               ))))
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))), hp.Recursion(s_i_proc) )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif self.trigger_type == "rising":
-                            conds=list()
-                            conds.append(bexpr_parser.parse("osig <= 0"))
-                            conds.append(bexpr_parser.parse("out_tri > 0"))
-                            cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                            conds1=list()
-                            conds1.append(bexpr_parser.parse("osig < 0"))
-                            conds1.append(bexpr_parser.parse("out_tri >= 0"))
-                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                            final_cond=disj(cond,cond)
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
-                                              ))))
+                            # conds=list()
+                            # conds.append(bexpr_parser.parse("osig <= 0"))
+                            # conds.append(bexpr_parser.parse("out_tri > 0"))
+                            # cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                            # conds1=list()
+                            # conds1.append(bexpr_parser.parse("osig < 0"))
+                            # conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                            # cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            # final_cond=disj(cond,cond1)
+                            # s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                            #                   ),hp_parser.parse("osig:=out_tri"))))
+                            flag=0
+                            has_mux_hps_init=list()
+                            has_mux_hps=list()
+                            has_mux_cond=list()
+                            has_mux_end=list()
+                            for event in self.event_list:
+                                if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                    cond2=""
+                                    cond1=""
+                                    final_cond=""
+                                    flag+=1
+                                    has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                    has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                    conds=list()
+                                    conds.append(bexpr_parser.parse("osig"+str(event.port)+" <= 0"))
+                                    conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" > 0"))
+                                    cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                    conds1=list()
+                                    conds1.append(bexpr_parser.parse("osig"+str(event.port)+" < 0"))
+                                    conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" >= 0"))
+                                    cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                    final_cond=disj(cond2,cond1)
+                                    has_mux_cond.append(final_cond)
+                                    has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                            cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                            if flag>0 and flag == 1:
+                                cond2=""
+                                cond1=""
+                                conds=list()
+                                conds.append(bexpr_parser.parse("osig <= 0"))
+                                conds.append(bexpr_parser.parse("out_tri > 0"))
+                                cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                conds1=list()
+                                conds1.append(bexpr_parser.parse("osig < 0"))
+                                conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                final_cond=disj(cond2,cond1)
+                                s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            elif flag > 1:
+                                s_i_proc = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif self.trigger_type == "falling":
-                            conds=list()
-                            conds.append(bexpr_parser.parse("osig >= 0"))
-                            conds.append(bexpr_parser.parse("out_tri < 0"))
-                            cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                            conds1=list()
-                            conds1.append(bexpr_parser.parse("osig > 0"))
-                            conds1.append(bexpr_parser.parse("out_tri <= 0"))
-                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                            final_cond=disj(cond,cond)
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
-                                               ))))
+                            # conds=list()
+                            # conds.append(bexpr_parser.parse("osig >= 0"))
+                            # conds.append(bexpr_parser.parse("out_tri < 0"))
+                            # cond= conj(*conds) if len(conds) >= 2 else conds[0]
+                            # conds1=list()
+                            # conds1.append(bexpr_parser.parse("osig > 0"))
+                            # conds1.append(bexpr_parser.parse("out_tri <= 0"))
+                            # cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            # final_cond=disj(cond,cond1)
+                            # s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                            #                    ),hp_parser.parse("osig:=out_tri"))))
+                            flag=0
+                            has_mux_hps_init=list()
+                            has_mux_hps=list()
+                            has_mux_cond=list()
+                            has_mux_end=list()
+                            for event in self.event_list:
+                                if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                    cond2=""
+                                    cond1=""
+                                    final_cond=""
+                                    flag+=1
+                                    has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                    has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                    conds=list()
+                                    conds.append(bexpr_parser.parse("osig"+str(event.port)+" > 0"))
+                                    conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" <= 0"))
+                                    cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                    conds1=list()
+                                    conds1.append(bexpr_parser.parse("osig"+str(event.port)+" >= 0"))
+                                    conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" < 0"))
+                                    cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                    final_cond=disj(cond2,cond1)
+                                    has_mux_cond.append(final_cond)
+                                    has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                            cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                            if flag>0 and flag == 1:
+                                cond2=""
+                                cond1=""
+                                conds=list()
+                                conds.append(bexpr_parser.parse("osig > 0"))
+                                conds.append(bexpr_parser.parse("out_tri <= 0"))
+                                cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                conds1=list()
+                                conds1.append(bexpr_parser.parse("osig >= 0"))
+                                conds1.append(bexpr_parser.parse("out_tri < 0"))
+                                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                final_cond=disj(cond2,cond1)
+                                s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            elif flag > 1:
+                                s_i_proc = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         else:
-                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
-                                               ))))
+                            # s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
+                            #                    ),hp_parser.parse("osig:=out_tri"))))
+
+                            #######
+                            flag=0
+                            has_mux_hps_init=list()
+                            has_mux_hps=list()
+                            has_mux_cond=list()
+                            has_mux_end=list()
+                            for event in self.event_list:
+                                if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                    flag+=1
+                                    has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                    has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                    has_mux_cond.append(bexpr_parser.parse("osig"+str(event.port)+"!=out_tri"+str(event.port)))
+                                    has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                            cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                            if flag>0 and flag == 1:
+                                s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) , hp.Recursion(s_i_proc)) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            elif flag > 1:
+                                s_i_proc = hp.Sequence(get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), hp.Recursion(s_i_proc)) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     break
             if not contain_X:
                 if not self.is_triggered_chart :
@@ -1103,31 +1242,110 @@ class SF_Chart(Subsystem):
                         conds=list()
                         conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                         cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond, get_hcsp(s_i.activate())), s_i_proc)))
+                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))), s_i_proc )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     elif self.trigger_type =="rising":
-                        conds=list()
-                        conds.append(bexpr_parser.parse("osig <= 0"))
-                        conds.append(bexpr_parser.parse("out_tri > 0"))
-                        cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                        conds1=list()
-                        conds1.append(bexpr_parser.parse("osig < 0"))
-                        conds1.append(bexpr_parser.parse("out_tri >= 0"))
-                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                        final_cond=disj(cond,cond1)
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate())), s_i_proc)))
+                        flag=0
+                        has_mux_hps_init=list()
+                        has_mux_hps=list()
+                        has_mux_cond=list()
+                        has_mux_end=list()
+                        for event in self.event_list:
+                            if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                cond2=""
+                                cond1=""
+                                final_cond=""
+                                flag+=1
+                                has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                conds=list()
+                                conds.append(bexpr_parser.parse("osig"+str(event.port)+" <= 0"))
+                                conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" > 0"))
+                                cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                conds1=list()
+                                conds1.append(bexpr_parser.parse("osig"+str(event.port)+" < 0"))
+                                conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" >= 0"))
+                                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                final_cond=disj(cond2,cond1)
+                                has_mux_cond.append(final_cond)
+                                has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                        cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                        if flag>0 and flag == 1:
+                            cond2=""
+                            cond1=""
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig <= 0"))
+                            conds.append(bexpr_parser.parse("out_tri > 0"))
+                            cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig < 0"))
+                            conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond2,cond1)
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                        elif flag > 1:
+                            s_i_proc = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                    
                     elif self.trigger_type == "falling":
-                        conds=list()
-                        conds.append(bexpr_parser.parse("osig >= 0"))
-                        conds.append(bexpr_parser.parse("out_tri < 0"))
-                        cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                        conds1=list()
-                        conds1.append(bexpr_parser.parse("osig > 0"))
-                        conds1.append(bexpr_parser.parse("out_tri < 0"))
-                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                        final_cond=disj(cond,cond1)
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond, get_hcsp(s_i.activate())), s_i_proc)))
+                        flag=0
+                        has_mux_hps_init=list()
+                        has_mux_hps=list()
+                        has_mux_cond=list()
+                        has_mux_end=list()
+                        for event in self.event_list:
+                            if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                cond2=""
+                                cond1=""
+                                final_cond=""
+                                flag+=1
+                                has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                conds=list()
+                                conds.append(bexpr_parser.parse("osig"+str(event.port)+" > 0"))
+                                conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" <= 0"))
+                                cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                                conds1=list()
+                                conds1.append(bexpr_parser.parse("osig"+str(event.port)+" >= 0"))
+                                conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" < 0"))
+                                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                                final_cond=disj(cond2,cond1)
+                                has_mux_cond.append(final_cond)
+                                has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                        cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                        if flag>0 and flag == 1:
+                            cond2=""
+                            cond1=""
+                            conds=list()
+                            conds.append(bexpr_parser.parse("osig > 0"))
+                            conds.append(bexpr_parser.parse("out_tri <= 0"))
+                            cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                            conds1=list()
+                            conds1.append(bexpr_parser.parse("osig >= 0"))
+                            conds1.append(bexpr_parser.parse("out_tri < 0"))
+                            cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                            final_cond=disj(cond2,cond1)
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                        elif flag > 1:
+                            s_i_proc = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                    
+                            
                     else:
-                        s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"), get_hcsp(s_i.activate())), s_i_proc)))
+                        flag=0
+                        has_mux_hps_init=list()
+                        has_mux_hps=list()
+                        has_mux_cond=list()
+                        has_mux_end=list()
+                        for event in self.event_list:
+                            if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                                flag+=1
+                                has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                                has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                                has_mux_cond.append(bexpr_parser.parse("osig"+str(event.port)+"!=out_tri"+str(event.port)))
+                                has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                        cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                        if flag>0 and flag == 1:
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) , s_i_proc) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                        elif flag > 1:
+                            s_i_proc = hp.Sequence(get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), s_i_proc) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                 #s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),s_i_proc)
 
             # The output order is after D, M and M_main
@@ -1162,11 +1380,24 @@ class SF_Chart(Subsystem):
         init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
         # Initialise and Activate states
         init_states = []
-        activate_states = []
+        exit_states=[]
+        activate_states = list()
+        state_root=""
+        cond_exit=""
         parallel_states = self.diagram.children if self.diagram.name == "S0" else [self.diagram]
         for s_i in parallel_states:
             init_states.extend(s_i.init())
             activate_states.extend(s_i.activate())
+            
+            state_root=s_i.root
+    
+        for child in state_root.children:
+            if isinstance(child,(AND_State,OR_State)):
+                exit_states.append(child.exited()) 
+        if len(exit_states)>0:
+            cond_exit=conj(*exit_states) if len(exit_states) >= 2 else exit_states[0]
+        else:
+            cond_exit=bexpr_parser.parse('"true"'+' =="true"')
         # for sub_hp in init_states + activate_states:
         #     #assert isinstance(sub_hp, (hp.Assign, hp.Sequence,hp.OutputChannel,hp.InputChannel))
         #     if isinstance(sub_hp, hp.Sequence):
@@ -1190,8 +1421,11 @@ class SF_Chart(Subsystem):
         else:
             init_hps = init_vars+init_states
         # Delay one period at the first round
+        if self.st == -1 or self.st == 0:
+            self.st=0.1
         init_hp = hp.Sequence(*init_hps, hp.Wait(AConst(self.st)))
-
+        
+        # init_hp = hp.Sequence(*init_hps)
         processes = hp.HCSPProcess()
         # Get main process
         main_body = [hp.Var(state.name) for state in parallel_states]
@@ -1203,33 +1437,108 @@ class SF_Chart(Subsystem):
                 conds=list()
                 conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                 cond = conj(*conds) if len(conds) >= 2 else conds[0]   
-                main_process = hp.Sequence(init_hp,hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'), hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)))))
+                main_process = hp.Sequence(init_hp,hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'), hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs )) , *out_chs,*main_processes)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
             elif self.trigger_type == "rising":
-                conds=list()
-
-                conds.append(bexpr_parser.parse("osig <= 0"))
-                conds.append(bexpr_parser.parse("out_tri > 0"))
-                cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                conds1=list()
-                conds1.append(bexpr_parser.parse("osig < 0"))
-                conds1.append(bexpr_parser.parse("out_tri >= 0"))
-                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                final_cond=disj(cond,cond1)
-                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
+                flag=0
+                has_mux_hps_init=list()
+                has_mux_hps=list()
+                has_mux_cond=list()
+                has_mux_end=list()
+                for event in self.event_list:
+                    if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                        cond2=""
+                        cond1=""
+                        final_cond=""
+                        flag+=1
+                        has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                        has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                        conds=list()
+                        conds.append(bexpr_parser.parse("osig"+str(event.port)+" <= 0"))
+                        conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" > 0"))
+                        cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                        conds1=list()
+                        conds1.append(bexpr_parser.parse("osig"+str(event.port)+" < 0"))
+                        conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" >= 0"))
+                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                        final_cond=disj(cond2,cond1)
+                        has_mux_cond.append(final_cond)
+                        has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                if flag>0 and flag == 1:
+                    cond2=""
+                    cond1=""
+                    conds=list()
+                    conds.append(bexpr_parser.parse("osig <= 0"))
+                    conds.append(bexpr_parser.parse("out_tri > 0"))
+                    cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                    conds1=list()
+                    conds1.append(bexpr_parser.parse("osig < 0"))
+                    conds1.append(bexpr_parser.parse("out_tri >= 0"))
+                    cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                    final_cond=disj(cond2,cond1)
+                    main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs,hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                elif flag > 1:
+                    main_process = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs ,*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), *out_chs,*main_processes)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
             elif self.trigger_type == "falling":
-                conds=list()
-
-                conds.append(bexpr_parser.parse("osig > 0"))
-                conds.append(bexpr_parser.parse("out_tri <= 0"))
-                cond= conj(*conds) if len(conds) >= 2 else conds[0]
-                conds1=list()
-                conds1.append(bexpr_parser.parse("osig >= 0"))
-                conds1.append(bexpr_parser.parse("out_tri < 0"))
-                cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
-                final_cond=disj(cond,cond1)
-                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
+                flag=0
+                has_mux_hps_init=list()
+                has_mux_hps=list()
+                has_mux_cond=list()
+                has_mux_end=list()
+                for event in self.event_list:
+                    if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                        cond2=""
+                        cond1=""
+                        final_cond=""
+                        flag+=1
+                        has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                        has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                        conds=list()
+                        conds.append(bexpr_parser.parse("osig"+str(event.port)+" > 0"))
+                        conds.append(bexpr_parser.parse("out_tri"+str(event.port)+" <= 0"))
+                        cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                        conds1=list()
+                        conds1.append(bexpr_parser.parse("osig"+str(event.port)+" >= 0"))
+                        conds1.append(bexpr_parser.parse("out_tri"+str(event.port)+" < 0"))
+                        cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                        final_cond=disj(cond2,cond1)
+                        has_mux_cond.append(final_cond)
+                        has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                if flag>0 and flag == 1:
+                    cond2=""
+                    cond1=""
+                    conds=list()
+                    conds.append(bexpr_parser.parse("osig > 0"))
+                    conds.append(bexpr_parser.parse("out_tri <= 0"))
+                    cond2= conj(*conds) if len(conds) >= 2 else conds[0]
+                    conds1=list()
+                    conds1.append(bexpr_parser.parse("osig >= 0"))
+                    conds1.append(bexpr_parser.parse("out_tri < 0"))
+                    cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
+                    final_cond=disj(cond2,cond1)
+                    main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs,hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                elif flag > 1:
+                    main_process = hp.Sequence(init_hp,*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs ,*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)), *out_chs,*main_processes)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
             else:
-                main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(*activate_states ,*in_chs , *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"))))
+                flag=0
+                has_mux_hps_init=list()
+                has_mux_hps=list()
+                has_mux_cond=list()
+                has_mux_end=list()
+                for event in self.event_list:
+                    if (event.trigger in ["EITHER_EDGE_EVENT","FALLING_EDGE_EVENT","RISING_EDGE_EVENT"] )and event.scope =="INPUT_EVENT":
+                        flag+=1
+                        has_mux_hps_init.append(hp_parser.parse("ch_trig"+str(event.port)+"?osig"+str(event.port)))
+                        has_mux_hps.append(hp_parser.parse("ch_trig"+str(event.port)+"?out_tri"+str(event.port)))
+                        has_mux_cond.append(bexpr_parser.parse("osig"+str(event.port)+"!=out_tri"+str(event.port)))
+                        has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
+                cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
+                if flag>0 and flag == 1:
+                   main_process = hp.Sequence(init_hp,hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"), hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs,hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri") )), *out_chs,*main_processes)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                elif flag > 1:
+
+                    main_process = hp.Sequence(init_hp,get_hcsp(has_mux_hps_init),hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(*activate_states ,*in_chs ,*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)) , *out_chs,*main_processes)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
         processes.add(self.name, main_process)
 
         # Get each S_i process
