@@ -254,8 +254,19 @@ def eval_expr(expr, state):
         raise NotImplementedError
 
 def eval_channel(ch_name, state):
-    args = tuple(int(eval_expr(arg, state)) for arg in ch_name.args)
-    return hcsp.Channel(ch_name.name, args)
+    """Evaluate channel ch_name at the given state.
+
+    A special case is when one or more indices of the communication channel
+    is a bound variable. In this case we do not modify the index.
+
+    """
+    args = []
+    for arg in ch_name.args:
+        if isinstance(arg, AVar) and arg.name.startswith("_"):
+            args.append(arg)
+        else:
+            args.append(eval_expr(arg, state))
+    return hcsp.Channel(ch_name.name, tuple(args))
 
 def get_ode_delay(hp, state):
     """Obtain the delay needed for the given ODE, starting at the
@@ -863,7 +874,7 @@ class SimInfo:
         else:
             raise NotImplementedError
 
-    def exec_input_comm(self, ch_name, x):
+    def exec_input_comm(self, ch_name, x, inst=None):
         """Perform an input communication on a given hybrid program.
 
         The input communication is specified by the channel name
@@ -872,6 +883,9 @@ class SimInfo:
         """
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
+
+        if inst is not None:
+            self.state.update(inst)
 
         if cur_hp.type == "input_channel":
             assert eval_channel(cur_hp.ch_name, self.state) == ch_name
@@ -909,7 +923,7 @@ class SimInfo:
         else:
             assert False
 
-    def exec_output_comm(self, ch_name):
+    def exec_output_comm(self, ch_name, inst=None):
         """Perform an output communication on a given hybrid program.
 
         The output communication is specified by the channel name.
@@ -919,6 +933,9 @@ class SimInfo:
         """
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.pos, rec_vars)
+
+        if inst is not None:
+            self.state.update(inst)
 
         if cur_hp.type == "output_channel":
             assert eval_channel(cur_hp.ch_name, self.state) == ch_name
@@ -1013,6 +1030,37 @@ class SimInfo:
         else:
             assert False
 
+def match_channel(out_ch, in_ch):
+    """Matching between two channels.
+    
+    If there is no match, return None. Otherwise, return a pair of
+    dictionaries out_arg, in_arg, containing the mapping from variables
+    in the output and input channels to values, respectively.
+
+    """
+    if out_ch.name != in_ch.name or len(out_ch.args) != len(in_ch.args):
+        return None
+    inst_out, inst_in = dict(), dict()
+    for out_arg, in_arg in zip(out_ch.args, in_ch.args):
+        if isinstance(out_arg, AVar):
+            if isinstance(in_arg, int):
+                inst_out[out_arg.name] = in_arg
+            elif isinstance(in_arg, AVar):
+                return None  # both sides are variables
+            else:
+                raise TypeError
+        elif isinstance(out_arg, int):
+            if isinstance(in_arg, int):
+                if out_arg != in_arg:
+                    return None
+            elif isinstance(in_arg, AVar):
+                inst_in[in_arg.name] = out_arg
+            else:
+                raise TypeError
+        else:
+            raise TypeError
+    return inst_out, inst_in
+
 def extract_event(infos):
     """From a list of infos, extract the next event. The returned
     value is one of:
@@ -1044,9 +1092,13 @@ def extract_event(infos):
                     in_ready[ch_name] = i
                 else:
                     raise TypeError
-    for ch_name in out_ready:
-        if ch_name in in_ready:
-            return ('comm', out_ready[ch_name], in_ready[ch_name], ch_name)
+    for out_ch in out_ready:
+        for in_ch in in_ready:
+            match_res = match_channel(out_ch, in_ch)
+            if match_res is not None:
+                out_inst, in_inst = match_res
+                assert in_ch.subst(in_inst) == out_ch.subst(out_inst)  # instantiated channel
+                return ('comm', out_ready[out_ch], in_ready[in_ch], out_ch, in_ch, out_inst, in_inst)
 
     # If there is no communication, find minimum delay
     min_delay, delay_pos = None, []
@@ -1228,13 +1280,13 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
 
             log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
-        else:
-            _, id_out, id_in, ch_name = event
+        else:  # event[0] == "comm"
+            _, id_out, id_in, out_ch, in_ch, inst_out, inst_in = event
             ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos),
                        infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos)}
             try:
-                val = infos[id_out].exec_output_comm(ch_name)
-                infos[id_in].exec_input_comm(ch_name, val)
+                val = infos[id_out].exec_output_comm(out_ch, inst=inst_out)
+                infos[id_in].exec_input_comm(in_ch, val, inst=inst_in)
             except SimulatorException as e:
                 log_event(ori_pos=ori_pos, type="error", str="error: " + str(e))
                 res['warning'] = (res['time'], str(e))
@@ -1251,6 +1303,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             else:
                 val_str = " " + str(val)
 
+            ch_name = out_ch.subst(inst_out)
             trace_str = "IO %s%s" % (ch_name, val_str)
             log_event(ori_pos=ori_pos, inproc=infos[id_in].name, outproc=infos[id_out].name,
                       type="comm", ch_name=str(ch_name), val=val, str=trace_str)

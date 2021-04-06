@@ -8,16 +8,20 @@ import re
 
 class Channel:
     """Models a channel identifier. It is a string followed by a list
-    of integer arguments.
+    of integer or variable arguments.
 
     The usual channel is modeled by a string without arguments. Further
-    arguments can be given for parameterized channels.
+    arguments can be given for parameterized channels. Parameters that
+    are already decided are indicated by integers. Those that still need
+    to be matched are indicated by variables.
 
     """
     def __init__(self, name, args=None):
         assert isinstance(name, str)
         if args is None:
             args = tuple()
+
+        # Each argument is either integer, (unevaluated) expression, or variable
         assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int)) for arg in args)
 
         self.name = name
@@ -48,9 +52,11 @@ class Channel:
         if self.name in inst:
             target = inst[self.name]
             assert isinstance(target, Channel)
-            return Channel(target.name, tuple(arg.subst(inst) for arg in target.args + self.args))
+            return Channel(target.name, tuple(arg if isinstance(arg, int) else arg.subst(inst)
+                                              for arg in target.args + self.args))
         else:
-            return Channel(self.name, tuple(arg.subst(inst) for arg in self.args))
+            return Channel(self.name, tuple(arg if isinstance(arg, int) else arg.subst(inst)
+                                            for arg in self.args))
 
 
 class HCSP:
