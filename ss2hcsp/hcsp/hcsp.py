@@ -22,7 +22,7 @@ class Channel:
             args = tuple()
 
         # Each argument is either integer, (unevaluated) expression, or variable
-        assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int)) for arg in args)
+        assert isinstance(args, tuple) and all(isinstance(arg, (AExpr, int, str)) for arg in args)
 
         self.name = name
         self.args = args
@@ -52,10 +52,10 @@ class Channel:
         if self.name in inst:
             target = inst[self.name]
             assert isinstance(target, Channel)
-            return Channel(target.name, tuple(arg if isinstance(arg, int) else arg.subst(inst)
+            return Channel(target.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
                                               for arg in target.args + self.args))
         else:
-            return Channel(self.name, tuple(arg if isinstance(arg, int) else arg.subst(inst)
+            return Channel(self.name, tuple(arg if isinstance(arg, (int, str)) else arg.subst(inst)
                                             for arg in self.args))
 
 

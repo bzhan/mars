@@ -748,6 +748,10 @@ class SimInfo:
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
+                print('multiple assign vars', cur_hp.var_name)
+                print('expression', cur_hp.expr)
+                print('state', self.state)
+                print('vals', val)
                 assert isinstance(val, list) and len(val) == len(cur_hp.var_name), \
                     "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
@@ -1056,14 +1060,14 @@ def match_channel(out_ch, in_ch):
     inst_out, inst_in = dict(), dict()
     for out_arg, in_arg in zip(out_ch.args, in_ch.args):
         if isinstance(out_arg, AVar):
-            if isinstance(in_arg, int):
+            if isinstance(in_arg, (int, str)):
                 inst_out[out_arg.name] = in_arg
             elif isinstance(in_arg, AVar):
                 return None  # both sides are variables
             else:
                 raise TypeError
-        elif isinstance(out_arg, int):
-            if isinstance(in_arg, int):
+        elif isinstance(out_arg, (int, str)):
+            if isinstance(in_arg, (int, str)):
                 if out_arg != in_arg:
                     return None
             elif isinstance(in_arg, AVar):
