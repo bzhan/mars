@@ -1,0 +1,9 @@
+%type: module
+import modules
+
+system
+
+scheduller0 = SCHEDULLER_HPF($0) ||
+scheduller1 = SCHEDULLER_HPF($1)
+
+endsystem
