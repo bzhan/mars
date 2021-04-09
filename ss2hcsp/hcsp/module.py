@@ -3,6 +3,7 @@
 import os
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
+from ss2hcsp.hcsp import pprint
 
 
 class ModuleException(Exception):
@@ -32,6 +33,19 @@ class HCSPModule:
             return "Module(%s,%s)" % (self.name, ','.join(self.params))
         else:
             return "Module(%s)" % self.name
+
+    def export(self):
+        """Print the string that will parse to the module."""
+        def str_of_output(output):
+            return "output %s;\n" % output
+
+        res = "module %s(%s):\n%sbegin\n%s\nend\nendmodule" % (
+            self.name,
+            ','.join(self.params),
+            ''.join(str_of_output(output) for output in self.outputs),
+            pprint.pprint(self.code)
+        )
+        return res
 
 
 class HCSPModuleInst:

@@ -1,0 +1,249 @@
+{
+    "img_acq_imp": {
+        "category": "thread",
+        "input": {
+            "img": {
+                "var": "image",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "proc_img": "image"
+        },
+        "initialization": "skip",
+        "discrete_computation": "skip",
+        "dispatch_protocol": "periodic",
+        "period": "45ms",
+        "Deadline": "45ms",
+        "Compute_Execution_Time": "10ms",
+        "priority": "1"
+    },
+    "comp_obs_pos_imp": {
+        "category": "thread",
+        "input": {
+            "obs_pos_radar": {
+                "var": "obs_pos_radar",
+                "val": "0.0"
+            },
+            "proc_img": {
+                "var": "proc_img",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "obs_pos": "obs_pos"
+        },
+        "initialization": "skip",
+        "discrete_computation": "obs_pos_radar < 0 -> obs_pos_radar := 0; proc_img < 0 -> proc_img := 0; if obs_pos_radar == 0 then obs_pos := proc_img elif proc_img == 0 then obs_pos := obs_pos_radar else obs_pos := min(obs_pos_radar, proc_img) endif",
+        "dispatch_protocol": "periodic",
+        "period": "97ms",
+        "Deadline": "97ms",
+        "Compute_Execution_Time": "20ms",
+        "priority": "1"
+    },
+    "PI_ctr_imp": {
+        "category": "thread",
+        "input": {
+            "des_v": {
+                "var": "des_v",
+                "val": "0.0"
+            },
+            "veh_v1": {
+                "var": "veh_v",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "des_a": "des_a"
+        },
+        "initialization": "Integrator_DSTATE := 0.0",
+        "discrete_computation": "rtb_Sum := des_v - veh_v; rtb_SumFdbk := rtb_Sum + Integrator_DSTATE; if rtb_SumFdbk > 3.0 then rtb_SumFdbk_0 := 3.0 elif rtb_SumFdbk < -3.0 then rtb_SumFdbk_0 := -3.0 else rtb_SumFdbk_0 := rtb_SumFdbk endif; rtb_SumFdbk := (rtb_SumFdbk_0 - rtb_SumFdbk + rtb_Sum) * 0.007 + Integrator_DSTATE; rtb_Sum := rtb_Sum + rtb_SumFdbk; if rtb_Sum > 3.0 then des_a := 3.0 elif rtb_Sum < -3.0 then des_a := -3.0 else des_a := rtb_Sum endif; Integrator_DSTATE := rtb_SumFdbk",
+        "dispatch_protocol": "periodic",
+        "period": "7ms",
+        "Deadline": "7ms",
+        "Compute_Execution_Time": "1ms",
+        "priority": "1"
+    },
+    "emerg_imp": {
+        "category": "thread",
+        "input": {
+            "des_a": {
+                "var": "des_a",
+                "val": "0.0"
+            },
+            "veh_v2": {
+                "var": "veh_v",
+                "val": "0.0"
+            },
+            "obs_pos": {
+                "var": "obs_pos",
+                "val": "0.0"
+            },
+            "veh_pos": {
+                "var": "veh_pos",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "cmd": "cmd"
+        },
+        "initialization": "min_a := -3; max_v := 10",
+        "discrete_computation": "next_v := veh_v + des_a * 1.0; next_s := veh_pos + veh_v * 1.0 + 0.5 * des_a * 1.0 * 1.0; v_limit := protected_curve(obs_pos, next_s, max_v, min_a); if next_v <= v_limit then cmd := des_a else next_s := veh_pos + veh_v * 1.0; v_limit := protected_curve(obs_pos, next_s, max_v, min_a); if veh_v <= v_limit then cmd := 0 else cmd := min_a endif endif",
+        "dispatch_protocol": "periodic",
+        "period": "5ms",
+        "Deadline": "5ms",
+        "Compute_Execution_Time": "1ms",
+        "priority": "2"
+    },
+    "velo_voter_imp": {
+        "category": "thread",
+        "input": {
+            "wheel_v": {
+                "var": "wheel_v",
+                "val": "0.0"
+            },
+            "wheel_valid": {
+                "var": "wheel_valid",
+                "val": "-1.0"
+            },
+            "laser_v": {
+                "var": "laser_v",
+                "val": "0.0"
+            },
+            "laser_valid": {
+                "var": "laser_valid",
+                "val": "-1.0"
+            }
+        },
+        "output": {
+            "veh_v1": "veh_v",
+            "veh_v2": "veh_v"
+        },
+        "initialization": "skip",
+        "discrete_computation": "if wheel_valid < 0 then veh_v := laser_v elif laser_valid < 0 then veh_v := wheel_v else veh_v := (wheel_v + laser_v) / 2 endif",
+        "dispatch_protocol": "periodic",
+        "period": "8ms",
+        "Deadline": "8ms",
+        "Compute_Execution_Time": "1ms",
+        "priority": "1"
+    },
+    "pan_ctr_th_imp": {
+        "category": "thread",
+        "event_input": {
+            "inc": "inc",
+            "dec": "dec"
+        },
+        "output": {
+            "des_v": "des_v"
+        },
+        "initialization": "des_v := 0",
+        "discrete_computation": "event == \"inc\" -> des_v := des_v + 1; event == \"dec\" -> des_v := des_v - 1",
+        "dispatch_protocol": "aperiodic",
+        "Deadline": "100ms",
+        "Compute_Execution_Time": "10ms",
+        "priority": "0"
+    },
+    "camera": {
+        "category": "device",
+        "output": {
+            "img": "img"
+        },
+        "impl": "Simulink",
+        "computation": "(outputs[\"camera\"][\"img\"]!-1; wait(0.2))**"
+    },
+    "radar": {
+        "category": "device",
+        "output": {
+            "obs_pos_radar": "obs_pos_radar"
+        },
+        "impl": "Simulink",
+        "computation": "t := 0; data := 0.0; (if t < 10 then data := 0.0 elif t < 20 then slope := (55 - 35) / (20 - 10); data := 35 + slope * (t - 10) else data := 0.0 endif; outputs[\"radar\"][\"obs_pos_radar\"]!data; wait(0.01); t := t + 0.01)**"
+    },
+    "actuator": {
+        "category": "device",
+        "input": {
+            "cmd": {
+                "var": "cmd",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "veh_a": "cmd"
+        },
+        "period": "2ms",
+        "impl": "Channel"
+    },
+    "gps": {
+        "category": "device",
+        "input": {
+            "veh_s": {
+                "var": "veh_s",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "veh_pos": "veh_s"
+        },
+        "period": "6ms",
+        "impl": "Channel"
+    },
+    "laser": {
+        "category": "device",
+        "input": {
+            "veh_l_v": {
+                "var": "veh_l_v",
+                "val": "0.0"
+            }            
+        },
+        "output": {
+            "laser_valid": "laser_valid",
+            "laser_v": "laser_v"
+        },
+        "period": "10ms",
+        "impl": "Simulink",
+        "computation": "(inputs[\"laser\"][\"veh_l_v\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+    },
+    "wheel": {
+        "category": "device",
+        "input": {
+            "veh_w_v": {
+                "var": "veh_w_v",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "wheel_valid": "wheel_valid",
+            "wheel_v": "wheel_v"
+        },
+        "period": "10ms",
+        "impl": "Simulink",
+        "computation": "(inputs[\"wheel\"][\"veh_w_v\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+    },
+    "user_panel": {
+        "category": "device",
+        "input": {},
+        "output": {
+            "inc": "inc",
+            "dec": "dec"
+        },
+        "impl": "Simulink",
+        "computation": "outputs[\"user_panel\"][\"inc\"]!; wait(0.5); outputs[\"user_panel\"][\"inc\"]!; wait(0.5); outputs[\"user_panel\"][\"inc\"]!; wait(29); outputs[\"user_panel\"][\"dec\"]!; outputs[\"user_panel\"][\"dec\"]!"
+    },
+    "vehicle_imp": {
+        "category": "abstract",
+        "display": ["v", "s"],
+        "input": {
+            "veh_a": {
+                "var": "a",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "veh_s": "s",
+            "veh_l_v": "v",
+            "veh_w_v": "v"
+        },
+        "impl": "Simulink",
+        "code": "v := 0; s := 0; sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0; (inputs[\"laser\"][\"veh_l_v\"]!v --> sent_veh_l_v := 1 $ inputs[\"wheel\"][\"veh_w_v\"]!v --> sent_veh_w_v := 1 $ inputs[\"gps\"][\"veh_s\"]!s --> sent_veh_s := 1){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**; outputs[\"actuator\"][\"veh_a\"]?a; (<s_dot = v, v_dot = a & true> |> [] (inputs[\"laser\"][\"veh_l_v\"]!v --> skip, inputs[\"wheel\"][\"veh_w_v\"]!v --> skip, outputs[\"actuator\"][\"veh_a\"]?a --> skip))**"
+    }
+}

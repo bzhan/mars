@@ -47,7 +47,7 @@ state := "wait"; prior := 1;
 if state == "wait" then
     dis["comp_obs_pos_imp"]?;
     inputs["comp_obs_pos_imp"]["obs_pos_radar"]?obs_pos_radar;  # tran_obs_pos_radar2?obs_pos_radar;
-    inputs["comp_obs_pos_imp"]["proc_img"]?obs_pos_radar;  # tran_proc_img1obs_pos_radar;
+    inputs["comp_obs_pos_imp"]["proc_img"]?proc_img;  # tran_proc_img1obs_pos_radar;
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["comp_obs_pos_imp"]!prior;
@@ -221,7 +221,7 @@ if state == "wait" then
     inputs["velo_voter_imp"]["wheel_v"]?wheel_v;  # tran_wheel_v2?wheel_v;
     inputs["velo_voter_imp"]["wheel_valid"]?wheel_valid;  # tran_wheel_valid2?wheel_valid;
     inputs["velo_voter_imp"]["laser_v"]?laser_v;  # tran_laser_v2?laser_v;
-    inputs["velo_voter_imp"]["wheel_v"]?wheel_v;  # tran_laser_valid2?laser_valid;
+    inputs["velo_voter_imp"]["laser_valid"]?laser_valid;  # tran_laser_valid2?laser_valid;
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["velo_voter_imp"]!prior;
@@ -247,7 +247,7 @@ else  # state == "running"
     );
     entered == 1 ->
     (
-        <t_dot = 1, c_dot = 1 & c< 0.001 && t < 0.008> |> [] (preempt[0]["velo_voter_imp"]? --> state := "ready");
+        <t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.008> |> [] (preempt[0]["velo_voter_imp"]? --> state := "ready");
         state == "running" ->
             (
             if c == 0.001 then
@@ -269,7 +269,8 @@ des_v := 0;
 state := "wait"; prior := 0;
 (
 if state == "wait" then
-    (dis["pan_ctr_th_imp"]["inc"]?event --> skip $ dis["pan_ctr_th_imp"]["dec"]?event --> skip);
+    (dis["pan_ctr_th_imp"]["inc"]? --> event := "inc" $
+     dis["pan_ctr_th_imp"]["dec"]? --> event := "dec");
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["pan_ctr_th_imp"]!prior;
@@ -397,7 +398,7 @@ sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
 inputs["laser"]["veh_l_v"]!v --> sent_veh_l_v := 1
 $
 # tran_veh_w_v!v --> sent_veh_w_v := 1
-inputs["wheel"]["veh_l_v"]!v --> sent_veh_w_v := 1
+inputs["wheel"]["veh_w_v"]!v --> sent_veh_w_v := 1
 $
 # tran_veh_s!s --> sent_veh_s := 1
 inputs["gps"]["veh_s"]!s --> sent_veh_s := 1

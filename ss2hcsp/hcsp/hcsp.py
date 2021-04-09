@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr 
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr 
 from ss2hcsp.matlab.function import Expr
 import re
 
@@ -28,7 +28,14 @@ class Channel:
         self.args = args
 
     def __str__(self):
-        return self.name + ''.join('[' + str(arg) + ']' for arg in self.args)
+        def str_arg(arg):
+            if isinstance(arg, str):
+                return repr(arg)
+            elif isinstance(arg, AConst) and isinstance(arg.value, str):
+                return repr(arg.value)
+            else:
+                return str(arg)
+        return self.name + ''.join('[' + str_arg(arg) + ']' for arg in self.args)
     
     def __repr__(self):
         if self.args:
@@ -951,6 +958,36 @@ class HCSPInfo:
 
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
+
+def HCSP_subst(hp, inst):
+    """Substitution of program variables for their instantiations."""
+    assert isinstance(hp, HCSP)
+    if isinstance(hp, Var):
+        if hp.name in inst:
+            return inst[hp.name]
+        else:
+            return hp
+    elif isinstance(hp, (Loop, Recursion, Condition)):
+        hp.hp = HCSP_subst(hp.hp, inst)
+        return hp
+    elif isinstance(hp, Sequence):
+        hps = [HCSP_subst(sub_hp, inst) for sub_hp in hp.hps]
+        return Sequence(*hps)
+    elif isinstance(hp, ODE):
+        hp.out_hp = HCSP_subst(hp.out_hp, inst)
+        return hp
+    elif isinstance(hp, (ODE_Comm, SelectComm)):
+        hp.io_comms = tuple((io_comm[0], HCSP_subst(io_comm[1], inst)) for io_comm in hp.io_comms)
+        return hp
+    elif isinstance(hp, ITE):
+        hp.if_hps = tuple((e[0], HCSP_subst(e[1], inst)) for e in hp.if_hps)
+        hp.else_hp = HCSP_subst(hp.else_hp, inst)
+        return hp
+    elif isinstance(hp, (Skip, Assign, Wait, InputChannel, OutputChannel)):
+        return hp
+    else:
+        print(hp)
+        raise NotImplementedError
 
 
 class HCSPProcess:
