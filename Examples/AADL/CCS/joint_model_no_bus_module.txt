@@ -1,5 +1,5 @@
 %type: module
-import modules
+import other_modules
 import SCHEDULLER_HPF
 import ACT_periodic
 import ACT_aperiodic

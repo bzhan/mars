@@ -387,6 +387,8 @@ end
 endmodule
 
 module PHY_vehicle_imp():
+output v;
+output s;
 begin
 v := 0; s := 0;
 sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
