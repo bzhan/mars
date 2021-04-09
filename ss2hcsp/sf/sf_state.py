@@ -125,7 +125,7 @@ class SF_State:
                                 
                                 if child.default_tran.cond_acts:
                                     if child.default_tran.condition:
-                                        child_hps.extend((condition,child.default_tran.cond_acts))
+                                        child_hps.append(hp.Condition(child.default_tran.condition,hp.Sequence(*child.default_tran.cond_acts)))
                                         
                                     else:
                                         child_hps.extend(child.default_tran.cond_acts)
@@ -142,7 +142,7 @@ class SF_State:
                             if child.default_tran:  
                                 if child.default_tran.cond_acts:
                                     if child.default_tran.condition:
-                                        child_hps.extend((condition,child.default_tran.cond_acts))
+                                        child_hps.append(hp.Condition(child.default_tran.condition,hp.Sequence(*child.default_tran.cond_acts)))
                                         
                                     else:
                                         child_hps.extend(child.default_tran.cond_acts)
@@ -166,7 +166,7 @@ class SF_State:
                            
                             if child.default_tran.cond_acts:
                                 if child.default_tran.condition:
-                                        hps.extend((condition,child.default_tran.cond_acts))          
+                                        hps.append(hp.Condition(child.default_tran.condition,hp.Sequence(*child.default_tran.cond_acts) ))          
                                 else:
                                         hps.extend(child.default_tran.cond_acts)
                             if child.default_tran.tran_acts:
@@ -179,7 +179,7 @@ class SF_State:
                         if  child.default_tran:
                             if child.default_tran.cond_acts:
                                 if child.default_tran.condition:
-                                        hps.extend((condition,child.default_tran.cond_acts))          
+                                        hps.append(hp.Condition(child.default_tran.condition,hp.Sequence(*child.default_tran.cond_acts)))         
                                 else:
                                         hps.extend(child.default_tran.cond_acts)
                             if child.default_tran.tran_acts:
@@ -308,7 +308,6 @@ class SF_State:
                 var_set = var_set.union(self.default_tran.get_vars())
         for child in self.children:
             var_set = var_set.union(child.get_vars())
-
         return var_set
 
     def check_children(self):

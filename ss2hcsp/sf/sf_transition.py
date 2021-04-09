@@ -104,8 +104,8 @@ class Transition:
         #assert all(symbol not in label for symbol in "[]{}/;")
         self.event = label
         # Assertion on default transitions
-        if self.src is None:  # a default transition
-            assert self.condition is None and self.event == ""
+        # if self.src is None:  # a default transition
+        #     assert self.condition is None and self.event == ""
 
     def get_vars(self):
         var_set = set()       #无序不重复

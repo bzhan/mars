@@ -18,9 +18,9 @@ class Discrete_Buffer(SL_Block):
         if not name:
             self.name = "buffer" + str(Discrete_Buffer.num)
             Discrete_Buffer.num += 1
-        # assert isinstance(in_st, int) and in_st > 0
+        assert isinstance(in_st, int) and in_st > 0
         self.in_st = in_st
-        # assert isinstance(out_st, int) and out_st > 0
+        assert isinstance(out_st, int) and out_st > 0
         self.out_st = out_st
 
         self.num_src = 1
