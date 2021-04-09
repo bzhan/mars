@@ -20,7 +20,7 @@ class SfTest(unittest.TestCase):
         _ = diagram.parse_xml()
         diagram.delete_subsystems()
         diagram.comp_inher_st()
-        diagram.add_buffers()
+#         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
@@ -47,11 +47,11 @@ class SfTest(unittest.TestCase):
         print(process)
         printTofile("./Examples/Stateflow/early_exit/early_return_logic_eg1.txt",process) 
     def testPlus_generator_edge_trigger(self):
-        location = "./Examples/trigger_subsystem/plus_generator_edge_trigger1.xml"
+        location = "./Examples/trigger_subsystem/plus_generator_edge_trigger.xml"
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
-        diagram.add_buffers()
+#         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process) 
@@ -61,7 +61,7 @@ class SfTest(unittest.TestCase):
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
-        diagram.add_buffers()
+#         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process) 
@@ -179,12 +179,12 @@ class SfTest(unittest.TestCase):
         printTofile("./Examples/Stateflow/early_exit/early_exit.txt",process)
         res = [
             ("P", "@M || @S1"),
-            ("M", 'num := 0; wait(-1); (num == 0 -> (state := "";E := ""; EL := [""]; NL := [1]; num := 1); '
+            ("M", 'skip;num := 0; wait(0.1); (num == 0 -> (state := "";E := ""; EL := [""]; NL := [1]; num := 1); '
                   'num == 1 -> (DState1!state --> skip $ DBC1!E --> skip $ BC1!E --> skip $ BR1?E --> skip; EL := push(EL, E); NL := push(NL, 1); num := 1 $ DBR1?E --> skip;DBnum1?Dnum; num := Dnum ; DState1?state'
                   '$ DBO1? --> skip; num :=num+1 $ BO1? --> skip; num := num+1; NL := pop(NL); NL := push(NL, num)); '
-                  'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(-1)); '
+                  'num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> (num := 0; wait(0.1)); '
                   'EL != [] -> (E := top(EL); num := top(NL))))**'),
-            ("S1", 'a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; a_S1 := 1; a_A := 1; a_A1 := 1; '
+            ("S1", 'a_S1 := 0; a_A := 0; a_A1 := 0; a_A2 := 0; a_B := 0; a_S1 := 1; a_A := 1; a_A1 := 1;skip; '
                    '(rec X.(BC1?E; skip; if a_A == 1 then done := 0; E == "e" && done == 0 -> '
                    '(a_A2 == 1 -> a_A2 := 0; a_A1 == 1 -> a_A1 := 0; a_A := 0; a_B := 1; done := 1); '
                    'done == 0 -> if a_A1 == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_A1 == 1 -> '
@@ -289,7 +289,7 @@ class SfTest(unittest.TestCase):
         diagram = SL_Diagram(location=location)
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
-        diagram.add_buffers()
+#         diagram.add_buffers()
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
@@ -369,5 +369,6 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
+
 if __name__ == "__main__":
     unittest.main()

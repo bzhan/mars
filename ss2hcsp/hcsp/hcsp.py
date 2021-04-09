@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr 
+from ss2hcsp.hcsp.expr import AExpr, AVar, BExpr, true_expr ,RelExpr
 from ss2hcsp.matlab.function import Expr
 import re
 
@@ -697,7 +697,7 @@ class Condition(HCSP):
      otherwise, it terminates immediately."""
     def __init__(self, cond, hp):
         super(Condition, self).__init__()
-        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
+        assert isinstance(cond, (BExpr,RelExpr)) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP
