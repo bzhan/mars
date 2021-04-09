@@ -137,7 +137,10 @@ class HCSP:
         elif self.type == 'input_channel':
             return InputChannel(self.ch_name.subst(inst), self.var_name)
         elif self.type == 'output_channel':
-            return OutputChannel(self.ch_name.subst(inst), self.expr.subst(inst))
+            if self.expr is None:
+                return OutputChannel(self.ch_name.subst(inst))
+            else:
+                return OutputChannel(self.ch_name.subst(inst), self.expr.subst(inst))
         elif self.type == 'sequence':
             return Sequence(*(hp.subst_comm(inst) for hp in self.hps))
         elif self.type == 'ode':
