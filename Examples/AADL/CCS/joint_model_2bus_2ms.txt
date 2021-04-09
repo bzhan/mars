@@ -1,0 +1,680 @@
+SCHEDULLER ::=
+run_queue := [];
+run_prior := -1;
+run_now := "";
+run_queue := push(run_queue, [[run_prior, run_now]]);
+(
+ready_pan_ctr_th_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "pan_ctr_th_imp"]])
+    else
+        run_now == "img_acq_imp" -> busy_img_acq_imp!;
+        run_now == "comp_obs_pos_imp" -> busy_comp_obs_pos_imp!;
+        run_now == "emerg_imp" -> busy_emerg_imp!;
+        run_now == "PI_ctr_imp" -> busy_PI_ctr_imp!;
+        run_now == "velo_voter_imp" -> busy_velo_voter_imp!;
+        run_now := "pan_ctr_th_imp";
+        run_prior := prior;
+        run_pan_ctr_th_imp!
+    endif
+$
+ready_img_acq_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "img_acq_imp"]])
+    else
+        run_now == "pan_ctr_th_imp" -> busy_pan_ctr_th_imp!;
+        run_now == "comp_obs_pos_imp" -> busy_comp_obs_pos_imp!;
+        run_now == "emerg_imp" -> busy_emerg_imp!;
+        run_now == "PI_ctr_imp" -> busy_PI_ctr_imp!;
+        run_now == "velo_voter_imp" -> busy_velo_voter_imp!;
+        run_now := "img_acq_imp";
+        run_prior := prior;
+        run_img_acq_imp!
+    endif
+$
+ready_comp_obs_pos_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "comp_obs_pos_imp"]])
+    else
+        run_now == "img_acq_imp" -> busy_img_acq_imp!;
+        run_now == "pan_ctr_th_imp" -> busy_pan_ctr_th_imp!;
+        run_now == "emerg_imp" -> busy_emerg_imp!;
+        run_now == "PI_ctr_imp" -> busy_PI_ctr_imp!;
+        run_now == "velo_voter_imp" -> busy_velo_voter_imp!;
+        run_now := "comp_obs_pos_imp";
+        run_prior := prior;
+        run_comp_obs_pos_imp!
+    endif
+$
+ready_emerg_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "emerg_imp"]])
+    else
+        run_now == "img_acq_imp" -> busy_img_acq_imp!;
+        run_now == "comp_obs_pos_imp" -> busy_comp_obs_pos_imp!;
+        run_now == "pan_ctr_th_imp" -> busy_pan_ctr_th_imp!;
+        run_now == "velo_voter_imp" -> busy_velo_voter_imp!;
+        run_now == "PI_ctr_imp" -> busy_PI_ctr_imp!;
+        run_now := "emerg_imp";
+        run_prior := prior;
+        run_emerg_imp!
+    endif
+$
+ready_PI_ctr_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "PI_ctr_imp"]])
+    else
+        run_now == "img_acq_imp" -> busy_img_acq_imp!;
+        run_now == "comp_obs_pos_imp" -> busy_comp_obs_pos_imp!;
+        run_now == "pan_ctr_th_imp" -> busy_pan_ctr_th_imp!;
+        run_now == "velo_voter_imp" -> busy_velo_voter_imp!;
+        run_now == "emerg_imp" -> busy_emerg_imp!;
+        run_now := "PI_ctr_imp";
+        run_prior := prior;
+        run_PI_ctr_imp!
+    endif
+$
+ready_velo_voter_imp?prior -->
+    if run_prior >= prior then
+        run_queue := push(run_queue, [[prior, "velo_voter_imp"]])
+    else
+        run_now == "img_acq_imp" -> busy_img_acq_imp!;
+        run_now == "comp_obs_pos_imp" -> busy_comp_obs_pos_imp!;
+        run_now == "emerg_imp" -> busy_emerg_imp!;
+        run_now == "PI_ctr_imp" -> busy_PI_ctr_imp!;
+        run_now == "pan_ctr_th_imp" -> busy_pan_ctr_th_imp!;
+        run_now := "velo_voter_imp";
+        run_prior := prior;
+        run_velo_voter_imp!
+    endif
+$
+free?proc_name -->
+    if proc_name == run_now then
+        (run_prior, run_now) := get_max(run_queue);
+        run_prior >= 0 -> run_queue := pop_max(run_queue);
+        run_now == "pan_ctr_th_imp" -> run_pan_ctr_th_imp!;
+        run_now == "img_acq_imp" -> run_img_acq_imp!;
+        run_now == "comp_obs_pos_imp" -> run_comp_obs_pos_imp!;
+        run_now == "velo_voter_imp" -> run_velo_voter_imp!;
+        run_now == "emerg_imp" -> run_emerg_imp!;
+        run_now == "PI_ctr_imp" -> run_PI_ctr_imp!
+    else
+        run_queue := del_proc(run_queue, proc_name)
+    endif
+)**
+
+ACT_img_acq_imp ::=
+(act_img_acq_imp!; wait(0.045))**
+
+COM_img_acq_imp ::=
+state := "inactive"; prior := 1;
+(
+if state == "inactive" then
+    act_img_acq_imp?; tran_img2?image;
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_img_acq_imp!prior;
+    <t_dot = 1 & t < 0.045> |> [] (run_img_acq_imp? --> state := "running");
+    t == 0.045 ->
+        (
+        free!"img_acq_imp" --> state := "inactive"
+        $
+        run_img_acq_imp? --> state := "running"  # (free!"img_acq_imp" --> state := "inactive" $ busy_img_acq_imp? --> state := "inactive")
+        )
+else  # state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0; got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time < 0.01 && t < 0.045> |> [] (busy_img_acq_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.01 then
+                tran_proc_img!image;
+                (busy_img_acq_imp? --> state := "inactive" $ free!"img_acq_imp" --> state := "inactive")
+            else  # t == 0.045
+                (busy_img_acq_imp? --> state := "inactive" $ free!"img_acq_imp" --> state := "inactive")
+            endif
+            )
+    )
+endif
+)**
+
+ACT_comp_obs_pos_imp ::=
+(act_comp_obs_pos_imp!; wait(0.097))**
+
+COM_comp_obs_pos_imp ::=
+state := "inactive"; prior := 1;
+(
+if state == "inactive" then
+    act_comp_obs_pos_imp?;
+    tran_obs_pos_radar2?obs_pos_radar;
+    tran_proc_img1?proc_img;
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_comp_obs_pos_imp!prior;
+    <t_dot = 1 & t < 0.097> |> [] (run_comp_obs_pos_imp? --> state := "running");
+    t == 0.097 ->
+        (
+        free!"comp_obs_pos_imp" --> state := "inactive"
+        $
+        run_comp_obs_pos_imp? --> state := "running"  # (free!"comp_obs_pos_imp" --> state := "inactive" $ busy_comp_obs_pos_imp? --> state := "inactive")
+        )
+else  # state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0;
+        obs_pos_radar < 0 -> obs_pos_radar := 0;
+        proc_img < 0 -> proc_img := 0;
+        if obs_pos_radar == 0 then
+            obs_pos := proc_img
+        elif proc_img == 0 then
+            obs_pos := obs_pos_radar
+        else
+            obs_pos := min(obs_pos_radar, proc_img)
+        endif;
+        got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time < 0.02 && t < 0.097> |> [] (busy_comp_obs_pos_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.02 then
+                tran_obs_pos!obs_pos;
+                (busy_comp_obs_pos_imp? --> state := "inactive" $ free!"comp_obs_pos_imp" --> state := "inactive")
+            else  # t == 0.097
+                (busy_comp_obs_pos_imp? --> state := "inactive" $ free!"comp_obs_pos_imp" --> state := "inactive")
+            endif
+            )
+    )
+endif
+)**
+
+ACT_PI_ctr_imp ::=
+(act_PI_ctr_imp!; wait(0.007))**
+
+COM_PI_ctr_imp ::=
+# KI := 1; KP := 1; Kb := 1;
+# max_a := 3; min_a := -3;
+Integrator_DSTATE := 0.0;
+state := "inactive"; prior := 1;
+(
+if state == "inactive" then
+    act_PI_ctr_imp?;
+    tran_des_v1?des_v;
+    tran_veh_v2?veh_v;
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_PI_ctr_imp!prior;
+    <t_dot = 1 & t < 0.007> |> [] (run_PI_ctr_imp? --> state := "running");
+    t == 0.007 ->
+        (
+        free!"PI_ctr_imp" --> state := "inactive"
+        $
+        run_PI_ctr_imp? --> state := "running"  # (free!"PI_ctr_imp" --> state := "inactive" $ busy_PI_ctr_imp? --> state := "inactive")
+        )
+else  # state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0;
+        rtb_Sum := des_v - veh_v;
+        rtb_SumFdbk := rtb_Sum + Integrator_DSTATE;
+        if rtb_SumFdbk > 3.0 then
+            rtb_SumFdbk_0 := 3.0
+        elif rtb_SumFdbk < -3.0 then
+            rtb_SumFdbk_0 := -3.0
+        else
+            rtb_SumFdbk_0 := rtb_SumFdbk
+        endif;
+        rtb_SumFdbk := (rtb_SumFdbk_0 - rtb_SumFdbk + rtb_Sum) * 0.007 + Integrator_DSTATE;
+        rtb_Sum := rtb_Sum + rtb_SumFdbk;
+        if rtb_Sum > 3.0 then
+            des_a := 3.0
+        elif rtb_Sum < -3.0 then
+            des_a := -3.0
+        else
+            des_a := rtb_Sum
+        endif;
+        Integrator_DSTATE := rtb_SumFdbk;
+        got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time < 0.001 && t < 0.007> |> [] (busy_PI_ctr_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.001 then
+                tran_des_a!des_a;
+                (busy_PI_ctr_imp? --> state := "inactive" $ free!"PI_ctr_imp" --> state := "inactive")
+            else  # t == 0.007 then
+                (busy_PI_ctr_imp? --> state := "inactive" $ free!"PI_ctr_imp" --> state := "inactive")
+            endif
+            )
+    )
+endif
+)**
+
+ACT_emerg_imp ::=
+(act_emerg_imp!; wait(0.005))**
+
+COM_emerg_imp ::=
+min_a := -3; max_v := 10;
+state := "inactive"; prior := 2;
+(
+if state == "inactive" then
+    act_emerg_imp?;
+    tran_des_a1?des_a;
+    tran_veh_v1?veh_v;
+    tran_obs_pos1?obs_pos;
+    tran_veh_pos2?veh_pos;
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_emerg_imp!prior;
+    <t_dot = 1 & t < 0.005> |> [] (run_emerg_imp? --> state := "running");
+    t == 0.005 ->
+        (
+        free!"emerg_imp" --> state := "inactive"
+        $
+        run_emerg_imp? --> state := "running"  # (free!"emerg_imp" --> state := "inactive" $ busy_emerg_imp? --> state := "inactive")
+        )
+elif state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0;
+        next_v := veh_v + des_a * 1.0;
+        next_s := veh_pos + veh_v * 1.0 + 0.5 * des_a * 1.0 * 1.0;
+        v_limit := protected_curve(obs_pos, next_s, max_v, min_a);
+        if next_v <= v_limit then
+            cmd := des_a
+        else
+            next_s := veh_pos + veh_v * 1.0;
+            v_limit := protected_curve(obs_pos, next_s, max_v, min_a);
+            if veh_v <= v_limit then
+                cmd := 0
+            else
+                cmd := min_a
+            endif
+        endif;
+        got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time < 0.001 && t < 0.005> |> [] (busy_emerg_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.001 then
+                (
+                get_bus_emerg_imp? -->
+                    (
+                    tran_cmd!cmd;
+                    (busy_emerg_imp? --> state := "inactive" $ free!"emerg_imp" --> state := "inactive")
+                    )
+                $
+                block_emerg_imp? --> (busy_emerg_imp? --> state := "blocked" $ free!"emerg_imp" --> state := "blocked")
+                )
+            else  # t == 0.005
+                (busy_emerg_imp? --> state := "inactive" $ free!"emerg_imp" --> state := "inactive")
+            endif
+            )
+    )
+else  # state == "blocked" then
+    <t_dot = 1 & t < 0.005> |> [] (unblock_emerg_imp? --> state := "ready");
+    t == 0.005 -> state := "inactive"
+endif
+)**
+
+ACT_velo_voter_imp ::=
+(act_velo_voter_imp!; wait(0.008))**
+
+COM_velo_voter_imp ::=
+state := "inactive"; prior := 1;
+(
+if state == "inactive" then
+    act_velo_voter_imp?;
+    tran_wheel_v2?wheel_v;
+    tran_wheel_valid2?wheel_valid;
+    tran_laser_v2?laser_v;
+    tran_laser_valid2?laser_valid;
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_velo_voter_imp!prior;
+    <t_dot = 1 & t < 0.008> |> [] (run_velo_voter_imp? --> state := "running");
+    t == 0.008 ->
+        (
+        free!"velo_voter_imp" --> state := "inactive"
+        $
+        run_velo_voter_imp? --> state := "running"  # (free!"velo_voter_imp" --> state := "inactive" $ busy_velo_voter_imp? --> state := "inactive")
+        )
+else  # state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0;
+        if wheel_valid < 0 then
+            veh_v := laser_v
+        elif laser_valid < 0 then
+            veh_v := wheel_v
+        else
+            veh_v := (wheel_v + laser_v) / 2
+        endif;
+        got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time< 0.001 && t < 0.008> |> [] (busy_velo_voter_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.001 then
+                tran_veh_v!veh_v;
+                (busy_velo_voter_imp? --> state := "inactive" $ free!"velo_voter_imp" --> state := "inactive")
+            else  # t == 0.008
+                (busy_velo_voter_imp? --> state := "inactive" $ free!"velo_voter_imp" --> state := "inactive")
+            endif
+            )
+    )
+endif
+)**
+
+COM_pan_ctr_th_imp ::=
+des_v := 0;
+state := "inactive"; prior := 0;
+(
+if state == "inactive" then
+    (inc?event --> skip $ dec?event --> skip);
+    t := 0; got_result := 0; state := "ready"
+elif state == "ready" then
+    ready_pan_ctr_th_imp!prior;
+    <t_dot = 1 & t < 0.1> |> [] (run_pan_ctr_th_imp? --> state := "running");
+    t == 0.1 ->
+        (
+        free!"pan_ctr_th_imp" --> state := "inactive"
+        $
+        run_pan_ctr_th_imp? --> state := "running"  # (free!"pan_ctr_th_imp" --> state := "inactive" $ busy_pan_ctr_th_imp? --> state := "inactive")
+        )
+else  # state == "running" then
+    got_result == 0 ->
+    (
+        exe_time := 0;
+        event == "inc" -> des_v := des_v + 1;
+        event == "dec" -> des_v := des_v - 1;
+        got_result := 1
+    );
+    got_result == 1 ->
+    (
+        <t_dot = 1, exe_time_dot = 1 & exe_time < 0.01 && t < 0.1> |> [] (busy_pan_ctr_th_imp? --> state := "ready");
+        state == "running" ->
+            (
+            if exe_time == 0.01 then
+                tran_des_v!des_v;
+                (busy_pan_ctr_th_imp? --> state := "inactive" $ free!"pan_ctr_th_imp" --> state := "inactive")
+            else  # t == 0.1
+                (busy_pan_ctr_th_imp? --> state := "inactive" $ free!"pan_ctr_th_imp" --> state := "inactive")
+            endif
+            )
+    )
+endif
+)**
+
+camera ::=
+(t := 0; <t_dot = 1 & t < 0.2> |> [] (tran_img!-1 --> skip); <t_dot = 1 & t < 0.2>)**
+
+radar ::=
+tt := 0;
+(
+if tt < 10 then
+    data := 0.0
+elif tt < 20 then
+    slope := (55 - 35) / (20 - 10);
+    data := 35 + slope * (tt - 10)
+else
+    data := 0.0
+endif;
+t := 0;
+<t_dot = 1 & t < 0.01> |> [] (tran_obs_pos_radar!data --> skip);
+<t_dot = 1 & t < 0.01>;
+tt := tt + 0.01
+)**
+
+actuator ::=
+(tran_cmd2?cmd; tran_veh_a!cmd; wait(0.002))**
+
+gps ::=
+(tran_veh_s?data; t := 0; <t_dot = 1 & t < 0.006> |> [] (tran_veh_pos!data --> skip); <t_dot = 1 & t < 0.006>)**
+
+laser ::=
+(
+tran_veh_l_v?data; t := 0; <t_dot = 1 & t < 0.01> |> []
+    (tran_laser_valid!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; tran_laser_v!(data+error)));
+<t_dot = 1 & t < 0.01>
+)**
+
+wheel ::=
+(
+tran_veh_w_v?data; t := 0; <t_dot = 1 & t < 0.01> |> []
+    (tran_wheel_valid!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; tran_wheel_v!(data+error)));
+<t_dot = 1 & t < 0.01>
+)**
+
+user_panel ::=
+inc_trig!"inc"; wait(0.5); inc_trig!"inc"; wait(0.5); inc_trig!"inc";
+wait(29);
+dec_trig!"dec"; dec_trig!"dec"
+
+vehicle_imp ::=
+v := 0; s := 0;
+sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
+(
+tran_veh_l_v!v --> sent_veh_l_v := 1
+$
+tran_veh_w_v!v --> sent_veh_w_v := 1
+$
+tran_veh_s!s --> sent_veh_s := 1
+){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
+tran_veh_a?a;
+(
+<s_dot = v, v_dot = a & true> |> []
+(tran_veh_l_v!v --> skip, tran_veh_w_v!v --> skip, tran_veh_s!s --> skip, tran_veh_a?a --> skip)
+)**
+
+# camera --img--> img_acq_imp
+buffer0 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_img1?x --> skip, tran_img2!x --> skip))**
+
+# radar --obs_pos_radar--> comp_obs_pos_imp
+buffer1 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_obs_pos_radar1?x --> skip, tran_obs_pos_radar2!x --> skip))**
+
+# emerg_imp --cmd--> actuator
+buffer2 ::=
+x := 0; (<x_dot = 0 & true> |> [] (tran_cmd1?x --> skip, tran_cmd2!x --> skip))**
+
+# gps --veh_pos--> emerg_imp
+buffer3 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_veh_pos1?x --> skip, tran_veh_pos2!x --> skip))**
+
+# laser --laser_valid--> velo_voter_imp (for valid)
+buffer4 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_laser_valid1?x --> skip, tran_laser_valid2!x --> skip))**
+
+# laser --laser_v--> velo_voter_imp (for velocity)
+buffer5 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_laser_v1?x --> skip, tran_laser_v2!x --> skip))**
+
+# wheel --wheel_valid--> velo_voter_imp (for valid)
+buffer6 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_wheel_valid1?x --> skip, tran_wheel_valid2!x --> skip))**
+
+# wheel --wheel_v--> velo_voter_imp (for velocity)
+buffer7 ::=
+x := -1; (<x_dot = 0 & true> |> [] (tran_wheel_v1?x --> skip, tran_wheel_v2!x --> skip))**
+
+# user_panel --{dec, inc}--> pan_ctr_th_imp
+buffer8 ::=
+buffer := [];
+(
+if len(buffer) == 0 then
+    inc_trig?event; buffer := push(buffer, event)
+else  # len(buffer) > 0
+    inc_trig?event --> buffer := push(buffer, event)
+    $
+    inc_get!bottom(buffer) --> buffer := get(buffer)
+endif
+)**
+
+buffer9 ::=
+buffer := [];
+(
+if len(buffer) == 0 then
+    dec_trig?event; buffer := push(buffer, event)
+else  # len(buffer) > 0
+    dec_trig?event --> buffer := push(buffer, event)
+    $
+    dec_get!bottom(buffer) --> buffer := get(buffer)
+endif
+)**
+
+# img_acq_imp --proc_img--> comp_obs_pos_imp
+buffer_proc_img ::=
+proc_img := -1;
+(
+<proc_img_dot = 0 & true> |> []
+    (
+    tran_proc_img?proc_img --> skip,
+    tran_proc_img1!proc_img --> skip
+    )
+)**
+
+# pan_ctr_th_imp --des_v--> PI_ctr_imp
+buffer_des_v ::=
+des_v := 0;
+(
+<des_v_dot = 0 & true> |> []
+    (
+    tran_des_v?des_v --> skip,
+    tran_des_v1!des_v --> skip
+    )
+)**
+
+# comp_obs_pos_imp --obs_pos--> emerg_imp
+buffer_obs_pos ::=
+obs_pos := 0;
+(
+<obs_pos_dot = 0 & true> |> []
+    (
+    tran_obs_pos?obs_pos --> skip,
+    tran_obs_pos1!obs_pos --> skip
+    )
+)**
+
+# velo_voter_imp --veh_v--> emerg_imp
+buffer_veh_v ::=
+veh_v := 0;
+(
+<veh_v_dot = 0 & true> |> []
+    (
+    tran_veh_v?veh_v --> skip,
+    tran_veh_v1!veh_v --> skip,
+    tran_veh_v2!veh_v --> skip
+    )
+)**
+
+
+# PI_ctr_imp ----> emerg_imp
+buffer_des_a ::=
+des_a := 0;
+(
+<des_a_dot = 0 & true> |> []
+    (
+    tran_des_a?des_a --> skip,
+    tran_des_a1!des_a --> skip
+    )
+)**
+
+# buffer on inc event port
+inc_buffer ::=
+buffer := [];
+(
+if len(buffer) == 0 then
+    inc_get1?event; buffer := push(buffer, event)
+else  # len(buffer) > 0
+    inc_get1?event --> buffer := push(buffer, event)
+    $
+    inc!bottom(buffer) --> buffer := get(buffer)
+endif
+)**
+
+# buffer on dec event port
+dec_buffer ::=
+buffer := [];
+(
+if len(buffer) == 0 then
+    dec_get1?event; buffer := push(buffer, event)
+else  # len(buffer) > 0
+    dec_get1?event --> buffer := push(buffer, event)
+    $
+    dec!bottom(buffer) --> buffer := get(buffer)
+endif
+)**
+
+BUS0 ::=
+(
+get_bus_emerg_imp! --> (tran_cmd?x; wait(0.005); tran_cmd1!x)
+$
+unblock_emerg_imp! --> skip
+$
+inc_get?event -->
+    (
+    t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    inc_get1!event
+    )
+$
+dec_get?event -->
+    (
+    t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    dec_get1!event
+    )
+)**
+
+BUS1 ::=
+(
+tran_img?x -->
+    (
+    # t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    wait(0.005);
+    tran_img1!x
+    )
+$
+tran_obs_pos_radar?x -->
+    (
+    # t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    wait(0.005);
+    tran_obs_pos_radar1!x
+    )
+$
+tran_veh_pos?x -->
+    (
+    # t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    wait(0.005);
+    tran_veh_pos1!x
+    )
+$
+tran_laser_valid?x -->
+    (
+    tran_laser_v?y;
+    # t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    wait(0.005);
+    tran_laser_valid1!x;
+    tran_laser_v1!y
+    )
+$
+tran_wheel_valid?x -->
+    (
+    tran_wheel_v?y;
+    # t := 0; (<t_dot = 1 & t < 0.005> |> [] (block_emerg_imp! --> skip)){t < 0.005}**;
+    wait(0.005);
+    tran_wheel_valid1!x;
+    tran_wheel_v1!y
+    )
+)**

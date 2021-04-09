@@ -1,0 +1,58 @@
+%type: module
+import modules
+import SCHEDULLER_HPF
+import ACT_periodic
+import ACT_aperiodic
+import DataBuffer
+import EventBuffer
+
+system
+
+scheduller0 = SCHEDULLER_HPF($0) ||
+
+ACT_img_acq_imp = ACT_periodic($"img_acq_imp", $0.045) ||
+img_acq_imp = EXE_img_acq_imp() ||
+
+ACT_comp_obs_pos_imp = ACT_periodic($"comp_obs_pos_imp", $0.097) ||
+comp_obs_pos_imp = EXE_comp_obs_pos_imp() ||
+
+ACT_PI_ctr_imp = ACT_periodic($"PI_ctr_imp", $0.007) ||
+PI_ctr_imp = EXE_PI_ctr_imp() ||
+
+ACT_emerg_imp = ACT_periodic($"emerg_imp", $0.005) ||
+emerg_imp = EXE_emerg_imp() ||
+
+ACT_velo_voter_imp = ACT_periodic($"velo_voter_imp", $0.008) ||
+velo_voter_imp = EXE_velo_voter_imp() ||
+
+ACT_pan_ctr_th_imp_inc = ACT_aperiodic($"pan_ctr_th_imp", $"inc") ||
+ACT_pan_ctr_th_imp_dec = ACT_aperiodic($"pan_ctr_th_imp", $"dec") ||
+pan_ctr_th_imp = EXE_pan_ctr_th_imp() ||
+
+camera2img_acq_imp = DataBuffer($"camera", $"img", $"img_acq_imp", $"img", $0.0) ||
+radar2comp_obs_pos_imp = DataBuffer($"radar", $"obs_pos_radar", $"comp_obs_pos_imp", $"obs_pos_radar", $0.0) ||
+emerg_imp2actuator = DataBuffer($"emerg_imp", $"cmd", $"actuator", $"cmd", $0.0) ||
+gps2emerg_imp = DataBuffer($"gps", $"veh_pos", $"emerg_imp", $"veh_pos", $0.0) ||
+laser2velo_voter_imp_valid = DataBuffer($"laser", $"laser_valid", $"velo_voter_imp", $"laser_valid", $-1.0) ||
+laser2velo_voter_imp_v = DataBuffer($"laser", $"laser_v", $"velo_voter_imp", $"laser_v", $0.0) ||
+wheel2velo_voter_imp_valid = DataBuffer($"wheel", $"wheel_valid", $"velo_voter_imp", $"wheel_valid", $-1.0) ||
+wheel2velo_voter_imp_v = DataBuffer($"wheel", $"wheel_v", $"velo_voter_imp", $"wheel_v", $0.0) ||
+user_panel2pan_ctr_th_imp_inc = EventBuffer($"user_panel", $"inc", $"pan_ctr_th_imp", $"inc") ||
+user_panel2pan_ctr_th_imp_dec = EventBuffer($"user_panel", $"dec", $"pan_ctr_th_imp", $"dec") ||
+img_acq_imp2comp_obs_pos_imp = DataBuffer($"img_acq_imp", $"proc_img", $"comp_obs_pos_imp", $"proc_img", $0.0) ||
+pan_ctr_th_imp2PI_ctr_imp = DataBuffer($"pan_ctr_th_imp", $"des_v", $"PI_ctr_imp", $"des_v", $0.0) ||
+comp_obs_pos_imp2emerg_imp = DataBuffer($"comp_obs_pos_imp", $"obs_pos", $"emerg_imp", $"obs_pos", $0.0) ||
+velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v", $"emerg_imp", $"veh_v", $0.0) ||
+PI_ctr_imp2emerg_imp = DataBuffer($"PI_ctr_imp", $"des_a", $"emerg_imp", $"des_a", $0.0) ||
+
+camera = DEVICE_camera() ||
+radar = DEVICE_radar() ||
+actuator = DEVICE_actuator() ||
+gps = DEVICE_gps() ||
+laser = DEVICE_laser() ||
+wheel = DEVICE_wheel() ||
+user_panel = DEVICE_user_panel()||
+
+vehicle_imp = PHY_vehicle_imp()
+
+endsystem

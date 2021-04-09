@@ -71,7 +71,7 @@ class AVar(AExpr):
 
 class AConst(AExpr):
     def __init__(self, value):
-        super(AConst, self).__init__()  
+        super(AConst, self).__init__()
         assert isinstance(value, (int, float, list, str))
         if isinstance(value, list):
             self.value = list(value)
@@ -263,7 +263,7 @@ class ListExpr(AExpr):
         return set().union(*(arg.get_vars() for arg in self.args))
 
     def subst(self, inst):
-        return ListExpr(expr.subst(inst) for expr in self.args)
+        return ListExpr(*(expr.subst(inst) for expr in self.args))
 
 
 class DictExpr(AExpr):

@@ -2,6 +2,7 @@ from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.hcsp.expr import conj, true_expr
+import random
 
 
 class SignalBuilder(SL_Block):
@@ -127,3 +128,75 @@ class SignalBuilder(SL_Block):
         result_hp = hp.Sequence(init_hp, init_ode, while_loop)
 
         return result_hp
+
+    '''
+    def get_hp_sample(self, st=1, exe_low=0, exe_up=0):
+        """
+        :param st: it sends signal values periodically (s)
+        :param exe_low: the lower bound of execution time (s)
+        :param exe_up:  the upper bound of execution time (s)
+        :return: an interleaving of channel operations and wait statements
+        """
+
+        assert exe_low <= exe_up <= st
+
+        # For precision requirement, amplifying the times
+        precision = 1000
+        st = round(st * precision)
+        exe_low = round(exe_low * precision)
+        exe_up = round(exe_up * precision)
+
+        time_commSeq = dict()  # {0: "ch_x!; ch_y!; ...", st: ..., 2st: ..., }
+        for i in range(len(self.signal_names)):
+            var_name = self.signal_names[i]
+            time_axis = [round(time * precision) for time in self.time_axises[i]]  # ms -> s if precision == 1000
+            data_axis = self.data_axises[i]
+            assert len(time_axis) == len(data_axis)
+
+            j = 0
+            while j + 1 < len(time_axis):
+                if time_axis[j] == time_axis[j+1]:
+                    j += 1
+                    continue
+                start_t = time_axis[j] if time_axis[j] % st == 0 else time_axis[j] + st - (time_axis[j] % st)
+                end_t = time_axis[j+1] - (time_axis[j+1] % st)
+                if end_t == time_axis[j+1] and j + 2 < len(time_axis):
+                    end_t -= st  # right continuous
+                slope = (data_axis[j+1] - data_axis[j]) / (time_axis[j+1] - time_axis[j])
+                while start_t <= end_t:
+                    data = data_axis[j] + slope * (start_t - time_axis[j])
+                    if start_t not in time_commSeq:
+                        time_commSeq[start_t] = ""
+                    ######
+                    if var_name == "laser_error_error":
+                        time_commSeq[start_t] += "laser_v_tran!(" + str(data) + " + v); "
+                    elif var_name == "laser_error_valid":
+                        time_commSeq[start_t] += "laser_valid_tran!" + str(data) + "; "
+                    elif var_name == "wheel_error_error":
+                        time_commSeq[start_t] += "wheel_v_tran!(" + str(data) + " + v); "
+                    elif var_name == "wheel_error_valid":
+                        time_commSeq[start_t] += "wheel_valid_tran!" + str(data) + "; "
+                    elif var_name == "obstacle_radar_position":
+                        time_commSeq[start_t] += "radar_tran!" + str(data) + "; "
+                    else:
+                        time_commSeq[start_t] += "ch_" + var_name + "!" + str(data) + "; "
+                    ######
+                    start_t += st
+                j += 1
+            i += 1
+
+        list_time_hp = sorted((time, commSeq) for time, commSeq in time_commSeq.items())
+        # print(list_time_hp)
+        assert list_time_hp[0][0] == 0
+        result_hp = ""
+        for _, commSeq in list_time_hp:
+            ######
+            result_hp += "ch_veh_v?v; "
+            ######
+            exe_time = round(random.uniform(exe_low, exe_up), 4)
+            if exe_time > 0:
+                result_hp += "wait(" + str(exe_time / precision) + "); "
+            result_hp += commSeq + "wait(" + str((st-exe_time) / precision) + "); "
+
+        return hp_parser.parse(result_hp[:-2])
+    '''
