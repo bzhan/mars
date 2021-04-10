@@ -77,11 +77,7 @@ state := "wait"; prior := 1;
 if state == "wait" then
     dis["comp_obs_pos_imp"]?;
     inputs["comp_obs_pos_imp"]["obs_pos_radar"]?obs_pos_radar;  # tran_obs_pos_radar2?obs_pos_radar;
-<<<<<<< HEAD
     inputs["comp_obs_pos_imp"]["proc_img"]?proc_img;  # tran_proc_img1?proc_img;
-=======
-    inputs["comp_obs_pos_imp"]["proc_img"]?proc_img;  # tran_proc_img1obs_pos_radar;
->>>>>>> cdca37c2e7efb6ff44352a2d4a417a0938885824
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["comp_obs_pos_imp"]!prior;
@@ -431,13 +427,6 @@ outputs["user_panel"]["dec"]!"dec"  # dec_trig!"dec"
 end
 endmodule
 
-<<<<<<< HEAD
-module BUS():
-begin
-outputs["camera"]["img"]?data -->
-    t := 0; (<t_dot = 1 & t < 0.001> |> [] (block["emerg_imp"]! --> skip)){t < 0.001}**;
-    outputs[""][]!data
-=======
 module PHY_vehicle_imp():
 output v;
 output s;
@@ -445,13 +434,10 @@ begin
 v := 0; s := 0;
 sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
 (
-# tran_veh_l_v!v --> sent_veh_l_v := 1
 inputs["laser"]["veh_l_v"]!v --> sent_veh_l_v := 1
 $
-# tran_veh_w_v!v --> sent_veh_w_v := 1
 inputs["wheel"]["veh_w_v"]!v --> sent_veh_w_v := 1
 $
-# tran_veh_s!s --> sent_veh_s := 1
 inputs["gps"]["veh_s"]!s --> sent_veh_s := 1
 ){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
 outputs["actuator"]["veh_a"]?a;  # tran_veh_a?a;
@@ -463,6 +449,5 @@ outputs["actuator"]["veh_a"]?a;  # tran_veh_a?a;
     inputs["wheel"]["veh_w_v"]!v --> skip,
     outputs["actuator"]["veh_a"]?a --> skip)
 )**
->>>>>>> cdca37c2e7efb6ff44352a2d4a417a0938885824
 end
 endmodule
