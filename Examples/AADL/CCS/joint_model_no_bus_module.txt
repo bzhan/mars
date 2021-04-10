@@ -25,8 +25,6 @@ emerg_imp = EXE_emerg_imp() ||
 ACT_velo_voter_imp = ACT_periodic($"velo_voter_imp", $0.008) ||
 velo_voter_imp = EXE_velo_voter_imp() ||
 
-ACT_pan_ctr_th_imp_inc = ACT_aperiodic($"pan_ctr_th_imp", $"inc") ||
-ACT_pan_ctr_th_imp_dec = ACT_aperiodic($"pan_ctr_th_imp", $"dec") ||
 pan_ctr_th_imp = EXE_pan_ctr_th_imp() ||
 
 camera2img_acq_imp = DataBuffer($"camera", $"img", $"img_acq_imp", $"img", $0.0) ||
@@ -34,8 +32,8 @@ radar2comp_obs_pos_imp = DataBuffer($"radar", $"obs_pos_radar", $"comp_obs_pos_i
 img_acq_imp2comp_obs_pos_imp = DataBuffer($"img_acq_imp", $"proc_img", $"comp_obs_pos_imp", $"proc_img", $0.0) ||
 pan_ctr_th_imp2PI_ctr_imp = DataBuffer($"pan_ctr_th_imp", $"des_v", $"PI_ctr_imp", $"des_v", $0.0) ||
 velo_voter_imp2PI_ctr_imp = DataBuffer($"velo_voter_imp", $"veh_v1", $"PI_ctr_imp", $"veh_v1", $0.0) ||
-velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v2", $"emerg_imp", $"veh_v2", $0.0) ||
 PI_ctr_imp2emerg_imp = DataBuffer($"PI_ctr_imp", $"des_a", $"emerg_imp", $"des_a", $0.0) ||
+velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v2", $"emerg_imp", $"veh_v2", $0.0) ||
 comp_obs_pos_imp2emerg_imp = DataBuffer($"comp_obs_pos_imp", $"obs_pos", $"emerg_imp", $"obs_pos", $0.0) ||
 gps2emerg_imp = DataBuffer($"gps", $"veh_pos", $"emerg_imp", $"veh_pos", $0.0) ||
 wheel2velo_voter_imp_v = DataBuffer($"wheel", $"wheel_v", $"velo_voter_imp", $"wheel_v", $0.0) ||

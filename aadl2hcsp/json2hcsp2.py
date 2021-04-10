@@ -188,9 +188,10 @@ def translate_model(json_info):
     for in_port in inputs:
         in_comp, typ, init_val = inputs[in_port]
         out_comp = outputs[in_port]
-        if typ == 'DATA':
-            print("DataBuffer(%s, %s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port, init_val))
-        elif typ == 'EVENT':
-            print("EventBuffer(%s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port))
-        else:
-            raise NotImplementedError
+        if out_comp != "vehicle_imp" and in_comp != "vehicle_imp":
+            if typ == 'DATA':
+                print("DataBuffer(%s, %s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port, init_val))
+            elif typ == 'EVENT':
+                print("EventBuffer(%s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port))
+            else:
+                raise NotImplementedError
