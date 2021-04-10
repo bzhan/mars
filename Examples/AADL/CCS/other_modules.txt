@@ -1,5 +1,34 @@
 %type: module
+module PHY_vehicle_imp():
+output v, s, a;
+begin
+v := 0; s := 0;
+sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
+(
+# tran_veh_l_v!v --> sent_veh_l_v := 1
+inputs["laser"]["veh_l_v"]!v --> sent_veh_l_v := 1
+$
+# tran_veh_w_v!v --> sent_veh_w_v := 1
+inputs["wheel"]["veh_w_v"]!v --> sent_veh_w_v := 1
+$
+# tran_veh_s!s --> sent_veh_s := 1
+inputs["gps"]["veh_s"]!s --> sent_veh_s := 1
+){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
+outputs["actuator"]["veh_a"]?a;  # tran_veh_a?a;
+(
+<s_dot = v, v_dot = a & true> |> []
+    (
+    # tran_veh_l_v!v --> skip, tran_veh_w_v!v --> skip, tran_veh_s!s --> skip, tran_veh_a?a --> skip)
+    inputs["laser"]["veh_l_v"]!v --> skip,
+    inputs["wheel"]["veh_w_v"]!v --> skip,
+    inputs["gps"]["veh_s"]!s --> skip,
+    outputs["actuator"]["veh_a"]?a --> skip)
+)**
+end
+endmodule
+
 module EXE_img_acq_imp():
+output entered, img;
 begin
 state := "wait"; prior := 1;
 (
@@ -41,13 +70,14 @@ endmodule
 
 
 module EXE_comp_obs_pos_imp():
+output entered, obs_pos_radar, obs_pos;
 begin
 state := "wait"; prior := 1;
 (
 if state == "wait" then
     dis["comp_obs_pos_imp"]?;
     inputs["comp_obs_pos_imp"]["obs_pos_radar"]?obs_pos_radar;  # tran_obs_pos_radar2?obs_pos_radar;
-    inputs["comp_obs_pos_imp"]["proc_img"]?obs_pos_radar;  # tran_proc_img1obs_pos_radar;
+    inputs["comp_obs_pos_imp"]["proc_img"]?proc_img;  # tran_proc_img1?proc_img;
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["comp_obs_pos_imp"]!prior;
@@ -92,6 +122,7 @@ end
 endmodule
 
 module EXE_PI_ctr_imp():
+output entered, des_v, veh_v, des_a;
 begin
 Integrator_DSTATE := 0.0;
 state := "wait"; prior := 1;
@@ -154,6 +185,7 @@ end
 endmodule
 
 module EXE_emerg_imp():
+output entered, des_a, veh_v, obs_pos, veh_pos;
 begin
 min_a := -3; max_v := 10;
 state := "wait"; prior := 2;
@@ -213,6 +245,7 @@ end
 endmodule
 
 module EXE_velo_voter_imp():
+output entered, wheel_v, wheel_valid, laser_v, laser_valid, veh_v;
 begin
 state := "wait"; prior := 1;
 (
@@ -221,7 +254,7 @@ if state == "wait" then
     inputs["velo_voter_imp"]["wheel_v"]?wheel_v;  # tran_wheel_v2?wheel_v;
     inputs["velo_voter_imp"]["wheel_valid"]?wheel_valid;  # tran_wheel_valid2?wheel_valid;
     inputs["velo_voter_imp"]["laser_v"]?laser_v;  # tran_laser_v2?laser_v;
-    inputs["velo_voter_imp"]["wheel_v"]?wheel_v;  # tran_laser_valid2?laser_valid;
+    inputs["velo_voter_imp"]["laser_valid"]?laser_valid;  # tran_laser_valid2?laser_valid;
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["velo_voter_imp"]!prior;
@@ -251,7 +284,8 @@ else  # state == "running"
         state == "running" ->
             (
             if c == 0.001 then
-                outputs["velo_voter_imp"]["veh_v"]!veh_v;  # tran_veh_v!veh_v;
+                outputs["velo_voter_imp"]["veh_v1"]!veh_v;  # to emerg_imp
+                outputs["velo_voter_imp"]["veh_v2"]!veh_v;  # to PI_ctr_imp
                 (preempt[0]["velo_voter_imp"]? --> state := "wait" $ free[0]["velo_voter_imp"]! --> state := "wait")
             else  # t == 0.008 then
                 (preempt[0]["velo_voter_imp"]? --> state := "wait" $ free[0]["velo_voter_imp"]! --> state := "wait")
@@ -264,6 +298,7 @@ end
 endmodule
 
 module EXE_pan_ctr_th_imp():
+output entered, des_v;
 begin
 des_v := 0;
 state := "wait"; prior := 0;
@@ -294,7 +329,7 @@ else  # state == "running"
         state == "running" ->
             (
             if c == 0.01 then
-                outputs["pan_ctr_th_imp"][des_v]!des_v;  # tran_des_v!des_v;
+                outputs["pan_ctr_th_imp"]["des_v"]!des_v;  # tran_des_v!des_v;
                 (preempt[0]["pan_ctr_th_imp"]? --> state := "wait" $ free[0]["pan_ctr_th_imp"]! --> state := "wait")
             else  # t == 0.1 then
                 (preempt[0]["pan_ctr_th_imp"]? -->  state := "wait" $ free[0]["pan_ctr_th_imp"]! -->  state := "wait")
@@ -313,6 +348,7 @@ end
 endmodule
 
 module DEVICE_radar():
+output data;
 begin
 t := 0; data := 0.0;
 (
@@ -332,6 +368,7 @@ end
 endmodule
 
 module DEVICE_actuator():
+output cmd;
 begin
 (
 inputs["actuator"]["cmd"]?cmd;  # tran_cmd2?cmd;
@@ -342,6 +379,7 @@ end
 endmodule
 
 module DEVICE_gps():
+output data;
 begin
 (
 inputs["gps"]["veh_s"]?data;  # tran_veh_s?data;
@@ -352,6 +390,7 @@ end
 endmodule
 
 module DEVICE_laser():
+output data, x;
 begin
 (
 inputs["laser"]["veh_l_v"]?data; t := 0; <t_dot = 1 & t < 0.01> |> []
@@ -363,6 +402,7 @@ end
 endmodule
 
 module DEVICE_wheel():
+output data, x;
 begin
 (
 inputs["wheel"]["veh_w_v"]?data; t := 0; <t_dot = 1 & t < 0.01> |> []
@@ -386,28 +426,10 @@ outputs["user_panel"]["dec"]!"dec"  # dec_trig!"dec"
 end
 endmodule
 
-module PHY_vehicle_imp():
+module BUS():
 begin
-v := 0; s := 0;
-sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
-(
-# tran_veh_l_v!v --> sent_veh_l_v := 1
-inputs["laser"]["veh_l_v"]!v --> sent_veh_l_v := 1
-$
-# tran_veh_w_v!v --> sent_veh_w_v := 1
-inputs["wheel"]["veh_l_v"]!v --> sent_veh_w_v := 1
-$
-# tran_veh_s!s --> sent_veh_s := 1
-inputs["gps"]["veh_s"]!s --> sent_veh_s := 1
-){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
-outputs["actuator"]["veh_a"]?a;  # tran_veh_a?a;
-(
-<s_dot = v, v_dot = a & true> |> []
-    (
-    # tran_veh_l_v!v --> skip, tran_veh_w_v!v --> skip, tran_veh_s!s --> skip, tran_veh_a?a --> skip)
-    inputs["laser"]["veh_l_v"]!v --> skip,
-    inputs["wheel"]["veh_w_v"]!v --> skip,
-    outputs["actuator"]["veh_a"]?a --> skip)
-)**
+outputs["camera"]["img"]?data -->
+    t := 0; (<t_dot = 1 & t < 0.001> |> [] (block["emerg_imp"]! --> skip)){t < 0.001}**;
+    outputs[""][]!data
 end
 endmodule

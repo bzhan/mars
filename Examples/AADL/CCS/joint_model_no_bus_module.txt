@@ -1,5 +1,5 @@
 %type: module
-import modules
+import other_modules
 import SCHEDULLER_HPF
 import ACT_periodic
 import ACT_aperiodic
@@ -42,7 +42,8 @@ user_panel2pan_ctr_th_imp_dec = EventBuffer($"user_panel", $"dec", $"pan_ctr_th_
 img_acq_imp2comp_obs_pos_imp = DataBuffer($"img_acq_imp", $"proc_img", $"comp_obs_pos_imp", $"proc_img", $0.0) ||
 pan_ctr_th_imp2PI_ctr_imp = DataBuffer($"pan_ctr_th_imp", $"des_v", $"PI_ctr_imp", $"des_v", $0.0) ||
 comp_obs_pos_imp2emerg_imp = DataBuffer($"comp_obs_pos_imp", $"obs_pos", $"emerg_imp", $"obs_pos", $0.0) ||
-velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v", $"emerg_imp", $"veh_v", $0.0) ||
+velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v1", $"emerg_imp", $"veh_v", $0.0) ||
+velo_voter_imp2PI_ctr_imp = DataBuffer($"velo_voter_imp", $"veh_v2", $"PI_ctr_imp", $"veh_v", $0.0) ||
 PI_ctr_imp2emerg_imp = DataBuffer($"PI_ctr_imp", $"des_a", $"emerg_imp", $"des_a", $0.0) ||
 
 camera = DEVICE_camera() ||
