@@ -259,7 +259,7 @@ prior := 2;
       run[0]["emerg_imp"]? -->
         state := "running"
     )
-  else
+  elif state == "running" then
     entered == 0 -> (
       c := 0;
       next_v := veh_v+des_a*1.0;
@@ -285,13 +285,12 @@ prior := 2;
       );
       state == "running" -> (
         if c == 0.001 then
-          outputs["emerg_imp"]["cmd"]!cmd;
-          (
-            preempt[0]["emerg_imp"]? -->
-              state := "wait" $
-            free[0]["emerg_imp"]! -->
-              state := "wait"
-          )
+          reqBus["emerg_imp"]! -->
+            outputs["emerg_imp"]["cmd"]!cmd;
+            (preempt[0]["emerg_imp"]? --> state := "wait" $ free[0]["emerg_imp"]! --> state := "wait")
+          $
+          block["emerg_imp"]? -->
+             (preempt[0]["emerg_imp"]? --> state := "await" $ free[0]["emerg_imp"]! --> state := "await")
         else
           preempt[0]["emerg_imp"]? -->
             state := "wait" $
@@ -300,6 +299,9 @@ prior := 2;
         endif
       )
     )
+  else
+    <t_dot = 1 & t < 0.005> |> [] (unblock["emerg_imp"]? --> state := "ready");
+    t == 0.005 -> state := "wait"
   endif
 )**
 end
