@@ -5,7 +5,7 @@
         "input": {
             "veh_a": {
                 "var": "a",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -21,7 +21,7 @@
         "input": {
             "img": {
                 "var": "image",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -40,11 +40,11 @@
         "input": {
             "obs_pos_radar": {
                 "var": "obs_pos_radar",
-                "val": "0.0"
+                "val": 0.0
             },
             "proc_img": {
                 "var": "proc_img",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -63,11 +63,11 @@
         "input": {
             "des_v": {
                 "var": "des_v",
-                "val": "0.0"
+                "val": 0.0
             },
             "veh_v1": {
                 "var": "veh_v",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -86,19 +86,19 @@
         "input": {
             "des_a": {
                 "var": "des_a",
-                "val": "0.0"
+                "val": 0.0
             },
             "veh_v2": {
                 "var": "veh_v",
-                "val": "0.0"
+                "val": 0.0
             },
             "obs_pos": {
                 "var": "obs_pos",
-                "val": "0.0"
+                "val": 0.0
             },
             "veh_pos": {
                 "var": "veh_pos",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -117,19 +117,19 @@
         "input": {
             "wheel_v": {
                 "var": "wheel_v",
-                "val": "0.0"
+                "val": 0.0
             },
             "wheel_valid": {
                 "var": "wheel_valid",
-                "val": "-1.0"
+                "val": -1.0
             },
             "laser_v": {
                 "var": "laser_v",
-                "val": "0.0"
+                "val": 0.0
             },
             "laser_valid": {
                 "var": "laser_valid",
-                "val": "-1.0"
+                "val": -1.0
             }
         },
         "output": {
@@ -181,7 +181,7 @@
         "input": {
             "cmd": {
                 "var": "cmd",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -195,7 +195,7 @@
         "input": {
             "veh_s": {
                 "var": "data",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {
@@ -209,7 +209,7 @@
         "input": {
             "veh_l_v": {
                 "var": "veh_l_v",
-                "val": "0.0"
+                "val": 0.0
             }            
         },
         "output": {
@@ -225,7 +225,7 @@
         "input": {
             "veh_w_v": {
                 "var": "veh_w_v",
-                "val": "0.0"
+                "val": 0.0
             }
         },
         "output": {

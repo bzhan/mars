@@ -7,7 +7,7 @@ from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 
 
-def time_str_to_int(time_str):
+def time_str_to_num(time_str):
     if time_str[-2:] == 'ms':
         return int(time_str[:-2]) / 1000.0
     else:
@@ -63,8 +63,8 @@ def translate_thread(name, info):
     mod = parser.module_parser.parse(thread_template)
 
     # Arguments to module
-    max_c = time_str_to_int(info['Compute_Execution_Time'])
-    DL = time_str_to_int(info['Deadline'])
+    max_c = time_str_to_num(info['Compute_Execution_Time'])
+    DL = time_str_to_num(info['Deadline'])
     priority = info['priority']
     mod_inst = module.HCSPModuleInst("EXE" + name, "EXE", [
         expr.AConst(0),
@@ -129,7 +129,7 @@ def translate_device(name, info):
         outputs = [get_output(port, var_name) for port, var_name in info['output'].items()]
 
         # Wait
-        delay = time_str_to_int(info['period'])
+        delay = time_str_to_num(info['period'])
         wait_hp = hcsp.Wait(expr.AConst(delay))
 
         hp = hcsp.Loop(hcsp.Sequence(*(inputs + outputs + [wait_hp])))
@@ -151,7 +151,29 @@ def translate_abstract(name, info):
 
 def translate_model(json_info):
     """Overall translation"""
-    # First, collect input and output ports
+    # Construct the components
+    component_mod_insts = []
+    for name, info in json_info.items():
+        if info['category'] == 'thread':
+            if info['dispatch_protocol'] == 'periodic':
+                component_mod_insts.append(module.HCSPModuleInst("ACT_" + name, "ACT_periodic", [
+                    expr.AConst(name), expr.AConst(time_str_to_num(info['period']))
+                ]))
+            component_mod_insts.append(module.HCSPModuleInst(name, "EXE_" + name, []))
+
+        elif info['category'] == 'device':
+            component_mod_insts.append(module.HCSPModuleInst(name, "DEVICE_" + name, []))
+
+        elif info['category'] == 'abstract':
+            component_mod_insts.append(module.HCSPModuleInst(name, "PHY_" + name, []))
+
+        else:
+            raise NotImplementedError
+
+    for mod_inst in component_mod_insts:
+        print(mod_inst.export())
+
+    # Next, collect input and output ports
     # inputs - mapping from input port name to component name and type ("DATA" or "EVENT")
     # outputs - mapping from output port name to component name
     inputs = dict()
@@ -184,14 +206,23 @@ def translate_model(json_info):
         if out_port not in inputs:
             raise AssertionError("%s is an out_port but not an in_port" % out_port)
 
-    # Print the ports
+    # Construct the ports
+    port_module_insts = []
     for in_port in inputs:
         in_comp, typ, init_val = inputs[in_port]
         out_comp = outputs[in_port]
         if out_comp != "vehicle_imp" and in_comp != "vehicle_imp":
+            name = out_comp + "2" + in_comp
             if typ == 'DATA':
-                print("DataBuffer(%s, %s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port, init_val))
+                port_module_insts.append(module.HCSPModuleInst(name, "DataBuffer", [
+                    expr.AConst(out_comp), expr.AConst(in_port), expr.AConst(in_comp), expr.AConst(in_port), expr.AConst(init_val)
+                ]))
             elif typ == 'EVENT':
-                print("EventBuffer(%s, %s, %s, %s)" % (out_comp, in_port, in_comp, in_port))
+                port_module_insts.append(module.HCSPModuleInst(name, "EventBuffer", [
+                    expr.AConst(out_comp), expr.AConst(in_port), expr.AConst(in_comp), expr.AConst(in_port)
+                ]))
             else:
                 raise NotImplementedError
+
+    for mod_inst in port_module_insts:
+        print(mod_inst.export())
