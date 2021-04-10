@@ -4,6 +4,7 @@ import os
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
 from ss2hcsp.hcsp import pprint
+from ss2hcsp.hcsp import expr
 
 
 class ModuleException(Exception):
@@ -76,6 +77,20 @@ class HCSPModuleInst:
         else:
             return "ModuleInst(%s,%s,%s)" % (self.name, self.module_name,
                 ','.join(str(arg) for arg in self.args))
+
+    def export(self):
+        """Print the string that will parse to the module instantiation."""
+        def print_arg(arg):
+            if isinstance(arg, expr.AConst):
+                if isinstance(arg.value, str) and arg.value[0] != "\"":
+                    return "$\"" + arg.value + "\""
+                else:
+                    return "$" + str(arg.value)
+            else:
+                return arg.value
+                
+        return "%s = %s(%s)" % (self.name, self.module_name,
+            ', '.join(print_arg(arg) for arg in self.args))
 
     def generateInst(self, module):
         """Given the module, construct the corresponding HCSP info."""
