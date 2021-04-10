@@ -1254,7 +1254,7 @@ fprintf(&quot;exA is executing &quot;);
               </eml>
             </state>
             <state SSID="9">
-              <P Name="labelString">[x,y]=enA</P>
+              <P Name="labelString">[x1,y1]=enA</P>
               <P Name="position">[355 174.5 105 75]</P>
               <P Name="fontSize">12</P>
               <P Name="superState">SUBCHART</P>
@@ -1263,11 +1263,11 @@ fprintf(&quot;exA is executing &quot;);
               <P Name="decomposition">CLUSTER_STATE</P>
               <eml>
                 <P Name="isEML">1</P>
-                <P Name="script">function [x,y]=enA()
-x=0;
-x=x+1;
-y=4;
-fprintf(&quot;enA is executing &quot;+x);
+                <P Name="script">function [x1,y1]=enA()
+x1=0;
+x1=x1+1;
+y1=4;
+fprintf(&quot;enA is executing &quot;+x1);
  
 </P>
                 <P Name="editorLayout" Class="double">Matrix(4,1)

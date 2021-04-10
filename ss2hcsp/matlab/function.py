@@ -1,5 +1,4 @@
 """Classes for matlab functions"""
-
 class Expr:
     """Base class for matlab expressions."""
     def __init__(self):
@@ -77,7 +76,6 @@ class ListExpr(Expr):
             self.count += 1
             return result
         else:
-        # 遍历结束后，抛出异常，终止遍历
             raise StopIteration
 
     def get_vars(self):
