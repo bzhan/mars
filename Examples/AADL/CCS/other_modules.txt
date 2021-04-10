@@ -304,8 +304,8 @@ des_v := 0;
 state := "wait"; prior := 0;
 (
 if state == "wait" then
-    (dis["pan_ctr_th_imp"]["inc"]? --> event := "inc" $
-     dis["pan_ctr_th_imp"]["dec"]? --> event := "dec");
+    (dis["pan_ctr_th_imp"]["inc"]?event --> skip $
+     dis["pan_ctr_th_imp"]["dec"]?event --> skip);
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
     reqProcessor[0]["pan_ctr_th_imp"]!prior;
@@ -424,30 +424,5 @@ outputs["user_panel"]["inc"]!"inc";  # inc_trig!"inc";
 wait(29);
 outputs["user_panel"]["dec"]!"dec";  # dec_trig!"dec";
 outputs["user_panel"]["dec"]!"dec"  # dec_trig!"dec"
-end
-endmodule
-
-module PHY_vehicle_imp():
-output v;
-output s;
-begin
-v := 0; s := 0;
-sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0;
-(
-inputs["laser"]["veh_l_v"]!v --> sent_veh_l_v := 1
-$
-inputs["wheel"]["veh_w_v"]!v --> sent_veh_w_v := 1
-$
-inputs["gps"]["veh_s"]!s --> sent_veh_s := 1
-){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
-outputs["actuator"]["veh_a"]?a;  # tran_veh_a?a;
-(
-<s_dot = v, v_dot = a & true> |> []
-    (
-    # tran_veh_l_v!v --> skip, tran_veh_w_v!v --> skip, tran_veh_s!s --> skip, tran_veh_a?a --> skip)
-    inputs["laser"]["veh_l_v"]!v --> skip,
-    inputs["wheel"]["veh_w_v"]!v --> skip,
-    outputs["actuator"]["veh_a"]?a --> skip)
-)**
 end
 endmodule

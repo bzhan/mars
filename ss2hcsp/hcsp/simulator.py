@@ -748,10 +748,6 @@ class SimInfo:
             else:
                 # Multiple assignment
                 val = eval_expr(cur_hp.expr, self.state)
-                print('multiple assign vars', cur_hp.var_name)
-                print('expression', cur_hp.expr)
-                print('state', self.state)
-                print('vals', val)
                 assert isinstance(val, list) and len(val) == len(cur_hp.var_name), \
                     "Multiple assignment: value not a list or of the wrong length."
                 for i, s in enumerate(cur_hp.var_name):
@@ -927,9 +923,11 @@ class SimInfo:
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
                 if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     if comm_hp.var_name is None:
-                        assert x is None
+                        if x is not None:
+                            raise SimulatorAssertionException(comm_hp, "input value is not None")
                     else:
-                        assert x is not None
+                        if x is None:
+                            raise SimulatorAssertionException(comm_hp, "input value is None")
                         self.exec_assign(comm_hp.var_name, x, comm_hp)
                     self.pos += (i,) + start_pos(out_hp)
                     return

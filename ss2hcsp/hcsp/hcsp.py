@@ -29,12 +29,12 @@ class Channel:
 
     def __str__(self):
         def str_arg(arg):
-            if isinstance(arg, str):
-                return repr(arg)
-            elif isinstance(arg, AConst) and isinstance(arg.value, str):
-                return repr(arg.value)
-            else:
-                return str(arg)
+            # if isinstance(arg, str):
+            #     return repr(arg)
+            # elif isinstance(arg, AConst) and isinstance(arg.value, str):
+            #     return repr(arg.value)
+            # else:
+            return str(arg)
         return self.name + ''.join('[' + str_arg(arg) + ']' for arg in self.args)
     
     def __repr__(self):
