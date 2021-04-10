@@ -113,7 +113,6 @@ def read_file(filename):
     """
     for path in reversed(hcsp_import_path):
         try:
-            # print('Opening:', os.path.join(path, filename))
             with open(os.path.join(path, filename), encoding='utf-8') as f:
                 text = f.read()
             return text
@@ -161,6 +160,7 @@ class HCSPDeclarations:
                     self.modules[name] = arg.modules[name]
 
             else:
+                print(arg, type(arg))
                 raise NotImplementedError
 
     def __str__(self):
