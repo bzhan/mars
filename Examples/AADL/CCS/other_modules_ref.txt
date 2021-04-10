@@ -1,0 +1,530 @@
+%type: module
+
+module PHY_vehicle_imp():
+output v, s, a;
+begin
+v := 0;
+s := 0;
+sent_veh_l_v := 0;
+sent_veh_w_v := 0;
+sent_veh_s := 0;
+(
+  inputs["laser"]["veh_l_v"]!v -->
+    sent_veh_l_v := 1 $
+  inputs["wheel"]["veh_w_v"]!v -->
+    sent_veh_w_v := 1 $
+  inputs["gps"]["veh_s"]!s -->
+    sent_veh_s := 1
+){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**;
+outputs["actuator"]["veh_a"]?a;
+(
+  <s_dot = v, v_dot = a & true> |> [] (
+    inputs["laser"]["veh_l_v"]!v -->
+      skip,
+    inputs["wheel"]["veh_w_v"]!v -->
+      skip,
+    inputs["gps"]["veh_s"]!s -->
+      skip,
+    outputs["actuator"]["veh_a"]?a -->
+      skip
+  )
+)**
+end
+endmodule
+
+module EXE_img_acq_imp():
+begin
+skip;
+state := "wait";
+prior := 1;
+(
+  if state == "wait" then
+    dis["img_acq_imp"]?;
+    inputs["img_acq_imp"]["img"]?image;
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["img_acq_imp"]!prior;
+    <t_dot = 1 & t < 0.045> |> [] (
+      run[0]["img_acq_imp"]? -->
+        state := "running"
+    );
+    t == 0.045 -> (
+      exit[0]["img_acq_imp"]! -->
+        state := "wait" $
+      run[0]["img_acq_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      skip;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.045> |> [] (
+        preempt[0]["img_acq_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.01 then
+          outputs["img_acq_imp"]["proc_img"]!image;
+          (
+            preempt[0]["img_acq_imp"]? -->
+              state := "wait" $
+            free[0]["img_acq_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["img_acq_imp"]? -->
+            state := "wait" $
+          free[0]["img_acq_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module EXE_comp_obs_pos_imp():
+begin
+skip;
+state := "wait";
+prior := 1;
+(
+  if state == "wait" then
+    dis["comp_obs_pos_imp"]?;
+    inputs["comp_obs_pos_imp"]["obs_pos_radar"]?obs_pos_radar;
+    inputs["comp_obs_pos_imp"]["proc_img"]?proc_img;
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["comp_obs_pos_imp"]!prior;
+    <t_dot = 1 & t < 0.097> |> [] (
+      run[0]["comp_obs_pos_imp"]? -->
+        state := "running"
+    );
+    t == 0.097 -> (
+      exit[0]["comp_obs_pos_imp"]! -->
+        state := "wait" $
+      run[0]["comp_obs_pos_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      obs_pos_radar < 0 -> obs_pos_radar := 0;
+      proc_img < 0 -> proc_img := 0;
+      if obs_pos_radar == 0 then
+        obs_pos := proc_img
+      elif proc_img == 0 then
+        obs_pos := obs_pos_radar
+      else
+        obs_pos := min(obs_pos_radar, proc_img)
+      endif;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.02 && t < 0.097> |> [] (
+        preempt[0]["comp_obs_pos_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.02 then
+          outputs["comp_obs_pos_imp"]["obs_pos"]!obs_pos;
+          (
+            preempt[0]["comp_obs_pos_imp"]? -->
+              state := "wait" $
+            free[0]["comp_obs_pos_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["comp_obs_pos_imp"]? -->
+            state := "wait" $
+          free[0]["comp_obs_pos_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module EXE_PI_ctr_imp():
+begin
+Integrator_DSTATE := 0.0;
+state := "wait";
+prior := 1;
+(
+  if state == "wait" then
+    dis["PI_ctr_imp"]?;
+    inputs["PI_ctr_imp"]["des_v"]?des_v;
+    inputs["PI_ctr_imp"]["veh_v1"]?veh_v;
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["PI_ctr_imp"]!prior;
+    <t_dot = 1 & t < 0.007> |> [] (
+      run[0]["PI_ctr_imp"]? -->
+        state := "running"
+    );
+    t == 0.007 -> (
+      exit[0]["PI_ctr_imp"]! -->
+        state := "wait" $
+      run[0]["PI_ctr_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      rtb_Sum := des_v-veh_v;
+      rtb_SumFdbk := rtb_Sum+Integrator_DSTATE;
+      if rtb_SumFdbk > 3.0 then
+        rtb_SumFdbk_0 := 3.0
+      elif rtb_SumFdbk < -3.0 then
+        rtb_SumFdbk_0 := -3.0
+      else
+        rtb_SumFdbk_0 := rtb_SumFdbk
+      endif;
+      rtb_SumFdbk := (rtb_SumFdbk_0-rtb_SumFdbk+rtb_Sum)*0.007+Integrator_DSTATE;
+      rtb_Sum := rtb_Sum+rtb_SumFdbk;
+      if rtb_Sum > 3.0 then
+        des_a := 3.0
+      elif rtb_Sum < -3.0 then
+        des_a := -3.0
+      else
+        des_a := rtb_Sum
+      endif;
+      Integrator_DSTATE := rtb_SumFdbk;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.007> |> [] (
+        preempt[0]["PI_ctr_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.001 then
+          outputs["PI_ctr_imp"]["des_a"]!des_a;
+          (
+            preempt[0]["PI_ctr_imp"]? -->
+              state := "wait" $
+            free[0]["PI_ctr_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["PI_ctr_imp"]? -->
+            state := "wait" $
+          free[0]["PI_ctr_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module EXE_emerg_imp():
+begin
+min_a := -3;
+max_v := 10;
+state := "wait";
+prior := 2;
+(
+  if state == "wait" then
+    dis["emerg_imp"]?;
+    inputs["emerg_imp"]["des_a"]?des_a;
+    inputs["emerg_imp"]["veh_v2"]?veh_v;
+    inputs["emerg_imp"]["obs_pos"]?obs_pos;
+    inputs["emerg_imp"]["veh_pos"]?veh_pos;
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["emerg_imp"]!prior;
+    <t_dot = 1 & t < 0.005> |> [] (
+      run[0]["emerg_imp"]? -->
+        state := "running"
+    );
+    t == 0.005 -> (
+      exit[0]["emerg_imp"]! -->
+        state := "wait" $
+      run[0]["emerg_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      next_v := veh_v+des_a*1.0;
+      next_s := veh_pos+veh_v*1.0+0.5*des_a*1.0*1.0;
+      v_limit := protected_curve(obs_pos, next_s, max_v, min_a);
+      if next_v <= v_limit then
+        cmd := des_a
+      else
+        next_s := veh_pos+veh_v*1.0;
+        v_limit := protected_curve(obs_pos, next_s, max_v, min_a);
+        if veh_v <= v_limit then
+          cmd := 0
+        else
+          cmd := min_a
+        endif
+      endif;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.005> |> [] (
+        preempt[0]["emerg_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.001 then
+          outputs["emerg_imp"]["cmd"]!cmd;
+          (
+            preempt[0]["emerg_imp"]? -->
+              state := "wait" $
+            free[0]["emerg_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["emerg_imp"]? -->
+            state := "wait" $
+          free[0]["emerg_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module EXE_velo_voter_imp():
+begin
+skip;
+state := "wait";
+prior := 1;
+(
+  if state == "wait" then
+    dis["velo_voter_imp"]?;
+    inputs["velo_voter_imp"]["wheel_v"]?wheel_v;
+    inputs["velo_voter_imp"]["wheel_valid"]?wheel_valid;
+    inputs["velo_voter_imp"]["laser_v"]?laser_v;
+    inputs["velo_voter_imp"]["laser_valid"]?laser_valid;
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["velo_voter_imp"]!prior;
+    <t_dot = 1 & t < 0.008> |> [] (
+      run[0]["velo_voter_imp"]? -->
+        state := "running"
+    );
+    t == 0.008 -> (
+      exit[0]["velo_voter_imp"]! -->
+        state := "wait" $
+      run[0]["velo_voter_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      if wheel_valid < 0 then
+        veh_v := laser_v
+      elif laser_valid < 0 then
+        veh_v := wheel_v
+      else
+        veh_v := (wheel_v+laser_v)/2
+      endif;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.001 && t < 0.008> |> [] (
+        preempt[0]["velo_voter_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.001 then
+          outputs["velo_voter_imp"]["veh_v1"]!veh_v;
+          outputs["velo_voter_imp"]["veh_v2"]!veh_v;
+          (
+            preempt[0]["velo_voter_imp"]? -->
+              state := "wait" $
+            free[0]["velo_voter_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["velo_voter_imp"]? -->
+            state := "wait" $
+          free[0]["velo_voter_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module EXE_pan_ctr_th_imp():
+begin
+des_v := 0;
+state := "wait";
+prior := 0;
+(
+  if state == "wait" then
+    (
+      dis["pan_ctr_th_imp"]["inc"]?event -->
+        skip $
+      dis["pan_ctr_th_imp"]["dec"]?event -->
+        skip
+    );
+    t := 0;
+    entered := 0;
+    state := "ready"
+  elif state == "ready" then
+    reqProcessor[0]["pan_ctr_th_imp"]!prior;
+    <t_dot = 1 & t < 0.1> |> [] (
+      run[0]["pan_ctr_th_imp"]? -->
+        state := "running"
+    );
+    t == 0.1 -> (
+      exit[0]["pan_ctr_th_imp"]! -->
+        state := "wait" $
+      run[0]["pan_ctr_th_imp"]? -->
+        state := "running"
+    )
+  else
+    entered == 0 -> (
+      c := 0;
+      event == "inc" -> des_v := des_v+1;
+      event == "dec" -> des_v := des_v-1;
+      entered := 1
+    );
+    entered == 1 -> (
+      <t_dot = 1, c_dot = 1 & c < 0.01 && t < 0.1> |> [] (
+        preempt[0]["pan_ctr_th_imp"]? -->
+          state := "ready"
+      );
+      state == "running" -> (
+        if c == 0.01 then
+          outputs["pan_ctr_th_imp"]["des_v"]!des_v;
+          (
+            preempt[0]["pan_ctr_th_imp"]? -->
+              state := "wait" $
+            free[0]["pan_ctr_th_imp"]! -->
+              state := "wait"
+          )
+        else
+          preempt[0]["pan_ctr_th_imp"]? -->
+            state := "wait" $
+          free[0]["pan_ctr_th_imp"]! -->
+            state := "wait"
+        endif
+      )
+    )
+  endif
+)**
+end
+endmodule
+
+module DEVICE_camera():
+begin
+(
+  outputs["camera"]["img"]!-1;
+  wait(0.2)
+)**
+end
+endmodule
+
+module DEVICE_radar():
+begin
+t := 0;
+data := 0.0;
+(
+  if t < 10 then
+    data := 0.0
+  elif t < 20 then
+    slope := (55-35)/(20-10);
+    data := 35+slope*(t-10)
+  else
+    data := 0.0
+  endif;
+  outputs["radar"]["obs_pos_radar"]!data;
+  wait(0.01);
+  t := t+0.01
+)**
+end
+endmodule
+
+module DEVICE_actuator():
+begin
+(
+  inputs["actuator"]["cmd"]?cmd;
+  outputs["actuator"]["veh_a"]!cmd;
+  wait(0.002)
+)**
+end
+endmodule
+
+module DEVICE_gps():
+begin
+(
+  inputs["gps"]["veh_s"]?data;
+  outputs["gps"]["veh_pos"]!data;
+  wait(0.006)
+)**
+end
+endmodule
+
+module DEVICE_laser():
+begin
+(
+  inputs["laser"]["veh_l_v"]?data;
+  t := 0;
+  <t_dot = 1 & t < 0.01> |> [] (
+    outputs["laser"]["laser_valid"]!1.0 -->
+      error := uniform(-0.5, 0.5);
+      x := data+error;
+      outputs["laser"]["laser_v"]!data+error
+  );
+  <t_dot = 1 & t < 0.01>
+)**
+end
+endmodule
+
+module DEVICE_wheel():
+begin
+(
+  inputs["wheel"]["veh_w_v"]?data;
+  t := 0;
+  <t_dot = 1 & t < 0.01> |> [] (
+    outputs["wheel"]["wheel_valid"]!1.0 -->
+      error := uniform(-0.5, 0.5);
+      x := data+error;
+      outputs["wheel"]["wheel_v"]!data+error
+  );
+  <t_dot = 1 & t < 0.01>
+)**
+end
+endmodule
+
+module DEVICE_user_panel():
+begin
+outputs["user_panel"]["inc"]!"inc";
+wait(0.5);
+outputs["user_panel"]["inc"]!"inc";
+wait(0.5);
+outputs["user_panel"]["inc"]!"inc";
+wait(29);
+outputs["user_panel"]["dec"]!"dec";
+outputs["user_panel"]["dec"]!"dec"
+end
+endmodule
+

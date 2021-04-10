@@ -1,4 +1,21 @@
 {
+    "vehicle_imp": {
+        "category": "abstract",
+        "display": ["v", "s", "a"],
+        "input": {
+            "veh_a": {
+                "var": "a",
+                "val": "0.0"
+            }
+        },
+        "output": {
+            "veh_s": "s",
+            "veh_l_v": "v",
+            "veh_w_v": "v"
+        },
+        "impl": "Simulink",
+        "code": "v := 0; s := 0; sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0; (inputs[\"laser\"][\"veh_l_v\"]!v --> sent_veh_l_v := 1 $ inputs[\"wheel\"][\"veh_w_v\"]!v --> sent_veh_w_v := 1 $ inputs[\"gps\"][\"veh_s\"]!s --> sent_veh_s := 1){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**; outputs[\"actuator\"][\"veh_a\"]?a; (<s_dot = v, v_dot = a & true> |> [] (inputs[\"laser\"][\"veh_l_v\"]!v --> skip, inputs[\"wheel\"][\"veh_w_v\"]!v --> skip, inputs[\"gps\"][\"veh_s\"]!s --> skip, outputs[\"actuator\"][\"veh_a\"]?a --> skip))**"
+    },
     "img_acq_imp": {
         "category": "thread",
         "input": {
@@ -177,12 +194,12 @@
         "category": "device",
         "input": {
             "veh_s": {
-                "var": "veh_s",
+                "var": "data",
                 "val": "0.0"
             }
         },
         "output": {
-            "veh_pos": "veh_s"
+            "veh_pos": "data"
         },
         "period": "6ms",
         "impl": "Channel"
@@ -227,23 +244,6 @@
             "dec": "dec"
         },
         "impl": "Simulink",
-        "computation": "outputs[\"user_panel\"][\"inc\"]!; wait(0.5); outputs[\"user_panel\"][\"inc\"]!; wait(0.5); outputs[\"user_panel\"][\"inc\"]!; wait(29); outputs[\"user_panel\"][\"dec\"]!; outputs[\"user_panel\"][\"dec\"]!"
-    },
-    "vehicle_imp": {
-        "category": "abstract",
-        "display": ["v", "s"],
-        "input": {
-            "veh_a": {
-                "var": "a",
-                "val": "0.0"
-            }
-        },
-        "output": {
-            "veh_s": "s",
-            "veh_l_v": "v",
-            "veh_w_v": "v"
-        },
-        "impl": "Simulink",
-        "code": "v := 0; s := 0; sent_veh_l_v := 0; sent_veh_w_v := 0; sent_veh_s := 0; (inputs[\"laser\"][\"veh_l_v\"]!v --> sent_veh_l_v := 1 $ inputs[\"wheel\"][\"veh_w_v\"]!v --> sent_veh_w_v := 1 $ inputs[\"gps\"][\"veh_s\"]!s --> sent_veh_s := 1){sent_veh_l_v == 0 || sent_veh_w_v == 0 || sent_veh_s == 0}**; outputs[\"actuator\"][\"veh_a\"]?a; (<s_dot = v, v_dot = a & true> |> [] (inputs[\"laser\"][\"veh_l_v\"]!v --> skip, inputs[\"wheel\"][\"veh_w_v\"]!v --> skip, outputs[\"actuator\"][\"veh_a\"]?a --> skip))**"
+        "computation": "outputs[\"user_panel\"][\"inc\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"inc\"]!\"inc\"; wait(0.5); outputs[\"user_panel\"][\"inc\"]!\"inc\"; wait(29); outputs[\"user_panel\"][\"dec\"]!\"dec\"; outputs[\"user_panel\"][\"dec\"]!\"dec\""
     }
 }

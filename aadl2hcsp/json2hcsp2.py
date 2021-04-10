@@ -20,7 +20,6 @@ begin
 state := "wait"; prior := priority;
 (
 if state == "wait" then
-    dis[name]?;
     @INPUT;
     t := 0; entered := 0; state := "ready"
 elif state == "ready" then
@@ -77,16 +76,17 @@ def translate_thread(name, info):
 
     # Input procedure
     def get_input(port, var_name):
-        return hcsp.InputChannel(hcsp.Channel("inputs", (name, port)), var_name)
+        return hcsp.InputChannel(hcsp.Channel("inputs", (expr.AConst(name), expr.AConst(port))), var_name)
     
     def get_event_input(event_port, event_val):
-        return (hcsp.InputChannel(hcsp.Channel("dis", (name, event_port))),
-                hcsp.Assign("event", expr.AConst(event_val)))
+        return (hcsp.InputChannel(hcsp.Channel("dis", (expr.AConst(name), expr.AConst(event_port))), "event"),
+                hcsp.Skip())
 
     if info['dispatch_protocol'] == 'periodic':
+        input_dis = hcsp.InputChannel(hcsp.Channel("dis", (expr.AConst(name),)))
         inputs = [get_input(port, port_info['var'])
                   for port, port_info in info['input'].items()]
-        input_hp = hcsp.Sequence(*inputs)
+        input_hp = hcsp.Sequence(*([input_dis] + inputs))
     elif info['dispatch_protocol'] == 'aperiodic':
         io_comms = [get_event_input(event_port, event_val)
                     for event_port, event_val in info['event_input'].items()]
@@ -96,7 +96,7 @@ def translate_thread(name, info):
 
     # Output procedure
     def get_output(port, var_name):
-        return hcsp.OutputChannel(hcsp.Channel("outputs", (name, port)), hcsp.AVar(var_name))
+        return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))), hcsp.AVar(var_name))
     outputs = [get_output(port, var_name) for port, var_name in info['output'].items()]
 
     inst = {
@@ -119,13 +119,13 @@ def translate_device(name, info):
     elif info['impl'] == 'Channel':
         # Input procedure
         def get_input(port, var_name):
-            return hcsp.InputChannel(hcsp.Channel("inputs", (name, port)), var_name)
+            return hcsp.InputChannel(hcsp.Channel("inputs", (expr.AConst(name), expr.AConst(port))), var_name)
         inputs = [get_input(port, port_info['var'])
                   for port, port_info in info['input'].items()]
 
         # Output procedure
         def get_output(port, var_name):
-            return hcsp.OutputChannel(hcsp.Channel("outputs", (name, port)), hcsp.AVar(var_name))
+            return hcsp.OutputChannel(hcsp.Channel("outputs", (expr.AConst(name), expr.AConst(port))), hcsp.AVar(var_name))
         outputs = [get_output(port, var_name) for port, var_name in info['output'].items()]
 
         # Wait

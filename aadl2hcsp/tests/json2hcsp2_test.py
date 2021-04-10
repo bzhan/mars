@@ -27,9 +27,11 @@ class Json2HCSP2Test(unittest.TestCase):
             else:
                 raise NotImplementedError
 
-        for mod in mods:
-            print(mod.export())
-            print()
+        with open('./Examples/AADL/CCS/other_modules_ref.txt', 'w') as f:
+            f.write("%type: module\n\n")
+            for mod in mods:
+                f.write(mod.export())
+                f.write('\n\n')
 
         json2hcsp2.translate_model(dic)
 

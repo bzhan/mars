@@ -31,10 +31,10 @@ class Channel:
         def str_arg(arg):
             # if isinstance(arg, str):
             #     return repr(arg)
-            # elif isinstance(arg, AConst) and isinstance(arg.value, str):
-            #     return repr(arg.value)
-            # else:
-            return str(arg)
+            if isinstance(arg, AConst) and isinstance(arg.value, str) and arg.value[0] != "\"":
+                return "\"" + arg.value + "\""
+            else:
+                return str(arg)
         return self.name + ''.join('[' + str_arg(arg) + ']' for arg in self.args)
     
     def __repr__(self):

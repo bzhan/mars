@@ -36,13 +36,16 @@ class HCSPModule:
 
     def export(self):
         """Print the string that will parse to the module."""
-        def str_of_output(output):
-            return "output %s;\n" % output
+        def str_of_output(outputs):
+            if outputs:
+                return "output %s;\n" % (', '.join(outputs))
+            else:
+                return ""
 
         res = "module %s(%s):\n%sbegin\n%s\nend\nendmodule" % (
             self.name,
             ','.join(self.params),
-            ''.join(str_of_output(output) for output in self.outputs),
+            str_of_output(self.outputs),
             pprint.pprint(self.code)
         )
         return res

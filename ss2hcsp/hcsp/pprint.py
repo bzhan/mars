@@ -48,7 +48,14 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
 
         elif hp.type == 'sequence':
             for i, sub_hp in enumerate(hp.hps):
-                rec(sub_hp, indent, pos+(i,))
+                if sub_hp.type == 'select_comm':
+                    new_line(indent)
+                    add_str("(")
+                    rec(sub_hp, indent+2, pos+(i,))
+                    new_line(indent)
+                    add_str(")")
+                else:
+                    rec(sub_hp, indent, pos+(i,))
                 if i != len(hp.hps) - 1:
                     add_str(';')
 
@@ -118,6 +125,8 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
                 new_line(indent+2)
                 add_str("%s -->" % comm_hp)
                 rec(out_hp, indent+4, pos+(i,))
+                if i != len(hp.io_comms) - 1:
+                    add_str(",")
             new_line(indent)
             add_str(")")
             end_pos(pos)
