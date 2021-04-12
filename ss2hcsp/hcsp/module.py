@@ -3,6 +3,8 @@
 import os
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
+from ss2hcsp.hcsp import pprint
+from ss2hcsp.hcsp import expr
 
 
 class ModuleException(Exception):
@@ -33,6 +35,22 @@ class HCSPModule:
         else:
             return "Module(%s)" % self.name
 
+    def export(self):
+        """Print the string that will parse to the module."""
+        def str_of_output(outputs):
+            if outputs:
+                return "output %s;\n" % (', '.join(outputs))
+            else:
+                return ""
+
+        res = "module %s(%s):\n%sbegin\n%s\nend\nendmodule" % (
+            self.name,
+            ','.join(self.params),
+            str_of_output(self.outputs),
+            pprint.pprint(self.code)
+        )
+        return res
+
 
 class HCSPModuleInst:
     """An instantiation of an HCSP module.
@@ -59,6 +77,20 @@ class HCSPModuleInst:
         else:
             return "ModuleInst(%s,%s,%s)" % (self.name, self.module_name,
                 ','.join(str(arg) for arg in self.args))
+
+    def export(self):
+        """Print the string that will parse to the module instantiation."""
+        def print_arg(arg):
+            if isinstance(arg, expr.AConst):
+                if isinstance(arg.value, str) and arg.value[0] != "\"":
+                    return "$\"" + arg.value + "\""
+                else:
+                    return "$" + str(arg.value)
+            else:
+                return arg.value
+                
+        return "%s = %s(%s)" % (self.name, self.module_name,
+            ', '.join(print_arg(arg) for arg in self.args))
 
     def generateInst(self, module):
         """Given the module, construct the corresponding HCSP info."""
@@ -113,7 +145,6 @@ def read_file(filename):
     """
     for path in reversed(hcsp_import_path):
         try:
-            # print('Opening:', os.path.join(path, filename))
             with open(os.path.join(path, filename), encoding='utf-8') as f:
                 text = f.read()
             return text
@@ -161,6 +192,7 @@ class HCSPDeclarations:
                     self.modules[name] = arg.modules[name]
 
             else:
+                print(arg, type(arg))
                 raise NotImplementedError
 
     def __str__(self):

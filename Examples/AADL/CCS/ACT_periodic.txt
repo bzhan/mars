@@ -1,6 +1,6 @@
 %type: module
 module ACT_periodic(tid, period):
 begin
-(wait(period); dis[tid]!)**
+(dis[tid]!; wait(period))**
 end
 endmodule

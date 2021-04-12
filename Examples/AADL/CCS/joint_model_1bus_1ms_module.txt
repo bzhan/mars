@@ -1,10 +1,11 @@
 %type: module
-import other_modules_ref
+import other_modules
 import SCHEDULLER_HPF
 import ACT_periodic
 import ACT_aperiodic
 import DataBuffer
 import EventBuffer
+import Bus
 
 system
 
@@ -27,22 +28,30 @@ velo_voter_imp = EXE_velo_voter_imp() ||
 
 pan_ctr_th_imp = EXE_pan_ctr_th_imp() ||
 
-camera2img_acq_imp = DataBuffer($"camera", $"img", $"img_acq_imp", $"img", $0.0) ||
-radar2comp_obs_pos_imp = DataBuffer($"radar", $"obs_pos_radar", $"comp_obs_pos_imp", $"obs_pos_radar", $0.0) ||
+bus2img_acq_imp = DataBuffer($"bus", $"img", $"img_acq_imp", $"img", $0.0) ||
+bus2comp_obs_pos_imp = DataBuffer($"bus", $"obs_pos_radar", $"comp_obs_pos_imp", $"obs_pos_radar", $0.0) ||
+
 img_acq_imp2comp_obs_pos_imp = DataBuffer($"img_acq_imp", $"proc_img", $"comp_obs_pos_imp", $"proc_img", $0.0) ||
 pan_ctr_th_imp2PI_ctr_imp = DataBuffer($"pan_ctr_th_imp", $"des_v", $"PI_ctr_imp", $"des_v", $0.0) ||
+velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v2", $"emerg_imp", $"veh_v2", $0.0) ||
 velo_voter_imp2PI_ctr_imp = DataBuffer($"velo_voter_imp", $"veh_v1", $"PI_ctr_imp", $"veh_v1", $0.0) ||
 PI_ctr_imp2emerg_imp = DataBuffer($"PI_ctr_imp", $"des_a", $"emerg_imp", $"des_a", $0.0) ||
-velo_voter_imp2emerg_imp = DataBuffer($"velo_voter_imp", $"veh_v2", $"emerg_imp", $"veh_v2", $0.0) ||
 comp_obs_pos_imp2emerg_imp = DataBuffer($"comp_obs_pos_imp", $"obs_pos", $"emerg_imp", $"obs_pos", $0.0) ||
-gps2emerg_imp = DataBuffer($"gps", $"veh_pos", $"emerg_imp", $"veh_pos", $0.0) ||
-wheel2velo_voter_imp_v = DataBuffer($"wheel", $"wheel_v", $"velo_voter_imp", $"wheel_v", $0.0) ||
-wheel2velo_voter_imp_valid = DataBuffer($"wheel", $"wheel_valid", $"velo_voter_imp", $"wheel_valid", $-1.0) ||
-laser2velo_voter_imp_v = DataBuffer($"laser", $"laser_v", $"velo_voter_imp", $"laser_v", $0.0) ||
-laser2velo_voter_imp_valid = DataBuffer($"laser", $"laser_valid", $"velo_voter_imp", $"laser_valid", $-1.0) ||
-user_panel2pan_ctr_th_imp_inc = EventBuffer($"user_panel", $"inc", $"pan_ctr_th_imp", $"inc") ||
-user_panel2pan_ctr_th_imp_dec = EventBuffer($"user_panel", $"dec", $"pan_ctr_th_imp", $"dec") ||
-emerg_imp2actuator = DataBuffer($"emerg_imp", $"cmd", $"actuator", $"cmd", $0.0) ||
+
+bus2emerg_imp = DataBuffer($"bus", $"veh_pos", $"emerg_imp", $"veh_pos", $0.0) ||
+
+bus2velo_voter_imp_wheel_v = DataBuffer($"bus", $"wheel_v", $"velo_voter_imp", $"wheel_v", $0.0) ||
+bus2velo_voter_imp_wheel_valid = DataBuffer($"bus", $"wheel_valid", $"velo_voter_imp", $"wheel_valid", $-1.0) ||
+bus2velo_voter_imp_laser_v = DataBuffer($"bus", $"laser_v", $"velo_voter_imp", $"laser_v", $0.0) ||
+bus2velo_voter_imp_laser_valid = DataBuffer($"bus", $"laser_valid", $"velo_voter_imp", $"laser_valid", $-1.0) ||
+
+busBuffer_inc = BusBuffer($"user_panel", $"inc", $"bus", $"inc") ||
+bus2pan_ctr_th_imp_inc = EventBuffer($"bus", $"inc", $"pan_ctr_th_imp", $"inc") ||
+
+busBuffer_dec = BusBuffer($"user_panel", $"dec", $"bus", $"dec") ||
+bus2pan_ctr_th_imp_dec = EventBuffer($"bus", $"dec", $"pan_ctr_th_imp", $"dec") ||
+
+bus2actuator = DataBuffer($"bus", $"cmd", $"actuator", $"cmd", $0.0) ||
 
 camera = DEVICE_camera() ||
 radar = DEVICE_radar() ||
@@ -51,6 +60,8 @@ gps = DEVICE_gps() ||
 laser = DEVICE_laser() ||
 wheel = DEVICE_wheel() ||
 user_panel = DEVICE_user_panel()||
+
+bus = BUS($"bus") ||
 
 vehicle_imp = PHY_vehicle_imp()
 
