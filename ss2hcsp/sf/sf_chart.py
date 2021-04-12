@@ -142,24 +142,45 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     name_lists=get_name_from_mesg_list()
     trigger_edge_osig =0
     for act in acts:
-        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
-            left,right=act.split(":=")
-            strs=left.strip('[').strip(']')
-            left=list(strs.split(",")) if  "," in strs else list(strs)
-            if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) :  # a function
-                assert isinstance(root.chart, SF_Chart)
-                longest_path=root.chart.get_fun_by_path(str(right))
-                hps.append(root.chart.fun_dict[longest_path])
-
-                return_var=longest_path[0]
-                if return_var is not None:
-                    if isinstance(return_var,function.ListExpr):
-                        for  var in range(0,len(return_var)):
-                            hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
-                    else:
-                        hps.append(hp_parser.parse(str(left[0])+":="+str(return_var)))
-            else:
+        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act) or re.match(pattern="^\\w+\\(\\w*\\) *:=.+$", string=act) and "." not in act:  # an assigment   
+            if  re.match(pattern="^\\w+\\(\\w*\\) *:=.+$", string=act):
                 hps.append(hp_parser.parse(act))
+            else:
+                left,right=act.split(":=")
+                left=left.strip()
+                right=right.strip()
+                if "[" in act:
+                    strs=left.strip('[').strip(']')
+                    left=list(strs.split(",")) if  "," in strs else list(strs)
+                else:
+                    left=[left]
+                if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right):  # a function
+                    assert isinstance(root.chart, SF_Chart)
+                    if "(" in right:
+                        strs1=re.findall(r"[(](.*?)[)]", right)
+                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else list(strs1[0])
+                    else:
+                        right_exprs=list()
+                    longest_path=root.chart.get_fun_by_path(str(right))
+                    if longest_path is not None:
+                        exprs=longest_path[1]
+                        if exprs is not None and len(right_exprs) > 0:
+                            for  var in range(0,len(exprs)):
+                                hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                        hps.append(root.chart.fun_dict[longest_path])
+
+                        return_var=longest_path[0]
+
+                        if return_var is not None and len(left) >0:
+                            if isinstance(return_var,function.ListExpr):
+                                for  var in range(0,len(return_var)):
+                                    hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                            else:
+                                hps.append(hp_parser.parse(str(left[0])+":="+str(return_var[0])))
+                    else:
+                        hps.append(hp_parser.parse(act))
+                else:
+                    hps.append(hp_parser.parse(act))
         elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act) and not re.match(pattern="send\\(.*?\\)", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
             hps.append(root.chart.fun_dict[root.chart.get_fun_by_path(str(act))])
@@ -167,6 +188,8 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
         if len(Message_list)>=1:
             if re.match(pattern="^\\w+\\.\\w+ *:=.+$", string=act):
                 left,right=act.split(":=")
+                left=left.strip()
+                right=right.strip()
                 left1,left2=left.split(".")
                 for Message in Message_list:
                     if left1 == Message.name:
@@ -477,22 +500,27 @@ class SF_Chart(Subsystem):
                 return state
     def get_fun_by_path(self, fun_path):       
         assert isinstance(fun_path, str)
-        fun_path1=fun_path
-        fun_path = tuple(fun_path[:fun_path.index("(")].split("."))
-       
+        if "(" in fun_path:
+            fun_path1=fun_path
+            fun_path = tuple(fun_path[:fun_path.index("(")].split("."))
+        else:
+            fun_path = tuple(fun_path[:].split("."))
         matched_paths = []
         for path, fun in self.fun_dict.items():
           
             return_var=path[0]
-            path1=path[1:]
+            path1=path[2:]
            
             assert len(fun_path) <= len(path1) and isinstance(fun, hp.HCSP)
             if path1[-len(fun_path):] == fun_path :
                 matched_paths.append(path)
-        assert matched_paths
-        path_lengths = [len(path) for path in matched_paths]
-        assert len(path_lengths) == len(set(path_lengths))
-        longest_path = matched_paths[path_lengths.index(max(path_lengths))]
+        if matched_paths:
+            assert matched_paths
+            path_lengths = [len(path) for path in matched_paths]
+            assert len(path_lengths) == len(set(path_lengths))
+            longest_path = matched_paths[path_lengths.index(max(path_lengths))]
+        else:
+            longest_path = None
         return longest_path     
 
     # Execute one step from a state
@@ -719,7 +747,7 @@ class SF_Chart(Subsystem):
                           + enter_into_dst
                     #assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
                     hp_list.append((cond, get_hcsp(hps1)))  #？？？？
-                    if len(hps1) >= 1:
+                    if len(hps1) >= 2:
                         process=hp.ITE(hp_list, hp.Skip())
                         dst_state.processes.append((process_name,process ))
                     else:

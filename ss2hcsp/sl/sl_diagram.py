@@ -33,6 +33,8 @@ from functools import reduce
 from math import gcd, pow
 from ss2hcsp.matlab import parser
 from ss2hcsp.matlab import convert
+from ss2hcsp.hcsp import hcsp 
+from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 import re
 import operator
 
@@ -129,7 +131,7 @@ class SL_Diagram:
                             src_ssid = get_attribute_value(child, "SSID")
                         elif child.nodeName == "dst":
                             dst_ssid = get_attribute_value(child, "SSID")
-                    assert dst_ssid  # each transition must have a destination state
+                    # assert dst_ssid  # each transition must have a destination state
                     assert tran_ssid not in _tran_dict
                     _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                        src=src_ssid, dst=dst_ssid)
@@ -168,19 +170,91 @@ class SL_Diagram:
                 if child.nodeName == "state":
                     ssid = child.getAttribute("SSID")
                     state_type = get_attribute_value(child, "type")
+                    
                     if state_type == "FUNC_STATE":
-                        # Get functions
+                        # return_var=list()
+                        # exprs=list()
+                        # # Get functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
-                        func = parser.function_parser.parse(fun_script)
-                        hp = convert.convert_function(func)
-                        if isinstance(func.name,(function.Var,function.FunExpr)):
-                            fun_name =func.name
-                            return_var=None
+                        if fun_script: 
+                            func = parser.function_parser.parse(fun_script)
+                            hp = convert.convert_function(func)
+                            if isinstance(func.name,(function.Var,function.FunExpr)):
+                                fun_name =func.name
+                                if isinstance(func.name,(function.FunExpr)):
+                                    exprs=func.name.exprs
+                                else:
+                                    exprs=None
+                                return_var=None
+                            else:
+                                fun_name = func.name.fun_name
+                                exprs=func.name.exprs
+                                return_var = func.name.return_vars
                         else:
-                            fun_name = func.name.fun_name
-                            return_var = func.name.return_vars
-                        _functions.append(Function(ssid, fun_name, hp, return_var))
+                            out_trans_dict_inner=dict()
+                            junctions=list()
+                            return_var=list()
+                            exprs=list()
+                            fun_name = get_attribute_value(child, "labelString")
+                            if "=" in fun_name:
+                                left,right=fun_name.split("=")
+                                fun_name=right.strip()
+                            for data in child.getElementsByTagName(name="data"):
+                                var_name = data.getAttribute("name")
+                          
+                                scope=get_attribute_value(data, "scope")
+                                if scope == "FUNCTION_OUTPUT_DATA":
+                                    return_var.append(var_name)
+                                elif scope == "FUNCTION_INPUT_DATA":
+                                    exprs.append(var_name)
+                            return_var=function.ListExpr(*return_var)
+                            exprs=function.ListExpr(*exprs)
+                            for tran in child.getElementsByTagName(name ="transition"):
+                                tran_ssid = tran.getAttribute("SSID")
+                                tran_label = get_attribute_value(tran, "labelString")
+                                order = int(get_attribute_value(tran, "executionOrder"))
+                                # assert len([child for child in block.childNodes if child.nodeName == "src"]) == 1
+                                # assert len([child for child in block.childNodes if child.nodeName == "dst"]) == 1
+                                src_ssid, dst_ssid = None, None
+                                for child1 in tran.childNodes:
+                                    if child1.nodeName == "src":
+                                        src_ssid = get_attribute_value(child1, "SSID")
+                                    elif child1.nodeName == "dst":
+                                        dst_ssid = get_attribute_value(child1, "SSID")
+                                # assert dst_ssid  # each transition must have a destination state
+                                # assert tran_ssid not in _tran_dict
+                                out_trans_dict_inner[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
+                                                                   src=src_ssid, dst=dst_ssid)
+                            for jun in child.getElementsByTagName(name="junction"):
+                                ssid = jun.getAttribute("SSID")
+                                junc_type = get_attribute_value(block=jun, attribute="type")
+                                # Get default_tran and out_trans
+                                default_tran = None
+                                out_trans = list()
+                                for tran in out_trans_dict_inner.values():
+                                    src, dst = tran.src, tran.dst
+                                    if src is None and dst == ssid:  # it is a default transition
+                                        default_tran = tran
+                                    elif src == ssid:  # the src of tran is this state
+                                        out_trans.append(tran)
+                                out_trans.sort(key=operator.attrgetter("order"))
+                                junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
+                                chart_state = AND_State(ssid=chart_id, name=chart_name)
+                                # chart_state.funs = functions
+                                for state in  junctions:
+                                    state.father = chart_state
+                                    chart_state.children.append(state)
+                            stateflow = SF_Chart(name="fun_name", state=chart_state, data={},
+                                         num_src=0,num_dest=0)
+                            stateflow.add_names()
+                            stateflow.find_root_for_states()
+                            stateflow.find_root_and_loc_for_trans()
+                            stateflow.parse_acts_on_states_and_trans()
+                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),stateflow.execute_trans_from_state(chart_state))
+                        # return_var =return_var if len(return_var)>0 else None
+                        # exprs=exprs if len(exprs)>0 else None
+                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs))
                         # _functions.append(Function(ssid, fun_name,fun_script))
                         continue
 

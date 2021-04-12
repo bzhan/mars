@@ -278,14 +278,14 @@ class SF_State:
                 name=str(fun.name)
                 if "(" in name:
                     name=name[:name.index("(")]
-
-                fun_dict[(fun.return_var,self.name, name)] = fun.parse()
+                
+                fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
                 child_fun_dict = child.get_fun_dict()
                 for path, hcsp in child_fun_dict.items():
-                    path1=path[1:]
-                    new_path = (path[0],self.name,) + path1
+                    path1=path[2:]
+                    new_path = (path[0],path[1],self.name,) + path1
                     assert new_path not in fun_dict
                     fun_dict[new_path] = hcsp
         return fun_dict
@@ -390,11 +390,12 @@ class Junction:
 
 
 class Function:
-    def __init__(self, ssid, name, script,return_var):
+    def __init__(self, ssid, name, script,return_var,exprs):
         self.ssid = ssid
         self.name = name
         self.script = script
         self.return_var = return_var
+        self.exprs = exprs
 
     def parse(self):
         # assert "==" not in self.script

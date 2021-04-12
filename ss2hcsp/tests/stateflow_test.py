@@ -369,6 +369,15 @@ class SfTest(unittest.TestCase):
         diagram.add_line_name()
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
-
+    def testSf_new_test(self):
+        location = "./Examples/Stateflow/sf_new/untitled1.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.add_buffers()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+        print(process)
+        printTofile("./Examples/Stateflow/sf_new/untitled1.txt",process)
 if __name__ == "__main__":
     unittest.main()

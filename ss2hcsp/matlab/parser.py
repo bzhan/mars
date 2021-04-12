@@ -43,6 +43,7 @@ grammar = r"""
     ?assign_cmd: ("int" | "float")? return_var "=" expr ";" -> assign_cmd
         | ("int" | "float")? return_var "=" lname "(" atom_expr ("," atom_expr)*")" (";")?-> func_has_pra
         | ("int" | "float")? return_var  "="  lname "(" ")" (";")? -> func_no_pra
+        | ("int" | "float")? return_var  "="  lname  (";")? -> func_no_pra
 
     ?assign_func: assign_cmd
         | lname
