@@ -325,35 +325,6 @@ class ArrayIdxExpr(AExpr):
     def subst(self, inst):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
-class ArrayIdxExpr1(AExpr):
-    """Expressions of the form a[i], where a evaluates to a list and i
-    evaluates to an integer.
-    
-    """
-    def __init__(self, expr1, expr2):
-        super(ArrayIdxExpr, self).__init__()
-        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
-        self.expr1 = expr1
-        self.expr2 = expr2
-
-    def __repr__(self):
-        return "ArrayIdxExpr(%s,%s)" % (repr(self.expr1), repr(self.expr2))
-
-    def __str__(self):
-        return "%s(%s)" % (str(self.expr1), str(self.expr2))
-
-    def __eq__(self, other):
-        return isinstance(other, ArrayIdxExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
-
-    def __hash__(self):
-        return hash(("ArrayIdx", self.expr1, self.expr2))
-
-    def get_vars(self):
-        return self.expr1.get_vars().union(self.expr2.get_vars())
-
-    def subst(self, inst):
-        return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
-
 
 class FieldNameExpr(AExpr):
     """Expression of the form a.name, where a evaluates to a structure

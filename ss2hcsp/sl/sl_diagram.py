@@ -23,10 +23,11 @@ from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
-from ss2hcsp.sf.sf_message import SF_Message
+from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 from ss2hcsp.sl.mux.mux import Mux
+from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory,DataStoreRead
 from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
@@ -402,8 +403,15 @@ class SL_Diagram:
                 var_name = data.getAttribute("name")
                 assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
-                value = eval(value) if value else 0
+                # value = eval(value) 
+                if value and "[" in value:
+                    value =  list(aexpr_parser.parse(value).value)
+                elif value:
+                    value = eval(value) 
+                else:
+                    value = 0
                 scope=get_attribute_value(data, "scope")
+                sf_data=SF_Data(name=var_name,value=value,scope=scope)
                 if (len(data.getElementsByTagName(name="message"))>=1):
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
@@ -417,7 +425,7 @@ class SL_Diagram:
                         elif scope =="OUTPUT_DATA":
                             input_message_list.append(message)
                 else:
-                    chart_data[var_name] = value
+                    chart_data[var_name] = sf_data
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
@@ -485,7 +493,23 @@ class SL_Diagram:
                 displayOption=get_attribute_value(block,"DisplayOption")
                 ports=list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                 self.add_block(Mux(name=block_name,inputs=inputs,displayOption=displayOption,ports=ports))
-            if block_type == "Constant":
+            elif block_type == "DataStoreMemory":
+                init_value =get_attribute_value(block=block, attribute="InitialValue")
+                value=0
+                if init_value and "[" in init_value :
+                    value =  list(aexpr_parser.parse(init_value).value)
+                elif init_value:
+                    value = eval(value) 
+                else:
+                    value = 0
+                name=block.getAttribute("Name")
+                dataStoreName=get_attribute_value(block,"DataStoreName")
+                self.add_block(DataStoreMemory(name=name,value=value,dataStore_name=dataStoreName))
+            elif block_type == "DataStoreRead":
+                name=block.getAttribute("Name")
+                dataStoreName=get_attribute_value(block,"DataStoreName")
+                self.add_block(DataStoreRead(name=name,dataStoreName=dataStoreName))
+            elif block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
                 self.add_block(Constant(name=block_name, value=value))
@@ -510,10 +534,11 @@ class SL_Diagram:
                 self.add_block(Relation(name=block_name, relation=relation, st=sample_time))
             elif block_type == "Reference":
                 relop = get_attribute_value(block, "relop")
-                assert relop
-                if relop == "~=":
-                    relop = "!="
-                self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
+                # assert relop
+                if relop:
+                    if relop == "~=":
+                        relop = "!="
+                    self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
             elif block_type == "Sqrt":
@@ -1058,6 +1083,12 @@ class SL_Diagram:
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
             del blocks_dict[name]
+        dataStoreMemorys = [block for block in blocks_dict.values() if block.type == "DataStoreMemory"]
+        for name in [block.name for block in dataStoreMemorys]:
+            del blocks_dict[name]
+        dataStoreReads = [block for block in blocks_dict.values() if block.type == "DataStoreRead"]
+        for name in [block.name for block in dataStoreReads]:
+            del blocks_dict[name]
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]
@@ -1119,7 +1150,7 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
 
     def add_buffers(self):
         buffers = []

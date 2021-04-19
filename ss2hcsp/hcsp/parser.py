@@ -9,6 +9,7 @@ from ss2hcsp.hcsp import module
 grammar = r"""
     ?lname: CNAME -> var_expr
         | CNAME "[" expr "]" -> array_idx_expr
+        | CNAME "(" atom_expr ")" -> array_idx_expr1
         | CNAME "[" expr "]" "[" expr "]" -> array_idx_expr2
         | lname "." CNAME -> field_expr
         | lname "." CNAME "[" expr "]" -> field_array_idx
@@ -22,7 +23,7 @@ grammar = r"""
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
         | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
-        | CNAME "(" expr ("," expr)* ")" -> fun_expr
+        | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
@@ -165,6 +166,9 @@ class HPTransformer(Transformer):
         return expr.DictExpr(*pairs)
 
     def array_idx_expr(self, a, i):
+        return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
+    
+    def array_idx_expr1(self, a, i):
         return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
 
     def array_idx_expr2(self, a, i, j):

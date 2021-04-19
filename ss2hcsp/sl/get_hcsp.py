@@ -321,7 +321,7 @@ def translate_discrete(diagram):
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers,
-             discretePulseGenerator,muxs,model_name="P"):
+             discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads,model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.
     
     The arguments are:
@@ -336,6 +336,12 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
     main_processes = []
     # triggered_process = []
     # Compute the discrete processes from discrete subdiagrams
+    num = 0
+    for data in dataStoreMemorys:
+        name = "DSM" + str(num)
+        processes.add(name, data.get_hcsp())
+        main_processes.append(hp.Var(name))
+        num += 1
     num = 0
     for diag in dis_subdiag_with_chs:
         name = "PD" + str(num)
