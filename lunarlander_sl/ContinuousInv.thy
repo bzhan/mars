@@ -165,10 +165,10 @@ theorem Valid_inv_new':
       apply simp by simp
       have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ODE ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec (ODE ode) (p t))" if "t\<in>{-e .. d+e}" for t
         using 2 3 that by auto
-      have 5: "inv(p t) = 0 \<longrightarrow>  g' (state2vec(p t)) (ODE2Vec (ODE ode) (p t))< 0" if "t\<in>{0 ..<d}" for t
+      have 5: "\<forall>t\<in>{0..<d}. inv(p t) = 0 \<longrightarrow>  g' (state2vec(p t)) (ODE2Vec (ODE ode) (p t))< 0" if "t\<in>{0 ..<d}" for t
         using 4 assms(2) that pre by auto
       show ?thesis
-        using real_inv_le[OF 1] 
+        using real_inv_le[OF 1, of 0]
         using pre 5 e 3 by auto
     qed
   subgoal for tr1 d p
@@ -195,7 +195,7 @@ theorem Valid_inv_new':
       have 5: "inv(p t) = 0 \<longrightarrow>  g' (state2vec(p t)) (ODE2Vec (ODE ode) (p t))< 0" if "t\<in>{0 ..<d}" for t
         using 4 assms(2) that pre by auto
       show ?thesis
-        using real_inv_le[OF 1] 
+        using real_inv_le[OF 1, of 0] 
         using pre 5 e 3 by auto
     qed
     done

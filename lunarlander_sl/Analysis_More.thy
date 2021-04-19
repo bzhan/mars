@@ -92,17 +92,17 @@ qed
 
 
 lemma real_inv_le:
-  fixes p :: "real \<Rightarrow> real"
+  fixes p :: "real \<Rightarrow> real" and con :: real
   assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e})"
     and "d \<ge> 0"
-    and "\<forall>t\<in>{0 ..<d}. (p t = 0 \<longrightarrow> q t 1 < 0)"
-    and "p 0 \<le> 0 "
+    and "\<forall>t\<in>{0 ..<d}. (p t = con \<longrightarrow> q t 1 < 0)"
+    and "p 0 \<le> con "
     and "x \<in> {0 .. d}"
     and "e > 0"
-  shows "p x \<le> 0" 
+  shows "p x \<le> con" 
 proof (rule ccontr) 
-  assume a:" \<not> p x \<le> 0"
-  have 1:"p x > 0"
+  assume a:" \<not> p x \<le> con"
+  have 1:"p x > con"
     using a by auto
   have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
     using assms has_derivative_subset
@@ -113,12 +113,12 @@ proof (rule ccontr)
       using continuous_within_open[of t "{-e<..<d+e}" p]
       using 2 assms(5) assms(6) by auto
     done
-  have 4:"{y. p y = 0 \<and> y \<in> {0 .. x}} \<noteq> {}"
-    using IVT[of p 0 0 x] using 3 1 assms 
+  have 4:"{y. p y = con \<and> y \<in> {0 .. x}} \<noteq> {}"
+    using IVT[of p 0 con x] using 3 1 assms 
     by auto
-  have 5: "{y. p y = 0 \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {0})"
+  have 5: "{y. p y = con \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {con})"
     by auto
-  have 6: "closed ({0 .. x} \<inter> p -` {0})"
+  have 6: "closed ({0 .. x} \<inter> p -` {con})"
     using 3 assms(5) apply simp
     apply (rule continuous_closed_preimage)
       apply auto
@@ -126,30 +126,30 @@ proof (rule ccontr)
   have 7: "compact {0 .. x}"
     using assms
     by blast
-  have 8: "compact {y. p y = 0 \<and> y \<in> {0 .. x}}"
+  have 8: "compact {y. p y = con \<and> y \<in> {0 .. x}}"
     apply auto
     using 4 5 6 7 
     by (smt Collect_cong Int_left_absorb atLeastAtMost_iff compact_Int_closed)
-  obtain t where t1:"t \<in> {y. p y = 0 \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = 0 \<and> y \<in> {0 .. x}}. tt \<le>t"
-    using compact_attains_sup[of "{y. p y = 0 \<and> y \<in> {0 .. x}}"] 4 8 
+  obtain t where t1:"t \<in> {y. p y = con \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = con \<and> y \<in> {0 .. x}}. tt \<le>t"
+    using compact_attains_sup[of "{y. p y = con \<and> y \<in> {0 .. x}}"] 4 8 
     by blast
   have 9:"t<x"
     using t1 1 
     using leI by fastforce
-  have 10:"p tt > 0" if "tt\<in>{t<..x}" for tt
+  have 10:"p tt > con" if "tt\<in>{t<..x}" for tt
   proof(rule ccontr)
-    assume "\<not> 0 < p tt"
-    then have not:"p tt \<le>0" by auto
-    have "\<exists> t' \<in> {t<..x}. p t' = 0"
-    proof(cases "p tt = 0")
+    assume "\<not> con < p tt"
+    then have not:"p tt \<le>con" by auto
+    have "\<exists> t' \<in> {t<..x}. p t' = con"
+    proof(cases "p tt = con")
       case True
       then show ?thesis using that by auto
     next
       case False
-      then have "p tt < 0"
+      then have "p tt < con"
         using not by auto
-      then have "{y. p y = 0 \<and> y \<in> {tt .. x}} \<noteq> {}"
-        using IVT[of p tt 0 x] using 3 1 assms that t1 
+      then have "{y. p y = con \<and> y \<in> {tt .. x}} \<noteq> {}"
+        using IVT[of p tt con x] using 3 1 assms that t1 
         by auto
       then show ?thesis using that by auto
     qed
@@ -177,10 +177,275 @@ proof (rule ccontr)
      by (smt field_sum_of_halves)
    then have 18:"p (t + min (dd/2) (x-t)/2) < p t"
     using d1 t1 16 assms(5) assms(6) by auto
-  have 19:"p (t + min (dd/2) (x-t)/2)>0" using 10 17 by auto
+  have 19:"p (t + min (dd/2) (x-t)/2)>con" using 10 17 by auto
   show False using 18 19 t1
     by auto 
   qed
+
+
+lemma real_inv_ge:
+  fixes p :: "real \<Rightarrow> real" and con :: real
+  assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e})"
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 ..<d}. (p t = con \<longrightarrow> q t 1 > 0)"
+    and "p 0 \<ge> con "
+    and "x \<in> {0 .. d}"
+    and "e > 0"
+  shows "p x \<ge> con" 
+proof (rule ccontr) 
+  assume a:" \<not> p x \<ge> con"
+  have 1:"p x < con"
+    using a by auto
+  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
+    using assms has_derivative_subset
+    using has_derivative_continuous 
+    by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+  have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<d+e}" p]
+      using 2 assms(5) assms(6) by auto
+    done
+  have 4:"{y. p y = con \<and> y \<in> {0 .. x}} \<noteq> {}"
+    using IVT2[of p x con 0] using 3 1 assms 
+    by auto
+  have 5: "{y. p y = con \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {con})"
+    by auto
+  have 6: "closed ({0 .. x} \<inter> p -` {con})"
+    using 3 assms(5) apply simp
+    apply (rule continuous_closed_preimage)
+      apply auto
+    by (simp add: continuous_at_imp_continuous_on)
+  have 7: "compact {0 .. x}"
+    using assms
+    by blast
+  have 8: "compact {y. p y = con \<and> y \<in> {0 .. x}}"
+    apply auto
+    using 4 5 6 7 
+    by (smt Collect_cong Int_left_absorb atLeastAtMost_iff compact_Int_closed)
+  obtain t where t1:"t \<in> {y. p y = con \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = con \<and> y \<in> {0 .. x}}. tt \<le>t"
+    using compact_attains_sup[of "{y. p y = con \<and> y \<in> {0 .. x}}"] 4 8 
+    by blast
+  have 9:"t<x"
+    using t1 1 
+    using leI by fastforce
+  have 10:"p tt < con" if "tt\<in>{t<..x}" for tt
+  proof(rule ccontr)
+    assume "\<not> con > p tt"
+    then have not:"p tt \<ge> con" by auto
+    have "\<exists> t' \<in> {t<..x}. p t' = con"
+    proof(cases "p tt = con")
+      case True
+      then show ?thesis using that by auto
+    next
+      case False
+      then have "p tt > con"
+        using not by auto
+      then have "{y. p y = con \<and> y \<in> {tt .. x}} \<noteq> {}"
+        using IVT2[of p x con tt] using 3 1 assms that t1 
+        by auto
+      then show ?thesis using that by auto
+    qed
+    then show False using t1 t2 9 
+      using atLeastAtMost_iff greaterThanAtMost_iff by auto
+  qed     
+  have 11:"(p has_derivative q t) (at t within {-e..d+e})"
+    using assms t1 by auto
+  then have 12:"\<forall>s . q t s = q t 1 * s"
+    using has_derivative_bounded_linear[of p "q t" "(at t within {-e..d+e})"]
+    using real_bounded_linear by auto
+  have 13:"(p has_real_derivative q t 1) (at t within {-e..d+e})"
+    using 11 12 
+    by (metis has_derivative_imp_has_field_derivative mult.commute)
+  have 14:"q t 1 > 0" using t1 assms 9 by auto
+  have 15:"\<exists>dd>0. \<forall>h>0. t + h \<in> {-e..d+e} \<longrightarrow> h < dd \<longrightarrow> p (t + h) > p t"
+    using has_real_derivative_pos_inc_right[of p "q t 1" t "{-e..d+e}"] 13 14 
+    by auto
+  then obtain dd where d1:"\<forall>h>0. t + h \<in> {-e..d+e} \<longrightarrow> h < dd \<longrightarrow> p (t + h) > p t" and d2:"dd>0" by auto
+  then have 16:"min (dd/2) (x-t)/2 < dd" and "min (dd/2) (x-t)/2 > 0"
+    using 9 by auto
+  then have 17:"(t + min (dd/2) (x-t)/2)> t" "(t + min (dd/2) (x-t)/2) < x" 
+    apply auto
+    using d2 9
+     by (smt field_sum_of_halves)
+   then have 18:"p (t + min (dd/2) (x-t)/2) > p t"
+    using d1 t1 16 assms(5) assms(6) by auto
+  have 19:"p (t + min (dd/2) (x-t)/2)< con" using 10 17 by auto
+  show False using 18 19 t1
+    by auto 
+qed
+
+lemma real_inv_l:
+  fixes p :: "real \<Rightarrow> real" and con :: real
+  assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e})"
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 ..<d}. (p t \<le> con \<longrightarrow> q t 1 < 0)"
+    and "p 0 < con "
+    and "x \<in> {0 .. d}"
+    and "e > 0"
+  shows "p x < con"
+proof (rule ccontr) 
+  assume a:" \<not> p x < con"
+  have 1:"p x \<ge> con"
+    using a by auto
+  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
+    using assms has_derivative_subset
+    using has_derivative_continuous 
+    by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+  have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<d+e}" p]
+      using 2 assms(5) assms(6) by auto
+    done
+  have 4:"{y. p y = con \<and> y \<in> {0 .. x}} \<noteq> {}"
+    using IVT[of p 0 con x] using 3 1 assms 
+    by auto
+  have 5: "{y. p y = con \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {con})"
+    by auto
+  have 6: "closed ({0 .. x} \<inter> p -` {con})"
+    using 3 assms(5) apply simp
+    apply (rule continuous_closed_preimage)
+      apply auto
+    by (simp add: continuous_at_imp_continuous_on)
+  have 7: "compact {0 .. x}"
+    using assms
+    by blast
+  have 8: "compact {y. p y = con \<and> y \<in> {0 .. x}}"
+    apply auto
+    using 4 5 6 7 
+    by (smt Collect_cong Int_left_absorb atLeastAtMost_iff compact_Int_closed)
+  obtain t where t1:"t \<in> {y. p y = con \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = con \<and> y \<in> {0 .. x}}. tt \<ge> t"
+    using compact_attains_inf[of "{y. p y = con \<and> y \<in> {0 .. x}}"] 4 8 
+    by blast
+  have 9:"t > 0"
+    using t1 1 assms(4) 
+    using less_eq_real_def by auto
+  have 10:"p tt < con" if "tt\<in>{0..<t}" for tt
+  proof(rule ccontr)
+    assume "\<not> p tt < con"
+    then have not:"p tt \<ge> con" by auto
+    have "\<exists> t' \<in> {0..<t}. p t' = con"
+    proof(cases "p tt = con")
+      case True
+      then show ?thesis using that by auto
+    next
+      case False
+      then have "p tt > con"
+        using not by auto
+      then have "{y. p y = con \<and> y \<in> {0 .. tt}} \<noteq> {}"
+        using IVT[of p 0 con tt] using 3 1 assms that t1 
+        by auto
+      then show ?thesis using that by auto
+    qed
+    then show False using t1 t2 9 
+      using atLeastAtMost_iff greaterThanAtMost_iff by auto
+  qed     
+  have 11:"(p has_derivative q y) (at y within {0..t})" if "y \<in> {0 ..t}"for y
+    apply(rule has_derivative_subset [where s = "{-e<..<d+e}"])
+    using assms that t1
+    apply auto 
+    by (smt atLeastAtMost_iff at_within_Icc_at has_derivative_at_withinI)
+  have 12:"\<exists> tt \<in> {0<..<t} . p t - p 0 = q tt t "
+    using mvt_simple[of 0 t p q] 9 11
+    by auto
+  obtain tt where tt1:"p t - p 0 = q tt t" and tt2:"tt \<in> {0<..<t}"
+    using 12 by auto
+  have 13:"\<forall>s . q tt s = q tt 1 * s"
+    using has_derivative_bounded_linear[of p "q tt" "(at tt within {0..t})"]
+    using real_bounded_linear 11 tt2 by auto
+  have 14:"p t - p 0 = q tt 1 * t" using tt1 13 
+    by metis
+  have 15:"q tt 1 > 0" using 14 assms(4) t1 9 
+    by (metis (mono_tags, lifting) diff_gt_0_iff_gt mem_Collect_eq zero_less_mult_pos2)
+  then show False using assms(3) 10[of tt] tt2 
+    by (smt "1" "10" assms(5) atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff) 
+qed
+
+
+lemma real_inv_g:
+  fixes p :: "real \<Rightarrow> real" and con :: real
+  assumes "\<forall>t\<in>{-e..d+e}. (p has_derivative q t) (at t within {-e..d+e})"
+    and "d \<ge> 0"
+    and "\<forall>t\<in>{0 ..<d}. (p t \<ge> con \<longrightarrow> q t 1 \<ge> 0)"
+    and "p 0 > con "
+    and "x \<in> {0 .. d}"
+    and "e > 0"
+  shows "p x > con" 
+proof (rule ccontr) 
+  assume a:" \<not> p x > con"
+  have 1:"p x \<le> con"
+    using a by auto
+  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
+    using assms has_derivative_subset
+    using has_derivative_continuous 
+    by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+  have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<d+e}" p]
+      using 2 assms(5) assms(6) by auto
+    done
+  have 4:"{y. p y = con \<and> y \<in> {0 .. x}} \<noteq> {}"
+    using IVT2[of p x con 0] using 3 1 assms 
+    by auto
+  have 5: "{y. p y = con \<and> y \<in> {0 .. x}} = ({0 .. x} \<inter> p -` {con})"
+    by auto
+  have 6: "closed ({0 .. x} \<inter> p -` {con})"
+    using 3 assms(5) apply simp
+    apply (rule continuous_closed_preimage)
+      apply auto
+    by (simp add: continuous_at_imp_continuous_on)
+  have 7: "compact {0 .. x}"
+    using assms
+    by blast
+  have 8: "compact {y. p y = con \<and> y \<in> {0 .. x}}"
+    apply auto
+    using 4 5 6 7 
+    by (smt Collect_cong Int_left_absorb atLeastAtMost_iff compact_Int_closed)
+  obtain t where t1:"t \<in> {y. p y = con \<and> y \<in> {0 .. x}}" and t2:"\<forall> tt\<in> {y. p y = con \<and> y \<in> {0 .. x}}. tt \<ge> t"
+    using compact_attains_inf[of "{y. p y = con \<and> y \<in> {0 .. x}}"] 4 8 
+    by blast
+  have 9:"t > 0"
+    using t1 1 assms(4) 
+    using less_eq_real_def by auto
+  have 10:"p tt > con" if "tt\<in>{0..<t}" for tt
+  proof(rule ccontr)
+    assume "\<not> p tt > con"
+    then have not:"p tt \<le> con" by auto
+    have "\<exists> t' \<in> {0..<t}. p t' = con"
+    proof(cases "p tt = con")
+      case True
+      then show ?thesis using that by auto
+    next
+      case False
+      then have "p tt < con"
+        using not by auto
+      then have "{y. p y = con \<and> y \<in> {0 .. tt}} \<noteq> {}"
+        using IVT2[of p tt con 0] using 3 1 assms that t1 
+        by auto
+      then show ?thesis using that by auto
+    qed
+    then show False using t1 t2 9 
+      using atLeastAtMost_iff greaterThanAtMost_iff by auto
+  qed     
+  have 11:"(p has_derivative q y) (at y within {0..t})" if "y \<in> {0 ..t}"for y
+    apply(rule has_derivative_subset [where s = "{-e<..<d+e}"])
+    using assms that t1
+    apply auto 
+    by (smt atLeastAtMost_iff at_within_Icc_at has_derivative_at_withinI)
+  have 12:"\<exists> tt \<in> {0<..<t} . p t - p 0 = q tt t "
+    using mvt_simple[of 0 t p q] 9 11
+    by auto
+  obtain tt where tt1:"p t - p 0 = q tt t" and tt2:"tt \<in> {0<..<t}"
+    using 12 by auto
+  have 13:"\<forall>s . q tt s = q tt 1 * s"
+    using has_derivative_bounded_linear[of p "q tt" "(at tt within {0..t})"]
+    using real_bounded_linear 11 tt2 by auto
+  have 14:"p t - p 0 = q tt 1 * t" using tt1 13 
+    by metis
+  have 15:"q tt 1 < 0" using 14 assms(4) t1 9 
+    by (metis (mono_tags, lifting) less_iff_diff_less_0 mem_Collect_eq mult_less_0_iff not_less_iff_gr_or_eq)
+  then show False using assms(3) 10[of tt] tt2 
+    by (smt "1" "10" assms(5) atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff) 
+qed
 
 subsection \<open>Definition of states\<close>
 
