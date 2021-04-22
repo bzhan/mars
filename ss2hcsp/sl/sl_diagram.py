@@ -403,9 +403,26 @@ class SL_Diagram:
                 var_name = data.getAttribute("name")
                 assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
+               
                 # value = eval(value) 
                 if value and "[" in value:
-                    value =  list(aexpr_parser.parse(value).value)
+                    if ";" in value:
+                        value_list = value.split(";")
+                        val_lists=list()
+                        for val in value_list:
+                            if "[" in val:
+                                val = val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            elif "]" in val:
+                                val="["+val
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            else:
+                                val ="["+val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                        value =val_lists
+                    else:
+                        value =  list(aexpr_parser.parse(value).value)
+
                 elif value:
                     value = eval(value) 
                 else:
@@ -497,7 +514,22 @@ class SL_Diagram:
                 init_value =get_attribute_value(block=block, attribute="InitialValue")
                 value=0
                 if init_value and "[" in init_value :
-                    value =  list(aexpr_parser.parse(init_value).value)
+                    if ";" in init_value:
+                        value_list = init_value.split(";")
+                        val_lists=list()
+                        for val in value_list:
+                            if "[" in val:
+                                val = val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            elif "]" in val:
+                                val="["+val
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            else:
+                                val ="["+val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                        value =val_lists
+                    else:
+                        value =  list(aexpr_parser.parse(init_value).value)
                 elif init_value:
                     value = eval(value) 
                 else:

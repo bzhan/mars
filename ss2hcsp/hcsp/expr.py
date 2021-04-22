@@ -258,6 +258,7 @@ class ListExpr(AExpr):
 
     def __hash__(self):
         return hash(("List", self.args))
+        
 
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))

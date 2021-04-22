@@ -9,8 +9,11 @@ from ss2hcsp.hcsp import module
 grammar = r"""
     ?lname: CNAME -> var_expr
         | CNAME "[" expr "]" -> array_idx_expr
-        | CNAME "(" atom_expr ")" -> array_idx_expr1
+        | CNAME "(" atom_expr")" -> array_idx_expr1
+        | CNAME "(" atom_expr","atom_expr")" -> array_idx_expr1_2
+        | CNAME "(" atom_expr"," atom_expr","atom_expr ")" -> array_idx_expr1_3
         | CNAME "[" expr "]" "[" expr "]" -> array_idx_expr2
+        | CNAME "[" expr "]" "[" expr "]""[" expr "]" -> array_idx_expr3
         | lname "." CNAME -> field_expr
         | lname "." CNAME "[" expr "]" -> field_array_idx
 
@@ -171,8 +174,17 @@ class HPTransformer(Transformer):
     def array_idx_expr1(self, a, i):
         return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
 
+    def array_idx_expr1_2(self, a, i,j):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j)
+
+    def array_idx_expr1_3(self, a, i,j,k):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j),k)
+
     def array_idx_expr2(self, a, i, j):
         return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j)
+
+    def array_idx_expr3(self, a, i, j,k):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j),k)
 
     def field_array_idx(self, e, field, i):
         return expr.ArrayIdxExpr(expr.FieldNameExpr(e, field), i)

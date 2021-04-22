@@ -1,0 +1,5 @@
+P ::= @DPG0 || @DPG1 || @Mux0 || @Edge_to_Function_
+DPG0 ::= ch_x0_0!1; (out_tri := 1; wait(2); ch_x0_0!out_tri; out_tri := 0; wait(2); ch_x0_0!out_tri)**
+DPG1 ::= ch_x2_0!1; (out_tri := 1; wait(0.5); ch_x2_0!out_tri; out_tri := 0; wait(9.5); ch_x2_0!out_tri)**
+Mux0 ::= (ch_x2_0?out_tri1; ch_trig1!out_tri1; ch_x0_0?out_tri2; ch_trig2!out_tri2)**
+Edge_to_Function_ ::= y := 0; a_S1 := 0; wait(0.1); ch_trig1?osig1; ch_trig2?osig2; (ch_trig1?out_tri1; ch_trig2?out_tri2; osig1 != out_tri1 || osig2 != out_tri2 -> (a_S1 == 0 -> (a_S1 := 1; y := y+1; osig1 := out_tri1; osig2 := out_tri2; wait(0.1); ch_trig1?out_tri1; ch_trig2?out_tri2); skip); osig1 := out_tri1; osig2 := out_tri2; wait(0.1); "true" == "true" -> a_S1 := 0)**

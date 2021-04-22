@@ -6,6 +6,8 @@ from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
+
+from ss2hcsp.hcsp.parser import aexpr_parser
 import re
 
 
@@ -154,7 +156,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     name_lists=get_name_from_mesg_list()
     trigger_edge_osig =0
     for act in acts:
-        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act)  or re.match(pattern="^(\\[)?(\\w+(,)?)*(\\w+\\(\\w*\\)+)*((,)?\\w+)*((,)?\\w+\\(\\w*\\)+)*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
+        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act)  or re.match(pattern="^(\\[)?(\\w+(,)?)*(\\w+\\(\\w*(,\\w*)*\\))*((,)?\\w+)*((,)?\\w+\\(\\w*(,\\w*)*\\))*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
             left,right=act.split(":=")
             left=left.strip()
             right=right.strip()
@@ -165,15 +167,23 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                     if var in DSM_list:
                         hps.append(hp_parser.parse("ch_"+var+"?"+var))
                     
-            if  re.match(pattern="^\\w+\\(\\w*\\)+", string=left):
+            if  re.match(pattern="^\\w+\\(\\w*(,\\w+)*\\)", string=left):
                 
                 data_name = left[:left.index("(")]
+                strs1=re.findall(r"[(](.*?)[)]", left)
+                left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
                 flag=0
                 for n,d in root.chart.data.items():
                     if data_name == d.name and d.scope == "DATA_STORE_MEMORY_DATA":
                         flag=1
-                        left = left.replace("(", "[")
-                        left = left.replace(")", "]")
+                        if len(left_exprs) == 1:
+                            left = left.replace("(", "[")
+                            left = left.replace(")", "]")
+                        elif len(left_exprs) >1:
+                            left_temp = data_name
+                            for expr in left_exprs:
+                                left_temp = left_temp + "["+expr+"]"
+                            left=left_temp
                         # left =re.sub(pattern="(", repl="[", string=left)
                         # print(left)
                         # left =re.sub(pattern=")", repl="]", string=left)
@@ -184,8 +194,19 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                 # right =re.sub(pattern="(", repl="[", string=right)
                                 # right =re.sub(pattern=")", repl="]", string=right)
                                 if "(" in right:
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                else:
+                                    right_exprs=list()
+                                if len(right_exprs) == 1:
+
                                     right = right.replace("(", "[")
                                     right = right.replace(")", "]")
+                                elif len(right_exprs) > 1:
+                                    right_temp = right[:right.index("(")]
+                                    for expr in right_exprs:
+                                        right_temp = right_temp + "["+expr+"]"
+                                    right=right_temp+right[right.index(")")+1:]
                                 hps.append(hp_parser.parse(left+":="+right))
                             else:
                                 if "(" in right:
@@ -209,8 +230,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                         hps.append(hp_parser.parse(left+":="+str(return_var)))
                         else:
                             if "(" in right:
-                                right = right.replace("(", "[")
-                                right = right.replace(")", "]")
+                                strs1=re.findall(r"[(](.*?)[)]", right)
+                                right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                            
+                                if len(right_exprs) == 1:
+
+                                    right = right.replace("(", "[")
+                                    right = right.replace(")", "]")
+                                elif len(right_exprs) > 1:
+                                    right_temp = right[:right.index("(")]
+                                    for expr in right_exprs:
+                                        right_temp = right_temp + "["+expr+"]"
+                                    right=right_temp+right[right.index(")")+1:]
                             hps.append(hp_parser.parse(left+":="+right))
                         if get_dataStoreList() is not None:
                             DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
@@ -243,8 +274,20 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                         # right =re.sub(pattern="(", repl="[", string=right)
                                         # right =re.sub(pattern=")", repl="]", string=right)
                                         if "(" in right:
+                                            strs1=re.findall(r"[(](.*?)[)]", right)
+                                            right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                            
+                                        else:
+                                            right_exprs=list()
+                                        if len(right_exprs) == 1:
+
                                             right = right.replace("(", "[")
                                             right = right.replace(")", "]")
+                                        elif len(right_exprs) > 1:
+                                            right_temp = right[:right.index("(")]
+                                            for expr in right_exprs:
+                                                right_temp = right_temp + "["+expr+"]"
+                                            right=right_temp+right[right.index(")")+1:]
                                         hps.append(hp_parser.parse(str(left+":="+right)))
                                     else:
                                         if "(" in right:
@@ -269,8 +312,19 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                   
                                 else:
                                     if "(" in right:
+                                        strs1=re.findall(r"[(](.*?)[)]", right)
+                                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                    else:
+                                        right_exprs=list()
+                                    if len(right_exprs) == 1:
+
                                         right = right.replace("(", "[")
                                         right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
                                     hps.append(hp_parser.parse(str(left+":="+right)))
                                 if get_dataStoreList() is not None:
                                             DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
@@ -330,10 +384,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                 if "[" not in left:
                                     left =left[0]
                                 if "(" in right:
-                                    # right =re.sub(pattern="(", repl="[", string=right)
-                                    # right =re.sub(pattern=")", repl="]", string=right)
-                                    right = right.replace("(", "[")
-                                    right = right.replace(")", "]")
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                               
+                                    if len(right_exprs) == 1:
+
+                                        right = right.replace("(", "[")
+                                        right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
                                     hps.append(hp_parser.parse(str(left+":="+right)))
                                     if get_dataStoreList() is not None:
                                         DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
@@ -365,7 +427,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                 strs=left.strip('[').strip(']')
                                 left=list(strs.split(",")) if  "," in strs else [strs]
                             else:
-                               
                                 left=[left]
                             assert isinstance(root.chart, SF_Chart)
                             if "(" in right:
@@ -394,6 +455,19 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 # hps.append(hp_parser.parse("ch_"+left[var]+"!"+left[var]))
                                             else:
                                                 if "(" in left[var]:
+                                                    # print(left[var])
+                                                    # strs1=re.findall(r"[(](.*?)[)]", left[var])
+                                                    # print(strs1)
+                                                    # left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                                    # if len(left_exprs) == 1:
+                                                    #     left[var] = left[var].replace("(", "[")
+                                                    #     left[var] = left[var].replace(")", "]")
+                                                    # elif len(left_exprs) >1:
+                                                    #     left_temp = left[var][:left[var].index("(")]
+                                                    #     for expr in left_exprs:
+                                                    #         left_temp = left_temp + "["+expr+"]"
+                                                    #     left[var]=left_temp
+                                                
                                                     left[var] = left[var].replace("(", "[")
                                                     left[var] = left[var].replace(")", "]")
                                                 hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
@@ -415,10 +489,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                 if "[" not in left:
                                     left =left[0]
                                 if "(" in right:
-                                    # right =re.sub(pattern="(", repl="[", string=right)
-                                    # right =re.sub(pattern=")", repl="]", string=right)
-                                    right = right.replace("(", "[")
-                                    right = right.replace(")", "]")
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                
+                                    if len(right_exprs) == 1:
+
+                                        right = right.replace("(", "[")
+                                        right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
                                     hps.append(hp_parser.parse(str(left+":="+right)))
                                     if get_dataStoreList() is not None:
                                         DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
