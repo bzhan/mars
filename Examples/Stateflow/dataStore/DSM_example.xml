@@ -1196,7 +1196,7 @@ Read</P>
             <state SSID="3">
               <P Name="labelString">A
 en:[myglobal(1)]=duA;
-du:myglobal(1) = myglobal(1) +1;y=myglobal(1) ;</P>
+du:myglobal(1)=myglobal(1)+1;y=myglobal(1);</P>
               <P Name="position">[315 46.5 166.25 87.75]</P>
               <P Name="fontSize">12</P>
               <P Name="subviewer">12</P>

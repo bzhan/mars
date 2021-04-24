@@ -228,31 +228,33 @@ class SL_Diagram:
                                 out_trans_dict_inner[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                                    src=src_ssid, dst=dst_ssid)
                             for jun in child.getElementsByTagName(name="junction"):
-                                ssid = jun.getAttribute("SSID")
+                                ssid1 = jun.getAttribute("SSID")
                                 junc_type = get_attribute_value(block=jun, attribute="type")
                                 # Get default_tran and out_trans
                                 default_tran = None
                                 out_trans = list()
                                 for tran in out_trans_dict_inner.values():
                                     src, dst = tran.src, tran.dst
-                                    if src is None and dst == ssid:  # it is a default transition
+                                    if src is None and dst == ssid1:  # it is a default transition
                                         default_tran = tran
-                                    elif src == ssid:  # the src of tran is this state
+                                    elif src == ssid1:  # the src of tran is this state
                                         out_trans.append(tran)
                                 out_trans.sort(key=operator.attrgetter("order"))
-                                junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                                chart_state = AND_State(ssid=chart_id, name=chart_name)
-                                # chart_state.funs = functions
-                                for state in  junctions:
-                                    state.father = chart_state
-                                    chart_state.children.append(state)
-                            stateflow = SF_Chart(name="fun_name", state=chart_state, data={},
+                                junctions.append(Junction(ssid=ssid1, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
+                            chart_state1 = AND_State(ssid=ssid, name=fun_name)
+                            # chart_state.funs = functions
+                            for state in  junctions:
+                                state.father = chart_state1
+                                chart_state1.children.append(state)
+
+                            stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
                                          num_src=0,num_dest=0)
+                            
                             stateflow.add_names()
                             stateflow.find_root_for_states()
                             stateflow.find_root_and_loc_for_trans()
                             stateflow.parse_acts_on_states_and_trans()
-                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),stateflow.execute_trans_from_state(chart_state))
+                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1))
                         # return_var =return_var if len(return_var)>0 else None
                         # exprs=exprs if len(exprs)>0 else None
                         _functions.append(Function(ssid, fun_name, hp, return_var,exprs))
@@ -361,7 +363,8 @@ class SL_Diagram:
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                
+            print(6666666)
+            print(_functions)    
             return _states, _junctions, _functions
 
         # Create charts

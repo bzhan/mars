@@ -986,8 +986,8 @@ class SF_Chart(Subsystem):
                                 # hp_loop.append(hp.Var(process_name))
                                 break
                             else:
-                                process_name1 = dst_state1.processes[-1][0]
-                                hp_loop.append(hp.Var(process_name1))
+                                process_name1 = dst_state1.processes[-1][1]
+                                hp_loop.append(process_name1)
                                 get_loop_hps(dst_state,dst_state1.out_trans)
             return hp_loop
         assert tran_type in ["out_trans", "inner_trans"]
@@ -995,12 +995,15 @@ class SF_Chart(Subsystem):
         # An AND-state has no outgoing transitions
         # A Junction has no inner transitions
         # default_trans=list()
-        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction) and  state.children[0].default_tran is not None:
-            state = state.children[0]
-            num = len(state.processes)
-            process_name = state.name+str(num)
-            state.processes.append((process_name,hp.Skip()))
-            state.visited =True
+        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction):
+            for s in state.children:
+                if s.default_tran is not None:
+                    state = s
+                    num = len(state.processes)
+                    process_name = state.name+str(num)
+                    state.processes.append((process_name,hp.Skip()))
+                    state.visited =True
+
         if isinstance(state, AND_State) and tran_type == "out_trans" \
                 or isinstance(state, Junction) and tran_type == "inner_trans":
             return hp.Skip()
@@ -1014,7 +1017,7 @@ class SF_Chart(Subsystem):
 
         # state must be the source of each transition in trans
         assert all(state.ssid == tran.src for tran in trans)
-
+        
         if_hps, else_hp = list(), hp.Skip()
         for tran in trans:
             for message in self.input_message_queue+self.local_message_queue:
@@ -1024,6 +1027,7 @@ class SF_Chart(Subsystem):
             conds = list()
             edge_trigger_cond=""
             trigger_conds=list()
+            hp_fun_onCon=list()
             if isinstance(state,(AND_State,OR_State)):
                 root_num=re.findall(pattern="\\d+", string=state.root.name)
                 if self.dest_state_root_num == root_num[0]:
@@ -1043,8 +1047,63 @@ class SF_Chart(Subsystem):
                         conds.clear()
                         conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
             if tran.condition:
-                conds.append(tran.condition)
+                # print(tran.condition)
+                # if "==" in str(tran.condition):
+                #     left1,right1=str(tran.condition).split("==")
+                #     left1=left1.strip()
+                #     right1=right1.strip()
+                #     if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right1) or re.match(pattern="^\\w+$",string=right1) :
+                #         right=right1
+                #         left=left1
+                #     elif re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=left1) or re.match(pattern="^\\w+$",string=left1) :
+                #         right =left1
+                #         left= right1
+                #     else:
+                    #     conds.append(tran.condition)
+                    # print(right)
+                    # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
+                    #     longest_path=self.get_fun_by_path(str(right))
+                    #     if longest_path is None:
+                    #         if "(" in right:
+                    #             strs1=re.findall(r"[(](.*?)[)]", right)
+                    #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]                    
+                    #         else:
+                    #             right_exprs=list()
+                    #         if len(right_exprs) == 1:
 
+                    #             right = right.replace("(", "[")
+                    #             right = right.replace(")", "]")
+                    #         elif len(right_exprs) > 1:
+                    #             right_temp = right[:right.index("(")]
+                    #             for expr in right_exprs:
+                    #                 right_temp = right_temp + "["+expr+"]"
+                    #             right=right_temp+right[right.index(")")+1:]
+                    #         print(99999)
+                    #         print(left)
+                    #         print(right)
+                    #         conds.append(bexpr_parser.parse(str(left+"=="+right)))
+                    #     else:
+                    #         if "(" in right:
+                    #             strs1=re.findall(r"[(](.*?)[)]", right)
+                    #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                    #         else:
+                    #             right_exprs=list()
+                    #         exprs=longest_path[1]
+                    #         if exprs is not None and len(right_exprs) > 0:
+                    #             for  var in range(0,len(exprs)):
+                    #                 hp_fun_onCon.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                    #         hp_fun_onCon.append(self.fun_dict[longest_path])
+
+                    #         return_var=longest_path[0]
+
+                    #         if return_var is not None and len(left) >0:
+                    #             if isinstance(return_var,function.ListExpr):
+                    #                 for  var in range(0,len(return_var)):
+                    #                     conds.append(bexpr_parser.parse(left+"=="+str(return_var[var])))
+                    #             else:
+                    #                 conds.append(bexpr_parser.parse(left+"=="+str(return_var[0])))
+                      
+                conds.append(tran.condition)
             conds.append(bexpr_parser.parse("done == 0"))
             cond = conj(*conds) if len(conds) >= 2 else conds[0]    
 
@@ -1108,17 +1167,18 @@ class SF_Chart(Subsystem):
                     assert isinstance(dst_state.processes, list)
                     num = len(dst_state.processes)
                     process_name = dst_state.name+str(num)
-                    
                     #dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps1 =tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                           + enter_into_dst
                     #assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
-                    hp_list.append((cond, get_hcsp(hps1)))  #？？？？
-                    if len(hps1) >= 2:
-                        process=hp.ITE(hp_list, hp.Skip())
-                        dst_state.processes.append((process_name,process ))
-                    else:
-                        dst_state.processes.append((process_name, hp.Skip()))
+                      #？？？？
+                    hp_list.append((cond, get_hcsp(hps1)))
+                    # if len(conds) > 1:
+                        
+                    process=hp.ITE(hp_list, hp.Skip())
+                    dst_state.processes.append((process_name,process ))
+                    # else:
+                    #     dst_state.processes.append((process_name,hp.Sequence(*hp_list)))
                     # hps = hps+tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                     #        + enter_into_dst + ( [hp.Var(process_name)])
                     process1=self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
@@ -1147,21 +1207,28 @@ class SF_Chart(Subsystem):
                     if num1 ==0:
                         process_name = dst_state.name+str(num)
                         dst_state.processes.append((process_name,hp.ITE(hp_list, hp.Skip()) ))
-                    
-                    process_name = dst_state.processes[-1][0]
+                    process_name = dst_state.processes[-1][1]
                     dst_trans=dst_state.out_trans
                     hp_loop_local=get_loop_hps(dst_state,dst_trans)
-                    process_name1 = dst_state.processes[-1][0]
-                    
-                    hps =  [hp.Loop(hp.Sequence(hp.Var(process_name1),*hp_loop_local),cond)]
+                    # process_name1 = dst_state.processes[-1][0]
+                    cond_exs=conds
+                    for tran in dst_trans:
+                        dst_state1 = self.all_states[tran.dst]
+                        if dst_state1.visited:
+                            if dst_state1 == dst_state:
+                                # process_name = dst_state.processes[-1][0]
+                                # hp_loop.append(hp.Var(process_name))
+                                break
+                            else:
+                                cond_exs.append(tran.condition)
+                    cond_ex= conj(*cond_exs) if len(cond_exs) >= 2 else cond_exs[0]
+                    hps =  [hp.Loop(hp.Sequence(process_name,*hp_loop_local),cond_ex)]
 
                         
                     
             # if len(mesg_hp)>=1:
             #     if_hps.append(hp.Sequence(mesg_hp,cond, get_hcsp(hps)))
-            if_hps.append((cond, get_hcsp(hps)))  #？？？？
-            
-
+            if_hps.append((cond, get_hcsp(hps))) #？？？？
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
 
