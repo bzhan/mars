@@ -533,6 +533,338 @@ theorem Valid_inv_new_s_g:
     qed
     done
 
+theorem Valid_inv_b_s_ge:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. b s > r}
+     Cont ode (\<lambda> s. b s > r)
+    {\<lambda>s tr. b s = r}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+  proof(rule ccontr)
+    assume "b (p d) \<noteq> r"
+    then have g: "b (p d) < r" using pre by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre(2) by auto
+      have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<d+e}" "(\<lambda>t. b (p t))"]
+        using 2  e(1) by simp
+      done
+    then obtain dd where dd:"b (p dd) = r" "dd \<in> {0..d}"
+      using IVT2[of "(\<lambda>t. b (p t))" d r 0]
+      using pre g by force
+    then have 4:"dd<d" 
+      using g  le_less by auto
+    then show False using dd pre
+      using atLeastAtMost_iff by blast
+      
+    qed
+    done
+
+theorem Valid_inv_b_tr_ge:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s > r}
+     Cont ode (\<lambda> s. b s > r)
+    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<ge> r)) tr}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal for tr1 d p
+    apply(simp add: join_assn_def)
+    apply(rule exI [where x="tr1"])
+    apply auto
+    apply (auto intro!: ode_inv_assn.intros)
+  subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> r \<le> b (p \<tau>)"
+    then have g:"b (p \<tau>) < r" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b (p dd) = r" "dd \<in> {0..\<tau>}"
+        using IVT2[of "(\<lambda>t. b (p t))" \<tau> r 0]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    done
+  done
+
+theorem Valid_inv_b_s_tr_ge:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s > r}
+     Cont ode (\<lambda>s. b s > r)
+    {\<lambda>s tr. b s = r  \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<ge> r)) tr}"
+  apply(rule Valid_post_and)
+   apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_inv_b_s_ge)
+     prefer 3
+    apply(rule Valid_inv_b_tr_ge)
+  apply(auto simp add: entails_def)
+    using assms by auto
+
+
+theorem Valid_inv_b_s_ge_and_ge:
+  fixes b1 :: "state \<Rightarrow> real"
+  fixes b2 :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. b1 s > r1 \<and> b2 s > r2}
+     Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
+    {\<lambda>s tr. b1 s = r1 \<or> b2 s = r2}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+  proof(rule ccontr)
+    assume "\<not> r1 < b1 (p d)"
+    then have g: "b1 (p d) < r1" using pre by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b1 (p t)) has_derivative  (\<lambda>s. g1' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b1 "\<lambda>x. g1'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b1 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre(2) by auto
+      have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b1 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<d+e}" "(\<lambda>t. b1 (p t))"]
+        using 2  e(1) by simp
+      done
+    then obtain dd where dd:"b1 (p dd) = r1" "dd \<in> {0..d}"
+      using IVT2[of "(\<lambda>t. b1 (p t))" d r1 0]
+      using pre g by force
+    then have 4:"dd<d" 
+      using g  le_less by auto
+    then show False using dd pre
+      using atLeastAtMost_iff by blast
+  qed
+subgoal premises pre for d p
+  proof(rule ccontr)
+    assume "\<not> r2 < b2 (p d)"
+    then have g: "b2 (p d) < r2" using pre by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b2 (p t)) has_derivative  (\<lambda>s. g2' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b2 "\<lambda>x. g2'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b2 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre(2) by auto
+      have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b2 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<d+e}" "(\<lambda>t. b2 (p t))"]
+        using 2  e(1) by simp
+      done
+    then obtain dd where dd:"b2 (p dd) = r2" "dd \<in> {0..d}"
+      using IVT2[of "(\<lambda>t. b2 (p t))" d r2 0]
+      using pre g by force
+    then have 4:"dd<d" 
+      using g  le_less by auto
+    then show False using dd pre
+      using atLeastAtMost_iff by blast
+    qed
+    done
+
+
+theorem Valid_inv_b_tr_ge_and_ge:
+  fixes b1 :: "state \<Rightarrow> real"
+  fixes b2 :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b1 s > r1 \<and> b2 s > r2}
+     Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
+    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b1 s \<ge> r1 \<and> b2 s \<ge> r2)) tr}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises ppre for tr1 d p
+  proof-
+    have "P tr1 \<Longrightarrow>
+    0 < d \<Longrightarrow>
+    ODEsol ode p d \<Longrightarrow>
+    \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> r1 < b1 (p t) \<and> r2 < b2 (p t) \<Longrightarrow>
+    \<not>   r1 < b1 (p d) \<Longrightarrow> (P @\<^sub>t ode_inv_assn (\<lambda>s. r1 \<le> b1 s \<and> r2 \<le> b2 s))
+        (tr1 @ [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    apply(simp add: join_assn_def)
+    apply(rule exI [where x="tr1"])
+    apply auto
+    apply (auto intro!: ode_inv_assn.intros)
+  subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> r1 \<le> b1 (p \<tau>)"
+    then have g:"b1 (p \<tau>) < r1" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b1 (p t)) has_derivative  (\<lambda>s. g1' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b1 "\<lambda>x. g1'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b1 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b1 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b1 (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b1 (p dd) = r1" "dd \<in> {0..\<tau>}"
+        using IVT2[of "(\<lambda>t. b1 (p t))" \<tau> r1 0]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> r2 \<le> b2 (p \<tau>)"
+    then have g:"b2 (p \<tau>) < r2" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b2 (p t)) has_derivative  (\<lambda>s. g2' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b2 "\<lambda>x. g2'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b2 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b2 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b2 (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b2 (p dd) = r2" "dd \<in> {0..\<tau>}"
+        using IVT2[of "(\<lambda>t. b2 (p t))" \<tau> r2 0]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    done
+  then show ?thesis using ppre by auto
+qed
+ subgoal premises ppre for tr1 d p
+  proof-
+    have "P tr1 \<Longrightarrow>
+    0 < d \<Longrightarrow>
+    ODEsol ode p d \<Longrightarrow>
+    \<forall>t. 0 \<le> t \<and> t < d \<longrightarrow> r1 < b1 (p t) \<and> r2 < b2 (p t) \<Longrightarrow>
+    \<not>   r2 < b2 (p d) \<Longrightarrow> (P @\<^sub>t ode_inv_assn (\<lambda>s. r1 \<le> b1 s \<and> r2 \<le> b2 s))
+        (tr1 @ [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+    apply(simp add: join_assn_def)
+    apply(rule exI [where x="tr1"])
+    apply auto
+    apply (auto intro!: ode_inv_assn.intros)
+  subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> r1 \<le> b1 (p \<tau>)"
+    then have g:"b1 (p \<tau>) < r1" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b1 (p t)) has_derivative  (\<lambda>s. g1' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b1 "\<lambda>x. g1'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b1 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b1 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b1 (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b1 (p dd) = r1" "dd \<in> {0..\<tau>}"
+        using IVT2[of "(\<lambda>t. b1 (p t))" \<tau> r1 0]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> r2 \<le> b2 (p \<tau>)"
+    then have g:"b2 (p \<tau>) < r2" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b2 (p t)) has_derivative  (\<lambda>s. g2' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b2 "\<lambda>x. g2'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b2 (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b2 (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b2 (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b2 (p dd) = r2" "dd \<in> {0..\<tau>}"
+        using IVT2[of "(\<lambda>t. b2 (p t))" \<tau> r2 0]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    done
+  then show ?thesis using ppre by auto
+qed
+  done
+
+theorem Valid_inv_b_s_tr_ge_and_ge:
+  fixes b1 :: "state \<Rightarrow> real"
+  fixes b2 :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b1 s > r1 \<and> b2 s > r2}
+     Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
+    {\<lambda>s tr. (b1 s = r1 \<or> b2 s = r2) \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b1 s \<ge> r1 \<and> b2 s \<ge> r2)) tr}"
+  apply(rule Valid_post_and)
+   apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_inv_b_s_ge_and_ge)
+     prefer 4
+    apply(rule Valid_inv_b_tr_ge_and_ge)
+  apply(auto simp add: entails_def)
+  using assms by auto
+
+
 theorem DC':
   assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
      Cont ode b
@@ -611,6 +943,51 @@ subgoal premises pre for tr T p
   qed
   done
 
+theorem DC'':
+  assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+     Cont ode b
+    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
+      and "\<Turnstile> {\<lambda>s tr. init s \<and> (\<lambda>s. b s \<and> c s) s}
+     Cont ode (\<lambda>s. b s \<and> c s)
+    {\<lambda>s tr. d s}"
+    shows "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+     Cont ode b
+    {\<lambda>s tr. d s }"
+unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for tr T p
+  proof-
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre by auto
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using assms(1) 1
+      unfolding Valid_def using pre by auto
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using 2 unfolding join_assn_def by auto
+    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+      using tra2 apply (induct rule: ode_inv_assn.induct)
+      by auto
+    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+      using Tp tra3 tra2 by auto
+    have 4: "\<forall>t\<in>{0..T}. c (p t)"
+      using 3 apply (elim ode_inv_assn_elim)
+      apply auto
+      subgoal for d p' t
+        apply (frule WaitBlk_cong)
+        apply (frule WaitBlk_cong2)
+        by auto
+      done
+    have 5:"big_step (Cont ode (\<lambda>s. b s \<and> c s)) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre 4 by auto
+    show ?thesis
+      using assms(2) 
+      unfolding Valid_def 
+      using pre 4 5
+      by (smt atLeastAtMost_iff)
+  qed
+  done
 
 
 

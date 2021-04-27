@@ -84,10 +84,15 @@ proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
     by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
-  using assms
-  using mvt_simple[of 0 x p q]
+  then obtain xa where "xa\<in>{0<..<x}" " p x - p 0 = q xa (x - 0)" if "x>0"
+    using  mvt_simple[of 0 x p q] 
+    using atLeastAtMost_iff by blast
+  then have "p x \<le> p 0" if "x>0"
+  using assms 
   by (smt atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
+  then show ?thesis
+    using assms  by fastforce
+  
 qed
 
 

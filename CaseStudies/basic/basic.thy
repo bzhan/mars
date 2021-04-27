@@ -540,6 +540,107 @@ lemma 32:
   sorry
 
 
-  
+lemma 34:
+  assumes "a\<ge>0"
+  shows" \<Turnstile> {\<lambda>s tr. s X ^ 3 \<ge> -1}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4 + a, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. s X ^ 3 \<ge> -1 }"
+  apply(rule Valid_inv_s_ge)
+apply clarify
+       apply(simp add:vec2state_def)
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  using assms by auto
+
+lemma 35:
+"\<Turnstile> {\<lambda>s tr. s X + 1/2 * s Y ^ 2 =  a}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X * s Y, Y := \<lambda> s. - s X , T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. s X + 1/2 * s Y ^ 2 =  a }"
+  apply(rule Valid_inv_s_eq)
+   apply clarify
+  unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+
+
+lemma 36:
+"\<Turnstile> {\<lambda>s tr. 1/2 * s X ^ 2 - 1/2 * s Y ^ 2 >=  a}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y + s X * s Y ^ 2, Y := \<lambda> s. - s X + s X ^ 2 * s Y))) (\<lambda>s. s X > 0 \<and> s Y > 0)
+ {\<lambda>s tr. 1/2 * s X ^ 2 - 1/2 * s Y ^ 2 >=  a }"
+  apply(rule Valid_pre_cases [where Q =  "(\<lambda>s. s X > 0 \<and> s Y > 0)"])
+   prefer 2 
+  subgoal
+   apply(rule Valid_ode_not)
+     apply auto
+    done
+  subgoal
+  apply(rule Valid_weaken_pre)
+   prefer 2
+     apply(rule DC'' [where P = "\<lambda> tr . True" and c = "(\<lambda>s. s X \<ge> 0 \<and> s Y \<ge> 0)" and init = "\<lambda> s. 1/2 * s X ^ 2 - 1/2 * s Y ^ 2 >=  a "])
+    subgoal
+    apply(rule Valid_weaken_pre)
+    prefer 2
+     apply(rule Valid_strengthen_post)
+      prefer 2
+      apply(rule Valid_inv_b_tr_ge_and_ge[where P= "\<lambda> tr . True"])
+apply clarify
+  unfolding vec2state_def
+     apply (fast intro!: derivative_intros)
+apply clarify
+  unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  done
+  subgoal
+apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_inv_s_ge)
+apply clarify
+  unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
+    power_mult_distrib power_mult del: one_add_one )
+  done
+  apply(auto simp add:state2vec_def entails_def)
+  done
+  done
+
+lemma 37:
+"\<Turnstile> {\<lambda>s tr. - s X * s Y \<ge> a}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X - s Y + s X * s Y , Y := \<lambda> s. - s Y - s Y ^ 2, T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. - s X * s Y \<ge> a }"
+  apply(rule Valid_inv_s_ge)
+apply clarify
+  unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
+    power_mult_distrib power_mult del: one_add_one )
+  done
+
+lemma 38:
+"\<Turnstile> {\<lambda>s tr. 2 * s X ^ 3 \<ge> 1/4}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X ^ 2  + s X ^ 4 , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. 2 * s X ^ 3 \<ge> 1/4}"
+  apply(rule Valid_inv_s_ge)
+apply clarify
+  unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+
+lemma 39:
+"\<Turnstile> {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0 }
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4  + s Y ^ 5 , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0}"
+
+
+
+
+
+
+
 
 end
