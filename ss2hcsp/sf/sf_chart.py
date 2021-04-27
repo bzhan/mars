@@ -6,6 +6,8 @@ from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
+
+from ss2hcsp.hcsp.parser import aexpr_parser
 import re
 
 
@@ -132,6 +134,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             else:
                 hps.append(hp.Condition(dest_state.activated(),hp.Sequence(hp_parser.parse("done := 0"),in_tran_hp)))
         return hps
+    def get_dataStoreList():
+        dataStorelists=list()
+        for n,d in root.chart.data.items():
+                    if d.scope == "DATA_STORE_MEMORY_DATA":
+                        dataStorelists.append(d.name)
+                        return dataStorelists
+        return None
+    def is_dataStore(name):
+        for n,d in root.chart.data.items():
+                    if name == d.name and  d.scope == "DATA_STORE_MEMORY_DATA":
+                        return d.name
+        return None
     hps = list()
     # acts = action.split(";")
     Message_list=root.chart.local_message_queue + root.chart.input_message_queue
@@ -142,45 +156,398 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     name_lists=get_name_from_mesg_list()
     trigger_edge_osig =0
     for act in acts:
-        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act) or re.match(pattern="^\\w+\\(\\w*\\) *:=.+$", string=act) and "." not in act:  # an assigment   
-            if  re.match(pattern="^\\w+\\(\\w*\\) *:=.+$", string=act):
-                hps.append(hp_parser.parse(act))
-            else:
-                left,right=act.split(":=")
-                left=left.strip()
-                right=right.strip()
-                if "[" in act:
-                    strs=left.strip('[').strip(']')
-                    left=list(strs.split(",")) if  "," in strs else list(strs)
-                else:
-                    left=[left]
-                if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right):  # a function
-                    assert isinstance(root.chart, SF_Chart)
-                    if "(" in right:
-                        strs1=re.findall(r"[(](.*?)[)]", right)
-                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else list(strs1[0])
-                    else:
-                        right_exprs=list()
-                    longest_path=root.chart.get_fun_by_path(str(right))
-                    if longest_path is not None:
-                        exprs=longest_path[1]
-                        if exprs is not None and len(right_exprs) > 0:
-                            for  var in range(0,len(exprs)):
-                                hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
-                        hps.append(root.chart.fun_dict[longest_path])
+        if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act)  or re.match(pattern="^(\\[)?(\\w+(,)?)*(\\w+\\(\\w*(,\\w*)*\\))*((,)?\\w+)*((,)?\\w+\\(\\w*(,\\w*)*\\))*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
+            left,right=act.split(":=")
+            left=left.strip()
+            right=right.strip()
+            if get_dataStoreList() is not None:
+                DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                DSM_list=get_dataStoreList()
+                for var in DSM_vars:
+                    if var in DSM_list:
+                        hps.append(hp_parser.parse("ch_"+var+"?"+var))
+                    
+            if  re.match(pattern="^\\w+\\(\\w*(,\\w+)*\\)", string=left):
+                
+                data_name = left[:left.index("(")]
+                strs1=re.findall(r"[(](.*?)[)]", left)
+                left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                flag=0
+                for n,d in root.chart.data.items():
+                    if data_name == d.name and d.scope == "DATA_STORE_MEMORY_DATA":
+                        flag=1
+                        if len(left_exprs) == 1:
+                            left = left.replace("(", "[")
+                            left = left.replace(")", "]")
+                        elif len(left_exprs) >1:
+                            left_temp = data_name
+                            for expr in left_exprs:
+                                left_temp = left_temp + "["+expr+"]"
+                            left=left_temp
+                        # left =re.sub(pattern="(", repl="[", string=left)
+                        # print(left)
+                        # left =re.sub(pattern=")", repl="]", string=left)
+                        if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)+$", string=right) or re.match(pattern="^\\w+$",string=right):
+                            assert isinstance(root.chart, SF_Chart)
+                            longest_path=root.chart.get_fun_by_path(str(right))
+                            if longest_path is None:
+                                # right =re.sub(pattern="(", repl="[", string=right)
+                                # right =re.sub(pattern=")", repl="]", string=right)
+                                if "(" in right:
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                else:
+                                    right_exprs=list()
+                                if len(right_exprs) == 1:
 
-                        return_var=longest_path[0]
-
-                        if return_var is not None and len(left) >0:
-                            if isinstance(return_var,function.ListExpr):
-                                for  var in range(0,len(return_var)):
-                                    hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                                    right = right.replace("(", "[")
+                                    right = right.replace(")", "]")
+                                elif len(right_exprs) > 1:
+                                    right_temp = right[:right.index("(")]
+                                    for expr in right_exprs:
+                                        right_temp = right_temp + "["+expr+"]"
+                                    right=right_temp+right[right.index(")")+1:]
+                                hps.append(hp_parser.parse(left+":="+right))
                             else:
-                                hps.append(hp_parser.parse(str(left[0])+":="+str(return_var[0])))
-                    else:
-                        hps.append(hp_parser.parse(act))
-                else:
+                                if "(" in right:
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                else:
+                                    right_exprs=list()
+                                exprs=longest_path[1]
+                                if exprs is not None and len(right_exprs) > 0:
+                                    for  var in range(0,len(exprs)):
+                                        hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                                hps.append(root.chart.fun_dict[longest_path])
+
+                                return_var=longest_path[0]
+
+                                if return_var is not None and len(left) >0:
+                                    if isinstance(return_var,function.ListExpr):
+                                        for  var in range(0,len(return_var)):
+                                            hps.append(hp_parser.parse(left+":="+str(return_var[var])))
+                                    else:
+                                        hps.append(hp_parser.parse(left+":="+str(return_var)))
+                        else:
+                            if "(" in right:
+                                strs1=re.findall(r"[(](.*?)[)]", right)
+                                right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                            
+                                if len(right_exprs) == 1:
+
+                                    right = right.replace("(", "[")
+                                    right = right.replace(")", "]")
+                                elif len(right_exprs) > 1:
+                                    right_temp = right[:right.index("(")]
+                                    for expr in right_exprs:
+                                        right_temp = right_temp + "["+expr+"]"
+                                    right=right_temp+right[right.index(")")+1:]
+                            hps.append(hp_parser.parse(left+":="+right))
+                        if get_dataStoreList() is not None:
+                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                            DSM_list=get_dataStoreList()
+                            for var in DSM_vars:
+                                if var in DSM_list:
+                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                        break    
+                if flag == 0:
+                    
                     hps.append(hp_parser.parse(act))
+                    if get_dataStoreList() is not None:
+                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                        DSM_list=get_dataStoreList()
+                        for var in DSM_vars:
+                            if var in DSM_list:
+                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
+            elif re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])?$", string=left) :  # a function
+                    flag = 0
+                    if "[" not in left:
+                        for n,d in root.chart.data.items():
+
+                            if left == d.name and d.scope == "DATA_STORE_MEMORY_DATA":
+                                flag=1
+                                if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)+$", string=right) or re.match(pattern="^\\w+$",string=right):
+                                    assert isinstance(root.chart, SF_Chart)
+                        
+                                    longest_path=root.chart.get_fun_by_path(str(right))
+                                    if longest_path is None:
+                                        # right =re.sub(pattern="(", repl="[", string=right)
+                                        # right =re.sub(pattern=")", repl="]", string=right)
+                                        if "(" in right:
+                                            strs1=re.findall(r"[(](.*?)[)]", right)
+                                            right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                            
+                                        else:
+                                            right_exprs=list()
+                                        if len(right_exprs) == 1:
+
+                                            right = right.replace("(", "[")
+                                            right = right.replace(")", "]")
+                                        elif len(right_exprs) > 1:
+                                            right_temp = right[:right.index("(")]
+                                            for expr in right_exprs:
+                                                right_temp = right_temp + "["+expr+"]"
+                                            right=right_temp+right[right.index(")")+1:]
+                                        hps.append(hp_parser.parse(str(left+":="+right)))
+                                    else:
+                                        if "(" in right:
+                                            strs1=re.findall(r"[(](.*?)[)]", right)
+                                            right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                        else:
+                                            right_exprs=list()
+                                        exprs=longest_path[1]
+                                        if exprs is not None and len(right_exprs) > 0:
+                                            for  var in range(0,len(exprs)):
+                                                hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                                        hps.append(root.chart.fun_dict[longest_path])
+
+                                        return_var=longest_path[0]
+
+                                        if return_var is not None and len(left) >0:
+                                            if isinstance(return_var,function.ListExpr):
+                                                for  var in range(0,len(return_var)):
+                                                    hps.append(hp_parser.parse(left+":="+str(return_var[var])))
+                                            else:
+                                                hps.append(hp_parser.parse(left+":="+str(return_var[0])))
+                                  
+                                else:
+                                    if "(" in right:
+                                        strs1=re.findall(r"[(](.*?)[)]", right)
+                                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                    else:
+                                        right_exprs=list()
+                                    if len(right_exprs) == 1:
+
+                                        right = right.replace("(", "[")
+                                        right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
+                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                if get_dataStoreList() is not None:
+                                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                            DSM_list=get_dataStoreList()
+                                            for var in DSM_vars:
+                                                if var in DSM_list:
+                                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+
+                    if flag ==0 or "[" in left:
+                        
+                        if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
+                            if "[" in left:
+                                strs=left.strip('[').strip(']')
+                                left=list(strs.split(",")) if  "," in strs else [strs]
+                            else:
+                               
+                                left=[left]
+                            assert isinstance(root.chart, SF_Chart)
+                            if "(" in right:
+                                strs1=re.findall(r"[(](.*?)[)]", right)
+                                right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                            else:
+                                right_exprs=list()
+                            longest_path=root.chart.get_fun_by_path(str(right))
+                            if longest_path is not None:
+                                exprs=longest_path[1]
+                                if exprs is not None and len(right_exprs) > 0:
+                                    for  var in range(0,len(exprs)):
+                                        hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                                hps.append(root.chart.fun_dict[longest_path])
+
+                                return_var=longest_path[0]
+
+                                if return_var is not None and len(left) >0:
+                                    if isinstance(return_var,function.ListExpr):
+                                        for  var in range(0,len(return_var)):
+                                            if is_dataStore(left[var]):
+                                                hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                                                # hps.append(hp_parser.parse("ch_"+left[var]+"!"+left[var]))
+                                            else:
+                                                hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                                        if get_dataStoreList() is not None:
+                                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                            DSM_list=get_dataStoreList()
+                                            for var in DSM_vars:
+                                                if var in DSM_list:
+                                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                                    else:
+                                        hps.append(hp_parser.parse(str(left[0])+":="+str(return_var[0])))
+                                        if get_dataStoreList() is not None:
+                                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                            DSM_list=get_dataStoreList()
+                                            for var in DSM_vars:
+                                                if var in DSM_list:
+                                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                            else:
+                                if "[" not in left:
+                                    left =left[0]
+                                if "(" in right:
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                               
+                                    if len(right_exprs) == 1:
+
+                                        right = right.replace("(", "[")
+                                        right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
+                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                    if get_dataStoreList() is not None:
+                                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                        DSM_list=get_dataStoreList()
+                                        for var in DSM_vars:
+                                            if var in DSM_list:
+                                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                                else:
+
+                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                    if get_dataStoreList() is not None:
+                                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                        DSM_list=get_dataStoreList()
+                                        for var in DSM_vars:
+                                            if var in DSM_list:
+                                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                        else:
+
+                            hps.append(hp_parser.parse(act))
+                            if get_dataStoreList() is not None:
+                                DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                DSM_list=get_dataStoreList()
+                                for var in DSM_vars:
+                                    if var in DSM_list:
+                                        hps.append(hp_parser.parse("ch_"+var+"!"+var))
+            else:
+                if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
+                            if "[" in left:
+                                strs=left.strip('[').strip(']')
+                                left=list(strs.split(",")) if  "," in strs else [strs]
+                            else:
+                                left=[left]
+                            assert isinstance(root.chart, SF_Chart)
+                            if "(" in right:
+                                strs1=re.findall(r"[(](.*?)[)]", right)
+                                right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                            else:
+                                right_exprs=list()
+                            longest_path=root.chart.get_fun_by_path(str(right))
+                            if longest_path is not None:
+                                exprs=longest_path[1]
+                                if exprs is not None and len(right_exprs) > 0:
+                                    for  var in range(0,len(exprs)):
+                                        hps.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                                hps.append(root.chart.fun_dict[longest_path])
+
+                                return_var=longest_path[0]
+
+                                if return_var is not None and len(left) >0:
+                                    if isinstance(return_var,function.ListExpr):
+                                        for  var in range(0,len(return_var)):
+                                            if is_dataStore(left[var]):
+                                                if "(" in left[var]:
+                                                    left[var] = left[var].replace("(", "[")
+                                                    left[var] = left[var].replace(")", "]")
+                                                hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                                                # hps.append(hp_parser.parse("ch_"+left[var]+"!"+left[var]))
+                                            else:
+                                                if "(" in left[var]:
+                                                    # print(left[var])
+                                                    # strs1=re.findall(r"[(](.*?)[)]", left[var])
+                                                    # print(strs1)
+                                                    # left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                                    # if len(left_exprs) == 1:
+                                                    #     left[var] = left[var].replace("(", "[")
+                                                    #     left[var] = left[var].replace(")", "]")
+                                                    # elif len(left_exprs) >1:
+                                                    #     left_temp = left[var][:left[var].index("(")]
+                                                    #     for expr in left_exprs:
+                                                    #         left_temp = left_temp + "["+expr+"]"
+                                                    #     left[var]=left_temp
+                                                
+                                                    left[var] = left[var].replace("(", "[")
+                                                    left[var] = left[var].replace(")", "]")
+                                                hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
+                                        if get_dataStoreList() is not None:
+                                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                            DSM_list=get_dataStoreList()
+                                            for var in DSM_vars:
+                                                if var in DSM_list:
+                                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                                    else:
+                                        hps.append(hp_parser.parse(str(left[0])+":="+str(return_var)))
+                                        if get_dataStoreList() is not None:
+                                            DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                            DSM_list=get_dataStoreList()
+                                            for var in DSM_vars:
+                                                if var in DSM_list:
+                                                    hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                            else:
+                                if "[" not in left:
+                                    left =left[0]
+                                if "(" in right:
+                                    strs1=re.findall(r"[(](.*?)[)]", right)
+                                    right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                                
+                                    if len(right_exprs) == 1:
+
+                                        right = right.replace("(", "[")
+                                        right = right.replace(")", "]")
+                                    elif len(right_exprs) > 1:
+                                        right_temp = right[:right.index("(")]
+                                        for expr in right_exprs:
+                                            right_temp = right_temp + "["+expr+"]"
+                                        right=right_temp+right[right.index(")")+1:]
+                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                    if get_dataStoreList() is not None:
+                                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                        DSM_list=get_dataStoreList()
+                                        for var in DSM_vars:
+                                            if var in DSM_list:
+                                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                                else:
+
+                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                    if get_dataStoreList() is not None:
+                                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                                        DSM_list=get_dataStoreList()
+                                        for var in DSM_vars:
+                                            if var in DSM_list:
+                                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                        # else:
+
+                        #     hps.append(hp_parser.parse(act))
+                        #     if get_dataStoreList() is not None:
+                        #         DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                        #         DSM_list=get_dataStoreList()
+                        #         for var in DSM_vars:
+                        #             if var in DSM_list:
+                        #                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
+                else:
+                    if "[" in left:
+                        strs=left.strip('[').strip(']')
+                        left=list(strs.split(",")) if  "," in strs else [strs]
+                    else:
+                        left=[left]
+                    if "[" in right:
+                        strs=right.strip('[').strip(']')
+                        right=list(strs.split(",")) if  "," in strs else [strs]
+                    else:
+                        right=[right]
+                    for  var in range(0,len(left)):
+                        if is_dataStore(left[var]):
+                            hps.append(hp_parser.parse(str(left[var])+":="+str(right[var])))
+                        else:
+                            hps.append(hp_parser.parse(str(left[var])+":="+str(right[var])))
+                    if get_dataStoreList() is not None:
+                        DSM_vars=hp_parser.parse(act).var_name.get_vars().union(hp_parser.parse(act).expr.get_vars())
+                        DSM_list=get_dataStoreList()
+                        for var in DSM_vars:
+                            if var in DSM_list:
+                                hps.append(hp_parser.parse("ch_"+var+"!"+var))
         elif re.match(pattern="^\\w+\\(\\w*\\)$", string=act) and not re.match(pattern="send\\(.*?\\)", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
             hps.append(root.chart.fun_dict[root.chart.get_fun_by_path(str(act))])
@@ -619,8 +986,8 @@ class SF_Chart(Subsystem):
                                 # hp_loop.append(hp.Var(process_name))
                                 break
                             else:
-                                process_name1 = dst_state1.processes[-1][0]
-                                hp_loop.append(hp.Var(process_name1))
+                                process_name1 = dst_state1.processes[-1][1]
+                                hp_loop.append(process_name1)
                                 get_loop_hps(dst_state,dst_state1.out_trans)
             return hp_loop
         assert tran_type in ["out_trans", "inner_trans"]
@@ -628,12 +995,15 @@ class SF_Chart(Subsystem):
         # An AND-state has no outgoing transitions
         # A Junction has no inner transitions
         # default_trans=list()
-        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction) and  state.children[0].default_tran is not None:
-            state = state.children[0]
-            num = len(state.processes)
-            process_name = state.name+str(num)
-            state.processes.append((process_name,hp.Skip()))
-            state.visited =True
+        if isinstance(state,(OR_State,AND_State)) and len(state.children)>0 and isinstance( state.children[0],Junction):
+            for s in state.children:
+                if s.default_tran is not None:
+                    state = s
+                    num = len(state.processes)
+                    process_name = state.name+str(num)
+                    state.processes.append((process_name,hp.Skip()))
+                    state.visited =True
+
         if isinstance(state, AND_State) and tran_type == "out_trans" \
                 or isinstance(state, Junction) and tran_type == "inner_trans":
             return hp.Skip()
@@ -647,7 +1017,7 @@ class SF_Chart(Subsystem):
 
         # state must be the source of each transition in trans
         assert all(state.ssid == tran.src for tran in trans)
-
+        
         if_hps, else_hp = list(), hp.Skip()
         for tran in trans:
             for message in self.input_message_queue+self.local_message_queue:
@@ -657,6 +1027,7 @@ class SF_Chart(Subsystem):
             conds = list()
             edge_trigger_cond=""
             trigger_conds=list()
+            hp_fun_onCon=list()
             if isinstance(state,(AND_State,OR_State)):
                 root_num=re.findall(pattern="\\d+", string=state.root.name)
                 if self.dest_state_root_num == root_num[0]:
@@ -676,8 +1047,63 @@ class SF_Chart(Subsystem):
                         conds.clear()
                         conds.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
             if tran.condition:
-                conds.append(tran.condition)
+                # print(tran.condition)
+                # if "==" in str(tran.condition):
+                #     left1,right1=str(tran.condition).split("==")
+                #     left1=left1.strip()
+                #     right1=right1.strip()
+                #     if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right1) or re.match(pattern="^\\w+$",string=right1) :
+                #         right=right1
+                #         left=left1
+                #     elif re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=left1) or re.match(pattern="^\\w+$",string=left1) :
+                #         right =left1
+                #         left= right1
+                #     else:
+                    #     conds.append(tran.condition)
+                    # print(right)
+                    # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
+                    #     longest_path=self.get_fun_by_path(str(right))
+                    #     if longest_path is None:
+                    #         if "(" in right:
+                    #             strs1=re.findall(r"[(](.*?)[)]", right)
+                    #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]                    
+                    #         else:
+                    #             right_exprs=list()
+                    #         if len(right_exprs) == 1:
 
+                    #             right = right.replace("(", "[")
+                    #             right = right.replace(")", "]")
+                    #         elif len(right_exprs) > 1:
+                    #             right_temp = right[:right.index("(")]
+                    #             for expr in right_exprs:
+                    #                 right_temp = right_temp + "["+expr+"]"
+                    #             right=right_temp+right[right.index(")")+1:]
+                    #         print(99999)
+                    #         print(left)
+                    #         print(right)
+                    #         conds.append(bexpr_parser.parse(str(left+"=="+right)))
+                    #     else:
+                    #         if "(" in right:
+                    #             strs1=re.findall(r"[(](.*?)[)]", right)
+                    #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
+                    #         else:
+                    #             right_exprs=list()
+                    #         exprs=longest_path[1]
+                    #         if exprs is not None and len(right_exprs) > 0:
+                    #             for  var in range(0,len(exprs)):
+                    #                 hp_fun_onCon.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
+                    #         hp_fun_onCon.append(self.fun_dict[longest_path])
+
+                    #         return_var=longest_path[0]
+
+                    #         if return_var is not None and len(left) >0:
+                    #             if isinstance(return_var,function.ListExpr):
+                    #                 for  var in range(0,len(return_var)):
+                    #                     conds.append(bexpr_parser.parse(left+"=="+str(return_var[var])))
+                    #             else:
+                    #                 conds.append(bexpr_parser.parse(left+"=="+str(return_var[0])))
+                      
+                conds.append(tran.condition)
             conds.append(bexpr_parser.parse("done == 0"))
             cond = conj(*conds) if len(conds) >= 2 else conds[0]    
 
@@ -741,17 +1167,18 @@ class SF_Chart(Subsystem):
                     assert isinstance(dst_state.processes, list)
                     num = len(dst_state.processes)
                     process_name = dst_state.name+str(num)
-                    
                     #dst_state.visited = False      #？？？  hps中为什莫还包括exit_to_ancestor状态退出（当转换不是有效转换的话，状态应保持活动状态）
                     hps1 =tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                           + enter_into_dst
                     #assert isinstance(process, (hp.Skip, hp.Condition, hp.ITE))
-                    hp_list.append((cond, get_hcsp(hps1)))  #？？？？
-                    if len(hps1) >= 2:
-                        process=hp.ITE(hp_list, hp.Skip())
-                        dst_state.processes.append((process_name,process ))
-                    else:
-                        dst_state.processes.append((process_name, hp.Skip()))
+                      #？？？？
+                    hp_list.append((cond, get_hcsp(hps1)))
+                    # if len(conds) > 1:
+                        
+                    process=hp.ITE(hp_list, hp.Skip())
+                    dst_state.processes.append((process_name,process ))
+                    # else:
+                    #     dst_state.processes.append((process_name,hp.Sequence(*hp_list)))
                     # hps = hps+tran.cond_acts + descendant_exit + exit_to_ancestor + current_tran_act_Q \
                     #        + enter_into_dst + ( [hp.Var(process_name)])
                     process1=self.execute_trans_from_state(state=dst_state, tran_type="out_trans",
@@ -780,21 +1207,28 @@ class SF_Chart(Subsystem):
                     if num1 ==0:
                         process_name = dst_state.name+str(num)
                         dst_state.processes.append((process_name,hp.ITE(hp_list, hp.Skip()) ))
-                    
-                    process_name = dst_state.processes[-1][0]
+                    process_name = dst_state.processes[-1][1]
                     dst_trans=dst_state.out_trans
                     hp_loop_local=get_loop_hps(dst_state,dst_trans)
-                    process_name1 = dst_state.processes[-1][0]
-                    
-                    hps =  [hp.Loop(hp.Sequence(hp.Var(process_name1),*hp_loop_local),cond)]
+                    # process_name1 = dst_state.processes[-1][0]
+                    cond_exs=conds
+                    for tran in dst_trans:
+                        dst_state1 = self.all_states[tran.dst]
+                        if dst_state1.visited:
+                            if dst_state1 == dst_state:
+                                # process_name = dst_state.processes[-1][0]
+                                # hp_loop.append(hp.Var(process_name))
+                                break
+                            else:
+                                cond_exs.append(tran.condition)
+                    cond_ex= conj(*cond_exs) if len(cond_exs) >= 2 else cond_exs[0]
+                    hps =  [hp.Loop(hp.Sequence(process_name,*hp_loop_local),cond_ex)]
 
                         
                     
             # if len(mesg_hp)>=1:
             #     if_hps.append(hp.Sequence(mesg_hp,cond, get_hcsp(hps)))
-            if_hps.append((cond, get_hcsp(hps)))  #？？？？
-            
-
+            if_hps.append((cond, get_hcsp(hps))) #？？？？
         if len(if_hps) >= 1:
             return hp.ITE(if_hps, else_hp)
 
@@ -874,7 +1308,7 @@ class SF_Chart(Subsystem):
         # init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
         if self.st == -1 or self.st == 0:
             self.st=0.1
-        init_vars=[hp_parser.parse(vin(0,self.data.keys())) ] 
+        init_vars=[hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])) ] 
         init_vars.append(hp.Assign("num", AConst(0)))
         init_vars = hp.Sequence(*init_vars) if len(init_vars) >= 2 else init_vars[0]
         # Initial input and output channels, and delay
@@ -894,7 +1328,7 @@ class SF_Chart(Subsystem):
             s_i = self.get_state_by_name("S" + i)
             assert isinstance(s_i, AND_State)
             # vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
-            vars_in_s_i = set(self.data.keys()).union(set(self.port_to_in_var.values()))
+            vars_in_s_i = set([var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]).union(set(self.port_to_in_var.values()))
             hp_M_main = hp.Sequence(hp_M_main,
                                     hp_parser.parse("num == " + i + " -> (DState"+i+" ! state-->skip $ DBC" + i + "!E -->" + DBvout(i, vars_in_s_i)+" $ BC" + i + "!E --> " + vout(i, vars_in_s_i)
                                                     + " $ BR" + i + "?E -->" + vin(i, vars_in_s_i) +
@@ -1093,7 +1527,7 @@ class SF_Chart(Subsystem):
             assert s_i.name == "S" + str(i)
 
             # vars_in_s_i = s_i.get_vars().union(set(self.port_to_in_var.values()))
-            vars_in_s_i=set(self.data.keys()).union(set(self.port_to_in_var.values()))
+            vars_in_s_i=set([var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]).union(set(self.port_to_in_var.values()))
             add_VIn_after_BR_in_state(i, s_i, vars_in_s_i)
 
             s_du, p_diag, p_diag_name = get_S_du_and_P_diag(_state=s_i, _hps=self.execute_one_step_from_state(s_i))
@@ -1124,7 +1558,7 @@ class SF_Chart(Subsystem):
             # Check if there is an X in the processes
             # If so, then there is an event triggered inner the states,
             # which means process S_i is recursive.
-            init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
+            init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
             contain_X = False
             for _, process in processes.hps:
                 # if hp.Var("X") in hp.decompose(process):
@@ -1132,7 +1566,7 @@ class SF_Chart(Subsystem):
                     contain_X = True
                     if not self.is_triggered_chart :
                         s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()), get_hcsp(s_i.activate()),
-                                           hp_parser.parse(vin(0,self.data.keys())),hp.Loop(hp.Recursion(s_i_proc)))
+                                           hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])),hp.Loop(hp.Recursion(s_i_proc)))
                     else:
                         if self.trigger_type == "function-call":
                             # conds=list()
@@ -1143,7 +1577,7 @@ class SF_Chart(Subsystem):
                             conds=list()
                             conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                             cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))),hp_parser.parse(vin(0,self.data.keys())), hp.Recursion(s_i_proc) )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Recursion(s_i_proc) )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif self.trigger_type == "rising":
                             # conds=list()
                             # conds.append(bexpr_parser.parse("osig <= 0"))
@@ -1193,9 +1627,9 @@ class SF_Chart(Subsystem):
                                 conds1.append(bexpr_parser.parse("out_tri >= 0"))
                                 cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                                 final_cond=disj(cond2,cond1)
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,self.data.keys())),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                             elif flag > 1:
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif self.trigger_type == "falling":
                             # conds=list()
                             # conds.append(bexpr_parser.parse("osig >= 0"))
@@ -1245,9 +1679,9 @@ class SF_Chart(Subsystem):
                                 conds1.append(bexpr_parser.parse("out_tri < 0"))
                                 cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                                 final_cond=disj(cond2,cond1)
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,self.data.keys())),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])),hp.Recursion(s_i_proc))),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                             elif flag > 1:
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Recursion(s_i_proc))),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         else:
                             # s_i_proc = hp.Sequence(get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(get_hcsp(s_i.activate()),hp.Recursion(s_i_proc))
                             #                    ),hp_parser.parse("osig:=out_tri"))))
@@ -1267,20 +1701,20 @@ class SF_Chart(Subsystem):
                                     has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
                             cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
                             if flag>0 and flag == 1:
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) ,hp_parser.parse(vin(0,self.data.keys())), hp.Recursion(s_i_proc)) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) ,hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Recursion(s_i_proc)) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                             elif flag > 1:
-                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), hp.Recursion(s_i_proc)) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                                s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Recursion(s_i_proc)) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     break
             if not contain_X:
                 if not self.is_triggered_chart :
-                    s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()), get_hcsp(s_i.activate()),hp_parser.parse(vout(0,self.data.keys())), hp.Loop(s_i_proc))
+                    s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()), get_hcsp(s_i.activate()),hp_parser.parse(vout(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), hp.Loop(s_i_proc))
                 
                 else:
                     if self.trigger_type == "function-call":
                         conds=list()
                         conds.append(bexpr_parser.parse( "tri_event" +'!=""'))
                         cond = conj(*conds) if len(conds) >= 2 else conds[0] 
-                        s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))),hp_parser.parse(vout(0,self.data.keys())), s_i_proc )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                        s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp.Loop(hp.Sequence(hp_parser.parse('tri_event := ""'),hp_parser.parse("tri"+"?tri_event"),hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()))),hp_parser.parse(vout(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), s_i_proc )),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     elif self.trigger_type =="rising":
                         flag=0
                         has_mux_hps_init=list()
@@ -1319,9 +1753,9 @@ class SF_Chart(Subsystem):
                             conds1.append(bexpr_parser.parse("out_tri >= 0"))
                             cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                             final_cond=disj(cond2,cond1)
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,self.data.keys())),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif flag > 1:
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     
                     elif self.trigger_type == "falling":
                         flag=0
@@ -1361,9 +1795,9 @@ class SF_Chart(Subsystem):
                             conds1.append(bexpr_parser.parse("out_tri < 0"))
                             cond1=conj(*conds1) if len(conds1) >= 2 else conds1[0]
                             final_cond=disj(cond2,cond1)
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,self.data.keys())),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(final_cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence( get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])),s_i_proc)),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif flag > 1:
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps, hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), s_i_proc)),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                     
                             
                     else:
@@ -1381,9 +1815,9 @@ class SF_Chart(Subsystem):
                                 has_mux_end.append(hp_parser.parse("osig"+str(event.port)+":=out_tri"+str(event.port)))
                         cond=disj(*has_mux_cond) if len(has_mux_cond) >= 2 else has_mux_cond[0]
                         if flag>0 and flag == 1:
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) ,hp_parser.parse(vin(0,self.data.keys())), s_i_proc) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),hp_parser.parse("ch_trig"+"?osig"),hp.Loop(hp.Sequence(hp_parser.parse("ch_trig"+"?out_tri"),hp.Condition(bexpr_parser.parse("osig!=out_tri"),hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp_parser.parse("ch_trig"+"?out_tri"))) ,hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), s_i_proc) ),hp_parser.parse("osig:=out_tri"),hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                         elif flag > 1:
-                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,self.data.keys())), s_i_proc) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
+                            s_i_proc = hp.Sequence(*init_vars,get_hcsp(s_i.init()),*has_mux_hps_init,hp.Loop(hp.Sequence(*has_mux_hps,hp.Condition(cond,hp.Sequence(hp.Condition(bexpr_parser.parse("a_"+state_root.name+"== 0"),hp.Sequence(get_hcsp(s_i.activate()),*has_mux_end,hp.Wait(AConst(self.st)),*has_mux_hps)),hp_parser.parse(vin(0,[var_name for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]])), s_i_proc) ),*has_mux_end,hp.Wait(AConst(self.st)),hp.Condition(cond_exit,hp_parser.parse("a_"+state_root.name+":= 0")))))
                 #s_i_proc = hp.Sequence(get_hcsp(s_i.init()), get_hcsp(s_i.activate()),s_i_proc)
 
             # The output order is after D, M and M_main
@@ -1415,7 +1849,7 @@ class SF_Chart(Subsystem):
         assert not self.has_event
         get_S_du_and_P_diag, analyse_P_diag = self.get_process()
         # Initialise variables
-        init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
+        init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
         # Initialise and Activate states
         init_states = []
         exit_states=[]
@@ -1461,7 +1895,7 @@ class SF_Chart(Subsystem):
         # Delay one period at the first round
         if self.st == -1 or self.st == 0:
             self.st=0.1
-        init_vars = [hp.Assign(var_name, AConst(value)) for var_name, value in sorted(self.data.items())]
+        init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items()) if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
         init_hp = hp.Sequence(*init_hps, hp.Wait(AConst(self.st)))
         
         # init_hp = hp.Sequence(*init_hps)

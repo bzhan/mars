@@ -23,10 +23,11 @@ from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
-from ss2hcsp.sf.sf_message import SF_Message
+from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 from ss2hcsp.sl.mux.mux import Mux
+from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory,DataStoreRead
 from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
@@ -227,31 +228,33 @@ class SL_Diagram:
                                 out_trans_dict_inner[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                                    src=src_ssid, dst=dst_ssid)
                             for jun in child.getElementsByTagName(name="junction"):
-                                ssid = jun.getAttribute("SSID")
+                                ssid1 = jun.getAttribute("SSID")
                                 junc_type = get_attribute_value(block=jun, attribute="type")
                                 # Get default_tran and out_trans
                                 default_tran = None
                                 out_trans = list()
                                 for tran in out_trans_dict_inner.values():
                                     src, dst = tran.src, tran.dst
-                                    if src is None and dst == ssid:  # it is a default transition
+                                    if src is None and dst == ssid1:  # it is a default transition
                                         default_tran = tran
-                                    elif src == ssid:  # the src of tran is this state
+                                    elif src == ssid1:  # the src of tran is this state
                                         out_trans.append(tran)
                                 out_trans.sort(key=operator.attrgetter("order"))
-                                junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                                chart_state = AND_State(ssid=chart_id, name=chart_name)
-                                # chart_state.funs = functions
-                                for state in  junctions:
-                                    state.father = chart_state
-                                    chart_state.children.append(state)
-                            stateflow = SF_Chart(name="fun_name", state=chart_state, data={},
+                                junctions.append(Junction(ssid=ssid1, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
+                            chart_state1 = AND_State(ssid=ssid, name=fun_name)
+                            # chart_state.funs = functions
+                            for state in  junctions:
+                                state.father = chart_state1
+                                chart_state1.children.append(state)
+
+                            stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
                                          num_src=0,num_dest=0)
+                            
                             stateflow.add_names()
                             stateflow.find_root_for_states()
                             stateflow.find_root_and_loc_for_trans()
                             stateflow.parse_acts_on_states_and_trans()
-                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),stateflow.execute_trans_from_state(chart_state))
+                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1))
                         # return_var =return_var if len(return_var)>0 else None
                         # exprs=exprs if len(exprs)>0 else None
                         _functions.append(Function(ssid, fun_name, hp, return_var,exprs))
@@ -360,7 +363,8 @@ class SL_Diagram:
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                
+            print(6666666)
+            print(_functions)    
             return _states, _junctions, _functions
 
         # Create charts
@@ -402,8 +406,32 @@ class SL_Diagram:
                 var_name = data.getAttribute("name")
                 assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
-                value = eval(value) if value else 0
+               
+                # value = eval(value) 
+                if value and "[" in value:
+                    if ";" in value:
+                        value_list = value.split(";")
+                        val_lists=list()
+                        for val in value_list:
+                            if "[" in val:
+                                val = val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            elif "]" in val:
+                                val="["+val
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            else:
+                                val ="["+val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                        value =val_lists
+                    else:
+                        value =  list(aexpr_parser.parse(value).value)
+
+                elif value:
+                    value = eval(value) 
+                else:
+                    value = 0
                 scope=get_attribute_value(data, "scope")
+                sf_data=SF_Data(name=var_name,value=value,scope=scope)
                 if (len(data.getElementsByTagName(name="message"))>=1):
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
@@ -417,7 +445,7 @@ class SL_Diagram:
                         elif scope =="OUTPUT_DATA":
                             input_message_list.append(message)
                 else:
-                    chart_data[var_name] = value
+                    chart_data[var_name] = sf_data
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
@@ -485,7 +513,38 @@ class SL_Diagram:
                 displayOption=get_attribute_value(block,"DisplayOption")
                 ports=list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                 self.add_block(Mux(name=block_name,inputs=inputs,displayOption=displayOption,ports=ports))
-            if block_type == "Constant":
+            elif block_type == "DataStoreMemory":
+                init_value =get_attribute_value(block=block, attribute="InitialValue")
+                value=0
+                if init_value and "[" in init_value :
+                    if ";" in init_value:
+                        value_list = init_value.split(";")
+                        val_lists=list()
+                        for val in value_list:
+                            if "[" in val:
+                                val = val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            elif "]" in val:
+                                val="["+val
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                            else:
+                                val ="["+val+"]"
+                                val_lists.append(list(aexpr_parser.parse(val).value))
+                        value =val_lists
+                    else:
+                        value =  list(aexpr_parser.parse(init_value).value)
+                elif init_value:
+                    value = eval(value) 
+                else:
+                    value = 0
+                name=block.getAttribute("Name")
+                dataStoreName=get_attribute_value(block,"DataStoreName")
+                self.add_block(DataStoreMemory(name=name,value=value,dataStore_name=dataStoreName))
+            elif block_type == "DataStoreRead":
+                name=block.getAttribute("Name")
+                dataStoreName=get_attribute_value(block,"DataStoreName")
+                self.add_block(DataStoreRead(name=name,dataStoreName=dataStoreName))
+            elif block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
                 self.add_block(Constant(name=block_name, value=value))
@@ -510,10 +569,11 @@ class SL_Diagram:
                 self.add_block(Relation(name=block_name, relation=relation, st=sample_time))
             elif block_type == "Reference":
                 relop = get_attribute_value(block, "relop")
-                assert relop
-                if relop == "~=":
-                    relop = "!="
-                self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
+                # assert relop
+                if relop:
+                    if relop == "~=":
+                        relop = "!="
+                    self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
             elif block_type == "Sqrt":
@@ -1058,6 +1118,12 @@ class SL_Diagram:
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
             del blocks_dict[name]
+        dataStoreMemorys = [block for block in blocks_dict.values() if block.type == "DataStoreMemory"]
+        for name in [block.name for block in dataStoreMemorys]:
+            del blocks_dict[name]
+        dataStoreReads = [block for block in blocks_dict.values() if block.type == "DataStoreRead"]
+        for name in [block.name for block in dataStoreReads]:
+            del blocks_dict[name]
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]
@@ -1119,7 +1185,7 @@ class SL_Diagram:
                     del scc_dict[block_name]
             discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs
+        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
 
     def add_buffers(self):
         buffers = []
