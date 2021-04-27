@@ -625,22 +625,146 @@ lemma 38:
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X ^ 2  + s X ^ 4 , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
  {\<lambda>s tr. 2 * s X ^ 3 \<ge> 1/4}"
   apply(rule Valid_inv_s_ge)
-apply clarify
+apply clarify 
   unfolding vec2state_def
     apply (fast intro!: derivative_intros)
   apply(auto simp add:state2vec_def entails_def)
   done
-
+  
 lemma 39:
 "\<Turnstile> {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0 }
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4  + s Y ^ 5 , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4  + s Y ^ 5 , Y := \<lambda>  s. s Y ^ 2, T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0}"
+  apply(rule Valid_pre_cases[where Q = "(\<lambda>s. s T < P)"])
+   prefer 2
+   apply(rule Valid_ode_not)
+  apply auto
+  apply(rule Valid_post_and)
+  subgoal
+  apply(rule Valid_weaken_pre)    
+  prefer 2
+  apply(rule DC''[where P = "\<lambda> tr . True" and init = "\<lambda> s. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0" and c = "\<lambda> s. s Y ^ 5 \<ge> 0"])
+  subgoal
+    apply(rule Valid_weaken_pre)
+    prefer 2
+     apply(rule Valid_inv_tr_ge)
+      apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+  apply(rule Valid_weaken_pre)
+  prefer 2
+  apply(rule Valid_inv_s_ge)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  done
+  apply(rule Valid_weaken_pre)
+  prefer 2
+  apply(rule Valid_inv_s_ge)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+
+lemma 40:
+  assumes "A > 0"
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 }
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. A , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. s Y \<ge> 0}"
+  apply(rule Valid_inv_s_ge)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  using assms by auto
 
 
+lemma 41:
+  assumes "A > 0" and "B > 0"
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 }
+    Rep ( IChoice (IChoice (Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . 0))) (Z ::= (\<lambda> s . - B) );
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > 0))
+ {\<lambda>s tr. s Y \<ge> 0}"
+  apply(rule Valid_rep)
+  apply(rule Valid_seq[where Q = "\<lambda>s tr. 0 \<le> s Y"])
+   apply(rule Valid_ichoice_sp_st)
+    apply(rule Valid_ichoice_sp_st)
+     apply(rule Valid_strengthen_post)
+  prefer 2
+      apply(rule Valid_assign_sp)
+apply(auto simp add:entails_def)
+apply(rule Valid_strengthen_post)
+  prefer 2
+      apply(rule Valid_assign_sp)
+    apply(auto simp add:entails_def)
+apply(rule Valid_strengthen_post)
+  prefer 2
+      apply(rule Valid_assign_sp)
+   apply(auto simp add:entails_def)
+  apply(rule Valid_pre_cases[where Q ="(\<lambda>s. 0 < s Y)"])
+   prefer 2
+   apply(rule Valid_ode_not) 
+    apply auto
+  apply(rule Valid_weaken_pre)
+   prefer 2
+apply(rule Valid_strengthen_post)
+  prefer 2
+    apply(rule Valid_inv_b_s_ge)
+  apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+  apply(auto simp add:entails_def)
+  done
 
-
-
-
+lemma 42:
+  assumes "A > 0" and "B > 0"
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s X + 1/(2*B) * s Y ^ 2 < S}
+    Rep (Cond (\<lambda>s. s X + 1/(2*B) * s Y ^ 2 < S)(Z ::= (\<lambda> s . A)) (Cond (\<lambda> s . s Y = 0) (Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . - B)));
+     IChoice (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s X + 1/(2*B) * s Y ^ 2 < S))
+      (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s X + 1/(2*B) * s Y ^ 2 > S)))
+ {\<lambda>s tr. s X \<le> S}"
+ apply(rule Valid_weaken_pre)
+   prefer 2
+apply(rule Valid_strengthen_post)
+    prefer 2
+    apply(rule Valid_rep[where P = "\<lambda>s tr. s X + 1/(2*B) * s Y ^ 2 \<le> S"])
+    apply(rule Valid_seq[where Q = "\<lambda>s tr. s X + 1/(2*B) * s Y ^ 2 \<le> S"])
+  subgoal
+     apply(rule Valid_strengthen_post)
+    prefer 2
+     apply(rule Valid_cond_sp)
+      apply(rule Valid_assign_sp)
+     apply(rule Valid_cond_sp)
+      apply(rule Valid_assign_sp)
+     apply(rule Valid_assign_sp)
+    apply(auto simp add:entails_def)
+    done
+  subgoal 
+    apply(rule  Valid_ichoice_sp_st)
+    subgoal
+      apply(rule Valid_pre_cases[where Q = "\<lambda>s . s X + 1/(2*B) * s Y ^ 2 < S"])
+      apply(rule Valid_weaken_pre)
+   prefer 2
+apply(rule Valid_strengthen_post)
+         prefer 2
+         apply(rule Valid_inv_b_s_le)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:entails_def)
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+apply(rule Valid_ode_not)
+  apply auto
+  done
+  apply(auto simp add:entails_def)
+  using assms
+  by (smt divide_nonneg_pos power2_less_0)
 
 
 end

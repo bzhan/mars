@@ -865,6 +865,103 @@ theorem Valid_inv_b_s_tr_ge_and_ge:
   using assms by auto
 
 
+
+theorem Valid_inv_b_s_le:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. b s < r}
+     Cont ode (\<lambda> s. b s < r)
+    {\<lambda>s tr. b s = r}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+  proof(rule ccontr)
+    assume "b (p d) \<noteq> r"
+    then have g: "b (p d) > r" using pre by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre(2) by auto
+      have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<d+e}" "(\<lambda>t. b (p t))"]
+        using 2  e(1) by simp
+      done
+    then obtain dd where dd:"b (p dd) = r" "dd \<in> {0..d}"
+      using IVT[of "(\<lambda>t. b (p t))" 0 r d]
+      using pre g by force
+    then have 4:"dd<d" 
+      using g  le_less by auto
+    then show False using dd pre
+      using atLeastAtMost_iff by blast
+      
+    qed
+    done
+
+theorem Valid_inv_b_tr_le:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s < r}
+     Cont ode (\<lambda> s. b s < r)
+    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<le> r)) tr}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal for tr1 d p
+    apply(simp add: join_assn_def)
+    apply(rule exI [where x="tr1"])
+    apply auto
+    apply (auto intro!: ode_inv_assn.intros)
+  subgoal premises pre for \<tau>
+  proof(rule ccontr)
+    assume "\<not> b (p \<tau>) \<le> r"
+    then have g:"b (p \<tau>) > r" by auto
+      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of b "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2:"continuous (at t within {-e<..<\<tau>+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
+        apply(rule has_derivative_continuous)
+        apply(rule has_derivative_subset)
+        using 1 that e(1) pre by auto
+      have 3:"\<forall>t\<in>{0 .. \<tau>}. isCont (\<lambda>t. b (p t)) t"
+        apply auto subgoal for t
+        using continuous_within_open[of t "{-e<..<\<tau>+e}" "(\<lambda>t. b (p t))"]
+        using 2  e(1) pre by auto
+      done
+      then obtain dd where dd:"b (p dd) = r" "dd \<in> {0..\<tau>}"
+        using IVT[of "(\<lambda>t. b (p t))" 0 r \<tau>]
+        using pre g by force
+      then have 4:"dd<\<tau>" 
+        using g  le_less by auto
+      then show False using dd pre
+        by auto
+    qed
+    done
+  done
+
+theorem Valid_inv_b_s_tr_le:
+  fixes b :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s < r}
+     Cont ode (\<lambda>s. b s < r)
+    {\<lambda>s tr. b s = r  \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<le> r)) tr}"
+  apply(rule Valid_post_and)
+   apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_inv_b_s_le)
+     prefer 3
+    apply(rule Valid_inv_b_tr_le)
+  apply(auto simp add: entails_def)
+    using assms by auto
+
 theorem DC':
   assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
      Cont ode b
