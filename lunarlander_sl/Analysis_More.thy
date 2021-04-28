@@ -201,10 +201,14 @@ proof (rule ccontr)
   assume a:" \<not> p x \<ge> con"
   have 1:"p x < con"
     using a by auto
-  have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
+  have " \<forall>t\<in>{- e..d + e}. (p has_derivative q t) (at t within {- e<..<d + e})"
     using assms has_derivative_subset
+    by (smt greaterThanLessThan_subseteq_atLeastAtMost_iff)
+  then have " \<forall>t\<in>{0..d}. (p has_derivative q t) (at t within {- e<..<d + e})"
+    using assms by auto
+  then have 2:"\<forall>t\<in>{0 .. d}. continuous (at t within {-e<..<d+e}) p"
     using has_derivative_continuous 
-    by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+    by blast
   have 3:"\<forall>t\<in>{0 .. d}. isCont p t"
     apply auto subgoal for t
       using continuous_within_open[of t "{-e<..<d+e}" p]

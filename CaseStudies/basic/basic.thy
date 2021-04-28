@@ -767,4 +767,84 @@ apply(rule Valid_ode_not)
   by (smt divide_nonneg_pos power2_less_0)
 
 
+lemma 43:
+  assumes "A > 0" 
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
+    Rep (Cond (\<lambda>s. s Y = V)(Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . A));
+      (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y < V)))
+ {\<lambda>s tr. s Y \<le> V}"
+  apply(rule Valid_rep)
+  apply(rule Valid_seq)
+   apply(rule Valid_cond_sp)
+    apply(rule Valid_assign_sp)
+   apply(rule Valid_assign_sp)
+  apply(rule Valid_pre_cases[where Q = "\<lambda>s. s Y < V"])
+   apply(rule Valid_weaken_pre) prefer 2
+    apply(rule Valid_strengthen_post) prefer 2
+     apply(rule Valid_inv_b_s_le)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:entails_def)
+  apply(rule Valid_ode_not) 
+  by auto
+
+
+lemma 44:
+  assumes "A > 0" 
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
+    Rep ((Z ::= (\<lambda> s . A);
+      (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y < V))))
+ {\<lambda>s tr. s Y \<le> V}"
+  apply(rule Valid_rep)
+  apply(rule Valid_seq)
+   apply(rule Valid_assign_sp)
+  apply(rule Valid_pre_cases[where Q = "\<lambda>s. s Y < V"])
+  apply(rule Valid_weaken_pre) prefer 2
+    apply(rule Valid_strengthen_post) prefer 2
+     apply(rule Valid_inv_b_s_le)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:entails_def)
+  apply(rule Valid_ode_not) 
+  by auto
+
+
+lemma 45:
+  assumes "A > 0" 
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
+    Rep (Cond (\<lambda>s. s Y = V)(Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . A));
+      IChoice (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y < V))
+       (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > V)))
+ {\<lambda>s tr. s Y \<le> V}"
+apply(rule Valid_rep)
+  apply(rule Valid_seq)
+ apply(rule Valid_cond_sp)
+    apply(rule Valid_assign_sp)
+   apply(rule Valid_assign_sp)
+  apply(rule Valid_ichoice_sp_st)
+  apply(rule Valid_pre_cases[where Q = "\<lambda>s. s Y < V"])
+   apply(rule Valid_weaken_pre) prefer 2
+    apply(rule Valid_strengthen_post) prefer 2
+     apply(rule Valid_inv_b_s_le)
+apply clarify
+ unfolding vec2state_def
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:entails_def)
+  apply(rule Valid_ode_not) 
+   apply auto
+apply(rule Valid_ode_not) 
+  apply auto
+  done
+
+
+
+
+
+
+
+
+
+
 end
