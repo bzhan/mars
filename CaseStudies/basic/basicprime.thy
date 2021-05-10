@@ -38,6 +38,19 @@ theorem Valid_ichoice_sp_st:
   shows "\<Turnstile> {P} IChoice c1 c2 {Q}"
   using assms unfolding Valid_def by (auto elim: ichoiceE)
 
+theorem Valid_cond_split:
+  assumes "\<Turnstile> {\<lambda>s t. b s \<and> P s t} c1;d {Q}"
+    and "\<Turnstile> {\<lambda>s t. \<not>b s \<and> P s t} c2;d {Q}"
+  shows "\<Turnstile> {\<lambda>s t. P s t}
+             IF b THEN c1 ELSE c2 FI;d
+            {\<lambda>s t. Q s t}"
+ using assms unfolding Valid_def
+  apply (auto elim!: condE seqE)
+  apply (simp add: seqB)
+  apply (simp add: seqB)
+  done
+
+
 theorem Valid_ode_not:
   assumes "\<And>s. P s \<Longrightarrow> \<not> b s"
     and "\<And>s. P s \<Longrightarrow> Q s"
@@ -478,7 +491,7 @@ theorem Valid_inv_s_tr_l:
   using assms by auto
 
 theorem Valid_ode_unique_solution_s_sp:
-  assumes "\<And>s. b s \<Longrightarrow> d s > 0 \<and> ODEsol ode (p s) (d s) \<and>
+  assumes "\<And>s. P s \<Longrightarrow> d s > 0 \<and> ODEsol ode (p s) (d s) \<and>
                 (\<forall>t. t \<ge> 0 \<and> t < d s \<longrightarrow> b (p s t)) \<and>
                 \<not>b (p s (d s)) \<and> p s 0 = s"
     and "local_lipschitz {- 1<..} UNIV (\<lambda>(t::real) v. ODE2Vec ode (vec2state v))"
@@ -488,17 +501,28 @@ theorem Valid_ode_unique_solution_s_sp:
       Cont ode b
     {\<lambda>s t. \<exists>s'.(s = p s' (d s')) \<and> P s'}"
 proof-
-  have 1:"\<Turnstile>
-    {\<lambda>s t. (\<lambda> s t. P s) s t}
-      Cont ode b
-    {\<lambda>s t. \<exists>s'. if b s' then (\<up>(s = p s' (d s')) \<and>\<^sub>t (\<lambda> s t. P s) s' @\<^sub>t Wait\<^sub>t (d s') (\<lambda>\<tau>. State (p s' \<tau>)) ({}, {})) t
-                else (\<up>(s = s') \<and>\<^sub>t (\<lambda> s t. P s) s') t}"
-    apply(rule Valid_ode_unique_solution_sp)
-    using assms by auto
+  have a: "s' = p s (d s) \<and> Wait\<^sub>t (d s) (\<lambda>\<tau>. State (p s \<tau>)) ({}, {}) tr2"
+    if "ODE\<^sub>t s ode b s' tr2" "P s" for s s' tr2
+  proof -
+    have a1: "d s > 0" "ODEsol ode (p s) (d s)" "\<forall>t. 0 \<le> t \<and> t < d s \<longrightarrow> b (p s t)"
+             "\<not>b (p s (d s))" "p s 0 = s"
+      using assms(1) that(2) by auto
+    show ?thesis
+      using Valid_ode_unique_solution_aux[OF a1(1-2) _ a1(4-5) assms(2) that(1)] a1(3)
+      by auto
+  qed
+  have b: "ODE\<^sub>t s ode b s' tr2 \<Longrightarrow> \<not>b s \<Longrightarrow> s = s' \<and> tr2 = []" for s s' tr2
+    apply (induct rule: ode_assn.induct) by auto
   show ?thesis
-    apply(rule Valid_strengthen_post [OF _ 1])
-    apply(auto simp add: entails_def pure_assn_def conj_assn_def join_assn_def)
-    using assms(3) by auto
+    apply (rule Valid_weaken_pre)
+     prefer 2 apply (rule Valid_ode')
+    apply (auto simp add: entails_def magic_wand_assn_def)
+    subgoal for s  s' tr
+      apply (rule exI[where x=s])
+      apply (auto simp add: join_assn_def conj_assn_def pure_assn_def)
+      apply (auto simp add: a)
+      done
+    done
 qed
 
 
@@ -1114,9 +1138,6 @@ proof-
   show ?thesis using has_derivative_exp[OF 1] 
     by auto
   qed
-
-
-
 
 
 

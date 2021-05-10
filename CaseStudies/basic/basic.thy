@@ -838,9 +838,44 @@ apply(rule Valid_ode_not)
   apply auto
   done
 
-
-
-
+lemma 46:
+  assumes "A > 0" and "B > 0" and "ep > 0"
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s X + s Y ^ 2/(2 * B) \<le> S}
+    Rep (Cond (\<lambda>s. s X + s Y ^ 2/(2 * B) + (A/B + 1)*(A/2 * ep^2 + ep * s Y)\<le> S)(Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . - B));
+        T ::= (\<lambda> s. 0);
+       (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z , T := \<lambda> s . 1))) (\<lambda>s. s Y > 0 \<and> s T < ep)))
+ {\<lambda>s tr. s X \<le> S}"
+  apply(rule Valid_strengthen_post)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_cond_split)
+  subgoal
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply (rule Valid_pre_cases[where Q ="\<lambda> s. s Y > 0"])
+     prefer 2
+     apply(rule Valid_ode_not)
+    apply auto
+    apply(rule Valid_strengthen_post)
+     prefer 2
+     apply(rule Valid_ode_unique_solution_s_sp[where d = "\<lambda> s.  ep " and p ="\<lambda> s t . s(X := s X + s Y * t + 1/2 * s Z * t^2 , Y := s Y + s Z * t,  T := s T + t) "])
+       apply (auto simp add:assms)
+    unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+    using assms 
+    apply linarith
+ apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+    prefer 2
+apply (rule has_vector_derivative_eq_rhs)
+      apply (auto intro!: derivative_intros)[1]
+     apply (auto simp add: has_vector_derivative_def)
+       apply (rule has_derivative_eq_rhs)
+     apply (auto intro!: derivative_intros)[1]
 
 
 
