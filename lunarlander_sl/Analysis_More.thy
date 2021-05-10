@@ -35,6 +35,11 @@ lemma has_vector_derivative_divide[derivative_intros]:
   shows "(f has_vector_derivative x) F \<Longrightarrow> ((\<lambda>x. f x / a) has_vector_derivative (x/a)) F"
   unfolding divide_inverse by(fact has_vector_derivative_mult_left)
 
+lemma has_derivative_divide[derivative_intros]:
+  fixes a:: "'a::real_normed_field"
+  shows "(f has_derivative g) F \<Longrightarrow> ((\<lambda>x. f x / a) has_derivative (\<lambda>x. g x / a)) F"
+  unfolding divide_inverse by(fact has_derivative_mult_left)
+
 
 text \<open>If the derivative is always 0, then the function is always 0.\<close>
 lemma mvt_real_eq:

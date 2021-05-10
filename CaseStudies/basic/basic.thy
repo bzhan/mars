@@ -838,6 +838,19 @@ apply(rule Valid_ode_not)
   apply auto
   done
 
+schematic_goal
+  fixes x :: real
+  shows"((\<lambda>t. s X + s Y * t + s Z * (t * t) / 2) has_derivative ?f'81)
+            (at x within {- 1..ep + 1})"
+  apply (rule has_derivative_add)
+  apply (rule has_derivative_add)
+    apply (auto intro!: derivative_intros)[1]
+   apply (auto intro!: derivative_intros)[1]
+  apply (rule has_derivative_divide)
+   apply (auto intro!: derivative_intros)[1]
+  done
+
+
 lemma 46:
   assumes "A > 0" and "B > 0" and "ep > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s X + s Y ^ 2/(2 * B) \<le> S}
@@ -875,7 +888,13 @@ apply (rule has_vector_derivative_eq_rhs)
       apply (auto intro!: derivative_intros)[1]
      apply (auto simp add: has_vector_derivative_def)
        apply (rule has_derivative_eq_rhs)
-     apply (auto intro!: derivative_intros)[1]
+        apply (simp add: power2_eq_square)
+        apply (fast intro!: derivative_intros)[1]
+    apply (rule ext)
+       apply (auto simp add: algebra_simps)[1]
+    using assms
+      apply (smt mult_nonneg_nonneg)
+apply (rule local_lipschitz_constI)
 
 
 
