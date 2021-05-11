@@ -894,11 +894,98 @@ apply (rule has_vector_derivative_eq_rhs)
        apply (auto simp add: algebra_simps)[1]
     using assms
       apply (smt mult_nonneg_nonneg)
-apply (rule local_lipschitz_constI)
-
-
-
-
-
+    subgoal
+    proof-
+      have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)) "
+        apply(rule bounded_linearI')
+        using vec_lambda_unique by fastforce+
+      show ?thesis 
+        unfolding state2vec_def vec2state_def fun_upd_def
+     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)))"])
+ apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
+        subgoal premises pre for t x
+          unfolding has_derivative_def apply(auto simp add: b1)
+          apply(rule vec_tendstoI)
+          by(auto simp add: state2vec_def)
+        done
+    qed
+    apply(auto simp add:entails_def)
+    using assms
+     apply auto[1]
+    using assms
+    by (auto simp add: algebra_simps power_add power2_eq_square  add_divide_distrib )
+   subgoal
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply (rule Valid_pre_cases[where Q ="\<lambda> s. s Y > 0"])
+     prefer 2
+     apply(rule Valid_ode_not)
+    apply auto
+    apply(rule Valid_strengthen_post)
+     prefer 2
+      apply(rule Valid_ode_unique_solution_s_sp[where d = "\<lambda> s.  if s Y \<le> ep * B then s Y/B else ep " and p ="\<lambda> s t . s(X := s X + s Y * t + 1/2 * s Z * t^2 , Y := s Y + s Z * t,  T := s T + t) "])
+     using assms apply auto
+     subgoal
+unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+       apply (rule has_vector_derivative_eq_rhs)
+  unfolding power2_eq_square
+      apply (fast intro!: derivative_intros)[1]
+             apply (auto simp add: has_vector_derivative_def)
+    using assms apply auto
+       apply (rule has_derivative_eq_rhs)
+           apply (fast intro!: derivative_intros)[1]
+          apply (rule ext)
+    apply auto
+    done
+         apply (metis (no_types, hide_lams) div_by_1 divide_divide_eq_right pos_less_divide_eq real_divide_square_eq)
+  using mult_imp_div_pos_less 
+  apply (smt divide_eq_imp)
+  subgoal
+unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+       apply (rule has_vector_derivative_eq_rhs)
+  unfolding power2_eq_square
+      apply (fast intro!: derivative_intros)[1]
+             apply (auto simp add: has_vector_derivative_def)
+    using assms apply auto
+       apply (rule has_derivative_eq_rhs)
+           apply (fast intro!: derivative_intros)[1]
+          apply (rule ext)
+    apply auto
+    done
+    apply(auto simp add: algebra_simps)
+    apply (smt mult.commute real_mult_less_iff1)
+  subgoal
+ proof-
+      have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)) "
+        apply(rule bounded_linearI')
+        using vec_lambda_unique by fastforce+
+      show ?thesis 
+        unfolding state2vec_def vec2state_def fun_upd_def
+     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)))"])
+ apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
+        subgoal premises pre for t x
+          unfolding has_derivative_def apply(auto simp add: b1)
+          apply(rule vec_tendstoI)
+          by(auto simp add: state2vec_def)
+        done
+    qed
+    unfolding entails_def fun_upd_def apply auto 
+    apply (simp add: mult.commute)
+      by (auto simp add: algebra_simps power_add power2_eq_square  add_divide_distrib  diff_divide_distrib)
+    apply(auto simp add: entails_def)
+    using assms 
+    by (smt divide_nonneg_pos power2_less_0)
 
 end
