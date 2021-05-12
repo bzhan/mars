@@ -988,4 +988,25 @@ apply (rule exI[where x="1"])
     using assms 
     by (smt divide_nonneg_pos power2_less_0)
 
+
+lemma 49:
+  assumes "c>0" and "p=2" and "d=3"
+  shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> (5/4 * (s X - r)^ 2 + (s X - r) * s Y / 2 + (s Y ^ 2)/4 < c)}
+Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. - p * (s X - r) - d * s Y , T := \<lambda> s . 1))) (\<lambda>s. s T < P)
+{\<lambda> s t.  5/4 * (s X - r)^ 2 + (s X - r) * s Y / 2 + (s Y ^ 2)/4 < c}"
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_inv_s_l)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  using assms apply auto
+  apply (auto simp add: algebra_simps power_add power2_eq_square  power2_diff add_divide_distrib  diff_divide_distrib )
+  using  power2_diff zero_le_power2 power2_eq_square
+  by (smt mult.commute)
+
+
+
+
 end
