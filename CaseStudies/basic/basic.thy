@@ -1007,6 +1007,256 @@ apply clarify
   by (smt mult.commute)
 
 
+lemma 50:
+  assumes "p=2" and "d=3"
+  shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> s M \<le> s X \<and> s X \<le> S \<and> s L = (s M + S)/2 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 < ((S - s M)/2)^2)}
+Rep(
+M ::= (\<lambda> s. s X);
+L ::= (\<lambda> s. (s M + S)/2);
+Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. - p * (s X - s L) - d * s Y ))) (\<lambda>s. s Y > 0)
+)
+{\<lambda> s t.  s X \<le> S}"
+  apply(rule Valid_weaken_pre[where P' = "\<lambda> s t . s Y \<ge> 0 \<and> s M \<le> s X \<and> s L = (s M + S)/2 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 < ((S - s M)/2)^2)"])
+   apply(auto simp add:entails_def)
+  apply(rule Valid_strengthen_post)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_seq)
+    apply(rule Valid_assign_sp)
+  apply auto
+   apply(rule Valid_seq)
+    apply(rule Valid_assign_sp)
+   apply auto
+  subgoal
+    apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0 "])
+     prefer 2
+     apply(rule Valid_ode_not)
+    apply auto
+    sorry
+  sorry
 
+lemma 52:
+ "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> s Z \<ge> 0 }
+Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > 0)
+{\<lambda> s t.  s Y \<ge>0}"
+  apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0"])
+  apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_strengthen_post)
+  prefer 2
+     apply(rule Valid_inv_b_s_ge)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+
+
+lemma 53:
+  assumes"A\<ge>0" and "B>0"
+  shows
+ "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 }
+IChoice (Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . - B));
+Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > 0)
+{\<lambda> s t.  s Y \<ge>0}"
+  apply(rule Valid_seq)
+   apply(rule Valid_ichoice_sp)
+    apply(rule Valid_assign_sp)
+   apply(rule Valid_assign_sp)
+  apply auto
+apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0"])
+  apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_strengthen_post)
+  prefer 2
+     apply(rule Valid_inv_b_s_ge)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+
+lemma 54:
+  assumes"A\<ge>0" and "B>0"
+  shows
+ "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 }
+IF (\<lambda> s. m - s X \<ge> 2) THEN (Z ::= (\<lambda> s . A)) ELSE (Z ::= (\<lambda> s . - B)) FI;
+Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > 0)
+{\<lambda> s t.  s Y \<ge>0}"
+  apply(rule Valid_seq)
+   apply(rule Valid_cond_sp)
+apply(rule Valid_assign_sp)
+   apply(rule Valid_assign_sp)
+  apply auto
+apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0"])
+  apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule Valid_strengthen_post)
+  prefer 2
+     apply(rule Valid_inv_b_s_ge)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+
+
+
+
+
+lemma 55:
+  assumes "A \<ge> 0" and "B > 0" and "ep > 0"
+  shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s Y ^ 2 \<le> (S - s X)*(2 * B)}
+    Rep (Cond (\<lambda>s. (A + B)*(A * ep^2 + 2 * ep * s Y) + s Y ^ 2  \<le> (S - s X) * 2 * B)(Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . - B));
+        T ::= (\<lambda> s. 0);
+       (Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z , T := \<lambda> s . 1))) (\<lambda>s. s Y > 0 \<and> s T < ep)))
+ {\<lambda>s tr. s X \<le> S}"
+  apply(rule Valid_strengthen_post)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_cond_split)
+  subgoal
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply (rule Valid_pre_cases[where Q ="\<lambda> s. s Y > 0"])
+     prefer 2
+     apply(rule Valid_ode_not)
+    apply auto
+    apply(rule Valid_strengthen_post)
+     prefer 2
+     apply(rule Valid_ode_unique_solution_s_sp[where d = "\<lambda> s.  ep " and p ="\<lambda> s t . s(X := s X + s Y * t + 1/2 * s Z * t^2 , Y := s Y + s Z * t,  T := s T + t) "])
+       apply (auto simp add:assms)
+    unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+    using assms 
+    apply linarith
+ apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+    prefer 2
+apply (rule has_vector_derivative_eq_rhs)
+      apply (auto intro!: derivative_intros)[1]
+     apply (auto simp add: has_vector_derivative_def)
+       apply (rule has_derivative_eq_rhs)
+        apply (simp add: power2_eq_square)
+        apply (fast intro!: derivative_intros)[1]
+    apply (rule ext)
+       apply (auto simp add: algebra_simps)[1]
+    using assms
+      apply (smt mult_nonneg_nonneg)
+    subgoal
+    proof-
+      have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)) "
+        apply(rule bounded_linearI')
+        using vec_lambda_unique by fastforce+
+      show ?thesis 
+        unfolding state2vec_def vec2state_def fun_upd_def
+     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)))"])
+ apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
+        subgoal premises pre for t x
+          unfolding has_derivative_def apply(auto simp add: b1)
+          apply(rule vec_tendstoI)
+          by(auto simp add: state2vec_def)
+        done
+    qed
+    apply(auto simp add:entails_def)
+    using assms
+     apply auto[1]
+    using assms
+    by (auto simp add: algebra_simps power_add power2_eq_square  add_divide_distrib )
+   subgoal
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply(rule Valid_seq)
+     apply(rule Valid_assign_sp)
+    apply (rule Valid_pre_cases[where Q ="\<lambda> s. s Y > 0"])
+     prefer 2
+     apply(rule Valid_ode_not)
+    apply auto
+    apply(rule Valid_strengthen_post)
+     prefer 2
+      apply(rule Valid_ode_unique_solution_s_sp[where d = "\<lambda> s.  if s Y \<le> ep * B then s Y/B else ep " and p ="\<lambda> s t . s(X := s X + s Y * t + 1/2 * s Z * t^2 , Y := s Y + s Z * t,  T := s T + t) "])
+     using assms apply auto
+     subgoal
+unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+       apply (rule has_vector_derivative_eq_rhs)
+  unfolding power2_eq_square
+      apply (fast intro!: derivative_intros)[1]
+             apply (auto simp add: has_vector_derivative_def)
+    using assms apply auto
+       apply (rule has_derivative_eq_rhs)
+           apply (fast intro!: derivative_intros)[1]
+          apply (rule ext)
+    apply auto
+    done
+         apply (metis (no_types, hide_lams) div_by_1 divide_divide_eq_right pos_less_divide_eq real_divide_square_eq)
+  using mult_imp_div_pos_less 
+  apply (smt divide_eq_imp)
+  subgoal
+unfolding ODEsol_def has_vderiv_on_def
+    apply auto
+apply (rule exI[where x="1"])
+    apply auto
+     apply (rule has_vector_derivative_projI)
+    apply (auto simp add: state2vec_def)
+       apply (rule has_vector_derivative_eq_rhs)
+  unfolding power2_eq_square
+      apply (fast intro!: derivative_intros)[1]
+             apply (auto simp add: has_vector_derivative_def)
+    using assms apply auto
+       apply (rule has_derivative_eq_rhs)
+           apply (fast intro!: derivative_intros)[1]
+          apply (rule ext)
+    apply auto
+    done
+    apply(auto simp add: algebra_simps)
+    apply (smt mult.commute real_mult_less_iff1)
+  subgoal
+ proof-
+      have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)) "
+        apply(rule bounded_linearI')
+        using vec_lambda_unique by fastforce+
+      show ?thesis 
+        unfolding state2vec_def vec2state_def fun_upd_def
+     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ Y else if a = Y then  v $ Z else 0)))"])
+ apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
+        subgoal premises pre for t x
+          unfolding has_derivative_def apply(auto simp add: b1)
+          apply(rule vec_tendstoI)
+          by(auto simp add: state2vec_def)
+        done
+    qed
+    unfolding entails_def fun_upd_def apply auto 
+    apply (simp add: mult.commute)
+      apply (auto simp add: algebra_simps power_add power2_eq_square  diff_divide_distrib divide_right_mono)
+    subgoal for s'
+      apply(subgoal_tac "B* (s' X * 2 + s' Y * s' Y / B) \<le> B *( S * 2)")
+      subgoal by auto
+      by (auto simp add: algebra_simps)
+        subgoal for s'
+      apply(subgoal_tac "B* (s' X * 2 + s' Y * s' Y / B) \<le> B *( S * 2)")
+      subgoal by auto
+      by (auto simp add: algebra_simps)
+    done
+ apply(auto simp add: entails_def)
+    using assms 
+    by (smt mult_neg_pos zero_le_power2)
+    
+    
+   
 
 end

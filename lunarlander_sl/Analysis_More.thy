@@ -371,7 +371,7 @@ proof (rule ccontr)
   have 15:"q tt 1 > 0" using 14 assms(4) t1 9 
     by (metis (mono_tags, lifting) diff_gt_0_iff_gt mem_Collect_eq zero_less_mult_pos2)
   then show False using assms(3) 10[of tt] tt2 
-    by (smt "1" "10" assms(5) atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff) 
+    by (smt "10" a assms(5) atLeastAtMost_iff atLeastLessThan_iff greaterThanLessThan_iff)
 qed
 
 
