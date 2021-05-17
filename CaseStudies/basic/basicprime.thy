@@ -1477,6 +1477,8 @@ apply(rule exp_3_2)
   done
 
 
+
+
 lemma exp_4_subst:
 "(state2vec(\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. - (s Y * s X))) a)
                           (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then -v$Y * v$X else 0)" for v
@@ -1612,6 +1614,23 @@ lemma exp_5:
    apply(rule exp_5_1)
 apply(rule exp_5_2)
   done
+
+
+lemma has_derivative_proj:
+  assumes "(p has_derivative q t) (at t within D)"
+  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
+  using assms unfolding has_derivative_def has_derivative_def 
+  apply auto 
+  using tendsto_vec_nth 
+  sorry
+
+
+lemma has_derivative_projI:
+  assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
+  shows "(p has_derivative q t) (at t within D)"
+  using assms unfolding  has_derivative_def
+  apply (auto simp add: bounded_linear_scaleR_left)
+  sorry
 
 
 lemma g1:
