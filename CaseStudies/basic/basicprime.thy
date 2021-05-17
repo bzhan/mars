@@ -1614,4 +1614,62 @@ apply(rule exp_5_2)
   done
 
 
+lemma g1:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
+    and "local_lipschitz {- 1<..} UNIV (\<lambda> t v . g t * v)"
+    and "continuous_on {- 1<..} (\<lambda>t. g t)"
+    and "f 0 = 0"
+    and "D \<ge> 0 "
+  shows "f D = 0"
+proof-
+interpret loc:ll_on_open_it "{-1<..}"
+      "\<lambda> t v . g t * v" UNIV 0
+      apply standard
+  using assms(2) apply auto
+  using assms(3) 
+  by (simp add: continuous_on_mult_right)
+  have s1:" (f solves_ode (\<lambda> t v . g t * v)) {0..D} UNIV" 
+    unfolding solves_ode_def
+    using assms    
+    using has_vderiv_on_subset by blast
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f t) t" if "t \<in> {0..D}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g t * v)) {0..D} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..D}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2 s4 assms by auto
+qed
+
+lemma g3:
+"local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
+proof-
+  have b1:"bounded_linear (\<lambda>(v :: real). (t :: real) * v) " for t
+    apply(rule bounded_linearI')
+     apply (auto simp add : algebra_simps)
+    done
+  show ?thesis
+  apply(rule c1_implies_local_lipschitz[where f'="\<lambda>(t,_) . Blinfun (\<lambda>v . t * v)"])
+     apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
+  subgoal for t x'
+    apply (rule has_derivative_eq_rhs)
+     apply (auto intro!: derivative_intros)[1]
+    apply auto
+    done
+  using b1  
+  sorry
+qed
+
+lemma g2:
+  fixes f :: "real \<Rightarrow> real"
+  assumes "continuous_on {- 1<..} (\<lambda>t. g t)"
+  shows "local_lipschitz {- 1<..} UNIV (\<lambda> t v . g t * v)"
+  apply(rule  local_lipschitz_compose1[OF _ assms(1)])
+  sorry
+
 end
