@@ -1440,7 +1440,7 @@ apply (rule has_vector_derivative_eq_rhs)
     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v $ X else 0)))"])
        apply (subst exp_3_subst) 
       apply (rule has_derivative_eq_rhs)
-        apply (rule exp_3_deriv)
+       apply (rule exp_3_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_3_deriv_bounded)
   apply(auto simp add: entails_def)
   subgoal premises pre for s
@@ -1617,32 +1617,64 @@ apply(rule exp_5_2)
 
 
 lemma has_derivative_proj:
-  assumes "(p has_derivative q t) (at t within D)"
-  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
-  using assms unfolding has_derivative_def has_derivative_def 
-  apply auto 
-  using tendsto_vec_nth 
-  sorry
+  fixes x :: vec
+    and p :: "vec \<Rightarrow> vec"
+  assumes "(p has_derivative q x) (at x within D)"
+  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q x v $ i)) (at x within D)"
+  using assms unfolding has_derivative_def  
+  apply auto
+  subgoal
+    unfolding bounded_linear_def bounded_linear_axioms_def
+    apply auto
+    subgoal for K
+      unfolding linear_iff by auto
+    subgoal for K
+      apply (rule exI[where x=K])
+      apply auto subgoal for x'
+        using norm_bound_component_le_cart by blast
+      done
+    done
+  subgoal
+    using tendsto_vec_nth by fastforce
+  done
 
 
 lemma has_derivative_projI:
   assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
   shows "(p has_derivative q t) (at t within D)"
   using assms unfolding  has_derivative_def
-  apply (auto simp add: bounded_linear_scaleR_left)
-  sorry
+  apply auto
+  subgoal
+unfolding bounded_linear_def bounded_linear_axioms_def
+  apply auto
+  subgoal  
+    unfolding linear_iff apply auto 
+     apply (simp add: vec_eq_iff)
+    apply (simp add: vec_eq_iff)
+    done
+  subgoal premises pre 
+  proof-
+    have "\<forall>i. (\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)"
+      using pre by auto
+    then have "(\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)" for i
+      by auto
+    then obtain K where "\<forall>x. norm (q t x $ i) \<le> norm x * (K$i)" for i
+      
+      
+    sorry
+  done
 
 
-lemma g1:
+lemma dbxeq:
   fixes f :: "real \<Rightarrow> real"
   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
-    and "local_lipschitz {- 1<..} UNIV (\<lambda> t v . g t * v)"
-    and "continuous_on {- 1<..} (\<lambda>t. g t)"
+    and "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
+    and "continuous_on UNIV (\<lambda>t. g t)"
     and "f 0 = 0"
     and "D \<ge> 0 "
   shows "f D = 0"
 proof-
-interpret loc:ll_on_open_it "{-1<..}"
+interpret loc:ll_on_open_it "UNIV"
       "\<lambda> t v . g t * v" UNIV 0
       apply standard
   using assms(2) apply auto
@@ -1665,30 +1697,208 @@ interpret loc:ll_on_open_it "{-1<..}"
   show ?thesis using s2 s4 assms by auto
 qed
 
-lemma g3:
-"local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
+lemma dbxeq':
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
+    and "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
+    and "continuous_on UNIV (\<lambda>t. g t)"
+    and "f d = 0" 
+    and "d\<ge>0"
+    and "D \<ge> 0"
+  shows "f D = 0"
+proof(cases "D \<ge> d")
+  case g:True
+  then show ?thesis
+
 proof-
-  have b1:"bounded_linear (\<lambda>(v :: real). (t :: real) * v) " for t
-    apply(rule bounded_linearI')
+interpret loc:ll_on_open_it "UNIV"
+      "\<lambda> t v . g (t + d) * v" UNIV 0
+      apply standard
+  apply auto
+  subgoal
+    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . t + d"])
+    subgoal using assms local_lipschitz_subset
+      by blast
+    apply(auto intro:continuous_intros)
+    done
+  subgoal for x
+  proof-
+    have "continuous_on UNIV (\<lambda>t. t + d)"
+      apply(auto intro:continuous_intros)
+      done
+    then show ?thesis
+    using assms(3)
+    using continuous_on_mult_right[where f="\<lambda> t .g( t + d)" and c= "x" and s= "UNIV"]
+    using continuous_on_compose[where f="\<lambda> t . t + d" and g= "g" and s= "UNIV"]
+    using continuous_on_subset 
+    by auto
+qed
+  done
+  have m:"((\<lambda>t. t + d) has_vderiv_on (\<lambda>_ . 1)) UNIV"
+    apply (auto intro!: derivative_intros)
+    done
+  have s1:" ((\<lambda>t. f(t+d)) solves_ode (\<lambda> t v . g (t+d) * v)) {0..D} UNIV" 
+    unfolding solves_ode_def
+    apply auto
+    apply(rule has_vderiv_on_subset[where S = "UNIV"])
+    apply auto
+    using assms(1) m
+    using has_vderiv_on_compose[where g="\<lambda> t. t+d" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. 1" and T=UNIV]
+    apply auto
+    using has_vderiv_on_subset by blast
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f(t+d)) t" if "t \<in> {0..D}" for t
+   apply(rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g (t+d) * v)) {0..D} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..D}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2[of "D-d"] s4[of "D-d"] g assms(4,5,6) by auto
+qed
+next
+  case l:False
+  then show ?thesis 
+proof-
+interpret loc:ll_on_open_it "UNIV"
+      "\<lambda> t v . - g (d - t) * v" UNIV 0
+      apply standard
+  apply auto
+  subgoal
+    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . d - t"])
+    subgoal using assms local_lipschitz_subset local_lipschitz_minus
+      by fastforce
+    apply(auto intro:continuous_intros)
+    done
+  subgoal for x
+  proof-
+    have "continuous_on UNIV (\<lambda>t. d - t)"
+      apply(auto intro:continuous_intros)
+      done
+    then show ?thesis
+    using assms(3)
+    using continuous_on_mult_right[where f="\<lambda> t .g( d - t)" and c= "x" and s= "UNIV"]
+    using continuous_on_subset continuous_on_minus
+    by (metis continuous_on_compose2 subset_UNIV)
+qed
+  done
+  have m:"((\<lambda>t. d - t) has_vderiv_on (\<lambda>_ . -1)) UNIV"
+    apply (auto intro!: derivative_intros)
+    done
+  have s1:" ((\<lambda>t. f(d - t)) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV" 
+    unfolding solves_ode_def
+    apply auto
+    apply(rule has_vderiv_on_subset[where S = "UNIV"])
+    apply auto
+    using assms(1) m
+    using has_vderiv_on_compose[where g="\<lambda> t. d-t" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. -1" and T=UNIV]
+    apply auto
+    using has_vderiv_on_subset by blast
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f(d-t)) t" if "t \<in> {0..d}" for t
+   apply(rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..d}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2[of "d-D"] s4[of "d-D"] l assms(4,5,6) by auto
+qed
+qed
+
+lemma dbxg:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
+    and "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
+    and "continuous_on UNIV (\<lambda>t. g t)"
+    and "f 0 > 0"
+    and "D \<ge> 0 "
+  shows "f D > 0"
+proof(rule ccontr)
+  assume "\<not> 0 < f D"
+  then have 1:"f D \<le> 0" and "D > 0"
+     apply linarith    
+    using assms 
+    using \<open>\<not> 0 < f D\<close> less_eq_real_def by blast
+  have 2:"\<forall>t. continuous (at t within UNIV) f"
+    using assms(1) unfolding has_vderiv_on_def has_vector_derivative_def
+    using has_derivative_continuous has_derivative_subset
+    by blast
+  have 3:"\<forall>t\<in>{0 .. D}. isCont f t"
+    using 2 by auto
+  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
+    using IVT2[of f D 0 0] using 1 3 assms by auto
+  obtain d where "d \<in> {0 .. D}" and "f d = 0"
+    using 4 by auto
+  then have "f 0 = 0"
+    using dbxeq'[OF assms(1) assms(2) assms(3)] by auto
+  then show False using assms by auto
+qed
+
+lemma dbxl:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
+    and "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
+    and "continuous_on UNIV (\<lambda>t. g t)"
+    and "f 0 < 0"
+    and "D \<ge> 0 "
+  shows "f D < 0"
+proof(rule ccontr)
+  assume "\<not> f D < 0"
+  then have 1:"f D \<ge> 0" and "D > 0"
+     apply linarith    
+    using assms 
+    using \<open>\<not> 0 > f D\<close> less_eq_real_def by blast
+  have 2:"\<forall>t. continuous (at t within UNIV) f"
+    using assms(1) unfolding has_vderiv_on_def has_vector_derivative_def
+    using has_derivative_continuous has_derivative_subset
+    by blast
+  have 3:"\<forall>t\<in>{0 .. D}. isCont f t"
+    using 2 by auto
+  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
+    using IVT[of f 0 0 D] using 1 3 assms by auto
+  obtain d where "d \<in> {0 .. D}" and "f d = 0"
+    using 4 by auto
+  then have "f 0 = 0"
+    using dbxeq'[OF assms(1) assms(2) assms(3)] by auto
+  then show False using assms by auto
+qed
+
+    
+  
+  
+
+lemma g3:
+  "local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
+proof -
+  have b1: "bounded_linear (\<lambda>(v :: real). (t :: real) * v) " for t
+    apply (rule bounded_linearI')
      apply (auto simp add : algebra_simps)
     done
   show ?thesis
-  apply(rule c1_implies_local_lipschitz[where f'="\<lambda>(t,_) . Blinfun (\<lambda>v . t * v)"])
+  apply (rule c1_implies_local_lipschitz[where f'="\<lambda>(t,_) . Blinfun (\<lambda>v . t * v)"])
      apply (auto simp add: bounded_linear_Blinfun_apply[OF b1])
   subgoal for t x'
     apply (rule has_derivative_eq_rhs)
      apply (auto intro!: derivative_intros)[1]
     apply auto
     done
-  using b1  
+  using b1
+  
   sorry
 qed
 
 lemma g2:
-  fixes f :: "real \<Rightarrow> real"
-  assumes "continuous_on {- 1<..} (\<lambda>t. g t)"
-  shows "local_lipschitz {- 1<..} UNIV (\<lambda> t v . g t * v)"
+  fixes g :: "real \<Rightarrow> real"
+  assumes "continuous_on UNIV (\<lambda>t. g t)"
+  shows "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
   apply(rule  local_lipschitz_compose1[OF _ assms(1)])
-  sorry
+  apply(rule local_lipschitz_subset[OF g3])
+  by auto
+  
 
 end
