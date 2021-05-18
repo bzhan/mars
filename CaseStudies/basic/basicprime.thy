@@ -46,6 +46,7 @@ lemma has_derivative_proj:
 
 
 lemma has_derivative_projI:
+  fixes p :: "vec \<Rightarrow> vec"
   assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
   shows "(p has_derivative q t) (at t within D)"
   using assms unfolding  has_derivative_def
@@ -60,16 +61,42 @@ unfolding bounded_linear_def bounded_linear_axioms_def
     done
   subgoal premises pre 
   proof-
-    have "\<forall>i. (\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)"
+    have a1: "\<forall>i. (\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)"
       using pre by auto
-    then have "(\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)" for i
-      by auto
-    then obtain K where "\<forall>x. norm (q t x $ i) \<le> norm x * (K$i)" for i
-      
-      sorry
+    have a2: "(\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)" for i
+      using a1 by auto
+    let ?K="\<chi> i. SOME k. \<forall>x. norm (q t x $ i) \<le> norm x * k"
+    have a3: "\<forall>x. norm (q t x $ i) \<le> norm x * (?K$i)" for i
+    proof -
+      obtain k where k: "\<forall>x. norm (q t x $ i) \<le> norm x * k"
+        using a2 by auto
+      show ?thesis
+        unfolding vec_lambda_beta
+        apply (rule someI[where P="\<lambda>k. \<forall>x. norm (q t x $ i) \<le> norm x * k" and x=k])
+        using k by auto
+    qed
+    obtain K where K: "\<forall>x. norm (q t x $ i) \<le> norm x * (K$i)" for i
+      using a3 by blast
     show ?thesis
-      sorry
-  qed
+      apply (rule exI[where x= "sum(\<lambda>i. K$i) UNIV"])
+      apply auto
+      subgoal for x
+      proof-
+        have "\<And>i. norm (q t x $ i) \<le> norm x * (K$i)"
+          using K apply auto
+          done
+        then have "\<And>i. \<bar>q t x $ i\<bar> \<le> norm x * (K$i)"
+          apply(clarsimp simp: norm_vec_def L2_set_def)
+          done
+        then have b1: "(\<Sum>i\<in>UNIV. \<bar>q t x $ i\<bar>) \<le> (\<Sum>i\<in>UNIV. norm x * K $ i)"
+          by (rule sum_mono)
+        have b2: "(\<Sum>i\<in>UNIV. norm x * K $ i) = norm x * (\<Sum>i\<in>UNIV. K $ i)"
+          by (simp add: sum_distrib_left)
+        show ?thesis
+        using norm_le_l1_cart[where x= " q t x"] b1 b2 by auto
+        qed
+        done
+    qed
   done
 subgoal
     by (auto intro: vec_tendstoI)
@@ -1558,17 +1585,19 @@ proof -
     apply (auto simp add:left_diff_distrib' mult.commute right_diff_distrib')
     done
   show ?thesis
-    
-    apply (rule has_derivativeI)
-     prefer 2
-    apply (rule tendstoI)
-     apply auto
-    subgoal for e
-      apply (subst a)
-      using eventually_at[where P = "\<lambda>xa. inverse (norm (xa - x)) * norm (\<chi> i. if i = X then - (xa - x) $ X * (xa - x) $ Y else 0) < e" and a = "x" and S = "UNIV"]
-      apply auto
-      sorry
-    sorry
+    apply(rule has_derivative_projI)
+    apply auto
+    subgoal for i
+      apply (cases "i = T")
+      subgoal by auto
+      apply (cases "i = X")
+      subgoal apply auto
+         apply (rule has_derivative_eq_rhs)
+         apply (fast intro!: derivative_intros)[1]
+        by auto
+      subgoal by auto
+      done
+    done
 qed
 
 
@@ -1596,17 +1625,14 @@ apply (rule has_vector_derivative_eq_rhs)
      apply (fast intro!: derivative_intros)[1]
     by auto
   subgoal
-    apply(auto simp add: state2vec_def )
-    apply(simp add: local_lipschitz_def lipschitz_on_def)
-
     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda> (t,x) . Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v$Y*x$X - v$X*x$Y else 0)))"])
        apply (subst exp_4_subst)
      apply (rule has_derivative_eq_rhs)
    apply (rule exp_4_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_4_deriv_bounded)
-   apply(auto simp add: entails_def)
-
-  sorry
+ sorry
+  apply(auto simp add: entails_def)
+  done
 
 
 lemma exp_4_2:
