@@ -1267,11 +1267,318 @@ subgoal premises pre for tr T p
   done
 
 
+lemma local_lipschitz_t_v:
+  "local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
+  apply(simp add: local_lipschitz_def lipschitz_on_def)
+apply auto
+  subgoal for x t
+    apply(rule exI[where x = 1])
+    apply auto
+    apply(rule exI[where x = "norm t + 1"])
+    apply auto
+    apply(clarsimp simp: dist_norm norm_vec_def L2_set_def)
+    apply(subgoal_tac "\<bar>ta * xa - ta * y\<bar> \<le> (\<bar>ta\<bar>) * \<bar>xa - y\<bar>")
+     prefer 2
+    subgoal 
+      by (metis abs_mult dual_order.refl vector_space_over_itself.scale_right_diff_distrib)
+    apply(subgoal_tac "\<bar>ta\<bar> \<le> (\<bar>t\<bar> + 1)")
+     apply (smt mult_right_mono)
+    by linarith
+  done
 
 
+lemma local_lipschitz_gt_v:
+  fixes g :: "real \<Rightarrow> real"
+  assumes "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+  shows "local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . g t * v)"
+  apply(rule  local_lipschitz_compose1[OF _ assms(1)])
+  apply(rule local_lipschitz_subset[OF local_lipschitz_t_v])
+  by auto
 
 
+lemma dbxeq:
+  fixes f :: "real \<Rightarrow> real"
+   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 = 0"
+    and "D \<in> {0 .. P}"
+  shows "f D = 0"
+proof-
+  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . g t * v)"
+    using local_lipschitz_gt_v[OF assms(3)]
+    by auto
+interpret loc:ll_on_open_it "{-e<..<P+e}"
+      "\<lambda> t v . g t * v" UNIV 0
+      apply standard
+  using local apply auto
+  using assms(3)
+  by (simp add: continuous_on_mult_right)
+  have s1:" (f solves_ode (\<lambda> t v . g t * v)) {0..P} UNIV" 
+    unfolding solves_ode_def
+    using assms    
+    using has_vderiv_on_subset[OF assms(1)] by auto
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f t) t" if "t \<in> {0..P}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g t * v)) {0..P} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..P}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2 s4 assms by auto
+qed
 
+lemma dbxeq':
+  fixes f :: "real \<Rightarrow> real"
+   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+    and "e > 0 \<and> P > 0"    
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "d \<in> {0 .. P}"
+    and "f d = 0" 
+    and "D \<in> {0 .. P}"
+  shows "f D = 0"
+proof(cases "D \<ge> d")
+  case g:True
+  then show ?thesis
+
+  proof-
+have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . g t * v)"
+    using local_lipschitz_gt_v[OF assms(3)]
+    by auto
+interpret loc:ll_on_open_it "{-e-d<..<P+e-d}"
+      "\<lambda> t v . g (t + d) * v" UNIV 0
+      apply standard
+  apply auto
+  subgoal
+    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . t + d"])
+    subgoal 
+      apply (subgoal_tac "((\<lambda>t. t + d) ` {- e - d<..<P + e - d}) = {- e <..<P + e }")
+      subgoal using local by auto
+      unfolding image_def
+       apply auto 
+      by (metis cancel_comm_monoid_add_class.diff_cancel diff_diff_eq2 diff_strict_right_mono diff_zero greaterThanLessThan_iff)
+    apply(auto intro:continuous_intros)
+    done
+  subgoal for x
+  proof-
+    have 1:"continuous_on UNIV (\<lambda>t. t + d)"
+      apply(auto intro:continuous_intros)
+      done
+    have 2:"((\<lambda>t. t + d) ` {- e - d<..<P + e - d}) = {- e<..<P + e}"
+      unfolding image_def
+       apply auto 
+      by (metis cancel_comm_monoid_add_class.diff_cancel diff_diff_eq2 diff_strict_right_mono diff_zero greaterThanLessThan_iff)
+    have 3:"continuous_on {- e - d<..<P + e - d} (g \<circ> (\<lambda>t. t + d))"
+      using continuous_on_compose[where f="\<lambda> t . t + d" and g= "g" and s= "{- e - d<..<P + e - d}"]
+      using 2 continuous_on_subset[OF 1] assms(3) by auto
+    then show ?thesis
+    using continuous_on_mult_right[where f="\<lambda> t .g( t + d)" and c= "x" and s= "{- e - d<..<P + e - d}"]
+    by auto 
+qed
+  done
+  have m:"((\<lambda>t. t + d) has_vderiv_on (\<lambda>_ . 1)) UNIV"
+    apply (auto intro!: derivative_intros)
+    done
+  have s1:" ((\<lambda>t. f(t+d)) solves_ode (\<lambda> t v . g (t+d) * v)) {0..P-d} UNIV" 
+    unfolding solves_ode_def
+    apply auto
+    using has_vderiv_on_compose[where g="\<lambda> t. t+d" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. 1" and T="{0..P-d}"]
+    apply auto
+    using has_vderiv_on_subset[OF m]
+    using has_vderiv_on_subset[OF assms(1)]
+    using assms
+    by auto
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f(t+d)) t" if "t \<in> {0..P-d}" for t
+   apply(rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g (t+d) * v)) {0..P-d} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..P-d}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2[of "D-d"] s4[of "D-d"] g assms by auto
+qed
+next
+  case l:False
+  then show ?thesis 
+  proof-
+have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . g t * v)"
+    using local_lipschitz_gt_v[OF assms(3)]
+    by auto
+interpret loc:ll_on_open_it "{d-P-e<..<d+e}"
+      "\<lambda> t v . - g (d - t) * v" UNIV 0
+      apply standard
+  apply auto
+  subgoal
+    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . d - t"])
+    subgoal 
+      apply (subgoal_tac "((-) d ` {d - P - e<..<d + e}) = {-e<..<P+e}")
+      subgoal 
+        using local 
+        by (simp add: local_lipschitz_minus)
+      unfolding image_def
+      apply auto 
+      by (smt greaterThanLessThan_iff)
+    apply(auto intro:continuous_intros)
+    done
+  subgoal for x
+  proof-
+    have 1:"continuous_on UNIV (\<lambda>t. d - t)"
+      apply(auto intro:continuous_intros)
+      done
+    have 2:"((-) d ` {d - P - e<..<d + e}) = {-e<..<P+e}"
+      unfolding image_def
+       apply auto 
+      by (smt greaterThanLessThan_iff)
+    have 3:"continuous_on {d - P - e<..<d + e} (g \<circ> (\<lambda>t. d - t))"
+      using continuous_on_compose[where f="\<lambda> t . d - t" and g= "g" and s= "{d - P - e<..<d + e}"]
+      using 2 continuous_on_subset[OF 1] assms(3) by auto
+    then show ?thesis
+    using continuous_on_mult_right[where f="\<lambda> t .g( d - t)" and c= "x" and s= "{d - P - e<..<d + e}"]
+    using continuous_on_minus by auto
+qed
+  done
+  have m:"((\<lambda>t. d - t) has_vderiv_on (\<lambda>_ . -1)) UNIV"
+    apply (auto intro!: derivative_intros)
+    done
+  have s1:" ((\<lambda>t. f(d - t)) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV" 
+    unfolding solves_ode_def
+    apply auto
+    using has_vderiv_on_compose[where g="\<lambda> t. d-t" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. -1" and T="{0..d}"]
+    apply auto
+    using has_vderiv_on_subset [OF m]
+    using has_vderiv_on_subset [OF assms(1)]
+    using assms  by auto
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f(d-t)) t" if "t \<in> {0..d}" for t
+   apply(rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..d}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2[of "d-D"] s4[of "d-D"] l assms by auto
+qed
+qed
+
+lemma dbxg:
+  fixes f :: "real \<Rightarrow> real"
+   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 > 0" 
+    and "D \<in> {0 .. P}"
+  shows "f D > 0"
+proof(rule ccontr)
+  assume "\<not> 0 < f D"
+  then have 1:"f D \<le> 0" 
+    by auto
+  have 2:"\<forall>t\<in>{0..P}. continuous (at t within {-e<..<P+e}) f"
+    using assms unfolding has_vderiv_on_def has_vector_derivative_def
+    using has_derivative_continuous has_derivative_subset
+     by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+  have 3:"\<forall>t\<in>{0..P}. isCont f t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<P+e}" f]
+      using 2 assms
+      by auto
+    done
+  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
+    using IVT2[of f D 0 0] using 1 3 assms by auto
+  obtain d where "d \<in> {0 .. D}" and "f d = 0"
+    using 4 by auto
+  then have "f 0 = 0"
+    using dbxeq'[OF assms(1) assms(2) assms(3)] using assms 
+    by (smt atLeastAtMost_iff)
+  then show False using assms by auto
+qed
+
+lemma dbxl:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 < 0" 
+    and "D \<in> {0 .. P}"
+  shows "f D < 0"
+proof(rule ccontr)
+  assume "\<not> f D < 0"
+  then have 1:"f D \<ge> 0" 
+    by auto
+  have 2:"\<forall>t\<in>{0..P}. continuous (at t within {-e<..<P+e}) f"
+    using assms unfolding has_vderiv_on_def has_vector_derivative_def
+    using has_derivative_continuous has_derivative_subset
+     by (smt atLeastAtMost_iff continuous_within_subset greaterThanLessThan_subseteq_atLeastAtMost_iff greaterThan_iff)
+  have 3:"\<forall>t\<in>{0..P}. isCont f t"
+    apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<P+e}" f]
+      using 2 assms
+      by auto
+    done
+  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
+    using IVT[of f 0 0 D] using 1 3 assms by auto
+  obtain d where "d \<in> {0 .. D}" and "f d = 0"
+    using 4 by auto
+  then have "f 0 = 0"
+    using dbxeq'[OF assms(1) assms(2) assms(3)]  using assms 
+    by (smt atLeastAtMost_iff)
+  then show False using assms by auto
+qed
+
+theorem Valid_dbx_s_eq:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+      and "(\<lambda> S .  g' (state2vec S) (ODE2Vec ode S)) = (\<lambda> S. g S * inv S)"
+      and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
+  shows "\<Turnstile> {\<lambda>s tr. inv s = 0}
+     Cont ode b
+    {\<lambda>s tr. inv s = 0}"
+unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+  proof-
+    obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
+        using 1 unfolding has_derivative_def bounded_linear_def 
+        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
+        by blast
+      have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
+      using 1 2 by auto
+      have 4:"(\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t))) = (\<lambda>s. s *\<^sub>R  g (p t) * inv (p t))" for t
+        using assms(2) 
+        by (metis mult.commute mult_scaleR_right)
+      have 5:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g (p t) * inv (p t))) (at t within {-e .. d+e})"
+        using 3 4 by auto
+      have 6:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g (p t) * inv (p t))) ({-e .. d+e})"
+        unfolding has_vderiv_on_def has_vector_derivative_def using 5 
+        by (metis "3" assms(2))
+      have 7:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
+        using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
+        using has_derivative_subset
+        by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
+      have 8:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
+        apply(auto simp add: continuous_on_eq_continuous_within)
+        using 7 has_derivative_continuous 
+        using greaterThanLessThan_iff by blast
+      have 9:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
+        using assms(3) continuous_on_compose2 8  
+        by (smt continuous_on_cong subset_UNIV vec_state_map1)
+      show ?thesis using dbxeq[OF 6 _ 9]
+        using pre e(1) by auto
+    qed
+    done
 
 
 
@@ -1698,245 +2005,12 @@ apply(rule exp_5_2)
   done
 
 
-lemma local_lipschitz_t_v:
-  "local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
-  apply(simp add: local_lipschitz_def lipschitz_on_def)
-apply auto
-  subgoal for x t
-    apply(rule exI[where x = 1])
-    apply auto
-    apply(rule exI[where x = "norm t + 1"])
-    apply auto
-    apply(clarsimp simp: dist_norm norm_vec_def L2_set_def)
-    apply(subgoal_tac "\<bar>ta * xa - ta * y\<bar> \<le> (\<bar>ta\<bar>) * \<bar>xa - y\<bar>")
-     prefer 2
-    subgoal 
-      by (metis abs_mult dual_order.refl vector_space_over_itself.scale_right_diff_distrib)
-    apply(subgoal_tac "\<bar>ta\<bar> \<le> (\<bar>t\<bar> + 1)")
-     apply (smt mult_right_mono)
-    by linarith
-  done
-
-
-lemma local_lipschitz_gt_v:
-  fixes g :: "real \<Rightarrow> real"
-  assumes "continuous_on UNIV (\<lambda>t. g t)"
-  shows "local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
-  apply(rule  local_lipschitz_compose1[OF _ assms(1)])
-  apply(rule local_lipschitz_subset[OF local_lipschitz_t_v])
-  by auto
-
-
-lemma dbxeq:
-  fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
-    and "continuous_on UNIV (\<lambda>t. g t)"
-    and "f 0 = 0"
-    and "D \<ge> 0 "
-  shows "f D = 0"
-proof-
-  have local:"local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
-    using local_lipschitz_gt_v[OF assms(2)]
-    by auto
-interpret loc:ll_on_open_it "UNIV"
-      "\<lambda> t v . g t * v" UNIV 0
-      apply standard
-  using local apply auto
-  using assms(2)
-  by (simp add: continuous_on_mult_right)
-  have s1:" (f solves_ode (\<lambda> t v . g t * v)) {0..D} UNIV" 
-    unfolding solves_ode_def
-    using assms    
-    using has_vderiv_on_subset by blast
- have s2: "(loc.flow 0 0) t = (\<lambda>t. f t) t" if "t \<in> {0..D}" for t
-   apply (rule loc.maximal_existence_flow(2)[OF s1])
-   using that assms by auto
-  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g t * v)) {0..D} UNIV"
- unfolding solves_ode_def
-  apply auto
-  by (simp add: has_vderiv_on_const)
- have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..D}" for t
-   apply (rule loc.maximal_existence_flow(2)[OF s3])
-  using that assms by auto
-  show ?thesis using s2 s4 assms by auto
-qed
-
-lemma dbxeq':
-  fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
-    and "continuous_on UNIV (\<lambda>t. g t)"
-    and "f d = 0" 
-    and "d\<ge>0"
-    and "D \<ge> 0"
-  shows "f D = 0"
-proof(cases "D \<ge> d")
-  case g:True
-  then show ?thesis
-
-  proof-
-have local:"local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
-    using local_lipschitz_gt_v[OF assms(2)]
-    by auto
-interpret loc:ll_on_open_it "UNIV"
-      "\<lambda> t v . g (t + d) * v" UNIV 0
-      apply standard
-  apply auto
-  subgoal
-    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . t + d"])
-    subgoal using assms local_lipschitz_subset local
-      by blast
-    apply(auto intro:continuous_intros)
-    done
-  subgoal for x
-  proof-
-    have "continuous_on UNIV (\<lambda>t. t + d)"
-      apply(auto intro:continuous_intros)
-      done
-    then show ?thesis
-    using assms(2)
-    using continuous_on_mult_right[where f="\<lambda> t .g( t + d)" and c= "x" and s= "UNIV"]
-    using continuous_on_compose[where f="\<lambda> t . t + d" and g= "g" and s= "UNIV"]
-    using continuous_on_subset 
-    by auto
-qed
-  done
-  have m:"((\<lambda>t. t + d) has_vderiv_on (\<lambda>_ . 1)) UNIV"
-    apply (auto intro!: derivative_intros)
-    done
-  have s1:" ((\<lambda>t. f(t+d)) solves_ode (\<lambda> t v . g (t+d) * v)) {0..D} UNIV" 
-    unfolding solves_ode_def
-    apply auto
-    apply(rule has_vderiv_on_subset[where S = "UNIV"])
-    apply auto
-    using assms(1) m
-    using has_vderiv_on_compose[where g="\<lambda> t. t+d" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. 1" and T=UNIV]
-    apply auto
-    using has_vderiv_on_subset by blast
- have s2: "(loc.flow 0 0) t = (\<lambda>t. f(t+d)) t" if "t \<in> {0..D}" for t
-   apply(rule loc.maximal_existence_flow(2)[OF s1])
-   using that assms by auto
-  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g (t+d) * v)) {0..D} UNIV"
- unfolding solves_ode_def
-  apply auto
-  by (simp add: has_vderiv_on_const)
- have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..D}" for t
-   apply (rule loc.maximal_existence_flow(2)[OF s3])
-  using that assms by auto
-  show ?thesis using s2[of "D-d"] s4[of "D-d"] g assms by auto
-qed
-next
-  case l:False
-  then show ?thesis 
-  proof-
-have local:"local_lipschitz UNIV UNIV (\<lambda> t v . g t * v)"
-    using local_lipschitz_gt_v[OF assms(2)]
-    by auto
-interpret loc:ll_on_open_it "UNIV"
-      "\<lambda> t v . - g (d - t) * v" UNIV 0
-      apply standard
-  apply auto
-  subgoal
-    apply(rule  local_lipschitz_compose1 [where g = "\<lambda> t . d - t"])
-    subgoal using assms local_lipschitz_subset local_lipschitz_minus local
-      by fastforce
-    apply(auto intro:continuous_intros)
-    done
-  subgoal for x
-  proof-
-    have "continuous_on UNIV (\<lambda>t. d - t)"
-      apply(auto intro:continuous_intros)
-      done
-    then show ?thesis
-    using assms(2)
-    using continuous_on_mult_right[where f="\<lambda> t .g( d - t)" and c= "x" and s= "UNIV"]
-    using continuous_on_subset continuous_on_minus
-    by (metis continuous_on_compose2 subset_UNIV)
-qed
-  done
-  have m:"((\<lambda>t. d - t) has_vderiv_on (\<lambda>_ . -1)) UNIV"
-    apply (auto intro!: derivative_intros)
-    done
-  have s1:" ((\<lambda>t. f(d - t)) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV" 
-    unfolding solves_ode_def
-    apply auto
-    apply(rule has_vderiv_on_subset[where S = "UNIV"])
-    apply auto
-    using assms(1) m
-    using has_vderiv_on_compose[where g="\<lambda> t. d-t" and f = "f" and f' = "(\<lambda>t. g t * f t)" and g'="\<lambda>_. -1" and T=UNIV]
-    apply auto
-    using has_vderiv_on_subset by blast
- have s2: "(loc.flow 0 0) t = (\<lambda>t. f(d-t)) t" if "t \<in> {0..d}" for t
-   apply(rule loc.maximal_existence_flow(2)[OF s1])
-   using that assms by auto
-  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . - g (d - t) * v)) {0..d} UNIV"
- unfolding solves_ode_def
-  apply auto
-  by (simp add: has_vderiv_on_const)
- have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..d}" for t
-   apply (rule loc.maximal_existence_flow(2)[OF s3])
-  using that assms by auto
-  show ?thesis using s2[of "d-D"] s4[of "d-D"] l assms by auto
-qed
-qed
-
-lemma dbxg:
-  fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
-    and "continuous_on UNIV (\<lambda>t. g t)"
-    and "f 0 > 0"
-    and "D \<ge> 0 "
-  shows "f D > 0"
-proof(rule ccontr)
-  assume "\<not> 0 < f D"
-  then have 1:"f D \<le> 0" and "D > 0"
-     apply linarith    
-    using assms 
-    using \<open>\<not> 0 < f D\<close> less_eq_real_def by blast
-  have 2:"\<forall>t. continuous (at t within UNIV) f"
-    using assms(1) unfolding has_vderiv_on_def has_vector_derivative_def
-    using has_derivative_continuous has_derivative_subset
-    by blast
-  have 3:"\<forall>t\<in>{0 .. D}. isCont f t"
-    using 2 by auto
-  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
-    using IVT2[of f D 0 0] using 1 3 assms by auto
-  obtain d where "d \<in> {0 .. D}" and "f d = 0"
-    using 4 by auto
-  then have "f 0 = 0"
-    using dbxeq'[OF assms(1) assms(2)] by auto
-  then show False using assms by auto
-qed
-
-lemma dbxl:
-  fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) UNIV" 
-    and "continuous_on UNIV (\<lambda>t. g t)"
-    and "f 0 < 0"
-    and "D \<ge> 0 "
-  shows "f D < 0"
-proof(rule ccontr)
-  assume "\<not> f D < 0"
-  then have 1:"f D \<ge> 0" and "D > 0"
-     apply linarith    
-    using assms 
-    using \<open>\<not> 0 > f D\<close> less_eq_real_def by blast
-  have 2:"\<forall>t. continuous (at t within UNIV) f"
-    using assms(1) unfolding has_vderiv_on_def has_vector_derivative_def
-    using has_derivative_continuous has_derivative_subset
-    by blast
-  have 3:"\<forall>t\<in>{0 .. D}. isCont f t"
-    using 2 by auto
-  have 4:"{d. f d = 0 \<and> d \<in> {0 .. D}} \<noteq> {}"
-    using IVT[of f 0 0 D] using 1 3 assms by auto
-  obtain d where "d \<in> {0 .. D}" and "f d = 0"
-    using 4 by auto
-  then have "f 0 = 0"
-    using dbxeq'[OF assms(1) assms(2)] by auto
-  then show False using assms by auto
-qed
 
     
-  
+lemma d:
+  fixes f::"real \<Rightarrow> real"
+  shows  "(f has_vderiv_on (\<lambda> t . g t * f t)) {0..P}" 
+  apply(auto simp add: has_vderiv_on_def has_vector_derivative_def)
   
 
 
