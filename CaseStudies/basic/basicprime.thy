@@ -1595,13 +1595,14 @@ apply (rule has_vector_derivative_eq_rhs)
     apply (rule has_derivative_eq_rhs)
      apply (fast intro!: derivative_intros)[1]
     by auto
+  subgoal
+    apply(auto simp add: state2vec_def )
+    apply(simp add: local_lipschitz_def lipschitz_on_def)
+
     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda> (t,x) . Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v$Y*x$X - v$X*x$Y else 0)))"])
-       apply (subst exp_4_subst) 
-      
-      
-    apply (rule has_derivative_eq_rhs)
-  
-        apply (rule exp_4_deriv)
+       apply (subst exp_4_subst)
+     apply (rule has_derivative_eq_rhs)
+   apply (rule exp_4_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_4_deriv_bounded)
    apply(auto simp add: entails_def)
 
@@ -1673,7 +1674,7 @@ apply(rule exp_5_2)
 
 lemma local_lipschitz_t_v:
   "local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
-  apply(unfold_locales, simp_all add: local_lipschitz_def lipschitz_on_def)
+  apply(simp add: local_lipschitz_def lipschitz_on_def)
 apply auto
   subgoal for x t
     apply(rule exI[where x = 1])
