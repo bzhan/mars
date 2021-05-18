@@ -22,7 +22,58 @@ lemma vars_distinct [simp]: "T \<noteq> X" "T \<noteq> Y" "T \<noteq> Z" "T \<no
 
   unfolding T_def X_def Y_def Z_def J_def  L_def M_def N_def by auto
 
+lemma has_derivative_proj:
+  fixes x :: vec
+    and p :: "vec \<Rightarrow> vec"
+  assumes "(p has_derivative q x) (at x within D)"
+  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q x v $ i)) (at x within D)"
+  using assms unfolding has_derivative_def  
+  apply auto
+  subgoal
+    unfolding bounded_linear_def bounded_linear_axioms_def
+    apply auto
+    subgoal for K
+      unfolding linear_iff by auto
+    subgoal for K
+      apply (rule exI[where x=K])
+      apply auto subgoal for x'
+        using norm_bound_component_le_cart by blast
+      done
+    done
+  subgoal
+    using tendsto_vec_nth by fastforce
+  done
 
+
+lemma has_derivative_projI:
+  assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
+  shows "(p has_derivative q t) (at t within D)"
+  using assms unfolding  has_derivative_def
+  apply auto
+  subgoal
+unfolding bounded_linear_def bounded_linear_axioms_def
+  apply auto
+  subgoal  
+    unfolding linear_iff apply auto 
+     apply (simp add: vec_eq_iff)
+    apply (simp add: vec_eq_iff)
+    done
+  subgoal premises pre 
+  proof-
+    have "\<forall>i. (\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)"
+      using pre by auto
+    then have "(\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)" for i
+      by auto
+    then obtain K where "\<forall>x. norm (q t x $ i) \<le> norm x * (K$i)" for i
+      
+      sorry
+    show ?thesis
+      sorry
+  qed
+  done
+subgoal
+    by (auto intro: vec_tendstoI)
+  done
 
 theorem Valid_post_and:
   "\<Turnstile> {P} c {\<lambda>s tr. Q1 s tr} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s tr . Q2 s tr} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s tr. Q1 s tr \<and> Q2 s tr}"
@@ -1507,6 +1558,8 @@ proof -
     apply (auto simp add:left_diff_distrib' mult.commute right_diff_distrib')
     done
   show ?thesis
+    apply(rule has_derivative_projI)
+    apply auto
     apply (rule has_derivativeI)
      prefer 2
     apply (rule tendstoI)
@@ -1534,7 +1587,7 @@ lemma exp_4_1:
     apply auto
     apply (rule exI[where x="1"])
     apply auto
-     apply (rule has_vector_derivative_projI)
+    apply (rule has_vector_derivative_projI)
     apply (auto simp add: state2vec_def)
     prefer 2
 apply (rule has_vector_derivative_eq_rhs)
@@ -1545,7 +1598,11 @@ apply (rule has_vector_derivative_eq_rhs)
     by auto
     apply(rule c1_implies_local_lipschitz[where f'="(\<lambda> (t,x) . Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v$Y*x$X - v$X*x$Y else 0)))"])
        apply (subst exp_4_subst) 
-      apply (rule has_derivative_eq_rhs)
+      
+      apply(rule has_derivative_projI)
+  apply auto
+    apply (rule has_derivative_eq_rhs)
+  
         apply (rule exp_4_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_4_deriv_bounded)
    apply(auto simp add: entails_def)
@@ -1616,53 +1673,6 @@ apply(rule exp_5_2)
   done
 
 
-lemma has_derivative_proj:
-  fixes x :: vec
-    and p :: "vec \<Rightarrow> vec"
-  assumes "(p has_derivative q x) (at x within D)"
-  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q x v $ i)) (at x within D)"
-  using assms unfolding has_derivative_def  
-  apply auto
-  subgoal
-    unfolding bounded_linear_def bounded_linear_axioms_def
-    apply auto
-    subgoal for K
-      unfolding linear_iff by auto
-    subgoal for K
-      apply (rule exI[where x=K])
-      apply auto subgoal for x'
-        using norm_bound_component_le_cart by blast
-      done
-    done
-  subgoal
-    using tendsto_vec_nth by fastforce
-  done
-
-
-lemma has_derivative_projI:
-  assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
-  shows "(p has_derivative q t) (at t within D)"
-  using assms unfolding  has_derivative_def
-  apply auto
-  subgoal
-unfolding bounded_linear_def bounded_linear_axioms_def
-  apply auto
-  subgoal  
-    unfolding linear_iff apply auto 
-     apply (simp add: vec_eq_iff)
-    apply (simp add: vec_eq_iff)
-    done
-  subgoal premises pre 
-  proof-
-    have "\<forall>i. (\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)"
-      using pre by auto
-    then have "(\<exists>K. \<forall>x. norm (q t x $ i) \<le> norm x * K)" for i
-      by auto
-    then obtain K where "\<forall>x. norm (q t x $ i) \<le> norm x * (K$i)" for i
-      
-      
-    sorry
-  done
 
 
 lemma dbxeq:
