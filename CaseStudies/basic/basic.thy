@@ -518,6 +518,32 @@ apply clarify
    apply(auto simp add:state2vec_def entails_def)
   done
 
+lemma 27:
+ "\<Turnstile> {\<lambda>s tr. s X \<ge> 1  \<and> s Y = 10 \<and> s Z = -2}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s Y, Y := \<lambda> s. s Z + s Y ^ 2 - s Y))) (\<lambda>s. s Y > 0)
+ {\<lambda>s tr. s X \<ge> 1  \<and>  s Y \<ge> 0 }"
+  apply(rule Valid_post_and)
+  subgoal
+   apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule Valid_inv_s_ge)
+apply clarify
+       apply(simp add:vec2state_def)
+      apply (fast intro!: derivative_intros)
+     apply(auto simp add:state2vec_def entails_def)
+    done
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_strengthen_post)
+    prefer 2
+    apply(rule Valid_inv_b_s_ge)
+apply clarify
+       apply(simp add:vec2state_def)
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def)
+  done
+
+
 lemma 28:
  "\<Turnstile> {\<lambda>s tr. s X ^ 4 * s Y ^ 2 + s X ^ 2 * s Y ^ 4 - 3 * s X ^ 2 * s Y ^ 2 + 1 \<le> c}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. 2 * s X ^ 4 * s Y + 4 * s X ^ 2 * s Y ^ 3 - 6 * s X ^ 2 * s Y, 
@@ -531,14 +557,38 @@ apply clarify
     power_mult_distrib power_mult del: one_add_one )
   done
 
+lemma 29:
+  "\<Turnstile> {\<lambda>s tr. s X + s Z = 0}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. A * s X ^ 2 + B * s X, Z := \<lambda> s. A * s Z * s X + B * s Z, T := \<lambda> s. 1))) (\<lambda>s. s T < P)
+ {\<lambda>s tr. s X + s Z = 0 }"
+  apply(rule Valid_dbx_s_eq[where g = "\<lambda> s. A * s X + B"])
+apply clarify
+apply(simp add:vec2state_def)
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def power2_eq_square algebra_simps)
+  apply(auto simp add:  continuous_on_eq_continuous_within , intro continuous_intros)
+  apply(auto simp add:  vec2state_def )
+  done
+
 
 lemma 32:
   assumes "r\<le>0"
   shows "\<exists> f . \<Turnstile> {\<lambda>s tr. s X  = f}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . r + s X ^ 2, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X  = f }"
-  sorry
-
+  apply(rule exI[where x = "sqrt(-r)"])
+   apply(rule Valid_weaken_pre[where P' = "\<lambda>s tr. s X - sqrt (- r) = 0"])
+   prefer 2
+   apply(rule Valid_strengthen_post)
+    prefer 2
+  apply(rule Valid_dbx_s_eq[where g="\<lambda> s. s X + sqrt(- r)"])
+apply clarify
+apply(simp add:vec2state_def)
+    apply (fast intro!: derivative_intros)
+apply(auto simp add:state2vec_def algebra_simps assms power2_eq_square)
+apply(auto simp add:  continuous_on_eq_continuous_within , intro continuous_intros)
+  apply(auto simp add:  vec2state_def )
+  done
 
 lemma 34:
   assumes "a\<ge>0"
@@ -1238,6 +1288,7 @@ apply (rule exI[where x="1"])
           unfolding has_derivative_def apply(auto simp add: b1)
           apply(rule vec_tendstoI)
           by(auto simp add: state2vec_def)
+
         done
     qed
     unfolding entails_def fun_upd_def apply auto 
