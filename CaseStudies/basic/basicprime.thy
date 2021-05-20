@@ -1686,7 +1686,7 @@ unfolding Valid_def
 lemma dbxgg:
   fixes f :: "real \<Rightarrow> real"
   assumes " (f has_vderiv_on f') {-e..P+e}" 
-    and "\<forall> t \<in> {-e..P+e} . f' t \<ge> g t * f t"
+    and "\<forall> t \<in> {0<..<P} . f' t \<ge> g t * f t"
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 > 0"
@@ -1763,7 +1763,7 @@ qed
 lemma dbxgge:
   fixes f :: "real \<Rightarrow> real"
   assumes " (f has_vderiv_on f') {-e..P+e}" 
-    and "\<forall> t \<in> {-e..P+e} . f' t \<ge> g t * f t"
+    and "\<forall> t \<in> {0<..<P} . f' t \<ge> g t * f t"
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 \<ge> 0"
@@ -1840,7 +1840,14 @@ qed
 
 
 
-
+theorem Valid_dbxg_s_g:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+      and "b S \<Longrightarrow> (g' (state2vec S) (ODE2Vec ode S)) \<ge> ( g S * inv S)"
+      and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
+  shows "\<Turnstile> {\<lambda>s tr. inv s > 0}
+     Cont ode b
+    {\<lambda>s tr. inv s > 0}"
 
 
 
