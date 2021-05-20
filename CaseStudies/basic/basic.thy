@@ -571,6 +571,21 @@ apply(simp add:vec2state_def)
   done
 
 
+
+lemma 31:
+  "\<Turnstile> {\<lambda>s tr. s X + s Z \<ge> 0}
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X ^ 2, Z := \<lambda> s. s Z * s X + s Y))) (\<lambda>s. s Y > s X ^ 2)
+ {\<lambda>s tr. s X + s Z \<ge> 0 }"
+  apply(rule Valid_dbxg_s_ge[where g = "\<lambda> s. s X"])
+    apply clarify
+    apply(simp add:vec2state_def)
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def power2_eq_square algebra_simps)
+  apply (smt zero_le_square)
+  apply(auto simp add: continuous_on_eq_continuous_within  vec2state_def)
+  done
+
+
 lemma 32:
   assumes "r\<le>0"
   shows "\<exists> f . \<Turnstile> {\<lambda>s tr. s X  = f}
@@ -1412,7 +1427,6 @@ apply (rule exI[where x="1"])
           unfolding has_derivative_def apply(auto simp add: b1)
           apply(rule vec_tendstoI)
           by(auto simp add: state2vec_def)
-
         done
     qed
     unfolding entails_def fun_upd_def apply auto 

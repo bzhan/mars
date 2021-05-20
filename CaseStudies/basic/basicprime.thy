@@ -1701,15 +1701,6 @@ next
   proof-
     have ca:"D > 0"
       using ca' assms by auto
-  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . - g t * v)"
-    using local_lipschitz_gt_v[OF assms(4)]
-    by (simp add: local_lipschitz_minus)
-interpret loc:ll_on_open_it "{-e<..<P+e}"
-      "\<lambda> t v . - g t * v" UNIV 0
-      apply standard
-  using local apply auto
-  using continuous_on_mult_right continuous_on_minus
-  using assms(4) by blast
   have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
     using assms(3) by auto
   have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
@@ -1778,15 +1769,6 @@ next
   proof-
     have ca:"D > 0"
       using ca' assms by auto
-  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . - g t * v)"
-    using local_lipschitz_gt_v[OF assms(4)]
-    by (simp add: local_lipschitz_minus)
-interpret loc:ll_on_open_it "{-e<..<P+e}"
-      "\<lambda> t v . - g t * v" UNIV 0
-      apply standard
-  using local apply auto
-  using continuous_on_mult_right continuous_on_minus
-  using assms(4) by blast
   have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
     using assms(3) by auto
   have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
@@ -1843,15 +1825,93 @@ qed
 theorem Valid_dbxg_s_g:
   fixes inv :: "state \<Rightarrow> real"
   assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "b S \<Longrightarrow> (g' (state2vec S) (ODE2Vec ode S)) \<ge> ( g S * inv S)"
+      and "\<And> S. b S \<Longrightarrow> (g' (state2vec S) (ODE2Vec ode S)) \<ge> ( g S * inv S)"
       and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
   shows "\<Turnstile> {\<lambda>s tr. inv s > 0}
      Cont ode b
     {\<lambda>s tr. inv s > 0}"
+unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+proof-
+    obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
+        using 1 unfolding has_derivative_def bounded_linear_def 
+        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
+        by blast
+      have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
+        using 1 2 by auto
+      have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
+        unfolding has_vderiv_on_def has_vector_derivative_def 
+        by (metis "3")
+      have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
+        using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
+        using has_derivative_subset
+        by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
+      have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
+        apply(auto simp add: continuous_on_eq_continuous_within)
+        using 5 has_derivative_continuous 
+        using greaterThanLessThan_iff by blast
+      have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
+        using assms(3) continuous_on_compose2 6
+        by (smt continuous_on_cong subset_UNIV vec_state_map1)
+      have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
+        using pre(4) assms(2) by auto
+      show ?thesis using dbxgg[OF 4 8 _ 7]
+        using pre e by auto
+    qed
+    done
+        
 
-
-
-
+theorem Valid_dbxg_s_ge:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+      and "\<And> S. b S \<Longrightarrow> (g' (state2vec S) (ODE2Vec ode S)) \<ge> ( g S * inv S)"
+      and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
+  shows "\<Turnstile> {\<lambda>s tr. inv s \<ge> 0}
+     Cont ode b
+    {\<lambda>s tr. inv s \<ge> 0}"
+unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for d p
+proof-
+    obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+       using pre unfolding ODEsol_def by auto
+      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+        using pre assms e
+        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+        by auto
+      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
+        using 1 unfolding has_derivative_def bounded_linear_def 
+        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
+        by blast
+      have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
+        using 1 2 by auto
+      have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
+        unfolding has_vderiv_on_def has_vector_derivative_def 
+        by (metis "3")
+      have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
+        using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
+        using has_derivative_subset
+        by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
+      have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
+        apply(auto simp add: continuous_on_eq_continuous_within)
+        using 5 has_derivative_continuous 
+        using greaterThanLessThan_iff by blast
+      have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
+        using assms(3) continuous_on_compose2 6
+        by (smt continuous_on_cong subset_UNIV vec_state_map1)
+      have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
+        using pre(4) assms(2) by auto
+      show ?thesis using dbxgge[OF 4 8 _ 7]
+        using pre e by auto
+    qed
+    done
 
 
 
