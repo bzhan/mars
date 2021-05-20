@@ -1059,31 +1059,155 @@ apply clarify
 
 lemma 50:
   assumes "p=2" and "d=3"
-  shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> s M \<le> s X \<and> s X \<le> S \<and> s L = (s M + S)/2 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 < ((S - s M)/2)^2)}
+  shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and>  s X - s M \<ge> 0 \<and> s X \<le> S \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)}
 Rep(
-M ::= (\<lambda> s. s X);
-L ::= (\<lambda> s. (s M + S)/2);
+
 Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. - p * (s X - s L) - d * s Y ))) (\<lambda>s. s Y > 0)
 )
 {\<lambda> s t.  s X \<le> S}"
-  apply(rule Valid_weaken_pre[where P' = "\<lambda> s t . s Y \<ge> 0 \<and> s M \<le> s X \<and> s L = (s M + S)/2 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 < ((S - s M)/2)^2)"])
-   apply(auto simp add:entails_def)
+  apply(rule Valid_weaken_pre[where P' = "\<lambda> s t . s Y \<ge> 0 \<and> s X - s M \<ge> 0 \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)"])
+   apply(simp add:entails_def)
   apply(rule Valid_strengthen_post)
    prefer 2
    apply(rule Valid_rep)
-   apply(rule Valid_seq)
-    apply(rule Valid_assign_sp)
-  apply auto
-   apply(rule Valid_seq)
-    apply(rule Valid_assign_sp)
-   apply auto
+ subgoal
+   apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0 "])
+   subgoal
+    apply(rule Valid_weaken_pre)
+    prefer 2
+    apply(rule DC'''[where P= "\<lambda> tr . True" and init = "\<lambda> s.  0 \<le> s Y \<and> s X - s M \<ge> 0 \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)"])
+    subgoal 
+      apply (rule Valid_weaken_pre)
+      prefer 2
+       apply (rule Valid_inv_b_tr_ge)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
   subgoal
-    apply(rule Valid_pre_cases[where Q = "\<lambda> s. s Y > 0 "])
+ apply(rule Valid_weaken_pre)
+    prefer 2
+   apply(rule DC'''[where P= "\<lambda> tr . True" and init = "\<lambda> s.  0 \<le> s Y \<and> s X - s M \<ge> 0 \<and> s X \<le> S \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)"])
+    subgoal
+      apply (rule Valid_weaken_pre)
+       prefer 2
+       apply(rule Valid_inv_tr_ge[where inv="\<lambda> s. s X - s M"])
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+subgoal
+ apply(rule Valid_weaken_pre)
+    prefer 2
+   apply(rule DC'''[where P= "\<lambda> tr . True" and init = "\<lambda> s.  0 \<le> s Y \<and> s X - s M \<ge> 0 \<and> s X \<le> S \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)"])
+    subgoal
+      apply (rule Valid_weaken_pre)
+       prefer 2
+       apply(rule Valid_inv_tr_eq)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def)
+  done
+  subgoal
+ apply(rule Valid_weaken_pre)
      prefer 2
-     apply(rule Valid_ode_not)
-    apply auto
-    sorry
-  sorry
+     apply(rule Valid_inv_s_l)
+apply clarify
+ unfolding vec2state_def
+   apply (fast intro!: derivative_intros)
+  apply(auto simp add:state2vec_def entails_def assms)
+  apply(auto simp add: algebra_simps add_mult_distrib add_divide_distrib  diff_divide_distrib )
+  subgoal for Sa
+  apply(subgoal_tac" Sa L * (Sa X * 2) \<le> Sa L * Sa L + Sa X * Sa X")
+  apply (smt zero_le_square)
+  apply(subgoal_tac" 0 \<le> Sa L * Sa L + Sa X * Sa X - Sa L * (Sa X * 2)")
+  apply auto
+  using power2_diff[of "Sa L" "Sa X"] zero_le_square[of "Sa L - Sa X"] 
+  by (simp add: power2_eq_square)
+  done
+  apply(auto simp add:entails_def)
+  done
+  apply(auto simp add:entails_def)
+  subgoal premises pre for s
+  proof-
+    have 1:"5 * (s X - s L)\<^sup>2 / 4 + (s X - s L) * s Y / 2 + (s Y)\<^sup>2 / 4 < ((S - s M) / 2)\<^sup>2"
+      using pre by auto
+    have 2:"(s X - s L)\<^sup>2 / 4 + (s X - s L) * s Y / 2 + (s Y)\<^sup>2 / 4 \<ge> 0 "
+      apply(rule mult_left_le_imp_le[of 4])
+       apply auto
+      using power2_sum[of "s Y" "(s X - s L)"] apply( auto simp add: power2_eq_square)
+      by (smt combine_common_factor not_square_less_zero)
+    have 3:"5 * (s X - s L)\<^sup>2 / 4 = (s X - s L)\<^sup>2 / 4 + (s X - s L)\<^sup>2"
+      by auto
+    have 4:"(s X - s L)\<^sup>2 < ((S - s M) / 2)\<^sup>2"
+      using 1 2 3 
+      by linarith
+    have 5:"((S - s M) / 2 - (s X - s L)) * ((S - s M) / 2 + (s X - s L)) = ((S - s M) / 2)\<^sup>2 - (s X - s L)\<^sup>2" 
+      by(auto simp add: algebra_simps add_mult_distrib add_divide_distrib  diff_divide_distrib power2_eq_square)
+    have 6:"((S - s M) / 2 - (s X - s L)) * ((S - s M) / 2 + (s X - s L)) > 0"
+      using 4 5 by auto
+    have 7:"((S - s M) / 2 - s X + s L) * ((S - s M) / 2 + s X - s L) > 0"
+      using 6 
+      by smt
+    have 8:"s L = (S + s M) / 2"
+      using pre by auto
+    have 9:"(S - s M) / 2 - s X + s L = S - s X" 
+      using 8 
+      by (smt field_sum_of_halves)
+    have 10:"(S - s M) / 2 + s X - s L = s X - s M"
+      using 8
+      by (smt field_sum_of_halves pre(2))
+    have 11:"(S - s X) * (s X - s M) > 0"
+      using 7 9 10 by auto
+    show ?thesis using 11 pre(1)
+      by (simp add: zero_less_mult_iff)
+  qed
+done
+  apply(auto simp add:entails_def)
+  done
+  apply(auto simp add:entails_def)
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+  apply(auto simp add:entails_def)
+  subgoal premises pre for s
+  proof-
+    have 1:"5 * (s X - s L)\<^sup>2 / 4 + (s X - s L) * s Y / 2 + (s Y)\<^sup>2 / 4 < ((S - s M) / 2)\<^sup>2"
+      using pre by auto
+    have 2:"(s X - s L)\<^sup>2 / 4 + (s X - s L) * s Y / 2 + (s Y)\<^sup>2 / 4 \<ge> 0 "
+      apply(rule mult_left_le_imp_le[of 4])
+       apply auto
+      using power2_sum[of "s Y" "(s X - s L)"] apply( auto simp add: power2_eq_square)
+      by (smt combine_common_factor not_square_less_zero)
+    have 3:"5 * (s X - s L)\<^sup>2 / 4 = (s X - s L)\<^sup>2 / 4 + (s X - s L)\<^sup>2"
+      by auto
+    have 4:"(s X - s L)\<^sup>2 < ((S - s M) / 2)\<^sup>2"
+      using 1 2 3 
+      by linarith
+    have 5:"((S - s M) / 2 - (s X - s L)) * ((S - s M) / 2 + (s X - s L)) = ((S - s M) / 2)\<^sup>2 - (s X - s L)\<^sup>2" 
+      by(auto simp add: algebra_simps add_mult_distrib add_divide_distrib  diff_divide_distrib power2_eq_square)
+    have 6:"((S - s M) / 2 - (s X - s L)) * ((S - s M) / 2 + (s X - s L)) > 0"
+      using 4 5 by auto
+    have 7:"((S - s M) / 2 - s X + s L) * ((S - s M) / 2 + s X - s L) > 0"
+      using 6 
+      by smt
+    have 8:"s L = (S + s M) / 2"
+      using pre by auto
+    have 9:"(S - s M) / 2 - s X + s L = S - s X" 
+      using 8 
+      by (smt field_sum_of_halves)
+    have 10:"(S - s M) / 2 + s X - s L = s X - s M"
+      using 8
+      by (smt field_sum_of_halves pre(2))
+    have 11:"(S - s X) * (s X - s M) > 0"
+      using 7 9 10 by auto
+    show ?thesis using 11 pre(2)
+      by (simp add: zero_less_mult_iff)
+  qed
+done
 
 lemma 52:
  "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> s Z \<ge> 0 }

@@ -1197,7 +1197,7 @@ theorem DC''':
     {\<lambda>s tr. d s}"
     shows "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
      Cont ode b
-    {\<lambda>s tr. c s \<and>d s }"
+    {\<lambda>s tr. c s \<and> d s }"
 unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
@@ -1677,6 +1677,176 @@ unfolding Valid_def
     qed
     done
 
+  thm ivl_integral_has_vderiv_on
+  thm ivl_integral_has_vderiv_on_subset_segment
+  thm  mvt_simple_closed_segmentE
+  thm open_segment_eq_real_ivl
+
+
+lemma dbxgg:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on f') {-e..P+e}" 
+    and "\<forall> t \<in> {-e..P+e} . f' t \<ge> g t * f t"
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 > 0"
+    and "D \<in> {0 .. P}"
+  shows "f D > 0"
+proof(cases "D = 0")
+  case True
+  then show ?thesis using assms by auto
+next
+  case ca':False
+  then show ?thesis
+  proof-
+    have ca:"D > 0"
+      using ca' assms by auto
+  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . - g t * v)"
+    using local_lipschitz_gt_v[OF assms(4)]
+    by (simp add: local_lipschitz_minus)
+interpret loc:ll_on_open_it "{-e<..<P+e}"
+      "\<lambda> t v . - g t * v" UNIV 0
+      apply standard
+  using local apply auto
+  using continuous_on_mult_right continuous_on_minus
+  using assms(4) by blast
+  have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
+    using assms(3) by auto
+  have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
+    using continuous_on_subset [OF assms(4) 0]
+    by auto
+  have 2:"continuous_on {-e/2..P+e/2} (\<lambda>t. -g t)"
+    using continuous_on_minus[OF 1]
+    by auto
+  have 3:"((\<lambda>u. ivl_integral 0 u (\<lambda>t.- g t)) has_vderiv_on (\<lambda>t.- g t)) {-e/2..P+e/2}"
+    using ivl_integral_has_vderiv_on_subset_segment[of "-e/2" "P+e/2" "(\<lambda>t.- g t)" "0"]
+    using 2 closed_segment_eq_real_ivl1 assms(3)
+    by auto
+  let ?h= "\<lambda>u. exp (ivl_integral 0 u (\<lambda>t.- g t))"
+  have 4:"(exp has_vderiv_on exp) UNIV"
+    unfolding has_vderiv_on_def 
+    using DERIV_exp has_field_derivative_iff_has_vector_derivative has_vector_derivative_def by blast
+  have 5:"(?h has_vderiv_on (\<lambda> t. - g t * ?h t)) {-e/2..P+e/2}"
+    using has_vderiv_on_compose2[OF 4 3]by auto
+  have 6:"(f has_vderiv_on f') {-e/2..P+e/2}"
+    using has_vderiv_on_subset[OF assms(1)] using assms(3) by auto
+  have 7:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {-e/2..P+e/2}"
+    using has_vderiv_on_mult[OF 6 5] by auto
+  have 8:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {0..D}"
+    using has_vderiv_on_subset[OF 7] using assms by auto
+  let ?e = "(\<lambda> t. f t * ?h t)"
+  let ?e' = "(\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )"
+  obtain y where y1:"?e D - ?e 0 = D * ?e' y" and y2:"y\<in>{0<..<D}"
+    using mvt_simple_closed_segmentE [of ?e ?e' 0 D]
+    using 8 ca open_segment_eq_real_ivl[of 0 D] closed_segment_eq_real_ivl1[of 0 D]
+    by smt
+  have 9:"?h y > 0"
+    by simp
+  have 10:"?e' y = (f' y - g y * f y) * ?h y" 
+    by(auto simp add: algebra_simps)
+  have 11:"(f' y - g y * f y) \<ge> 0 "
+    using y2 assms(2,3,6) by auto
+  have 12:"?e' y \<ge> 0" 
+    using 9 10 11 by auto
+  have 13:"?e D \<ge> ?e 0"
+    using y1 12 ca 
+    by (smt split_mult_pos_le)
+  have 14:"?e 0 > 0"
+    using assms by auto
+  have 15:"?e D > 0"
+    using 13 14 by auto
+  then show ?thesis 
+    using exp_gt_zero zero_less_mult_pos2 by blast
+qed
+qed
+    
+lemma dbxgge:
+  fixes f :: "real \<Rightarrow> real"
+  assumes " (f has_vderiv_on f') {-e..P+e}" 
+    and "\<forall> t \<in> {-e..P+e} . f' t \<ge> g t * f t"
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 \<ge> 0"
+    and "D \<in> {0 .. P}"
+  shows "f D \<ge> 0"
+proof(cases "D = 0")
+  case True
+  then show ?thesis using assms by auto
+next
+  case ca':False
+  then show ?thesis
+  proof-
+    have ca:"D > 0"
+      using ca' assms by auto
+  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . - g t * v)"
+    using local_lipschitz_gt_v[OF assms(4)]
+    by (simp add: local_lipschitz_minus)
+interpret loc:ll_on_open_it "{-e<..<P+e}"
+      "\<lambda> t v . - g t * v" UNIV 0
+      apply standard
+  using local apply auto
+  using continuous_on_mult_right continuous_on_minus
+  using assms(4) by blast
+  have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
+    using assms(3) by auto
+  have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
+    using continuous_on_subset [OF assms(4) 0]
+    by auto
+  have 2:"continuous_on {-e/2..P+e/2} (\<lambda>t. -g t)"
+    using continuous_on_minus[OF 1]
+    by auto
+  have 3:"((\<lambda>u. ivl_integral 0 u (\<lambda>t.- g t)) has_vderiv_on (\<lambda>t.- g t)) {-e/2..P+e/2}"
+    using ivl_integral_has_vderiv_on_subset_segment[of "-e/2" "P+e/2" "(\<lambda>t.- g t)" "0"]
+    using 2 closed_segment_eq_real_ivl1 assms(3)
+    by auto
+  let ?h= "\<lambda>u. exp (ivl_integral 0 u (\<lambda>t.- g t))"
+  have 4:"(exp has_vderiv_on exp) UNIV"
+    unfolding has_vderiv_on_def 
+    using DERIV_exp has_field_derivative_iff_has_vector_derivative has_vector_derivative_def by blast
+  have 5:"(?h has_vderiv_on (\<lambda> t. - g t * ?h t)) {-e/2..P+e/2}"
+    using has_vderiv_on_compose2[OF 4 3]by auto
+  have 6:"(f has_vderiv_on f') {-e/2..P+e/2}"
+    using has_vderiv_on_subset[OF assms(1)] using assms(3) by auto
+  have 7:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {-e/2..P+e/2}"
+    using has_vderiv_on_mult[OF 6 5] by auto
+  have 8:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {0..D}"
+    using has_vderiv_on_subset[OF 7] using assms by auto
+  let ?e = "(\<lambda> t. f t * ?h t)"
+  let ?e' = "(\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )"
+  obtain y where y1:"?e D - ?e 0 = D * ?e' y" and y2:"y\<in>{0<..<D}"
+    using mvt_simple_closed_segmentE [of ?e ?e' 0 D]
+    using 8 ca open_segment_eq_real_ivl[of 0 D] closed_segment_eq_real_ivl1[of 0 D]
+    by smt
+  have 9:"?h y > 0"
+    by simp
+  have 10:"?e' y = (f' y - g y * f y) * ?h y" 
+    by(auto simp add: algebra_simps)
+  have 11:"(f' y - g y * f y) \<ge> 0 "
+    using y2 assms(2,3,6) by auto
+  have 12:"?e' y \<ge> 0" 
+    using 9 10 11 by auto
+  have 13:"?e D \<ge> ?e 0"
+    using y1 12 ca 
+    by (smt split_mult_pos_le)
+  have 14:"?e 0 \<ge> 0"
+    using assms by auto
+  have 15:"?e D \<ge> 0"
+    using 13 14 by auto
+  then show ?thesis 
+    by (simp add: zero_le_mult_iff)
+qed
+qed
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1690,6 +1860,7 @@ unfolding Valid_def
 
 
 thm has_derivative_exp
+thm DERIV_exp
 lemma derivative_exp[simp,derivative_intros]:
 " ((exp has_derivative (*) (exp (x :: real))) (at x))"
   using DERIV_exp unfolding has_field_derivative_def
