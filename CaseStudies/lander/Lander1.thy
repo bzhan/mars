@@ -1,12 +1,9 @@
 
 theory Lander1
-  imports HHLProver.ContinuousInv
+  imports HHLProver.ContinuousInv HHLProver.Complementlemma
 begin
 
 
-lemma frontier_closed_open:
-  "frontier {s. f s \<ge> a \<and> f s < b} = {s. f s = b}"
-  sorry
 
 text \<open>Variables\<close>
 
@@ -61,7 +58,7 @@ definition P0 :: proc where
       T ::= (\<lambda>_. 0);
       Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732),
                            W := (\<lambda>s. (s W)^2 / 2500 ),
-                           T := (\<lambda>_. 1)))) ((\<lambda>s. s T \<ge> 0 \<and> s T < Period));
+                           T := (\<lambda>_. 1)))) ((\<lambda>s. s T < Period));
       W ::= (\<lambda>s. W_upd (s V) (s W))
     )"
 
@@ -76,24 +73,38 @@ lemma P0_inv_Suc:
 
 lemma ContODE:
  "\<Turnstile> {\<lambda>s tr. landerInv s \<le> 0 \<and>
-             (\<lambda>s. s T \<ge> 0 \<and> s T < Period) s \<and>
+             (\<lambda>s. s T = 0 \<and> s T < Period) s \<and>
              supp s \<subseteq> {V, W, T} \<and> P tr}
-     Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500 ), T := (\<lambda>_. 1)))) ((\<lambda>s. s T \<ge> 0 \<and> s T < Period))
-    {\<lambda>s tr. s \<in> frontier {s. s T \<ge> 0 \<and> s T < Period} \<and>
+     Cont (ODE ((\<lambda>_ _. 0)(V := (\<lambda>s. s W - 3.732), W := (\<lambda>s. (s W)^2 / 2500 ), T := (\<lambda>_. 1)))) ((\<lambda>s. s T < Period))
+    {\<lambda>s tr. s T = Period \<and>
             supp s \<subseteq> {V, W, T} \<and>
             landerInv s \<le> 0 \<and>
             (P @\<^sub>t ode_inv_assn (\<lambda>s. landerInv s \<le> 0)) tr}"
-  apply(rule Valid_inv_new')
-   apply auto
-  unfolding landerInv_def landerinv_def vec2state_def power2_eq_square power3_eq_cube power4_eq_xxxx
-   apply(rule has_derivative_divide)
-     apply (fast intro!: derivative_intros)[1]
-    apply (fast intro!: derivative_intros)[1]
-  apply auto
-  apply(simp add:state2vec_def Period_def)
-  subgoal for S
-    sorry
-  done
+  apply(rule Valid_post_and)
+  subgoal
+    apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule Valid_inv_b_s_le)
+apply clarify
+       apply(simp add:vec2state_def)
+     apply (fast intro!: derivative_intros)
+    apply(auto simp add:state2vec_def entails_def)
+    done
+  apply(rule Valid_post_and)
+  subgoal
+    apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule Valid_ode_supp)
+     apply (auto simp add:entails_def)
+    done
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_inv_barrier_s_tr_le)
+apply clarify
+       apply(simp add:vec2state_def landerInv_def landerinv_def)
+    apply (fast intro!: derivative_intros)
+   apply(auto simp add:state2vec_def entails_def landerInv_def landerinv_def)
+  sorry
 
 
 lemma P0_prop_st:
@@ -122,7 +133,7 @@ lemma P0_prop_st:
                         landerInv s \<le> 0 \<and>
                         (P0_inv n @\<^sub>t ode_inv_assn (\<lambda>s. landerInv s \<le> 0)) tr"])
     subgoal
-      apply (auto simp add: entails_def frontier_closed_open supp_def)
+      apply (auto simp add: entails_def  supp_def)
       subgoal for s tr
         apply (rule exI[where x="s V"]) apply (rule exI[where x="s W"])
         apply (rule ext) by auto
@@ -177,7 +188,7 @@ lemma P0_prop:
                         landerInv s \<le> 0 \<and>
                         (P0_inv n @\<^sub>t ode_inv_assn (\<lambda>s. landerInv s \<le> 0)) tr"])
     subgoal
-      apply (auto simp add: entails_def frontier_closed_open supp_def)
+      apply (auto simp add: entails_def  supp_def)
       subgoal for s tr
         apply (rule exI[where x="s V"]) apply (rule exI[where x="s W"])
         apply (rule ext) by auto

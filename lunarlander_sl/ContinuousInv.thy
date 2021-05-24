@@ -115,29 +115,23 @@ theorem Valid_inv':
     done
   done
 
-theorem Valid_inv_new':
-  fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-    and "\<forall>S. b S \<longrightarrow> ((inv S = 0) \<longrightarrow> g' (state2vec S) (ODE2Vec (ODE ode) S) < 0)"
-    and "ode_supp (ODE ode) \<subseteq> VS" 
-  shows "\<Turnstile> {\<lambda>s tr. inv s \<le> 0 \<and> b s \<and> supp s \<subseteq> VS \<and> P tr}
+theorem Valid_ode_supp:
+  assumes "ode_supp (ODE ode) \<subseteq> VS" 
+  shows "\<Turnstile> {\<lambda>s tr. supp s \<subseteq> VS}
      Cont (ODE ode) b
-    {\<lambda>s tr. s \<in> frontier {s. b s} \<and> supp s \<subseteq> VS \<and> inv s \<le> 0 \<and>
-            (P @\<^sub>t ode_inv_assn (\<lambda>s. inv s \<le> 0)) tr}"
+    {\<lambda>s tr. supp s \<subseteq> VS}"
   unfolding Valid_def
   apply (auto elim!: contE)
-  subgoal for tr1 d p
-    sorry
-  subgoal for tr1 d p v
+ subgoal for v d p 
     unfolding supp_def apply auto
     subgoal premises pre
     proof(rule ccontr)
       assume cond:"v \<notin> VS"
      have 1:"p 0 v = 0" using pre cond by auto
      have 2:"ode v = (\<lambda>_. 0)"
-       using assms(3) cond by auto
+       using assms cond by auto
      have 3:"((\<lambda>t. p t v) has_vderiv_on (\<lambda>t. 0)) {0 .. d}"
-       using ODEsol_old[OF pre(5)]
+       using ODEsol_old[OF pre(4)]
        using has_vderiv_on_proj[of "(\<lambda>t. state2vec (p t))" "(\<lambda>t. ODE2Vec (ODE ode) (p t))"  "{0 .. d}" v]
        apply auto
        unfolding state2vec_def apply auto
@@ -149,7 +143,20 @@ theorem Valid_inv_new':
      then show False using 1 pre by auto
    qed
    done
-  subgoal premises pre for tr1 d p
+  done
+
+
+
+theorem Valid_inv_barrier_s_tr_le:
+  fixes inv :: "state \<Rightarrow> real"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+    and "\<forall>S. (b S)\<longrightarrow> ((inv S = 0) \<longrightarrow> g' (state2vec S) (ODE2Vec (ODE ode) S) < 0)"
+  shows "\<Turnstile> {\<lambda>s tr. inv s \<le> 0 \<and> b s \<and> P tr}
+     Cont (ODE ode) b
+    {\<lambda>s tr. inv s \<le> 0 \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. inv s \<le> 0)) tr}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+ subgoal premises pre for tr1 d p
     proof-
      obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec (ODE ode) (p t))) {-e .. d+e}"
        using pre unfolding ODEsol_def by auto
@@ -247,5 +254,7 @@ unfolding Valid_def
   qed
   done
   
-      
+
+
+
 end

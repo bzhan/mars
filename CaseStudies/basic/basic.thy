@@ -70,7 +70,21 @@ lemma b4:
     apply (auto simp add: vec2state_def state2vec_def)
   apply (auto simp add:entails_def)
   done
- 
+
+lemma b5:
+  "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
+     X ::= (\<lambda>s . s X + 1);
+     X ::= (\<lambda>s . SOME k. k \<ge> 1)
+   {\<lambda>s tr. s X \<ge> 1}"
+  apply(rule Valid_seq)
+   apply(rule Valid_assign_sp)
+  apply(rule Valid_strengthen_post)
+   prefer 2
+   apply(rule Valid_assign_sp)
+  apply(auto simp add: entails_def)
+  using someI 
+  by (metis one_le_exp_iff)
+
 lemma b7:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 1 \<and> s T = 0}
      X ::= (\<lambda>s . s X + 1);
@@ -492,8 +506,7 @@ apply(rule Valid_weaken_pre)
 apply clarify
        apply(simp add:vec2state_def)
     apply (fast intro!: derivative_intros)
- apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
-    power_mult_distrib power_mult del: one_add_one )
+ apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx)
   by (simp add: vector_space_over_itself.scale_scale)
    
 lemma b26:
@@ -553,8 +566,7 @@ lemma 28:
 apply clarify
        apply(simp add:vec2state_def)
    apply (fast intro!: derivative_intros)
-  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
-    power_mult_distrib power_mult del: one_add_one )
+  apply(auto simp add:state2vec_def entails_def algebra_simps power2_eq_square power4_eq_xxxx)
   done
 
 lemma 29:
@@ -603,6 +615,124 @@ apply(simp add:vec2state_def)
 apply(auto simp add:state2vec_def algebra_simps assms power2_eq_square)
 apply(auto simp add:  continuous_on_eq_continuous_within , intro continuous_intros)
   apply(auto simp add:  vec2state_def )
+  done
+
+
+
+lemma 33:
+  assumes "a^2 \<le> 4"
+      and "b^2 \<ge> 1/3"
+    shows "\<Turnstile> {\<lambda>s tr. s L \<ge> 0 \<and> s M \<ge> 0 \<and> s L ^ 2 * s X ^ 2 + s Y ^ 2 - s N \<le> 0}
+Rep(
+     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>s. - (s L ^ 2) * s X - 2 * s M * s L * s Y))) Con;
+IF (\<lambda> s . s X = s Y * a) THEN (L ::= (\<lambda> s. 2 * s L) ; M ::= (\<lambda> s. 1/2 * s M); N ::= (\<lambda> s. s N * (4 * s L ^ 2 + 1)/(s L ^ 2 + 1))) ELSE 
+IF (\<lambda> s . s X = s Y * b) THEN (L ::= (\<lambda> s. 1/2 * s L) ; M ::= (\<lambda> s. 2 * s M); N ::= (\<lambda> s. s N * (s L ^ 2 + 1)/(2 * s L ^ 2 + 1))) ELSE 
+Skip FI
+FI
+)
+ {\<lambda>s tr. s L ^ 2 * s X ^ 2 + s Y ^ 2 - s N \<le> 0}"
+  apply(rule Valid_strengthen_post)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_seq[where Q = "\<lambda>s tr. 0 \<le> s L \<and> 0 \<le> s M \<and> (s L)\<^sup>2 * (s X)\<^sup>2 + (s Y)\<^sup>2 - s N \<le> 0"])
+  subgoal
+    apply(rule Valid_pre_cases[where Q = Con])
+    subgoal
+    apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule DC'''[where init ="\<lambda> s. 0 \<le> s L \<and> 0 \<le> s M \<and> (s L)\<^sup>2 * (s X)\<^sup>2 + (s Y)\<^sup>2 - s N \<le> 0" and P = "\<lambda> tr . True"])
+  subgoal 
+    apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule Valid_inv_tr_ge)
+apply clarify
+apply(simp add:vec2state_def)
+      apply (fast intro!: derivative_intros)
+     apply(auto simp add:state2vec_def entails_def)
+    done
+ apply(rule Valid_weaken_pre)
+     prefer 2
+apply(rule DC'''[where init ="\<lambda> s. 0 \<le> s L \<and> 0 \<le> s M \<and> (s L)\<^sup>2 * (s X)\<^sup>2 + (s Y)\<^sup>2 - s N \<le> 0" and P = "\<lambda> tr . True"])
+  subgoal 
+    apply(rule Valid_weaken_pre)
+     prefer 2
+     apply(rule Valid_inv_tr_ge)
+apply clarify
+apply(simp add:vec2state_def)
+      apply (fast intro!: derivative_intros)
+     apply(auto simp add:state2vec_def entails_def)
+    done
+apply(rule Valid_weaken_pre)
+       prefer 2
+       apply(rule Valid_inv_s_le)
+apply clarify
+apply(simp add:vec2state_def)
+      apply (fast intro!: derivative_intros)
+       apply(auto simp add:state2vec_def algebra_simps)
+  apply(auto simp add: entails_def)
+  done
+  apply(rule Valid_ode_not)
+  apply auto
+  done
+  subgoal
+    apply(rule Valid_cond_split)
+    subgoal
+      apply(rule Valid_seq)
+       apply(rule Valid_assign_sp)
+ apply(rule Valid_seq)
+       apply(rule Valid_assign_sp)
+      apply(rule Valid_strengthen_post)
+       prefer 2
+       apply(rule Valid_assign_sp)
+      apply(auto simp add: entails_def)
+      apply(subgoal_tac "(4 * xa\<^sup>2 * (s Y * a)\<^sup>2 + (s Y)\<^sup>2) * ((4 * xa\<^sup>2 + 1)) \<le> x * (16 * xa\<^sup>2 + 1)")
+       apply (smt pos_divide_less_eq zero_less_power zero_power2)
+      apply(subgoal_tac "(4 * xa\<^sup>2 * (s Y * a)\<^sup>2 + (s Y)\<^sup>2) * ((4 * xa\<^sup>2 + 1)) \<le> (xa\<^sup>2 * (s Y * a)\<^sup>2 + (s Y)\<^sup>2) * (16 * xa\<^sup>2 + 1)")
+       apply (smt power2_less_0 real_mult_less_iff1)
+      apply(auto simp add: algebra_simps )
+      apply(subgoal_tac "xa\<^sup>2 * (a\<^sup>2 * (s Y)\<^sup>2) = a\<^sup>2 * (xa\<^sup>2 * (s Y)\<^sup>2) ")
+      prefer 2 
+      using mult.left_commute apply blast
+      apply(subgoal_tac "a\<^sup>2 * (xa\<^sup>2 * (s Y)\<^sup>2) \<le> 4 * (xa\<^sup>2 * (s Y)\<^sup>2) ")
+       apply linarith
+      apply(subgoal_tac "0 \<le> (xa\<^sup>2 * (s Y)\<^sup>2) ")
+      using mult_right_mono 
+      using assms(1) apply blast
+      by simp
+subgoal
+    apply(rule Valid_cond_split)
+    subgoal
+      apply(rule Valid_seq)
+       apply(rule Valid_assign_sp)
+ apply(rule Valid_seq)
+       apply(rule Valid_assign_sp)
+      apply(rule Valid_strengthen_post)
+       prefer 2
+       apply(rule Valid_assign_sp)
+      apply(auto simp add: entails_def)
+      apply(subgoal_tac "((s L)\<^sup>2 * (s Y * b)\<^sup>2 + (s Y)\<^sup>2) * (2 * (s L)\<^sup>2 + 1) \<le> x * ((s L)\<^sup>2 + 1)")
+       apply (smt pos_divide_less_eq zero_less_power zero_power2)
+      apply(subgoal_tac "((s L)\<^sup>2 * (s Y * b)\<^sup>2 + (s Y)\<^sup>2) * (2 * (s L)\<^sup>2 + 1) \<le> ((s L)\<^sup>2 * 4 * (s Y * b)\<^sup>2 + (s Y)\<^sup>2)* ((s L)\<^sup>2 + 1) ")
+       apply (smt power2_less_0 real_mult_less_iff1)
+      apply(auto simp add: algebra_simps )
+      apply(subgoal_tac "3 * (b\<^sup>2 * ((s L)\<^sup>2 * (s Y)\<^sup>2)) \<ge> (s L)\<^sup>2 * (s Y)\<^sup>2 ")
+       apply(subgoal_tac "2 * (b\<^sup>2 * ((s Y)\<^sup>2 * s L ^ 4)) \<ge> 0")
+        apply linarith
+       apply simp
+      apply(subgoal_tac "3 * (b\<^sup>2 * ((s L)\<^sup>2 * (s Y)\<^sup>2)) = (3 * b\<^sup>2) * ((s L)\<^sup>2 * (s Y)\<^sup>2)")      
+      apply(subgoal_tac "(s L)\<^sup>2 * (s Y)\<^sup>2 \<ge> 0 ")
+      using assms
+      using mult_right_mono 
+      apply (metis divide_eq_eq_numeral1(1) divide_le_eq_numeral1(1) mult_cancel_right1 nonzero_mult_div_cancel_left zero_neq_numeral)
+       apply simp
+      by linarith
+apply(rule Valid_strengthen_post)
+       prefer 2
+     apply(rule Valid_skip)
+    apply(auto simp add:entails_def)
+    done
+  done
+  apply(auto simp add:entails_def)
   done
 
 lemma 34:
@@ -665,8 +795,7 @@ apply clarify
   unfolding vec2state_def
     apply (fast intro!: derivative_intros)
    apply(auto simp add:state2vec_def entails_def)
-  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
-    power_mult_distrib power_mult del: one_add_one )
+  apply(auto simp add:state2vec_def entails_def algebra_simps power2_eq_square )
   done
   apply(auto simp add:state2vec_def entails_def)
   done
@@ -681,8 +810,7 @@ apply clarify
   unfolding vec2state_def
     apply (fast intro!: derivative_intros)
   apply(auto simp add:state2vec_def entails_def)
-  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx
-    power_mult_distrib power_mult del: one_add_one )
+  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square )
   done
 
 lemma 38:
@@ -926,7 +1054,7 @@ lemma 46:
   apply(rule Valid_strengthen_post)
    prefer 2
    apply(rule Valid_rep)
-   apply(rule Valid_cond_split)
+   apply(rule Valid_cond_split')
   subgoal
     apply(rule Valid_seq)
      apply(rule Valid_assign_sp)
@@ -1052,6 +1180,7 @@ apply (rule exI[where x="1"])
     apply(auto simp add: entails_def)
     using assms 
     by (smt divide_nonneg_pos power2_less_0)
+
 
 
 lemma 49:
@@ -1309,7 +1438,7 @@ lemma 55:
   apply(rule Valid_strengthen_post)
    prefer 2
    apply(rule Valid_rep)
-   apply(rule Valid_cond_split)
+   apply(rule Valid_cond_split')
   subgoal
     apply(rule Valid_seq)
      apply(rule Valid_assign_sp)

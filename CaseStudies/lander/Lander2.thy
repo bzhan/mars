@@ -421,6 +421,12 @@ proof -
         apply auto
         using assms combine_blocks_pairE2' by blast
       subgoal for d p3'
+        sorry
+      done
+  qed
+  show ?thesis
+    sorry
+qed
 
 
 lemma combine_tol:
@@ -483,7 +489,8 @@ next
           apply (rule entails_tassn_trans)
            prefer 2 apply(rule tol_inv_ind_suc')
             using con1
-        sorry
+            sorry
+          done
     qed
 qed
 qed
