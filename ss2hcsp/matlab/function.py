@@ -221,10 +221,10 @@ class FunExpr(Expr):
     def priority(self):
             return 100
     def __repr__(self):
-        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
+        return "Fun(%s, %s)" % (self.fun_name, ",".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "%s(%s)" % (self.fun_name, ", ".join(str(expr) for expr in self.exprs))
+        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
@@ -266,7 +266,7 @@ class matFunExpr(Expr):
             return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(str(arg) for arg in self.exprs)) 
         else:
            
-            return "%s := %s(%s)" % (self.return_vars,self.fun_name, ", ".join(str(expr) for expr in self.exprs))
+            return "%s := %s(%s)" % (self.return_vars,self.fun_name, ",".join(str(expr) for expr in self.exprs))
            
     def __repr__(self):
         if isinstance(self.return_vars,list) and len(self.return_vars) >1:

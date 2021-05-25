@@ -41,8 +41,7 @@ grammar = r"""
     ?expr: plus_expr
 
     ?assign_cmd: ("int" | "float")? return_var "=" expr ";" -> assign_cmd
-        | ("int" | "float")? return_var "=" lname "(" atom_expr ("," atom_expr)*")" (";")?-> func_has_pra
-        | ("int" | "float")? return_var  "="  lname "(" ")" (";")? -> func_no_pra
+        | ("int" | "float")? return_var "=" func_cmd (";")?-> func_has_pra     
         | ("int" | "float")? return_var  "="  lname  (";")? -> func_no_pra
 
     ?assign_func: assign_cmd
@@ -76,9 +75,9 @@ grammar = r"""
 
     ?cond: disj
 
-    ?ite_cmd:"if" cond seq_cmd (ite_cmd)* "else" seq_cmd (ite_cmd)* "end" -> ite_cmd
+    ?ite_cmd:"if" cond seq_cmd (ite_cmd)* "else" seq_cmd (ite_cmd)* ("end")? -> ite_cmd
 
-    ?function: "function" assign_func (cmd)* -> function
+    ?function: "function" assign_func (cmd)* ("end")?-> function
 
     %import common.CNAME
     %import common.WS
@@ -173,8 +172,8 @@ class MatlabTransformer(Transformer):
     def func_no_pra(self,return_var, fun_name,*exprs):
         return function.matFunExpr(return_var,fun_name,"")
 
-    def func_has_pra(self,return_var,fun_name,*exprs):
-        return function.matFunExpr(return_var, fun_name, exprs)
+    def func_has_pra(self,return_var,fun):
+        return function.matFunExpr(return_var, fun.fun_name, fun.exprs)
 
     # def func_no_pra1(self,return_var, fun_name):
     #     return function.matFunExpr(return_var,fun_name)
