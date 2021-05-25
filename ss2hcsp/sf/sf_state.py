@@ -27,17 +27,25 @@ class SF_State:
         self.children = list()  # list of children states
         self.root = None  # root of the tree of containment relation
         self.chart = None  # The chart containing this state
-
+        self.is_parse_act=False
         # self.tran_acts = []  # the queue to store transition actions
-
+        self.whole_name=""
         # Inner transitions of this state
         assert isinstance(inner_trans, (list, tuple))
         self.inner_trans = inner_trans
         self.funs = None  # functions in this state
-
         # Variables modified in this state
         # self.modified_vars = sorted(list(self.get_modified_vars()))
-
+    def get_state_whole_name(self):
+            if "(" in self.name:
+                self.name=str(self.name)[:str(self.name).index("(")]
+            s=self.name
+            if self.father is None:
+                return self.name
+            else:
+                child_s=self.father.get_state_whole_name()
+                s=child_s+"_"+s
+            return s
     def __eq__(self, other):
         return self.ssid == other.ssid
 
@@ -81,6 +89,7 @@ class SF_State:
 
         return result
 
+
     def init(self):               #初始化时所有的状态都为退出状态
         hps = list()
         hps.append(self._exit())  # turn off
@@ -90,19 +99,21 @@ class SF_State:
         return hps
 
     def _activate(self):  # turn on
-        time_process = "state_time := 0; " if isinstance(self, OR_State) and self.has_aux_var("state_time") else ""
-        activate_process = "a_" + self.name + " := 1" #等于1表示该状态处于活动状态
+        time_process = "state_time"+str(self.ssid)+" := 0; " if isinstance(self, OR_State) and self.has_aux_var("state_time"+str(self.ssid)) else ""
+        activate_process = "a_" + self.whole_name + " := 1" #等于1表示该状态处于活动状态
         return hp_parser.parse(time_process + activate_process)    #？？？？？
         # return hp_parser.parse("a_" + self.name + " := 1")
 
     def _exit(self):
-        return hp_parser.parse("a_" + self.name + " := 0")#等于0表示该状态退出，不在处于活动状态
+        return hp_parser.parse("a_" + self.whole_name + " := 0")#等于0表示该状态退出，不在处于活动状态
 
     def activated(self):
-        return bexpr_parser.parse("a_" + self.name + " == 1")
+        return bexpr_parser.parse("a_" + self.whole_name + " == 1")
 
     def exited(self):
-        return bexpr_parser.parse("a_" + self.name + " == 0")
+        if "(" in self.name:
+            self.name=str(self.name)[:str(self.name).index("(")]
+        return bexpr_parser.parse("a_" + self.whole_name + " == 0")
 #历史节点需修改
     def activate(self):  # return a list of hps
         hps = list()
@@ -159,9 +170,13 @@ class SF_State:
                 for child in self.children:
                     if isinstance(child, AND_State):
                         # hps.append(child._activate())
+
                         hps.extend(child.activate())
                     elif isinstance(child, (OR_State)) :
                         # Activate the state with default transition
+                        # print(child.name)
+                        # if child.has_aux_var("state_time"):
+                        #     hps.append(hp_parser.parse("state_time := 0"))
                         if  child.default_tran:
                            
                             if child.default_tran.cond_acts:
@@ -278,7 +293,6 @@ class SF_State:
                 name=str(fun.name)
                 if "(" in name:
                     name=name[:name.index("(")]
-                
                 fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
@@ -360,12 +374,15 @@ class Junction:
         self.ssid = ssid
         self.out_trans = out_trans
         self.name = name
+        self.original_name=""
+        self.whole_name=""
         self.father = None
         self.visited = False
         self.type=junc_type
         self.processes = list()
         self.tran_acts = list()  # the queue to store transition actions
         self.default_tran = default_tran
+        self.is_parse_act=False
 
         # Variables modified in this junction
         # self.modified_vars = sorted(list(self.get_modified_vars()))
@@ -390,12 +407,14 @@ class Junction:
 
 
 class Function:
-    def __init__(self, ssid, name, script,return_var,exprs):
+    def __init__(self, ssid, name, script,return_var,exprs,chart_state1,fun_type):
         self.ssid = ssid
         self.name = name
+        self.type =fun_type
         self.script = script
         self.return_var = return_var
         self.exprs = exprs
+        self.chart_state1=chart_state1
 
     def parse(self):
         # assert "==" not in self.script
@@ -406,5 +425,30 @@ class Function:
         # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
         # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
         
-        return self.script
+        if self.script is None:
+            return self.chart_state1
+        else:
+            return self.script
+    
+
+class Graphical_Function:
+    def __init__(self, ssid, name,return_var,exprs,chart_state1):
+        self.ssid = ssid
+        self.name = name
+        self.return_var = return_var
+        self.exprs = exprs
+        self.chart_state1=chart_state1
+
+    def parse(self):
+        # assert "==" not in self.script
+        # script = re.sub(pattern="=", repl=":=", string=self.script)
+        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
+        # assert re.match(pattern="function \\w+", string=acts[0])
+        # hps = [hp_parser.parse(act) for act in acts[1:]]
+        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
+        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
+        # if self.chart_state1 is not None:
+        #     return self.chart_state1
+        # else:
+            return self.script
     
