@@ -178,7 +178,10 @@ class SL_Diagram:
                         # # Get functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
+                        dest_state_name_list=list()
                         if fun_script: 
+                            fun_type="MATLAB_FUNCTION"
+                            chart_state1=None
                             func = parser.function_parser.parse(fun_script)
                             hp = convert.convert_function(func)
                             if isinstance(func.name,(function.Var,function.FunExpr)):
@@ -193,6 +196,8 @@ class SL_Diagram:
                                 exprs=func.name.exprs
                                 return_var = func.name.return_vars
                         else:
+                            dest_state_name_list=list()
+                            fun_type="GRAPHICAL_FUNCTION"
                             out_trans_dict_inner=dict()
                             junctions=list()
                             return_var=list()
@@ -225,8 +230,36 @@ class SL_Diagram:
                                         dst_ssid = get_attribute_value(child1, "SSID")
                                 # assert dst_ssid  # each transition must have a destination state
                                 # assert tran_ssid not in _tran_dict
-                                out_trans_dict_inner[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
+                                transition=Transition(ssid=tran_ssid, label=tran_label, order=order,
                                                                    src=src_ssid, dst=dst_ssid)
+                                
+                                # for act in transition.cond_acts+transition.tran_acts:
+                                #     if re.match(pattern="send\\(.*?\\)", string=act):
+                                #         acts=act.strip('send(').strip(')')
+                                #         if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
+                                    
+                                #             if re.match(pattern="send\\(.*?,.*?\\)", string=act):
+                                #                 event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
+                                #                 path=dest_state_name1.split(".")
+                                #                 if "." in dest_state_name1:
+                                #                     path=dest_state_name1.split(".")
+                                #                     dest_state_name=path[len(path)-1]
+                                #                 else:
+                                #                     dest_state_name=dest_state_name1
+                                #             elif "." in acts:
+                                #                 path=acts.split(".")
+                                #                 dest_state_name=path[len(path)-2]
+                                #                 event=path[len(path)-1]
+                                #             dest_state_name_list.append(dest_state_name)
+
+
+
+
+
+
+
+                                # #######    
+                                out_trans_dict_inner[tran_ssid] = transition
                             for jun in child.getElementsByTagName(name="junction"):
                                 ssid1 = jun.getAttribute("SSID")
                                 junc_type = get_attribute_value(block=jun, attribute="type")
@@ -241,23 +274,27 @@ class SL_Diagram:
                                         out_trans.append(tran)
                                 out_trans.sort(key=operator.attrgetter("order"))
                                 junctions.append(Junction(ssid=ssid1, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                            chart_state1 = AND_State(ssid=ssid, name=fun_name)
+                            if "(" in fun_name:
+                                fun_name = fun_name[:fun_name.index("(")]
+                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
                             # chart_state.funs = functions
                             for state in  junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
-
-                            stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
-                                         num_src=0,num_dest=0)
-                            
-                            stateflow.add_names()
-                            stateflow.find_root_for_states()
-                            stateflow.find_root_and_loc_for_trans()
-                            stateflow.parse_acts_on_states_and_trans()
-                            hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1))
-                        # return_var =return_var if len(return_var)>0 else None
-                        # exprs=exprs if len(exprs)>0 else None
-                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs))
+                            hp=None
+                            # _states.append(chart_state1)
+                            # if len(dest_state_name_list) == 0:
+                            #     stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
+                            #                  num_src=0,num_dest=0)
+                                
+                            #     stateflow.add_names()
+                            #     stateflow.find_root_for_states()
+                            #     stateflow.find_root_and_loc_for_trans()
+                            #     stateflow.parse_acts_on_states_and_trans()
+                            #     hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1)[0])
+                            return_var =return_var if len(return_var)>0 else None
+                            exprs=exprs if len(exprs)>0 else None
+                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
                         # _functions.append(Function(ssid, fun_name,fun_script))
                         continue
 
@@ -362,9 +399,7 @@ class SL_Diagram:
                             out_trans.append(tran)
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
-                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-            print(6666666)
-            print(_functions)    
+                    _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))   
             return _states, _junctions, _functions
 
         # Create charts
@@ -373,9 +408,16 @@ class SL_Diagram:
             all_out_trans=dict()
             chart_id = chart.getAttribute("id")
             chart_name = get_attribute_value(block=chart, attribute="name")
+            chart_name=chart_name.strip()
+            if " " in chart_name:
+                chart_name=chart_name.replace(" ","_")
             # A chart is wrapped into an AND-state
             chart_state = AND_State(ssid=chart_id, name=chart_name)
             states, junctions, functions = get_children(block=chart)
+            for fun in functions:
+                if fun.type == "GRAPHICAL_FUNCTION":
+                    fun.chart_state1.father=chart_state
+                    chart_state.children.append(fun.chart_state1)
             chart_state.funs = functions
             for state in states + junctions:
                 state.father = chart_state
@@ -383,6 +425,8 @@ class SL_Diagram:
             if chart_state.children and isinstance(chart_state.children[0], AND_State):
                 chart_state.children.sort(key=operator.attrgetter("order"))
             assert chart_state.check_children()
+            
+
 
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
             chart_st = eval(chart_st) if chart_st else -1
@@ -404,9 +448,8 @@ class SL_Diagram:
 
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
-                assert var_name and var_name not in chart_data
+                # assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
-               
                 # value = eval(value) 
                 if value and "[" in value:
                     if ";" in value:
@@ -414,17 +457,34 @@ class SL_Diagram:
                         val_lists=list()
                         for val in value_list:
                             if "[" in val:
-                                val = val+"]"
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
+                                    val = val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             elif "]" in val:
-                                val="["+val
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
+                                    val="["+val
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             else:
-                                val ="["+val+"]"
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
+                                    val ="["+val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                         value =val_lists
+                     
                     else:
-                        value =  list(aexpr_parser.parse(value).value)
+                       
+                        # print(value)
+                        # print(aexpr_parser.parse(value).value)
+                        value=value.strip()
+                        if "," not in value:
+                            value=str(value).replace(" ",",")
+                        value = list(aexpr_parser.parse(value).value)
+                     
 
                 elif value:
                     value = eval(value) 
@@ -522,16 +582,28 @@ class SL_Diagram:
                         val_lists=list()
                         for val in value_list:
                             if "[" in val:
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
                                 val = val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             elif "]" in val:
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
                                 val="["+val
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             else:
+                                val=val.strip()
+                                if "," not in val:
+                                    val=str(val).replace(" ",",")
                                 val ="["+val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                         value =val_lists
                     else:
+                        init_value=init_value.strip()
+                        if "," not in init_value:
+                            init_value=str(init_value).replace(" ",",")
                         value =  list(aexpr_parser.parse(init_value).value)
                 elif init_value:
                     value = eval(value) 
@@ -724,6 +796,9 @@ class SL_Diagram:
                 if sf_block_type == "Chart":
 
                     # assert block_name in self.chart_parameters
+                    block_name=block_name.strip()
+                    if " " in block_name:
+                        block_name=block_name.replace(" ","_")
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                     if len(ports) == 0:
@@ -800,7 +875,42 @@ class SL_Diagram:
                         #             elif event.trigger == "FALLING_EDGE_EVENT":
                         #                 trigger_type="falling"
 
-                        ###    
+                        ###  
+                    #######
+                    # state_funs=AND_State(ssid=-1,name="and_state")
+                    # state_funs.children=chart_paras["state"].children
+                    # for fun in chart_paras["state"].funs:
+                    #     if fun.type == "GRAPHICAL_FUNCTION":
+                    #         fun_state = fun.chart_state1
+
+                    #         state_funs.children.insert(0,fun_state)
+                    # state_funs.funs=chart_paras["state"].funs
+                    # stateflow1 = SF_Chart(name="fun_name", state=state_funs, data=chart_paras["data"],
+                    #                      num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
+                    #                      input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
+                    #                      is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
+                                    
+                    # stateflow1.add_names()
+                    # stateflow1.find_root_for_states()
+                    # stateflow1.find_root_and_loc_for_trans()
+                    # stateflow1.parse_acts_on_states_and_trans()
+                    # for fun in chart_paras["state"].funs:
+                    #     if fun.type == "GRAPHICAL_FUNCTION":
+                    #         hp=hcsp.Sequence(hp_parser.parse("done:=0"),*fun.chart_state1.activate(), stateflow1.execute_trans_from_state(fun.chart_state1)[0])
+                    #         fun.script=hp
+                    #         print(56890)
+                    #         print(hp)
+            
+
+
+
+######
+
+                    # for s in chart_paras["state"].children:
+                    #     for fun in state_fun.funs:
+                    #         if fun.type == "GRAPHICAL_FUNCTION" and  s.original_name == fun.chart_state1.original_name:
+                    #             chart_paras["state"].children.remove(s)
+
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
                                          input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],

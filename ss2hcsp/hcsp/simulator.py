@@ -10,7 +10,6 @@ import math
 import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, split_disj
@@ -18,6 +17,7 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
+import numpy as np
 
 
 class SimulatorException(Exception):
@@ -75,7 +75,7 @@ def eval_expr(expr, state):
                 res /= eval_expr(e, state)
         return res
 
-    elif isinstance(expr, FunExpr):
+    elif isinstance(expr, (FunExpr,hcsp.Function)):
         # Special functions
         args = [eval_expr(e, state) for e in expr.exprs]
         if expr.fun_name == "min":
@@ -175,6 +175,15 @@ def eval_expr(expr, state):
             if args[0] > args[1]:
                 raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
             return random.uniform(args[0], args[1])
+        elif expr.fun_name == "unidrnd":
+            assert len(args) == 1
+            if args[0] <= 0:
+                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+            return random.randint(1, args[0])
+        elif expr.fun_name == "zeros":
+            if len(args) == 3:
+                # raise  SimulatorException("Unrecognized process variable:" + str(np.zeros((args[0],args[1],args[2]),dtype=[['x','int'],['y','int']])))
+                return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
         elif expr.fun_name == "protected_curve":
             assert len(args) == 4
             obs_pos, veh_pos, max_v, min_a = args

@@ -7392,7 +7392,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="147">
-                  <P Name="labelString">{firstSN=buffer_heartbeat(3),
+                  <P Name="labelString">{firstSN=buffer_heartbeat(3);
 lastSN=buffer_heartbeat(4)}</P>
                   <P Name="labelPosition">[370.078 1127.981 154.922 30]</P>
                   <P Name="fontSize">12</P>

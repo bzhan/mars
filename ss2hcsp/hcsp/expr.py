@@ -189,10 +189,10 @@ class FunExpr(AExpr):
         self.exprs = exprs
 
     def __repr__(self):
-        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
+        return "Fun(%s, %s)" % (self.fun_name, ",".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "%s(%s)" % (self.fun_name, ", ".join(str(expr) for expr in self.exprs))
+        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
 
     def __eq__(self, other):
         return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
@@ -313,6 +313,35 @@ class ArrayIdxExpr(AExpr):
 
     def __str__(self):
         return "%s[%s]" % (str(self.expr1), str(self.expr2))
+
+    def __eq__(self, other):
+        return isinstance(other, ArrayIdxExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
+
+    def __hash__(self):
+        return hash(("ArrayIdx", self.expr1, self.expr2))
+
+    def get_vars(self):
+        return self.expr1.get_vars().union(self.expr2.get_vars())
+
+    def subst(self, inst):
+        return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
+
+class ArrayIdxExpr1(AExpr):
+    """Expressions of the form a[i], where a evaluates to a list and i
+    evaluates to an integer.
+    
+    """
+    def __init__(self, expr1, expr2):
+        super(ArrayIdxExpr1, self).__init__()
+        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        self.expr1 = expr1
+        self.expr2 = expr2
+
+    def __repr__(self):
+        return "ArrayIdxExpr1(%s,%s)" % (repr(self.expr1), repr(self.expr2))
+
+    def __str__(self):
+        return "%s[%s]" % (str(self.expr1), str(self.expr2)+"-1")
 
     def __eq__(self, other):
         return isinstance(other, ArrayIdxExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
