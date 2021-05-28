@@ -1575,6 +1575,6 @@ apply (rule exI[where x="1"])
     by (smt mult_neg_pos zero_le_power2)
     
     
-   
+
 
 end
