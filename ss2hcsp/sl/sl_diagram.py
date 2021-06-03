@@ -32,8 +32,8 @@ from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
-from ss2hcsp.matlab import parser
-from ss2hcsp.matlab import convert
+# from ss2hcsp.matlab import parser
+# from ss2hcsp.matlab import convert
 from ss2hcsp.hcsp import hcsp 
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 import re
@@ -1086,6 +1086,7 @@ class SL_Diagram:
 
     def comp_inher_st(self):
         """Compute the sample time for each block with inherent sample time."""
+        # Propagation
         terminate = False
         while not terminate:
             terminate = True
@@ -1094,15 +1095,37 @@ class SL_Diagram:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
-                        if not isinstance(in_block, SF_Chart) and in_block.st >= 0:  
+                        # Xiong: Why can't in_block be a stateflow chart?
+                        if not isinstance(in_block, SF_Chart) and in_block.st > 0:
                             in_st.append(in_block.st)
+                        elif isinstance(in_block, Constant):
+                            continue
                         else:
                             in_st = None
                             break
                     if in_st:
                         block.st = get_gcd(sample_times=in_st)
-                        if block.st == 0:
-                            block.is_continuous = True
+                        block.is_continuous = (block.st == 0)
+                        terminate = False
+
+        # Back-propagation
+        terminate = False
+        while not terminate:
+            terminate = True
+            for block in self.blocks_dict.values():
+                if block.st == -1:
+                    out_st = []  # list of sample times of outputs of the block
+                    for lines in block.src_lines:
+                        for line in lines:
+                            out_block = self.blocks_dict[line.dest]
+                            if out_block.st > 0:
+                                out_st.append(out_block.st)
+                            else:
+                                out_st = []
+                                break
+                    if out_st:
+                        block.st = get_gcd(sample_times=out_st)
+                        block.is_continuous = (block.st == 0)
                         terminate = False
                 
         # Re-classify the constant blocks
@@ -1237,10 +1260,6 @@ class SL_Diagram:
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]
-        # Get unit_delays and then delete them from block_dict
-        unit_delays = [block for block in blocks_dict.values() if block.type == "unit_delay"]
-        for name in [block.name for block in unit_delays]:
-            del blocks_dict[name]
         # Get buffers and then delete them from block_dict
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
         for name in [block.name for block in buffers]:
@@ -1277,25 +1296,25 @@ class SL_Diagram:
                 discrete_subdiagrams.append(scc)
 
         # Sort discrete blocks
-        discrete_subdiagrams_sorted = []
-        for scc in discrete_subdiagrams:
-            scc_dict = {block.name: block for block in scc}
-            sorted_scc = []
-            while scc_dict:
-                delete_blocks = []
-                for block in scc_dict.values():
-                    src_set = set()
-                    for dest_line in block.dest_lines:
-                        if dest_line !=None:
-                            src_set.add(dest_line.src)
-                    if src_set.isdisjoint(set(scc_dict.keys())):
-                        sorted_scc.append(block)
-                        delete_blocks.append(block.name)
-                for block_name in delete_blocks:
-                    del scc_dict[block_name]
-            discrete_subdiagrams_sorted.append(sorted_scc)
+        # discrete_subdiagrams_sorted = []
+        # for scc in discrete_subdiagrams:
+        #     scc_dict = {block.name: block for block in scc}
+        #     sorted_scc = []
+        #     while scc_dict:
+        #         delete_blocks = []
+        #         for block in scc_dict.values():
+        #             src_set = set()
+        #             for dest_line in block.dest_lines:
+        #                 if dest_line !=None:
+        #                     src_set.add(dest_line.src)
+        #             if src_set.isdisjoint(set(scc_dict.keys())):
+        #                 sorted_scc.append(block)
+        #                 delete_blocks.append(block.name)
+        #         for block_name in delete_blocks:
+        #             del scc_dict[block_name]
+        #     discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
+        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
 
     def add_buffers(self):
         buffers = []
