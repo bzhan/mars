@@ -277,17 +277,17 @@ class SimTest(unittest.TestCase):
 
     def testHCS(self):
         directory = "./ss2hcsp/case_studies/"
-        xml_file = "hcs_test.xml"
+        xml_file = "hcs_new.xml"
         diagram = SL_Diagram(location=directory+xml_file)
         diagram.parse_xml()
         diagram.delete_subsystems()
         diagram.comp_inher_st()
-        diagram.add_buffers()
         diagram.add_line_name()
         diagram.inherit_to_continuous()
         # diagram.delete_ports()
         # print(diagram)
         real_hp = get_hcsp(*diagram.seperate_diagram(), "HCS")
+        # print(real_hp)
         printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
         # print("D_Processes: ", dis_subdiag_with_chs)
@@ -394,19 +394,19 @@ class SimTest(unittest.TestCase):
         real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
         printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
-    def testVelocityControl(self):
-        directory = "./Examples/signalBuilder/"
-        xml_file = "velocity_control.xml"
-        diagram = SL_Diagram(location=directory + xml_file)
-        model_name = diagram.parse_xml()
-        diagram.delete_subsystems()
-        diagram.comp_inher_st()
-        # diagram.add_buffers()
-        diagram.add_line_name()
-        # print(diagram)
-        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
-        # print(real_hp)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
+    # def testVelocityControl(self):
+    #     directory = "./Examples/signalBuilder/"
+    #     xml_file = "velocity_control.xml"
+    #     diagram = SL_Diagram(location=directory + xml_file)
+    #     model_name = diagram.parse_xml()
+    #     diagram.delete_subsystems()
+    #     diagram.comp_inher_st()
+    #     # diagram.add_buffers()
+    #     diagram.add_line_name()
+    #     # print(diagram)
+    #     real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
+    #     # print(real_hp)
+    #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
 
 if __name__ == "__main__":

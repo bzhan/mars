@@ -227,7 +227,7 @@ apply (cut_tac P="vel [*] vel [+] (Real 2 [*] Real minA) [*] sf [<]
     vel [*] vel [+] (Real 2 [*] Real minA) [*] sf [=]
     fst(seg2) [*] fst(seg2) [+] (Real 2 [*] Real minA) [*] fst(snd(snd(seg2)))" in thinL,auto)
 apply (cut_tac P="close(checkS(MA_n, vel, sf))" in thinL,auto)
-apply (cut_tac P="level [=] Real 5 / 2" in thinL,auto)
+apply (cut_tac P="level [=] Real (5 / 2)" in thinL,auto)
 apply (cut_tac P="fst(snd(snd(seg1))) [=] x2" in thinL,auto)
 apply (cut_tac P="snd(snd(snd(seg1))) [=] String ''FS''" in thinL,auto)
 apply (cut_tac P="snd(snd(snd(seg2))) [=] String ''CO''" in thinL,auto)

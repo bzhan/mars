@@ -1,7 +1,7 @@
 """Translation from diagrams to HCSP processes."""
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-# from ss2hcsp.sl import sl_diagram
+from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.sl.sl_diagram import get_gcd
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
@@ -9,6 +9,7 @@ import operator
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sl.mux.mux import Mux
+
 
 def translate_continuous(diagram):
     # Get block dictionary
@@ -39,12 +40,15 @@ def translate_continuous(diagram):
             assert isinstance(in_vars, set) and len(in_vars) == 1
             in_var = in_vars.pop()
             ode_eqs.append((out_var, AVar(in_var)))
-        elif block.type == "unit_delay":
-            out_vars = block.get_output_vars()
-            assert isinstance(out_vars, set) and len(out_vars) == 1
-            out_var = out_vars.pop()
-            ode_eqs.append((out_var, AConst(0)))
-    # assert init_hps
+        # elif block.type == "unit_delay":
+        #     out_vars = block.get_output_vars()
+        #     assert isinstance(out_vars, set) and len(out_vars) == 1
+        #     out_var = out_vars.pop()
+        #     ode_eqs.append((out_var, AConst(0)))
+    # Delete integrator blocks
+    integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
+    for name in integator_names:
+        del block_dict[name]
 
     # Deal with Signal Builders
     signal_builders = [block for block in block_dict.values() if block.type == "signalBuilder"]
@@ -67,11 +71,6 @@ def translate_continuous(diagram):
     # Delete Signal Builders from block_dict
     for block in signal_builders:
         del block_dict[block.name]
-
-    # Delete integrator blocks
-    integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
-    for name in integator_names:
-        del block_dict[name]
 
     # Constant blocks are for substitution
     var_substitute = Conditional_Inst()  # an object for variable substitution
@@ -156,13 +155,13 @@ def translate_continuous(diagram):
         else:
             ode_hps.append(hp.ODE(eqs=new_ode_eqs, constraint=cond))
 
-    # Initialise input variables (Xiong: It seems not necessary, because initially,
-    # input variables should receive initial values along input channels
-    # from the environment (discrete processes) )
-    initialised_vars = [init_hp.var_name for init_hp in init_hps]
-    assert len(initialised_vars) == len(set(initialised_vars))  # no repeated initialised varaibles
-    # Xiong: Initially, the continous process should send the initial values of all output variables,
-    # and then receive the intial values of all input variables.
+    # # Initialise input variables (Xiong: It seems not necessary, because initially,
+    # # input variables should receive initial values along input channels
+    # # from the environment (discrete processes) )
+    # initialised_vars = [init_hp.var_name for init_hp in init_hps]
+    # assert len(initialised_vars) == len(set(initialised_vars))  # no repeated initialised varaibles
+    # # Xiong: Initially, the continous process should send the initial values of all output variables,
+    # # and then receive the intial values of all input variables.
     out_comms = []
     in_comms = []
     for ode_hp in ode_hps:
@@ -190,6 +189,7 @@ def translate_continuous(diagram):
                                       hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
 
     init_hps.extend([send_out_vars, receive_in_vars])
+
     # ch_hp = io_comm[0]
     # if isinstance(ch_hp, hp.InputChannel):
     #     var_name = ch_hp.var_name
@@ -197,26 +197,37 @@ def translate_continuous(diagram):
     #         # updated by lqq
     #         init_hps.append(hp.Assign(var_name, AConst(1)))
     #         initialised_vars.append(var_name)
+    assert init_hps
     init_ode = hp.Sequence(*init_hps)
 
     if signal_builders:
         return merged_signal_builder.get_hp(init_ode=init_ode, ode_hps=ode_hps)
 
     assert ode_hps
-    cond_ode_hps = []
-    for ode_hp in ode_hps:
-        assert isinstance(ode_hp, (hp.ODE, hp.ODE_Comm))
-        if ode_hp.constraint == true_expr:
-            cond_ode_hps.append(ode_hp)
-        else:
-            cond_ode_hps.append(hp.Condition(cond=ode_hp.constraint, hp=ode_hp))
-    result_hp = hp.Sequence(init_ode, hp.Loop(cond_ode_hps[0])) if len(cond_ode_hps) == 1 \
-        else hp.Sequence(init_ode, hp.Loop(hp.Sequence(*cond_ode_hps)))
+    # cond_ode_hps = []
+    # for ode_hp in ode_hps:
+    #     assert isinstance(ode_hp, (hp.ODE, hp.ODE_Comm))
+    #     if ode_hp.constraint == true_expr:
+    #         cond_ode_hps.append(ode_hp)
+    #     else:
+    #         cond_ode_hps.append(hp.Condition(cond=ode_hp.constraint, hp=ode_hp))
+    # result_hp = hp.Sequence(init_ode, hp.Loop(cond_ode_hps[0])) if len(cond_ode_hps) == 1 \
+    #     else hp.Sequence(init_ode, hp.Loop(hp.Sequence(*cond_ode_hps)))
+    result_hp = hp.Sequence(init_ode, hp.Loop(ode_hps[0])) if len(ode_hps) == 1\
+        else hp.Sequence(init_ode, hp.Loop(hp.Sequence(*ode_hps)))
     return result_hp
 
 
 def translate_discrete(diagram):
-    def get_block_hp(_var_map):  # Get the hcsp of a block from its var_map
+    def get_block_hp(_block):  # Get the hcsp of a block from its var_map
+        if _block.type == "unit_delay":
+            _in_var = _block.dest_lines[0].name
+            _out_var = _block.src_lines[0][0].name
+            delay_out_var = "delay_" + _out_var
+            return hp.Sequence(hp.Assign(_out_var, AVar(delay_out_var)),
+                               hp.Assign(delay_out_var, AVar(_in_var)))
+
+        _var_map = _block.get_var_map()
         processes = []
         for _out_var, cond_expr_list in _var_map.items():
             assert all(isinstance(_cond, BExpr) and isinstance(_expr, (AExpr, BExpr))
@@ -236,17 +247,112 @@ def translate_discrete(diagram):
         else:
             return hp.Sequence(*processes)
 
+    # Topological sorting for blocks in the discrete subdiagram
+    def topo_sort():
+        while block_dict:
+            block_pool = dict()
+            for name, block in block_dict.items():
+                src_blocks = block.get_src_blocks()
+                assert isinstance(src_blocks, set)
+                if src_blocks.isdisjoint(set(block_dict.keys())):
+                    assert name not in block_pool
+                    block_pool[name] = block
+            if not block_pool:
+                break_loop()
+                break
+            # Classify blocks in block_pool by Sample Time
+            st_to_hps = dict()
+            st_to_in_chs = dict()
+            st_to_out_chs = dict()
+            for block in block_pool.values():
+                # Get the hcsp of the block
+                if block.st not in st_to_hps:
+                    assert (block.st not in st_to_in_chs) and (block.st not in st_to_out_chs)
+                    st_to_hps[block.st] = []
+                    st_to_in_chs[block.st] = []
+                    st_to_out_chs[block.st] = []
+                st_to_hps[block.st].append(get_block_hp(block))
+                # Get the input channels of the block
+                for line in block.dest_lines:
+                    if line.src not in all_blocks:
+                        st_to_in_chs[block.st].append(hp.InputChannel(ch_name=line.ch_name, var_name=line.name))
+                st_to_in_chs[block.st].sort(key=operator.attrgetter("ch_name"))
+                for lines in block.src_lines:
+                    for line in lines:
+                        if line.dest not in all_blocks:
+                            st_to_out_chs[block.st].append(hp.OutputChannel(ch_name=line.ch_name, expr=AVar(line.name)))
+                st_to_out_chs[block.st].sort(key=operator.attrgetter("ch_name"))
+            # Get each process wrt. Sample Time
+            for st in st_to_hps.keys():
+                # The condition of time is in form of t%st == 0
+                cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(st)), AConst(0))
+                # The process is in form of in_chs?;hcsp;out_chs!
+                assert st_to_hps[st]
+                st_processes = st_to_in_chs[st] + st_to_hps[st] + st_to_out_chs[st]
+                st_process = st_processes[0] if len(st_processes) == 1 else hp.Sequence(*st_processes)
+                main_processes.append(hp.Condition(cond_time, st_process))
+            # Delete blocks in block_pool from block_dict
+            for name in block_pool.keys():
+                del block_dict[name]
+
+    # Break the loop in the remaining diagram
+    # At present, we assume the loop is caused by unit_delay blocks
+    def break_loop():
+        # Find a head: the block whose source blocks in the current diagram are all unit_delay blocks
+        head_block = SL_Block()
+        for name, block in block_dict.items():
+            src_blocks = block.get_src_blocks()
+            assert isinstance(src_blocks, set)
+            if all(block_dict[src_block].type == "unit_delay"
+                   for src_block in src_blocks & set(block_dict.keys())):
+                head_block = block
+                break
+
+        # Translate the head block
+        # First, get all the input channels of the head block
+        in_chs_head = []
+        for line in head_block.dest_lines:
+            # The head block can only read the delayed (old) value of the unit_delay blocks
+            if line.src in block_dict:
+                assert block_dict[line.src].type == "unit_delay"
+                line.name = "delay_" + line.name
+            elif line.src not in all_blocks:
+                in_chs_head.append(hp.InputChannel(ch_name=line.ch_name, var_name=line.name))
+        in_chs_head.sort(key=operator.attrgetter("ch_name"))
+        # Then, get all the output channels of the head block
+        out_chs_head = []
+        for lines in head_block.src_lines:
+            for line in lines:
+                if line.dest not in all_blocks:
+                    out_chs_head.append(hp.OutputChannel(ch_name=line.ch_name, expr=AVar(line.name)))
+        out_chs_head.sort(key=operator.attrgetter("ch_name"))
+        # Finally, get the HCSP process of the head block
+        head_processes = in_chs_head + [get_block_hp(head_block)] + out_chs_head
+        # After translation, the names of the dest_lines of the head block should be changed back
+        for line in head_block.dest_lines:
+            if line.name.startswith("delay_"):
+                line.name = line.name[6:]
+        head_process = head_processes[0] if len(head_processes) == 1 else hp.Sequence(*head_processes)
+        cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(head_block.st)), AConst(0))
+        main_processes.append(hp.Condition(cond_time, head_process))
+
+        # Delete the head block from the loop
+        del block_dict[head_block.name]
+
+        # Continue the topological sorting after deleting the head block from the loop
+        topo_sort()
+
     # Get block dictionary
     block_dict = {block.name: block for block in diagram}
     all_blocks = list(block_dict.keys())
 
     # The case that there are only constant blocks in block_dict
-    if all(block.type == "constant" for block in block_dict.values()):
-        assert len(block_dict) == 1
-        _, block = block_dict.popitem()
-        line = block.src_lines[0][0]
-        return hp.Condition(cond=RelExpr("==", ModExpr(AVar("t"), AConst(block.st)), AConst(0)),
-                            hp=hp.OutputChannel(ch_name=line.ch_name, expr=AConst(block.value)))
+    # if all(block.type == "constant" for block in block_dict.values()):
+    #     assert len(block_dict) == 1
+    #     _, block = block_dict.popitem()
+    #     line = block.src_lines[0][0]
+    #     return hp.Condition(cond=RelExpr("==", ModExpr(AVar("t"), AConst(block.st)), AConst(0)),
+    #                         hp=hp.OutputChannel(ch_name=line.ch_name, expr=AConst(block.value)))
 
     # Get initial processes
     init_hp = hp.Assign("t", AConst(0))
@@ -257,6 +363,10 @@ def translate_discrete(diagram):
             (out_var, [(_, expr)]) = var_map.popitem()
             assert isinstance(expr, AConst)
             init_hp = hp.Sequence(init_hp, hp.Assign(out_var, expr))
+        elif block.type == "unit_delay":
+            init_hp = hp.Sequence(init_hp,
+                                  hp.Assign("delay_"+block.src_lines[0][0].name,
+                                            hp.AConst(block.init_value)))
 
     # Delete Constant blocks
     constant_block_names = [name for name, block in block_dict.items() if block.type == "constant"]
@@ -270,49 +380,7 @@ def translate_discrete(diagram):
 
     # Get main processes
     main_processes = []
-    while block_dict:
-        block_pool = dict()
-        for name, block in block_dict.items():
-            src_blocks = block.get_src_blocks()
-            assert isinstance(src_blocks, set)
-            if src_blocks.isdisjoint(set(block_dict.keys())):
-                assert name not in block_pool
-                block_pool[name] = block
-        assert block_pool
-        # Classify blocks in block_pool by Sample Time
-        st_to_hps = dict()
-        st_to_in_chs = dict()
-        st_to_out_chs = dict()
-        for block in block_pool.values():
-            # Get the hcsp of the block
-            if block.st not in st_to_hps:
-                assert (block.st not in st_to_in_chs) and (block.st not in st_to_out_chs)
-                st_to_hps[block.st] = []
-                st_to_in_chs[block.st] = []
-                st_to_out_chs[block.st] = []
-            st_to_hps[block.st].append(get_block_hp(block.get_var_map()))
-            # Get the input channels of the block
-            for line in block.dest_lines:
-                if line.src not in all_blocks:
-                    st_to_in_chs[block.st].append(hp.InputChannel(ch_name=line.ch_name, var_name=line.name))
-            st_to_in_chs[block.st].sort(key=operator.attrgetter("ch_name"))
-            for lines in block.src_lines:
-                for line in lines:
-                    if line.dest not in all_blocks:
-                        st_to_out_chs[block.st].append(hp.OutputChannel(ch_name=line.ch_name, expr=AVar(line.name)))
-            st_to_out_chs[block.st].sort(key=operator.attrgetter("ch_name"))
-        # Get each process wrt. Sample Time
-        for st in st_to_hps.keys():
-            # The condition of time is in form of t%st == 0
-            cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(st)), AConst(0))
-            # The process is in form of in_chs?;hcsp;out_chs!
-            assert st_to_hps[st]
-            st_processes = st_to_in_chs[st] + st_to_hps[st] + st_to_out_chs[st]
-            st_process = st_processes[0] if len(st_processes) == 1 else hp.Sequence(*st_processes)
-            main_processes.append(hp.Condition(cond_time, st_process))
-        # Delete blocks in block_pool from block_dict
-        for name in block_pool.keys():
-            del block_dict[name]
+    topo_sort()
 
     # Get loop body of the result process
     main_processes.append(wait_st)
@@ -320,8 +388,8 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays, buffers,
-             discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads,model_name="P"):
+def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
+             discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.
     
     The arguments are:
@@ -396,11 +464,6 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
             # if chart.is_triggered_chart == False:
             processes.add(process_name, sf_process)
             main_processes.append(hp.Var(process_name))
-    # Compute the unit_delay processes
-    for unit_delay in unit_delays:
-        process_name = unit_delay.name.replace(" ", "_")
-        processes.add(process_name, unit_delay.get_hcsp())
-        main_processes.append(hp.Var(process_name))
 
     # Computer the buffer processes
     for buffer in buffers:
