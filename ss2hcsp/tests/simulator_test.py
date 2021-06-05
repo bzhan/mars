@@ -4,7 +4,7 @@ import unittest
 import math
 import pprint
 
-from ss2hcsp.hcsp.hcsp import Channel
+from ss2hcsp.hcsp.hcsp import Channel, Procedure
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
@@ -254,7 +254,13 @@ class SimulatorTest(unittest.TestCase):
                  print_state=False,  # Show final state
                  warning=None):
         for i in range(len(infos)):
-            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
+            if isinstance(infos[i], str):
+                infos[i] = simulator.SimInfo('P' + str(i), infos[i])
+            else:
+                procs, hp = infos[i]
+                procedures = dict((name, Procedure(name, parser.hp_parser.parse(proc_hp)))
+                                  for name, proc_hp in procs)
+                infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
 
         res = simulator.exec_parallel(infos, num_io_events=num_io_events)
         res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
@@ -562,6 +568,40 @@ class SimulatorTest(unittest.TestCase):
             "(x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread))**",
             "ch[0]!; out?x; ch[1]!; out?x"
         ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
+
+    def testProcedure1(self):
+        self.run_test([
+            ([("sub", "x := x + 1")], "x := 0; @sub; @sub; ch!x"),
+            "ch?x"
+        ], 2, ['IO ch 2', 'deadlock'])
+
+    def testProcedure2(self):
+        self.run_test([
+            ([("fact", "if a > 0 then x := a * x; a := a - 1; @fact else skip endif")],
+             "x := 1; a := 5; @fact; ch!x"),
+            "ch?x"
+        ], 2, ['IO ch 120', 'deadlock'])
+
+    def testProcedure3(self):
+        self.run_test([
+            ([("output", "if a > 0 then a := a - 1; ch!a; @output else skip endif")],
+             "a := 5; @output"),
+            "(ch?x)**"
+        ], 10, ['IO ch 4', 'IO ch 3', 'IO ch 2', 'IO ch 1', 'IO ch 0', 'deadlock'])
+
+    def testProcedure4(self):
+        self.run_test([
+            ([("delay", "if a > 0 then a := a - 1; wait(2); @delay else skip endif")],
+             "a := 5; @delay")
+        ], 10, ['delay 2', 'delay 2', 'delay 2', 'delay 2', 'delay 2', 'deadlock'])
+
+    def testProcedure5(self):
+        self.run_test([
+            ([("pa", "if x > 0 then x := x - 1; cha!x; @pb else skip endif"),
+              ("pb", "if x > 0 then x := x - 1; chb!x; @pa else skip endif")],
+             "x := 5; @pa"),
+            "(cha?x --> skip $ chb?x --> skip)**"
+        ], 10, ['IO cha 4', 'IO chb 3', 'IO cha 2', 'IO chb 1', 'IO cha 0', 'deadlock'])
 
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
                        show_interval=None, start_event=None, print_trace=False):
