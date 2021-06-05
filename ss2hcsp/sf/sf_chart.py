@@ -1,3 +1,6 @@
+import re
+import lark
+
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem,Triggered_Subsystem
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
 from ss2hcsp.sf.sf_message import SF_Message
@@ -8,7 +11,6 @@ from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
 
 from ss2hcsp.hcsp.parser import aexpr_parser
-import re
 
 
 def get_common_ancestor(state0, state1, tran_type="out_trans"):
@@ -1501,8 +1503,12 @@ class SF_Chart(Subsystem):
                         #             else:
                         #                 conds.append(bexpr_parser.parse(str(return_var)+op+left))
                         
-                    else:      
-                        conds.append(bexpr_parser.parse(str(condition)))
+                    else:
+                        try:
+                            conds.append(bexpr_parser.parse(str(condition)))
+                        except lark.exceptions.UnexpectedToken as e:
+                            print("Parsing condition", condition)
+                            raise e
             
             if "&&" in str(tran.condition):
                 if len(conds_event) >0:

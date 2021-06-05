@@ -11,9 +11,9 @@ grammar = r"""
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
-        | lname("." lname)+ -> direct_name
+        | lname ("." lname)+ -> direct_name
 
-    ?return_var:"[" lname ("," lname)* "]" -> return_var
+    ?return_var: "[" lname ("," lname)* "]" -> return_var
         | lname
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
@@ -25,25 +25,23 @@ grammar = r"""
         | plus_expr "-" times_expr -> minus_expr
         | "-" times_expr -> uminus_expr
         | times_expr
-       
 
     ?expr: plus_expr
 
-    ?assign_cmd: return_var "=" expr (";")? -> assign_cmd
-        | lname
-       
+    ?assign_cmd: return_var "=" expr -> assign_cmd
 
-    ?func_cmd: CNAME "(" expr ("," expr)*")" (";")?-> func_has_pra_cmd
-            | CNAME "(" ")" (";")?-> func_no_pra_cmd 
-            
+    ?func_cmd: CNAME "(" expr ("," expr)*")" (";")? -> func_has_pra_cmd
+            | CNAME "(" ")" (";")? -> func_no_pra_cmd 
 
-    ?cmd: assign_cmd 
+    ?event: lname 
 
-    ?seq_cmd: (cmd)* 
+    ?cmd: assign_cmd | event
+
+    ?seq_cmd: cmd (";" cmd)* (";")? -> seq_cmd
 
     ?boolean_expr: "true" -> true_cond
         | "false" -> false_cond
-        |atom_expr
+        | atom_expr
 
     ?atom_cond: expr "==" expr -> eq_cond
         | expr "!=" expr -> ineq_cond
@@ -55,8 +53,6 @@ grammar = r"""
         | boolean_expr
         | "(" cond ")"
         | func_cmd "==" expr  ->func_cmd_cond
-
-    ?event: lname 
     
     ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
@@ -65,19 +61,19 @@ grammar = r"""
     ?cond: disj
 
     ?cond_tran: event "[" cond "]" "{" seq_cmd "}" "/{" seq_cmd "}" -> cond_tran
-    	| "[" cond "]""{" seq_cmd "}""/{" seq_cmd "}" -> cond_tran1
-    	| event"{" seq_cmd "}""/{" seq_cmd "}"-> cond_tran2
-    	| event"{" seq_cmd "}"-> cond_tran3
-    	| event"/{" seq_cmd "}"-> cond_tran4
-    	| "{" seq_cmd "}""/{" seq_cmd "}"-> cond_tran5
-    	| "/{" seq_cmd "}" ->cond_tran6
-    	| "[" cond "]""{" seq_cmd "}" -> cond_tran7
-    	|"[" cond "]""/{" seq_cmd "}" -> cond_tran8
-        | "{" seq_cmd "}" ->cond_tran9
-        | event"[" cond "]""{" seq_cmd "}" ->cond_tran10
+        | "[" cond "]" "{" seq_cmd "}" "/{" seq_cmd "}" -> cond_tran1
+        | event "{" seq_cmd "}" "/{" seq_cmd "}" -> cond_tran2
+        | event "{" seq_cmd "}" -> cond_tran3
+        | event "/{" seq_cmd "}" -> cond_tran4
+        | "{" seq_cmd "}" "/{" seq_cmd "}" -> cond_tran5
+        | "/{" seq_cmd "}" -> cond_tran6
+        | "[" cond "]" "{" seq_cmd "}" -> cond_tran7
+        | "[" cond "]" "/{" seq_cmd "}" -> cond_tran8
+        | "{" seq_cmd "}" -> cond_tran9
+        | event "[" cond "]" "{" seq_cmd "}" -> cond_tran10
         | "[" cond "]" ->cond_tran11
-        | event ->cond_tran12
-        | event"[" cond "]" ->cond_tran13
+        | event -> cond_tran12
+        | event "[" cond "]" -> cond_tran13
 
     %import common.CNAME
     %import common.WS
@@ -158,9 +154,9 @@ class MatlabTransformer(Transformer):
     def cond_tran6(self,tran_act):
         return cond_tran.CondTran('','','',tran_act)
     def cond_tran7(self,cond,cond_act):
-    	return cond_tran.CondTran('',cond,cond_act,'')    
+        return cond_tran.CondTran('',cond,cond_act,'')    
     def cond_tran8(self,cond,tran_act):
-    	return cond_tran.CondTran('',cond,'',tran_act)                                                                              
+        return cond_tran.CondTran('',cond,'',tran_act)                                                                              
     def cond_tran9(self,cond_act):
         return cond_tran.CondTran('','',cond_act,'') 
     def cond_tran10(self,event,cond,cond_act):
@@ -175,7 +171,7 @@ class MatlabTransformer(Transformer):
         return function.Assign(var_name, expr)
     
     def direct_name(self,*expr):
-    	return cond_tran.DirectName(expr)
+        return cond_tran.DirectName(expr)
 
     def func_no_pra(self,return_var, fun_name):
         return cond_tran.matFunExpr(return_var,fun_name)
@@ -189,12 +185,11 @@ class MatlabTransformer(Transformer):
     # def func_has_pra1(self,return_var,fun_name,*args):
     #     return function.matFunExpr(return_var,fun_name,args)
 
-    def func_has_pra_cmd(self,fun_name, *exprs):
+    def func_has_pra_cmd(self, fun_name, *exprs):
         return cond_tran.FunExpr(fun_name, exprs)
 
-    def func_no_pra_cmd(self,fun_name,*exprs):
-
-        return cond_tran.FunExpr(fun_name,"")
+    def func_no_pra_cmd(self, fun_name, *exprs):
+        return cond_tran.FunExpr(fun_name, "")
 
     def eq_cond(self, e1, e2):
         return expr.RelExpr("==", e1, e2)
@@ -230,10 +225,10 @@ class MatlabTransformer(Transformer):
         return expr.LogicExpr("||", b1, b2)
 
     def seq_cmd(self, *args):
-    	if len(args) == 1:
-        	return args[0]
-    	else:
-        	return hcsp.Sequence(*args)
+        if len(args) == 1:
+            return args[0]
+        else:
+            return hcsp.Sequence(*args)
     def array_idx_expr1(self, a, i):
         return cond_tran.ArrayIdxExpr(cond_tran.AVar(str(a)), i)
 

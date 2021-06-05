@@ -55,10 +55,10 @@ class Transition:
                 number, event = [e.strip() for e in str(func.cond)[6:-1].split(",")]
                 if event == "sec":
                     special_var = "state_time"+str(self.src)
-                    self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
+                    self.condition = bexpr_parser.parse(special_var + " >= " + number)
                     self.cond_vars.add(special_var)
             else:
-                self.condition =bexpr_parser.parse(str(func.cond))
+                self.condition = func.cond
         else:
             self.condition = None
         if isinstance(func.cond_act,hp.Sequence):
