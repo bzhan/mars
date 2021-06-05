@@ -64,7 +64,7 @@ grammar = r"""
 
     ?cond: disj
 
-    ?cond_tran: event"[" cond "]""{" seq_cmd "}""/{" seq_cmd "}" -> cond_tran
+    ?cond_tran: event "[" cond "]" "{" seq_cmd "}" "/{" seq_cmd "}" -> cond_tran
     	| "[" cond "]""{" seq_cmd "}""/{" seq_cmd "}" -> cond_tran1
     	| event"{" seq_cmd "}""/{" seq_cmd "}"-> cond_tran2
     	| event"{" seq_cmd "}"-> cond_tran3

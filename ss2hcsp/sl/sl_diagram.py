@@ -33,14 +33,14 @@ from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
 # from ss2hcsp.matlab import parser
-# from ss2hcsp.matlab import convert
 from ss2hcsp.hcsp import hcsp 
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 import re
 import operator
 
 from ss2hcsp.hcsp.parser import aexpr_parser
-
+from ss2hcsp.matlab.parser import function_parser
+from ss2hcsp.matlab import convert
 
 def get_gcd(sample_times):
     """Return the gcd of a list of sample times.
@@ -182,7 +182,7 @@ class SL_Diagram:
                         if fun_script: 
                             fun_type="MATLAB_FUNCTION"
                             chart_state1=None
-                            func = parser.function_parser.parse(fun_script)
+                            func = function_parser.parse(fun_script)
                             hp = convert.convert_function(func)
                             if isinstance(func.name,(function.Var,function.FunExpr)):
                                 fun_name =func.name

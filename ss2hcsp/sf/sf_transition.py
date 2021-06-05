@@ -1,5 +1,9 @@
+"""Transition in Stateflow diagrams"""
+
 import re
 import html
+import lark
+
 from ss2hcsp.sf.sf_parser.parser import condition_parser
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
@@ -18,7 +22,7 @@ class Transition:
         self.location = None  # in which state
 
         self.event = None
-        self.message=None
+        self.message = None
         self.condition = None
         self.cond_acts = list()
         self.tran_acts = list()
@@ -37,48 +41,55 @@ class Transition:
                (self.ssid, self.label, self.order, self.src, self.dst)
 
     def parse(self):
-        if self.label is not None:
-            func = parser.transition_parser.parse(html.unescape(self.label))
-            if func.cond:
-                if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.cond)):
-                    number, event = [e.strip() for e in str(func.cond)[6:-1].split(",")]
-                    if event == "sec":
-                        special_var = "state_time"+str(self.src)
-                        self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
-                        self.cond_vars.add(special_var)
-                else:
-                    self.condition =bexpr_parser.parse(str(func.cond))
-            else:
-                self.condition =None
-            if isinstance(func.cond_act,hp.Sequence):
-                self.cond_acts=[str(cond_act) for cond_act in func.cond_act.hps] 
-            elif func.cond_act:
-                self.cond_acts = [str(func.cond_act)]
-            else:
-                self.cond_act =[]
-            if isinstance(func.tran_act,hp.Sequence):
-                self.tran_acts=[str(tran_act) for tran_act in func.tran_act.hps]  
-            elif func.tran_act:
-                self.tran_acts = [str(func.tran_act)]
-            else:
-                self.tran_acts=[]
-            if func.event:
+        if self.label is None:
+            return
 
-                if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.event)):
-                    # Parse after(number, event) condition
-                    # number, event = condition[6:-1].split(",")
-                    number, event = [e.strip() for e in str(func.event)[6:-1].split(",")]
-                    if event == "sec":
-                        special_var = "state_time"+str(self.src)
-                        if self.condition is not None:
-                            self.condition =bexpr_parser.parse(str(self.condition)+"&&"+special_var + " >= " + number)    #？？？？？？
-                        else:
-                            self.condition =bexpr_parser.parse(special_var + " >= " + number) 
-                        self.cond_vars.add(special_var)
-                else:
-                    self.event =str(func.event)
+        try:
+            func = parser.transition_parser.parse(html.unescape(self.label))
+        except lark.exceptions.UnexpectedToken as e:
+            print("When parsing: %s" % self.label)
+            raise e
+
+        if func.cond:
+            if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.cond)):
+                number, event = [e.strip() for e in str(func.cond)[6:-1].split(",")]
+                if event == "sec":
+                    special_var = "state_time"+str(self.src)
+                    self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
+                    self.cond_vars.add(special_var)
             else:
-                self.event = None
+                self.condition =bexpr_parser.parse(str(func.cond))
+        else:
+            self.condition = None
+        if isinstance(func.cond_act,hp.Sequence):
+            self.cond_acts=[str(cond_act) for cond_act in func.cond_act.hps] 
+        elif func.cond_act:
+            self.cond_acts = [str(func.cond_act)]
+        else:
+            self.cond_act = []
+        if isinstance(func.tran_act,hp.Sequence):
+            self.tran_acts = [str(tran_act) for tran_act in func.tran_act.hps]  
+        elif func.tran_act:
+            self.tran_acts = [str(func.tran_act)]
+        else:
+            self.tran_acts = []
+
+        if func.event:
+            if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.event)):
+                # Parse after(number, event) condition
+                # number, event = condition[6:-1].split(",")
+                number, event = [e.strip() for e in str(func.event)[6:-1].split(",")]
+                if event == "sec":
+                    special_var = "state_time"+str(self.src)
+                    if self.condition is not None:
+                        self.condition =bexpr_parser.parse(str(self.condition)+"&&"+special_var + " >= " + number)    #？？？？？？
+                    else:
+                        self.condition =bexpr_parser.parse(special_var + " >= " + number) 
+                    self.cond_vars.add(special_var)
+            else:
+                self.event =str(func.event)
+        else:
+            self.event = None
         
         # label = self.label if self.label else ""
         # # Get transition condition
@@ -193,12 +204,13 @@ class Transition:
         # Assertion on default transitions
         # if self.src is None:  # a default transition
         #     assert self.condition is None and self.event == ""
+
     def get_vars(self):
-        var_set = set()       #无序不重复
+        var_set = set()
         # Get variables in condition
         if self.condition:
             assert isinstance(self.condition, BExpr)
-            var_set = var_set.union(self.condition.get_vars())    #返回两个集合的交集
+            var_set = var_set.union(self.condition.get_vars())
         # Get variables in actions
         for act in list(self.cond_acts) + list(self.tran_acts):
             assert isinstance(act, (hp.HCSP,str))
