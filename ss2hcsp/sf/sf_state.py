@@ -132,7 +132,6 @@ class SF_State:
             self.name=str(self.name)[:str(self.name).index("(")]
         return bexpr_parser.parse("a_" + self.whole_name + " == 0")
 
-#历史节点需修改
     def activate(self):
         """Return procedure for activating a node."""
         # Set basic variables
@@ -217,7 +216,7 @@ class SF_State:
                      
         hps = [_hp for _hp in hps if _hp]  # delete Nones
         return hps
-#历史节点修改
+
     def all_descendant_exit(self):
         """Return procedure for exiting a node."""
         hps = list()
