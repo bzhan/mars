@@ -546,7 +546,8 @@ inductive io_assn :: "cname \<Rightarrow> real \<Rightarrow> tassn" ("IO\<^sub>t
   "IO\<^sub>t ch v [IOBlock ch v]"
 
 inductive wait_assn :: "real \<Rightarrow> (real \<Rightarrow> gstate) \<Rightarrow> rdy_info \<Rightarrow> tassn" ("Wait\<^sub>t") where
-  "Wait\<^sub>t d p rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"
+  "d > 0 \<Longrightarrow> Wait\<^sub>t d p rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy]"
+| "d \<le> 0 \<Longrightarrow> Wait\<^sub>t d p rdy []"
 
 lemma emp_unit_left [simp]:
   "(emp\<^sub>t @\<^sub>t P) = P"
@@ -610,6 +611,15 @@ lemma conj_join_distrib [simp]:
 lemma conj_join_distrib2 [simp]:
   "(\<lambda>tr. b \<and> P tr) @\<^sub>t Q = (\<up>b \<and>\<^sub>t (P @\<^sub>t Q))"
   by (auto simp add: pure_assn_def conj_assn_def join_assn_def)
+
+lemma wait_le_zero [simp]:
+  "d \<le> 0 \<Longrightarrow> Wait\<^sub>t d p rdy = emp\<^sub>t"
+  apply (rule ext) subgoal for tr
+    apply auto
+     apply (cases rule: wait_assn.cases)
+    apply (auto simp add: emp_assn_def)
+    by (auto intro: wait_assn.intros)
+  done
 
 text \<open>Simpler forms of weakest precondition\<close>
 
@@ -707,6 +717,24 @@ theorem Valid_cond_sp:
   using assms unfolding Valid_def
   by (auto elim!: condE)
 
+theorem Valid_cond_sp2:
+  assumes "\<Turnstile> {\<lambda>s t. s = st \<and> P s t} c1 {Q1}"
+    and "\<Turnstile> {\<lambda>s t. s = st \<and> P s t} c2 {Q2}"
+  shows "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
+             IF b THEN c1 ELSE c2 FI
+            {\<lambda>s t. if b st then Q1 s t else Q2 s t}"
+  using assms unfolding Valid_def
+  by (auto elim!: condE)
+
+theorem Valid_if_split:
+  assumes "b \<Longrightarrow> \<Turnstile> {P1} c {Q1}"
+    and "\<not>b \<Longrightarrow> \<Turnstile> {P2} c {Q2}"
+  shows "\<Turnstile> {\<lambda>s t. if b then P1 s t else P2 s t}
+             c
+            {\<lambda>s t. if b then Q1 s t else Q2 s t}"
+  using assms unfolding Valid_def
+  by auto
+
 theorem Valid_assign_sp_st:
   "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
         x ::= e
@@ -715,10 +743,26 @@ theorem Valid_assign_sp_st:
    prefer 2 apply (rule Valid_assign)
   by (auto simp add: entails_def)
 
+theorem Valid_assign_sp_bst:
+  "\<Turnstile> {\<lambda>s t. s = st \<and> b s \<and> P s t}
+        x ::= e
+      {\<lambda>s t. s = st(x := e st) \<and> b st \<and> P st t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_assign)
+  by (auto simp add: entails_def)
+
 theorem Valid_send_sp_st:
   "\<Turnstile> {\<lambda>s t. s = st \<and> P s t}
        Cm (ch[!]e)
       {\<lambda>s t. s = st \<and> (P st @\<^sub>t Out\<^sub>t (State st) ch (e st)) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_send')
+  by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
+
+theorem Valid_send_sp_bst:
+  "\<Turnstile> {\<lambda>s t. s = st \<and> b s \<and> P s t}
+       Cm (ch[!]e)
+      {\<lambda>s t. s = st \<and> b s \<and> (P st @\<^sub>t Out\<^sub>t (State st) ch (e st)) t}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_send')
   by (auto simp add: entails_def magic_wand_assn_def join_assn_def)
@@ -744,6 +788,30 @@ theorem Valid_receive_sp_st:
     apply auto apply (rule exI[where x=tr])
     by (metis in_assn.intros(3) infinity_ereal_def)
   done
+
+
+theorem Valid_receive_sp_bst:
+  "\<Turnstile> {\<lambda>s t. s = st \<and> b s \<and> P s t}
+        Cm (ch[?]var)
+      {\<lambda>s t. \<exists>v. s = st(var := v) \<and> b st \<and> (P st @\<^sub>t In\<^sub>t (State st) ch v) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_receive)
+  unfolding entails_def
+  apply (auto simp add: all_assn_def magic_wand_assn_def emp_assn_def join_assn_def)
+  subgoal for tr v
+    apply (rule exI[where x=v])
+    apply auto apply (rule exI[where x=tr])
+    by (simp add: in_assn.intros)
+  subgoal for tr d v
+    apply (rule exI[where x=v])
+    apply auto apply (rule exI[where x=tr])
+    using in_assn.intros(2) by auto
+  subgoal for tr
+    apply (rule exI[where x="st var"])
+    apply auto apply (rule exI[where x=tr])
+    by (metis in_assn.intros(3) infinity_ereal_def)
+  done
+
 
 theorem Valid_wait_sp_st:
   "\<Turnstile>
