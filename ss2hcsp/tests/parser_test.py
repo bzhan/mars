@@ -2,8 +2,9 @@
 
 import unittest
 
-from ss2hcsp.hcsp.hcsp import HCSPInfo
-from ss2hcsp.hcsp.parser import hp_parser, parse_file, parse_module_file
+from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
+from ss2hcsp.hcsp import module
+from ss2hcsp.hcsp.parser import hp_parser, module_parser, parse_file, parse_module_file
 
 
 class ParserTest(unittest.TestCase):
@@ -110,6 +111,23 @@ class ParserTest(unittest.TestCase):
             HCSPInfo("P0b", hp_parser.parse("x := 0; (<x_dot = 1 & true> |> [](p2c[1]!x --> skip); c2p[1]?x)**")),
             HCSPInfo("P1b", hp_parser.parse("(wait(2); p2c[1]?x; c2p[1]!x-1)**")),
         ])
+
+    def testParseProcedure(self):
+        mod = module_parser.parse("""
+            module P0():
+            procedure sub begin
+              x := x+1
+            end
+            begin
+              x := 0; @sub; @sub; ch!x
+            end
+            endmodule
+        """)
+
+        self.assertEqual(mod, module.HCSPModule(
+            "P0", None, None, [Procedure("sub", hp_parser.parse("x := x+1"))],
+            hp_parser.parse("x := 0; @sub; @sub; ch!x")
+        ))
 
 
 if __name__ == "__main__":

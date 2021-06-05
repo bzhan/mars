@@ -943,17 +943,42 @@ def get_comm_chs(hp):
     return list(OrderedDict.fromkeys(collect))
 
 
+class Procedure:
+    """Declared procedure within a process."""
+    def __init__(self, name, hp):
+        self.name = name
+        self.hp = hp
+
+    def __eq__(self, other):
+        return self.name == other.name and self.hp == other.hp
+
+    def __repr__(self):
+        return "Procedure(%s,%s)" % (self.name, repr(self.hp))
+
+    def __str__(self):
+        return "procedure %s begin %s end" % (self.name, str(self.hp))
+
+
 class HCSPInfo:
     """HCSP process with extra information."""
-    def __init__(self, name, hp, *, outputs=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None):
         self.name = name
         self.hp = hp
         
         # List of output variables, None indicates output everything
         self.outputs = outputs
 
+        # List of declared procedures
+        if procedures is None:
+            procedures = []
+        self.procedures = procedures
+
     def __str__(self):
-        return self.name + ' ::=\n' + str(self.hp)
+        res = self.name + ' ::=\n'
+        for procedure in self.procedures:
+            res += str(procedure) + '\n'
+        res += str(self.hp)
+        return res
 
     def __repr__(self):
         return "HCSPInfo(%s, %s)" % (self.name, str(self.hp))

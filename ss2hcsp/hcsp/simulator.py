@@ -668,7 +668,7 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, outputs=None, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -683,6 +683,11 @@ class SimInfo:
 
         # List of output variables, None indicates output everything.
         self.outputs = outputs
+
+        # List of procedure declarations
+        if procedures is None:
+            procedures = []
+        self.procedures = procedures
 
         # Current position of execution
         if isinstance(pos, str):
