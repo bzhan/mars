@@ -386,20 +386,19 @@ lemma control_vars_distinct [simp]: "Command_a \<noteq> V" "Command_a \<noteq> S
 
 definition Control :: proc where
   "Control =
+    
     Rep(
-    Level ::= (\<lambda>_. 2.5);
-    Next_seg_v ::= (\<lambda>_. 0);
-    Cm (''Train2Control''[?]V);
-    Cm (''Train2Control''[?]S);
-    (IF (\<lambda>s. s Level = 2.5 \<and> s S > Stop_point) THEN
-         Level ::= (\<lambda>_. 3)
-     ELSE Skip FI);
-    (IF (\<lambda>s. s Level = 3 \<and> s S < Stop_point / 2) THEN
-         Next_seg_v ::= (\<lambda>_. Next_V_limit)
-     ELSE Skip FI);
-    Command_a ::= (\<lambda>s. com_a_gen (s S) (s V) (s Next_seg_v));
-    Cm (''Control2Train''[!](\<lambda>s. s Command_a))
-    )"
+Level ::= (\<lambda>_. 2.5);Next_seg_v ::= (\<lambda>_. 0);
+      Cm (''Train2Control''[?]V);
+      Cm (''Train2Control''[?]S);
+      (IF (\<lambda>s. s Level = 2.5 \<and> s S > Stop_point) THEN
+          Level ::= (\<lambda>_. 3)
+       ELSE Skip FI);
+      (IF (\<lambda>s. s Level = 3 \<and> s S < Stop_point / 2) THEN
+          Next_seg_v ::= (\<lambda>_. Next_V_limit)
+       ELSE Skip FI);
+      Command_a ::= (\<lambda>s. com_a_gen (s S) (s V) (s Next_seg_v));
+      Cm (''Control2Train''[!](\<lambda>s. s Command_a)))"
 
 definition fs :: "real \<Rightarrow> real" where
    "fs s =
@@ -466,9 +465,11 @@ apply (simp add: fun_upd_twist)
 
 lemma Control_prop:
   "\<Turnstile>
-    {\<lambda>s tr. s = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, Level := l0, Next_seg_v := 0 )) \<and> emp\<^sub>t tr}
+    {\<lambda>s tr. s = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, 
+                       Level := l0, Next_seg_v := 0 )) \<and> emp\<^sub>t tr}
       Control
-    {\<lambda>s tr. \<exists>xs. s = Control_end_state (v0, s0, a0, l0) xs \<and> Control_blocks (v0, s0, a0, l0) xs tr}"
+    {\<lambda>s tr. \<exists>xs. s = Control_end_state (v0, s0, a0, l0) xs 
+                         \<and> Control_blocks (v0, s0, a0, l0) xs tr}"
   unfolding Control_def
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
@@ -824,8 +825,8 @@ fun tot_seq :: "real \<times> real \<Rightarrow> nat \<Rightarrow> (real \<times
 lemma combine:
   "loop_invariant (s0, v0) \<Longrightarrow> 
    combine_assn {''Train2Control'', ''Control2Train''}
-      (Train_inv (v0, s0, com_a s0 v0, t0) as) (Control_blocks (v0, s0, com_a s0 v0, 2.5) vs) \<Longrightarrow>\<^sub>t
-   tot_block (s0,v0) (length as)"
+     (Train_inv (v0, s0, com_a s0 v0, t0) as) (Control_blocks (v0, s0, com_a s0 v0, 2.5) vs) 
+      \<Longrightarrow>\<^sub>t  tot_block (s0,v0) (length as)"
 proof (induct as arbitrary: vs v0 s0 t0)
   case Nil
   then show ?case 
@@ -1031,7 +1032,8 @@ lemma system_Prop:
   assumes "loop_invariant (s0, v0)"
   shows "\<Turnstile>\<^sub>p
     {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(V := v0, S := s0, A := com_a s0 v0, T := t0)))
-               (\<lambda>s. s = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := com_a s0 v0, Level := 2.5, Next_seg_v := 0)))}
+               (\<lambda>s. s = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := com_a s0 v0, 
+                                                   Level := 2.5, Next_seg_v := 0)))}
       system
     {\<exists>\<^sub>g n. trace_gassn (tot_block (s0,v0) n)}"
   unfolding system_def
