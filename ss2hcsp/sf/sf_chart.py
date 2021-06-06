@@ -922,6 +922,7 @@ class SF_Chart(Subsystem):
                 if isinstance(s,OR_State) and s.has_aux_var("state_time"+str(s.ssid)):
                     add_state_time.append(hp_parser.parse("state_time"+str(s.ssid)+" := "+"state_time"+str(s.ssid)+"+"+str(self.st)))
         return add_state_time
+
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.diagram))
 
