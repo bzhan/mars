@@ -1,4 +1,4 @@
-theory CTCS3
+theory CTCS3p
   imports HHLProver.ContinuousInv
     HHLProver.BigStepParallel
     HHLProver.Complementlemma
@@ -386,17 +386,16 @@ lemma control_vars_distinct [simp]: "Command_a \<noteq> V" "Command_a \<noteq> S
 
 definition Control :: proc where
   "Control =
-    
+    Level ::= (\<lambda>_. 2.5);Next_seg_v ::= (\<lambda>_. 0);
     Rep(
-Level ::= (\<lambda>_. 2.5);Next_seg_v ::= (\<lambda>_. 0);
       Cm (''Train2Control''[?]V);
       Cm (''Train2Control''[?]S);
       (IF (\<lambda>s. s Level = 2.5 \<and> s S > Stop_point) THEN
           Level ::= (\<lambda>_. 3)
-       ELSE Skip FI);
+       ELSE Level ::= (\<lambda> s. s Level) FI);
       (IF (\<lambda>s. s Level = 3 \<and> s S < Stop_point / 2) THEN
           Next_seg_v ::= (\<lambda>_. Next_V_limit)
-       ELSE Skip FI);
+       ELSE Next_seg_v ::= (\<lambda> s. s Next_seg_v) FI);
       Command_a ::= (\<lambda>s. com_a_gen (s S) (s V) (s Next_seg_v));
       Cm (''Control2Train''[!](\<lambda>s. s Command_a)))"
 
@@ -431,55 +430,57 @@ lemma com_a_zero:
   using fs_gen_zero by auto
 
 
-fun Control_blocks :: "real \<times> real \<times> real \<times> real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
-  "Control_blocks (v0, s0, a0, l0) [] = emp\<^sub>t"
-| "Control_blocks (v0, s0, a0, l0) ((v, s) # rest) =
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, Level := 2.5, Next_seg_v := 0))) ''Train2Control'' v @\<^sub>t
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0, Level := 2.5, Next_seg_v := 0))) ''Train2Control'' s @\<^sub>t
-    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := com_a s v, Level := if s > Stop_point then 3 else 2.5, Next_seg_v := 0))) ''Control2Train'' (com_a s v) @\<^sub>t
-    Control_blocks (v, s, com_a s v, if s > Stop_point then 3 else 2.5) rest"
+fun Control_blocks :: "real \<times> real \<times> real \<times> real \<times> real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
+  "Control_blocks (v0, s0, a0, l0, n0) [] = emp\<^sub>t"
+| "Control_blocks (v0, s0, a0, l0, n0) ((v, s) # rest) =
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, Level := l0, Next_seg_v := n0))) ''Train2Control'' v @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0, Level := l0, Next_seg_v := n0))) ''Train2Control'' s @\<^sub>t
+    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := (com_a_gen s v (if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0)), Level := if l0 = 2.5 \<and> s > Stop_point then 3 else l0, Next_seg_v := if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0))) ''Control2Train'' (com_a_gen s v (if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0)) @\<^sub>t
+    Control_blocks (v, s, (com_a_gen s v (if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0)), if l0 = 2.5 \<and> s > Stop_point then 3 else l0, if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0) rest"
 
 
-fun Control_end_state :: "real \<times> real \<times> real \<times> real  \<Rightarrow> (real \<times> real) list \<Rightarrow> state" where
-  "Control_end_state (v0, s0, a0, l0) [] = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, Level := l0, Next_seg_v := 0))"
-| "Control_end_state (v0, s0, a0, l0) ((v, s) # rest) = Control_end_state (v, s, com_a s v, if s > Stop_point then 3 else 2.5) rest"
+fun Control_end_state :: "real \<times> real \<times> real \<times> real \<times> real  \<Rightarrow> (real \<times> real) list \<Rightarrow> state" where
+  "Control_end_state (v0, s0, a0, l0, n0) [] = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, Level := l0, Next_seg_v := n0))"
+| "Control_end_state (v0, s0, a0, l0, n0) ((v, s) # rest) = Control_end_state (v, s, (com_a_gen s v (if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0)), if l0 = 2.5 \<and> s > Stop_point then 3 else l0, if l0 = 3 \<and> s < Stop_point/2  then Next_V_limit else n0) rest"
 
+definition control_state :: "state \<Rightarrow> real \<Rightarrow> real \<Rightarrow> state" where
+  "control_state state v s = state(V := v, S := s, Command_a := (com_a_gen s v (if (state Level) = 3 \<and> s < Stop_point/2 then Next_V_limit else (state Next_seg_v))), Level := if (state Level) = 2.5 \<and> s > Stop_point then 3 else (state Level), Next_seg_v := if (state Level) = 3 \<and> s < Stop_point/2  then Next_V_limit else (state Next_seg_v))"
 
 lemma Control_end_state_snoc:
-  "Control_end_state (v0, s0, a0, l0) (xs @ [(v, s)]) =
-   (Control_end_state (v0, s0, a0, l0) xs)(V := v, S := s, Command_a := com_a s v,Level := if s > Stop_point then 3 else 2.5, Next_seg_v := 0)"
-  apply (induct xs arbitrary: v0 s0 a0 l0) by auto
+  "Control_end_state (v0, s0, a0, l0, n0) (xs @ [(v, s)]) =
+   control_state (Control_end_state (v0, s0, a0, l0, n0) xs) v s"
+  apply (induct xs arbitrary: v0 s0 a0 l0 n0) 
+  unfolding control_state_def by auto
 
 lemma Control_blocks_snoc:
-  "Control_blocks (v0, s0, a0, l0) (xs @ [(v, s)]) =
-   Control_blocks (v0, s0, a0, l0) xs @\<^sub>t
-   In\<^sub>t (State ((Control_end_state (v0, s0, a0, l0) xs)(Level := 2.5, Next_seg_v := 0))) ''Train2Control'' v @\<^sub>t
-   In\<^sub>t (State ((Control_end_state (v0, s0, a0, l0) xs)(V := v, Level := 2.5, Next_seg_v := 0))) ''Train2Control'' s @\<^sub>t
-   Out\<^sub>t (State ((Control_end_state (v0, s0, a0, l0) xs)(V := v, S := s, Command_a := com_a s v,Level := if s > Stop_point then 3 else 2.5, Next_seg_v := 0))) ''Control2Train'' (com_a s v)"
-  apply (induct xs arbitrary: v0 s0 a0 l0)
-   apply (auto simp add: join_assoc Control_end_state_snoc)
-   apply (simp add: fun_upd_twist)
-apply (simp add: fun_upd_twist)
+  "Control_blocks (v0, s0, a0, l0, n0) (xs @ [(v, s)]) =
+   Control_blocks (v0, s0, a0, l0, n0) xs @\<^sub>t
+   In\<^sub>t (State ((Control_end_state (v0, s0, a0, l0, n0) xs))) ''Train2Control'' v @\<^sub>t
+   In\<^sub>t (State ((Control_end_state (v0, s0, a0, l0, n0) xs)(V := v))) ''Train2Control'' s @\<^sub>t
+   Out\<^sub>t (State (control_state (Control_end_state (v0, s0, a0, l0, n0) xs) v s)) ''Control2Train'' ((control_state (Control_end_state (v0, s0, a0, l0, n0) xs) v s) Command_a)"
+  apply (induct xs arbitrary: v0 s0 a0 l0 n0)
+   apply (auto simp add: join_assoc Control_end_state_snoc control_state_def fun_upd_twist)[1]
+  apply (auto simp add: join_assoc Control_end_state_snoc )
   done
-
-
+  
+    
 lemma Control_prop:
   "\<Turnstile>
     {\<lambda>s tr. s = ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0, 
-                       Level := l0, Next_seg_v := 0 )) \<and> emp\<^sub>t tr}
+                       Level := l0, Next_seg_v := n0 )) \<and> emp\<^sub>t tr}
       Control
-    {\<lambda>s tr. \<exists>xs. s = Control_end_state (v0, s0, a0, l0) xs 
-                         \<and> Control_blocks (v0, s0, a0, l0) xs tr}"
+    {\<lambda>s tr. \<exists>xs. s = Control_end_state (v0, s0, a0, 2.5, 0) xs 
+                         \<and> Control_blocks (v0, s0, a0, 2.5, 0) xs tr}"
   unfolding Control_def
+  apply (rule Valid_seq)
+   apply (rule Valid_assign_sp_st)
+  apply (rule Valid_seq)
+  apply (rule Valid_assign_sp_st)
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_rep)
   apply (rule Valid_ex_pre)
   subgoal for xs
     apply (rule Valid_seq)
-     apply (rule Valid_assign_sp_st)
-      apply (rule Valid_seq)
-       apply (rule Valid_assign_sp_st)
-        apply (rule Valid_seq)
     apply (rule Valid_receive_sp_st)
     apply (rule Valid_ex_pre)
         subgoal for v
@@ -490,15 +491,15 @@ lemma Control_prop:
          apply(rule Valid_seq)
           apply(rule Valid_cond_sp2)
            apply (rule Valid_assign_sp_st)
-          apply(rule Valid_skip)
+          apply(rule Valid_assign_sp_st)
          apply(rule Valid_seq)
           apply(rule Valid_if_split)
            apply(rule Valid_cond_sp2)
             apply (rule Valid_assign_sp_st)
-           apply(rule Valid_skip)
+           apply(rule Valid_assign_sp_st)
           apply(rule Valid_cond_sp2)
             apply (rule Valid_assign_sp_st)
-          apply(rule Valid_skip)
+          apply(rule Valid_assign_sp_st)
          apply(rule Valid_seq)
           apply(rule Valid_if_split)
            apply(rule Valid_if_split)
@@ -517,19 +518,31 @@ lemma Control_prop:
             apply(rule Valid_send_sp)
           apply(rule Valid_send_sp)
          apply(auto simp add:entails_def)
+         subgoal for sa tr
+           apply (rule exI[where x="xs@[(v,s)]"])
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
+           done
          subgoal 
            using Stop_point by linarith
          subgoal for sa tr
            apply (rule exI[where x="xs@[(v,s)]"])
-           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist com_a_zero)
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
            done
          subgoal for sa tr
            apply (rule exI[where x="xs@[(v,s)]"])
-           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist com_a_zero)
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
            done
          subgoal for sa tr
            apply (rule exI[where x="xs@[(v,s)]"])
-           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist com_a_zero)
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
+           done
+         subgoal for sa tr
+           apply (rule exI[where x="xs@[(v,s)]"])
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
+           done
+         subgoal for sa tr
+           apply (rule exI[where x="xs@[(v,s)]"])
+           apply(auto simp add: pure_assn_def conj_assn_def join_assoc Control_end_state_snoc Control_blocks_snoc fun_upd_twist control_state_def)
            done
          done
        done
@@ -825,7 +838,7 @@ fun tot_seq :: "real \<times> real \<Rightarrow> nat \<Rightarrow> (real \<times
 lemma combine:
   "loop_invariant (s0, v0) \<Longrightarrow> 
    combine_assn {''Train2Control'', ''Control2Train''}
-     (Train_inv (v0, s0, com_a s0 v0, t0) as) (Control_blocks (v0, s0, com_a s0 v0, 2.5) vs) 
+     (Train_inv (v0, s0, com_a s0 v0, t0) as) (Control_blocks (v0, s0, com_a s0 v0, 2.5, 0) vs) 
       \<Longrightarrow>\<^sub>t  tot_block (s0,v0) (length as)"
 proof (induct as arbitrary: vs v0 s0 t0)
   case Nil
@@ -902,6 +915,7 @@ next
           apply (rule entails_tassn_trans)
            apply (rule combine_assn_in_out)
            apply auto
+          apply (subst com_a_zero)
           apply (rule entails_tassn_cancel_left)
           using Cons1(2) by auto
         subgoal
@@ -938,6 +952,7 @@ next
            apply auto
           apply (subst loop_once_prop1)
            apply auto
+          apply (subst com_a_zero)
           apply (rule entails_tassn_cancel_left)
           apply (subst loop_once_prop1)
            apply auto
@@ -972,9 +987,10 @@ next
           apply (rule entails_tassn_trans)
            apply (rule combine_assn_in_out)
            apply auto
+          apply (subst com_a_zero)+
           apply (rule entails_tassn_cancel_left)
           using Cons1 by auto
- subgoal
+        subgoal
           apply (rule entails_tassn_trans)
           apply(subst join_assoc)
          apply (rule combine_assn_wait_in)
@@ -1008,6 +1024,7 @@ next
            apply auto
           apply (subst loop_once_prop1)
            apply auto
+          apply (subst com_a_zero)+
           apply (rule entails_tassn_cancel_left)
           apply (subst loop_once_prop1)
            apply auto
