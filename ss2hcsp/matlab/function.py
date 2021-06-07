@@ -447,6 +447,45 @@ class IfElse(Command):
         return IfElse(self.cond.subst(inst), self.cmd1.subst(inst), self.cmd2.subst(inst))
 
 
+class Event:
+    """Broadcast event in Matlab.
+    
+    Event can serve as either conditions (require this event to be active)
+    or as commands (raise this event).
+    
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "Event(%s)" % repr(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, Event) and self.name == other.name
+
+
+class RaiseEvent(Command):
+    """Command for raising an event."""
+    def __init__(self, event):
+        assert isinstance(event, Event)
+        self.event = event
+
+    def __str__(self):
+        return str(self.event)
+
+    def __repr__(self):
+        return "RaiseEvent(%s)" % repr(self.event)
+
+    def __eq__(self, other):
+        return isinstance(other, RaiseEvent) and self.event == other.event
+
+    def subst(self, inst):
+        return self
+
+
 class Function:
     """Function declarations in Matlab.
     
@@ -504,3 +543,40 @@ class Function:
         assert len(self.params) == len(vals), "Function instantiation: wrong number of inputs"
         inst = dict(zip(self.params, vals))
         return self.cmd.subst(inst)
+
+
+class Transition:
+    """Conditional transition.
+
+    There are four parts to specify a transition:
+    event : [None, Event] - event trigger for the transition.
+    cond : [None, BExpr] - condition trigger for the transition.
+    cond_act : [None, Command] - action performed when checking conditions.
+    tran_act : [None, Command] - action performed at the end of transition.
+
+    """
+    def __init__(self, event, cond, cond_act, tran_act):
+        assert event is None or isinstance(event, Event)
+        assert cond is None or isinstance(cond, BExpr)
+        assert cond_act is None or isinstance(cond_act, Command)
+        assert tran_act is None or isinstance(tran_act, Command)
+
+        self.event = event
+        self.cond = cond
+        self.cond_act = cond_act
+        self.tran_act = tran_act
+
+    def __str__(self):
+        event_str = str(self.event) if self.event else ""
+        cond_str = '[' + str(self.cond) + ']' if self.cond else ""
+        cond_act_str = '{' + str(self.cond_act) + '}' if self.cond_act else ""
+        tran_act_str = '/{' + str(self.tran_act) + '}' if self.tran_act else ""
+        return event_str + cond_str + cond_act_str + tran_act_str
+
+    def __repr__(self):
+        return "Transition(%s,%s,%s,%s)" % (
+            repr(self.event), repr(self.cond), repr(self.cond_act), repr(self.tran_act))
+
+    def __eq__(self, other):
+        return isinstance(other, Transition) and self.event == other.event and self.cond == other.cond and \
+            self.cond_act == other.cond_act and self.tran_act == other.tran_act

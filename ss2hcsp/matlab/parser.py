@@ -11,7 +11,6 @@ grammar = r"""
     ?lname: CNAME -> var_expr
 
     // Return value is either an CNAME or a list of CNAMEs
-
     ?return_var: "[" CNAME ("," CNAME)* "]" -> return_var
         | CNAME                             -> return_var_single
 
@@ -64,16 +63,21 @@ grammar = r"""
     ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
         | CNAME "(" ")" (";")?                       -> func_cmd_no_param
 
-    // If-else commands
     ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
 
-    ?atom_cmd: assign_cmd | func_cmd | ite_cmd
+    ?event: CNAME -> event
+
+    ?event_cmd: event (";")? -> event_cmd
+
+    ?atom_cmd: assign_cmd | func_cmd | event_cmd | ite_cmd
 
     ?seq_cmd: atom_cmd | atom_cmd seq_cmd
 
-    ?cmd: seq_cmd 
+    ?cmd: seq_cmd
 
-    // Header of functions can be of three types: func, func(args) and x=func(args)
+    // Definition of functions
+
+    // Signature of functions can be of three types: func, func(args) and x=func(args)
     ?func_sig: CNAME                                      -> func_sig_name
         | CNAME "(" ")"                                   -> func_sig_no_param
         | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
@@ -81,6 +85,12 @@ grammar = r"""
         | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
 
     ?function: "function" func_sig cmd ("end")? -> function
+
+    // Transitions
+
+    ?cond_act: cmd -> cond_act
+    ?tran_act: cmd -> tran_act
+    ?transition: (event)? ("[" cond "]")? ("{" cond_act "}")? ("/{" tran_act "}")? -> transition
 
     %import common.CNAME
     %import common.WS
@@ -182,6 +192,12 @@ class MatlabTransformer(Transformer):
     def seq_cmd(self, cmd1, cmd2):
         return function.Sequence(cmd1, cmd2)
 
+    def event(self, name):
+        return function.Event(str(name))
+
+    def event_cmd(self, event):
+        return function.RaiseEvent(event)
+
     def func_sig_name(self, name):
         return str(name), (), None
 
@@ -203,8 +219,33 @@ class MatlabTransformer(Transformer):
         name, params, return_var = func_sig
         return function.Function(name, params, cmd, return_var)
 
+    def cond_act(self, cmd):
+        return ("cond_act", cmd)
+
+    def tran_act(self, cmd):
+        return ("tran_act", cmd)
+
+    def transition(self, *args):
+        # There are at most four arguments, of type Event, BExpr, Command.
+        # Both cond_act and tran_act are commands, so they are distinguished
+        # by inserting "cond_act" and "tran_act" at the front.
+        event, cond, cond_act, tran_act = None, None, None, None
+        for arg in args:
+            if isinstance(arg, function.Event):
+                event = arg
+            elif isinstance(arg, function.BExpr):
+                cond = arg
+            elif isinstance(arg, tuple) and arg[0] == "cond_act":
+                cond_act = arg[1]
+            elif isinstance(arg, tuple) and arg[0] == "tran_act":
+                tran_act = arg[1]
+            else:
+                raise TypeError
+        return function.Transition(event, cond, cond_act, tran_act)
+
 
 expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
 cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
+transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())

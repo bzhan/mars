@@ -130,6 +130,44 @@ class MatlabTest(unittest.TestCase):
         hp = convert.convert_function(func)
         self.assertEqual(str(hp), res)
 
+    def testParseTransition(self):
+        test_data = [
+            "",
+            "E",
+            "[x == 0]",
+            "E[x == 0]",
+            "{x = 1}",
+            "E{x = 1}",
+            "[x == 0]{x = 1}",
+            "E[x == 0]{x = 1}",
+            "/{x = 1}",
+            "E/{x = 1}",
+            "[x == 0]/{x = 1}",
+            "E[x == 0]/{x = 1}",
+            "{x = 1}/{y = 1}",
+            "E{x = 1}/{y = 1}",
+            "[x == 0]{x = 1}/{y = 1}",
+            "E[x == 0]{x = 1}/{y = 1}",
+        ]
+
+        for s in test_data:
+            tran = parser.transition_parser.parse(s)
+            self.assertEqual(str(tran), s)
+
+    def testParseTransitionEvent(self):
+        test_data = [
+            "E{E}",
+            "E/{E}",
+            "E{E}/{E}",
+            "E{E;\nx = x + 1}",
+            "E{x = x + 1;\nE}",
+            "E{if x == 0\n  E\nelse\n  F}",
+        ]
+
+        for s in test_data:
+            tran = parser.transition_parser.parse(s)
+            self.assertEqual(str(tran), s)
+
 
 if __name__ == "__main__":
     unittest.main()
