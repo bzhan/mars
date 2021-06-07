@@ -545,8 +545,8 @@ class Function:
         return self.cmd.subst(inst)
 
 
-class Transition:
-    """Conditional transition.
+class TransitionLabel:
+    """Label on transitions.
 
     There are four parts to specify a transition:
     event : [None, Event] - event trigger for the transition.
@@ -574,9 +574,9 @@ class Transition:
         return event_str + cond_str + cond_act_str + tran_act_str
 
     def __repr__(self):
-        return "Transition(%s,%s,%s,%s)" % (
+        return "TransitionLabel(%s,%s,%s,%s)" % (
             repr(self.event), repr(self.cond), repr(self.cond_act), repr(self.tran_act))
 
     def __eq__(self, other):
-        return isinstance(other, Transition) and self.event == other.event and self.cond == other.cond and \
-            self.cond_act == other.cond_act and self.tran_act == other.tran_act
+        return isinstance(other, TransitionLabel) and self.event == other.event and \
+            self.cond == other.cond and self.cond_act == other.cond_act and self.tran_act == other.tran_act

@@ -1289,7 +1289,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
                     log_event(ori_pos=ori_pos, type="step", str="step")
                     log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
-                    log_event(ori_pos=ori_pos, type="log", str='-- ' + info.reason['log'] + ' --')
+                    log_event(ori_pos=ori_pos, type="log", str='log ' + info.reason['log'])
                 elif 'warning' in info.reason:
                     log_event(ori_pos=ori_pos, type="warning", str="warning: " + info.reason['warning'])
                 elif 'error' in info.reason:

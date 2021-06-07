@@ -4,12 +4,12 @@ import re
 import html
 import lark
 
-from ss2hcsp.sf.sf_parser.parser import condition_parser
+from ss2hcsp.matlab.parser import transition_parser
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.hcsp import OutputChannel
-from ss2hcsp.sf.sf_parser import parser
+
 
 class Transition:
     def __init__(self, ssid, label, order=0, src="", dst=""):
@@ -28,7 +28,7 @@ class Transition:
         self.tran_acts = list()
         self.cond_vars = set()  # record SPECIAL (e.g., state time) variables in the condition
 
-        self.parse()
+        # self.parse()
 
     def __str__(self):
         if self.label:
@@ -45,7 +45,7 @@ class Transition:
             return
 
         try:
-            func = parser.transition_parser.parse(html.unescape(self.label))
+            func = transition_parser.parse(html.unescape(self.label))
         except lark.exceptions.UnexpectedToken as e:
             print("When parsing: %s" % self.label)
             raise e

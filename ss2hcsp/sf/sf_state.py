@@ -329,7 +329,7 @@ class SF_State:
                 name = str(fun.name)
                 if "(" in name:
                     name = name[:name.index("(")]
-                fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
+                # fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
 
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):

@@ -176,6 +176,7 @@ class Var(HCSP):
     def __init__(self, name):
         super(Var, self).__init__()
         self.type = "var" 
+        assert isinstance(name, str)
         self.name = name
 
     def __eq__(self, other):
@@ -868,17 +869,21 @@ class Recursion(HCSP):
 
 
 class ITE(HCSP):
-    def __init__(self, if_hps, else_hp):
+    def __init__(self, if_hps, else_hp=None):
         """if-then-else statements.
 
-        if_hps is a list of condition-program pairs. else_hp is a program.
+        if_hps : List[Tuple[BExpr, HCSP]] - list of condition-program pairs.
+        else_hp : [None, HCSP]
+
         The program associated to the first true condition in if_hps will
         be executed. If no condition is true, else_hp is executed.
 
         """
         super(ITE, self).__init__()
-        #assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
-        #assert isinstance(else_hp, HCSP)
+        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        if else_hp is None:
+            else_hp = Skip()        
+        assert isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp

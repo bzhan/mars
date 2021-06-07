@@ -205,13 +205,13 @@ class MatlabTransformer(Transformer):
         return str(name), (), None
 
     def func_sig_has_param(self, name, *params):
-        return str(name), tuple(params), None
+        return str(name), tuple(str(param) for param in params), None
 
     def func_sig_return_no_param(self, return_var, name):
         return str(name), (), return_var
 
     def func_sig_return_has_param(self, return_var, name, *params):
-        return str(name), tuple(params), return_var
+        return str(name), tuple(str(param) for param in params), return_var
 
     def function(self, func_sig, cmd):
         # First argument gives name and parameter of the function
@@ -241,7 +241,7 @@ class MatlabTransformer(Transformer):
                 tran_act = arg[1]
             else:
                 raise TypeError
-        return function.Transition(event, cond, cond_act, tran_act)
+        return function.TransitionLabel(event, cond, cond_act, tran_act)
 
 
 expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())

@@ -895,9 +895,11 @@ class SF_Chart(Subsystem):
         self.max_step=max_step
         funs_state_name=list()
         children_list=list()
-        for fun in state.funs:
-            if fun.type == "GRAPHICAL_FUNCTION":
-                    funs_state_name.append(fun.chart_state1.original_name)
+
+        # for fun in state.funs:
+        #     if fun.type == "GRAPHICAL_FUNCTION":
+        #             funs_state_name.append(fun.chart_state1.original_name)
+
         for s in state.children:
             if s.original_name not in funs_state_name:
                 # print(s.original_name )
