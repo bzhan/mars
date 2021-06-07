@@ -115,18 +115,18 @@ class ParserTest(unittest.TestCase):
     def testParseProcedure(self):
         mod = module_parser.parse("""
             module P0():
-            procedure sub begin
+            procedure incr begin
               x := x+1
             end
             begin
-              x := 0; @sub; @sub; ch!x
+              x := 0; @incr; @incr; ch!x
             end
             endmodule
         """)
 
         self.assertEqual(mod, module.HCSPModule(
-            "P0", "x := 0; @sub; @sub; ch!x",
-            procedures=[Procedure("sub", "x := x+1")],
+            "P0", "x := 0; @incr; @incr; ch!x",
+            procedures=[Procedure("incr", "x := x+1")],
         ))
 
 

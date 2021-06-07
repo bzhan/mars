@@ -564,7 +564,8 @@ class SimulatorTest(unittest.TestCase):
 
     def testProcedure1(self):
         run_test(self, [
-            ([("sub", "x := x + 1")], "x := 0; @sub; @sub; ch!x"),
+            ([("incr", "x := x + 1")],
+             "x := 0; @incr; @incr; ch!x"),
             "ch?x"
         ], 2, ['IO ch 2', 'deadlock'])
 

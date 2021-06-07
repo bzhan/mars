@@ -197,8 +197,9 @@ class SFConvert:
                 tran_act = self.get_transition_proc(src, dst, tran_act)
                 act = tran_act if cond_act is None else hcsp.seq([cond_act, tran_act])
                 ite.append((cond, act))
-            procs.append(hcsp.ITE(ite))
-        procs.append(hcsp.Var(self.du_proc_name(state)))
+            procs.append(hcsp.ITE(ite, hcsp.Var(self.du_proc_name(state))))
+        else:
+            procs.append(hcsp.Var(self.du_proc_name(state)))
         return hcsp.seq(procs)
 
     def get_exit_proc(self, state):
@@ -230,7 +231,7 @@ class SFConvert:
         # Next, recursively execute child states
         if state.children:
             if isinstance(state.children[0], AND_State):
-                for child in reversed(state.children):
+                for child in state.children:
                     procs.append(self.get_rec_during_proc(child))
             elif isinstance(state.children[0], OR_State):
                 ite = []

@@ -7,6 +7,7 @@ from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp import module
 from ss2hcsp.tests.simulator_test import run_test
 
+
 class SFConvertTest(unittest.TestCase):
     def testNoEventTrig(self):
         location = "./Examples/Stateflow/tests/no_event_trig.xml"
@@ -22,7 +23,7 @@ class SFConvertTest(unittest.TestCase):
 
         run_test(self, [
             ([(proc.name, proc.hp) for proc in procs], hp)
-        ], 1, ['log b', 'log en_A2', 'log tb', 'log en_B2', 'log en_A3', 'delay 0.1'])
+        ], 1, ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
 
 
 if __name__ == "__main__":
