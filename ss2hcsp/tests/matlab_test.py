@@ -2,8 +2,11 @@
 
 import unittest
 
+from ss2hcsp.matlab import function
 from ss2hcsp.matlab import parser
 from ss2hcsp.matlab import convert
+from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp import hcsp
 
 
 class MatlabTest(unittest.TestCase):
@@ -111,6 +114,34 @@ class MatlabTest(unittest.TestCase):
         hp = convert.convert_function(func)
         self.assertEqual(str(hp), res)
 
+    def testConvertEvent(self):
+        s = "x = 0; E; x = 1"
+        def raise_event(e):
+            return hcsp.Log(expr.AConst(e.name))
+        res = "x := 0; log(\"E\"); x := 1"
+
+        cmd = parser.cmd_parser.parse(s)
+        hp = convert.convert_cmd(cmd, raise_event=raise_event)
+        self.assertEqual(str(hp), res)
+
+    def testConvertFunctionCall(self):
+        s = "x = 0; f()"
+        procedures = {'f': parser.function_parser.parse("function f\n  x = x + 1;")}
+        res = "x := 0; @f"
+
+        cmd = parser.cmd_parser.parse(s)
+        hp = convert.convert_cmd(cmd, procedures=procedures)
+        self.assertEqual(str(hp), res)
+
+    def testConvertFunctionCallWithParam(self):
+        s = "f(\"A\")"
+        procedures = {'f': parser.function_parser.parse("function f(x)\n  fprintf(x+\"\\n\");")}
+        res = "log(\"A\"+\"\\n\")"
+
+        cmd = parser.cmd_parser.parse(s)
+        hp = convert.convert_cmd(cmd, procedures=procedures)
+        self.assertEqual(str(hp), res)
+
     def testConvertFunction(self):
         s = """
         function y=enA()
@@ -128,6 +159,16 @@ class MatlabTest(unittest.TestCase):
         res = "y := uniform(0,1); if x > 0.6 then if x > 0.6 then y := 1 else y := 0 endif else y := 0 endif"
         func = parser.function_parser.parse(s)
         hp = convert.convert_function(func)
+        self.assertEqual(str(hp), res)
+
+    def testConvertFunctionWithParam(self):
+        s = """
+        function f(s)
+          fprintf(s + "\\n");
+        """
+        res = "log(\"A1\"+\"\\n\")"
+        func = parser.function_parser.parse(s)
+        hp = convert.convert_function(func, vals=[function.AConst("A1")])
         self.assertEqual(str(hp), res)
 
     def testParseTransition(self):

@@ -47,28 +47,56 @@ def convert_expr(e):
     else:
         raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 
-def convert_cmd(cmd):
-    """Convert a Matlab command to HCSP."""
-    if isinstance(cmd, function.Assign):
-        return hcsp.Assign(cmd.return_vars, convert_expr(cmd.expr))
+def convert_cmd(cmd, *, raise_event=None, procedures=None):
+    """Convert a Matlab command to HCSP.
+    
+    raise_event : Event -> HCSP - specifies translation for raising events.
+        If this is set to None, then an error is raised whenever cmd contains
+        RaiseEvent. Otherwise, this function is used to convert raising the event
+        into an HCSP program.
 
-    elif isinstance(cmd, function.FunctionCall):
-        if cmd.func_name == 'fprintf':
-            if len(cmd.args) == 1:
+    procedures : dict(str, Procedure) - mapping from procedure names to
+        procedure objects.
+
+    There are three possible options for converting procedure calls:
+    1. splice the body of the procedure into the code.
+    2. for procedures without arguments, insert call to procedure.
+    3. for procedures with arguments, insert call, using a stack to keep track
+       of arguments.
+    Currently we choose option 2 for procedures without arguments, and option 1
+    for procedures with arguments.
+
+    """
+    def convert(cmd):
+        if isinstance(cmd, function.Assign):
+            return hcsp.Assign(cmd.return_vars, convert_expr(cmd.expr))
+
+        elif isinstance(cmd, function.FunctionCall):
+            if cmd.func_name == 'fprintf':
+                assert len(cmd.args) == 1, "convert_cmd: fprintf should have exactly one argument."
                 return hcsp.Log(convert_expr(cmd.args[0]))
             else:
-                raise NotImplementedError
+                assert procedures is not None and cmd.func_name in procedures, \
+                    "convert_cmd: procedure %s not found" % cmd.func_name
+                if len(cmd.args) == 0:
+                    return hcsp.Var(cmd.func_name)
+                else:
+                    return convert_function(procedures[cmd.func_name], cmd.args)
+
+        elif isinstance(cmd, function.Sequence):
+            return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))
+
+        elif isinstance(cmd, function.IfElse):
+            return hcsp.ITE([(convert_expr(cmd.cond), convert(cmd.cmd1))], convert(cmd.cmd2))
+
+        elif isinstance(cmd, function.RaiseEvent):
+            assert raise_event is not None, "convert_cmd: raise_event not set."
+            return raise_event(cmd.event)
+
         else:
             raise NotImplementedError
 
-    elif isinstance(cmd, function.Sequence):
-        return hcsp.Sequence(convert_cmd(cmd.cmd1), convert_cmd(cmd.cmd2))
-
-    elif isinstance(cmd, function.IfElse):
-        return hcsp.ITE([(convert_expr(cmd.cond), convert_cmd(cmd.cmd1))],
-                        convert_cmd(cmd.cmd2))
-    else:
-        raise NotImplementedError
+    return convert(cmd)
 
 def convert_function(func, vals=None):
     """Convert a function call with the given arguments to an HCSP program.
