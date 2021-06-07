@@ -43,6 +43,18 @@ class MatlabTest(unittest.TestCase):
             func = parser.function_parser.parse(s)
             self.assertEqual(str(func), s)
 
+    def testParseEvent(self):
+        test_data = [
+            ("after(5, sec)", "TemporalEvent('after',AConst(5),AbsoluteTimeEvent('sec'))"),
+            ("before(3, tick)", "TemporalEvent('before',AConst(3),ImplicitEvent('tick'))"),
+            ("at(m+3, E)", "TemporalEvent('at',OpExpr('+',Var('m'),AConst(3)),BroadcastEvent('E'))"),
+            ("every(f(2), E)", "TemporalEvent('every',FunExpr('f',AConst(2)),BroadcastEvent('E'))"),
+        ]
+
+        for s, res in test_data:
+            e = parser.event_parser.parse(s)
+            self.assertEqual(repr(e), res)
+
     def testParseFunctionName(self):
         s = "function bar\n  x = 0"
         s2 = "function bar()\n  x = 0"

@@ -66,6 +66,10 @@ grammar = r"""
     ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
 
     ?event: CNAME -> event
+        | "after" "(" expr "," event ")"  -> after_event
+        | "before" "(" expr "," event ")"  -> before_event
+        | "at" "(" expr "," event ")"  -> at_event
+        | "every" "(" expr "," event ")"  -> every_event
 
     ?event_cmd: event (";")? -> event_cmd
 
@@ -193,7 +197,25 @@ class MatlabTransformer(Transformer):
         return function.Sequence(cmd1, cmd2)
 
     def event(self, name):
-        return function.Event(str(name))
+        name = str(name)
+        if name in ('tick', 'wakeup'):
+            return function.ImplicitEvent(name)
+        elif name in ('sec', 'msec', 'usec'):
+            return function.AbsoluteTimeEvent(name)
+        else:
+            return function.BroadcastEvent(name)
+
+    def after_event(self, expr, event):
+        return function.TemporalEvent('after', expr, event)
+
+    def before_event(self, expr, event):
+        return function.TemporalEvent('before', expr, event)
+
+    def at_event(self, expr, event):
+        return function.TemporalEvent('at', expr, event)
+
+    def every_event(self, expr, event):
+        return function.TemporalEvent('every', expr, event)
 
     def event_cmd(self, event):
         return function.RaiseEvent(event)
@@ -247,5 +269,6 @@ class MatlabTransformer(Transformer):
 expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
 cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
+event_parser = Lark(grammar, start="event", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
 transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())

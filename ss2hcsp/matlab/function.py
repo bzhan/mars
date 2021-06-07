@@ -448,6 +448,10 @@ class IfElse(Command):
 
 
 class Event:
+    """Base class for events in Matlab."""
+    pass
+
+class BroadcastEvent(Event):
     """Broadcast event in Matlab.
     
     Event can serve as either conditions (require this event to be active)
@@ -461,16 +465,66 @@ class Event:
         return self.name
 
     def __repr__(self):
-        return "Event(%s)" % repr(self.name)
+        return "BroadcastEvent(%s)" % repr(self.name)
 
     def __eq__(self, other):
-        return isinstance(other, Event) and self.name == other.name
+        return isinstance(other, BroadcastEvent) and self.name == other.name
+
+class ImplicitEvent(Event):
+    """Implicit events in Matlab."""
+    def __init__(self, name):
+        assert name in ('tick', 'wakeup')
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "ImplicitEvent(%s)" % repr(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, ImplicitEvent) and self.name == other.name
+
+class AbsoluteTimeEvent(Event):
+    """Absolute time events in Matlab."""
+    def __init__(self, name):
+        assert name in ('sec', 'msec', 'usec')
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "AbsoluteTimeEvent(%s)" % repr(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, AbsoluteTimeEvent) and self.name == other.name
+
+class TemporalEvent(Event):
+    """Temporal logic events in Matlab."""
+    def __init__(self, temp_op, expr, event):
+        assert temp_op in ('after', 'before', 'at', 'every')
+        assert isinstance(event, Event)
+        assert isinstance(expr, Expr)
+        self.temp_op = temp_op
+        self.expr = expr
+        self.event = event
+
+    def __str__(self):
+        return "%s(%s,%s)" % (self.temp_op, str(self.expr), str(self.event))
+
+    def __repr__(self):
+        return "TemporalEvent(%s,%s,%s)" % (repr(self.temp_op), repr(self.expr), repr(self.event))
+
+    def __eq__(self, other):
+        return isinstance(other, TemporalEvent) and self.temp_op == other.temp_op and \
+            self.expr == other.expr and self.event == other.event
 
 
 class RaiseEvent(Command):
     """Command for raising an event."""
     def __init__(self, event):
-        assert isinstance(event, Event)
+        assert isinstance(event, BroadcastEvent)
         self.event = event
 
     def __str__(self):
