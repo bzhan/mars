@@ -10,7 +10,6 @@ def opt_round(x):
     else:
         return x
 
-
 def get_range(start, end):
     """Returns a range of numbers between start and end, inserting
     multiples of 0.1 along the way.
@@ -26,6 +25,21 @@ def get_range(start, end):
     if end * 10 != end_int:
         res.append(end)
     return res
+
+def str_of_val(val):
+    """Print form of a string."""
+    if val is None:
+        return ""
+    elif isinstance(val, float):
+        return str(round(val, 3))
+    elif isinstance(val, dict):
+        return "{" + (','.join(k + ':' + str(v) for k, v in val.items())) + "}"
+    elif isinstance(val, str):
+        return "\"" + val + "\""
+    elif isinstance(val, list):
+        return "[" + ",".join(str_of_val(v) for v in val) + "]"
+    else:
+        return str(val)
 
 
 class AExpr:  # Arithmetic expression
@@ -79,13 +93,10 @@ class AConst(AExpr):
             self.value = value
 
     def __repr__(self):
-        return "AConst(%s)" % str(self.value)
+        return "AConst(%s)" % str_of_val(self.value)
 
     def __str__(self):
-        if isinstance(self.value, list):
-            return "[" + ",".join(str(v) for v in self.value) + "]"
-        else:
-            return str(self.value)
+        return str_of_val(self.value)
 
     def __eq__(self, other):
         return isinstance(other, AConst) and self.value == other.value
@@ -103,6 +114,8 @@ class AConst(AExpr):
 class PlusExpr(AExpr):
     def __init__(self, signs, exprs):
         super(PlusExpr, self).__init__()
+        assert all(sign in ('+', '-') for sign in signs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
         self.signs = signs
         self.exprs = exprs
 
@@ -189,7 +202,7 @@ class FunExpr(AExpr):
         self.exprs = exprs
 
     def __repr__(self):
-        return "Fun(%s, %s)" % (self.fun_name, ",".join(repr(expr) for expr in self.exprs))
+        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
         return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
@@ -531,7 +544,7 @@ class RelExpr(BExpr):
     def __init__(self, op, expr1, expr2):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
-        #assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2

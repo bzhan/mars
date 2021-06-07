@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, RelExpr
-from ss2hcsp.matlab.function import Expr,Assign as fun_assign
 import re
 
 
@@ -96,6 +95,7 @@ class HCSP:
             return 100
 
     def contain_hp(self, name):
+        """Returns whether the given HCSP program contains Var(name)."""
         # return if it contains an hcsp named name
         if self == Var(name):
             return True
@@ -112,9 +112,7 @@ class HCSP:
                 if io_comm[1].contain_hp(name):
                     return True
         elif isinstance(self, ITE):
-            if isinstance(self.else_hp,fun_assign):
-                return False
-            elif self.else_hp.contain_hp(name):
+            if self.else_hp.contain_hp(name):
                 return True
             for sub_hp in [_hp for _cond, _hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
@@ -235,7 +233,7 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, (AExpr,Expr))
+        assert isinstance(expr, AExpr)
         if isinstance(var_name, str):
             var_name = AVar(var_name)
         if isinstance(var_name, AExpr):
@@ -343,7 +341,7 @@ class Log(HCSP):
         super(Log, self).__init__()
         self.type = "log"
         exprs = tuple(exprs)
-        assert all(isinstance(expr, (AExpr,Expr)) for expr in exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = tuple(exprs)
 
     def __eq__(self, other):
@@ -553,6 +551,17 @@ class Sequence(HCSP):
             ch_set.update(hp.get_chs())
         return ch_set
 
+def seq(hps):
+    """Returns the sequential composition of hps. Special case when hps has
+    length 0 or 1.
+
+    """
+    if len(hps) == 0:
+        return Skip()
+    elif len(hps) == 1:
+        return hps[0]
+    else:
+        return Sequence(*hps)
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -947,6 +956,9 @@ class Procedure:
     """Declared procedure within a process."""
     def __init__(self, name, hp):
         self.name = name
+        if isinstance(hp, str):
+            from ss2hcsp.hcsp.parser import hp_parser
+            hp = hp_parser.parse(hp)
         self.hp = hp
 
     def __eq__(self, other):
@@ -1046,7 +1058,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (HCSP,fun_assign))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():

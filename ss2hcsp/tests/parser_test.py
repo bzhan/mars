@@ -125,8 +125,8 @@ class ParserTest(unittest.TestCase):
         """)
 
         self.assertEqual(mod, module.HCSPModule(
-            "P0", None, None, [Procedure("sub", hp_parser.parse("x := x+1"))],
-            hp_parser.parse("x := 0; @sub; @sub; ch!x")
+            "P0", "x := 0; @sub; @sub; ch!x",
+            procedures=[Procedure("sub", "x := x+1")],
         ))
 
 

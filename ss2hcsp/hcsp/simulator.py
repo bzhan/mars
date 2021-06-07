@@ -12,7 +12,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
@@ -797,10 +797,7 @@ class SimInfo:
                 error_msg = ''
                 for msg in cur_hp.msgs:
                     val = eval_expr(msg, self.state)
-                    if isinstance(val, str):
-                        error_msg += val[1:-1]
-                    else:
-                        error_msg += str(val)
+                    error_msg += str(val)
                 raise SimulatorException(error_msg)
             else:
                 self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
@@ -815,10 +812,7 @@ class SimInfo:
                 warning_expr = ''
                 for msg in cur_hp.msgs:
                     val = eval_expr(msg, self.state)
-                    if isinstance(val, str):
-                        warning_expr += val[1:-1]
-                    else:
-                        warning_expr += str(val)
+                    warning_expr += str(val)
                 raise SimulatorAssertionException(cur_hp.bexpr, warning_expr)
 
         elif cur_hp.type == "log":
@@ -827,10 +821,7 @@ class SimInfo:
             log_expr = ''
             for expr in cur_hp.exprs:
                 val = eval_expr(expr, self.state)
-                if isinstance(val, str):
-                    log_expr += val[1:-1]
-                else:
-                    log_expr += str(val)
+                log_expr += str(val)
             self.reason = {"log": log_expr}
 
         elif cur_hp.type == "condition":
@@ -1347,16 +1338,9 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
                 res['warning'] = (res['time'], str(e))
                 break
 
-            if val is None:
-                val_str = ""
-            elif isinstance(val, float):
-                val_str = " " + str(round(val, 3))
-            elif isinstance(val, dict):
-                val_str = " {%s}" % (','.join(k + ':' + str(v) for k, v in val.items()))
-            elif isinstance(val, list):
-                val_str = " [%s]" % (','.join(str(v) for v in val))
-            else:
-                val_str = " " + str(val)
+            val_str = str_of_val(val)
+            if val_str != "":
+                val_str = " " + val_str
 
             ch_name = out_ch.subst(inst_out)
             trace_str = "IO %s%s" % (ch_name, val_str)

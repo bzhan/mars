@@ -9,54 +9,34 @@ from ss2hcsp.hcsp import hcsp
 
 grammar = r"""
     ?lname: CNAME -> var_expr
-        
-    ?return_var:"[" CNAME ("," CNAME)* "]" -> return_var
-        | lname 
+
+    // Return value is either an CNAME or a list of CNAMEs
+
+    ?return_var: "[" CNAME ("," CNAME)* "]" -> return_var
+        | CNAME                             -> return_var_single
+
+    // Expressions
 
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "(" expr ")"
-        | "min" "(" expr "," expr ")" -> min_expr
-        | "max" "(" expr "," expr ")" -> max_expr
-        | "gcd" "(" expr ("," expr)+ ")" -> gcd_expr
-      
-   
-        
+        | CNAME "(" ")" -> fun_expr
+        | CNAME "(" expr ("," expr)* ")" -> fun_expr
+
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
         | times_expr "%" atom_expr -> mod_expr
         | atom_expr
-        | "(" times_expr ")"
-       
-    
 
     ?plus_expr: plus_expr "+" times_expr -> plus_expr
         | plus_expr "-" times_expr -> minus_expr
         | "-" times_expr -> uminus_expr
         | times_expr
 
-       
-
     ?expr: plus_expr
 
-    ?assign_cmd: ("int" | "float")? return_var "=" expr ";" -> assign_cmd
-        | ("int" | "float")? return_var "=" func_cmd (";")?-> func_has_pra     
-        | ("int" | "float")? return_var  "="  lname  (";")? -> func_no_pra
-
-    ?assign_func: assign_cmd
-        | lname
-        | func_cmd
-
-    ?print_cmd: "fprintf" "(" expr ")" ";" -> print_cmd
-
-    ?func_cmd: lname "(" atom_expr ("," atom_expr)*")" (";")?-> func_has_pra_cmd
-            | lname "(" ")" (";")?-> func_no_pra_cmd
-            
-
-    ?cmd: assign_cmd | print_cmd | func_cmd | ite_cmd
-
-    ?seq_cmd: cmd (cmd)* 
+    // Conditions (boolean expressions)
 
     ?atom_cond: expr "==" expr -> eq_cond
         | expr "!=" expr -> ineq_cond
@@ -71,13 +51,36 @@ grammar = r"""
     
     ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
-    ?disj: conj "||" disj | conj   // Disjunction: priority 30
+    ?disj: conj "||" disj | conj               // Disjunction: priority 30
 
     ?cond: disj
 
-    ?ite_cmd:"if" cond seq_cmd (ite_cmd)* "else" seq_cmd (ite_cmd)* ("end")? -> ite_cmd
+    // Commands
+    
+    // Assignment command includes possible type declarations
+    ?assign_cmd: ("int" | "float")? return_var "=" expr (";")?
 
-    ?function: "function" assign_func (cmd)* ("end")?-> function
+    // Function call is also a command (this includes fprintf calls)
+    ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
+        | CNAME "(" ")" (";")?                       -> func_cmd_no_param
+
+    // If-else commands
+    ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
+
+    ?atom_cmd: assign_cmd | func_cmd | ite_cmd
+
+    ?seq_cmd: atom_cmd | atom_cmd seq_cmd
+
+    ?cmd: seq_cmd 
+
+    // Header of functions can be of three types: func, func(args) and x=func(args)
+    ?func_sig: CNAME                                      -> func_sig_name
+        | CNAME "(" ")"                                   -> func_sig_no_param
+        | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
+        | return_var "=" CNAME "(" ")"                    -> func_sig_return_no_param
+        | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
+
+    ?function: "function" func_sig cmd ("end")? -> function
 
     %import common.CNAME
     %import common.WS
@@ -99,140 +102,109 @@ class MatlabTransformer(Transformer):
         return function.Var(str(s))
 
     def return_var(self, *args):
-        if all(isinstance(arg, function.Var) for arg in args):
-            return function.ListExpr(list(arg.value for arg in args))
-        else:
-            return function.ListExpr(*list(function.Var(arg.value) for arg in args))
+        return tuple(str(arg) for arg in args)
+
+    def return_var_single(self, arg):
+        return str(arg)
 
     def num_expr(self, v):
-        return function.Const(float(v) if '.' in v or 'e' in v else int(v))
+        return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
-        return function.Const(str(s))
-
-    def times_expr(self, e1, e2):
-        return function.TimesExpr(["*", "*"], [e1, e2])
-
-    def divide_expr(self, e1, e2):
-        return function.TimesExpr(["*", "/"], [e1, e2])
-
-    def minus_expr(self, e1, e2):
-        return function.PlusExpr(["+", "-"], [e1, e2])
-
-    def uminus_expr(self, e):
-        return function.PlusExpr(["-"], [e])
-
-    def mod_expr(self, e1, e2):
-        return function.ModExpr(e1, e2)
-    
-    def plus_expr(self, e1, e2):
-        signs, exprs = [], []
-        if isinstance(e1, expr.PlusExpr):
-            signs.extend(e1.signs)
-            exprs.extend(e1.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e1)
-        if isinstance(e2, expr.PlusExpr):
-            signs.extend(e2.signs)
-            exprs.extend(e2.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e2)
-        return function.PlusExpr(signs, exprs)
-
-    def min_expr(self, e1, e2):
-        return function.FunExpr("min", [e1, e2])
-
-    def max_expr(self, e1, e2):
-        return function.FunExpr("max", [e1, e2])
-    def gcd_expr(self, *exprs):
-        return function.FunExpr(fun_name="gcd", exprs=exprs)
+        return function.AConst(str(s)[1:-1])  # remove quotes
 
     def fun_expr(self, fun_name, *exprs):
-        return function.FunExpr(fun_name, exprs)
-    # def first_used(self,e1):
-    #     return function.FunExpr('+',e1, function.Const(1)) 
+        return function.FunExpr(str(fun_name), *exprs)
 
-    # def first_plus(self,e1):
-    #     return function.FunExpr('+',e1, function.Const(1))                                                                                                         
+    def times_expr(self, e1, e2):
+        return function.OpExpr("*", e1, e2)
 
-    def assign_cmd(self, var_name, expr):
-        return function.Assign(var_name, expr)
+    def divide_expr(self, e1, e2):
+        return function.OpExpr("/", e1, e2)
 
-    def print_cmd(self, expr):
-        return function.Print(expr)
+    def mod_expr(self, e1, e2):
+        return function.OpExpr("%", e1, e2)
+    
+    def plus_expr(self, e1, e2):
+        return function.OpExpr("+", e1, e2)
 
-    def function(self, *args):
-        # First argument is name of the function
-        # Remaining arguments are commands
-        name, cmds = args[0], args[1:]
-        return function.Function(name, cmds)
+    def minus_expr(self, e1, e2):
+        return function.OpExpr("-", e1, e2)
 
-    def func_no_pra(self,return_var, fun_name,*exprs):
-        return function.matFunExpr(return_var,fun_name,"")
-
-    def func_has_pra(self,return_var,fun):
-        return function.matFunExpr(return_var, fun.fun_name, fun.exprs)
-
-    # def func_no_pra1(self,return_var, fun_name):
-    #     return function.matFunExpr(return_var,fun_name)
-
-    # def func_has_pra1(self,return_var,fun_name,*args):
-    #     return function.matFunExpr(return_var,fun_name,args)
-
-    def func_has_pra_cmd(self,fun_name, *exprs):
-        return function.FunExpr(fun_name, exprs)
-
-    def func_no_pra_cmd(self,fun_name,*exprs):
-
-        return function.FunExpr(fun_name,"")
+    def uminus_expr(self, e):
+        return function.OpExpr("-", e)
 
     def eq_cond(self, e1, e2):
-        return expr.RelExpr("==", e1, e2)
+        return function.RelExpr("==", e1, e2)
 
     def ineq_cond(self, e1, e2):
-        return expr.RelExpr("!=", e1, e2)
+        return function.RelExpr("!=", e1, e2)
 
     def less_eq_cond(self, e1, e2):
-        return expr.RelExpr("<=", e1, e2)
+        return function.RelExpr("<=", e1, e2)
 
     def less_cond(self, e1, e2):
-        return expr.RelExpr("<", e1, e2)
+        return function.RelExpr("<", e1, e2)
 
     def greater_eq_cond(self, e1, e2):
-        return expr.RelExpr(">=", e1, e2)
+        return function.RelExpr(">=", e1, e2)
 
     def greater_cond(self, e1, e2):
-        return expr.RelExpr(">", e1, e2)
+        return function.RelExpr(">", e1, e2)
 
     def not_cond(self, e):
-        return expr.NegExpr(e)
+        return function.LogicExpr("~", e)
 
     def true_cond(self):
-        return expr.BConst(True)
+        return function.BConst(True)
 
     def false_cond(self):
-        return expr.BConst(False)
+        return function.BConst(False)
 
     def conj(self, b1, b2):
-        return expr.LogicExpr("&&", b1, b2)
+        return function.LogicExpr("&&", b1, b2)
 
     def disj(self, b1, b2):
-        return expr.LogicExpr("||", b1, b2)
+        return function.LogicExpr("||", b1, b2)
 
-    def ite_cmd(self, *args):
-        assert len(args) % 2 == 1 and len(args) >= 3
-        if_hps = []
-        for i in range(0, len(args)-1, 2):
-            if_hps.append((args[i], args[i+1]))
-        else_hp = args[-1]
-        return hcsp.ITE(if_hps, else_hp)
-    def seq_cmd(self, *args):
-        if len(args) == 1:
-            return args[0]
-        else:
-            return hcsp.Sequence(*args)
+    def assign_cmd(self, return_var, expr):
+        return function.Assign(return_var, expr)
+
+    def func_cmd_has_param(self, name, *params):
+        return function.FunctionCall(str(name), *params)
+
+    def func_cmd_no_param(self, name):
+        return function.FunctionCall(str(name))
+
+    def ite_cmd(self, cond, cmd1, cmd2):
+        return function.IfElse(cond, cmd1, cmd2)
+
+    def seq_cmd(self, cmd1, cmd2):
+        return function.Sequence(cmd1, cmd2)
+
+    def func_sig_name(self, name):
+        return str(name), (), None
+
+    def func_sig_no_param(self, name):
+        return str(name), (), None
+
+    def func_sig_has_param(self, name, *params):
+        return str(name), tuple(params), None
+
+    def func_sig_return_no_param(self, return_var, name):
+        return str(name), (), return_var
+
+    def func_sig_return_has_param(self, return_var, name, *params):
+        return str(name), tuple(params), return_var
+
+    def function(self, func_sig, cmd):
+        # First argument gives name and parameter of the function
+        # Second argument is the function body
+        name, params, return_var = func_sig
+        return function.Function(name, params, cmd, return_var)
 
 
+expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())
+cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
+cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())

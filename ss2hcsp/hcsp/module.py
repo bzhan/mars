@@ -23,18 +23,19 @@ class HCSPModule:
     code: code (template) for the main process.
     
     """
-    def __init__(self, name, params, outputs, procedures, code):
+    def __init__(self, name, code, *, params=None, outputs=None, procedures=None):
         self.name = name
         if params is None:
             params = tuple()
-        self.params = params
+        self.params = tuple(params)
         if outputs is None:
-            outputs = []
-        self.outputs = outputs
+            outputs = tuple()
+        self.outputs = tuple(outputs)
         if procedures is None:
             procedures = []
         self.procedures = procedures
         if isinstance(code, str):
+            from ss2hcsp.hcsp.parser import hp_parser
             code = hp_parser.parse(code)
         self.code = code
 

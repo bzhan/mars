@@ -153,7 +153,7 @@ class HPTransformer(Transformer):
         return expr.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
-        return expr.AConst(str(s))
+        return expr.AConst(str(s)[1:-1])  # remove quotes
 
     def empty_list(self):
         return expr.AConst(list())
@@ -423,7 +423,7 @@ class HPTransformer(Transformer):
                 procedures.append(decl)
             else:
                 raise NotImplementedError
-        return module.HCSPModule(name, params, outputs, procedures, code)
+        return module.HCSPModule(name, code, params=params, outputs=outputs, procedures=procedures)
 
     def module_arg_channel(self, *args):
         # First argument is channel name, remaining arguments are channel args.
