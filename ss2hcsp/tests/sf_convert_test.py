@@ -23,10 +23,17 @@ class SFConvertTest(unittest.TestCase):
         procs = converter.get_procs()
         hp = converter.get_toplevel_process()
 
+        # Reduce procedures
         hp = hcsp.reduce_procedures(hp, procs)
-        # print(pprint(hp))
-        # for name, proc in procs.items():
-        #     print(name, "::=", proc)
+
+        # Reduce skip
+        hp = hcsp.simplify(hp)
+        for name in procs:
+            procs[name] = hcsp.simplify(procs[name])
+
+        print(pprint(hp))
+        for name, proc in procs.items():
+            print('\n' + name + " ::=\n" + pprint(proc))
 
         run_test(self, [
             (procs, hp)

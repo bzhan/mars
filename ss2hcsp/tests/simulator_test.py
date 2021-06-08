@@ -13,11 +13,10 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
              print_state=False, warning=None):
     """Test function for HCSP processes.
 
-    infos : List[str, Tuple[List[Procedure, HCSP]], str] -
+    infos : List[str, Tuple[Dict[str, HCSP], str] -
         Input HCSP processes. Each process can either be a single HCSP program,
         or a list of procedure specifications followed by the HCSP program.
-        Each procedure specification is either a Procedure object, or a pair
-        of name and HCSP program.
+        Each procedure is specified by a pair of name and HCSP program.
 
     num_events : int - number of communication or waiting events to simulate.
     trace : List[str] - expected output trace.
@@ -36,14 +35,9 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
             # HCSP program with procedure specifications
             procs, hp = infos[i]
             procedures = dict()
-            for p in procs:
-                if isinstance(p, Procedure):
-                    # Specified as a Procedure object
-                    procedures[p.name] = p
-                else:
-                    # Specified as a pair of name and HCSP program
-                    name, proc_hp = p
-                    procedures[name] = Procedure(name, proc_hp)
+            for name, proc_hp in procs.items():
+                # Specified as a pair of name and HCSP program
+                procedures[name] = Procedure(name, proc_hp)
             infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
 
     # Perform the simulation
@@ -598,35 +592,35 @@ class SimulatorTest(unittest.TestCase):
 
     def testProcedure1(self):
         run_test(self, [
-            ([Procedure("incr", "x := x + 1")],
+            ({"incr": "x := x + 1"},
              "x := 0; @incr; @incr; ch!x"),
             "ch?x"
         ], 2, ['IO ch 2', 'deadlock'])
 
     def testProcedure2(self):
         run_test(self, [
-            ([Procedure("fact", "if a > 0 then x := a * x; a := a - 1; @fact else skip endif")],
+            ({"fact": "if a > 0 then x := a * x; a := a - 1; @fact else skip endif"},
              "x := 1; a := 5; @fact; ch!x"),
             "ch?x"
         ], 2, ['IO ch 120', 'deadlock'])
 
     def testProcedure3(self):
         run_test(self, [
-            ([Procedure("output", "if a > 0 then a := a - 1; ch!a; @output else skip endif")],
+            ({"output": "if a > 0 then a := a - 1; ch!a; @output else skip endif"},
              "a := 5; @output"),
             "(ch?x)**"
         ], 10, ['IO ch 4', 'IO ch 3', 'IO ch 2', 'IO ch 1', 'IO ch 0', 'deadlock'])
 
     def testProcedure4(self):
         run_test(self, [
-            ([Procedure("delay", "if a > 0 then a := a - 1; wait(2); @delay else skip endif")],
+            ({"delay": "if a > 0 then a := a - 1; wait(2); @delay else skip endif"},
              "a := 5; @delay")
         ], 10, ['delay 2', 'delay 2', 'delay 2', 'delay 2', 'delay 2', 'deadlock'])
 
     def testProcedure5(self):
         run_test(self, [
-            ([Procedure("pa", "if x > 0 then x := x - 1; cha!x; @pb else skip endif"),
-              Procedure("pb", "if x > 0 then x := x - 1; chb!x; @pa else skip endif")],
+            ({"pa": "if x > 0 then x := x - 1; cha!x; @pb else skip endif",
+              "pb": "if x > 0 then x := x - 1; chb!x; @pa else skip endif"},
              "x := 5; @pa"),
             "(cha?x --> skip $ chb?x --> skip)**"
         ], 10, ['IO cha 4', 'IO chb 3', 'IO cha 2', 'IO chb 1', 'IO cha 0', 'deadlock'])

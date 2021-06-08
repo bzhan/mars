@@ -1136,6 +1136,51 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
 
     return hp
 
+def simplify(hp):
+    """Perform immediate simplifications to HCSP process. This includes:
+    
+    * Remove extraneous skip from processes.
+    * Simplify if true then P else Q to P.
+    
+    """
+    if isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+        return hp
+    elif isinstance(hp, Sequence):
+        hps = []
+        for sub_hp in hp.hps:
+            simp_sub_hp = simplify(sub_hp)
+            if not simp_sub_hp == Skip():
+                hps.append(simp_sub_hp)
+        return Sequence(*hps)
+    elif isinstance(hp, Parallel):
+        return Parallel(*(simplify(sub_hp) for sub_hp in hp.hps))
+    elif isinstance(hp, Loop):
+        return Loop(simplify(hp.hp), hp.constraint)
+    elif isinstance(hp, Condition):
+        return Condition(hp.cond, simplify(hp.hp))
+    elif isinstance(hp, Recursion):
+        return Recursion(simplify(hp.hp), hp.entry)
+    elif isinstance(hp, ODE):
+        return ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
+    elif isinstance(hp, ODE_Comm):
+        return ODE_Comm(hp.eqs, hp.constraint,
+                        [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
+    elif isinstance(hp, SelectComm):
+        return SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
+    elif isinstance(hp, ITE):
+        for i in range(len(hp.if_hps)):
+            cond, sub_hp = hp.if_hps[i]
+            if cond == true_expr:
+                if i == 0:
+                    return simplify(sub_hp)
+                else:
+                    return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps[:i]],
+                               simplify(sub_hp))
+        return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps],
+                   simplify(hp.else_hp))
+    else:
+        raise NotImplementedError
+
 
 class HCSPProcess:
     """System of HCSP processes. Input is a list of (name, HCSP) pairs."""
