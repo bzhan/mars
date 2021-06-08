@@ -5,7 +5,9 @@ from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp import module
+from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test
+from ss2hcsp.hcsp.pprint import pprint
 
 
 class SFConvertTest(unittest.TestCase):
@@ -20,6 +22,11 @@ class SFConvertTest(unittest.TestCase):
         converter = sf_convert.SFConvert(chart)
         procs = converter.get_procs()
         hp = converter.get_toplevel_process()
+
+        hp = hcsp.reduce_procedures(hp, procs)
+        # print(pprint(hp))
+        # for name, proc in procs.items():
+        #     print(name, "::=", proc)
 
         run_test(self, [
             (procs, hp)

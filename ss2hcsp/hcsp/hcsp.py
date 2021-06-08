@@ -96,14 +96,17 @@ class HCSP:
 
     def contain_hp(self, name):
         """Returns whether the given HCSP program contains Var(name)."""
-        # return if it contains an hcsp named name
-        if self == Var(name):
-            return True
+        if isinstance(self, Var):
+            return self.name == name
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
+                               InputChannel, OutputChannel, Function)):
+            return False
         elif isinstance(self, (Sequence, Parallel)):
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
         elif isinstance(self, (Loop, Condition, Recursion)):
+            # Note the test for Recursion is imprecise.
             return self.hp.contain_hp(name)
         elif isinstance(self, ODE):
             return self.out_hp.contain_hp(name)
@@ -117,7 +120,29 @@ class HCSP:
             for sub_hp in [_hp for _cond, _hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
                     return True
-        return False
+        else:
+            raise NotImplementedError
+
+    def get_contain_hps(self):
+        """Returns the set of Var calls contained in self."""
+        if isinstance(self, Var):
+            return {self.name}
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
+                               InputChannel, OutputChannel, Function)):
+            return set()
+        elif isinstance(self, (Sequence, Parallel)):
+            return set().union(*(hp.get_contain_hps() for hp in self.hps))
+        elif isinstance(self, (Loop, Condition, Recursion)):
+            # Note the test for Recursion is imprecise.
+            return self.hp.get_contain_hps()
+        elif isinstance(self, ODE):
+            return self.out_hp.get_contain_hps()
+        elif isinstance(self, (ODE_Comm, SelectComm)):
+            return set().union(*(io_comm[1].get_contain_hps() for io_comm in self.io_comms))
+        elif isinstance(self, ITE):
+            return self.else_hp.get_contain_hps().union(*(hp.get_contain_hps() for cond, hp in self.if_hps))
+        else:
+            raise NotImplementedError
 
     def subst_comm(self, inst):
         def subst_io_comm(io_comm):
@@ -721,8 +746,10 @@ class Loop(HCSP):
 
 
 class Condition(HCSP):
-    """The alternative cond -> hp behaves as hp if cond is true;
-     otherwise, it terminates immediately."""
+    """The alternative cond -> hp behaves as hp if cond is true, otherwise,
+    it terminates immediately.
+     
+    """
     def __init__(self, cond, hp):
         super(Condition, self).__init__()
         assert isinstance(cond, (BExpr,RelExpr)) and isinstance(hp, HCSP)
@@ -1011,6 +1038,8 @@ def HCSP_subst(hp, inst):
             return inst[hp.name]
         else:
             return hp
+    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+        return hp
     elif isinstance(hp, (Loop, Recursion, Condition)):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
@@ -1027,11 +1056,85 @@ def HCSP_subst(hp, inst):
         hp.if_hps = tuple((e[0], HCSP_subst(e[1], inst)) for e in hp.if_hps)
         hp.else_hp = HCSP_subst(hp.else_hp, inst)
         return hp
-    elif isinstance(hp, (Skip, Assign, Wait, InputChannel, OutputChannel)):
-        return hp
     else:
         print(hp)
         raise NotImplementedError
+
+def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
+    """Reduce number of procedures in the process by inlining.
+
+    hp : HCSP - input process.
+    procs : Dict[str, HCSP] - mapping from procedure name to procedure body.
+    strict_protect : Set[str] - this set of procedures will never be inlined.
+    prefer_protect : Set[str] - when there are several options, prefer to not
+        inline these procedures.
+
+    The algorithm for finding which procedures to inline is partly heuristic,
+    with settings specified by the various flags. It performs the following steps:
+
+    1. Traverse the procedure definitions to find dependency relations.
+
+    2. Inline any procedure that does not depend on any other procedure (except
+       those that are strictly protected).
+
+    3. When step 2 can not find any procedure to inline, remove one of the
+       procedures from consideration. When making the choice, procedures in
+       prefer_protect has higher priority, then procedures that occur in the
+       largest number of other procedures has higher priority.
+
+    This function directly modifies procs, and returns the new HCSP process.
+
+    """
+    if strict_protect is None:
+        strict_protect = set()
+
+    if prefer_protect is None:
+        prefer_protect = set()
+
+    # First, construct the dependency relation. We use the empty string
+    # to represent the toplevel process.
+    dep_relation = dict()
+    dep_relation[""] = hp.get_contain_hps()
+    for name, proc in procs.items():
+        dep_relation[name] = proc.get_contain_hps()
+
+    # Set of procedures to be inlined, in order of removal
+    inline_order = []
+
+    # Set of procedures that are kept, initially the toplevel process
+    # and the strictly protected processes.
+    fixed = {""}.union(strict_protect)
+
+    # Get the order of inlining
+    while True:
+        # First, find procedures that only depend on inlined or fixed procedures
+        found = False
+        for name, dep in dep_relation.items():
+            if name not in fixed and name not in inline_order and \
+                dep.issubset(set(inline_order).union(fixed)):
+                found = True
+                inline_order.append(name)
+
+        # If all procedures are either inlined or fixed, exit the loop
+        if len(fixed) + len(inline_order) == len(dep_relation):
+            break
+
+        # If some procedure is found, repeat the iteration
+        if found:
+            continue
+
+        break
+
+    # Next, recursively perform substitutions
+    for inline_name in inline_order:
+        for name, dep in dep_relation.items():
+            if name == "" and inline_name in dep:
+                hp = HCSP_subst(hp, {inline_name: procs[inline_name]})
+            elif inline_name in dep:
+                procs[name] = HCSP_subst(procs[name], {inline_name: procs[inline_name]})
+        del procs[inline_name]
+
+    return hp
 
 
 class HCSPProcess:

@@ -257,20 +257,18 @@ class SFConvert:
 
     def get_procs(self):
         """Returns the list of procedures."""
-        all_procs = []
+        all_procs = dict()
 
         for ssid, state in self.chart.all_states.items():
-            all_procs.append(hcsp.Procedure(self.en_proc_name(state), self.get_en_proc(state)))
-            all_procs.append(hcsp.Procedure(self.du_proc_name(state), self.get_du_proc(state)))
-            all_procs.append(hcsp.Procedure(self.ex_proc_name(state), self.get_ex_proc(state)))
-            all_procs.append(hcsp.Procedure(self.entry_proc_name(state), self.get_entry_proc(state)))
-            all_procs.append(hcsp.Procedure(self.during_proc_name(state), self.get_during_proc(state)))
-            all_procs.append(hcsp.Procedure(self.exit_proc_name(state), self.get_exit_proc(state)))
+            all_procs[self.en_proc_name(state)] = self.get_en_proc(state)
+            all_procs[self.du_proc_name(state)] = self.get_du_proc(state)
+            all_procs[self.ex_proc_name(state)] = self.get_ex_proc(state)
+            all_procs[self.entry_proc_name(state)] = self.get_entry_proc(state)
+            all_procs[self.during_proc_name(state)] = self.get_during_proc(state)
+            all_procs[self.exit_proc_name(state)] = self.get_exit_proc(state)
         
-        all_procs.extend([
-            hcsp.Procedure(self.init_name(), self.get_init_proc()),
-            hcsp.Procedure(self.exec_name(), self.get_exec_proc())
-        ])
+        all_procs[self.init_name()] = self.get_init_proc()
+        all_procs[self.exec_name()] = self.get_exec_proc()
 
         return all_procs
 
