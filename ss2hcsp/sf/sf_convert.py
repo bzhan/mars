@@ -8,6 +8,7 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
+from ss2hcsp.matlab.function import BroadcastEvent
 
 
 class SFConvert:
@@ -24,7 +25,11 @@ class SFConvert:
         self.convert_cmd = convert_cmd
 
     def raise_event(self, event):
-        return hcsp.Var(self.exec_name())
+        return hcsp.seq([
+            hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
+            hcsp.Var(self.exec_name()),
+            hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+        ])
 
     def get_chain_to_ancestor(self, state, ancestor):
         """Chain of states from the current state to ancestor (not including ancestor)."""
@@ -182,21 +187,24 @@ class SFConvert:
         if isinstance(state, OR_State) and state.out_trans:
             ite = []
             for tran in state.out_trans:
-                cond, cond_act, tran_act = expr.true_expr, None, None
+                conds, cond_act, tran_act = [], None, None
                 src = self.chart.all_states[tran.src]
                 dst = self.chart.all_states[tran.dst]
                 if tran.label is not None:
                     if tran.label.event is not None:
-                        raise NotImplementedError
+                        if isinstance(tran.label.event, BroadcastEvent):
+                            conds.append(expr.RelExpr("==", FunExpr("top", AVar("EL")), tran.label.event.name))
+                        else:
+                            raise NotImplementedError
                     if tran.label.cond is not None:
-                        cond = self.convert_expr(tran.label.cond)
+                        conds.append(self.convert_expr(tran.label.cond))
                     if tran.label.cond_act is not None:
                         cond_act = self.convert_cmd(tran.label.cond_act)
                     if tran.label.tran_act is not None:
                         tran_act = self.convert_cmd(tran.label.tran_act)
                 tran_act = self.get_transition_proc(src, dst, tran_act)
                 act = tran_act if cond_act is None else hcsp.seq([cond_act, tran_act])
-                ite.append((cond, act))
+                ite.append((expr.conj(*conds), act))
             procs.append(hcsp.ITE(ite, hcsp.Var(self.du_proc_name(state))))
         else:
             procs.append(hcsp.Var(self.du_proc_name(state)))
@@ -250,7 +258,10 @@ class SFConvert:
         return "exec_" + self.chart.name
 
     def get_init_proc(self):
-        return self.get_rec_entry_proc(self.chart.diagram)
+        return hcsp.seq([
+            hcsp.Assign("EL", expr.AConst([])),
+            self.get_rec_entry_proc(self.chart.diagram)
+        ])
 
     def get_exec_proc(self):
         return self.get_rec_during_proc(self.chart.diagram)

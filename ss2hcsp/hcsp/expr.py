@@ -198,7 +198,7 @@ class FunExpr(AExpr):
         #     "bernoulli", "uniform"]
         self.fun_name = fun_name
         exprs = tuple(exprs)
-        # assert all(isinstance(expr, AExpr) for expr in exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
 
     def __repr__(self):
