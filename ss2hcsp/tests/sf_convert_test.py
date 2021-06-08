@@ -22,7 +22,7 @@ class SFConvertTest(unittest.TestCase):
         hp = converter.get_toplevel_process()
 
         run_test(self, [
-            ([(proc.name, proc.hp) for proc in procs], hp)
+            (procs, hp)
         ], 1, ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
 
 
