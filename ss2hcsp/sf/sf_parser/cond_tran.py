@@ -190,7 +190,7 @@ class ListExpr(Expr):
         self.count=0
 
     def __repr__(self):
-        return "[%s]" % (','.join(repr(arg) for arg in self.args))
+        return "[%s]" % (','.join(str(arg) for arg in self.args))
 
     def __str__(self):
         return "[%s]" % (','.join(str(arg) for arg in self.args))
@@ -224,5 +224,38 @@ class ListExpr(Expr):
 
     def subst(self, inst):
         return ListExpr(expr.subst(inst) for expr in self.args)
+
+class Assign(Expr):
+    def __init__(self, var_name, expr):
+        super(Assign, self).__init__()
+        self.var_name = var_name
+        self.expr = expr  # AExpr
+
+    def __eq__(self, other):
+        return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
+
+    def __str__(self):
+        return  "%s := %s" %(self.var_name , self.expr)
+
+    def __repr__(self):
+        return "Assign(%s,%s)" % (self.var_name, str(self.expr))
+    def priority(self):
+            return 100
+    def get_vars(self):
+        if isinstance(self.var_name,Expr):
+            var_set = {str(self.var_name)}
+        else:
+            var_set = set(str(n) for n in self.var_name)
+        return var_set.union(self.expr.get_vars())
+
+class Logic_temporal:
+	def __init__(self,name,expr,unit):
+		self.name=name
+		self.expr=expr
+		self.unit=unit
+	def __str__(self):
+		return "%s(%s,%s)" %(self.name,self.expr,self.unit)
+	def __repr__(self):
+		return "%s(%s,%s)" %(self.name,self.expr,self.unit)
 
 		

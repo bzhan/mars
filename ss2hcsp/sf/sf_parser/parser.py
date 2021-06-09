@@ -64,6 +64,11 @@ grammar = r"""
 
     ?cond: disj
 
+    ?unit: "sec" | "min"
+
+    ?event_logic: "after" "(" expr "," unit ")" -> after_logic
+        | "before" "(" expr "," unit ")" ->befor_logic
+
     ?cond_tran: event"[" cond "]""{" seq_cmd "}""/{" seq_cmd "}" -> cond_tran
     	| "[" cond "]""{" seq_cmd "}""/{" seq_cmd "}" -> cond_tran1
     	| event"{" seq_cmd "}""/{" seq_cmd "}"-> cond_tran2
@@ -99,7 +104,7 @@ class MatlabTransformer(Transformer):
 
     def return_var(self, *args):
         if all(isinstance(arg, (cond_tran.AVar,cond_tran.FunExpr)) for arg in args):
-            return cond_tran.ListExpr(list(arg for arg in args))
+            return cond_tran.ListExpr(*list(arg for arg in args))
         else:
             return cond_tran.ListExpr(*list(cond_tran.AVar(arg) for arg in args))
 
@@ -172,7 +177,7 @@ class MatlabTransformer(Transformer):
     def cond_tran13(self,event,cond):
         return cond_tran.CondTran(event,cond,'','') 
     def assign_cmd(self, var_name, expr):
-        return function.Assign(var_name, expr)
+        return cond_tran.Assign(var_name, expr)
     
     def direct_name(self,*expr):
     	return cond_tran.DirectName(expr)
@@ -243,5 +248,12 @@ class MatlabTransformer(Transformer):
     def array_idx_expr1_3(self, a, i,j,k):
         return cond_tran.ArrayIdxExpr(cond_tran.ArrayIdxExpr(cond_tran.ArrayIdxExpr(cond_tran.AVar(str(a)), i), j),k)
 
+    def after_logic(self,expr,unit):
+        return cond_tran.Logic_temporal("after",expr,unit)
+
+    def before_logic(self,expr,unit):
+        return cond_tran.Logic_temporal("before",expr,unit)    
 transition_parser = Lark(grammar, start="cond_tran", parser="lalr", transformer=MatlabTransformer())
 condition_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
+event_logic=Lark(grammar,start="event_logic",parser="lalr",transformer=MatlabTransformer())
+cond_tran_bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
