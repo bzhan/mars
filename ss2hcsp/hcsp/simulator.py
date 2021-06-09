@@ -230,16 +230,16 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        a = eval_expr(expr.expr1, state)
-        b = eval_expr(expr.expr2, state)
+        # a = eval_expr(expr.expr1, state)
+        # b = eval_expr(expr.expr2, state)
         if expr.op == "&&":
-            return a and b
+            return eval_expr(expr.expr1, state) and eval_expr(expr.expr2, state)
         elif expr.op == "||":
-            return a or b
+            return eval_expr(expr.expr1, state) or eval_expr(expr.expr2, state)
         elif expr.op == "-->":
-            return (not a) or b
+            return (not eval_expr(expr.expr1, state)) or eval_expr(expr.expr2, state)
         elif expr.op == "<-->":
-            return a == b
+            return eval_expr(expr.expr1, state) == eval_expr(expr.expr2, state)
         else:
             raise NotImplementedError
 

@@ -506,6 +506,18 @@ class SL_Diagram:
                             input_message_list.append(message)
                 else:
                     chart_data[var_name] = sf_data
+            # key_num=0;
+            # for key in list(chart_data.keys()):
+            #     if key=="true" or key=="false":
+            #         key1=key+str(key_num);
+            #         while key1 in list(chart_data.keys()):
+            #             key_num=key_num+1
+            #         if key1 not in list(chart_data.keys()):
+            #             sf_data1=chart_data[key]
+            #             del chart_data[key]
+            #             sf_data1.name=key1
+            #             chart_data[key1]=sf_data1
+
             # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}

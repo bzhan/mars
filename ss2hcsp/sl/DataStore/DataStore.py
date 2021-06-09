@@ -16,11 +16,11 @@ class DataStoreMemory:
 	
 	def get_hcsp(self):
 		hp_body=list()
-		
-		hp_body.append(hcsp.InputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)))
+		# hcsp.SelectComm(((hcsp.InputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Skip()),(hcsp.OutputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Skip())))
 		hp_body.append(hcsp.OutputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)))
-		return hcsp.Sequence(hcsp.Assign(AVar(self.dataStore_name), AConst(self.value)),hcsp.OutputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Loop(hcsp.Sequence(*hp_body)))
-
+		hp_body.append(hcsp.InputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)))
+		# return hcsp.Sequence(hcsp.Assign(AVar(self.dataStore_name), AConst(self.value)),hcsp.Loop(hcsp.SelectComm((hcsp.OutputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Skip()),(hcsp.InputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Skip()))))
+		return hcsp.Sequence(hcsp.Assign(AVar(self.dataStore_name), AConst(self.value)),hcsp.OutputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.InputChannel("ch_"+self.dataStore_name, AVar(self.dataStore_name)),hcsp.Loop(hcsp.Sequence(*hp_body)))
 class DataStoreRead:
 	"""docstring for DataStoreRead"""
 	def __init__(self, name,dataStoreName):

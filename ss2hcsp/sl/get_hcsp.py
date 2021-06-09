@@ -384,6 +384,7 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, unit_delays,
     # Compute the stateflow processes
     for chart in sf_charts:
         chart.sf_charts=sf_charts
+        # chart.add_state_fun_after()
         chart.add_names()
         chart.find_root_for_states()
         chart.find_root_and_loc_for_trans()

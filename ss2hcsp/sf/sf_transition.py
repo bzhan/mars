@@ -4,8 +4,10 @@ from ss2hcsp.sf.sf_parser.parser import condition_parser
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.sf.sf_parser.cond_tran import Assign,ListExpr
 from ss2hcsp.hcsp.hcsp import OutputChannel
 from ss2hcsp.sf.sf_parser import parser
+from ss2hcsp.sf.sf_parser.cond_tran import FunExpr
 
 class Transition:
     def __init__(self, ssid, label, order=0, src="", dst=""):
@@ -40,41 +42,55 @@ class Transition:
         if self.label is not None:
             func = parser.transition_parser.parse(html.unescape(self.label))
             if func.cond:
-                if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.cond)):
-                    number, event = [e.strip() for e in str(func.cond)[6:-1].split(",")]
-                    if event == "sec":
-                        special_var = "state_time"+str(self.src)
-                        self.condition = bexpr_parser.parse(special_var + " >= " + number)    #？？？？？？
-                        self.cond_vars.add(special_var)
+
+                if isinstance(func.cond,FunExpr):
+                    if func.cond.fun_name == "after":
+                        number, event = str(func.cond.exprs[0]),str(func.cond.exprs[1])
+                        if event == "sec":
+                            special_var = "state_time"+str(self.src)
+                            self.condition = bexpr_parser.parse(special_var + " >= " + number) 
+                            self.cond_vars.add(special_var)
                 else:
-                    self.condition =bexpr_parser.parse(str(func.cond))
+                    # self.condition =bexpr_parser.parse(str(func.cond))
+                    self.condition =func.cond
             else:
                 self.condition =None
             if isinstance(func.cond_act,hp.Sequence):
-                self.cond_acts=[str(cond_act) for cond_act in func.cond_act.hps] 
+                # for cond_act in func.cond_act.hps:
+                #     if isinstance(cond_act,Assign):
+                #         if isinstance(cond_act.var_name,ListExpr):
+                #             for arg in cond_act.var_name.args:
+                #                 print(arg)
+                #                 print(type(arg))
+                self.cond_acts=[cond_act for cond_act in func.cond_act.hps] 
+                # self.cond_acts=[str(cond_act) for cond_act in func.cond_act.hps] 
             elif func.cond_act:
-                self.cond_acts = [str(func.cond_act)]
+                self.cond_acts = [func.cond_act]
+                # self.cond_acts = [str(func.cond_act)]
             else:
                 self.cond_act =[]
             if isinstance(func.tran_act,hp.Sequence):
-                self.tran_acts=[str(tran_act) for tran_act in func.tran_act.hps]  
+                self.tran_acts=[tran_act for tran_act in func.tran_act.hps]  
+                # self.tran_acts=[str(tran_act) for tran_act in func.tran_act.hps]  
             elif func.tran_act:
-                self.tran_acts = [str(func.tran_act)]
+                self.tran_acts = [func.tran_act]
+                # self.tran_acts = [str(func.tran_act)]
             else:
                 self.tran_acts=[]
             if func.event:
-
-                if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.event)):
-                    # Parse after(number, event) condition
-                    # number, event = condition[6:-1].split(",")
-                    number, event = [e.strip() for e in str(func.event)[6:-1].split(",")]
-                    if event == "sec":
-                        special_var = "state_time"+str(self.src)
-                        if self.condition is not None:
-                            self.condition =bexpr_parser.parse(str(self.condition)+"&&"+special_var + " >= " + number)    #？？？？？？
-                        else:
-                            self.condition =bexpr_parser.parse(special_var + " >= " + number) 
-                        self.cond_vars.add(special_var)
+                if isinstance(func.event,FunExpr):
+                    if func.event.fun_name == "after":
+                        # Parse after(number, event) condition
+                        # number, event = condition[6:-1].split(",")
+                        number, event = str(func.event.exprs[0]),str(func.event.exprs[1])
+                        if event == "sec":
+                            special_var = "state_time"+str(self.src)
+                            if self.condition is not None:
+                                self.condition =bexpr_parser.parse(str(self.condition)+"&&"+special_var + " >= " + number)    #？？？？？？
+                            else:
+                                self.condition =bexpr_parser.parse(special_var + " >= " + number) 
+                            self.cond_vars.add(special_var)
+                          
                 else:
                     self.event =str(func.event)
             else:

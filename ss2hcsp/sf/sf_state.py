@@ -1,5 +1,6 @@
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.hcsp.expr import RelExpr,LogicExpr,FunExpr
 import re
 
 
@@ -352,8 +353,10 @@ class OR_State(SF_State):
         self.default_tran = default_tran  # The default transition to this state
        #个人新添加的历史节点内容
         self.has_history_junc=False  #The history junction to this state
-        self.acth=None              # the latest state
-
+        self.acth=None   # the latest state
+        self.func_after=list()            
+        
+        self.get_after_func()
     def has_aux_var(self, var_name):
         # return if the state has the auxiliary variable var_name
         # The auxiliary variables are all in the conditions of outgoing transitions
@@ -361,6 +364,25 @@ class OR_State(SF_State):
             if var_name in tran.cond_vars:
                 return True
         return False
+    def get_tran_after_cond(self,condition):
+        aexpr1=condition.expr1
+        aexpr2=condition.expr2
+        if isinstance(aexpr1,RelExpr) and ("state_time"+self.ssid) in str(aexpr1):
+            self.func_after.append(aexpr1.expr2)
+        elif isinstance(aexpr1,LogicExpr):
+            self.get_tran_after_cond(aexpr1)
+        elif isinstance(aexpr2,RelExpr) and ("state_time"+self.ssid) in str(aexpr2) :
+            self.func_after.append(aexpr2.expr2)
+        elif isinstance(aexpr2,LogicExpr):
+            self.get_tran_after_cond(aexpr2)
+    def get_after_func(self):
+        for tran in self.out_trans:
+            if ("state_time"+self.ssid) in tran.cond_vars and isinstance(tran.condition,(RelExpr,LogicExpr)):
+                if isinstance(tran.condition,RelExpr):
+                    self.func_after.append(tran.condition.expr2)
+                elif isinstance(tran.condition,LogicExpr):
+                    self.get_tran_after_cond(tran.condition)
+
 
 
 class AND_State(SF_State):
