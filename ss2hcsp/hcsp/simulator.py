@@ -12,7 +12,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
@@ -201,7 +201,7 @@ def eval_expr(expr, state):
             raise NotImplementedError
 
     elif isinstance(expr, ModExpr):
-        multiple = 100
+        multiple = 1000
         return (round(eval_expr(expr.expr1, state) * multiple) %
                 round(eval_expr(expr.expr2, state) * multiple)) / multiple
 
@@ -456,17 +456,27 @@ def start_pos(hp):
     else:
         return tuple()
 
-def get_pos(hp, pos, rec_vars=None):
-    """Obtain the sub-program corresponding to the given position."""
+def get_pos(hp, pos, rec_vars=None, procs=None):
+    """Obtain the sub-program corresponding to the given position.
+    
+    rec_vars: mapping from recursion variables to HCSP processes.
+    procs: mapping from procedure names to HCSP processes.
+
+    """
     assert pos is not None, "get_pos: already reached the end."
+
+    # rec_vars and procs default to empty dictionaries
     if rec_vars is None:
         rec_vars = dict()
+    if procs is None:
+        procs = dict()
+
     if hp.type == 'sequence':
         if len(pos) == 0:
             return hp
-        return get_pos(hp.hps[pos[0]], pos[1:], rec_vars)
+        return get_pos(hp.hps[pos[0]], pos[1:], rec_vars, procs)
     elif hp.type == 'loop':
-        return get_pos(hp.hp, pos, rec_vars)
+        return get_pos(hp.hp, pos, rec_vars, procs)
     elif hp.type == 'wait':
         # assert len(pos) == 1
         return hp
@@ -475,54 +485,60 @@ def get_pos(hp, pos, rec_vars=None):
             return hp
         else:
             _, out_hp = hp.io_comms[pos[0]]
-            return get_pos(out_hp, pos[1:], rec_vars)
+            return get_pos(out_hp, pos[1:], rec_vars, procs)
     elif hp.type == 'condition':
         if len(pos) == 0:
             return hp
         else:
             assert pos[0] == 0
-            return get_pos(hp.hp, pos[1:], rec_vars)
+            return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'select_comm':
         if len(pos) == 0:
             return hp
         else:
             _, out_hp = hp.io_comms[pos[0]]
-            return get_pos(out_hp, pos[1:], rec_vars)
+            return get_pos(out_hp, pos[1:], rec_vars, procs)
     elif hp.type == 'recursion':
         if len(pos) == 0:
             return hp
         else:
             rec_vars[hp.entry] = hp
-            return get_pos(hp.hp, pos[1:], rec_vars)
+            return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'ite':
         if len(pos) == 0:
             return hp
         elif pos[0] < len(hp.if_hps):
-            return get_pos(hp.if_hps[pos[0]][1], pos[1:], rec_vars)
+            return get_pos(hp.if_hps[pos[0]][1], pos[1:], rec_vars, procs)
         else:
             assert pos[0] == len(hp.if_hps)
-            return get_pos(hp.else_hp, pos[1:], rec_vars)
+            return get_pos(hp.else_hp, pos[1:], rec_vars, procs)
     elif hp.type == 'var':
         if len(pos) == 0:
             return hp
         assert pos[0] == 0
 
-        if hp.name not in rec_vars:
+        if hp.name in rec_vars:
+            rec_hp = rec_vars[hp.name]
+            return get_pos(rec_hp, pos[1:], rec_vars, procs)
+        elif hp.name in procs:
+            rec_hp = procs[hp.name].hp
+            return get_pos(rec_hp, pos[1:], rec_vars, procs)
+        else:
             raise SimulatorException("Unrecognized process variable: " + hp.name)
-
-        rec_hp = rec_vars[hp.name]
-        return get_pos(rec_hp, pos[1:], rec_vars)
     else:
         assert len(pos) == 0
         return hp
 
-def step_pos(hp, pos, state, rec_vars=None):
+def step_pos(hp, pos, state, rec_vars=None, procs=None):
     """Execute a (non-communicating) step in the program. Returns the
     new position, or None if steping to the end.
     
     """
+    # rec_vars and procs default to empty dictionaries
     if rec_vars is None:
         rec_vars = dict()
+    if procs is None:
+        procs = dict()
 
     def helper(hp, pos):
         assert pos is not None, "step_pos: already reached the end."
@@ -572,10 +588,13 @@ def step_pos(hp, pos, state, rec_vars=None):
             else:
                 return (0,) + sub_step
         elif hp.type == 'var':
-            if hp.name not in rec_vars:
+            if hp.name in rec_vars:
+                rec_hp = rec_vars[hp.name]
+            elif hp.name in procs:
+                rec_hp = procs[hp.name].hp
+            else:
                 raise SimulatorException("Unrecognized process variable: " + hp.name)
 
-            rec_hp = rec_vars[hp.name]
             sub_step = helper(rec_hp, pos[1:])
             if sub_step is None:
                 return None
@@ -626,11 +645,11 @@ def parse_pos(hp, pos):
 
     return pos
 
-def remove_rec(hp, pos, rec_vars=None):
-    """Given a position in a program possibly with recursion,
-    return the simplest expression for the same position in the program
-    (removing recursion). This simpler position is used for display
-    in user interface.
+def remove_rec(hp, pos, rec_vars=None, procs=None):
+    """Given a position in a program possibly with recursion and
+    procedure calls, return the simplest expression for the same position
+    in the program (removing recursion). This simpler position is used
+    for display in user interface.
 
     """
     if pos is None:
@@ -638,7 +657,7 @@ def remove_rec(hp, pos, rec_vars=None):
 
     rec_list = []
     for i in range(len(pos)+1):
-        sub_hp = get_pos(hp, pos[:i])
+        sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
         if sub_hp.type == 'recursion':
             rec_list.append(i)
 
@@ -646,17 +665,17 @@ def remove_rec(hp, pos, rec_vars=None):
         pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
     return pos
 
-def string_of_pos(hp, pos):
+def string_of_pos(hp, pos, rec_vars=None, procs=None):
     """Convert pos in internal representation to string form."""
     if pos is None:
         return 'end'
-    elif get_pos(hp, pos).type != 'wait':
+    elif get_pos(hp, pos, rec_vars, procs).type != 'wait':
         return 'p' + ','.join(str(p) for p in pos)
     else:
         return 'p' + ','.join(str(p) for p in pos[:-1]) + ',w' + str(pos[-1])
 
-def disp_of_pos(hp, pos):
-    return string_of_pos(hp, remove_rec(hp, pos))
+def disp_of_pos(hp, pos, rec_vars=None, procs=None):
+    return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
 
 
 class SimInfo:
@@ -668,7 +687,7 @@ class SimInfo:
     or None if execution has reached the end.
 
     """
-    def __init__(self, name, hp, *, outputs=None, pos="start", state=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None, pos="start", state=None):
         """Initializes with starting position as the execution position."""
 
         # Name of the program
@@ -683,6 +702,11 @@ class SimInfo:
 
         # List of output variables, None indicates output everything.
         self.outputs = outputs
+
+        # List of procedure declarations
+        if procedures is None:
+            procedures = []
+        self.procedures = procedures
 
         # Current position of execution
         if isinstance(pos, str):
@@ -744,10 +768,10 @@ class SimInfo:
         
         """
         rec_vars = dict()
-        cur_hp = get_pos(self.hp, self.pos, rec_vars)
+        cur_hp = get_pos(self.hp, self.pos, rec_vars, self.procedures)
 
         if cur_hp.type == "skip":
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             self.reason = None
             
         elif cur_hp.type == "assign":
@@ -763,7 +787,7 @@ class SimInfo:
                     if s != AVar('_'):
                         self.exec_assign(s, val[i], cur_hp)
 
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             self.reason = None
 
         elif cur_hp.type == "assert":
@@ -773,40 +797,31 @@ class SimInfo:
                 error_msg = ''
                 for msg in cur_hp.msgs:
                     val = eval_expr(msg, self.state)
-                    if isinstance(val, str):
-                        error_msg += val[1:-1]
-                    else:
-                        error_msg += str(val)
+                    error_msg += str(val)
                 raise SimulatorException(error_msg)
             else:
-                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
                 self.reason = None
 
         elif cur_hp.type == "test":
             # Evaluate a test. If fails, output a warning but do not stop
             # the execution.
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             self.reason = None
             if not eval_expr(cur_hp.bexpr, self.state):
                 warning_expr = ''
                 for msg in cur_hp.msgs:
                     val = eval_expr(msg, self.state)
-                    if isinstance(val, str):
-                        warning_expr += val[1:-1]
-                    else:
-                        warning_expr += str(val)
+                    warning_expr += str(val)
                 raise SimulatorAssertionException(cur_hp.bexpr, warning_expr)
 
         elif cur_hp.type == "log":
             # Output a log item to the simulator
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             log_expr = ''
             for expr in cur_hp.exprs:
                 val = eval_expr(expr, self.state)
-                if isinstance(val, str):
-                    log_expr += val[1:-1]
-                else:
-                    log_expr += str(val)
+                log_expr += str(val)
             self.reason = {"log": log_expr}
 
         elif cur_hp.type == "condition":
@@ -814,7 +829,7 @@ class SimInfo:
             if eval_expr(cur_hp.cond, self.state):
                 self.pos += (0,) + start_pos(cur_hp.hp)
             else:
-                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             self.reason = None
 
         elif cur_hp.type == "recursion":
@@ -825,13 +840,20 @@ class SimInfo:
         elif cur_hp.type == "var":
             # Return to body of recursion
             for i in range(len(self.pos)):
-                hp = get_pos(self.hp, self.pos[:i])
+                hp = get_pos(self.hp, self.pos[:i], rec_vars, self.procedures)
                 if hp.type == 'recursion' and hp.entry == cur_hp.name:
                     self.pos += (0,) + start_pos(hp)
                     self.reason = None
                     return
 
-            # Otherwise, not a recursion variable
+            # Otherwise, enter code of procedure
+            if cur_hp.name in self.procedures:
+                proc = self.procedures[cur_hp.name]
+                self.pos += (0,) + start_pos(proc.hp)
+                self.reason = None
+                return
+
+            # Otherwise, not a recursion or procedure call
             raise SimulatorException("Unrecognized process variable: " + cur_hp.name)
 
         elif cur_hp.type == "input_channel":
@@ -904,7 +926,7 @@ class SimInfo:
 
         """
         rec_vars = dict()
-        cur_hp = get_pos(self.hp, self.pos, rec_vars)
+        cur_hp = get_pos(self.hp, self.pos, rec_vars, self.procedures)
 
         if inst is not None:
             self.state.update(inst)
@@ -916,7 +938,7 @@ class SimInfo:
             else:
                 assert x is not None
                 self.exec_assign(cur_hp.var_name, x, cur_hp)
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
 
         elif cur_hp.type == "ode_comm":
             for i, (comm_hp, out_hp) in enumerate(cur_hp.io_comms):
@@ -956,14 +978,14 @@ class SimInfo:
 
         """
         rec_vars = dict()
-        cur_hp = get_pos(self.hp, self.pos, rec_vars)
+        cur_hp = get_pos(self.hp, self.pos, rec_vars, self.procedures)
 
         if inst is not None:
             self.state.update(inst)
 
         if cur_hp.type == "output_channel":
             assert eval_channel(cur_hp.ch_name, self.state) == ch_name
-            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+            self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             return eval_expr(cur_hp.expr, self.state)
 
         elif cur_hp.type == "ode_comm":
@@ -994,7 +1016,7 @@ class SimInfo:
             return
 
         rec_vars = dict()
-        cur_hp = get_pos(self.hp, self.pos, rec_vars)
+        cur_hp = get_pos(self.hp, self.pos, rec_vars, self.procedures)
         if cur_hp.type in ["input_channel", "output_channel", "select_comm"]:
             pass
 
@@ -1002,7 +1024,7 @@ class SimInfo:
             assert 'delay' in self.reason
             assert self.reason['delay'] >= delay
             if self.reason['delay'] == delay:
-                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars)
+                self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
             else:
                 self.pos = self.pos[:-1] + (self.pos[-1] + delay,)
 
@@ -1192,7 +1214,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         # Fill in information about current position
         cur_info = dict()
         for info in infos:
-            info_pos = disp_of_pos(info.hp, info.pos)
+            info_pos = disp_of_pos(info.hp, info.pos, None, info.procedures)
             cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
         new_event['infos'] = cur_info
 
@@ -1252,7 +1274,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         # stuck, find the stopping reasons.
         for info in infos:
             while info.pos is not None and not num_event >= start_id + num_steps:
-                ori_pos = {info.name: disp_of_pos(info.hp, info.pos)}
+                ori_pos = {info.name: disp_of_pos(info.hp, info.pos, None, info.procedures)}
                 try:
                     info.exec_step()
                 except SimulatorAssertionException as e:
@@ -1267,7 +1289,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
                     log_event(ori_pos=ori_pos, type="step", str="step")
                     log_time_series(info, res['time'], info.state)
                 elif 'log' in info.reason:
-                    log_event(ori_pos=ori_pos, type="log", str='-- ' + info.reason['log'] + ' --')
+                    log_event(ori_pos=ori_pos, type="log", str='log ' + info.reason['log'])
                 elif 'warning' in info.reason:
                     log_event(ori_pos=ori_pos, type="warning", str="warning: " + info.reason['warning'])
                 elif 'error' in info.reason:
@@ -1291,7 +1313,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
             assert min_delay >= 0, "min_delay %s less than zero" % min_delay
-            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos)) for p in delay_pos)
+            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].pos, None, infos[p].procedures)) for p in delay_pos)
 
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
@@ -1306,8 +1328,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             res['time'] += min_delay
         else:  # event[0] == "comm"
             _, id_out, id_in, out_ch, in_ch, inst_out, inst_in = event
-            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos),
-                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos)}
+            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].pos, None, infos[id_out].procedures),
+                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].pos, None, infos[id_in].procedures)}
             try:
                 val = infos[id_out].exec_output_comm(out_ch, inst=inst_out)
                 infos[id_in].exec_input_comm(in_ch, val, inst=inst_in)
@@ -1316,16 +1338,9 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
                 res['warning'] = (res['time'], str(e))
                 break
 
-            if val is None:
-                val_str = ""
-            elif isinstance(val, float):
-                val_str = " " + str(round(val, 3))
-            elif isinstance(val, dict):
-                val_str = " {%s}" % (','.join(k + ':' + str(v) for k, v in val.items()))
-            elif isinstance(val, list):
-                val_str = " [%s]" % (','.join(str(v) for v in val))
-            else:
-                val_str = " " + str(val)
+            val_str = str_of_val(val)
+            if val_str != "":
+                val_str = " " + val_str
 
             ch_name = out_ch.subst(inst_out)
             trace_str = "IO %s%s" % (ch_name, val_str)

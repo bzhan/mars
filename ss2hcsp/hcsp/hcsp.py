@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, RelExpr
-from ss2hcsp.matlab.function import Expr,Assign as fun_assign
 import re
 
 
@@ -96,14 +95,18 @@ class HCSP:
             return 100
 
     def contain_hp(self, name):
-        # return if it contains an hcsp named name
-        if self == Var(name):
-            return True
+        """Returns whether the given HCSP program contains Var(name)."""
+        if isinstance(self, Var):
+            return self.name == name
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
+                               InputChannel, OutputChannel, Function)):
+            return False
         elif isinstance(self, (Sequence, Parallel)):
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
         elif isinstance(self, (Loop, Condition, Recursion)):
+            # Note the test for Recursion is imprecise.
             return self.hp.contain_hp(name)
         elif isinstance(self, ODE):
             return self.out_hp.contain_hp(name)
@@ -112,14 +115,34 @@ class HCSP:
                 if io_comm[1].contain_hp(name):
                     return True
         elif isinstance(self, ITE):
-            if isinstance(self.else_hp,fun_assign):
-                return False
-            elif self.else_hp.contain_hp(name):
+            if self.else_hp.contain_hp(name):
                 return True
             for sub_hp in [_hp for _cond, _hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
                     return True
-        return False
+        else:
+            raise NotImplementedError
+
+    def get_contain_hps(self):
+        """Returns the set of Var calls contained in self."""
+        if isinstance(self, Var):
+            return {self.name}
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
+                               InputChannel, OutputChannel, Function)):
+            return set()
+        elif isinstance(self, (Sequence, Parallel)):
+            return set().union(*(hp.get_contain_hps() for hp in self.hps))
+        elif isinstance(self, (Loop, Condition, Recursion)):
+            # Note the test for Recursion is imprecise.
+            return self.hp.get_contain_hps()
+        elif isinstance(self, ODE):
+            return self.out_hp.get_contain_hps()
+        elif isinstance(self, (ODE_Comm, SelectComm)):
+            return set().union(*(io_comm[1].get_contain_hps() for io_comm in self.io_comms))
+        elif isinstance(self, ITE):
+            return self.else_hp.get_contain_hps().union(*(hp.get_contain_hps() for cond, hp in self.if_hps))
+        else:
+            raise NotImplementedError
 
     def subst_comm(self, inst):
         def subst_io_comm(io_comm):
@@ -178,6 +201,7 @@ class Var(HCSP):
     def __init__(self, name):
         super(Var, self).__init__()
         self.type = "var" 
+        assert isinstance(name, str)
         self.name = name
 
     def __eq__(self, other):
@@ -235,7 +259,7 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, (AExpr,Expr))
+        assert isinstance(expr, AExpr)
         if isinstance(var_name, str):
             var_name = AVar(var_name)
         if isinstance(var_name, AExpr):
@@ -343,7 +367,7 @@ class Log(HCSP):
         super(Log, self).__init__()
         self.type = "log"
         exprs = tuple(exprs)
-        assert all(isinstance(expr, (AExpr,Expr)) for expr in exprs)
+        assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = tuple(exprs)
 
     def __eq__(self, other):
@@ -553,6 +577,17 @@ class Sequence(HCSP):
             ch_set.update(hp.get_chs())
         return ch_set
 
+def seq(hps):
+    """Returns the sequential composition of hps. Special case when hps has
+    length 0 or 1.
+
+    """
+    if len(hps) == 0:
+        return Skip()
+    elif len(hps) == 1:
+        return hps[0]
+    else:
+        return Sequence(*hps)
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -711,8 +746,10 @@ class Loop(HCSP):
 
 
 class Condition(HCSP):
-    """The alternative cond -> hp behaves as hp if cond is true;
-     otherwise, it terminates immediately."""
+    """The alternative cond -> hp behaves as hp if cond is true, otherwise,
+    it terminates immediately.
+     
+    """
     def __init__(self, cond, hp):
         super(Condition, self).__init__()
         assert isinstance(cond, (BExpr,RelExpr)) and isinstance(hp, HCSP)
@@ -859,17 +896,21 @@ class Recursion(HCSP):
 
 
 class ITE(HCSP):
-    def __init__(self, if_hps, else_hp):
+    def __init__(self, if_hps, else_hp=None):
         """if-then-else statements.
 
-        if_hps is a list of condition-program pairs. else_hp is a program.
+        if_hps : List[Tuple[BExpr, HCSP]] - list of condition-program pairs.
+        else_hp : [None, HCSP]
+
         The program associated to the first true condition in if_hps will
         be executed. If no condition is true, else_hp is executed.
 
         """
         super(ITE, self).__init__()
-        #assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
-        #assert isinstance(else_hp, HCSP)
+        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        if else_hp is None:
+            else_hp = Skip()        
+        assert isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
@@ -943,17 +984,45 @@ def get_comm_chs(hp):
     return list(OrderedDict.fromkeys(collect))
 
 
+class Procedure:
+    """Declared procedure within a process."""
+    def __init__(self, name, hp):
+        self.name = name
+        if isinstance(hp, str):
+            from ss2hcsp.hcsp.parser import hp_parser
+            hp = hp_parser.parse(hp)
+        self.hp = hp
+
+    def __eq__(self, other):
+        return self.name == other.name and self.hp == other.hp
+
+    def __repr__(self):
+        return "Procedure(%s,%s)" % (self.name, repr(self.hp))
+
+    def __str__(self):
+        return "procedure %s begin %s end" % (self.name, str(self.hp))
+
+
 class HCSPInfo:
     """HCSP process with extra information."""
-    def __init__(self, name, hp, *, outputs=None):
+    def __init__(self, name, hp, *, outputs=None, procedures=None):
         self.name = name
         self.hp = hp
         
         # List of output variables, None indicates output everything
         self.outputs = outputs
 
+        # List of declared procedures
+        if procedures is None:
+            procedures = []
+        self.procedures = procedures
+
     def __str__(self):
-        return self.name + ' ::=\n' + str(self.hp)
+        res = self.name + ' ::=\n'
+        for procedure in self.procedures:
+            res += str(procedure) + '\n'
+        res += str(self.hp)
+        return res
 
     def __repr__(self):
         return "HCSPInfo(%s, %s)" % (self.name, str(self.hp))
@@ -969,6 +1038,8 @@ def HCSP_subst(hp, inst):
             return inst[hp.name]
         else:
             return hp
+    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+        return hp
     elif isinstance(hp, (Loop, Recursion, Condition)):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
@@ -985,10 +1056,129 @@ def HCSP_subst(hp, inst):
         hp.if_hps = tuple((e[0], HCSP_subst(e[1], inst)) for e in hp.if_hps)
         hp.else_hp = HCSP_subst(hp.else_hp, inst)
         return hp
-    elif isinstance(hp, (Skip, Assign, Wait, InputChannel, OutputChannel)):
-        return hp
     else:
         print(hp)
+        raise NotImplementedError
+
+def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
+    """Reduce number of procedures in the process by inlining.
+
+    hp : HCSP - input process.
+    procs : Dict[str, HCSP] - mapping from procedure name to procedure body.
+    strict_protect : Set[str] - this set of procedures will never be inlined.
+    prefer_protect : Set[str] - when there are several options, prefer to not
+        inline these procedures.
+
+    The algorithm for finding which procedures to inline is partly heuristic,
+    with settings specified by the various flags. It performs the following steps:
+
+    1. Traverse the procedure definitions to find dependency relations.
+
+    2. Inline any procedure that does not depend on any other procedure (except
+       those that are strictly protected).
+
+    3. When step 2 can not find any procedure to inline, remove one of the
+       procedures from consideration. When making the choice, procedures in
+       prefer_protect has higher priority, then procedures that occur in the
+       largest number of other procedures has higher priority.
+
+    This function directly modifies procs, and returns the new HCSP process.
+
+    """
+    if strict_protect is None:
+        strict_protect = set()
+
+    if prefer_protect is None:
+        prefer_protect = set()
+
+    # First, construct the dependency relation. We use the empty string
+    # to represent the toplevel process.
+    dep_relation = dict()
+    dep_relation[""] = hp.get_contain_hps()
+    for name, proc in procs.items():
+        dep_relation[name] = proc.get_contain_hps()
+
+    # Set of procedures to be inlined, in order of removal
+    inline_order = []
+
+    # Set of procedures that are kept, initially the toplevel process
+    # and the strictly protected processes.
+    fixed = {""}.union(strict_protect)
+
+    # Get the order of inlining
+    while True:
+        # First, find procedures that only depend on inlined or fixed procedures
+        found = False
+        for name, dep in dep_relation.items():
+            if name not in fixed and name not in inline_order and \
+                dep.issubset(set(inline_order).union(fixed)):
+                found = True
+                inline_order.append(name)
+
+        # If all procedures are either inlined or fixed, exit the loop
+        if len(fixed) + len(inline_order) == len(dep_relation):
+            break
+
+        # If some procedure is found, repeat the iteration
+        if found:
+            continue
+
+        break
+
+    # Next, recursively perform substitutions
+    for inline_name in inline_order:
+        for name, dep in dep_relation.items():
+            if name == "" and inline_name in dep:
+                hp = HCSP_subst(hp, {inline_name: procs[inline_name]})
+            elif inline_name in dep:
+                procs[name] = HCSP_subst(procs[name], {inline_name: procs[inline_name]})
+        del procs[inline_name]
+
+    return hp
+
+def simplify(hp):
+    """Perform immediate simplifications to HCSP process. This includes:
+    
+    * Remove extraneous skip from processes.
+    * Simplify if true then P else Q to P.
+    
+    """
+    if isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+        return hp
+    elif isinstance(hp, Sequence):
+        hps = []
+        for sub_hp in hp.hps:
+            simp_sub_hp = simplify(sub_hp)
+            if not simp_sub_hp == Skip():
+                hps.append(simp_sub_hp)
+        return Sequence(*hps)
+    elif isinstance(hp, Parallel):
+        return Parallel(*(simplify(sub_hp) for sub_hp in hp.hps))
+    elif isinstance(hp, Loop):
+        return Loop(simplify(hp.hp), hp.constraint)
+    elif isinstance(hp, Condition):
+        return Condition(hp.cond, simplify(hp.hp))
+    elif isinstance(hp, Recursion):
+        return Recursion(simplify(hp.hp), hp.entry)
+    elif isinstance(hp, ODE):
+        return ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
+    elif isinstance(hp, ODE_Comm):
+        return ODE_Comm(hp.eqs, hp.constraint,
+                        [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
+    elif isinstance(hp, SelectComm):
+        return SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
+    elif isinstance(hp, ITE):
+        for i in range(len(hp.if_hps)):
+            cond, sub_hp = hp.if_hps[i]
+            if cond == true_expr:
+                if i == 0:
+                    return simplify(sub_hp)
+                else:
+                    return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps[:i]],
+                               simplify(sub_hp))
+        return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps],
+                   simplify(hp.else_hp))
+    else:
         raise NotImplementedError
 
 
@@ -1021,7 +1211,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (HCSP,fun_assign))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():

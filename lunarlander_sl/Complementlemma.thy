@@ -1923,6 +1923,14 @@ proof-
     by auto
   qed
 
-
+lemma SOME_const_vderiv[derivative_intros,simp]:
+  fixes p :: " real \<Rightarrow> bool"
+  assumes "(f has_vderiv_on f') S"
+  shows "((\<lambda> t . (SOME k . p k) * f t ) has_vderiv_on (\<lambda> t . (SOME k . p k) * f' t )) S"
+  apply(rule has_vderiv_on_eq_rhs)
+  apply(rule has_vderiv_on_mult)
+    apply(auto intro: derivative_intros)[1]
+  using assms apply auto
+  done
 
 end

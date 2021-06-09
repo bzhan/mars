@@ -1,5 +1,13 @@
+"""Simulink diagrams."""
+
+import lark
+import html
+
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.matlab import function
+from ss2hcsp.matlab.parser import function_parser, cmd_parser, transition_parser
+from ss2hcsp.matlab import convert
+
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
@@ -32,10 +40,8 @@ from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
-from ss2hcsp.matlab import parser
-from ss2hcsp.matlab import convert
+# from ss2hcsp.matlab import parser
 from ss2hcsp.hcsp import hcsp 
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 import re
 import operator
 
@@ -109,21 +115,28 @@ class SL_Diagram:
         """Parse stateflow charts from XML."""
 
         def get_transitions(blocks):
-            """Get a transition dictionary of the form
-
-            {tran_ssid: Transition(...), ...}
-
-            mapping from ID to a transition.
+            """Obtain the list of transitions.
+            
+            Returns a dictionary mapping transitions IDs to transition objects.
             
             """
-            assert type(blocks) is NodeList
+            assert isinstance(blocks, NodeList)
 
-            _tran_dict = dict()
+            tran_dict = dict()
             for block in blocks:
                 if block.nodeName == "transition":
+                    # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
                     tran_label = get_attribute_value(block, "labelString")
+                    if tran_label:
+                        try:
+                            tran_label = transition_parser.parse(html.unescape(tran_label))
+                        except lark.exceptions.UnexpectedToken as e:
+                            print("When parsing transition label %s" % tran_label)
+                            raise e
                     order = int(get_attribute_value(block, "executionOrder"))
+
+                    # Each transition must have exactly one source and destination
                     assert len([child for child in block.childNodes if child.nodeName == "src"]) == 1
                     assert len([child for child in block.childNodes if child.nodeName == "dst"]) == 1
                     src_ssid, dst_ssid = None, None
@@ -132,11 +145,12 @@ class SL_Diagram:
                             src_ssid = get_attribute_value(child, "SSID")
                         elif child.nodeName == "dst":
                             dst_ssid = get_attribute_value(child, "SSID")
-                    # assert dst_ssid  # each transition must have a destination state
-                    assert tran_ssid not in _tran_dict
-                    _tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
-                                                       src=src_ssid, dst=dst_ssid)
-            return _tran_dict
+
+                    # There should be no repeated transition IDs
+                    assert tran_ssid not in tran_dict
+                    tran_dict[tran_ssid] = Transition(ssid=tran_ssid, label=tran_label, order=order,
+                                                      src=src_ssid, dst=dst_ssid)
+            return tran_dict
 
         #  历史节点修改
         all_out_trans = dict()
@@ -152,49 +166,38 @@ class SL_Diagram:
             _functions : list of Function objects.
             
             """
-            assert type(block) is Element
-
-            _states, _junctions, _functions = list(), list(), list()
+            assert isinstance(block, Element)
 
             children = [child for child in block.childNodes if child.nodeName == "Children"]
             if not children:
-                return _states, _junctions, _functions
-
+                return list(), list(), list()
             assert len(children) == 1
-            # Get outgoing transitions from states in children
+
+            _states, _junctions, _functions = list(), list(), list()
+
+            # Get list of outgoing transitions from states in children
             out_trans_dict = get_transitions(children[0].childNodes)
             
-            # The number of default transitions is less than 1 at each hierarchy
+            # The number of default transitions is at most one
             assert len([tran for tran in out_trans_dict.values() if tran.src is None]) <= 1
-            # Add out_trans and inner_trans to each state
+
+            # Now traverse each child node. We consider two cases of child nodes:
+            # states and junctions.
             for child in children[0].childNodes:
                 if child.nodeName == "state":
                     ssid = child.getAttribute("SSID")
                     state_type = get_attribute_value(child, "type")
-                    
+
+                    # There are three cases of states: FUNC_STATE (definition of functions),
+                    # AND_STATE and OR_STATE.
                     if state_type == "FUNC_STATE":
-                        # return_var=list()
-                        # exprs=list()
-                        # # Get functions
+                        # Extract functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
-                        dest_state_name_list=list()
-                        if fun_script: 
-                            fun_type="MATLAB_FUNCTION"
-                            chart_state1=None
-                            func = parser.function_parser.parse(fun_script)
-                            hp = convert.convert_function(func)
-                            if isinstance(func.name,(function.Var,function.FunExpr)):
-                                fun_name =func.name
-                                if isinstance(func.name,(function.FunExpr)):
-                                    exprs=func.name.exprs
-                                else:
-                                    exprs=None
-                                return_var=None
-                            else:
-                                fun_name = func.name.fun_name
-                                exprs=func.name.exprs
-                                return_var = func.name.return_vars
+                        dest_state_name_list = list()
+                        if fun_script:
+                            # Has script, directly use parser for matlab functions
+                            _functions.append(function_parser.parse(fun_script))
                         else:
                             dest_state_name_list=list()
                             fun_type="GRAPHICAL_FUNCTION"
@@ -251,13 +254,6 @@ class SL_Diagram:
                                 #                 dest_state_name=path[len(path)-2]
                                 #                 event=path[len(path)-1]
                                 #             dest_state_name_list.append(dest_state_name)
-
-
-
-
-
-
-
                                 # #######    
                                 out_trans_dict_inner[tran_ssid] = transition
                             for jun in child.getElementsByTagName(name="junction"):
@@ -294,96 +290,86 @@ class SL_Diagram:
                             #     hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1)[0])
                             return_var =return_var if len(return_var)>0 else None
                             exprs=exprs if len(exprs)>0 else None
-                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
-                        # _functions.append(Function(ssid, fun_name,fun_script))
-                        continue
+                            _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
 
-                    # Extract AND- and OR-states
-                    # Get state label and name
-                    labels = get_attribute_value(child, "labelString").split("\n")
-                    name = labels[0]  # the name of the state
+                    elif state_type in ("AND_STATE", "OR_STATE"):
+                        # Extract AND- and OR-states
 
-                    # Get en, du and ex
-                    acts = list()  # contains en, du and ex
-                    act = ""
-                    for label in labels[:0:-1]:
-                        act = label + act
-                        if act != "":
-                            if re.match(pattern="(en)|(du)|(ex)", string=act):
-                                acts.append(act)
-                                act = ""
+                        # The format of state labels is as follows:
+                        # First line is the name of the state, the remaining lines
+                        # specify en, du, and ex actions.
+                        labels = get_attribute_value(child, "labelString").split("\n")
+                        name = labels[0]
+
+                        # Get en, du and ex actions
+                        en, du, ex = None, None, None
+                        for label in labels[1:]:
+                            if label.startswith("en:"):
+                                en = cmd_parser.parse(label[3:])
+                            elif label.startswith("du:"):
+                                du = cmd_parser.parse(label[3:])
+                            elif label.startswith("ex:"):
+                                ex = cmd_parser.parse(label[3:])
                             else:
-                                acts.append("en:"+act)
-                                act = ""
+                                raise AssertionError("Parse XML: unrecognized state label %s" % label)
 
-                    en, du, ex = None, None, None
-                    for act in acts:
-                        assert "==" not in act
-                        act = re.sub(pattern="=", repl=":=", string=act)
-                        state_acts = [_act.strip("; ") for _act in act[act.index(":") + 1:].split(";")]
-                        # state_acts = (lambda x: x[x.index(":") + 1:].split(";").strip("; "))(act)
-                        if act.startswith("en"):
-                            en = state_acts
-                        elif act.startswith("du"):
-                            du = state_acts
-                        elif act.startswith("ex"):
-                            ex = state_acts
-                        else:
-                            raise RuntimeError("Error in state actions!")
-
-                    # Get default_tran and out_trans
-                    default_tran = None
-                    out_trans = list()
-                    dictMerged2 = dict(out_trans_dict)
-                    dictMerged2.update(all_out_trans)
-                   
-                    for tran in dictMerged2.values():
-                        src, dst = tran.src, tran.dst
-                        if src is None and dst == ssid:  # it is a default transition
-                            default_tran = tran
-                        elif src == ssid:  # the src of tran is this state
-                            out_trans.append(tran)
-                        else:
-                            all_out_trans[tran.ssid] = tran
-                    out_trans.sort(key=operator.attrgetter("order"))
-                    # Get inner_trans     
-                    inner_trans = list()
-                    grandchildren = [grandchild for grandchild in child.childNodes if grandchild.nodeName == "Children"]
-                    assert len(grandchildren) <= 1
-                    if len(grandchildren) == 1:
-                        inner_trans_dict = get_transitions(grandchildren[0].childNodes)
-                        for tran in inner_trans_dict.values():
+                        # Get default_tran and out_trans
+                        default_tran = None
+                        out_trans = list()
+                        dictMerged2 = dict(out_trans_dict)
+                        dictMerged2.update(all_out_trans)
+                    
+                        for tran in dictMerged2.values():
                             src, dst = tran.src, tran.dst
-                            if src == ssid:
-                                inner_trans.append(tran)
-                    inner_trans.sort(key=operator.attrgetter("order"))
-                    # Create a state object
-                    state_type = get_attribute_value(child, "type")
-                    if state_type == "AND_STATE":
-                        assert default_tran is None and out_trans == []
-                        order = int(get_attribute_value(child, "executionOrder"))
-                        _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name,original_name=name, en=en, du=du, ex=ex,
-                                           order=order)
-                    elif state_type == "OR_STATE":
-                        _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,original_name=name,
-                                          en=en, du=du, ex=ex, default_tran=default_tran)
+                            if src is None and dst == ssid:  # it is a default transition
+                                default_tran = tran
+                            elif src == ssid:  # the src of tran is this state
+                                out_trans.append(tran)
+                            else:
+                                all_out_trans[tran.ssid] = tran
+                        out_trans.sort(key=operator.attrgetter("order"))
+
+                        # Get inner_trans
+                        inner_trans = list()
+                        grandchildren = [grandchild for grandchild in child.childNodes if grandchild.nodeName == "Children"]
+                        assert len(grandchildren) <= 1
+                        if len(grandchildren) == 1:
+                            inner_trans_dict = get_transitions(grandchildren[0].childNodes)
+                            for tran in inner_trans_dict.values():
+                                src, dst = tran.src, tran.dst
+                                if src == ssid:
+                                    inner_trans.append(tran)
+                        inner_trans.sort(key=operator.attrgetter("order"))
+
+                        # Create a state object
+                        if state_type == "AND_STATE":
+                            assert default_tran is None and out_trans == [], \
+                                "Parse XML: AND_STATE should not have default transition or outgoing transitions."
+                            order = int(get_attribute_value(child, "executionOrder"))
+                            _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name,original_name=name, en=en, du=du, ex=ex,
+                                            order=order)
+                        elif state_type == "OR_STATE":
+                            _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,original_name=name,
+                                            en=en, du=du, ex=ex, default_tran=default_tran)
+                        else:
+                            print(state_type)
+
+                        # Get children states and junctions recursively
+                        child_states, child_junctions, child_functions = get_children(child)
+                        _state.funs = child_functions
+                        for _child in child_states + child_junctions:
+                            _child.father = _state
+                            _state.children.append(_child)
+                            if isinstance(_child, Junction) and _child.type == "HISTORY_JUNCTION":
+                                if isinstance(_state, OR_State):
+                                    _state.has_history_junc = True
+
+                        if _state.children and isinstance(_state.children[0], AND_State):
+                            _state.children.sort(key=operator.attrgetter("order"))
+                        _states.append(_state)
+
                     else:
-                        print(state_type)
-                        raise RuntimeError("ErrorStates")
-
-                    # Get children states and junctions recursively
-                    child_states, child_junctions, child_functions = get_children(child)
-                    _state.funs = child_functions
-                    for _child in child_states + child_junctions:
-                        _child.father = _state
-                        _state.children.append(_child)
-                        if isinstance(_child, Junction) and _child.type == "HISTORY_JUNCTION":
-                            if isinstance(_state, OR_State):
-                                _state.has_history_junc = True
-
-                    if _state.children and isinstance(_state.children[0], AND_State):
-                        _state.children.sort(key=operator.attrgetter("order"))
-                    _states.append(_state)
+                        raise NotImplementedError("Unrecognized state type: %s" % state_type)
                     
                 elif child.nodeName == "junction":
                     ssid = child.getAttribute("SSID")
@@ -407,17 +393,15 @@ class SL_Diagram:
         for chart in charts:
             all_out_trans=dict()
             chart_id = chart.getAttribute("id")
-            chart_name = get_attribute_value(block=chart, attribute="name")
-            chart_name=chart_name.strip()
-            if " " in chart_name:
-                chart_name=chart_name.replace(" ","_")
+            chart_name = get_attribute_value(block=chart, attribute="name").strip().replace(' ', '_')
+
             # A chart is wrapped into an AND-state
             chart_state = AND_State(ssid=chart_id, name=chart_name)
             states, junctions, functions = get_children(block=chart)
-            for fun in functions:
-                if fun.type == "GRAPHICAL_FUNCTION":
-                    fun.chart_state1.father=chart_state
-                    chart_state.children.append(fun.chart_state1)
+            # for fun in functions:
+            #     if fun.type == "GRAPHICAL_FUNCTION":
+            #         fun.chart_state1.father=chart_state
+            #         chart_state.children.append(fun.chart_state1)
             chart_state.funs = functions
             for state in states + junctions:
                 state.father = chart_state
@@ -425,7 +409,6 @@ class SL_Diagram:
             if chart_state.children and isinstance(chart_state.children[0], AND_State):
                 chart_state.children.sort(key=operator.attrgetter("order"))
             assert chart_state.check_children()
-            
 
 
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
@@ -1098,6 +1081,7 @@ class SL_Diagram:
 
     def comp_inher_st(self):
         """Compute the sample time for each block with inherent sample time."""
+        # Propagation
         terminate = False
         while not terminate:
             terminate = True
@@ -1106,15 +1090,37 @@ class SL_Diagram:
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
-                        if not isinstance(in_block, SF_Chart) and in_block.st >= 0:  
+                        # Xiong: Why can't in_block be a stateflow chart?
+                        if not isinstance(in_block, SF_Chart) and in_block.st > 0:
                             in_st.append(in_block.st)
+                        elif isinstance(in_block, Constant):
+                            continue
                         else:
                             in_st = None
                             break
                     if in_st:
                         block.st = get_gcd(sample_times=in_st)
-                        if block.st == 0:
-                            block.is_continuous = True
+                        block.is_continuous = (block.st == 0)
+                        terminate = False
+
+        # Back-propagation
+        terminate = False
+        while not terminate:
+            terminate = True
+            for block in self.blocks_dict.values():
+                if block.st == -1:
+                    out_st = []  # list of sample times of outputs of the block
+                    for lines in block.src_lines:
+                        for line in lines:
+                            out_block = self.blocks_dict[line.dest]
+                            if out_block.st > 0:
+                                out_st.append(out_block.st)
+                            else:
+                                out_st = []
+                                break
+                    if out_st:
+                        block.st = get_gcd(sample_times=out_st)
+                        block.is_continuous = (block.st == 0)
                         terminate = False
                 
         # Re-classify the constant blocks
@@ -1249,10 +1255,6 @@ class SL_Diagram:
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]
-        # Get unit_delays and then delete them from block_dict
-        unit_delays = [block for block in blocks_dict.values() if block.type == "unit_delay"]
-        for name in [block.name for block in unit_delays]:
-            del blocks_dict[name]
         # Get buffers and then delete them from block_dict
         buffers = [block for block in blocks_dict.values() if block.type == "discrete_buffer"]
         for name in [block.name for block in buffers]:
@@ -1289,25 +1291,25 @@ class SL_Diagram:
                 discrete_subdiagrams.append(scc)
 
         # Sort discrete blocks
-        discrete_subdiagrams_sorted = []
-        for scc in discrete_subdiagrams:
-            scc_dict = {block.name: block for block in scc}
-            sorted_scc = []
-            while scc_dict:
-                delete_blocks = []
-                for block in scc_dict.values():
-                    src_set = set()
-                    for dest_line in block.dest_lines:
-                        if dest_line !=None:
-                            src_set.add(dest_line.src)
-                    if src_set.isdisjoint(set(scc_dict.keys())):
-                        sorted_scc.append(block)
-                        delete_blocks.append(block.name)
-                for block_name in delete_blocks:
-                    del scc_dict[block_name]
-            discrete_subdiagrams_sorted.append(sorted_scc)
+        # discrete_subdiagrams_sorted = []
+        # for scc in discrete_subdiagrams:
+        #     scc_dict = {block.name: block for block in scc}
+        #     sorted_scc = []
+        #     while scc_dict:
+        #         delete_blocks = []
+        #         for block in scc_dict.values():
+        #             src_set = set()
+        #             for dest_line in block.dest_lines:
+        #                 if dest_line !=None:
+        #                     src_set.add(dest_line.src)
+        #             if src_set.isdisjoint(set(scc_dict.keys())):
+        #                 sorted_scc.append(block)
+        #                 delete_blocks.append(block.name)
+        #         for block_name in delete_blocks:
+        #             del scc_dict[block_name]
+        #     discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams_sorted, continuous_subdiagrams, sf_charts, unit_delays, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
+        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
 
     def add_buffers(self):
         buffers = []

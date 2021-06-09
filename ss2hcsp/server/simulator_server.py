@@ -99,12 +99,13 @@ def run_hcsp():
         print("Time:", time.perf_counter() - clock)
 
         # # export the time series data of Plant to files
-        # directory = "/Users/BEAR/Projects/mars/Examples/AADL/CCS/C/C/data/"
-        # plant_file = open(directory + 'velocity_HCSP_2bus5_2', 'w')
-        # for time_states in res['time_series']['vehicle_imp']:
-        #     # if len(time_states['state']) < 4:
-        #     #     continue
-        #     plant_file.write(str(time_states['time']) + ',')
+        # directory = "/Users/BEAR/Projects/mars/CaseStudies/lander/"
+        # plant_file = open(directory + 'HCSP_data.txt', 'w')
+        # for time_states in res['time_series']['Plant']:
+        #     print(time_states['state'])
+        #     if len(time_states['state']) < 4:
+        #         continue
+        #     plant_file.write(str(time_states['time']) + '\t')
         #     # plant_file.write(str(time_states['state']['s']) + '\t')
         #     # plant_file.write(str(time_states['state']['v']) + '\t')
         #     # plant_file.write(str(time_states['state']['m']) + '\t')

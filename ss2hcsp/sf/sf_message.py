@@ -1,3 +1,5 @@
+"""Messages in Stateflow."""
+
 class SF_Message:
 	"""docstring for SF_Message"""
 	def __init__(self, name="",data="",scope=None):

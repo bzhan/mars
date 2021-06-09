@@ -401,5 +401,28 @@ class SfTest(unittest.TestCase):
         process = get_hcsp(*diagram.seperate_diagram())
         print(process)
         printTofile("./Examples/Stateflow/sf_new/sf_new.txt",process)
+
+    def test_no_event_trig(self):
+        location = "./Examples/Stateflow/tests/no_event_trig.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+
+    def test_junction_loop(self):
+        location = "./Examples/Stateflow/tests/junction_loop.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+
+    def test_fake_early_return(self):
+        location = "./Examples/Stateflow/tests/fake_early_return.xml"
+        diagram = SL_Diagram(location=location)
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+        process = get_hcsp(*diagram.seperate_diagram())
+
+
 if __name__ == "__main__":
     unittest.main()

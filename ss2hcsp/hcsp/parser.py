@@ -14,9 +14,9 @@ grammar = r"""
         | lname "." CNAME -> field_expr
         | lname "." CNAME "[" expr "]" -> field_array_idx
 
-    ?array_lname:CNAME "(" atom_expr")" -> array_idx_expr1
-        | CNAME "(" atom_expr","atom_expr")" -> array_idx_expr1_2
-        | CNAME "(" atom_expr"," atom_expr","atom_expr ")" -> array_idx_expr1_3
+    ?array_lname: CNAME "(" atom_expr ")" -> array_idx_expr1
+        | CNAME "(" atom_expr "," atom_expr ")" -> array_idx_expr1_2
+        | CNAME "(" atom_expr "," atom_expr "," atom_expr ")" -> array_idx_expr1_3
 
     ?atom_expr: lname
         | array_lname
@@ -104,6 +104,8 @@ grammar = r"""
 
     ?cmd: select_cmd
 
+    ?procedure: "procedure" CNAME "begin" cmd "end"
+
     ?parallel_cmd: cmd ("||" cmd)*   // Priority 30, outermost level only
 
     ?module_sig: CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  -> module_sig
@@ -111,7 +113,7 @@ grammar = r"""
 
     ?module_output: "output" CNAME ("," CNAME)* ";"    -> module_output
     
-    ?module: "module" module_sig ":" (module_output)* "begin" cmd "end" "endmodule"
+    ?module: "module" module_sig ":" (module_output)* (procedure)* "begin" cmd "end" "endmodule"
     
     ?module_arg: CNAME ("[" INT "]")*   -> module_arg_channel
         | "$" expr    -> module_arg_expr
@@ -151,7 +153,7 @@ class HPTransformer(Transformer):
         return expr.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
-        return expr.AConst(str(s))
+        return expr.AConst(str(s)[1:-1])  # remove quotes
 
     def empty_list(self):
         return expr.AConst(list())
@@ -388,6 +390,9 @@ class HPTransformer(Transformer):
     def paren_cmd(self, c):
         return c
 
+    def procedure(self, name, hp):
+        return hcsp.Procedure(name, hp)
+
     def parallel_cmd(self, *args):
         if len(args) == 1:
             return args[0]
@@ -402,15 +407,23 @@ class HPTransformer(Transformer):
 
     def module(self, *args):
         # The first item is a tuple consisting of name and list of parameters
-        # The middle items are the output sequences
+        # The middle items are the output sequences or procedure declarations
         # The last item is code for the module
         assert len(args) >= 2
-        sig, outputs, code = args[0], args[1:-1], args[-1]
+        sig, decls, code = args[0], args[1:-1], args[-1]
         if isinstance(sig, tuple):
             name, params = sig[0], sig[1:]
         else:
             name, params = sig, tuple()
-        return module.HCSPModule(name, params, outputs, code)
+        outputs, procedures = [], []
+        for decl in decls:
+            if isinstance(decl, tuple):
+                outputs.append(decl)
+            elif isinstance(decl, hcsp.Procedure):
+                procedures.append(decl)
+            else:
+                raise NotImplementedError
+        return module.HCSPModule(name, code, params=params, outputs=outputs, procedures=procedures)
 
     def module_arg_channel(self, *args):
         # First argument is channel name, remaining arguments are channel args.

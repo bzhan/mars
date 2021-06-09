@@ -1,3 +1,5 @@
+"""Events in Stateflow."""
+
 class SF_Event:
 	def __init__(self, name="",trigger=None,scope=None,port=None):
 		self.name = name

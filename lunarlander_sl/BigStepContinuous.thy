@@ -313,7 +313,8 @@ proof -
       apply (rule WaitBlk_ext_real) using s7 s8 by auto
     have s12: "Wait\<^sub>t d (\<lambda>s. State (p s)) ({}, {}) [WaitBlk d2 (\<lambda>\<tau>. State (p2 \<tau>)) ({}, {})]"
       unfolding s11[symmetric]
-      by (rule wait_assn.intros)
+      apply (rule wait_assn.intros)
+      using assms(1) by auto
     show ?thesis using s7 s8 s10 s12 by auto
   qed
   show ?thesis

@@ -13,18 +13,36 @@ class ModuleException(Exception):
 
 
 class HCSPModule:
-    """An HCSP module can be considered as a template for HCSP processes.
-    It contains a list of parameters that can be substituted for channel
-    names and variables in the module.
+    """Template for an HCSP process.
+
+    name: name of the module.
+    params: list of parameters that can be substituted for channel names
+        and variables in the module.
+    outputs: list of output variables.
+    procedures: list of declared procedures.
+    code: code (template) for the main process.
     
     """
-    def __init__(self, name, params, outputs, code):
+    def __init__(self, name, code, *, params=None, outputs=None, procedures=None):
         self.name = name
-        self.params = params
-        self.outputs = outputs
+        if params is None:
+            params = tuple()
+        self.params = tuple(params)
+        if outputs is None:
+            outputs = tuple()
+        self.outputs = tuple(outputs)
+        if procedures is None:
+            procedures = []
+        self.procedures = procedures
         if isinstance(code, str):
+            from ss2hcsp.hcsp.parser import hp_parser
             code = hp_parser.parse(code)
         self.code = code
+
+    def __eq__(self, other):
+        return self.name == other.name and self.params == other.params and \
+            self.outputs == other.outputs and self.procedures == other.procedures and \
+            self.code == other.code
 
     def __str__(self):
         return self.name + '(' + ','.join(self.params) + ')'
@@ -43,11 +61,29 @@ class HCSPModule:
             else:
                 return ""
 
-        res = "module %s(%s):\n%sbegin\n%s\nend\nendmodule" % (
+        def str_of_procedure(procedures):
+            res = ""
+            for procedure in procedures:
+                res += "procedure %s begin\n" % procedure.name
+                body = pprint.pprint(procedure.hp)
+                for line in body.split('\n'):
+                    res += "  " + line + "\n"
+                res += "end\n"
+            return res
+
+        def str_of_code(code):
+            res = ""
+            code_str = pprint.pprint(code)
+            for line in code_str.split('\n'):
+                res += "  " + line + "\n"
+            return res
+
+        res = "module %s(%s):\n%s%sbegin\n%send\nendmodule" % (
             self.name,
             ','.join(self.params),
             str_of_output(self.outputs),
-            pprint.pprint(self.code)
+            str_of_procedure(self.procedures),
+            str_of_code(self.code)
         )
         return res
 
@@ -102,8 +138,12 @@ class HCSPModuleInst:
                 self.name, len(module.params), len(self.args)))
         for param, arg in zip(module.params, self.args):
             inst[param] = arg
+
+        # Next, instantiate code and each procedure
+        code = module.code.subst_comm(inst)
+        procedures = [function.subst_comm(inst) for procedure in module.procedures]
         
-        return HCSPInfo(self.name, module.code.subst_comm(inst), outputs=module.outputs)
+        return HCSPInfo(self.name, code, outputs=module.outputs, procedures=procedures)
 
 
 class HCSPSystem:

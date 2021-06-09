@@ -120,10 +120,10 @@ class ModuleTest(unittest.TestCase):
 
     def testGenerateHCSPInfo(self):
         decls = HCSPDeclarations([
-            HCSPModule("P0", ("p2c", "c2p"), (("x",),),
-                       hp_parser.parse("x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**")),
-            HCSPModule("P1", ("p2c", "c2p"), tuple(),
-                       hp_parser.parse("(wait(2); p2c?x; c2p!x-1)**")),
+            HCSPModule("P0", "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+                       params=("p2c", "c2p"), outputs=(("x",),)),
+            HCSPModule("P1", "(wait(2); p2c?x; c2p!x-1)**",
+                       params=("p2c", "c2p")),
             HCSPSystem([
                 HCSPModuleInst("P0a", "P0", (Channel("ch1"), Channel("ch2"))),
                 HCSPModuleInst("P1a", "P1", (Channel("ch1"), Channel("ch2"))),
@@ -151,10 +151,10 @@ class ModuleTest(unittest.TestCase):
 
     def testGenerateHCSPInfo2(self):
         decls = HCSPDeclarations([
-            HCSPModule("P0", ("p2c", "c2p", "init_x", "slope"), (("x",),),
-                       hp_parser.parse("x := init_x; (<x_dot = slope & true> |> [](p2c!x --> skip); c2p?x)**")),
-            HCSPModule("P1", ("p2c", "c2p", "dly"), tuple(),
-                       hp_parser.parse("(wait(dly); p2c?x; c2p!x-1)**")),
+            HCSPModule("P0", "x := init_x; (<x_dot = slope & true> |> [](p2c!x --> skip); c2p?x)**",
+                       params=("p2c", "c2p", "init_x", "slope"), outputs=(("x",),),),
+            HCSPModule("P1", "(wait(dly); p2c?x; c2p!x-1)**",
+                       params=("p2c", "c2p", "dly")),
             HCSPSystem([
                 HCSPModuleInst("P0a", "P0", (Channel("ch1"), Channel("ch2"), AConst(0), AConst(1))),
                 HCSPModuleInst("P1a", "P1", (Channel("ch1"), Channel("ch2"), AConst(2))),

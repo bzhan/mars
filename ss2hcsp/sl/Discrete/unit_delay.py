@@ -42,18 +42,18 @@ class UnitDelay(SL_Block):
     #     out_var = self.src_lines[0][0].name
     #     return {out_var: [(cond0, expr0), (cond1, expr1)]}
 
-    def get_hcsp(self):
-        assert len(self.dest_lines) == 1
-        in_var = self.dest_lines[0].name
-        in_branch = str(self.dest_lines[0].branch)
-        assert len(self.src_lines) == 1 and len(self.src_lines[0]) == 1
-        out_var = self.src_lines[0][0].name
-        out_branch = str(self.src_lines[0][0].branch)
-        return hcsp.Sequence(
-            hcsp.Assign(in_var, AConst(self.init_value)),
-            hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var)),
-            hcsp.Loop(hcsp.Sequence(
-                hcsp.InputChannel('ch_' + in_var + '_' + in_branch, in_var),
-                hcsp.Wait(AConst(self.st)),
-                hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var))
-        )))
+    # def get_hcsp(self):
+    #     assert len(self.dest_lines) == 1
+    #     in_var = self.dest_lines[0].name
+    #     in_branch = str(self.dest_lines[0].branch)
+    #     assert len(self.src_lines) == 1 and len(self.src_lines[0]) == 1
+    #     out_var = self.src_lines[0][0].name
+    #     out_branch = str(self.src_lines[0][0].branch)
+    #     return hcsp.Sequence(
+    #         hcsp.Assign(in_var, AConst(self.init_value)),
+    #         hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var)),
+    #         hcsp.Loop(hcsp.Sequence(
+    #             hcsp.InputChannel('ch_' + in_var + '_' + in_branch, in_var),
+    #             hcsp.Wait(AConst(self.st)),
+    #             hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var))
+    #     )))
