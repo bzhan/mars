@@ -9,7 +9,6 @@ from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj,LogicExpr,RelExpr,Fu
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
-from ss2hcsp.sf.sf_parser.cond_tran import CondExpr, Assign as cond_tran_Assign,ListExpr as cond_tran_ListExpr,FunExpr as cond_tran_FunExpr,AVar as cond_tran_AVar
 from ss2hcsp.hcsp.parser import aexpr_parser
 
 
@@ -924,19 +923,12 @@ class SF_Chart(Subsystem):
         self.after_funcs_dicts=dict()#{state.ssid:A list of sequential logic contained in the output transition of the state}
         funs_state_name=list()
         children_list=list()
-<<<<<<< HEAD
-        #Gets the name of the GRAPHICAL_FUNCTION state
-        for fun in state.funs:
-            if fun.type == "GRAPHICAL_FUNCTION":
-                    funs_state_name.append(fun.chart_state1.original_name)
-        #Remove the graph function from the child of the current state
-=======
 
         # for fun in state.funs:
         #     if fun.type == "GRAPHICAL_FUNCTION":
         #             funs_state_name.append(fun.chart_state1.original_name)
 
->>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
+        # Remove the graph function from the child of the current state
         for s in state.children:
             if s.original_name not in funs_state_name:
                 # print(s.original_name )
@@ -1559,7 +1551,6 @@ class SF_Chart(Subsystem):
                         trigger_conds.append(bexpr_parser.parse("tri_event"+ ' == "'+ tran.event +'"'))
                         conds_event.clear()
                         conds_event.append(disj(*trigger_conds) if len(trigger_conds) >= 2 else trigger_conds[0])
-<<<<<<< HEAD
             if tran.condition:  
                 get_conditions(tran.condition,tran.src)
             if len(conds_event) >0:
@@ -1567,230 +1558,6 @@ class SF_Chart(Subsystem):
             conds.append(bexpr_parser.parse("done == 0"))
             cond = conj(*conds) if len(conds) >= 2 else conds[0] 
             conds=list()
-=======
-            if tran.condition:     
-                if "&&" in str(tran.condition) or "||" in str(tran.condition):
-                    if "&&" in str(tran.condition):
-                        conditions=str(tran.condition).split("&&")
-                    if "||" in str(tran.condition):
-                        conditions=str(tran.condition).split("||")
-                else:
-                    conditions=[tran.condition]
-                for condition in conditions:
-                    if "==" in str(condition) or ">=" in str(condition) or "<=" in str(condition) or "<" in str(condition) or ">" in str(condition):
-                        op=""
-                        if "==" in str(condition):
-                            left1,right1=str(condition).split("==")
-                            op = "=="
-                        elif "<=" in str(condition):
-                            left1,right1=str(condition).split("<=")
-                            op = "<="
-                        elif ">=" in str(condition):
-                            left1,right1=str(condition).split(">=")
-                            op =">="
-                        elif ">" in str(condition):
-                            left1,right1=str(condition).split(">")
-                            op = ">"
-                        elif  "<" in str(condition):
-                            left1,right1=str(condition).split("<")
-                            op ="<"
-                        left=left1.strip()
-                        right=right1.strip()
-                        if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right):
-                            
-                                longest_path=self.get_fun_by_path(str(right))
-                                if longest_path is None:
-                                    if "(" in right:
-                                        strs1=re.findall(r"[(](.*?)[)]", right)
-                                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]                    
-                                    else:
-                                        right_exprs=list()
-                                    if len(right_exprs) == 1:
-                                        if right_exprs[0].isdigit():
-                                                right_exprs[0]=int(right_exprs[0])-1
-                                        else:
-                                                right_exprs[0]=right_exprs[0]+"-1"
-                                        right=right[:right.index("(")]+"["+str(right_exprs[0])+"]"+right[right.index(")")+1:]
-                                    elif len(right_exprs) > 1:
-                                        right_temp = right[:right.index("(")]
-                                        for expr in right_exprs:
-                                            if expr.isdigit():
-                                                expr=int(expr)-1
-                                            else:
-                                                expr=expr+"-1"                                  
-                                            right_temp = right_temp + "["+str(expr)+"]"
-                                        right=right_temp+right[right.index(")")+1:]
-                                # conds.append(bexpr_parser.parse(str(left+op+right)))
-                                else:
-                                    if "(" in right:
-                                        strs1=re.findall(r"[(](.*?)[)]", right)
-                                        right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
-                                    else:
-                                        right_exprs=list()
-                                    exprs=longest_path[1]
-                                    if exprs is not None and len(right_exprs) > 0:
-                                        for  var in range(0,len(exprs)):
-                                            hp_fun_onCon.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
-                                    return_var=longest_path[0]
-                                    if return_var is not None:
-                                        if isinstance(return_var,function.ListExpr):
-                                            hp_fun_onCon.append(hp_parser.parse(str(return_var[0])+":= 0"))
-
-                                            
-                                        else:
-                                            hp_fun_onCon.append(hp_parser.parse(str(return_var)+":= 0"))
-                                           
-                                    hp_fun_onCon.append(self.fun_dict[longest_path])
-
-                                    
-
-                                    if return_var is not None:
-                                        if isinstance(return_var,function.ListExpr):
-                                            hp_fun_onCon.append(hp_parser.parse(str(right[:right.index("(")]+"_"+str(return_var[0])+":="+str(return_var[0]))))
-                                            right=str(right[:right.index("(")]+"_"+str(return_var[0]))
-                                            # right = str(return_var[0])
-                                            
-                                        else:
-                                            hp_fun_onCon.append(hp_parser.parse(str(right[:right.index("(")]+"_"+str(return_var)+":="+str(return_var))))
-                                            right=str(right[:right.index("(")]+"_"+str(return_var))
-                                            # right = str(return_var)
-                                         
-
-
-
-                        if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=left) or re.match(pattern="^\\w+$",string=left):
-                                longest_path=self.get_fun_by_path(str(left))
-                                if longest_path is None:
-                                    if "(" in left:
-                                        strs1=re.findall(r"[(](.*?)[)]", left)
-                                        left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]                    
-                                    else:
-                                        left_exprs=list()
-                                    if len(left_exprs) == 1:
-                                        if left_exprs[0].isdigit():
-                                                left_exprs[0]=int(left_exprs[0])-1
-                                        else:
-                                                left_exprs[0]=left_exprs[0]+"-1"
-                                        left=left[:left.index("(")]+"["+str(left_exprs[0])+"]"+left[left.index(")")+1:]
-                                    elif len(left_exprs) > 1:
-                                        left_temp = left[:left.index("(")]
-                                        for expr in left_exprs:
-                                            if expr.isdigit():
-                                                expr=int(expr)-1
-                                            else:
-                                                expr=expr+"-1"                                  
-                                            left_temp = left_temp + "["+str(expr)+"]"
-                                        left=left_temp+left[left.index(")")+1:]
-                                # conds.append(bexpr_parser.parse(str(left+op+right)))
-                                else:
-                                    if "(" in left:
-                                        strs1=re.findall(r"[(](.*?)[)]", left)
-                                        left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
-                                    else:
-                                        left_exprs=list()
-                                    exprs=longest_path[1]
-                                    if exprs is not None and len(left_exprs) > 0:
-                                        for  var in range(0,len(exprs)):
-                                            hp_fun_onCon.append(hp_parser.parse(str(exprs[var])+":="+str(left_exprs[var])))
-                                    return_var=longest_path[0]
-                                    if return_var is not None:
-                                        if isinstance(return_var,function.ListExpr):
-                                            for  var in range(0,len(return_var)):
-                                                hp_fun_onCon.append(hp_parser.parse(str(return_var[var])+":= 0"))
-                                              
-                                        else:
-                                            hp_fun_onCon.append(hp_parser.parse(str(return_var)+":= 0"))
-                                           
-                                    hp_fun_onCon.append(self.fun_dict[longest_path])
-
-                                    
-
-                                    if return_var is not None:
-                                        if isinstance(return_var,function.ListExpr):
-                                            for  var in range(0,len(return_var)):
-                                                hp_fun_onCon.append(hp_parser.parse(str(left[:left.index("(")]+"_"+str(return_var[var])+":="+str(return_var[var]))))
-                                                left=str(left[:left.index("(")]+"_"+str(return_var[var]))
-                                                # left =str(return_var[var])
-                                                # conds.append(bexpr_parser.parse(str(return_var[var])+op+right))
-                                        else:
-                                            hp_fun_onCon.append(hp_parser.parse(str(left[:left.index("(")]+"_"+str(return_var)+":="+str(return_var))))
-                                            left=str(left[:left.index("(")]+"_"+str(return_var))
-                                            # left = str(return_var)
-                        conds.append(bexpr_parser.parse(str(left+op+right)))                    # conds.append(bexpr_parser.parse(str(return_var)+op+right))
-
-                        # else:
-                        #     conds.append(bexpr_parser.parse(str(condition)))
-                        #     continue
-                        # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
-                        #     longest_path=self.get_fun_by_path(str(right))
-                        #     if longest_path is None:
-                        #         if "(" in right:
-                        #             strs1=re.findall(r"[(](.*?)[)]", right)
-                        #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]                    
-                        #         else:
-                        #             right_exprs=list()
-                        #         if len(right_exprs) == 1:
-                        #             if right_exprs[0].isdigit():
-                        #                     right_exprs[0]=int(right_exprs[0])-1
-                        #             else:
-                        #                     right_exprs[0]=right_exprs[0]+"-1"
-                        #             right=right[:right.index("(")]+"["+str(right_exprs[0])+"]"+right[right.index(")")+1:]
-                        #         elif len(right_exprs) > 1:
-                        #             right_temp = right[:right.index("(")]
-                        #             for expr in right_exprs:
-                        #                 if expr.isdigit():
-                        #                     expr=int(expr)-1
-                        #                 else:
-                        #                     expr=expr+"-1"                                  
-                        #                 right_temp = right_temp + "["+str(expr)+"]"
-                        #             right=right_temp+right[right.index(")")+1:]
-                        #         conds.append(bexpr_parser.parse(str(left+op+right)))
-                        #     else:
-                        #         if "(" in right:
-                        #             strs1=re.findall(r"[(](.*?)[)]", right)
-                        #             right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
-                        #         else:
-                        #             right_exprs=list()
-                        #         exprs=longest_path[1]
-                        #         if exprs is not None and len(right_exprs) > 0:
-                        #             for  var in range(0,len(exprs)):
-                        #                 hp_fun_onCon.append(hp_parser.parse(str(exprs[var])+":="+str(right_exprs[var])))
-                        #         hp_fun_onCon.append(self.fun_dict[longest_path])
-
-                        #         return_var=longest_path[0]
-
-                        #         if return_var is not None and len(left) >0:
-                        #             if isinstance(return_var,function.ListExpr):
-                        #                 for  var in range(0,len(return_var)):
-                        #                     conds.append(bexpr_parser.parse(left+op+str(return_var[var])))
-                        #             else:
-                        #                 conds.append(bexpr_parser.parse(str(return_var)+op+left))
-                        
-                    else:
-                        try:
-                            conds.append(bexpr_parser.parse(str(condition)))
-                        except lark.exceptions.UnexpectedToken as e:
-                            print("Parsing condition", condition)
-                            raise e
-            
-            if "&&" in str(tran.condition):
-                if len(conds_event) >0:
-                    conds.extend(conds_event)
-                conds.append(bexpr_parser.parse("done == 0"))
-                cond = conj(*conds) if len(conds) >= 2 else conds[0]    
-            elif "||" in str(tran.condition):
-                if len(conds_event) >0:
-                    cond_1=disj(*conds) if len(conds) >= 2 else conds[0]
-                    cond=conj(cond_1,bexpr_parser.parse("done == 0"),*conds_event)
-                else:
-                    cond_1=disj(*conds) if len(conds) >= 2 else conds[0]
-                    cond=conj(cond_1,bexpr_parser.parse("done == 0"))
-            else:
-                if len(conds_event) >0:
-                    conds.extend(conds_event)
-                conds.append(bexpr_parser.parse("done == 0"))
-                cond = conj(*conds) if len(conds) >= 2 else conds[0] 
->>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
             dst_state = self.all_states[tran.dst]
             src_state = self.all_states[tran.src]
             current_tran_act_Q = list(tran_act_Q) + tran.tran_acts

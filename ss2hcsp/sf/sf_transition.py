@@ -8,14 +8,8 @@ from ss2hcsp.matlab.parser import transition_parser
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.sf.sf_parser.cond_tran import Assign,ListExpr
 from ss2hcsp.hcsp.hcsp import OutputChannel
-<<<<<<< HEAD
-from ss2hcsp.sf.sf_parser import parser
-from ss2hcsp.sf.sf_parser.cond_tran import FunExpr
-=======
 
->>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
 
 class Transition:
     def __init__(self, ssid, label, order=0, src="", dst=""):
@@ -47,7 +41,6 @@ class Transition:
                (self.ssid, self.label, self.order, self.src, self.dst)
 
     def parse(self):
-<<<<<<< HEAD
         if self.label is not None:
             func = parser.transition_parser.parse(html.unescape(self.label))
             if func.cond:
@@ -102,53 +95,6 @@ class Transition:
                           
                 else:
                     self.event =str(func.event)
-=======
-        if self.label is None:
-            return
-
-        try:
-            func = transition_parser.parse(html.unescape(self.label))
-        except lark.exceptions.UnexpectedToken as e:
-            print("When parsing: %s" % self.label)
-            raise e
-
-        if func.cond:
-            if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.cond)):
-                number, event = [e.strip() for e in str(func.cond)[6:-1].split(",")]
-                if event == "sec":
-                    special_var = "state_time"+str(self.src)
-                    self.condition = bexpr_parser.parse(special_var + " >= " + number)
-                    self.cond_vars.add(special_var)
-            else:
-                self.condition = func.cond
-        else:
-            self.condition = None
-        if isinstance(func.cond_act,hp.Sequence):
-            self.cond_acts=[str(cond_act) for cond_act in func.cond_act.hps] 
-        elif func.cond_act:
-            self.cond_acts = [str(func.cond_act)]
-        else:
-            self.cond_act = []
-        if isinstance(func.tran_act,hp.Sequence):
-            self.tran_acts = [str(tran_act) for tran_act in func.tran_act.hps]  
-        elif func.tran_act:
-            self.tran_acts = [str(func.tran_act)]
-        else:
-            self.tran_acts = []
-
-        if func.event:
-            if re.match(pattern="after\\(.*?,.*?\\)", string=str(func.event)):
-                # Parse after(number, event) condition
-                # number, event = condition[6:-1].split(",")
-                number, event = [e.strip() for e in str(func.event)[6:-1].split(",")]
-                if event == "sec":
-                    special_var = "state_time"+str(self.src)
-                    if self.condition is not None:
-                        self.condition =bexpr_parser.parse(str(self.condition)+"&&"+special_var + " >= " + number)    #？？？？？？
-                    else:
-                        self.condition =bexpr_parser.parse(special_var + " >= " + number) 
-                    self.cond_vars.add(special_var)
->>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
             else:
                 self.event =str(func.event)
         else:
