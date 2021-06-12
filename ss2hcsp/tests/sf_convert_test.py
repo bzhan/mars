@@ -93,6 +93,13 @@ class SFConvertTest(unittest.TestCase):
             ['log b', 'log c1', 'delay 0.1', 'log c2', 'delay 0.1', 'log B',
              'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
 
+    def testDirectedEvent(self):
+        run_test(self, "./Examples/Stateflow/tests/directed_event.xml", 1,
+            ['log en_A1', 'log en_B1', 'log en_C1',
+             'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
+             'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
+             'delay 0.1'])
+
 
 if __name__ == "__main__":
     unittest.main()

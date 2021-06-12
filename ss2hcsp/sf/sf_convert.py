@@ -8,12 +8,18 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
-from ss2hcsp.matlab.function import BroadcastEvent
+from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent
 
 
 class SFConvert:
     def __init__(self, chart):
         self.chart = chart
+
+        # Mapping name to state
+        self.name_to_state = dict()
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, (AND_State, OR_State)):
+                self.name_to_state[state.name] = state
 
         # Dictionary of procedures
         self.procedures = dict()
@@ -38,11 +44,25 @@ class SFConvert:
         return hcsp.Assign("_ret", val)
 
     def raise_event(self, event):
-        return hcsp.seq([
-            hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
-            hcsp.Var(self.exec_name()),
-            hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
-        ])
+        if isinstance(event, BroadcastEvent):
+            return hcsp.seq([
+                hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
+                hcsp.Var(self.exec_name()),
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+
+        elif isinstance(event, DirectedEvent):
+            # First, find the innermost state name and event
+            st_name, ev = event.state_name, event.event
+            while isinstance(ev, DirectedEvent):
+                st_name, ev = ev.state_name, ev.event
+
+            return hcsp.seq([
+                hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(ev.name)])),
+                self.get_rec_during_proc(self.name_to_state[st_name]),
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+        
+        else:
+            raise TypeError("raise_event: event must be broadcast or directed.")
 
     def get_chain_to_ancestor(self, state, ancestor):
         """Chain of states from the current state to ancestor (not including ancestor)."""
@@ -274,8 +294,10 @@ class SFConvert:
                     procs.append(hcsp.Condition(cond, act))
                 else:
                     procs.append(hcsp.Condition(
-                        expr.conj(still_there_cond, expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)), cond),
-                        hcsp.Condition(cond, act)))
+                        expr.conj(still_there_cond,
+                                  expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                  cond),
+                        act))
             procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
                                         hcsp.Var(self.du_proc_name(state))))
             return hcsp.seq(procs)
@@ -373,8 +395,10 @@ class SFConvert:
                     if i == 0:
                         procs.append(hcsp.Condition(cond, act))
                     else:
-                        procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                                    hcsp.Condition(cond, act)))
+                        procs.append(hcsp.Condition(
+                            expr.conj(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                      cond),
+                            act))
                 procs.append(self.return_val(expr.AVar(done)))
                 proc = hcsp.seq(procs)
                 self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, proc)

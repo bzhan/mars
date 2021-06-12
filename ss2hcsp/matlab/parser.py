@@ -66,6 +66,7 @@ grammar = r"""
     ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
 
     ?event: CNAME -> event
+        | CNAME "." event -> directed_event
         | "after" "(" expr "," event ")"  -> after_event
         | "before" "(" expr "," event ")"  -> before_event
         | "at" "(" expr "," event ")"  -> at_event
@@ -205,6 +206,9 @@ class MatlabTransformer(Transformer):
             return function.AbsoluteTimeEvent(name)
         else:
             return function.BroadcastEvent(name)
+
+    def directed_event(self, state_name, event):
+        return function.DirectedEvent(str(state_name), event)
 
     def after_event(self, expr, event):
         return function.TemporalEvent('after', expr, event)

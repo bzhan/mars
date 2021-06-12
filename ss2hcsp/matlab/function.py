@@ -459,6 +459,7 @@ class BroadcastEvent(Event):
     
     """
     def __init__(self, name):
+        assert isinstance(name, str)
         self.name = name
 
     def __str__(self):
@@ -469,6 +470,23 @@ class BroadcastEvent(Event):
 
     def __eq__(self, other):
         return isinstance(other, BroadcastEvent) and self.name == other.name
+
+class DirectedEvent(Event):
+    """Sending event to particular state."""
+    def __init__(self, state_name, event):
+        assert isinstance(state_name, str) and isinstance(event, (BroadcastEvent, DirectedEvent))
+        self.state_name = state_name
+        self.event = event
+
+    def __str__(self):
+        return self.state_name + "." + str(self.event)
+
+    def __repr__(self):
+        return "DirectedEvent(%s,%s)" % (repr(self.state_name), repr(self.event))
+
+    def __eq__(self, other):
+        return isinstance(other, DirectedEvent) and self.state_name == other.state_name and \
+            self.event == other.event
 
 class ImplicitEvent(Event):
     """Implicit events in Matlab."""
@@ -524,7 +542,7 @@ class TemporalEvent(Event):
 class RaiseEvent(Command):
     """Command for raising an event."""
     def __init__(self, event):
-        assert isinstance(event, BroadcastEvent)
+        assert isinstance(event, (BroadcastEvent, DirectedEvent))
         self.event = event
 
     def __str__(self):
