@@ -75,6 +75,11 @@ class SFConvertTest(unittest.TestCase):
             ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
              'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
 
+    def testJunctionLoop(self):
+        run_test(self, "./Examples/Stateflow/tests/junction_loop.xml", 1,
+            ['log t1', 'log t2', 'log t1', 'log t2', 'log t1', 'log t2', 'log t1',
+             'log t4', 'delay 0.1'])
+
 
 if __name__ == "__main__":
     unittest.main()

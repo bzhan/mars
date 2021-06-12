@@ -26,8 +26,12 @@ class SFConvert:
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures)
         self.convert_cmd = convert_cmd
 
-        # Dictionary mapping (init_src, init_tran_act) to junction procedures
+        # Dictionary mapping junction ID and (init_src, init_tran_act) to the
+        # pair (name, proc).
         self.junction_map = dict()
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, Junction):
+                self.junction_map[ssid] = dict()
 
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
@@ -314,22 +318,28 @@ class SFConvert:
                 # Transition unsuccessful.
                 return self.return_val(expr.AConst(0))
 
-            procs = []
-            done = "J" + state.ssid + "_done"
-            procs.append(hcsp.Assign(done, expr.AConst(0)))
-            for i, tran in enumerate(state.out_trans):
-                src = self.chart.all_states[tran.src]
-                dst = self.chart.all_states[tran.dst]
-                cond, cond_act, tran_act = self.convert_label(tran.label)
-                act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
-                act = hcsp.seq([cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
-                if i == 0:
-                    procs.append(hcsp.Condition(cond, act))
-                else:
-                    procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1))),
-                                                hcsp.Condition(cond, act))
-            procs.append(self.return_val(expr.AVar(done)))
-            return hcsp.seq(procs)
+            if (init_src.ssid, init_tran_act) not in self.junction_map[state.ssid]:
+                # Put in placeholder and reserve name
+                cur_name = "J" + state.ssid + "_" + str(len(self.junction_map[state.ssid]) + 1)
+                self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, None)
+                procs = []
+                done = "J" + state.ssid + "_done"
+                procs.append(hcsp.Assign(done, expr.AConst(0)))
+                for i, tran in enumerate(state.out_trans):
+                    src = self.chart.all_states[tran.src]
+                    dst = self.chart.all_states[tran.dst]
+                    cond, cond_act, tran_act = self.convert_label(tran.label)
+                    act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
+                    act = hcsp.seq([cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
+                    if i == 0:
+                        procs.append(hcsp.Condition(cond, act))
+                    else:
+                        procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                                    hcsp.Condition(cond, act)))
+                procs.append(self.return_val(expr.AVar(done)))
+                proc = hcsp.seq(procs)
+                self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, proc)
+            return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, init_tran_act)][0])
         else:
             raise TypeError("get_junction_proc")
 
@@ -363,6 +373,9 @@ class SFConvert:
         
         all_procs[self.init_name()] = self.get_init_proc()
         all_procs[self.exec_name()] = self.get_exec_proc()
+        for ssid, junc_map in self.junction_map.items():
+            for _, (name, proc) in junc_map.items():
+                all_procs[name] = proc
 
         return all_procs
 

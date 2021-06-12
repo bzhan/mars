@@ -613,6 +613,7 @@ def seq(hps):
     length 0 or 1.
 
     """
+    hps = [hp for hp in hps if hp != Skip()]
     if len(hps) == 0:
         return Skip()
     elif len(hps) == 1:
