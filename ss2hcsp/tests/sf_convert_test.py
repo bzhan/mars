@@ -61,6 +61,15 @@ def run_test(self, filename, num_cycle, res, *,
 
 
 class SFConvertTest(unittest.TestCase):
+    def testJunctionPriority(self):
+        run_test(self, "./Examples/Stateflow/tests/junction_priority.xml", 1,
+            ['log enA', 'log enD', 'delay 0.1'])
+
+    def testNestedState(self):
+        run_test(self, "./Examples/Stateflow/tests/nested_state.xml", 3,
+            ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
+             'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
+
     def testNoEventTrig(self):
         run_test(self, "./Examples/Stateflow/tests/no_event_trig.xml", 1,
             ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
@@ -99,6 +108,11 @@ class SFConvertTest(unittest.TestCase):
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'])
+
+    def testInnerTrans(self):
+        run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 1,
+            ['log enS', 'log condDefault', 'log tranDefault', 'log enA', 'log duS',
+             'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1'])
 
 
 if __name__ == "__main__":

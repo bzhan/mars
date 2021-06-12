@@ -264,47 +264,93 @@ class SFConvert:
         """During procedure for the given state.
         
         The procedure performs the following steps:
-        - check if there are outgoing transitions from the state. If one of them is
+        - Check if there are outgoing transitions from the state. If one of them is
         valid, carry out the transition.
         - If none of the transitions are valid, perform the du action of the state.
+        - Check if there are inner transitions from the state. If one of them is
+        valid, carry out the transition.
 
         """
         if isinstance(state, OR_State):
-            if not state.out_trans:
-                return hcsp.Var(self.du_proc_name(state))
-
             procs = []
+
+            # Signal for whether one of the transitions is carried out
             done = state.name + "_done"
+
+            # Whether the state is still active
             still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
                                             expr.AConst(state.name))
+
+            # Whether the state has exited (so the parent state has no active states)
             still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
                                             expr.AConst(""))
+
+            # First, check each of the outgoing transitions
             procs.append(hcsp.Assign(done, expr.AConst(0)))
-            for i, tran in enumerate(state.out_trans):
-                src = self.chart.all_states[tran.src]
-                dst = self.chart.all_states[tran.dst]
-                cond, cond_act, tran_act = self.convert_label(
-                    tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
-                act = hcsp.Sequence(
-                    cond_act,
-                    hcsp.Condition(still_there_cond, hcsp.seq([
-                        self.get_traverse_state_proc(dst, src, tran_act),
-                        hcsp.Assign(done, expr.AVar("_ret"))])))
-                if i == 0:
-                    procs.append(hcsp.Condition(cond, act))
-                else:
-                    procs.append(hcsp.Condition(
-                        expr.conj(still_there_cond,
-                                  expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                  cond),
-                        act))
-            procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                        hcsp.Var(self.du_proc_name(state))))
+            if state.out_trans:
+                for i, tran in enumerate(state.out_trans):
+                    src = self.chart.all_states[tran.src]
+                    dst = self.chart.all_states[tran.dst]
+                    cond, cond_act, tran_act = self.convert_label(
+                        tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
+
+                    # Perform the condition action. If still in the current state
+                    # afterwards, traverse the destination of the transition. Starting
+                    # from the second transition, check whether still in the state.
+                    act = hcsp.Sequence(
+                        cond_act,
+                        hcsp.Condition(still_there_cond, hcsp.seq([
+                            self.get_traverse_state_proc(dst, src, tran_act),
+                            hcsp.Assign(done, expr.AVar("_ret"))])))
+                    if i == 0:
+                        procs.append(hcsp.Condition(cond, act))
+                    else:
+                        procs.append(hcsp.Condition(
+                            expr.conj(still_there_cond,
+                                    expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                    cond),
+                            act))
+
+            # If still in the state, perform the during action.
+            procs.append(hcsp.Condition(
+                expr.conj(still_there_cond,
+                          expr.RelExpr("!=", expr.AVar(done), expr.AConst(1))),
+                hcsp.Var(self.du_proc_name(state))))
+
+            # Now, perform the inner transitions
+            if state.inner_trans:
+                for i, tran in enumerate(state.inner_trans):
+                    src = self.chart.all_states[tran.src]
+                    dst = self.chart.all_states[tran.dst]
+                    cond, cond_act, tran_act = self.convert_label(
+                        tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
+
+                    # Perform the condition action. If still in the current state
+                    # afterwards, traverse the destination of the transition. Starting
+                    # from the second transition, check whether still in the state.
+                    act = hcsp.Sequence(
+                        cond_act,
+                        hcsp.Condition(still_there_cond, hcsp.seq([
+                            self.get_traverse_state_proc(dst, src, tran_act),
+                            hcsp.Assign(done, expr.AVar("_ret"))])))
+                    if i == 0:
+                        procs.append(hcsp.Condition(cond, act))
+                    else:
+                        procs.append(hcsp.Condition(
+                            expr.conj(still_there_cond,
+                                    expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                    cond),
+                            act))
+
+            # Set return value to done
+            procs.append(self.return_val(expr.AVar(done)))
             return hcsp.seq(procs)
 
         elif isinstance(state, AND_State):
             # For AND-states, simply execute its during action.
-            return hcsp.Var(self.du_proc_name(state))
+            return hcsp.seq([
+                hcsp.Var(self.du_proc_name(state)),
+                self.return_val(expr.AConst(0))])
 
         else:
             raise TypeError("get_during_proc: state is not AND-state or OR-state.")
@@ -332,8 +378,11 @@ class SFConvert:
     def get_rec_during_proc(self, state):
         """Return the process for recursively executing an state."""
         procs = []
-        # First, execute the during procedure
+
+        # First, execute the during procedure, the return value is whether
+        # some transition (outgoing or inner) is carried out.
         procs.append(hcsp.Var(self.during_proc_name(state)))
+        to_sub_cond = expr.RelExpr("!=", expr.AVar("_ret"), expr.AConst(1))
         
         # Next, recursively execute child states
         if state.children:
@@ -346,7 +395,7 @@ class SFConvert:
                     if isinstance(child, OR_State):
                         ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
                                     self.get_rec_during_proc(child)))
-                procs.append(hcsp.ITE(ite))
+                procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
             else:
                 raise TypeError
         return hcsp.seq(procs)
