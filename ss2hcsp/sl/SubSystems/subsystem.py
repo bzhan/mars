@@ -31,11 +31,25 @@ class Triggered_Subsystem(Subsystem):
         super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
         self.type = "triggered_subsystem"
         self.trigger_type = trigger_type
-        self.st = -2  # non-periodic
+        self.st = -1
 
     def __str__(self):
         return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
                (self.name, str(self.dest_lines), str(self.src_lines), self.trigger_type, str(self.diagram))
+
+    def __repr__(self):
+        return str(self)
+
+
+class Enabled_Subsystem(Subsystem):
+    def __init__(self, name, num_src, num_dest):
+        super(Enabled_Subsystem, self).__init__(name, num_src, num_dest)
+        self.type = "enabled_subsystem"
+        self.st = -1
+
+    def __str__(self):
+        return "%s: Enabled_Subsystem[in = %s, out = %s, diagram = %s]" % \
+               (self.name, str(self.dest_lines), str(self.src_lines), str(self.diagram))
 
     def __repr__(self):
         return str(self)

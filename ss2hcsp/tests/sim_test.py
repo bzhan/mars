@@ -408,6 +408,13 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
     #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
+    def testEnabledSubsystem(self):
+        directory = "./Examples/Simulink_Triggerred_Subsystem/"
+        xml_file = "discrete_triggerred_subsystem.xml"
+        diagram = SL_Diagram(location=directory + xml_file)
+        model_name = diagram.parse_xml()
+        print(diagram)
+
 
 if __name__ == "__main__":
     unittest.main()

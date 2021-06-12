@@ -23,7 +23,7 @@ from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
@@ -524,23 +524,24 @@ class SL_Diagram:
         if models:
             model_name = models[0].getAttribute("Name")
         system = self.model.getElementsByTagName("System")[0]
-        max_step=0.2
-        start_time=0.0
-        if len(self.model.getElementsByTagName("ConfigurationSet")) >0 :
-            configurationSet=self.model.getElementsByTagName("ConfigurationSet")[0]
+        max_step = 0.2
+        # start_time = 0.0
+        if len(self.model.getElementsByTagName("ConfigurationSet")) > 0:
+            configurationSet = self.model.getElementsByTagName("ConfigurationSet")[0]
             array = [child for child in configurationSet.childNodes if child.nodeName == "Array"]
             for node in array:
-                if node.nodeName  ==  "Array":
+                if node.nodeName == "Array":
                     objs = [child for child in node.childNodes if child.nodeName == "Object"]
                     for obj in objs:
                         if obj.nodeName == "Object":
-                            arr= [child for child in obj.childNodes if child.nodeName == "Array"]
+                            arr = [child for child in obj.childNodes if child.nodeName == "Array"]
                             for a in arr:
-                                if  a.nodeName == "Array":
+                                if a.nodeName == "Array":
                                     obj_childs = [child for child in a.childNodes if child.nodeName == "Object"]
-                                    start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
+                                    # start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
                                     stop_time = float(get_attribute_value(obj_childs[0], "StopTime"))
-                                    max_step=float(get_attribute_value(obj_childs[0], "MaxStep")) if get_attribute_value(obj_childs[0], "MaxStep")!="auto" else stop_time/50
+                                    max_step = float(get_attribute_value(obj_childs[0], "MaxStep"))\
+                                        if get_attribute_value(obj_childs[0], "MaxStep") != "auto" else stop_time/50
                                 break
                         break
                 break
@@ -564,49 +565,49 @@ class SL_Diagram:
             #     self.add_block(Clock(name=block_name,max_step=max_step,start_time=start_time))
             if block_type == "Mux":
                 block_name = block.getAttribute("Name")
-                inputs=get_attribute_value(block,"Inputs")
-                displayOption=get_attribute_value(block,"DisplayOption")
-                ports=list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
-                self.add_block(Mux(name=block_name,inputs=inputs,displayOption=displayOption,ports=ports))
+                inputs = get_attribute_value(block, "Inputs")
+                displayOption = get_attribute_value(block, "DisplayOption")
+                ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
             elif block_type == "DataStoreMemory":
-                init_value =get_attribute_value(block=block, attribute="InitialValue")
-                value=0
-                if init_value and "[" in init_value :
+                init_value = get_attribute_value(block=block, attribute="InitialValue")
+                value = 0
+                if init_value and "[" in init_value:
                     if ";" in init_value:
                         value_list = init_value.split(";")
-                        val_lists=list()
+                        val_lists = list()
                         for val in value_list:
                             if "[" in val:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
+                                    val = str(val).replace(" ", ",")
                                 val = val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             elif "]" in val:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                val="["+val
+                                    val = str(val).replace(" ", ",")
+                                val = "["+val
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             else:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                val ="["+val+"]"
+                                    val = str(val).replace(" ", ",")
+                                val = "["+val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
-                        value =val_lists
+                        value = val_lists
                     else:
-                        init_value=init_value.strip()
+                        init_value = init_value.strip()
                         if "," not in init_value:
-                            init_value=str(init_value).replace(" ",",")
-                        value =  list(aexpr_parser.parse(init_value).value)
+                            init_value = str(init_value).replace(" ", ",")
+                        value = list(aexpr_parser.parse(init_value).value)
                 elif init_value:
-                    value = eval(value) 
+                    value = eval(value)
                 else:
                     value = 0
-                name=block.getAttribute("Name")
-                dataStoreName=get_attribute_value(block,"DataStoreName")
-                self.add_block(DataStoreMemory(name=name,value=value,dataStore_name=dataStoreName))
+                name = block.getAttribute("Name")
+                dataStoreName = get_attribute_value(block, "DataStoreName")
+                self.add_block(DataStoreMemory(name=name, value=value,dataStore_name=dataStoreName))
             elif block_type == "DataStoreRead":
                 name=block.getAttribute("Name")
                 dataStoreName=get_attribute_value(block,"DataStoreName")
@@ -721,8 +722,6 @@ class SL_Diagram:
                 
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
                 self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
-
-
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -737,14 +736,14 @@ class SL_Diagram:
                     signal_names = []
                     time_axises = []
                     data_axises = []
-                    out_indexs=[]
+                    out_indexs = []
                     for node in subsystem.getElementsByTagName("Array"):
                         if node.getAttribute("PropName") == "Signals":
                             # assert node.getAttribute("Type") == "SigSuiteSignal"
                             for obj in node.getElementsByTagName("Object"):
                                 signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
                                 xData = get_attribute_value(obj, "XData")
-                                out_index=get_attribute_value(obj, "outIndex")
+                                out_index = get_attribute_value(obj, "outIndex")
                                 out_indexs.append(out_index)
                                 # if "\n" in xData:
                                 #     xData = xData.split("\n")[1]
@@ -938,18 +937,29 @@ class SL_Diagram:
                     self.add_block(stateflow)
                     continue
 
-                # Check if it is a triggered subsystem
+                # Check if it is a triggered or enabled subsystem
                 triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
                             child.getAttribute("BlockType") == "TriggerPort"]
-                assert len(triggers) <= 1
+                enables = [child for child in subsystem.childNodes if child.nodeName == "Block" and
+                           child.getAttribute("BlockType") == "EnablePort"]
+                # Enabled and triggered subsystems haven't been considered
+                assert len(triggers) + len(enables) <= 1
                 if triggers:  # it is a triggered subsystem
                     trigger_type = get_attribute_value(triggers[0], "TriggerType")
                     if not trigger_type:
                         trigger_type = "rising"
-                    assert trigger_type in ["rising", "falling", "either","function-call"]
+                    assert trigger_type in ["rising", "falling", "either", "function-call"]
                     ports = get_attribute_value(block, "Ports")
                     num_dest, num_src, _, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Triggered_Subsystem(block_name, num_src, num_dest, trigger_type)
+                    subsystem = Triggered_Subsystem(block_name, num_src+1, num_dest, trigger_type)
+                    # Why num_src+1 above?
+                    # A: The number of normal in-ports (num_src) + one TriggerPort
+                elif enables:
+                    assert get_attribute_value(enables[0], "StatesWhenEnabling") is None
+                    assert get_attribute_value(enables[0], "PropagateVarSize") is None
+                    ports = get_attribute_value(block, "Ports")
+                    num_dest, num_src, _= [int(port.strip("[ ]")) for port in ports.split(",")]
+                    subsystem = Enabled_Subsystem(block_name, num_src + 1, num_dest)
                 else:  # it is a normal subsystem
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
@@ -964,7 +974,6 @@ class SL_Diagram:
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
         for line in lines:
-
             line_name = get_attribute_value(block=line, attribute="Name")
             if not line_name:
                 line_name = "?"
@@ -988,7 +997,7 @@ class SL_Diagram:
                     ch_name = model_name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
-                dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
+                dest_port = -1 if dest_port in ["trigger", "enable"] else int(dest_port) - 1
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
