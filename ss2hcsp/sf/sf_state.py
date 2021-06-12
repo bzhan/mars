@@ -482,7 +482,7 @@ class Junction:
     def __str__(self):
         result = "JUN(" + self.ssid + ") " + self.name + "\n"
         for tran in self.out_trans:
-            result += str(tran) + "(" + tran.dst + ")\n"
+            result += "  " + str(tran) + "\n"
         return result
 
     def exit_to(self, ancestor):  # return a list of hps

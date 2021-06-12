@@ -3,7 +3,7 @@
 from ss2hcsp.sl.get_hcsp import get_hcsp
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_chart import get_common_ancestor
-from ss2hcsp.sf.sf_state import OR_State, AND_State
+from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
@@ -15,14 +15,19 @@ class SFConvert:
     def __init__(self, chart):
         self.chart = chart
 
+        # Dictionary of procedures
         self.procedures = dict()
         for fun in chart.diagram.funs:
             self.procedures[fun.name] = fun
 
+        # Convert expression and convert command functions
         self.convert_expr = convert.convert_expr
         def convert_cmd(cmd):
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures)
         self.convert_cmd = convert_cmd
+
+        # Dictionary mapping (init_src, init_tran_act) to junction procedures
+        self.junction_map = dict()
 
     def raise_event(self, event):
         return hcsp.seq([
@@ -134,6 +139,26 @@ class SFConvert:
             
         return hcsp.seq(procs)
 
+    def convert_label(self, label):
+        """Convert transition label to a triple of condition, condition action,
+        and transition action.
+
+        """
+        conds, cond_act, tran_act = [], hcsp.Skip(), hcsp.Skip()
+        if label is not None:
+            if label.event is not None:
+                if isinstance(label.event, BroadcastEvent):
+                    conds.append(expr.RelExpr("==", FunExpr("top", AVar("EL")), label.event.name))
+                else:
+                    raise NotImplementedError('convert_label: currently only support broadcast events')
+            if label.cond is not None:
+                conds.append(self.convert_expr(label.cond))
+            if label.cond_act is not None:
+                cond_act = self.convert_cmd(label.cond_act)
+            if label.tran_act is not None:
+                tran_act = self.convert_cmd(label.tran_act)
+        return expr.conj(*conds), cond_act, tran_act
+
     def get_rec_entry_proc(self, state):
         """Return the process for recursively entering into state."""
         procs = []
@@ -146,8 +171,11 @@ class SFConvert:
                     procs.append(self.get_rec_entry_proc(child))
             elif isinstance(state.children[0], OR_State):
                 for child in state.children:
-                    if child.default_tran:
-                        procs.append(self.get_rec_entry_proc(child))
+                    if isinstance(child, OR_State) and child.default_tran:
+                        cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
+                        assert cond == expr.true_expr, \
+                            "get_rec_entry_proc: no condition on default transitions"
+                        procs.append(hcsp.seq([cond_act, tran_act, self.get_rec_entry_proc(child)]))
             else:
                 raise TypeError
         return hcsp.seq(procs)
@@ -164,8 +192,9 @@ class SFConvert:
             elif isinstance(state.children[0], OR_State):
                 ite = []
                 for child in state.children:
-                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
-                                self.get_rec_exit_proc(child)))
+                    if isinstance(child, OR_State):
+                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
+                                    self.get_rec_exit_proc(child)))
                 procs.append(hcsp.ITE(ite))
             else:
                 raise TypeError
@@ -187,24 +216,11 @@ class SFConvert:
         if isinstance(state, OR_State) and state.out_trans:
             ite = []
             for tran in state.out_trans:
-                conds, cond_act, tran_act = [], None, None
                 src = self.chart.all_states[tran.src]
                 dst = self.chart.all_states[tran.dst]
-                if tran.label is not None:
-                    if tran.label.event is not None:
-                        if isinstance(tran.label.event, BroadcastEvent):
-                            conds.append(expr.RelExpr("==", FunExpr("top", AVar("EL")), tran.label.event.name))
-                        else:
-                            raise NotImplementedError
-                    if tran.label.cond is not None:
-                        conds.append(self.convert_expr(tran.label.cond))
-                    if tran.label.cond_act is not None:
-                        cond_act = self.convert_cmd(tran.label.cond_act)
-                    if tran.label.tran_act is not None:
-                        tran_act = self.convert_cmd(tran.label.tran_act)
-                tran_act = self.get_transition_proc(src, dst, tran_act)
-                act = tran_act if cond_act is None else hcsp.seq([cond_act, tran_act])
-                ite.append((expr.conj(*conds), act))
+                cond, cond_act, tran_act = self.convert_label(tran.label)
+                act = hcsp.seq([cond_act, self.get_traverse_state_proc(dst, src, tran_act)])
+                ite.append((cond, act))
             procs.append(hcsp.ITE(ite, hcsp.Var(self.du_proc_name(state))))
         else:
             procs.append(hcsp.Var(self.du_proc_name(state)))
@@ -244,12 +260,49 @@ class SFConvert:
             elif isinstance(state.children[0], OR_State):
                 ite = []
                 for child in state.children:
-                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
-                                self.get_rec_during_proc(child)))
+                    if isinstance(child, OR_State):
+                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
+                                    self.get_rec_during_proc(child)))
                 procs.append(hcsp.ITE(ite))
             else:
                 raise TypeError
         return hcsp.seq(procs)
+
+    def get_traverse_state_proc(self, state, init_src, init_tran_act):
+        """Obtain the procedure for traversing a state or junction, given
+        the source state and existing transition actions.
+
+        state : [OR_State, Junction] - current state or junction.
+        init_src : str - name of the initial source state.
+        init_tran_act : HCSP - already accumulated transition actions.
+
+        This function returns the code of the procedure, and memoize results
+        for junctions in the dictionary junction_map.
+
+        """
+        assert isinstance(init_src, OR_State), "get_traverse_state_proc: source is not an OR_State"
+
+        # If reached an OR-state, carry out the transition from src to
+        # the current state, with the accumulated transition actions in
+        # the middle.        
+        if isinstance(state, OR_State):
+            return self.get_transition_proc(init_src, state, init_tran_act)
+
+        elif isinstance(state, Junction):
+            ite = []
+            if not state.out_trans:
+                return hcsp.Skip()
+
+            for tran in state.out_trans:
+                src = self.chart.all_states[tran.src]
+                dst = self.chart.all_states[tran.dst]
+                cond, cond_act, tran_act = self.convert_label(tran.label)
+                act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
+                act = hcsp.seq([cond_act, act])
+                ite.append((cond, act))
+            return hcsp.ITE(ite)
+        else:
+            raise TypeError("get_junction_proc")
 
     def init_name(self):
         return "init_" + self.chart.name
@@ -271,12 +324,13 @@ class SFConvert:
         all_procs = dict()
 
         for ssid, state in self.chart.all_states.items():
-            all_procs[self.en_proc_name(state)] = self.get_en_proc(state)
-            all_procs[self.du_proc_name(state)] = self.get_du_proc(state)
-            all_procs[self.ex_proc_name(state)] = self.get_ex_proc(state)
-            all_procs[self.entry_proc_name(state)] = self.get_entry_proc(state)
-            all_procs[self.during_proc_name(state)] = self.get_during_proc(state)
-            all_procs[self.exit_proc_name(state)] = self.get_exit_proc(state)
+            if isinstance(state, (AND_State, OR_State)):
+                all_procs[self.en_proc_name(state)] = self.get_en_proc(state)
+                all_procs[self.du_proc_name(state)] = self.get_du_proc(state)
+                all_procs[self.ex_proc_name(state)] = self.get_ex_proc(state)
+                all_procs[self.entry_proc_name(state)] = self.get_entry_proc(state)
+                all_procs[self.during_proc_name(state)] = self.get_during_proc(state)
+                all_procs[self.exit_proc_name(state)] = self.get_exit_proc(state)
         
         all_procs[self.init_name()] = self.get_init_proc()
         all_procs[self.exec_name()] = self.get_exec_proc()

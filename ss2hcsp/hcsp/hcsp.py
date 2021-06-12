@@ -213,6 +213,9 @@ class Var(HCSP):
     def __str__(self):
         return "@" + self.name
 
+    def __hash__(self):
+        return hash(("VAR", self.name))
+
     def sc_str(self):
         return self.name
 
@@ -231,6 +234,9 @@ class Skip(HCSP):
     def __str__(self):
         return "skip"
 
+    def __hash__(self):
+        return hash("Skip")
+
 
 class Wait(HCSP):
     def __init__(self, delay):
@@ -247,6 +253,9 @@ class Wait(HCSP):
 
     def __str__(self):
         return "wait(%s)" % str(self.delay)
+
+    def __hash__(self):
+        return hash(("Wait", self.delay))
 
 
 class Assign(HCSP):
@@ -268,7 +277,7 @@ class Assign(HCSP):
             var_name = tuple(var_name)
             assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
             self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
-        self.expr = expr  # AExpr
+        self.expr = expr
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
@@ -286,6 +295,9 @@ class Assign(HCSP):
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return var_str + " := " + str(self.expr)
+
+    def __hash__(self):
+        return hash(("Assign", self.var_name, self.expr))
 
     def get_vars(self):
         if isinstance(self.var_name, AExpr):
@@ -323,6 +335,9 @@ class Assert(HCSP):
         else:
             return "assert(%s)" % self.bexpr
 
+    def __hash__(self):
+        return hash(("Assert", self.bexpr, self.msgs))
+
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -355,6 +370,9 @@ class Test(HCSP):
         else:
             return "test(%s)" % self.bexpr
 
+    def __hash__(self):
+        return hash(("Test", self.bexpr, self.msgs))
+
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -368,7 +386,7 @@ class Log(HCSP):
         self.type = "log"
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
-        self.exprs = tuple(exprs)
+        self.exprs = exprs
 
     def __eq__(self, other):
         return self.type == other.type and self.exprs == other.exprs
@@ -378,6 +396,9 @@ class Log(HCSP):
 
     def __str__(self):
         return "log(%s)" % (','.join(str(expr) for expr in self.exprs))
+
+    def __hash__(self):
+        return hash(("Log", self.exprs))
 
     def get_vars(self):
         var_set = set()
@@ -414,6 +435,9 @@ class InputChannel(HCSP):
             return str(self.ch_name) + "?" + str(self.var_name)
         else:
             return str(self.ch_name) + "?"
+
+    def __hash__(self):
+        return hash(("InputChannel", self.ch_name, self.var_name))
 
     def get_vars(self):
         if self.var_name:
@@ -452,6 +476,9 @@ class OutputChannel(HCSP):
             return str(self.ch_name) + "!" + str(self.expr)
         else:
             return str(self.ch_name) + "!"
+
+    def __hash__(self):
+        return hash(("OutputChannel", self.ch_name, self.expr))
 
     def get_vars(self):
         if self.expr:
@@ -537,14 +564,15 @@ class Sequence(HCSP):
         super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
         self.type = "sequence"
-        #assert all(isinstance(hp, HCSP) for hp in hps)
-        #assert len(hps) >= 2
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 2
         self.hps = []
         for hp in hps:
             if isinstance(hp, Sequence):
                 self.hps.extend(hp.hps)
             else:
                 self.hps.append(hp)
+        self.hps = tuple(self.hps)
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
@@ -556,6 +584,9 @@ class Sequence(HCSP):
         return "; ".join(
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
             for hp in self.hps)
+
+    def __hash__(self):
+        return hash(("Sequence", self.hps))
 
     def sc_str(self):
         return "; ".join(
@@ -624,6 +655,9 @@ class ODE(HCSP):
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
 
+    def __hash__(self):
+        return hash(("ODE", self.eqs, self.constraint, self.out_hp))
+
     def get_vars(self):
         var_set = set()
         for variable, expression in self.eqs:
@@ -682,6 +716,9 @@ class ODE_Comm(HCSP):
         str_io_comms = ", ".join(str(comm_hp) + ", " + str(out_hp) for comm_hp, out_hp in self.io_comms)
         return "ODEComm(%s, %s, %s)" % (str_eqs, str(self.constraint), str_io_comms)
 
+    def __hash__(self):
+        return hash(("ODE_Comm", self.eqs, self.constraint, self.io_comms))
+
     def sc_str(self):
         derivatives = "DOT(" + ", ".join(var_name for var_name, _ in self.eqs) + ")"
         expressions = "{" + ", ".join(str(expr) for _, expr in self.eqs) + "}"
@@ -716,7 +753,7 @@ class Loop(HCSP):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
-        self.hp = hp  # hcsp
+        self.hp = hp
         self.constraint = constraint
 
     def __eq__(self, other):
@@ -733,6 +770,9 @@ class Loop(HCSP):
             return "(%s)**" % str(self.hp)
         else:
             return "(%s){%s}**" % (str(self.hp), str(self.constraint))
+
+    def __hash__(self):
+        return hash(("Loop", self.hp, self.constraint))
 
     def sc_str(self):
         assert isinstance(self.hp, Var)
@@ -752,7 +792,7 @@ class Condition(HCSP):
     """
     def __init__(self, cond, hp):
         super(Condition, self).__init__()
-        assert isinstance(cond, (BExpr,RelExpr)) and isinstance(hp, HCSP)
+        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond  # BExpr
         self.hp = hp  # HCSP
@@ -766,6 +806,9 @@ class Condition(HCSP):
     def __str__(self):
         return str(self.cond) + " -> " + \
             (str(self.hp) if self.hp.priority() > self.priority() else "(" + str(self.hp) + ")")
+
+    def __hash__(self):
+        return hash(("Condition", self.cond, self.hp))
 
     def sc_str(self):
         assert isinstance(self.hp, Var)
@@ -794,6 +837,7 @@ class Parallel(HCSP):
                 self.hps.extend(hp.hps)
             else:
                 self.hps.append(hp)
+        self.hps = tuple(self.hps)
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
@@ -805,6 +849,9 @@ class Parallel(HCSP):
         return " || ".join(
             str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
             for hp in self.hps)
+
+    def __hash__(self):
+        return hash(("Parallel", self.hps))
 
     def sc_str(self):
         return " || ".join(
@@ -852,6 +899,9 @@ class SelectComm(HCSP):
             "%s --> (%s)" % (comm_hp, out_hp)
             for comm_hp, out_hp in self.io_comms)
 
+    def __hash__(self):
+        return hash(("SelectComm", self.io_comms))
+
     def sc_str(self):
         return " [[ ".join("(%s; %s)" % (comm_hp.sc_str(), out_hp.sc_str()) if out_hp.priority() > self.priority()
                            else "(%s; (%s))" % (comm_hp.sc_str(), out_hp.sc_str()) for comm_hp, out_hp in self.io_comms)
@@ -888,6 +938,9 @@ class Recursion(HCSP):
     def __str__(self):
         return "rec " + self.entry + ".(" + str(self.hp) + ")"
 
+    def __hash__(self):
+        return hash(("Recursion", self.entry, self.hp))
+
     def get_vars(self):
         return self.hp.get_vars()
 
@@ -908,8 +961,9 @@ class ITE(HCSP):
         """
         super(ITE, self).__init__()
         assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+        assert len(if_hps) > 0, "ITE: must have at least one if branch"
         if else_hp is None:
-            else_hp = Skip()        
+            else_hp = Skip()
         assert isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
@@ -928,6 +982,9 @@ class ITE(HCSP):
             res += "elif %s then %s " % (cond, hp)
         res += "else %s endif" % self.else_hp
         return res
+
+    def __hash__(self):
+        return hash(("ITE", self.if_hps, self.else_hp))
 
     def sc_str(self):
         assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and isinstance(self.else_hp, (Skip, Var))

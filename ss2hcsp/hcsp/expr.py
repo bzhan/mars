@@ -492,10 +492,6 @@ def conj(*args):
         return true_expr
     if len(args) == 1:
         return args[0]
-    # Select the minimal element as the head
-    arg_strs = [str(arg) for arg in args]
-    min_arg_index = arg_strs.index(min(arg_strs))
-    # return LogicExpr("&&", args[min_arg_index], conj(*args[:min_arg_index], *args[min_arg_index + 1:]))
     return LogicExpr("&&", args[0],conj(*args[1:]))
 
 

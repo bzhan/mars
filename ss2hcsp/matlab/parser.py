@@ -125,7 +125,8 @@ class MatlabTransformer(Transformer):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
-        return function.AConst(str(s)[1:-1])  # remove quotes
+        # Remove quotes
+        return function.AConst(str(s)[1:-1])
 
     def fun_expr(self, fun_name, *exprs):
         return function.FunExpr(str(fun_name), *exprs)

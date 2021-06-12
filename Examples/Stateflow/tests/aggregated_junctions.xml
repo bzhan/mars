@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="no_event_trig">
+  <Model Name="aggregated_junctions">
     <P Name="Version">10.1</P>
     <P Name="SavedCharacterEncoding">GBK</P>
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.14</P>
+      <P Name="ComputedModelVersion">1.2</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -55,29 +55,29 @@
         <Object PropName="ExplorerBarInfo" ObjectID="4" ClassName="Simulink.ExplorerBarInfo">
           <P Name="Visible" Class="logical">1</P>
         </Object>
-        <Array PropName="EditorsInfo" Type="Simulink.EditorInfo" Dimension="1*2">
-          <Object ObjectID="5">
-            <P Name="IsActive" Class="logical">1</P>
-            <P Name="IsTabbed" Class="logical">1</P>
-            <P Name="ViewObjType" Class="char">StateflowChart</P>
-            <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1600.0, 840.0]</P>
-            <P Name="ZoomFactor" Class="double">1.0018785222291797</P>
-            <P Name="Offset" Class="double">[0.0, -6.8083333333333371]</P>
-            <P Name="SceneRectInView" Class="double">[0.0, -6.8083333333333371, 1064.6666666666665, 558.94999999999993]</P>
-          </Object>
-          <Object ObjectID="6">
-            <P Name="IsActive" Class="logical">0</P>
-            <P Name="IsTabbed" Class="logical">0</P>
-            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
-            <P Name="LoadSaveID" Class="char">0</P>
-            <P Name="Extents" Class="double">[1842.0, 862.0]</P>
-            <P Name="ZoomFactor" Class="double">1.0</P>
-            <P Name="Offset" Class="double">[-559.0, -242.33333333333331]</P>
-            <P Name="SceneRectInView" Class="double">[-559.0, -242.33333333333331, 1228.0, 574.66666666666663]</P>
-          </Object>
-        </Array>
+        <Object PropName="EditorsInfo" ObjectID="5" ClassName="Simulink.EditorInfo">
+          <P Name="IsActive" Class="logical">1</P>
+          <P Name="IsTabbed" Class="logical">1</P>
+          <P Name="ViewObjType" Class="char">StateflowChart</P>
+          <P Name="LoadSaveID" Class="char">1</P>
+          <P Name="Extents" Class="double">[1600.0, 840.0]</P>
+          <P Name="ZoomFactor" Class="double">1.0</P>
+          <P Name="Offset" Class="double">[0.0, 0.0]</P>
+          <P Name="SceneRectInView" Class="double">[0.0, 0.0, 1066.6666666666667, 560.0]</P>
+        </Object>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*2">
+          <Object ObjectID="6">
+            <P Name="Type" Class="char">GLUE2:DDG Component</P>
+            <P Name="ID" Class="char">SymbolManager</P>
+            <P Name="Visible" Class="logical">1</P>
+            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
+            <P Name="UserData" Class="char">0</P>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Right</P>
+            <P Name="Width" Class="int32">169</P>
+            <P Name="Height" Class="int32">584</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
           <Object ObjectID="7">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
             <P Name="ID" Class="char">Property Inspector</P>
@@ -90,36 +90,24 @@
             <P Name="Height" Class="int32">320</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
-          <Object ObjectID="8">
-            <P Name="Type" Class="char">GLUE2:DDG Component</P>
-            <P Name="ID" Class="char">SymbolManager</P>
-            <P Name="Visible" Class="logical">1</P>
-            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
-            <P Name="UserData" Class="char">0</P>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">169</P>
-            <P Name="Height" Class="int32">584</P>
-            <P Name="Minimized" Class="char">Unset</P>
-          </Object>
         </Array>
         <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAECAAADlPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAAqAAADlAAAACwA////AAAGeAAAA5QAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
-        <P Name="WindowUuid" Class="char">6ba9f4ec-2fc0-4dbf-a62d-5824cfd62bde</P>
+        <P Name="WindowUuid" Class="char">a2330248-5b2f-410f-ac5f-0e47a1f95774</P>
       </Object>
-      <P Name="BDUuid" Class="char">316e6c24-8dea-4055-b5ba-69b6cea352e7</P>
+      <P Name="BDUuid" Class="char">a2243eb2-bffe-4820-90d8-ec110a99245e</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
-      <P Name="Created">Sat Jun 05 15:03:53 2021</P>
+      <P Name="Created">Tue Jun 08 12:00:51 2021</P>
       <P Name="Creator">BEAR</P>
       <P Name="UpdateHistory">UpdateHistoryNever</P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Jun 12 12:17:04 2021</P>
-      <P Name="RTWModifiedTimeStamp">545401018</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:14&gt;</P>
+      <P Name="LastModifiedDate">Tue Jun 08 15:10:16 2021</P>
+      <P Name="RTWModifiedTimeStamp">545065800</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:2&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -179,11 +167,11 @@
       <P Name="AccelTemplateMakefile">accel_default_tmf</P>
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
-      <Object PropName="DataLoggingOverride" ObjectID="9" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">no_event_trig</P>
+      <Object PropName="DataLoggingOverride" ObjectID="8" ClassName="Simulink.SimulationData.ModelLoggingInfo">
+        <P Name="model_" Class="char">aggregated_junctions</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">no_event_trig</Cell>
+          <Cell Class="char">aggregated_junctions</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
           <Cell Class="double">[]</Cell>
@@ -220,16 +208,16 @@
     </ModelReferenceSettings>
     <ConfigurationSet>
       <Array PropName="ConfigurationSets" Type="Handle" Dimension="1*1">
-        <Object ObjectID="10" Version="20.0.1" ClassName="Simulink.ConfigSet">
+        <Object ObjectID="9" Version="20.0.1" ClassName="Simulink.ConfigSet">
           <P Name="DisabledProps" Class="double">[]</P>
           <P Name="Description"/>
           <Array PropName="Components" Type="Handle" Dimension="1*10">
-            <Object ObjectID="11" Version="20.0.1" ClassName="Simulink.SolverCC">
+            <Object ObjectID="10" Version="20.0.1" ClassName="Simulink.SolverCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
               <P Name="StartTime">0.0</P>
-              <P Name="StopTime">0.1</P>
+              <P Name="StopTime">0.2</P>
               <P Name="AbsTol">auto</P>
               <P Name="AutoScaleAbsTol">on</P>
               <P Name="FixedStep">0.1</P>
@@ -265,7 +253,7 @@
               <P Name="MinimalZcImpactIntegration">off</P>
               <P Name="ODENIntegrationMethod">ode3</P>
             </Object>
-            <Object ObjectID="12" Version="20.0.1" ClassName="Simulink.DataIOCC">
+            <Object ObjectID="11" Version="20.0.1" ClassName="Simulink.DataIOCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -305,7 +293,7 @@
               <P Name="LoggingFileName">out.mat</P>
               <P Name="LoggingIntervals">[-inf, inf]</P>
             </Object>
-            <Object ObjectID="13" Version="20.0.1" ClassName="Simulink.OptimizationCC">
+            <Object ObjectID="12" Version="20.0.1" ClassName="Simulink.OptimizationCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*9">
                 <Cell Class="char">BooleansAsBitfields</Cell>
                 <Cell Class="char">PassReuseOutputArgsAs</Cell>
@@ -374,7 +362,7 @@
               <P Name="DenormalBehavior">GradualUnderflow</P>
               <P Name="EfficientTunableParamExpr">off</P>
             </Object>
-            <Object ObjectID="14" Version="20.0.1" ClassName="Simulink.DebuggingCC">
+            <Object ObjectID="13" Version="20.0.1" ClassName="Simulink.DebuggingCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*1">
                 <Cell Class="char">UseOnlyExistingSharedCode</Cell>
               </Array>
@@ -490,7 +478,7 @@
               <P Name="DebugExecutionForFMUViaOutOfProcess">off</P>
               <P Name="ArithmeticOperatorsInVariantConditions">warning</P>
             </Object>
-            <Object ObjectID="15" Version="20.0.1" ClassName="Simulink.HardwareCC">
+            <Object ObjectID="14" Version="20.0.1" ClassName="Simulink.HardwareCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -538,7 +526,7 @@
               <P Name="UseSimulinkCoderFeatures">on</P>
               <P Name="HardwareBoardFeatureSet">EmbeddedCoderHSP</P>
             </Object>
-            <Object ObjectID="16" Version="20.0.1" ClassName="Simulink.ModelReferenceCC">
+            <Object ObjectID="15" Version="20.0.1" ClassName="Simulink.ModelReferenceCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -556,7 +544,7 @@
               <P Name="PropagateSignalLabelsOutOfModel">on</P>
               <P Name="SupportModelReferenceSimTargetCustomCode">off</P>
             </Object>
-            <Object ObjectID="17" Version="20.0.1" ClassName="Simulink.SFSimCC">
+            <Object ObjectID="16" Version="20.0.1" ClassName="Simulink.SFSimCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -588,7 +576,7 @@
               <P Name="DefaultCustomCodeFunctionArrayLayout">NotSpecified</P>
               <P Name="CustomCodeUndefinedFunction">UseInterfaceOnly</P>
             </Object>
-            <Object BackupClass="Simulink.RTWCC" ObjectID="18" Version="20.0.1" ClassName="Simulink.RTWCC">
+            <Object BackupClass="Simulink.RTWCC" ObjectID="17" Version="20.0.1" ClassName="Simulink.RTWCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*16">
                 <Cell Class="char">IncludeHyperlinkInReport</Cell>
                 <Cell Class="char">GenerateTraceInfo</Cell>
@@ -670,7 +658,7 @@
               <P Name="CheckMdlBeforeBuild">Off</P>
               <P Name="SharedConstantsCachingThreshold">1024</P>
               <Array PropName="Components" Type="Handle" Dimension="1*2">
-                <Object ObjectID="19" Version="20.0.1" ClassName="Simulink.CodeAppCC">
+                <Object ObjectID="18" Version="20.0.1" ClassName="Simulink.CodeAppCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*30">
                     <Cell Class="char">IgnoreCustomStorageClasses</Cell>
                     <Cell Class="char">ParameterTuningSideEffectCode</Cell>
@@ -756,7 +744,7 @@
                   <P Name="ReservedNameArray" Class="double">[]</P>
                   <P Name="EnumMemberNameClash">error</P>
                 </Object>
-                <Object BackupClass="Simulink.TargetCC" ObjectID="20" Version="20.0.1" ClassName="Simulink.GRTTargetCC">
+                <Object BackupClass="Simulink.TargetCC" ObjectID="19" Version="20.0.1" ClassName="Simulink.GRTTargetCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*17">
                     <Cell Class="char">GeneratePreprocessorConditionals</Cell>
                     <Cell Class="char">IncludeMdlTerminateFcn</Cell>
@@ -856,7 +844,7 @@
                 </Object>
               </Array>
             </Object>
-            <Object ObjectID="21" Version="20.0.1" ClassName="SlCovCC.ConfigComp">
+            <Object ObjectID="20" Version="20.0.1" ClassName="SlCovCC.ConfigComp">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">Simulink Coverage Configuration Component</P>
               <P Name="Components" Class="double">[]</P>
@@ -895,7 +883,7 @@
               <P Name="CovStopTime">0</P>
               <P Name="CovMcdcMode">Masking</P>
             </Object>
-            <Object ObjectID="22" Version="20.0.1" ClassName="hdlcoderui.hdlcc">
+            <Object ObjectID="21" Version="20.0.1" ClassName="hdlcoderui.hdlcc">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">HDL Coder custom configuration component</P>
               <P Name="Components" Class="double">[]</P>
@@ -912,10 +900,10 @@
           <P Name="ExtraOptions"/>
         </Object>
       </Array>
-      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="10" ClassName="Simulink.ConfigSet"/>
+      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="9" ClassName="Simulink.ConfigSet"/>
     </ConfigurationSet>
     <ConcurrentExecutionSettings>
-      <Object PropName="DataTransfer" ObjectID="23" ClassName="Simulink.GlobalDataTransfer">
+      <Object PropName="DataTransfer" ObjectID="22" ClassName="Simulink.GlobalDataTransfer">
         <P Name="DefaultTransitionBetweenSyncTasks" Class="char">Ensure deterministic transfer (maximum delay)</P>
         <P Name="DefaultTransitionBetweenAsyncTasks" Class="char">Ensure data integrity only</P>
         <P Name="DefaultTransitionBetweenContTasks" Class="char">Ensure deterministic transfer (minimum delay)</P>
@@ -1050,7 +1038,7 @@
       <Block BlockType="Terminator"/>
     </BlockParameterDefaults>
     <System>
-      <P Name="Location">[1, 5, 1281, 714]</P>
+      <P Name="Location">[30, 30, 900, 600]</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1093,7 +1081,7 @@
             <P Name="FunctionName">sf_sfun</P>
             <P Name="PortCounts">[1 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
-            <P Name="EnableBusSupport">on</P>
+            <P Name="EnableBusSupport">off</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="1::91">
@@ -1126,18 +1114,18 @@
     </System>
   </Model>
   <Stateflow>
-    <machine id="35">
+    <machine id="13">
       <P Name="sfVersion">80000032</P>
       <P Name="sfDemoChecksum">[2988005370 2771551416 1695967507 1706016003]</P>
       <Children>
-        <target id="55" name="sfun">
+        <target id="28" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
-        <chart id="36">
+        <chart id="14">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[0 1064.667 -6.808 552.142]</P>
-          <P Name="zoomFactor">1.331</P>
+          <P Name="viewLimits">[0 983 0 533]</P>
+          <P Name="zoomFactor">1.333</P>
           <P Name="stateColor">[0.3803921568627451 0.2745098039215687 0.1803921568627451]</P>
           <P Name="stateLabelColor">[0.4588235294117647 0.2980392156862745 0.1411764705882353]</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
@@ -1145,137 +1133,60 @@
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
-          <P Name="viewObj">36</P>
-          <P Name="visible">1</P>
-          <P Name="ssIdHighWaterMark">34</P>
-          <P Name="decomposition">SET_CHART</P>
+          <P Name="viewObj">14</P>
+          <P Name="ssIdHighWaterMark">12</P>
+          <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
           <P Name="saturateOnIntegerOverflow">1</P>
           <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>
           <P Name="disableImplicitCasting">1</P>
           <P Name="actionLanguage">2</P>
           <Children>
-            <state SSID="4">
-              <P Name="labelString">A</P>
-              <P Name="position">[179 97 574 219]</P>
+            <state SSID="1">
+              <P Name="labelString">A
+en: f(&quot;enA&quot;)
+ex: f(&quot;exA&quot;)</P>
+              <P Name="position">[80 105 90 60]</P>
               <P Name="fontSize">13</P>
-              <P Name="subviewer">36</P>
-              <P Name="type">AND_STATE</P>
+              <P Name="subviewer">14</P>
+              <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <P Name="executionOrder">1</P>
-              <eml/>
-              <Children>
-                <state SSID="7">
-                  <P Name="labelString">A1</P>
-                  <P Name="position">[216 153 90 60]</P>
-                  <P Name="fontSize">13</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
-                </state>
-                <state SSID="9">
-                  <P Name="labelString">A2
-en: f(&quot;en_A2&quot;)</P>
-                  <P Name="position">[615 153 90 60]</P>
-                  <P Name="fontSize">13</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
-                </state>
-                <state SSID="32">
-                  <P Name="labelString">A3
-en: f(&quot;en_A3&quot;)</P>
-                  <P Name="position">[421 233 90 60]</P>
-                  <P Name="fontSize">13</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
-                </state>
-                <transition SSID="8">
-                  <P Name="labelString">{x=-1}</P>
-                  <P Name="labelPosition">[248 117 36.281 17]</P>
-                  <P Name="fontSize">13</P>
-                  <src>
-                    <P Name="intersection">[0 0 1 0 236.55 123 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">7</P>
-                    <P Name="intersection">[1 0 -1 0.2283 236.55 153 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[236.55 138]</P>
-                  <P Name="dataLimits">[234.15 238.95 123 153]</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="31">
-                  <P Name="labelString"/>
-                  <P Name="labelPosition">[456.5 165 0 0]</P>
-                  <P Name="fontSize">13</P>
-                  <src>
-                    <P Name="SSID">7</P>
-                    <P Name="intersection">[2 1 0 0.5 306 183 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">9</P>
-                    <P Name="intersection">[4 -1 -0 0.5 615 183 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[456.5 183]</P>
-                  <P Name="dataLimits">[306 615 180.6 185.4]</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="33">
-                  <P Name="labelString"/>
-                  <P Name="labelPosition">[577 239 2 17]</P>
-                  <P Name="fontSize">13</P>
-                  <src>
-                    <P Name="SSID">9</P>
-                    <P Name="intersection">[3 0 1 0.6667 645 213 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">32</P>
-                    <P Name="intersection">[2 1 0 0.5 511 263 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[598.9448 254.9448]</P>
-                  <P Name="dataLimits">[511 645 213 265.4]</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="mode">MIRROR_SLIDE</P>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-              </Children>
             </state>
-            <state SSID="20">
+            <state SSID="8">
+              <P Name="labelString">C</P>
+              <P Name="position">[536 185 90 60]</P>
+              <P Name="fontSize">13</P>
+              <P Name="subviewer">14</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+            </state>
+            <state SSID="3">
+              <P Name="labelString">B
+en: f(&quot;enB&quot;)
+ex: f(&quot;exB&quot;)</P>
+              <P Name="position">[80 272 90 60]</P>
+              <P Name="fontSize">13</P>
+              <P Name="subviewer">14</P>
+              <P Name="type">OR_STATE</P>
+              <P Name="decomposition">CLUSTER_STATE</P>
+            </state>
+            <state SSID="12">
               <P Name="labelString">f(s)</P>
-              <P Name="position">[782.5 186.5 105 75]</P>
+              <P Name="position">[528.5 310.5 105 75]</P>
               <P Name="fontSize">13</P>
               <P Name="superState">SUBCHART</P>
-              <P Name="subviewer">36</P>
+              <P Name="subviewer">14</P>
               <P Name="type">FUNC_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <eml>
                 <P Name="isEML">1</P>
                 <P Name="script">function f(s)
-  fprintf(s+&quot;\n&quot;);</P>
+    fprintf(s+&quot;\n&quot;);</P>
                 <P Name="editorLayout" Class="double">Matrix(4,1)
 [10.0, 5.0, 700.0, 500.0]</P>
               </eml>
               <Children>
-                <data SSID="21" name="s">
+                <data SSID="11" name="s">
                   <P Name="scope">FUNCTION_INPUT_DATA</P>
                   <props>
                     <array>
@@ -1297,79 +1208,7 @@ en: f(&quot;en_A3&quot;)</P>
                 </data>
               </Children>
             </state>
-            <state SSID="6">
-              <P Name="labelString">B</P>
-              <P Name="position">[179 350 574 92]</P>
-              <P Name="fontSize">13</P>
-              <P Name="subviewer">36</P>
-              <P Name="type">AND_STATE</P>
-              <P Name="decomposition">CLUSTER_STATE</P>
-              <P Name="executionOrder">2</P>
-              <eml/>
-              <Children>
-                <state SSID="16">
-                  <P Name="labelString">B1</P>
-                  <P Name="position">[252 366 90 60]</P>
-                  <P Name="fontSize">13</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
-                </state>
-                <state SSID="17">
-                  <P Name="labelString">B2
-en: f(&quot;en_B2&quot;)</P>
-                  <P Name="position">[605 366 90 60]</P>
-                  <P Name="fontSize">13</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="type">OR_STATE</P>
-                  <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
-                </state>
-                <transition SSID="19">
-                  <P Name="labelString"/>
-                  <P Name="labelPosition">[237 376 0 0]</P>
-                  <P Name="fontSize">13</P>
-                  <src>
-                    <P Name="intersection">[0 1 -0 0 222 394 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">16</P>
-                    <P Name="intersection">[4 -1 0 0.5333 252 394 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[237 394]</P>
-                  <P Name="dataLimits">[222 252 391.6 396.4]</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-                <transition SSID="18">
-                  <P Name="labelString">{f(&quot;b&quot;)}/{E;f(&quot;tb&quot;)}</P>
-                  <P Name="labelPosition">[424.471 371 96.203 17]</P>
-                  <P Name="fontSize">13</P>
-                  <src>
-                    <P Name="SSID">16</P>
-                    <P Name="intersection">[2 1 0 0.5 342 396 0 0]</P>
-                  </src>
-                  <dst>
-                    <P Name="SSID">17</P>
-                    <P Name="intersection">[4 -1 -0 0.5 605 396 0 0]</P>
-                  </dst>
-                  <P Name="midPoint">[469.5 396]</P>
-                  <P Name="dataLimits">[342 605 393.6 398.4]</P>
-                  <P Name="subviewer">36</P>
-                  <P Name="drawStyle">SMART</P>
-                  <slide>
-                    <P Name="sticky">BOTH_STICK</P>
-                  </slide>
-                  <P Name="executionOrder">1</P>
-                </transition>
-              </Children>
-            </state>
-            <data SSID="30" name="x">
+            <data SSID="10" name="x">
               <P Name="scope">LOCAL_DATA</P>
               <props>
                 <array>
@@ -1389,24 +1228,125 @@ en: f(&quot;en_B2&quot;)</P>
               </props>
               <P Name="dataType">Inherit: From definition in chart</P>
             </data>
-            <event SSID="15">
-              <P Name="name">E</P>
-              <P Name="scope">LOCAL_EVENT</P>
-              <P Name="trigger">FUNCTION_CALL_EVENT</P>
-            </event>
-            <event SSID="34">
-              <P Name="name">F</P>
-              <P Name="scope">LOCAL_EVENT</P>
-              <P Name="trigger">FUNCTION_CALL_EVENT</P>
-            </event>
+            <transition SSID="2">
+              <P Name="labelString">{x=1}</P>
+              <P Name="labelPosition">[119 53 32.219 15]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="intersection">[0 0 1 0 99 57 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">1</P>
+                <P Name="intersection">[1 0 -1 0.2111 99 105 0 0]</P>
+              </dst>
+              <P Name="midPoint">[99 72]</P>
+              <P Name="dataLimits">[96.6 101.4 57 105]</P>
+              <P Name="subviewer">14</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="6">
+              <P Name="labelString">[x==0]{f(&quot;conAJun&quot;)}/{f(&quot;tranAJun&quot;)}</P>
+              <P Name="labelPosition">[238 124 204.75 15]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="SSID">1</P>
+                <P Name="intersection">[2 1 0 0.5167 170 136 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">5</P>
+                <P Name="intersection">[4 -0.7071 -0.7071 0 333.0503 210.0503 0 0]</P>
+              </dst>
+              <P Name="midPoint">[254.9797 155.0283]</P>
+              <P Name="dataLimits">[170 333.05 136 210.05]</P>
+              <P Name="subviewer">14</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="mode">MIRROR_SLIDE</P>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="4">
+              <P Name="labelString"/>
+              <P Name="labelPosition">[125 214.5 0 0]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="SSID">1</P>
+                <P Name="intersection">[3 0 1 0.5 125 165 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">3</P>
+                <P Name="intersection">[1 -0 -1 0.5 125 272 0 0]</P>
+              </dst>
+              <P Name="midPoint">[125 214.5]</P>
+              <P Name="dataLimits">[122.6 127.4 165 272]</P>
+              <P Name="subviewer">14</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">2</P>
+            </transition>
+            <transition SSID="9">
+              <P Name="labelString">{f(&quot;conJunC&quot;)}/{f(&quot;tranJunC&quot;)}</P>
+              <P Name="labelPosition">[345.562 194 170.094 15]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="SSID">5</P>
+                <P Name="intersection">[2 1 0 0 345 215 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">8</P>
+                <P Name="intersection">[4 -1 -0 0.5 536 215 0 0]</P>
+              </dst>
+              <P Name="midPoint">[436.5 215]</P>
+              <P Name="dataLimits">[345 536 212.6 217.4]</P>
+              <P Name="subviewer">14</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <transition SSID="7">
+              <P Name="labelString">{f(&quot;conBJun&quot;)}/{f(&quot;tranBJun&quot;)}</P>
+              <P Name="labelPosition">[233 302 168.656 15]</P>
+              <P Name="fontSize">13</P>
+              <src>
+                <P Name="SSID">3</P>
+                <P Name="intersection">[2 1 0 0.5333 170 304 0 0]</P>
+              </src>
+              <dst>
+                <P Name="SSID">5</P>
+                <P Name="intersection">[3 -0.4961 0.8682 0 334.527 221.0777 0 0]</P>
+              </dst>
+              <P Name="midPoint">[261.4664 285.2897]</P>
+              <P Name="dataLimits">[170 334.527 221.078 304]</P>
+              <P Name="subviewer">14</P>
+              <P Name="drawStyle">SMART</P>
+              <slide>
+                <P Name="mode">MIRROR_SLIDE</P>
+                <P Name="sticky">BOTH_STICK</P>
+              </slide>
+              <P Name="executionOrder">1</P>
+            </transition>
+            <junction SSID="5">
+              <P Name="position">[338 215 7]</P>
+              <P Name="subviewer">14</P>
+              <P Name="type">CONNECTIVE_JUNCTION</P>
+            </junction>
           </Children>
         </chart>
       </Children>
     </machine>
-    <instance id="54">
-      <P Name="machine">35</P>
+    <instance id="27">
+      <P Name="machine">13</P>
       <P Name="name">Chart</P>
-      <P Name="chart">36</P>
+      <P Name="chart">14</P>
     </instance>
   </Stateflow>
 </ModelInformation>

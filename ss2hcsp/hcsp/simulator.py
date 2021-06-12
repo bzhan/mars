@@ -54,16 +54,21 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, PlusExpr):
         # Sum of expressions
-        try:
+        if isinstance(eval_expr(expr.exprs[0], state), str):
+            res = ""
+            for s, e in zip(expr.signs, expr.exprs):
+                if s == '+':
+                    res += eval_expr(e, state)
+                else:
+                    raise SimulatorException("Type error when evaluating %s" % expr)
+        else:
             res = 0
             for s, e in zip(expr.signs, expr.exprs):
                 if s == '+':
                     res += eval_expr(e, state)
                 else:
                     res -= eval_expr(e, state)
-            return res
-        except TypeError:
-            raise SimulatorException("Type error when evaluating %s" % expr)
+        return res
 
     elif isinstance(expr, TimesExpr):
         # Product of expressions
@@ -1194,6 +1199,9 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             print('i:', num_event)
 
         new_event = xargs
+        # Process log/warning/error string
+        if 'str' in new_event:
+            new_event['str'] = new_event['str'].encode('utf-8').decode('unicode_escape').strip()
 
         # Append the first 2000 events
         if num_event <= 2000:
