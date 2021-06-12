@@ -75,6 +75,10 @@ class SFConvert:
         """
         return state.name + "_st"
 
+    def history_name(self, state):
+        """Name of the history variable for an OR-state with history junction."""
+        return state.name + "_hist"
+
     def entry_proc_name(self, state):
         """Procedure for entry into state."""
         return "entry_" + state.name
@@ -105,9 +109,11 @@ class SFConvert:
     def get_entry_proc(self, state):
         """Entry procedure for the given state.
         
-        The procedure does only two things:
+        The procedure does the following:
         - if the current state is an OR-state, assign the corresponding active state
-        variable.
+          variable.
+        - if the current state is an OR-state and its parent has history junction,
+          assign the appropriate history variable.
         - call the en action of the state.
 
         """
@@ -117,6 +123,10 @@ class SFConvert:
         if isinstance(state, OR_State):
             procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst(state.name)))
         
+        # Set history junction
+        if isinstance(state.father, OR_State) and state.father.has_history_junc:
+            procs.append(hcsp.Assign(self.history_name(state.father), expr.AConst(state.name)))
+
         # Perform en action
         procs.append(hcsp.Var(self.en_proc_name(state)))
         return hcsp.seq(procs)
@@ -183,12 +193,27 @@ class SFConvert:
                 for child in state.children:
                     procs.append(self.get_rec_entry_proc(child))
             elif isinstance(state.children[0], OR_State):
+                # First, obtain what happens in default transition:
+                default_tran = None
                 for child in state.children:
                     if isinstance(child, OR_State) and child.default_tran:
                         cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
                         assert cond == expr.true_expr, \
                             "get_rec_entry_proc: no condition on default transitions"
-                        procs.append(hcsp.seq([cond_act, tran_act, self.get_rec_entry_proc(child)]))
+                        default_tran = hcsp.seq([cond_act, tran_act, self.get_rec_entry_proc(child)])
+                        break
+                
+                # Next, check if there are history junctions
+                if isinstance(state, OR_State) and state.has_history_junc:
+                    conds = []
+                    hist_name = self.history_name(state)
+                    for child in state.children:
+                        if isinstance(child, OR_State):
+                            conds.append((expr.RelExpr("==", expr.AVar(hist_name), expr.AConst(child.name)),
+                                          self.get_rec_entry_proc(child)))
+                    procs.append(hcsp.ITE(conds, default_tran))
+                else:
+                    procs.append(default_tran)
             else:
                 raise TypeError
         return hcsp.seq(procs)
@@ -365,10 +390,19 @@ class SFConvert:
         return "exec_" + self.chart.name
 
     def get_init_proc(self):
-        return hcsp.seq([
-            hcsp.Assign("EL", expr.AConst([])),
-            self.get_rec_entry_proc(self.chart.diagram)
-        ])
+        procs = []
+        # Initialize event stack
+        procs.append(hcsp.Assign("EL", expr.AConst([])))
+
+        # Initialize history junction
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, OR_State) and state.has_history_junc:
+                procs.append(hcsp.Assign(self.history_name(state), expr.AConst("")))
+
+        # Recursive entry
+        procs.append(self.get_rec_entry_proc(self.chart.diagram))
+
+        return hcsp.seq(procs)
 
     def get_exec_proc(self):
         return self.get_rec_during_proc(self.chart.diagram)

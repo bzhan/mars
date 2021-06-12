@@ -88,6 +88,11 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/early_exit_same_level.xml", 1,
             ['log en_A', 'log ex_A', 'log en_C', 'delay 0.1'])
 
+    def testHistoryJunction(self):
+        run_test(self, "./Examples/Stateflow/tests/history_junction.xml", 5,
+            ['log b', 'log c1', 'delay 0.1', 'log c2', 'delay 0.1', 'log B',
+             'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
+
 
 if __name__ == "__main__":
     unittest.main()

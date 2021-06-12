@@ -64,6 +64,10 @@ class SF_State:
         if isinstance(self, OR_State) and self.default_tran:
             result += "  Default: " + str(self.default_tran) + "\n"
 
+        # Display the history junction
+        if isinstance(self, OR_State) and self.has_history_junc:
+            result += "  History: " + str(self.has_history_junc) + "\n"
+
         # Events
         if self.en:
             result += "  en: [" + str(self.en) + "]\n"
