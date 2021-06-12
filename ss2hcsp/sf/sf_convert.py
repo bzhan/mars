@@ -22,8 +22,9 @@ class SFConvert:
 
         # Convert expression and convert command functions
         self.convert_expr = convert.convert_expr
-        def convert_cmd(cmd):
-            return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures)
+        def convert_cmd(cmd, *, still_there=None):
+            return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
+                                       still_there=still_there)
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, init_tran_act) to the
@@ -146,9 +147,13 @@ class SFConvert:
             
         return hcsp.seq(procs)
 
-    def convert_label(self, label):
+    def convert_label(self, label, *, still_there_cond=None, still_there_tran=None):
         """Convert transition label to a triple of condition, condition action,
         and transition action.
+
+        label : TransitionLabel - transition label to be converted.
+        still_there_cond : BExpr - when to continue execution of condition action.
+        still_there_tran : BExpr - when to continue execution of transition action.
 
         """
         conds, cond_act, tran_act = [], hcsp.Skip(), hcsp.Skip()
@@ -162,9 +167,9 @@ class SFConvert:
             if label.cond is not None:
                 conds.append(self.convert_expr(label.cond))
             if label.cond_act is not None:
-                cond_act = self.convert_cmd(label.cond_act)
+                cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
             if label.tran_act is not None:
-                tran_act = self.convert_cmd(label.tran_act)
+                tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
         return expr.conj(*conds), cond_act, tran_act
 
     def get_rec_entry_proc(self, state):
@@ -225,18 +230,27 @@ class SFConvert:
 
             procs = []
             done = state.name + "_done"
+            still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                            expr.AConst(state.name))
+            still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                            expr.AConst(""))
             procs.append(hcsp.Assign(done, expr.AConst(0)))
             for i, tran in enumerate(state.out_trans):
                 src = self.chart.all_states[tran.src]
                 dst = self.chart.all_states[tran.dst]
-                cond, cond_act, tran_act = self.convert_label(tran.label)
-                act = hcsp.seq([cond_act, self.get_traverse_state_proc(dst, src, tran_act),
-                                hcsp.Assign(done, expr.AVar("_ret"))])
+                cond, cond_act, tran_act = self.convert_label(
+                    tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
+                act = hcsp.Sequence(
+                    cond_act,
+                    hcsp.Condition(still_there_cond, hcsp.seq([
+                        self.get_traverse_state_proc(dst, src, tran_act),
+                        hcsp.Assign(done, expr.AVar("_ret"))])))
                 if i == 0:
                     procs.append(hcsp.Condition(cond, act))
                 else:
-                    procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                                hcsp.Condition(cond, act)))
+                    procs.append(hcsp.Condition(
+                        expr.conj(still_there_cond, expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)), cond),
+                        hcsp.Condition(cond, act)))
             procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
                                         hcsp.Var(self.du_proc_name(state))))
             return hcsp.seq(procs)
@@ -340,6 +354,7 @@ class SFConvert:
                 proc = hcsp.seq(procs)
                 self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, proc)
             return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, init_tran_act)][0])
+
         else:
             raise TypeError("get_junction_proc")
 

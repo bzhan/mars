@@ -47,7 +47,7 @@ def convert_expr(e):
     else:
         raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None):
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -57,6 +57,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None):
 
     procedures : dict(str, Procedure) - mapping from procedure names to
         procedure objects.
+
+    still_there : expr.BExpr - continue execution only if this condition holds.
 
     There are three possible options for converting procedure calls:
     1. splice the body of the procedure into the code.
@@ -84,7 +86,10 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None):
                     return convert_function(procedures[cmd.func_name], cmd.args)
 
         elif isinstance(cmd, function.Sequence):
-            return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))
+            if isinstance(cmd.cmd1, function.RaiseEvent) and still_there is not None:
+                return hcsp.Sequence(convert(cmd.cmd1), hcsp.Condition(still_there, convert(cmd.cmd2)))
+            else:
+                return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))
 
         elif isinstance(cmd, function.IfElse):
             return hcsp.ITE([(convert_expr(cmd.cond), convert(cmd.cmd1))], convert(cmd.cmd2))

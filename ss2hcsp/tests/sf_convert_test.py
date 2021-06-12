@@ -63,7 +63,7 @@ def run_test(self, filename, num_cycle, res, *,
 class SFConvertTest(unittest.TestCase):
     def testNoEventTrig(self):
         run_test(self, "./Examples/Stateflow/tests/no_event_trig.xml", 1,
-            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
+            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'], print_after_simp=True)
 
     def testAggregatedJunctions(self):
         run_test(self, "./Examples/Stateflow/tests/aggregated_junctions.xml", 2,
@@ -79,6 +79,10 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/junction_loop.xml", 1,
             ['log t1', 'log t2', 'log t1', 'log t2', 'log t1', 'log t2', 'log t1',
              'log t4', 'delay 0.1'])
+
+    def testEarlyExit(self):
+        run_test(self, "./Examples/Stateflow/tests/early_exit.xml", 1,
+            ['log en_A1', 'log ex_A1', 'log en_B', 'delay 0.1'], print_before_simp=True)
 
 
 if __name__ == "__main__":
