@@ -110,9 +110,10 @@ class SFConvertTest(unittest.TestCase):
              'delay 0.1'])
 
     def testInnerTrans(self):
-        run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 1,
-            ['log enS', 'log condDefault', 'log tranDefault', 'log enA', 'log duS',
-             'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 2,
+            ['log enS', 'log condDefault', 'log tranDefault', 'log enA',
+             'log duS', 'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1',
+             'log duS', 'log condInner', 'log exA', 'log tranInner', 'log enA', 'delay 0.1'])
 
 
 if __name__ == "__main__":

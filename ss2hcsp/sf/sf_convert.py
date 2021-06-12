@@ -136,6 +136,9 @@ class SFConvert:
           assign the appropriate history variable.
         - call the en action of the state.
 
+        Note this does not include recursively entering into child states,
+        which is handled in get_rec_entry_proc.
+
         """
         procs = []
         
@@ -151,12 +154,26 @@ class SFConvert:
         procs.append(hcsp.Var(self.en_proc_name(state)))
         return hcsp.seq(procs)
 
-    def get_transition_proc(self, src, dst, middle_proc=None):
+    def get_transition_proc(self, src, dst, tran_act=None):
         """Get procedure for transitioning between two states.
+
+        The so-called "super transitions" has the following semantics:
+        to transition from source S to destination T, let their common
+        ancestor be A. Then, perform the following steps:
+         1. recursively exit from the child states of S.
+         2. exit all states from S to the direct child of A.
+         3. perform any transition actions.
+         4. enter all states from direct child of A to T.
+         5. recursively enter child states of T.
+
+        Note this includes special cases of inner transitions, where A may
+        be the same as S or T (or both). In these cases, A is never exited
+        or entered.
         
         src - source state.
         dst - destination state.
-        middle_proc : HCSP - procedure to execute in the middle.
+        tran_act : HCSP - transition actions to execute between exiting source
+            and entering destination.
 
         """
         ancestor = get_common_ancestor(src, dst)
@@ -164,14 +181,14 @@ class SFConvert:
 
         # Exit states from src to ancestor (not including ancestor)
         procs.append(self.get_rec_exit_proc(src))
-        for state in self.get_chain_to_ancestor(src, ancestor)[1:]:
+        for state in self.get_chain_to_ancestor(src, ancestor):
             procs.append(hcsp.Var(self.exit_proc_name(state)))
-            
-        if middle_proc is not None:
-            procs.append(middle_proc)
+
+        if tran_act is not None:
+            procs.append(tran_act)
             
         # Enter states from ancestor to state1
-        for state in reversed(self.get_chain_to_ancestor(dst, ancestor)[1:]):
+        for state in reversed(self.get_chain_to_ancestor(dst, ancestor)):
             procs.append(hcsp.Var(self.entry_proc_name(state)))
         procs.append(self.get_rec_entry_proc(dst))
             
@@ -203,15 +220,19 @@ class SFConvert:
         return expr.conj(*conds), cond_act, tran_act
 
     def get_rec_entry_proc(self, state):
-        """Return the process for recursively entering into state."""
-        procs = []
-        procs.append(hcsp.Var(self.entry_proc_name(state)))
+        """Return the process for recursively entering into state.
+        
+        Note this does not include entering into state itself, which is taken
+        care of in get_entry_proc.
 
-        # Recursively enter into child states
+        """
+        procs = []
         if state.children:
             if isinstance(state.children[0], AND_State):
                 for child in state.children:
+                    procs.append(hcsp.Var(self.entry_proc_name(child)))
                     procs.append(self.get_rec_entry_proc(child))
+
             elif isinstance(state.children[0], OR_State):
                 # First, obtain what happens in default transition:
                 default_tran = None
@@ -220,7 +241,9 @@ class SFConvert:
                         cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
                         assert cond == expr.true_expr, \
                             "get_rec_entry_proc: no condition on default transitions"
-                        default_tran = hcsp.seq([cond_act, tran_act, self.get_rec_entry_proc(child)])
+                        default_tran = hcsp.seq([
+                            cond_act, tran_act, hcsp.Var(self.entry_proc_name(child)),
+                            self.get_rec_entry_proc(child)])
                         break
                 
                 # Next, check if there are history junctions
@@ -230,7 +253,9 @@ class SFConvert:
                     for child in state.children:
                         if isinstance(child, OR_State):
                             conds.append((expr.RelExpr("==", expr.AVar(hist_name), expr.AConst(child.name)),
-                                          self.get_rec_entry_proc(child)))
+                                          hcsp.seq([
+                                              hcsp.Var(self.entry_proc_name(child)),
+                                              self.get_rec_entry_proc(child)])))
                     procs.append(hcsp.ITE(conds, default_tran))
                 else:
                     procs.append(default_tran)
@@ -239,25 +264,29 @@ class SFConvert:
         return hcsp.seq(procs)
 
     def get_rec_exit_proc(self, state):
-        """Return the process for recursively exiting from state."""
-        procs = []
+        """Return the process for recursively exiting from children of state.
         
-        # Recursively exit from child states
+        Note this does not include exiting from state itself, which is taken
+        care of in get_exit_proc.
+        
+        """
+        procs = []
         if state.children:
             if isinstance(state.children[0], AND_State):
                 for child in reversed(state.children):
                     procs.append(self.get_rec_exit_proc(child))
+                    procs.append(hcsp.Var(self.exit_proc_name(child)))
             elif isinstance(state.children[0], OR_State):
                 ite = []
                 for child in state.children:
                     if isinstance(child, OR_State):
                         ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
-                                    self.get_rec_exit_proc(child)))
+                                    hcsp.seq([
+                                        self.get_rec_exit_proc(child),
+                                        hcsp.Var(self.exit_proc_name(child))])))
                 procs.append(hcsp.ITE(ite))
             else:
                 raise TypeError
-        
-        procs.append(hcsp.Var(self.exit_proc_name(state)))
         return hcsp.seq(procs)
 
     def get_during_proc(self, state):
@@ -472,7 +501,8 @@ class SFConvert:
             if isinstance(state, OR_State) and state.has_history_junc:
                 procs.append(hcsp.Assign(self.history_name(state), expr.AConst("")))
 
-        # Recursive entry
+        # Recursive entry into diagram
+        procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
 
         return hcsp.seq(procs)
