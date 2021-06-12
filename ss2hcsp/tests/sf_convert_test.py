@@ -10,7 +10,8 @@ from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
 from ss2hcsp.hcsp.pprint import pprint
 
 
-def run_test(self, filename, num_cycle, res, *, print_chart=False, print_before_simp=False, print_after_simp=False):
+def run_test(self, filename, num_cycle, res, *,
+             print_chart=False, print_before_simp=False, print_after_simp=False):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -68,6 +69,11 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/aggregated_junctions.xml", 2,
             ['log enA', 'log exA', 'log enB', 'delay 0.1', 'log conBJun', 'log conJunC',
              'log exB', 'log tranBJun', 'log tranJunC', 'delay 0.1'])
+
+    def testFakeEarlyReturn(self):
+        run_test(self, "./Examples/Stateflow/tests/fake_early_return.xml", 1,
+            ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
+             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
 
 
 if __name__ == "__main__":

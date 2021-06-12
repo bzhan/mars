@@ -794,8 +794,8 @@ class Condition(HCSP):
         super(Condition, self).__init__()
         assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
-        self.cond = cond  # BExpr
-        self.hp = hp  # HCSP
+        self.cond = cond
+        self.hp = hp
 
     def __eq__(self, other):
         return self.type == other.type and self.cond == other.cond and self.hp == other.hp
@@ -1208,7 +1208,7 @@ def simplify(hp):
             simp_sub_hp = simplify(sub_hp)
             if not simp_sub_hp == Skip():
                 hps.append(simp_sub_hp)
-        return Sequence(*hps)
+        return seq(hps)
     elif isinstance(hp, Parallel):
         return Parallel(*(simplify(sub_hp) for sub_hp in hp.hps))
     elif isinstance(hp, Loop):

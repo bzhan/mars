@@ -29,6 +29,9 @@ class SFConvert:
         # Dictionary mapping (init_src, init_tran_act) to junction procedures
         self.junction_map = dict()
 
+    def return_val(self, val):
+        return hcsp.Assign("_ret", val)
+
     def raise_event(self, event):
         return hcsp.seq([
             hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
@@ -148,7 +151,8 @@ class SFConvert:
         if label is not None:
             if label.event is not None:
                 if isinstance(label.event, BroadcastEvent):
-                    conds.append(expr.RelExpr("==", FunExpr("top", AVar("EL")), label.event.name))
+                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
+                                           expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
                 else:
                     raise NotImplementedError('convert_label: currently only support broadcast events')
             if label.cond is not None:
@@ -211,20 +215,34 @@ class SFConvert:
         - If none of the transitions are valid, perform the du action of the state.
 
         """
-        procs = []
+        if isinstance(state, OR_State):
+            if not state.out_trans:
+                return hcsp.Var(self.du_proc_name(state))
 
-        if isinstance(state, OR_State) and state.out_trans:
-            ite = []
-            for tran in state.out_trans:
+            procs = []
+            done = state.name + "_done"
+            procs.append(hcsp.Assign(done, expr.AConst(0)))
+            for i, tran in enumerate(state.out_trans):
                 src = self.chart.all_states[tran.src]
                 dst = self.chart.all_states[tran.dst]
                 cond, cond_act, tran_act = self.convert_label(tran.label)
-                act = hcsp.seq([cond_act, self.get_traverse_state_proc(dst, src, tran_act)])
-                ite.append((cond, act))
-            procs.append(hcsp.ITE(ite, hcsp.Var(self.du_proc_name(state))))
+                act = hcsp.seq([cond_act, self.get_traverse_state_proc(dst, src, tran_act),
+                                hcsp.Assign(done, expr.AVar("_ret"))])
+                if i == 0:
+                    procs.append(hcsp.Condition(cond, act))
+                else:
+                    procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                                hcsp.Condition(cond, act)))
+            procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                                        hcsp.Var(self.du_proc_name(state))))
+            return hcsp.seq(procs)
+
+        elif isinstance(state, AND_State):
+            # For AND-states, simply execute its during action.
+            return hcsp.Var(self.du_proc_name(state))
+
         else:
-            procs.append(hcsp.Var(self.du_proc_name(state)))
-        return hcsp.seq(procs)
+            raise TypeError("get_during_proc: state is not AND-state or OR-state.")
 
     def get_exit_proc(self, state):
         """Exit procedure from the given state.
@@ -282,25 +300,36 @@ class SFConvert:
         """
         assert isinstance(init_src, OR_State), "get_traverse_state_proc: source is not an OR_State"
 
-        # If reached an OR-state, carry out the transition from src to
-        # the current state, with the accumulated transition actions in
-        # the middle.        
         if isinstance(state, OR_State):
-            return self.get_transition_proc(init_src, state, init_tran_act)
+            # If reached an OR-state, carry out the transition from src to
+            # the current state, with the accumulated transition actions in
+            # the middle. Then return 1 for successfully reaching a state.        
+            return hcsp.seq([self.get_transition_proc(init_src, state, init_tran_act),
+                             self.return_val(expr.AConst(1))])
 
         elif isinstance(state, Junction):
-            ite = []
+            # If reached a junction, try each of the outgoing edges from the
+            # junction.
             if not state.out_trans:
-                return hcsp.Skip()
+                # Transition unsuccessful.
+                return self.return_val(expr.AConst(0))
 
-            for tran in state.out_trans:
+            procs = []
+            done = "J" + state.ssid + "_done"
+            procs.append(hcsp.Assign(done, expr.AConst(0)))
+            for i, tran in enumerate(state.out_trans):
                 src = self.chart.all_states[tran.src]
                 dst = self.chart.all_states[tran.dst]
                 cond, cond_act, tran_act = self.convert_label(tran.label)
                 act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
-                act = hcsp.seq([cond_act, act])
-                ite.append((cond, act))
-            return hcsp.ITE(ite)
+                act = hcsp.seq([cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
+                if i == 0:
+                    procs.append(hcsp.Condition(cond, act))
+                else:
+                    procs.append(hcsp.Condition(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1))),
+                                                hcsp.Condition(cond, act))
+            procs.append(self.return_val(expr.AVar(done)))
+            return hcsp.seq(procs)
         else:
             raise TypeError("get_junction_proc")
 
