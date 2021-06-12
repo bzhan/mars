@@ -1215,7 +1215,13 @@ def simplify(hp):
     elif isinstance(hp, Loop):
         return Loop(simplify(hp.hp), hp.constraint)
     elif isinstance(hp, Condition):
-        return Condition(hp.cond, simplify(hp.hp))
+        simp_sub_hp = simplify(hp.hp)
+        if simp_sub_hp == Skip():
+            return Skip()
+        elif hp.cond == true_expr:
+            return simp_sub_hp
+        else:
+            return Condition(hp.cond, simp_sub_hp)
     elif isinstance(hp, Recursion):
         return Recursion(simplify(hp.hp), hp.entry)
     elif isinstance(hp, ODE):
