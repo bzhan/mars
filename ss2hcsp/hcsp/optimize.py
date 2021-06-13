@@ -1,12 +1,23 @@
 """Optimization of HCSP code."""
 
-from ss2hcsp.hcsp.expr import true_expr
+from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr
 from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import simulator
+
 
 def is_atomic(hp):
     """Whether hp is an atomic program"""
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
                        'input_channel', 'output_channel')
+
+def simplify_expr(expr):
+    if not expr.get_vars():
+        b = simulator.eval_expr(expr, dict())
+        assert isinstance(b, bool)
+        return true_expr if b else false_expr
+    else:
+        return expr
 
 def simplify(hp):
     """Perform immediate simplifications to HCSP process. This includes:
@@ -22,13 +33,14 @@ def simplify(hp):
     elif hp.type == 'loop':
         return hcsp.Loop(simplify(hp.hp), hp.constraint)
     elif hp.type == 'condition':
+        simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip':
+        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
             return hcsp.Skip()
-        elif hp.cond == true_expr:
+        elif simp_cond == true_expr:
             return simp_sub_hp
         else:
-            return hcsp.Condition(hp.cond, simp_sub_hp)
+            return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
         return hcsp.ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
     elif hp.type == 'ode_comm':
@@ -37,16 +49,9 @@ def simplify(hp):
     elif hp.type == 'select_comm':
         return hcsp.SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
     elif hp.type == 'ite':
-        for i in range(len(hp.if_hps)):
-            cond, sub_hp = hp.if_hps[i]
-            if cond == true_expr:
-                if i == 0:
-                    return simplify(sub_hp)
-                else:
-                    return hcsp.ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps[:i]],
-                                    simplify(sub_hp))
-        return hcsp.ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps],
-                        simplify(hp.else_hp))
+        new_if_hps = [(simplify_expr(cond), simplify(if_hp)) for cond, if_hp in hp.if_hps]
+        new_else_hp = hp.else_hp
+        return hcsp.ite(new_if_hps, new_else_hp)
     else:
         raise NotImplementedError
 
@@ -298,10 +303,18 @@ class HCSPAnalysis:
             if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
-                    reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before if prev_var == var]
+                    reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
+                                  if prev_var == var]
+                    
+                    # If there is a unique occurrence which is not None, and whose
+                    # expression does not contain the variable itself, add to
+                    # replacement list.
                     if len(reach_defs) == 1 and reach_defs[0] is not None:
                         def_hp = self.infos[reach_defs[0]].sub_hp
                         assert def_hp.type == 'assign'
+                        if var in def_hp.expr.get_vars():
+                            # such a replacement will make the program larger, abort
+                            continue
                         if loc not in repls:
                             repls[loc] = dict()
                         repls[loc][var] = def_hp.expr
@@ -310,7 +323,13 @@ class HCSPAnalysis:
 
 
 def full_optimize(hp):
-    analysis = HCSPAnalysis(hp)
-    analysis.compute_reaching_definition()
-    repls = analysis.detect_replacement()
-    return targeted_replace(hp, repls)
+    while True:
+        old_hp = hp
+        analysis = HCSPAnalysis(hp)
+        analysis.compute_reaching_definition()
+        repls = analysis.detect_replacement()
+        hp = targeted_replace(hp, repls)
+        hp = simplify(hp)
+        if hp == old_hp:
+            break
+    return hp

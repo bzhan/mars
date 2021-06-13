@@ -48,9 +48,9 @@ def run_test(self, filename, num_cycle, res, *,
     hp = hcsp.reduce_procedures(hp, procs)
 
     # Reduce skip
-    hp = hcsp.simplify(hp)
+    hp = optimize.simplify(hp)
     for name in procs:
-        procs[name] = hcsp.simplify(procs[name])
+        procs[name] = optimize.simplify(procs[name])
 
     # Optional: print HCSP program after simplification
     if print_after_simp:

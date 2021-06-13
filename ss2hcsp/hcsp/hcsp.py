@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, RelExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr
 import re
 
 
@@ -1006,6 +1006,21 @@ class ITE(HCSP):
         ch_set.update(self.else_hp.get_chs())
         return ch_set
 
+def ite(if_hps, else_hp):
+    """Construction of if-then-else with simplifications."""
+    new_if_hps, new_else_hp = [], else_hp
+    for cond, if_hp in if_hps:
+        if cond == true_expr:
+            new_else_hp = if_hp
+            break
+        elif cond == false_expr:
+            continue
+        else:
+            new_if_hps.append((cond, if_hp))
+    if len(new_if_hps) == 0:
+        return new_else_hp
+    else:
+        return ITE(new_if_hps, new_else_hp)
 
 def get_comm_chs(hp):
     """Returns the list of communication channels for the given program.
