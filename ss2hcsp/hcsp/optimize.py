@@ -142,6 +142,40 @@ def targeted_replace(hp, repls):
             raise NotImplementedError
     return rec(hp, tuple())
 
+def targeted_remove(hp, remove_locs):
+    """Remove code at the given location. For simplicity, simply change
+    them to Skip.
+
+    """
+    def rec(hp, cur_pos):
+        if is_atomic(hp):
+            if cur_pos in remove_locs:
+                return hcsp.Skip()
+            else:
+                return hp
+        elif hp.type == 'var':
+            return hp
+        elif hp.type == 'sequence':
+            new_hps = []
+            for i, sub_hp in enumerate(hp.hps):
+                new_hps.append(rec(sub_hp, cur_pos + (i,)))
+            return hcsp.Sequence(*new_hps)
+        elif hp.type == 'condition':
+            new_sub_hp = rec(hp.hp, cur_pos + (0,))
+            return hcsp.Condition(hp.cond, new_sub_hp)
+        elif hp.type == 'ite':
+            new_if_hps = []
+            for i, (cond, if_hp) in enumerate(hp.if_hps):
+                new_if_hp = rec(if_hp, cur_pos + (i,))
+                new_if_hps.append((cond, new_if_hp))
+            new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
+            return hcsp.ITE(new_if_hps, new_else_hp)
+        elif hp.type == 'loop':
+            return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
+        else:
+            raise NotImplementedError
+    return rec(hp, tuple())
+
 
 class LocationInfo:
     """Information for each location obtained during static analysis."""
@@ -151,12 +185,16 @@ class LocationInfo:
 
         # The following are computed at initialization
         self.edges = []
-        self.back_edges = []
+        self.rev_edges = []
         self.exits = []
 
         # Reaching definitions
         self.reach_before = []
         self.reach_after = []
+
+        # Live variables
+        self.live_before = []
+        self.live_after = []
 
     def __str__(self):
         lines = []
@@ -164,7 +202,7 @@ class LocationInfo:
         if is_atomic(self.sub_hp):
             lines.append("  Code: %s" % str(self.sub_hp))
         lines.append("  Edges: %s" % (', '.join(str(edge) for edge in self.edges)))
-        lines.append("  Edges (rev): %s" % (', '.join(str(edge) for edge in self.back_edges)))
+        lines.append("  Edges (rev): %s" % (', '.join(str(edge) for edge in self.rev_edges)))
         if self.reach_before:
             lines.append("  Reach before: %s" % (', '.join(str(var) for var in self.reach_before)))
         if self.reach_after:
@@ -172,13 +210,15 @@ class LocationInfo:
         return '\n'.join(lines)
 
     def __repr__(self):
-        return "LocationInfo(%s,%s,%s,%s)" % (
-            repr(self.loc), repr(self.edges), repr(self.back_edges), repr(self.exits))
+        return "LocationInfo(%s)" % (repr(self.loc), repr(self.sub_hp))
 
 
 class HCSPAnalysis:
-    def __init__(self, hp):
+    def __init__(self, hp, *, ignore_end=None):
         self.hp = hp
+        if ignore_end is None:
+            ignore_end = set()
+        self.ignore_end = ignore_end
         self.infos = dict()
 
         self.all_vars = set()
@@ -188,7 +228,7 @@ class HCSPAnalysis:
     
     def add_edge(self, loc1, loc2):
         self.infos[loc1].edges.append(loc2)
-        self.infos[loc2].back_edges.append(loc1)
+        self.infos[loc2].rev_edges.append(loc1)
 
     def init_infos(self):
         """Initialize location infos."""
@@ -256,6 +296,16 @@ class HCSPAnalysis:
                 self.all_vars.add(info.sub_hp.var_name.name)
 
     def compute_reaching_definition(self):
+        """Reaching definition analysis.
+
+        For each program location, compute the set of assignments that can
+        possibly reach this location. Each assignment is given by the variable
+        assigned and the location where it occurs.
+
+        Reference:
+        Nielson et al. Principles of Program Analysis, Section 2.1.2.
+
+        """
         # Initial definitions
         for var in self.all_vars:
             self.infos[()].reach_before.append((var, None))
@@ -328,15 +378,77 @@ class HCSPAnalysis:
 
         return repls
 
+    def compute_live_variable(self):
+        """Live variable analysis.
 
-def full_optimize(hp):
+        Reference:
+        Nielson et al. Principles of Program Analysis, Section 2.1.4
+
+        """
+        # All variables are live at the end, except those in ignore_end
+        for loc in self.infos[()].exits:
+            self.infos[loc].live_after = list(self.all_vars - self.ignore_end)
+
+        # Live variables for commands
+        for loc, info in self.infos.items():
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):
+                self.infos[loc].live_before = list(get_read_vars(info.sub_hp))
+        
+        # Before procedure calls, any variable may be used
+        for loc, info in self.infos.items():
+            if info.sub_hp.type == 'var':
+                self.infos[loc].live_before = list(self.all_vars)
+
+        # Propagate
+        while True:
+            found = False
+            # Propagate from reach after to reach before
+            for _, info in self.infos.items():
+                for var in info.live_after:
+                    if var not in info.live_before and \
+                        (info.sub_hp.type != "assign" or var != info.sub_hp.var_name.name):
+                        found = True
+                        info.live_before.append(var)
+            
+            # Propagate from reach before to reach after of predecessor
+            for _, info in self.infos.items():
+                for var in info.live_before:
+                    for prev_loc in info.rev_edges:
+                        if var not in self.infos[prev_loc].live_after:
+                            found = True
+                            self.infos[prev_loc].live_after.append(var)
+
+            if not found:
+                break
+
+    def detect_dead_code(self):
+        """Dead code are assignments whose variable which is not live afterwards."""
+        dead_code = []
+        for loc, info in self.infos.items():
+            if info.sub_hp.type == 'assign' and info.sub_hp.var_name.name not in info.live_after:
+                dead_code.append(loc)
+        
+        return dead_code
+
+
+def full_optimize(hp, *, ignore_end=None):
     while True:
         old_hp = hp
-        analysis = HCSPAnalysis(hp)
+
+        # Replace constants
+        analysis = HCSPAnalysis(hp, ignore_end=ignore_end)
         analysis.compute_reaching_definition()
         repls = analysis.detect_replacement()
         hp = targeted_replace(hp, repls)
         hp = simplify(hp)
+
+        # Deadcode elimination
+        analysis = HCSPAnalysis(hp, ignore_end=ignore_end)
+        analysis.compute_live_variable()
+        dead_code = analysis.detect_dead_code()
+        hp = targeted_remove(hp, dead_code)
+        hp = simplify(hp)
+
         if hp == old_hp:
             break
     return hp

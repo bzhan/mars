@@ -59,7 +59,7 @@ def run_test(self, filename, num_cycle, res, *,
             print('\n' + name + " ::=\n" + pprint(proc))
 
     # Optimize through static analysis
-    hp = optimize.full_optimize(hp)
+    hp = optimize.full_optimize(hp, ignore_end={'_ret'})
     for name in procs:
         procs[name] = optimize.full_optimize(procs[name])
 
