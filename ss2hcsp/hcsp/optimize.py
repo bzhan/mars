@@ -1,12 +1,54 @@
 """Optimization of HCSP code."""
 
+from ss2hcsp.hcsp.expr import true_expr
 from ss2hcsp.hcsp import hcsp
-
 
 def is_atomic(hp):
     """Whether hp is an atomic program"""
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
                        'input_channel', 'output_channel')
+
+def simplify(hp):
+    """Perform immediate simplifications to HCSP process. This includes:
+    
+    * Remove extraneous skip from processes.
+    * Simplify if true then P else Q to P.
+    
+    """
+    if is_atomic(hp) or hp.type == 'var':
+        return hp
+    elif hp.type == 'sequence':
+        return hcsp.seq([simplify(sub_hp) for sub_hp in hp.hps])
+    elif hp.type == 'loop':
+        return hcsp.Loop(simplify(hp.hp), hp.constraint)
+    elif hp.type == 'condition':
+        simp_sub_hp = simplify(hp.hp)
+        if simp_sub_hp.type == 'skip':
+            return hcsp.Skip()
+        elif hp.cond == true_expr:
+            return simp_sub_hp
+        else:
+            return hcsp.Condition(hp.cond, simp_sub_hp)
+    elif hp.type == 'ode':
+        return hcsp.ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
+    elif hp.type == 'ode_comm':
+        return hcsp.ODE_Comm(hp.eqs, hp.constraint,
+                             [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
+    elif hp.type == 'select_comm':
+        return hcsp.SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
+    elif hp.type == 'ite':
+        for i in range(len(hp.if_hps)):
+            cond, sub_hp = hp.if_hps[i]
+            if cond == true_expr:
+                if i == 0:
+                    return simplify(sub_hp)
+                else:
+                    return hcsp.ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps[:i]],
+                                    simplify(sub_hp))
+        return hcsp.ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps],
+                        simplify(hp.else_hp))
+    else:
+        raise NotImplementedError
 
 def get_read_vars(hp):
     """Obtain set of variables read by the program."""
@@ -45,7 +87,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'test':
         return hcsp.Test(hp.bexpr.subst(inst), [msg.subst(inst) for msg in hp.msgs])
     elif hp.type == 'log':
-        return hcsp.Log(*(expr.subst(inst) for expr in hp.exprs))
+        return hcsp.Log(*(e.subst(inst) for e in hp.exprs))
     elif hp.type == 'input_channel':
         return hp
     elif hp.type == 'output_channel':
@@ -90,7 +132,7 @@ def targeted_replace(hp, repls):
             new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
-            return hcsp.Loop(rec(hp.hp, cur_pos))
+            return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
         else:
             raise NotImplementedError
     return rec(hp, tuple())
