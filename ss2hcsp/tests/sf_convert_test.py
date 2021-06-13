@@ -1,6 +1,7 @@
 """Unit test for sf_convert."""
 
 import unittest
+
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp.pprint import pprint
@@ -8,10 +9,11 @@ from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
 from ss2hcsp.hcsp.pprint import pprint
+from ss2hcsp.hcsp import optimize
 
 
 def run_test(self, filename, num_cycle, res, *,
-             print_chart=False, print_before_simp=False, print_after_simp=False):
+             print_chart=False, print_before_simp=False, print_after_simp=False, print_final=False):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -53,6 +55,17 @@ def run_test(self, filename, num_cycle, res, *,
     # Optional: print HCSP program after simplification
     if print_after_simp:
         print(pprint(hp))
+        for name, proc in procs.items():
+            print('\n' + name + " ::=\n" + pprint(proc))
+
+    # Optimize through static analysis
+    hp = optimize.full_optimize(hp)
+    for name in procs:
+        procs[name] = optimize.full_optimize(procs[name])
+
+    # Optional: print final HCSP program
+    if print_final:
+        print(pprint(hp))    
         for name, proc in procs.items():
             print('\n' + name + " ::=\n" + pprint(proc))
 
