@@ -336,14 +336,14 @@ class SFConvert:
                     else:
                         procs.append(hcsp.Condition(
                             expr.conj(still_there_cond,
-                                    expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                    cond),
+                                      expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
+                                      cond),
                             act))
 
             # If still in the state, perform the during action.
             procs.append(hcsp.Condition(
                 expr.conj(still_there_cond,
-                          expr.RelExpr("!=", expr.AVar(done), expr.AConst(1))),
+                          expr.RelExpr("==", expr.AVar(done), expr.AConst(0))),
                 hcsp.Var(self.du_proc_name(state))))
 
             # Now, perform the inner transitions
@@ -367,8 +367,8 @@ class SFConvert:
                     else:
                         procs.append(hcsp.Condition(
                             expr.conj(still_there_cond,
-                                    expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
-                                    cond),
+                                      expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
+                                      cond),
                             act))
 
             # Set return value to done
@@ -411,7 +411,7 @@ class SFConvert:
         # First, execute the during procedure, the return value is whether
         # some transition (outgoing or inner) is carried out.
         procs.append(hcsp.Var(self.during_proc_name(state)))
-        to_sub_cond = expr.RelExpr("!=", expr.AVar("_ret"), expr.AConst(1))
+        to_sub_cond = expr.RelExpr("==", expr.AVar("_ret"), expr.AConst(0))
         
         # Next, recursively execute child states
         if state.children:
@@ -474,7 +474,7 @@ class SFConvert:
                         procs.append(hcsp.Condition(cond, act))
                     else:
                         procs.append(hcsp.Condition(
-                            expr.conj(expr.RelExpr("!=", expr.AVar(done), expr.AConst(1)),
+                            expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
                                       cond),
                             act))
                 procs.append(self.return_val(expr.AVar(done)))
