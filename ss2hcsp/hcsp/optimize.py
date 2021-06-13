@@ -306,18 +306,25 @@ class HCSPAnalysis:
                     reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
                                   if prev_var == var]
                     
-                    # If there is a unique occurrence which is not None, and whose
-                    # expression does not contain the variable itself, add to
-                    # replacement list.
-                    if len(reach_defs) == 1 and reach_defs[0] is not None:
-                        def_hp = self.infos[reach_defs[0]].sub_hp
+                    if any(prev_loc is None for prev_loc in reach_defs):
+                        continue
+
+                    # Obtain the set of expressions assigned to
+                    assigned = set()
+                    for prev_loc in reach_defs:
+                        def_hp = self.infos[prev_loc].sub_hp
                         assert def_hp.type == 'assign'
-                        if var in def_hp.expr.get_vars():
-                            # such a replacement will make the program larger, abort
-                            continue
+                        assigned.add(def_hp.expr)
+                    
+                    # If there is a unique assigned value which is a constant,
+                    # add to replacement list.
+                    if len(assigned) != 1:
+                        continue
+                    unique_assign = assigned.pop()
+                    if isinstance(unique_assign, AConst):
                         if loc not in repls:
                             repls[loc] = dict()
-                        repls[loc][var] = def_hp.expr
+                        repls[loc][var] = unique_assign
 
         return repls
 
