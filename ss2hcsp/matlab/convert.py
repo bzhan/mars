@@ -4,6 +4,13 @@ from ss2hcsp.matlab import function
 from ss2hcsp.hcsp import expr, hcsp
 
 
+def subtract_one(e):
+    assert isinstance(e, expr.AExpr)
+    if isinstance(e, expr.AConst):
+        return expr.AConst(e.value - 1)
+    else:
+        return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
+
 def convert_expr(e, *, arrays=None):
     """Convert a Matlab expression to HCSP.
     
@@ -42,7 +49,9 @@ def convert_expr(e, *, arrays=None):
                 else:
                     raise NotImplementedError("Function rand: argument not supported")
             elif e.fun_name in arrays:
-                return expr.ArrayIdxExpr(e.fun_name, [rec(ex) for ex in e.exprs])
+                # Subtract one since indexing in Matlab is 1-based while indexing
+                # in HCSP is 0-based.
+                return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):
@@ -87,9 +96,11 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
         if isinstance(lname, function.Var):
             return expr.AVar(lname.name)
         elif isinstance(lname, function.FunExpr):
+            # Subtract one since indexing in Matlab is 1-based while indexing
+            # in HCSP is 0-based.
             return expr.ArrayIdxExpr(
                 expr.AVar(lname.fun_name),
-                [convert_expr(arg, arrays=arrays) for arg in lname.exprs])
+                [subtract_one(convert_expr(arg, arrays=arrays)) for arg in lname.exprs])
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg) for arg in lname.args]
         else:
@@ -101,15 +112,12 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
         elif isinstance(cmd, function.FunctionCall):
             if cmd.func_name == 'fprintf':
-                assert len(cmd.args) == 1, "convert_cmd: fprintf should have exactly one argument."
-                return hcsp.Log(convert_expr(cmd.args[0], arrays=arrays))
+                return hcsp.Log(convert_expr(cmd.args[0]),
+                                exprs=[convert_expr(arg, arrays=arrays) for arg in cmd.args[1:]])
             else:
                 assert procedures is not None and cmd.func_name in procedures, \
                     "convert_cmd: procedure %s not found" % cmd.func_name
-                if len(cmd.args) == 0:
-                    return hcsp.Var(cmd.func_name)
-                else:
-                    return convert_function(procedures[cmd.func_name], cmd.args)
+                return convert(procedures[cmd.func_name].instantiate(cmd.args))
 
         elif isinstance(cmd, function.Sequence):
             if isinstance(cmd.cmd1, function.RaiseEvent) and still_there is not None:
@@ -128,13 +136,3 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             raise NotImplementedError
 
     return convert(cmd)
-
-def convert_function(func, vals=None):
-    """Convert a function call with the given arguments to an HCSP program.
-
-    func : Function - Matlab function to be called.
-    vals : [None, List[Expr]] - list of expressions as input values.
-
-    """
-    cmd = func.instantiate(vals)
-    return convert_cmd(cmd)

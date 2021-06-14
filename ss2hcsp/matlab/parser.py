@@ -10,12 +10,11 @@ from ss2hcsp.hcsp import hcsp
 grammar = r"""
     // Expressions
 
-    ?lname: CNAME -> var_expr
+    ?atom_expr: CNAME -> var_expr
         | CNAME "(" ")" -> fun_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
-        | "[" lname ("," lname)* "]" -> list_expr
-
-    ?atom_expr: lname
+        | "[" "]" -> list_expr
+        | "[" expr ("," expr)* "]" -> list_expr
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "(" expr ")"
@@ -52,6 +51,10 @@ grammar = r"""
     ?cond: disj
 
     // Commands
+
+    ?lname: CNAME -> var_lname
+        | CNAME "(" expr ("," expr)* ")" -> fun_lname
+        | "[" lname ("," lname)* "]" -> list_lname
     
     // Assignment command includes possible type declarations
     ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
@@ -180,6 +183,15 @@ class MatlabTransformer(Transformer):
 
     def disj(self, b1, b2):
         return function.LogicExpr("||", b1, b2)
+
+    def var_lname(self, s):
+        return function.Var(str(s))
+
+    def fun_lname(self, fun_name, *exprs):
+        return function.FunExpr(str(fun_name), *exprs)
+
+    def list_lname(self, *args):
+        return function.ListExpr(*args)
 
     def assign_cmd(self, lname, expr):
         return function.Assign(lname, expr)

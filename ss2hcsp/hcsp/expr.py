@@ -256,7 +256,7 @@ class ListExpr(AExpr):
     """List expressions."""
     def __init__(self, *args):
         super(ListExpr, self).__init__()
-        args = list(args)
+        args = tuple(args)
         assert all(isinstance(arg, AExpr) for arg in args)
         self.args = args
 
@@ -495,17 +495,22 @@ class LogicExpr(BExpr):
         return LogicExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
 
-def conj(*args):
-    assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
-    if false_expr in args:
-        return false_expr
-    args = tuple(arg for arg in args if arg !=true_expr)  # delete repeated elements
+def list_conj(*args):
     if len(args) == 0:
         return true_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("&&", args[0],conj(*args[1:]))
+    return LogicExpr("&&", args[0], list_conj(*args[1:]))
 
+def conj(*args):
+    assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
+    if false_expr in args:
+        return false_expr
+    new_args = []
+    for arg in args:
+        if arg != true_expr and arg not in new_args:
+            new_args.append(arg)
+    return list_conj(*new_args)
 
 def split_conj(e):
     if isinstance(e, LogicExpr) and e.op == '&&':
@@ -513,27 +518,22 @@ def split_conj(e):
     else:
         return [e]
 
+def list_disj(*args):
+    if len(args) == 0:
+        return false_expr
+    if len(args) == 1:
+        return args[0]
+    return LogicExpr("||", args[0], list_disj(*args[1:]))
 
 def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if true_expr in args:
         return true_expr
-    args = set(args)  # delete repeated elements
-    if false_expr in args:
-        args.remove(false_expr)
-    args = tuple(args)
-    if len(args) == 0:
-        return false_expr
-    elif len(args) == 1:
-        return args[0]
-    # Select the minimal element as the head
-    arg_strs = [str(arg) for arg in args]
-    print(77777)
-    print(args)
-    min_arg_index = arg_strs.index(min(arg_strs))
-    # return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
-    return LogicExpr("||", args[0],disj(*args[1:]))
-
+    new_args = []
+    for arg in args:
+        if arg != false_expr and arg not in new_args:
+            new_args.append(arg)
+    return list_disj(*new_args)
 
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':

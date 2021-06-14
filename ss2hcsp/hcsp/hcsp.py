@@ -165,7 +165,7 @@ class HCSP:
         elif self.type == 'test':
             return Test(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
         elif self.type == 'log':
-            return Log(*[expr.subst(inst) for expr in self.exprs])
+            return Log(self.pattern.subst(inst), exprs=[expr.subst(inst) for expr in self.exprs])
         elif self.type == 'input_channel':
             return InputChannel(self.ch_name.subst(inst), self.var_name)
         elif self.type == 'output_channel':
@@ -381,24 +381,35 @@ class Test(HCSP):
 
 
 class Log(HCSP):
-    def __init__(self, *exprs):
+    def __init__(self, pattern, *, exprs=None):
         super(Log, self).__init__()
         self.type = "log"
-        exprs = tuple(exprs)
+        assert isinstance(pattern, AExpr)
+        self.pattern = pattern
+        if exprs is None:
+            exprs = tuple()
+        else:
+            exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
 
     def __eq__(self, other):
-        return self.type == other.type and self.exprs == other.exprs
+        return self.type == other.type and self.pattern == other.pattern and self.exprs == other.exprs
 
     def __repr__(self):
-        return "Log(%s)" % (','.join(repr(expr) for expr in self.exprs))
+        if self.exprs:
+            return "Log(%s,%s)" % (repr(self.pattern), ','.join(repr(expr) for expr in self.exprs))
+        else:
+            return "Log(%s)" % repr(self.pattern)
 
     def __str__(self):
-        return "log(%s)" % (','.join(str(expr) for expr in self.exprs))
+        if self.exprs:
+            return "log(%s,%s)" % (self.pattern, ','.join(str(expr) for expr in self.exprs))
+        else:
+            return "log(%s)" % self.pattern
 
     def __hash__(self):
-        return hash(("Log", self.exprs))
+        return hash(("Log", self.pattern, self.exprs))
 
     def get_vars(self):
         var_set = set()

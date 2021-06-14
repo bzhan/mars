@@ -92,7 +92,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'test':
         return hcsp.Test(hp.bexpr.subst(inst), [msg.subst(inst) for msg in hp.msgs])
     elif hp.type == 'log':
-        return hcsp.Log(*(e.subst(inst) for e in hp.exprs))
+        return hcsp.Log(hp.pattern.subst(inst), exprs=[e.subst(inst) for e in hp.exprs])
     elif hp.type == 'input_channel':
         return hp
     elif hp.type == 'output_channel':
@@ -102,6 +102,15 @@ def replace_read_vars(hp, inst):
             return hp
         else:
             return hcsp.OutputChannel(hp.ch_name, hp.expr.subst(inst))
+    else:
+        raise NotImplementedError
+
+def get_write_vars(lname):
+    """Given lname of an assignment, return the set of variables written."""
+    if isinstance(lname, expr.AVar):
+        return {lname.name}
+    elif isinstance(lname, expr.ArrayIdxExpr):
+        return get_write_vars(lname.expr1)
     else:
         raise NotImplementedError
 
@@ -293,7 +302,7 @@ class HCSPAnalysis:
     def init_all_vars(self):
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'assign':
-                self.all_vars.add(info.sub_hp.var_name.name)
+                self.all_vars = self.all_vars.union(get_write_vars(info.sub_hp.var_name))
 
     def compute_reaching_definition(self):
         """Reaching definition analysis.
@@ -313,7 +322,8 @@ class HCSPAnalysis:
         # Assignments
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'assign':
-                info.reach_after.append((info.sub_hp.var_name.name, loc))
+                for write_vars in get_write_vars(info.sub_hp.var_name):
+                    info.reach_after.append((write_vars, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -328,7 +338,7 @@ class HCSPAnalysis:
             for _, info in self.infos.items():
                 for var, loc in info.reach_before:
                     if (var, loc) not in info.reach_after and \
-                        (info.sub_hp.type != "assign" or var != info.sub_hp.var_name.name):
+                        (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
                         found = True
                         info.reach_after.append((var, loc))
 
@@ -406,7 +416,7 @@ class HCSPAnalysis:
             for _, info in self.infos.items():
                 for var in info.live_after:
                     if var not in info.live_before and \
-                        (info.sub_hp.type != "assign" or var != info.sub_hp.var_name.name):
+                        (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
                         found = True
                         info.live_before.append(var)
             
@@ -425,8 +435,9 @@ class HCSPAnalysis:
         """Dead code are assignments whose variable which is not live afterwards."""
         dead_code = []
         for loc, info in self.infos.items():
-            if info.sub_hp.type == 'assign' and info.sub_hp.var_name.name not in info.live_after:
-                dead_code.append(loc)
+            if info.sub_hp.type == 'assign':
+                if all(name not in info.live_after for name in get_write_vars(info.sub_hp.var_name)):
+                    dead_code.append(loc)
         
         return dead_code
 

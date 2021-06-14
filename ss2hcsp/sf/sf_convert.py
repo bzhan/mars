@@ -12,8 +12,17 @@ from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent
 
 
 class SFConvert:
-    def __init__(self, chart):
+    """Conversion from Stateflow chart to HCSP process.
+    
+    chart : SF_Chart
+    data_info : dict(str, SF_Data)
+
+    """
+    def __init__(self, chart, *, data_info=None):
         self.chart = chart
+        if data_info is None:
+            data_info = dict()
+        self.data_info = data_info
 
         # Mapping name to state
         self.name_to_state = dict()
@@ -26,11 +35,15 @@ class SFConvert:
         for fun in chart.diagram.funs:
             self.procedures[fun.name] = fun
 
-        # Convert expression and convert command functions
-        self.convert_expr = convert.convert_expr
+        # Functions for converting expressions and commands. Simply wrap
+        # the corresponding functions in convert, but with extra arguments.
+        def convert_expr(e):
+            return convert.convert_expr(e, arrays=self.data_info.keys())
+        self.convert_expr = convert_expr
+
         def convert_cmd(cmd, *, still_there=None):
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there)
+                                       still_there=still_there, arrays=self.data_info.keys())
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, init_tran_act) to the
@@ -493,8 +506,14 @@ class SFConvert:
 
     def get_init_proc(self):
         procs = []
+
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
+
+        # Initialize variables
+        for vname, info in self.data_info.items():
+            if info.value is not None:
+                procs.append(hcsp.Assign(vname, self.convert_expr(info.value)))
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
