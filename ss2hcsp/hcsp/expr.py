@@ -312,14 +312,26 @@ class DictExpr(AExpr):
 
 class ArrayIdxExpr(AExpr):
     """Expressions of the form a[i], where a evaluates to a list and i
-    evaluates to an integer.
+    evaluates to an integer. Constructor also supports the case where the
+    second argument is a list.
     
     """
     def __init__(self, expr1, expr2):
         super(ArrayIdxExpr, self).__init__()
-        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
-        self.expr1 = expr1
-        self.expr2 = expr2
+        if isinstance(expr1, str):
+            expr1 = AVar(expr1)
+        assert isinstance(expr1, AExpr)
+        if isinstance(expr2, AExpr):
+            self.expr1 = expr1
+            self.expr2 = expr2
+        else:
+            assert isinstance(expr2, (list, tuple)) and len(expr2) >= 1
+            if len(expr2) == 1:
+                self.expr1 = expr1
+                self.expr2 = expr2[0]
+            else:
+                self.expr1 = ArrayIdxExpr(expr1, expr2[:-1])
+                self.expr2 = expr2[-1]
 
     def __repr__(self):
         return "ArrayIdxExpr(%s,%s)" % (repr(self.expr1), repr(self.expr2))

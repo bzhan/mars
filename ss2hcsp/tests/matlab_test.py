@@ -24,6 +24,10 @@ class MatlabTest(unittest.TestCase):
             "if x == 1\n  x = x + 1\nelse\n  x = x - 1",
             "if x == 1\n  if y == 1\n    z = 1\n  else\n    z = 2\nelse\n  z = 3",
             "if x == 1\n  y = 1;\n  z = 2\nelse\n  y = 2;\n  z = 1",
+            "a(1) = b(1)",
+            "[a,b] = [b,a]",
+            "[a(1),a(2)] = [a(2),a(1)]",
+            'a(1,2) = a(2,1)',
         ]
 
         for s in test_data:
@@ -106,11 +110,13 @@ class MatlabTest(unittest.TestCase):
             ("z = min(x,y)", "z := min(x,y)"),
             ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x+1 else x := x-1 endif"),
             ("x = 1; y = 1", "x := 1; y := 1"),
+            ("a(1) = b(1)", "a[1] := b[1]"),
+            ("a(1) = f(1)", "a[1] := f(1)"),
         ]
 
         for s, res in test_data:
             cmd = parser.cmd_parser.parse(s)
-            hp = convert.convert_cmd(cmd)
+            hp = convert.convert_cmd(cmd, arrays={'a', 'b'})
             self.assertEqual(str(hp), res)
 
     def testConvertPrint(self):

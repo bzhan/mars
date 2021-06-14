@@ -8,20 +8,17 @@ from ss2hcsp.hcsp import hcsp
 
 
 grammar = r"""
-    ?lname: CNAME -> var_expr
-
-    // Return value is either an CNAME or a list of CNAMEs
-    ?return_var: "[" CNAME ("," CNAME)* "]" -> return_var
-        | CNAME                             -> return_var_single
-
     // Expressions
+
+    ?lname: CNAME -> var_expr
+        | CNAME "(" ")" -> fun_expr
+        | CNAME "(" expr ("," expr)* ")" -> fun_expr
+        | "[" lname ("," lname)* "]" -> list_expr
 
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "(" expr ")"
-        | CNAME "(" ")" -> fun_expr
-        | CNAME "(" expr ("," expr)* ")" -> fun_expr
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
@@ -57,7 +54,7 @@ grammar = r"""
     // Commands
     
     // Assignment command includes possible type declarations
-    ?assign_cmd: ("int" | "float")? return_var "=" expr (";")?
+    ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
 
     // Function call is also a command (this includes fprintf calls)
     ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
@@ -81,6 +78,10 @@ grammar = r"""
     ?cmd: seq_cmd
 
     // Definition of functions
+
+    // Return value is either an CNAME or a list of CNAMEs
+    ?return_var: "[" CNAME ("," CNAME)* "]" -> return_var
+        | CNAME                             -> return_var_single
 
     // Signature of functions can be of three types: func, func(args) and x=func(args)
     ?func_sig: CNAME                                      -> func_sig_name
@@ -116,11 +117,11 @@ class MatlabTransformer(Transformer):
     def var_expr(self, s):
         return function.Var(str(s))
 
-    def return_var(self, *args):
-        return tuple(str(arg) for arg in args)
+    def fun_expr(self, fun_name, *exprs):
+        return function.FunExpr(str(fun_name), *exprs)
 
-    def return_var_single(self, arg):
-        return str(arg)
+    def list_expr(self, *args):
+        return function.ListExpr(*args)
 
     def num_expr(self, v):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
@@ -128,9 +129,6 @@ class MatlabTransformer(Transformer):
     def string_expr(self, s):
         # Remove quotes
         return function.AConst(str(s)[1:-1])
-
-    def fun_expr(self, fun_name, *exprs):
-        return function.FunExpr(str(fun_name), *exprs)
 
     def times_expr(self, e1, e2):
         return function.OpExpr("*", e1, e2)
@@ -183,8 +181,8 @@ class MatlabTransformer(Transformer):
     def disj(self, b1, b2):
         return function.LogicExpr("||", b1, b2)
 
-    def assign_cmd(self, return_var, expr):
-        return function.Assign(return_var, expr)
+    def assign_cmd(self, lname, expr):
+        return function.Assign(lname, expr)
 
     def func_cmd_has_param(self, name, *params):
         return function.FunctionCall(str(name), *params)
@@ -224,6 +222,12 @@ class MatlabTransformer(Transformer):
 
     def event_cmd(self, event):
         return function.RaiseEvent(event)
+
+    def return_var(self, *args):
+        return tuple(str(arg) for arg in args)
+
+    def return_var_single(self, arg):
+        return str(arg)
 
     def func_sig_name(self, name):
         return str(name), (), None
