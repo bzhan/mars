@@ -10,6 +10,16 @@ from ss2hcsp.hcsp import hcsp
 
 
 class MatlabTest(unittest.TestCase):
+    def testParseExpr(self):
+        test_data = [
+            "0",
+            "[0,0,0,0,0]"
+        ]
+
+        for s in test_data:
+            expr = parser.expr_parser.parse(s)
+            self.assertEqual(str(expr), s)
+
     def testParseCmd(self):
         test_data = [
             "x = 1",
@@ -24,6 +34,10 @@ class MatlabTest(unittest.TestCase):
             "if x == 1\n  x = x + 1\nelse\n  x = x - 1",
             "if x == 1\n  if y == 1\n    z = 1\n  else\n    z = 2\nelse\n  z = 3",
             "if x == 1\n  y = 1;\n  z = 2\nelse\n  y = 2;\n  z = 1",
+            "a(1) = b(1)",
+            "[a,b] = [b,a]",
+            "[a(1),a(2)] = [a(2),a(1)]",
+            'a(1,2) = a(2,1)',
         ]
 
         for s in test_data:
@@ -106,11 +120,13 @@ class MatlabTest(unittest.TestCase):
             ("z = min(x,y)", "z := min(x,y)"),
             ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x+1 else x := x-1 endif"),
             ("x = 1; y = 1", "x := 1; y := 1"),
+            ("a(1) = b(1)", "a[0] := b[0]"),
+            ("a(1) = f(1)", "a[0] := f(1)"),
         ]
 
         for s, res in test_data:
             cmd = parser.cmd_parser.parse(s)
-            hp = convert.convert_cmd(cmd)
+            hp = convert.convert_cmd(cmd, arrays={'a', 'b'})
             self.assertEqual(str(hp), res)
 
     def testConvertPrint(self):
@@ -123,7 +139,7 @@ class MatlabTest(unittest.TestCase):
         res = "x := 0; x := x+1; log(\"enA is executing\"+x)"
 
         func = parser.function_parser.parse(s)
-        hp = convert.convert_function(func)
+        hp = convert.convert_cmd(func.instantiate())
         self.assertEqual(str(hp), res)
 
     def testConvertEvent(self):
@@ -139,7 +155,7 @@ class MatlabTest(unittest.TestCase):
     def testConvertFunctionCall(self):
         s = "x = 0; f()"
         procedures = {'f': parser.function_parser.parse("function f\n  x = x + 1;")}
-        res = "x := 0; @f"
+        res = "x := 0; x := x+1"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, procedures=procedures)
@@ -170,7 +186,7 @@ class MatlabTest(unittest.TestCase):
         """
         res = "y := uniform(0,1); if x > 0.6 then if x > 0.6 then y := 1 else y := 0 endif else y := 0 endif"
         func = parser.function_parser.parse(s)
-        hp = convert.convert_function(func)
+        hp = convert.convert_cmd(func.instantiate())
         self.assertEqual(str(hp), res)
 
     def testConvertFunctionWithParam(self):
@@ -180,7 +196,7 @@ class MatlabTest(unittest.TestCase):
         """
         res = "log(\"A1\"+\"\\n\")"
         func = parser.function_parser.parse(s)
-        hp = convert.convert_function(func, vals=[function.AConst("A1")])
+        hp = convert.convert_cmd(func.instantiate([function.AConst("A1")]))
         self.assertEqual(str(hp), res)
 
     def testParseTransition(self):

@@ -5,7 +5,7 @@ import html
 
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.parser import function_parser, cmd_parser, transition_parser
+from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, transition_parser
 from ss2hcsp.matlab import convert
 
 from ss2hcsp.sl.port import Port
@@ -431,51 +431,16 @@ class SL_Diagram:
 
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
-                # assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
-                # value = eval(value) 
-                if value and "[" in value:
-                    if ";" in value:
-                        value_list = value.split(";")
-                        val_lists=list()
-                        for val in value_list:
-                            if "[" in val:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val = val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            elif "]" in val:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val="["+val
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            else:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val ="["+val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                        value =val_lists
-                     
-                    else:
-                       
-                        # print(value)
-                        # print(aexpr_parser.parse(value).value)
-                        value=value.strip()
-                        if "," not in value:
-                            value=str(value).replace(" ",",")
-                        value = list(aexpr_parser.parse(value).value)
-                     
-
-                elif value:
-                    value = eval(value) 
-                else:
-                    value = 0
-                scope=get_attribute_value(data, "scope")
-                sf_data=SF_Data(name=var_name,value=value,scope=scope)
-                if (len(data.getElementsByTagName(name="message"))>=1):
+                if value is not None:
+                    try:
+                        value = expr_parser.parse(value)
+                    except lark.exceptions.UnexpectedToken as e:
+                        print("When parsing value:", value)
+                        raise e
+                scope = get_attribute_value(data, "scope")
+                sf_data = SF_Data(name=var_name,value=value,scope=scope)
+                if len(data.getElementsByTagName(name="message")) >= 1:
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
                         break;

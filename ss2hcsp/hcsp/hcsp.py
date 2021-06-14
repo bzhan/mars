@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, RelExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr
 import re
 
 
@@ -165,7 +165,7 @@ class HCSP:
         elif self.type == 'test':
             return Test(self.bexpr.subst(inst), [expr.subst(inst) for expr in self.msgs])
         elif self.type == 'log':
-            return Log(*[expr.subst(inst) for expr in self.exprs])
+            return Log(self.pattern.subst(inst), exprs=[expr.subst(inst) for expr in self.exprs])
         elif self.type == 'input_channel':
             return InputChannel(self.ch_name.subst(inst), self.var_name)
         elif self.type == 'output_channel':
@@ -381,24 +381,35 @@ class Test(HCSP):
 
 
 class Log(HCSP):
-    def __init__(self, *exprs):
+    def __init__(self, pattern, *, exprs=None):
         super(Log, self).__init__()
         self.type = "log"
-        exprs = tuple(exprs)
+        assert isinstance(pattern, AExpr)
+        self.pattern = pattern
+        if exprs is None:
+            exprs = tuple()
+        else:
+            exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
 
     def __eq__(self, other):
-        return self.type == other.type and self.exprs == other.exprs
+        return self.type == other.type and self.pattern == other.pattern and self.exprs == other.exprs
 
     def __repr__(self):
-        return "Log(%s)" % (','.join(repr(expr) for expr in self.exprs))
+        if self.exprs:
+            return "Log(%s,%s)" % (repr(self.pattern), ','.join(repr(expr) for expr in self.exprs))
+        else:
+            return "Log(%s)" % repr(self.pattern)
 
     def __str__(self):
-        return "log(%s)" % (','.join(str(expr) for expr in self.exprs))
+        if self.exprs:
+            return "log(%s,%s)" % (self.pattern, ','.join(str(expr) for expr in self.exprs))
+        else:
+            return "log(%s)" % self.pattern
 
     def __hash__(self):
-        return hash(("Log", self.exprs))
+        return hash(("Log", self.pattern, self.exprs))
 
     def get_vars(self):
         var_set = set()
@@ -1006,6 +1017,21 @@ class ITE(HCSP):
         ch_set.update(self.else_hp.get_chs())
         return ch_set
 
+def ite(if_hps, else_hp):
+    """Construction of if-then-else with simplifications."""
+    new_if_hps, new_else_hp = [], else_hp
+    for cond, if_hp in if_hps:
+        if cond == true_expr:
+            new_else_hp = if_hp
+            break
+        elif cond == false_expr:
+            continue
+        else:
+            new_if_hps.append((cond, if_hp))
+    if len(new_if_hps) == 0:
+        return new_else_hp
+    else:
+        return ITE(new_if_hps, new_else_hp)
 
 def get_comm_chs(hp):
     """Returns the list of communication channels for the given program.
@@ -1193,51 +1219,6 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
         del procs[inline_name]
 
     return hp
-
-def simplify(hp):
-    """Perform immediate simplifications to HCSP process. This includes:
-    
-    * Remove extraneous skip from processes.
-    * Simplify if true then P else Q to P.
-    
-    """
-    if isinstance(hp, (Var, Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
-        return hp
-    elif isinstance(hp, Sequence):
-        hps = []
-        for sub_hp in hp.hps:
-            simp_sub_hp = simplify(sub_hp)
-            if not simp_sub_hp == Skip():
-                hps.append(simp_sub_hp)
-        return seq(hps)
-    elif isinstance(hp, Parallel):
-        return Parallel(*(simplify(sub_hp) for sub_hp in hp.hps))
-    elif isinstance(hp, Loop):
-        return Loop(simplify(hp.hp), hp.constraint)
-    elif isinstance(hp, Condition):
-        return Condition(hp.cond, simplify(hp.hp))
-    elif isinstance(hp, Recursion):
-        return Recursion(simplify(hp.hp), hp.entry)
-    elif isinstance(hp, ODE):
-        return ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
-    elif isinstance(hp, ODE_Comm):
-        return ODE_Comm(hp.eqs, hp.constraint,
-                        [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
-    elif isinstance(hp, SelectComm):
-        return SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
-    elif isinstance(hp, ITE):
-        for i in range(len(hp.if_hps)):
-            cond, sub_hp = hp.if_hps[i]
-            if cond == true_expr:
-                if i == 0:
-                    return simplify(sub_hp)
-                else:
-                    return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps[:i]],
-                               simplify(sub_hp))
-        return ITE([(cond, simplify(if_hp)) for cond, if_hp in hp.if_hps],
-                   simplify(hp.else_hp))
-    else:
-        raise NotImplementedError
 
 
 class HCSPProcess:

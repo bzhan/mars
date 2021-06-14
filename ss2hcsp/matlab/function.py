@@ -335,37 +335,30 @@ class Assign(Command):
     """Assignment command.
 
     This command evaluates expr, which should return either a value or a list
-    of values. The returned value is assigned to one or more return variables.
+    of values. The resulting value is assigned to one or more lnames.
 
     """
-    def __init__(self, return_vars, expr):
+    def __init__(self, lname, expr):
         super(Assign, self).__init__()
         assert isinstance(expr, Expr)
-        if isinstance(return_vars, str):
-            self.return_vars = return_vars
-        else:
-            self.return_vars = tuple(return_vars)
+        assert isinstance(lname, (Var, FunExpr, ListExpr))
+        self.lname = lname
         self.expr = expr
 
     def __str__(self):
-        if isinstance(self.return_vars, str):
-            return "%s = %s" % (self.return_vars, self.expr)
-        else:
-            return "[%s] = %s" % (','.join(self.return_vars), self.expr)
+        return "%s = %s" % (self.lname, self.expr)
 
     def __repr__(self):
-        return "Assign(%s,%s)" % (repr(self.return_vars), repr(self.expr))
+        return "Assign(%s,%s)" % (repr(self.lname), repr(self.expr))
 
     def __eq__(self, other):
-        return isinstance(other, Assign) and self.return_vars == other.return_vars and \
+        return isinstance(other, Assign) and self.lname == other.lname and \
             self.expr == other.expr
 
     def subst(self, inst):
-        # Disallow instantiating return values
-        for var in self.return_vars:
-            assert var not in inst, "Cannot instantiate return value %s" % var
-        
-        return Assign(self.return_vars, self.expr.subst(inst))
+        # Disallow instantiating lname
+        assert self.lname not in inst, "Cannot instantiate lname %s" % self.lname
+        return Assign(self.lname, self.expr.subst(inst))
 
 
 class FunctionCall(Command):
