@@ -12,10 +12,10 @@ from ss2hcsp.sl.MathOperations.add import Add
 from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
-from ss2hcsp.sl.get_hcsp import get_hcsp
+from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
 
 
@@ -408,12 +408,38 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
     #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
-    def testEnabledSubsystem(self):
-        directory = "./Examples/Simulink_Triggerred_Subsystem/"
-        xml_file = "discrete_triggerred_subsystem.xml"
+    # def testEnabledSubsystem(self):
+    #     directory = "./Examples/Simulink_Triggerred_Subsystem/"
+    #     xml_file = "discrete_triggerred_subsystem.xml"
+    #     diagram = SL_Diagram(location=directory + xml_file)
+    #     _ = diagram.parse_xml()
+    #     diagram.add_line_name()
+    #     for block in diagram.blocks:
+    #         if isinstance(block, Enabled_Subsystem):
+    #             block.add_enabled_condition_to_innerBlocks()
+    #     print(diagram)
+
+    def testDiscreteTriggeredSubsystem(self):
+        directory = "./Examples/Simulink_Triggered_Subsystem/"
+        xml_file = "discrete_triggered_subsystem.xml"
         diagram = SL_Diagram(location=directory + xml_file)
-        model_name = diagram.parse_xml()
-        print(diagram)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
+        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
+        # print(result_hp)
+
+    def testContinuousTriggeredSubsystem(self):
+        directory = "./Examples/Simulink_Triggered_Subsystem/"
+        xml_file = "continuous_triggered_subsystem.xml"
+        diagram = SL_Diagram(location=directory + xml_file)
+        _ = diagram.parse_xml()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
+        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
+        # print(result_hp)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, true_expr
+from ss2hcsp.hcsp.expr import AVar, AConst, PlusExpr, true_expr, RelExpr, ModExpr
+import ss2hcsp.hcsp.hcsp as hp
 
 
 class Bias(SL_Block):
@@ -25,6 +26,13 @@ class Bias(SL_Block):
 
     def __repr__(self):
         return str(self)
+
+    def get_output_hp(self):
+        in_var = self.dest_lines[0].name
+        out_var = self.src_lines[0][0].name
+        cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var,
+                                                    expr=PlusExpr("++", [AVar(in_var), AConst(self.bias)])))
 
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
