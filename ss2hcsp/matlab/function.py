@@ -314,6 +314,9 @@ class RelExpr(BExpr):
     def __hash__(self):
         return hash(("RelExpr", self.op, self.expr1, self.expr2))
 
+    def priority(self):
+        return 50
+
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 

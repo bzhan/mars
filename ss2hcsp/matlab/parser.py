@@ -90,6 +90,7 @@ grammar = r"""
     ?func_sig: CNAME                                      -> func_sig_name
         | CNAME "(" ")"                                   -> func_sig_no_param
         | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
+        | return_var "=" CNAME                            -> func_sig_return_name
         | return_var "=" CNAME "(" ")"                    -> func_sig_return_no_param
         | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
 
@@ -250,6 +251,9 @@ class MatlabTransformer(Transformer):
     def func_sig_has_param(self, name, *params):
         return str(name), tuple(str(param) for param in params), None
 
+    def func_sig_return_name(self, return_var, name):
+        return str(name), (), return_var
+
     def func_sig_return_no_param(self, return_var, name):
         return str(name), (), return_var
 
@@ -291,5 +295,6 @@ expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTrans
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
 cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
 event_parser = Lark(grammar, start="event", parser="lalr", transformer=MatlabTransformer())
+func_sig_parser = Lark(grammar, start="func_sig", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
 transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())

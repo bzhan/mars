@@ -134,6 +134,10 @@ class SFConvertTest(unittest.TestCase):
              'log 1,4', 'delay 0.1', 'log 1,5', 'delay 0.1',
              'log 100,200,300,400,500', 'delay 0.1'])
 
+    def testGraphicalFunction(self):
+        run_test(self, "./Examples/Stateflow/tests/graphical_function.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
 
 if __name__ == "__main__":
     unittest.main()

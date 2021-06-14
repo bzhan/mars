@@ -3,7 +3,7 @@
 from ss2hcsp.sl.get_hcsp import get_hcsp
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_chart import get_common_ancestor
-from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction
+from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
@@ -38,7 +38,7 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data_info.keys())
+            return convert.convert_expr(e, arrays=self.data_info.keys(), procedures=self.procedures)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
@@ -216,7 +216,7 @@ class SFConvert:
         still_there_tran : BExpr - when to continue execution of transition action.
 
         """
-        conds, cond_act, tran_act = [], hcsp.Skip(), hcsp.Skip()
+        pre_act, conds, cond_act, tran_act = hcsp.Skip(), [], hcsp.Skip(), hcsp.Skip()
         if label is not None:
             if label.event is not None:
                 if isinstance(label.event, BroadcastEvent):
@@ -225,12 +225,13 @@ class SFConvert:
                 else:
                     raise NotImplementedError('convert_label: currently only support broadcast events')
             if label.cond is not None:
-                conds.append(self.convert_expr(label.cond))
+                pre_act, hp_cond = self.convert_expr(label.cond)
+                conds.append(hp_cond)
             if label.cond_act is not None:
                 cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
             if label.tran_act is not None:
                 tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
-        return expr.conj(*conds), cond_act, tran_act
+        return pre_act, expr.conj(*conds), cond_act, tran_act
 
     def get_rec_entry_proc(self, state):
         """Return the process for recursively entering into state.
@@ -251,8 +252,8 @@ class SFConvert:
                 default_tran = None
                 for child in state.children:
                     if isinstance(child, OR_State) and child.default_tran:
-                        cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
-                        assert cond == expr.true_expr, \
+                        pre_act, cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
+                        assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
                             "get_rec_entry_proc: no condition on default transitions"
                         default_tran = hcsp.seq([
                             cond_act, tran_act, hcsp.Var(self.entry_proc_name(child)),
@@ -333,7 +334,7 @@ class SFConvert:
                 for i, tran in enumerate(state.out_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    cond, cond_act, tran_act = self.convert_label(
+                    pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
 
                     # Perform the condition action. If still in the current state
@@ -345,13 +346,13 @@ class SFConvert:
                             self.get_traverse_state_proc(dst, src, tran_act),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
                     if i == 0:
-                        procs.append(hcsp.Condition(cond, act))
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
                     else:
-                        procs.append(hcsp.Condition(
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(
                             expr.conj(still_there_cond,
                                       expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
                                       cond),
-                            act))
+                            act)]))
 
             # If still in the state, perform the during action.
             procs.append(hcsp.Condition(
@@ -364,7 +365,7 @@ class SFConvert:
                 for i, tran in enumerate(state.inner_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    cond, cond_act, tran_act = self.convert_label(
+                    pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
 
                     # Perform the condition action. If still in the current state
@@ -376,13 +377,13 @@ class SFConvert:
                             self.get_traverse_state_proc(dst, src, tran_act),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
                     if i == 0:
-                        procs.append(hcsp.Condition(cond, act))
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
                     else:
-                        procs.append(hcsp.Condition(
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(
                             expr.conj(still_there_cond,
                                       expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
                                       cond),
-                            act))
+                            act)]))
 
             # Set return value to done
             procs.append(self.return_val(expr.AVar(done)))
@@ -478,18 +479,16 @@ class SFConvert:
                 done = "J" + state.ssid + "_done"
                 procs.append(hcsp.Assign(done, expr.AConst(0)))
                 for i, tran in enumerate(state.out_trans):
-                    src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    cond, cond_act, tran_act = self.convert_label(tran.label)
+                    pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
                     act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
                     act = hcsp.seq([cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
                     if i == 0:
-                        procs.append(hcsp.Condition(cond, act))
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)])),
                     else:
-                        procs.append(hcsp.Condition(
-                            expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)),
-                                      cond),
-                            act))
+                        procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                            expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)), cond),
+                            act)]))
                 procs.append(self.return_val(expr.AVar(done)))
                 proc = hcsp.seq(procs)
                 self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, proc)
@@ -497,6 +496,48 @@ class SFConvert:
 
         else:
             raise TypeError("get_junction_proc")
+
+    def convert_graphical_function_junc(self, junc):
+        """Conversion for junctions in graphical functions.
+
+        These junctions are much simpler, since the function returns when
+        reaching dead-end (rather than backtracking), and there are no transition
+        actions.
+
+        """
+        if not junc.out_trans:
+            return hcsp.Skip()
+        
+        procs = []
+        done = "J" + junc.ssid + "_done"
+        procs.append(hcsp.Assign(done, expr.AConst(0)))
+        for i, tran in enumerate(junc.out_trans):
+            pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
+            assert tran_act == hcsp.Skip(), \
+                "convert_graphical_function_junc: no transition action in graphical functions."
+            act = hcsp.seq([cond_act, hcsp.Var("J" + tran.dst)])
+            if i == 0:
+                procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
+            else:
+                procs.append(hcsp.seq([pre_act, hcsp.Condition(
+                    expr.conj(expr.RelExpr("==", expr.AVar(done), expr.AConst(0)), cond),
+                    act)]))
+        return hcsp.seq(procs)
+
+    def convert_graphical_function(self, proc):
+        """Generate all procedures corresponding to a graphical function."""
+        res = dict()
+        for junc in proc.junctions:
+            res["J" + junc.ssid] = self.convert_graphical_function_junc(junc)
+
+        # Now process default transition
+        pre_act, cond, cond_act, tran_act = self.convert_label(proc.default_tran.label)
+        dst = proc.default_tran.dst
+        assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
+            "convert_graphical_function: no condition on default transitions"
+        assert tran_act == hcsp.Skip(), "convert_graphical_function: no transition action in graphical functions"
+        res[proc.name] = hcsp.seq([cond_act, hcsp.Var("J" + proc.default_tran.dst)])
+        return res
 
     def init_name(self):
         return "init_" + self.chart.name
@@ -513,7 +554,8 @@ class SFConvert:
         # Initialize variables
         for vname, info in self.data_info.items():
             if info.value is not None:
-                procs.append(hcsp.Assign(vname, self.convert_expr(info.value)))
+                pre_act, val = self.convert_expr(info.value)
+                procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
@@ -533,6 +575,7 @@ class SFConvert:
         """Returns the list of procedures."""
         all_procs = dict()
 
+        # Procedures for states
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, (AND_State, OR_State)):
                 all_procs[self.en_proc_name(state)] = self.get_en_proc(state)
@@ -541,12 +584,20 @@ class SFConvert:
                 all_procs[self.entry_proc_name(state)] = self.get_entry_proc(state)
                 all_procs[self.during_proc_name(state)] = self.get_during_proc(state)
                 all_procs[self.exit_proc_name(state)] = self.get_exit_proc(state)
-        
-        all_procs[self.init_name()] = self.get_init_proc()
-        all_procs[self.exec_name()] = self.get_exec_proc()
+
+        # Procedures for junctions        
         for ssid, junc_map in self.junction_map.items():
             for _, (name, proc) in junc_map.items():
                 all_procs[name] = proc
+
+        # Procedures for graphical functions
+        for name, proc in self.procedures.items():
+            if isinstance(proc, GraphicalFunction):
+                all_procs.update(self.convert_graphical_function(proc))
+
+        # Initialization and iteration
+        all_procs[self.init_name()] = self.get_init_proc()
+        all_procs[self.exec_name()] = self.get_exec_proc()
 
         return all_procs
 

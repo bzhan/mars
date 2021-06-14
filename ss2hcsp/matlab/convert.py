@@ -11,14 +11,20 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, arrays=None):
+def convert_expr(e, *, procedures=None, arrays=None):
     """Convert a Matlab expression to HCSP.
+
+    Since there are possibly functions that should be evaluated,
+    part of the expression may be converted to procedures. Hence,
+    the return value is a pair (pre_act, expr).
     
     arrays - set(str): names that should be interpreted as arrays (instead of functions).
 
     """
     if arrays is None:
         arrays = set()
+    
+    pre_acts = []
 
     def rec(e):
         if isinstance(e, function.Var):
@@ -52,6 +58,11 @@ def convert_expr(e, *, arrays=None):
                 # Subtract one since indexing in Matlab is 1-based while indexing
                 # in HCSP is 0-based.
                 return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
+            elif procedures is not None and e.fun_name in procedures:
+                if len(e.exprs) > 0:
+                    raise NotImplementedError
+                pre_acts.append(hcsp.Var(e.fun_name))
+                return expr.AVar(procedures[e.fun_name].return_var)
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):
@@ -66,7 +77,8 @@ def convert_expr(e, *, arrays=None):
         else:
             raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 
-    return rec(e)
+    res = rec(e)
+    return hcsp.seq(pre_acts), res
 
 def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None):
     """Convert a Matlab command to HCSP.
@@ -92,15 +104,28 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
     for procedures with arguments.
 
     """
+    def conv_expr(e):
+        return convert_expr(e, procedures=procedures, arrays=arrays)
+
+    def conv_exprs(es):
+        # Convert a list of expressions
+        pre_acts, res = [], []
+        for e in es:
+            pre_act, hp_e = conv_expr(e)
+            pre_acts.append(pre_act)
+            res.append(hp_e)
+        return hcsp.seq(pre_acts), res
+
     def convert_lname(lname):
         if isinstance(lname, function.Var):
             return expr.AVar(lname.name)
         elif isinstance(lname, function.FunExpr):
             # Subtract one since indexing in Matlab is 1-based while indexing
             # in HCSP is 0-based.
+            pre_act, args = conv_exprs(lname.exprs)
+            assert pre_act == hcsp.Skip(), "convert_lname"
             return expr.ArrayIdxExpr(
-                expr.AVar(lname.fun_name),
-                [subtract_one(convert_expr(arg, arrays=arrays)) for arg in lname.exprs])
+                expr.AVar(lname.fun_name), [subtract_one(arg) for arg in args])
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg) for arg in lname.args]
         else:
@@ -108,12 +133,13 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     def convert(cmd):
         if isinstance(cmd, function.Assign):
-            return hcsp.Assign(convert_lname(cmd.lname), convert_expr(cmd.expr, arrays=arrays))
+            pre_act, hp_expr = conv_expr(cmd.expr)
+            return hcsp.seq([pre_act, hcsp.Assign(convert_lname(cmd.lname), hp_expr)])
 
         elif isinstance(cmd, function.FunctionCall):
             if cmd.func_name == 'fprintf':
-                return hcsp.Log(convert_expr(cmd.args[0]),
-                                exprs=[convert_expr(arg, arrays=arrays) for arg in cmd.args[1:]])
+                pre_act, hp_exprs = conv_exprs(cmd.args)
+                return hcsp.seq([pre_act, hcsp.Log(hp_exprs[0], exprs=hp_exprs[1:])])
             else:
                 assert procedures is not None and cmd.func_name in procedures, \
                     "convert_cmd: procedure %s not found" % cmd.func_name
@@ -126,7 +152,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))
 
         elif isinstance(cmd, function.IfElse):
-            return hcsp.ITE([(convert_expr(cmd.cond, arrays=arrays), convert(cmd.cmd1))], convert(cmd.cmd2))
+            pre_act, hp_cond = conv_expr(cmd.cond)
+            return hcsp.seq([pre_act, hcsp.ITE([(hp_cond, convert(cmd.cmd1))], convert(cmd.cmd2))])
 
         elif isinstance(cmd, function.RaiseEvent):
             assert raise_event is not None, "convert_cmd: raise_event not set."

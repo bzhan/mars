@@ -5,7 +5,8 @@ import html
 
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, transition_parser
+from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
+    transition_parser, func_sig_parser
 from ss2hcsp.matlab import convert
 
 from ss2hcsp.sl.port import Port
@@ -28,7 +29,7 @@ from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function, GraphicalFunction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
@@ -194,103 +195,22 @@ class SL_Diagram:
                         # Extract functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
-                        dest_state_name_list = list()
                         if fun_script:
                             # Has script, directly use parser for matlab functions
                             _functions.append(function_parser.parse(fun_script))
                         else:
-                            dest_state_name_list=list()
-                            fun_type="GRAPHICAL_FUNCTION"
-                            out_trans_dict_inner=dict()
-                            junctions=list()
-                            return_var=list()
-                            exprs=list()
-                            fun_name = get_attribute_value(child, "labelString")
-                            if "=" in fun_name:
-                                left,right=fun_name.split("=")
-                                fun_name=right.strip()
-                            for data in child.getElementsByTagName(name="data"):
-                                var_name = data.getAttribute("name")
-                          
-                                scope=get_attribute_value(data, "scope")
-                                if scope == "FUNCTION_OUTPUT_DATA":
-                                    return_var.append(var_name)
-                                elif scope == "FUNCTION_INPUT_DATA":
-                                    exprs.append(var_name)
-                            return_var=function.ListExpr(*return_var)
-                            exprs=function.ListExpr(*exprs)
-                            for tran in child.getElementsByTagName(name ="transition"):
-                                tran_ssid = tran.getAttribute("SSID")
-                                tran_label = get_attribute_value(tran, "labelString")
-                                order = int(get_attribute_value(tran, "executionOrder"))
-                                # assert len([child for child in block.childNodes if child.nodeName == "src"]) == 1
-                                # assert len([child for child in block.childNodes if child.nodeName == "dst"]) == 1
-                                src_ssid, dst_ssid = None, None
-                                for child1 in tran.childNodes:
-                                    if child1.nodeName == "src":
-                                        src_ssid = get_attribute_value(child1, "SSID")
-                                    elif child1.nodeName == "dst":
-                                        dst_ssid = get_attribute_value(child1, "SSID")
-                                # assert dst_ssid  # each transition must have a destination state
-                                # assert tran_ssid not in _tran_dict
-                                transition=Transition(ssid=tran_ssid, label=tran_label, order=order,
-                                                                   src=src_ssid, dst=dst_ssid)
-                                
-                                # for act in transition.cond_acts+transition.tran_acts:
-                                #     if re.match(pattern="send\\(.*?\\)", string=act):
-                                #         acts=act.strip('send(').strip(')')
-                                #         if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
-                                    
-                                #             if re.match(pattern="send\\(.*?,.*?\\)", string=act):
-                                #                 event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
-                                #                 path=dest_state_name1.split(".")
-                                #                 if "." in dest_state_name1:
-                                #                     path=dest_state_name1.split(".")
-                                #                     dest_state_name=path[len(path)-1]
-                                #                 else:
-                                #                     dest_state_name=dest_state_name1
-                                #             elif "." in acts:
-                                #                 path=acts.split(".")
-                                #                 dest_state_name=path[len(path)-2]
-                                #                 event=path[len(path)-1]
-                                #             dest_state_name_list.append(dest_state_name)
-                                # #######    
-                                out_trans_dict_inner[tran_ssid] = transition
-                            for jun in child.getElementsByTagName(name="junction"):
-                                ssid1 = jun.getAttribute("SSID")
-                                junc_type = get_attribute_value(block=jun, attribute="type")
-                                # Get default_tran and out_trans
-                                default_tran = None
-                                out_trans = list()
-                                for tran in out_trans_dict_inner.values():
-                                    src, dst = tran.src, tran.dst
-                                    if src is None and dst == ssid1:  # it is a default transition
-                                        default_tran = tran
-                                    elif src == ssid1:  # the src of tran is this state
-                                        out_trans.append(tran)
-                                out_trans.sort(key=operator.attrgetter("order"))
-                                junctions.append(Junction(ssid=ssid1, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                            if "(" in fun_name:
-                                fun_name = fun_name[:fun_name.index("(")]
-                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
-                            # chart_state.funs = functions
-                            for state in  junctions:
-                                state.father = chart_state1
-                                chart_state1.children.append(state)
-                            hp=None
-                            # _states.append(chart_state1)
-                            # if len(dest_state_name_list) == 0:
-                            #     stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
-                            #                  num_src=0,num_dest=0)
-                                
-                            #     stateflow.add_names()
-                            #     stateflow.find_root_for_states()
-                            #     stateflow.find_root_and_loc_for_trans()
-                            #     stateflow.parse_acts_on_states_and_trans()
-                            #     hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1)[0])
-                            return_var =return_var if len(return_var)>0 else None
-                            exprs=exprs if len(exprs)>0 else None
-                            _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
+                            children = [c for c in child.childNodes if c.nodeName == "Children"]
+                            assert len(children) == 1
+                            sub_trans = get_transitions(children[0].childNodes)
+                            sub_states, sub_junctions, sub_functions = get_children(child)
+                            assert len(sub_states) == 0 and len(sub_functions) == 0
+                            try:
+                                fun_name, fun_params, fun_return = func_sig_parser.parse(fun_name)
+                            except lark.exceptions.UnexpectedToken as e:
+                                print("When parsing function signature", fun_name)
+                                raise e
+                            graph_fun = GraphicalFunction(fun_name, fun_params, fun_return, sub_trans, sub_junctions)
+                            _functions.append(graph_fun)
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states

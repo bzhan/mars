@@ -527,23 +527,29 @@ class Function:
             return self.script
     
 
-class Graphical_Function:
-    def __init__(self, ssid, name,return_var,exprs,chart_state1):
-        self.ssid = ssid
+class GraphicalFunction:
+    def __init__(self, name, params, return_var, transitions, junctions):
         self.name = name
+        self.params = params
         self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
+        self.transitions = transitions
+        self.junctions = junctions
 
-    def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        # if self.chart_state1 is not None:
-        #     return self.chart_state1
-        # else:
-            return self.script
+        # Obtain default transition
+        self.default_tran = None
+        for ssid, tran in self.transitions.items():
+            if tran.src is None:
+                self.default_tran = tran
+                break
+        assert self.default_tran, "GraphicalFunction: no default transition found"
+
+    def __str__(self):
+        res = "GraphicalFunction(%s,%s,%s\n" % (self.name, self.params, self.return_var)
+        res += "  Junctions:\n"
+        for junc in self.junctions:
+            for line in str(junc).split('\n'):
+                res += "  " + line + "\n"
+        res += "  Default transition:\n"
+        res += "    " + str(self.default_tran) + "\n"
+        res += ")"
+        return res
