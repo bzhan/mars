@@ -951,15 +951,15 @@ class SL_Diagram:
                     assert trigger_type in ["rising", "falling", "either", "function-call"]
                     ports = get_attribute_value(block, "Ports")
                     num_dest, num_src, _, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Triggered_Subsystem(block_name, num_src+1, num_dest, trigger_type)
+                    subsystem = Triggered_Subsystem(block_name, num_src, num_dest+1, trigger_type)
                     # Why num_src+1 above?
                     # A: The number of normal in-ports (num_src) + one TriggerPort
                 elif enables:
                     assert get_attribute_value(enables[0], "StatesWhenEnabling") is None
                     assert get_attribute_value(enables[0], "PropagateVarSize") is None
                     ports = get_attribute_value(block, "Ports")
-                    num_dest, num_src, _= [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Enabled_Subsystem(block_name, num_src + 1, num_dest)
+                    num_dest, num_src, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
+                    subsystem = Enabled_Subsystem(block_name, num_src, num_dest+1)
                 else:  # it is a normal subsystem
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
@@ -1096,6 +1096,17 @@ class SL_Diagram:
             terminate = True
             for block in self.blocks_dict.values():
                 if block.st == -1:
+
+                    # Deal with triggered subsystems
+                    if block.type == "triggered_subsystem":
+                        trig_line = block.dest_lines[-1]
+                        in_block = self.blocks_dict[trig_line.src]
+                        if in_block.st >= 0:
+                            block.st = in_block.st
+                            block.is_continuous = (block.st == 0)
+                            terminate = False
+                        continue
+
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
@@ -1153,7 +1164,7 @@ class SL_Diagram:
         blocks_in_subsystems = []
 
         for block in self.blocks_dict.values():
-            if block.type == "subsystem":
+            if block.type in ["subsystem", "enabled_subsystem"]:
                 # Collect all subsystems to be deleted
                 subsystems.append(block.name)
                 # The subsystem is treated as a diagram
@@ -1245,6 +1256,11 @@ class SL_Diagram:
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict
             self.blocks_dict[block.name] = block
+
+    def new_seperate_diagram(self):
+        discrete_diagram = [block for block in self.blocks if not block.is_continuous]
+        continuous_diagram = [block for block in self.blocks if block.is_continuous]
+        return discrete_diagram, continuous_diagram
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continous subdiagrams."""

@@ -1,6 +1,7 @@
 """Simulink blocks."""
 
 from ss2hcsp.sl.sl_line import SL_Line
+from ss2hcsp.hcsp.expr import true_expr
 
 
 class SL_Block:
@@ -32,6 +33,9 @@ class SL_Block:
         # Sample time
         self.st = "-1"
 
+        # Enabled condition
+        self.enable = true_expr
+
     def __str__(self):
         return self.name
 
@@ -48,6 +52,7 @@ class SL_Block:
         # If all filled, append at the end.
         sl_line.branch = len(self.src_lines[port_id])
         self.src_lines[port_id].append(sl_line)
+
     def add_dest(self, port_id, sl_line):
         """Add a destination line."""
         assert port_id < self.num_dest
