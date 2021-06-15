@@ -8,21 +8,32 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
-from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent
+from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
+    AbsoluteTimeEvent, ImplicitEvent
 
 
 class SFConvert:
     """Conversion from Stateflow chart to HCSP process.
     
     chart : SF_Chart
-    data_info : dict(str, SF_Data)
+    chart_parameters - additional parameters.
 
     """
-    def __init__(self, chart, *, data_info=None):
+    def __init__(self, chart, *, chart_parameters=None):
         self.chart = chart
-        if data_info is None:
-            data_info = dict()
-        self.data_info = data_info
+        if chart_parameters is None:
+            chart_parameters = dict()
+        self.chart_parameters = chart_parameters
+
+        # List of data variables
+        self.data = dict()
+        if 'data' in self.chart_parameters:
+            self.data = self.chart_parameters['data']
+
+        # Sample time
+        self.sample_time = 0.1
+        if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
+            self.sample_time = self.chart_parameters['st']
 
         # Mapping name to state
         self.name_to_state = dict()
@@ -38,12 +49,12 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data_info.keys(), procedures=self.procedures)
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there, arrays=self.data_info.keys())
+                                       still_there=still_there, arrays=self.data.keys())
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, init_tran_act) to the
@@ -52,6 +63,37 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, Junction):
                 self.junction_map[ssid] = dict()
+
+        # Find all states which has a transition guarded by temporal event.
+        self.temporal_guards = dict()
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, OR_State) and state.out_trans:
+                for tran in state.out_trans:
+                    if tran.label is not None and tran.label.event is not None and \
+                        isinstance(tran.label.event, TemporalEvent):
+                        if tran.src not in self.temporal_guards:
+                            self.temporal_guards[tran.src] = []
+                        self.temporal_guards[tran.src].append(tran.label.event)
+            if isinstance(state, (AND_State, OR_State)) and state.inner_trans:
+                for tran in state.inner_trans:
+                    if tran.label is not None and tran.label.event is not None and \
+                        isinstance(tran.label.event, TemporalEvent):
+                        if tran.src not in self.temporal_guards:
+                            self.temporal_guards[tran.src] = []
+                        self.temporal_guards[tran.src].append(tran.label.event)
+
+        # Detect whether a state has implicit or absolute time event.
+        self.implicit_events = set()
+        self.absolute_time_events = set()
+        for ssid in self.chart.all_states:
+            if ssid in self.temporal_guards:
+                for temp_event in self.temporal_guards[ssid]:
+                    if isinstance(temp_event.event, ImplicitEvent):
+                        self.implicit_events.add(ssid)
+                    elif isinstance(temp_event.event, AbsoluteTimeEvent):
+                        self.absolute_time_events.add(ssid)
+        self.implicit_events = sorted(list(self.implicit_events))
+        self.absolute_time_events = sorted(list(self.absolute_time_events))
 
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
@@ -112,6 +154,14 @@ class SFConvert:
         """Name of the history variable for an OR-state with history junction."""
         return state.name + "_hist"
 
+    def entry_tick_name(self, state):
+        """Counter for number of ticks since entry into state."""
+        return state.name + "_tick"
+
+    def entry_time_name(self, state):
+        """Counter for number of seconds since entry into state."""
+        return state.name + "_time"
+
     def entry_proc_name(self, state):
         """Procedure for entry into state."""
         return "entry_" + state.name
@@ -147,6 +197,8 @@ class SFConvert:
           variable.
         - if the current state is an OR-state and its parent has history junction,
           assign the appropriate history variable.
+        - if the current state has implicit or absolute time event transitions, reset
+          the corresponding counter to 0.
         - call the en action of the state.
 
         Note this does not include recursively entering into child states,
@@ -162,6 +214,12 @@ class SFConvert:
         # Set history junction
         if isinstance(state.father, OR_State) and state.father.has_history_junc:
             procs.append(hcsp.Assign(self.history_name(state.father), expr.AConst(state.name)))
+
+        # Set counter for implicit or absolute time events
+        if state.ssid in self.implicit_events:
+            procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(0)))
+        if state.ssid in self.absolute_time_events:
+            procs.append(hcsp.Assign(self.entry_time_name(state), expr.AConst(0)))
 
         # Perform en action
         procs.append(hcsp.Var(self.en_proc_name(state)))
@@ -207,31 +265,49 @@ class SFConvert:
             
         return hcsp.seq(procs)
 
-    def convert_label(self, label, *, still_there_cond=None, still_there_tran=None):
+    def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
         """Convert transition label to a triple of condition, condition action,
         and transition action.
 
         label : TransitionLabel - transition label to be converted.
+        state : SF_State - current state, used only for determining temporal events
+            in outgoing and inner transitions.
         still_there_cond : BExpr - when to continue execution of condition action.
         still_there_tran : BExpr - when to continue execution of transition action.
 
         """
-        pre_act, conds, cond_act, tran_act = hcsp.Skip(), [], hcsp.Skip(), hcsp.Skip()
+        pre_acts, conds, cond_act, tran_act = [], [], hcsp.Skip(), hcsp.Skip()
         if label is not None:
             if label.event is not None:
                 if isinstance(label.event, BroadcastEvent):
+                    # Conversion of event condition E
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
                                            expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+                elif isinstance(label.event, TemporalEvent):
+                    act, e = self.convert_expr(label.event.expr)
+                    pre_acts.append(act)
+                    assert state is not None, "convert_label: temporal events only for edges from a state."
+                    if label.event.temp_op == 'after':
+                        if isinstance(label.event.event, AbsoluteTimeEvent):
+                            if label.event.event.name == 'sec':
+                                conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
+                            else:
+                                raise NotImplementedError
+                        else:
+                            raise NotImplementedError
+                    else:
+                        raise NotImplementedError
                 else:
-                    raise NotImplementedError('convert_label: currently only support broadcast events')
+                    raise NotImplementedError('convert_label: unsupported event type')
             if label.cond is not None:
-                pre_act, hp_cond = self.convert_expr(label.cond)
+                act, hp_cond = self.convert_expr(label.cond)
+                pre_acts.append(act)
                 conds.append(hp_cond)
             if label.cond_act is not None:
                 cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
             if label.tran_act is not None:
                 tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
-        return pre_act, expr.conj(*conds), cond_act, tran_act
+        return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, tran_act
 
     def get_rec_entry_proc(self, state):
         """Return the process for recursively entering into state.
@@ -335,7 +411,8 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     pre_act, cond, cond_act, tran_act = self.convert_label(
-                        tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
+                        tran.label, state=state, still_there_cond=still_there_cond,
+                        still_there_tran=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
@@ -366,7 +443,8 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     pre_act, cond, cond_act, tran_act = self.convert_label(
-                        tran.label, still_there_cond=still_there_cond, still_there_tran=still_there_tran)
+                        tran.label, state=state, still_there_cond=still_there_cond,
+                        still_there_tran=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
@@ -404,6 +482,8 @@ class SFConvert:
         The procedure does only two things:
         - if the current state is an OR-state, clear the corresponding active state
         variable.
+        - if the current state has implicit or absolute time event transitions, reset
+          the corresponding counter to -1.
         - call the ex action of state.
 
         """
@@ -411,6 +491,12 @@ class SFConvert:
         
         # Perform ex action
         procs.append(hcsp.Var(self.ex_proc_name(state)))
+
+        # Set counter for implicit or absolute time events
+        if state.ssid in self.implicit_events:
+            procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(-1)))
+        if state.ssid in self.absolute_time_events:
+            procs.append(hcsp.Assign(self.entry_time_name(state), expr.AConst(-1)))
 
         # Set the activation variable
         if isinstance(state, OR_State):
@@ -546,13 +632,14 @@ class SFConvert:
         return "exec_" + self.chart.name
 
     def get_init_proc(self):
+        """Initialization procedure."""
         procs = []
 
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
 
         # Initialize variables
-        for vname, info in self.data_info.items():
+        for vname, info in self.data.items():
             if info.value is not None:
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
@@ -561,6 +648,14 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.has_history_junc:
                 procs.append(hcsp.Assign(self.history_name(state), expr.AConst("")))
+        
+        # Initialize counter for implicit and absolute time events
+        for ssid in self.implicit_events:
+            tick_name = self.entry_tick_name(self.chart.all_states[ssid])
+            procs.append(hcsp.Assign(expr.AVar(tick_name), expr.AConst(-1)))
+        for ssid in self.absolute_time_events:
+            time_name = self.entry_time_name(self.chart.all_states[ssid])
+            procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
         # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
@@ -570,6 +665,33 @@ class SFConvert:
 
     def get_exec_proc(self):
         return self.get_rec_during_proc(self.chart.diagram)
+
+    def get_iteration(self):
+        procs = []
+
+        # Call during procedure of the diagram
+        procs.append(hcsp.Var(self.exec_name()))
+
+        # Wait the given sample time
+        procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
+
+        # Increment counter for implicit and absolute time events
+        for ssid in self.implicit_events:
+            tick_name = self.entry_tick_name(self.chart.all_states[ssid])
+            procs.append(hcsp.Condition(
+                expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
+                hcsp.Assign(
+                    expr.AVar(tick_name),
+                    expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+        for ssid in self.absolute_time_events:
+            time_name = self.entry_time_name(self.chart.all_states[ssid])
+            procs.append(hcsp.Condition(
+                expr.RelExpr("!=", expr.AVar(time_name), expr.AConst(-1)),
+                hcsp.Assign(
+                    expr.AVar(time_name),
+                    expr.PlusExpr(["+", "+"], [expr.AVar(time_name), expr.AConst(self.sample_time)]))))
+
+        return hcsp.seq(procs)
 
     def get_procs(self):
         """Returns the list of procedures."""
@@ -605,8 +727,4 @@ class SFConvert:
         """Returns the top-level process for chart."""
         return hcsp.Sequence(
             hcsp.Var(self.init_name()),
-            hcsp.Loop(hcsp.Sequence(
-                hcsp.Var(self.exec_name()),
-                hcsp.Wait(expr.AConst(0.1))
-            ))
-        )
+            hcsp.Loop(self.get_iteration()))

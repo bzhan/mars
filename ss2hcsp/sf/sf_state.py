@@ -501,32 +501,6 @@ class Junction:
             var_set = var_set.union(tran.get_vars())
         return var_set
 
-
-class Function:
-    def __init__(self, ssid, name, script,return_var,exprs,chart_state1,fun_type):
-        self.ssid = ssid
-        self.name = name
-        self.type =fun_type
-        self.script = script
-        self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
-
-    def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        
-        if self.script is None:
-            return self.chart_state1
-        else:
-            return self.script
-    
-
 class GraphicalFunction:
     def __init__(self, name, params, return_var, transitions, junctions):
         self.name = name

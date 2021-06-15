@@ -560,38 +560,38 @@ class Function:
     name : str - name of the function.
     params : List[str] - list of parameter names.
     cmd : Command - body of the function.
-    return_vars : List[str] - list of return variables.
+    return_var : [str, List[str]] - return variables.
 
     """
-    def __init__(self, name, params, cmd, return_vars):
+    def __init__(self, name, params, cmd, return_var):
         assert isinstance(cmd, Command)
         self.name = name
         self.params = tuple(params)
         self.cmd = cmd
 
-        if return_vars is None or isinstance(return_vars, str):
-            self.return_vars = return_vars
+        if return_var is None or isinstance(return_var, str):
+            self.return_var = return_var
         else:
-            self.return_vars = tuple(return_vars)
+            self.return_var = tuple(return_var)
 
     def __str__(self):
-        if self.return_vars is None:
-            str_return_vars = ""
-        elif isinstance(self.return_vars, str):
-            str_return_vars = self.return_vars + "="
+        if self.return_var is None:
+            str_return_var = ""
+        elif isinstance(self.return_var, str):
+            str_return_var = self.return_var + "="
         else:
-            str_return_vars = "[" + ','.join(self.return_vars) + "]="
+            str_return_var = "[" + ','.join(self.return_var) + "]="
 
-        func_sig = str_return_vars + self.name + "(" + ",".join(self.params) + ")"
+        func_sig = str_return_var + self.name + "(" + ",".join(self.params) + ")"
         str_cmd = '\n'.join('  ' + line for line in str(self.cmd).split('\n'))
         return "function %s\n%s" % (func_sig, str_cmd)
 
     def __repr__(self):
-        return "Function(%s,%s,%s,%s)" % (repr(self.name), repr(self.params), repr(self.cmd), repr(self.return_vars))
+        return "Function(%s,%s,%s,%s)" % (repr(self.name), repr(self.params), repr(self.cmd), repr(self.return_var))
 
     def __eq__(self, other):
         return isinstance(other, Function) and self.name == other.name and self.params == other.params and \
-            self.cmd == other.cmd and self.return_vars == other.return_vars
+            self.cmd == other.cmd and self.return_var == other.return_var
 
     def instantiate(self, vals=None):
         """Instantiate a procedure with given values for parameters.

@@ -2,6 +2,7 @@
 
 from ss2hcsp.matlab import function
 from ss2hcsp.hcsp import expr, hcsp
+from ss2hcsp.sf.sf_state import GraphicalFunction
 
 
 def subtract_one(e):
@@ -61,8 +62,13 @@ def convert_expr(e, *, procedures=None, arrays=None):
             elif procedures is not None and e.fun_name in procedures:
                 if len(e.exprs) > 0:
                     raise NotImplementedError
-                pre_acts.append(hcsp.Var(e.fun_name))
-                return expr.AVar(procedures[e.fun_name].return_var)
+                proc = procedures[e.fun_name]
+                if isinstance(proc, GraphicalFunction):
+                    pre_acts.append(hcsp.Var(e.fun_name))
+                    return expr.AVar(proc.return_var)
+                else:
+                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays))
+                    return expr.AVar(proc.return_var)
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):

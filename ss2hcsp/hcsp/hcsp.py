@@ -127,8 +127,7 @@ class HCSP:
         """Returns the set of Var calls contained in self."""
         if isinstance(self, Var):
             return {self.name}
-        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
-                               InputChannel, OutputChannel, Function)):
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
             return set()
         elif isinstance(self, (Sequence, Parallel)):
             return set().union(*(hp.get_contain_hps() for hp in self.hps))
@@ -502,72 +501,8 @@ class OutputChannel(HCSP):
     def sc_str(self):
         return re.sub(pattern="!", repl="!!", string=str(self))
 
-
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
-
-class Function(HCSP):
-    def __init__(self, return_vars,fun_name,exprs):
-        super(Function, self).__init__()
-        self.type = "function"
-        self.return_vars = return_vars  # Channel
-         # AExpr or None
-        self.exprs = exprs
-       
-        self.fun_name = fun_name
-
-    def __eq__(self, other):
-        return self.type == other.type and self.return_var == other.return_var and self.fun_name == other.fun_name and self.exprs == other.exprs
-
-    def __repr__(self):
-        if self.return_vars == "":
-            return "Fun(%s,%s)" % (self.fun_name, ",".join(str(arg) for arg in self.exprs))
-        elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "Assign([%s],Fun(%s,%s))" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(repr(arg) for arg in self.exprs))
-        else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "Assign(%s,Fun(%s,(0,1)))" % (self.return_vars,self.fun_name)
-            else:
-                return "Assign(%s,Fun(%s,%s))" % (self.return_vars,self.fun_name,",".join(repr(arg) for arg in self.exprs))
-
-
-    def __str__(self):
-        if self.return_vars == "":
-            return "%s(%s)" % (self.fun_name, ",".join(repr(arg) for arg in self.exprs))
-        elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(str(arg) for arg in self.exprs)) 
-        else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "%s := %s(0,1)" % (self.return_vars,self.fun_name)
-            else:
-                return "%s := %s(%s)" % (self.return_vars,self.fun_name, ",".join(str(arg) for arg in self.exprs))
-
-    def get_vars(self):
-        if self.return_vars == "":
-            var_set =set()
-        else:
-            var_set=set().union(self.return_vars.get_vars())
-        for expr in self.exprs:
-            if isinstance(expr,tuple):
-                for expr1 in expr:
-                    var_set.update(expr1.get_vars())
-            else:
-                var_set.update(expr.get_vars())
-        return var_set
-
-    def sc_str(self):
-        if self.return_vars == "":
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "%s(0,1)" %(self.func_name)
-            else:
-                return "%s(%s)" %(self.func_name,",".join(str(arg) for arg in self.exprs))
-
-        else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "%s := %s(0,1)" %(self.return_vars,self.func_name)
-            else:
-                return  "%s := %s(%s)" %(self.return_vars,self.func_name,",".join(str(arg) for arg in self.exprs))
-
 
 
 class Sequence(HCSP):
@@ -1122,7 +1057,7 @@ def HCSP_subst(hp, inst):
             return inst[hp.name]
         else:
             return hp
-    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
     elif isinstance(hp, (Loop, Recursion, Condition)):
         hp.hp = HCSP_subst(hp.hp, inst)
