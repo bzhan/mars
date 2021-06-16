@@ -917,11 +917,20 @@ class SF_Chart(Subsystem):
         self.after_funcs_dicts=dict()#{state.ssid:A list of sequential logic contained in the output transition of the state}
         funs_state_name=list()
         children_list=list()
+<<<<<<< HEAD
         #Gets the name of the GRAPHICAL_FUNCTION state
         for fun in state.funs:
             if fun.type == "GRAPHICAL_FUNCTION":
                     funs_state_name.append(fun.chart_state1.original_name)
         #Remove the graph function from the child of the current state
+=======
+
+        # for fun in state.funs:
+        #     if fun.type == "GRAPHICAL_FUNCTION":
+        #             funs_state_name.append(fun.chart_state1.original_name)
+
+        # Remove the graph function from the child of the current state
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         for s in state.children:
             if s.original_name not in funs_state_name:
                 # print(s.original_name )

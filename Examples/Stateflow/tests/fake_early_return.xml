@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.6</P>
+      <P Name="ComputedModelVersion">1.7</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -43,7 +43,7 @@
     <Object PropName="BdWindowsInfo" ObjectID="1" ClassName="Simulink.BDWindowsInfo">
       <Object PropName="WindowsInfo" ObjectID="2" ClassName="Simulink.WindowInfo">
         <P Name="IsActive" Class="logical">1</P>
-        <P Name="Location" Class="double">[0.0, 23.0, 1280.0, 709.0]</P>
+        <P Name="Location" Class="double">[-7.0, -7.0, 1295.0, 695.0]</P>
         <Object PropName="ModelBrowserInfo" ObjectID="3" ClassName="Simulink.ModelBrowserInfo">
           <P Name="Visible" Class="logical">0</P>
           <P Name="DockPosition" Class="char">Left</P>
@@ -61,10 +61,10 @@
             <P Name="IsTabbed" Class="logical">1</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1578.0, 862.0]</P>
+            <P Name="Extents" Class="double">[1600.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">0.86509497471496322</P>
             <P Name="Offset" Class="double">[-425.20058941906672, 77.71087462290626]</P>
-            <P Name="SceneRectInView" Class="double">[-425.20058941906672, 77.71087462290626, 1216.0514518612472, 664.28159157439484]</P>
+            <P Name="SceneRectInView" Class="double">[-425.20058941906672, 77.71087462290626, 1233.0052743840274, 647.3277690516145]</P>
           </Object>
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">0</P>
@@ -87,7 +87,7 @@
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Right</P>
             <P Name="Width" Class="int32">169</P>
-            <P Name="Height" Class="int32">598</P>
+            <P Name="Height" Class="int32">584</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
           <Object ObjectID="8">
@@ -103,9 +103,9 @@
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
         </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAECAAADqvwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAAqAAADqgAAACwA////AAAGYgAAA6oAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAECAAADlPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAAqAAADlAAAACwA////AAAGeAAAA5QAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
-        <P Name="WindowUuid" Class="char">b42cb096-d2ee-4d36-b8c1-3f47e16ed13d</P>
+        <P Name="WindowUuid" Class="char">40b7f556-85d2-4a2d-8257-ec5db9e2f2b0</P>
       </Object>
       <P Name="BDUuid" Class="char">67f04dcc-2fbb-4fd5-b1c2-7f2dd17fdc25</P>
     </Object>
@@ -117,9 +117,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Jun 05 18:15:56 2021</P>
-      <P Name="RTWModifiedTimeStamp">544817576</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:6&gt;</P>
+      <P Name="LastModifiedDate">Sat Jun 12 14:01:14 2021</P>
+      <P Name="RTWModifiedTimeStamp">545407273</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:7&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1068,7 +1068,7 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="SFBlockType">Chart</P>
         <System>
-          <P Name="Location">[0, 23, 1280, 732]</P>
+          <P Name="Location">[-7, -7, 1288, 688]</P>
           <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
@@ -1093,7 +1093,7 @@
             <P Name="FunctionName">sf_sfun</P>
             <P Name="PortCounts">[1 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
-            <P Name="EnableBusSupport">off</P>
+            <P Name="EnableBusSupport">on</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="1::91">
@@ -1136,7 +1136,7 @@
         <chart id="63">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-425.201 711.091 77.711 693.828]</P>
+          <P Name="viewLimits">[-425.201 790.851 77.711 741.992]</P>
           <P Name="zoomFactor">1.541</P>
           <P Name="stateColor">[0.3803921568627451 0.2745098039215687 0.1803921568627451]</P>
           <P Name="stateLabelColor">[0.4588235294117647 0.2980392156862745 0.1411764705882353]</P>
@@ -1147,7 +1147,6 @@
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">63</P>
           <P Name="visible">1</P>
-          <subviewS/>
           <P Name="ssIdHighWaterMark">61</P>
           <P Name="decomposition">SET_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -1164,6 +1163,7 @@
               <P Name="type">AND_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <P Name="executionOrder">1</P>
+              <eml/>
               <Children>
                 <state SSID="7">
                   <P Name="labelString">A1
@@ -1174,6 +1174,7 @@ ex: f(&quot;ex_A1&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="9">
                   <P Name="labelString">A2
@@ -1183,6 +1184,7 @@ en: f(&quot;en_A2&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="8">
                   <P Name="labelString">{x=-1}</P>
@@ -1363,7 +1365,7 @@ en: f(&quot;en_A2&quot;)</P>
               <eml>
                 <P Name="isEML">1</P>
                 <P Name="script">function f(s)
-  fprintf(s);</P>
+  fprintf(s+&quot;\n&quot;);</P>
                 <P Name="editorLayout" Class="double">Matrix(4,1)
 [10.0, 5.0, 700.0, 500.0]</P>
               </eml>
@@ -1398,6 +1400,7 @@ en: f(&quot;en_A2&quot;)</P>
               <P Name="type">AND_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <P Name="executionOrder">2</P>
+              <eml/>
               <Children>
                 <state SSID="16">
                   <P Name="labelString">B1</P>
@@ -1406,6 +1409,7 @@ en: f(&quot;en_A2&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="17">
                   <P Name="labelString">B2
@@ -1415,6 +1419,7 @@ en: f(&quot;en_B2&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="55">
                   <P Name="labelString">B3
@@ -1424,6 +1429,7 @@ en: f(&quot;en_B3&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="19">
                   <P Name="labelString"/>
@@ -1498,6 +1504,7 @@ en: f(&quot;en_B3&quot;)</P>
               <P Name="type">AND_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <P Name="executionOrder">3</P>
+              <eml/>
               <Children>
                 <state SSID="47">
                   <P Name="labelString">C1</P>
@@ -1506,6 +1513,7 @@ en: f(&quot;en_B3&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="48">
                   <P Name="labelString">C2
@@ -1515,6 +1523,7 @@ en: f(&quot;en_C2&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="49">
                   <P Name="labelString">C3
@@ -1524,6 +1533,7 @@ en: f(&quot;en_C3&quot;)</P>
                   <P Name="subviewer">63</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="52">
                   <P Name="labelString"/>

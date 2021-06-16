@@ -9,13 +9,16 @@ from ss2hcsp.matlab.function import TemporalEvent,Sequence
 from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp.expr import BExpr
 from ss2hcsp.hcsp import hcsp as hp
-from ss2hcsp.sf.sf_parser.cond_tran import Assign,ListExpr
 from ss2hcsp.hcsp.hcsp import OutputChannel
+<<<<<<< HEAD
 # <<<<<<< HEAD
 # from ss2hcsp.sf.sf_parser import parser
 # =======
 
 # >>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
+=======
+
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 class Transition:
     def __init__(self, ssid, label, order=0, src="", dst=""):
@@ -114,6 +117,7 @@ class Transition:
                 else:
                     self.event =str(func.event)
             else:
+<<<<<<< HEAD
                 self.event = None
         # if self.label is None:
         #     return
@@ -165,6 +169,11 @@ class Transition:
 #                 self.event =str(func.event)
 #         else:
 #             self.event = None
+=======
+                self.event =str(func.event)
+        else:
+            self.event = None
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         
         # label = self.label if self.label else ""
         # # Get transition condition

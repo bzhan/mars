@@ -64,6 +64,10 @@ class SF_State:
         if isinstance(self, OR_State) and self.default_tran:
             result += "  Default: " + str(self.default_tran) + "\n"
 
+        # Display the history junction
+        if isinstance(self, OR_State) and self.has_history_junc:
+            result += "  History: " + str(self.has_history_junc) + "\n"
+
         # Events
         if self.en:
             result += "  en: [" + str(self.en) + "]\n"
@@ -408,6 +412,7 @@ class SF_State:
 
 
 class OR_State(SF_State):
+<<<<<<< HEAD
 # <<<<<<< HEAD
 #     def __init__(self, ssid, out_trans=(), inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
 #         super(OR_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
@@ -420,6 +425,8 @@ class OR_State(SF_State):
         
 #         self.get_after_func()
 # =======
+=======
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     """Represents an OR state."""
     def __init__(self, ssid, out_trans=(), inner_trans=(), name="", original_name="",
                  en=None, du=None, ex=None, default_tran=None):
@@ -428,10 +435,16 @@ class OR_State(SF_State):
         self.default_tran = default_tran  # default transition to this state
         self.has_history_junc = False     # history junction to this state
         self.acth = None                  # (when there is history junction) the latest state
+<<<<<<< HEAD
         self.func_after=list()               
         self.get_after_func()
 
 # >>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
+=======
+        self.func_after = list
+        self.get_after_func()
+
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     def has_aux_var(self, var_name):
         """Return if the state has the auxiliary variable var_name
         
@@ -442,6 +455,7 @@ class OR_State(SF_State):
             if var_name in tran.cond_vars:
                 return True
         return False
+
     def get_tran_after_cond(self,condition):
         aexpr1=condition.expr1
         aexpr2=condition.expr2
@@ -453,6 +467,7 @@ class OR_State(SF_State):
             self.func_after.append(aexpr2.expr2)
         elif isinstance(aexpr2,LogicExpr):
             self.get_tran_after_cond(aexpr2)
+
     def get_after_func(self):
         for tran in self.out_trans:
             if ("state_time"+self.ssid) in tran.cond_vars and isinstance(tran.condition,(RelExpr,LogicExpr)):
@@ -493,7 +508,7 @@ class Junction:
     def __str__(self):
         result = "JUN(" + self.ssid + ") " + self.name + "\n"
         for tran in self.out_trans:
-            result += str(tran) + "(" + tran.dst + ")\n"
+            result += "  " + str(tran) + "\n"
         return result
 
     def exit_to(self, ancestor):  # return a list of hps
@@ -508,49 +523,29 @@ class Junction:
             var_set = var_set.union(tran.get_vars())
         return var_set
 
-
-class Function:
-    def __init__(self, ssid, name, script,return_var,exprs,chart_state1,fun_type):
-        self.ssid = ssid
+class GraphicalFunction:
+    def __init__(self, name, params, return_var, transitions, junctions):
         self.name = name
-        self.type =fun_type
-        self.script = script
+        self.params = params
         self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
+        self.transitions = transitions
+        self.junctions = junctions
 
-    def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        
-        if self.script is None:
-            return self.chart_state1
-        else:
-            return self.script
-    
+        # Obtain default transition
+        self.default_tran = None
+        for ssid, tran in self.transitions.items():
+            if tran.src is None:
+                self.default_tran = tran
+                break
+        assert self.default_tran, "GraphicalFunction: no default transition found"
 
-class Graphical_Function:
-    def __init__(self, ssid, name,return_var,exprs,chart_state1):
-        self.ssid = ssid
-        self.name = name
-        self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
-
-    def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        # if self.chart_state1 is not None:
-        #     return self.chart_state1
-        # else:
-            return self.script
+    def __str__(self):
+        res = "GraphicalFunction(%s,%s,%s\n" % (self.name, self.params, self.return_var)
+        res += "  Junctions:\n"
+        for junc in self.junctions:
+            for line in str(junc).split('\n'):
+                res += "  " + line + "\n"
+        res += "  Default transition:\n"
+        res += "    " + str(self.default_tran) + "\n"
+        res += ")"
+        return res

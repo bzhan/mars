@@ -4,8 +4,14 @@ import lark
 import html
 
 from ss2hcsp.sl.sl_line import SL_Line
+<<<<<<< HEAD
 from ss2hcsp.matlab import function,convert
 from ss2hcsp.matlab.parser import function_parser, cmd_parser, transition_parser
+=======
+from ss2hcsp.matlab import function
+from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
+    transition_parser, func_sig_parser
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 from ss2hcsp.matlab import convert
 
 from ss2hcsp.sl.port import Port
@@ -23,12 +29,12 @@ from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, Function
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
@@ -206,9 +212,12 @@ class SL_Diagram:
                         # Extract functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
+<<<<<<< HEAD
                         dest_state_name_list = list()
                         return_var=None
                         chart_state1=None
+=======
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
                         if fun_script:
                             # Has script, directly use parser for matlab functions
                             fun_name=function_parser.parse(fun_script).name
@@ -223,6 +232,7 @@ class SL_Diagram:
                            
                             # _functions.append(function_parser.parse(fun_script))
                         else:
+<<<<<<< HEAD
                             dest_state_name_list=list()
                             fun_type="GRAPHICAL_FUNCTION"
                             out_trans_dict_inner=dict()
@@ -315,6 +325,20 @@ class SL_Diagram:
                             return_var =return_var if len(return_var)>0 else None
                             exprs=exprs if len(exprs)>0 else None
                         _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
+=======
+                            children = [c for c in child.childNodes if c.nodeName == "Children"]
+                            assert len(children) == 1
+                            sub_trans = get_transitions(children[0].childNodes)
+                            sub_states, sub_junctions, sub_functions = get_children(child)
+                            assert len(sub_states) == 0 and len(sub_functions) == 0
+                            try:
+                                fun_name, fun_params, fun_return = func_sig_parser.parse(fun_name)
+                            except lark.exceptions.UnexpectedToken as e:
+                                print("When parsing function signature", fun_name)
+                                raise e
+                            graph_fun = GraphicalFunction(fun_name, fun_params, fun_return, sub_trans, sub_junctions)
+                            _functions.append(graph_fun)
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states
@@ -455,8 +479,8 @@ class SL_Diagram:
 
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
-                # assert var_name and var_name not in chart_data
                 value = get_attribute_value(data, "initialValue")
+<<<<<<< HEAD
                 # value = eval(value) 
                 if value and "[" in value:
                     if ";" in value:
@@ -497,6 +521,17 @@ class SL_Diagram:
                 scope=get_attribute_value(data, "scope")
                 sf_data=SF_Data(name=var_name,value=value,scope=scope)
                 if (len(data.getElementsByTagName(name="message"))>=1):
+=======
+                if value is not None:
+                    try:
+                        value = expr_parser.parse(value)
+                    except lark.exceptions.UnexpectedToken as e:
+                        print("When parsing value:", value)
+                        raise e
+                scope = get_attribute_value(data, "scope")
+                sf_data = SF_Data(name=var_name,value=value,scope=scope)
+                if len(data.getElementsByTagName(name="message")) >= 1:
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
                         break;
@@ -545,23 +580,24 @@ class SL_Diagram:
         if models:
             model_name = models[0].getAttribute("Name")
         system = self.model.getElementsByTagName("System")[0]
-        max_step=0.2
-        start_time=0.0
-        if len(self.model.getElementsByTagName("ConfigurationSet")) >0 :
-            configurationSet=self.model.getElementsByTagName("ConfigurationSet")[0]
+        max_step = 0.2
+        # start_time = 0.0
+        if len(self.model.getElementsByTagName("ConfigurationSet")) > 0:
+            configurationSet = self.model.getElementsByTagName("ConfigurationSet")[0]
             array = [child for child in configurationSet.childNodes if child.nodeName == "Array"]
             for node in array:
-                if node.nodeName  ==  "Array":
+                if node.nodeName == "Array":
                     objs = [child for child in node.childNodes if child.nodeName == "Object"]
                     for obj in objs:
                         if obj.nodeName == "Object":
-                            arr= [child for child in obj.childNodes if child.nodeName == "Array"]
+                            arr = [child for child in obj.childNodes if child.nodeName == "Array"]
                             for a in arr:
-                                if  a.nodeName == "Array":
+                                if a.nodeName == "Array":
                                     obj_childs = [child for child in a.childNodes if child.nodeName == "Object"]
-                                    start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
+                                    # start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
                                     stop_time = float(get_attribute_value(obj_childs[0], "StopTime"))
-                                    max_step=float(get_attribute_value(obj_childs[0], "MaxStep")) if get_attribute_value(obj_childs[0], "MaxStep")!="auto" else stop_time/50
+                                    max_step = float(get_attribute_value(obj_childs[0], "MaxStep"))\
+                                        if get_attribute_value(obj_childs[0], "MaxStep") != "auto" else stop_time/50
                                 break
                         break
                 break
@@ -585,49 +621,49 @@ class SL_Diagram:
             #     self.add_block(Clock(name=block_name,max_step=max_step,start_time=start_time))
             if block_type == "Mux":
                 block_name = block.getAttribute("Name")
-                inputs=get_attribute_value(block,"Inputs")
-                displayOption=get_attribute_value(block,"DisplayOption")
-                ports=list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
-                self.add_block(Mux(name=block_name,inputs=inputs,displayOption=displayOption,ports=ports))
+                inputs = get_attribute_value(block, "Inputs")
+                displayOption = get_attribute_value(block, "DisplayOption")
+                ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
             elif block_type == "DataStoreMemory":
-                init_value =get_attribute_value(block=block, attribute="InitialValue")
-                value=0
-                if init_value and "[" in init_value :
+                init_value = get_attribute_value(block=block, attribute="InitialValue")
+                value = 0
+                if init_value and "[" in init_value:
                     if ";" in init_value:
                         value_list = init_value.split(";")
-                        val_lists=list()
+                        val_lists = list()
                         for val in value_list:
                             if "[" in val:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
+                                    val = str(val).replace(" ", ",")
                                 val = val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             elif "]" in val:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                val="["+val
+                                    val = str(val).replace(" ", ",")
+                                val = "["+val
                                 val_lists.append(list(aexpr_parser.parse(val).value))
                             else:
-                                val=val.strip()
+                                val = val.strip()
                                 if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                val ="["+val+"]"
+                                    val = str(val).replace(" ", ",")
+                                val = "["+val+"]"
                                 val_lists.append(list(aexpr_parser.parse(val).value))
-                        value =val_lists
+                        value = val_lists
                     else:
-                        init_value=init_value.strip()
+                        init_value = init_value.strip()
                         if "," not in init_value:
-                            init_value=str(init_value).replace(" ",",")
-                        value =  list(aexpr_parser.parse(init_value).value)
+                            init_value = str(init_value).replace(" ", ",")
+                        value = list(aexpr_parser.parse(init_value).value)
                 elif init_value:
-                    value = eval(value) 
+                    value = eval(value)
                 else:
                     value = 0
-                name=block.getAttribute("Name")
-                dataStoreName=get_attribute_value(block,"DataStoreName")
-                self.add_block(DataStoreMemory(name=name,value=value,dataStore_name=dataStoreName))
+                name = block.getAttribute("Name")
+                dataStoreName = get_attribute_value(block, "DataStoreName")
+                self.add_block(DataStoreMemory(name=name, value=value,dataStore_name=dataStoreName))
             elif block_type == "DataStoreRead":
                 name=block.getAttribute("Name")
                 dataStoreName=get_attribute_value(block,"DataStoreName")
@@ -742,8 +778,6 @@ class SL_Diagram:
                 
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
                 self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
-
-
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -758,14 +792,14 @@ class SL_Diagram:
                     signal_names = []
                     time_axises = []
                     data_axises = []
-                    out_indexs=[]
+                    out_indexs = []
                     for node in subsystem.getElementsByTagName("Array"):
                         if node.getAttribute("PropName") == "Signals":
                             # assert node.getAttribute("Type") == "SigSuiteSignal"
                             for obj in node.getElementsByTagName("Object"):
                                 signal_names.append(block_name + "_" + get_attribute_value(obj, "Name"))
                                 xData = get_attribute_value(obj, "XData")
-                                out_index=get_attribute_value(obj, "outIndex")
+                                out_index = get_attribute_value(obj, "outIndex")
                                 out_indexs.append(out_index)
                                 # if "\n" in xData:
                                 #     xData = xData.split("\n")[1]
@@ -959,18 +993,29 @@ class SL_Diagram:
                     self.add_block(stateflow)
                     continue
 
-                # Check if it is a triggered subsystem
+                # Check if it is a triggered or enabled subsystem
                 triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
                             child.getAttribute("BlockType") == "TriggerPort"]
-                assert len(triggers) <= 1
+                enables = [child for child in subsystem.childNodes if child.nodeName == "Block" and
+                           child.getAttribute("BlockType") == "EnablePort"]
+                # Enabled and triggered subsystems haven't been considered
+                assert len(triggers) + len(enables) <= 1
                 if triggers:  # it is a triggered subsystem
                     trigger_type = get_attribute_value(triggers[0], "TriggerType")
                     if not trigger_type:
                         trigger_type = "rising"
-                    assert trigger_type in ["rising", "falling", "either","function-call"]
+                    assert trigger_type in ["rising", "falling", "either", "function-call"]
                     ports = get_attribute_value(block, "Ports")
                     num_dest, num_src, _, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Triggered_Subsystem(block_name, num_src, num_dest, trigger_type)
+                    subsystem = Triggered_Subsystem(block_name, num_src, num_dest+1, trigger_type)
+                    # Why num_src+1 above?
+                    # A: The number of normal in-ports (num_src) + one TriggerPort
+                elif enables:
+                    assert get_attribute_value(enables[0], "StatesWhenEnabling") is None
+                    assert get_attribute_value(enables[0], "PropagateVarSize") is None
+                    ports = get_attribute_value(block, "Ports")
+                    num_dest, num_src, _ = [int(port.strip("[ ]")) for port in ports.split(",")]
+                    subsystem = Enabled_Subsystem(block_name, num_src, num_dest+1)
                 else:  # it is a normal subsystem
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
@@ -985,7 +1030,6 @@ class SL_Diagram:
         # Add lines
         lines = [child for child in system.childNodes if child.nodeName == "Line"]
         for line in lines:
-
             line_name = get_attribute_value(block=line, attribute="Name")
             if not line_name:
                 line_name = "?"
@@ -1009,7 +1053,7 @@ class SL_Diagram:
                     ch_name = model_name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
-                dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
+                dest_port = -1 if dest_port in ["trigger", "enable"] else int(dest_port) - 1
                 if dest_block in self.blocks_dict:
                     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
                                   name=line_name, ch_name=ch_name)
@@ -1108,6 +1152,17 @@ class SL_Diagram:
             terminate = True
             for block in self.blocks_dict.values():
                 if block.st == -1:
+
+                    # Deal with triggered subsystems
+                    if block.type == "triggered_subsystem":
+                        trig_line = block.dest_lines[-1]
+                        in_block = self.blocks_dict[trig_line.src]
+                        if in_block.st >= 0:
+                            block.st = in_block.st
+                            block.is_continuous = (block.st == 0)
+                            terminate = False
+                        continue
+
                     in_st = []  # list of sample times of inputs of the block
                     for line in block.dest_lines:
                         in_block = self.blocks_dict[line.src]
@@ -1165,7 +1220,7 @@ class SL_Diagram:
         blocks_in_subsystems = []
 
         for block in self.blocks_dict.values():
-            if block.type == "subsystem":
+            if block.type in ["subsystem", "enabled_subsystem"]:
                 # Collect all subsystems to be deleted
                 subsystems.append(block.name)
                 # The subsystem is treated as a diagram
@@ -1257,6 +1312,11 @@ class SL_Diagram:
         for block in blocks_in_subsystems:
             assert block.name not in self.blocks_dict
             self.blocks_dict[block.name] = block
+
+    def new_seperate_diagram(self):
+        discrete_diagram = [block for block in self.blocks if not block.is_continuous]
+        continuous_diagram = [block for block in self.blocks if block.is_continuous]
+        return discrete_diagram, continuous_diagram
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continous subdiagrams."""

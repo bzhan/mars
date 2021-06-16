@@ -388,6 +388,100 @@ def translate_discrete(diagram):
     return result_hp
 
 
+def new_translate_discrete(diagram):
+    assert all(block.st > 0 for block in diagram)
+    sample_time = get_gcd([block.st for block in diagram])
+    block_dict = {block.name: block for block in diagram}
+
+    # Get initializations
+    init_hps = []
+    for block in block_dict.values():
+        if block.type == "constant":
+            out_var = block.src_lines[0][0].name
+            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
+        elif block.type == "unit_delay":
+            init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
+        elif block.type == "triggered_subsystems":
+            init_hps.extend(block.get_init_hps())
+    # Delete Constant blocks
+    block_names = [name for name, block in block_dict.items() if block.type == "constant"]
+    for name in block_names:
+        del block_dict[name]
+
+    # Get a topological sort of the blocks
+    # First, move all the Unit_Delay blocks from block_dict to sorted_blocks
+    sorted_blocks = [block for block in block_dict.values() if block.type == "unit_delay"]
+    for block in sorted_blocks:
+        del block_dict[block.name]
+
+    # Get a topological sort of the remaining blocks
+    while block_dict:
+        head_block_names = []
+        for name, block in block_dict.items():
+            src_blocks = block.get_src_blocks()
+            if src_blocks.isdisjoint(set(block_dict.keys())):
+                sorted_blocks.append(block)
+                head_block_names.append(name)
+        assert head_block_names
+        for name in head_block_names:
+            del block_dict[name]
+
+    # Get the OUTPUT of each block in sorted_blocks
+    output_hps = [block.get_output_hp() for block in sorted_blocks]
+    # Get the UPDATE of Unit_Delay blocks
+    update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
+
+    return init_hps, output_hps, update_hps, sample_time
+
+
+def new_translate_continuous(diagram):
+    # Assume that all the continuous blocks are integrator blocks or triggered subsystems
+    assert all(block.type in ["integrator", "triggered_subsystem"] for block in diagram)
+    init_hps = []
+    equations = []
+    constraints = []
+    trig_procs = []
+    for block in diagram:
+        if block.type == "integrator":
+            in_var = block.dest_lines[0].name
+            out_var = block.src_lines[0][0].name
+            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.init_value)))
+            equations.append((out_var, AVar(in_var)))
+            if block.enable != true_expr:
+                constraints.append(block.enable)
+        elif block.type == "triggered_subsystem":
+            init_hps.extend(block.get_init_hps())
+            trig_cond = block.get_continuous_triggered_condition()
+            trig_procs.append((trig_cond, hp.Var(block.name)))
+            constraints.append(trig_cond.neg())
+    return init_hps, equations, constraints, trig_procs
+
+
+def new_get_hcsp(discrete_diagram, continuous_diagram):
+    dis_init_hps, output_hps, update_hps, sample_time = new_translate_discrete(discrete_diagram)
+    con_init_hps, equations, constraints, trig_procs = new_translate_continuous(continuous_diagram)
+
+    # Initialization
+    init_hps = dis_init_hps + con_init_hps
+    init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
+
+    # Discrete process
+    discrete_hps = output_hps + update_hps
+    discrete_hp = hp.Sequence(*discrete_hps)
+
+    # Continuous process
+    time_constraint = RelExpr("<", AVar("t"), AConst(sample_time))
+    constraints.append(time_constraint)
+    continuous_hp = hp.ODE(eqs=equations, constraint=conj(*constraints))
+    if trig_procs:
+        trig_proc = hp.ITE(if_hps=trig_procs)
+        continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc),
+                                constraint=time_constraint)
+
+    # result process
+    return hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))
+
+
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
              discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.

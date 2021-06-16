@@ -343,6 +343,9 @@ class RelExpr(BExpr):
     def __hash__(self):
         return hash(("RelExpr", self.op, self.expr1, self.expr2))
 
+    def priority(self):
+        return 50
+
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
@@ -364,18 +367,25 @@ class Assign(Command):
     """Assignment command.
 
     This command evaluates expr, which should return either a value or a list
-    of values. The returned value is assigned to one or more return variables.
+    of values. The resulting value is assigned to one or more lnames.
 
     """
-    def __init__(self, return_vars, expr):
+    def __init__(self, lname, expr):
         super(Assign, self).__init__()
+<<<<<<< HEAD
         # assert isinstance(expr, Expr)
         if isinstance(return_vars, (Var,FunctionCall)):
             self.return_vars = return_vars
         else:
             self.return_vars = return_vars
+=======
+        assert isinstance(expr, Expr)
+        assert isinstance(lname, (Var, FunExpr, ListExpr))
+        self.lname = lname
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         self.expr = expr
     def __str__(self):
+<<<<<<< HEAD
         if isinstance(self.return_vars, (Var,FunctionCall)):
             return "%s := %s" % (str(self.return_vars), str(self.expr))
         else:
@@ -383,9 +393,15 @@ class Assign(Command):
 
     def __repr__(self):
         return "Assign(%s,%s)" % (repr(str(self.return_vars)), repr(str(self.expr)))
+=======
+        return "%s = %s" % (self.lname, self.expr)
+
+    def __repr__(self):
+        return "Assign(%s,%s)" % (repr(self.lname), repr(self.expr))
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     def __eq__(self, other):
-        return isinstance(other, Assign) and self.return_vars == other.return_vars and \
+        return isinstance(other, Assign) and self.lname == other.lname and \
             self.expr == other.expr
 
     def priority(self):
@@ -395,11 +411,17 @@ class Assign(Command):
         return False
 
     def subst(self, inst):
+<<<<<<< HEAD
         # Disallow instantiating return values
         # for var in self.return_vars:
         #     assert var not in inst, "Cannot instantiate return value %s" % var
         
         return Assign(self.return_vars, self.expr.subst(inst))
+=======
+        # Disallow instantiating lname
+        assert self.lname not in inst, "Cannot instantiate lname %s" % self.lname
+        return Assign(self.lname, self.expr.subst(inst))
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 
 class FunctionCall(Command):
@@ -498,6 +520,7 @@ class BroadcastEvent(Event):
     
     """
     def __init__(self, name):
+        assert isinstance(name, str)
         self.name = name
 
     def __str__(self):
@@ -508,6 +531,23 @@ class BroadcastEvent(Event):
 
     def __eq__(self, other):
         return isinstance(other, BroadcastEvent) and self.name == other.name
+
+class DirectedEvent(Event):
+    """Sending event to particular state."""
+    def __init__(self, state_name, event):
+        assert isinstance(state_name, str) and isinstance(event, (BroadcastEvent, DirectedEvent))
+        self.state_name = state_name
+        self.event = event
+
+    def __str__(self):
+        return self.state_name + "." + str(self.event)
+
+    def __repr__(self):
+        return "DirectedEvent(%s,%s)" % (repr(self.state_name), repr(self.event))
+
+    def __eq__(self, other):
+        return isinstance(other, DirectedEvent) and self.state_name == other.state_name and \
+            self.event == other.event
 
 class ImplicitEvent(Event):
     """Implicit events in Matlab."""
@@ -563,7 +603,7 @@ class TemporalEvent(Event):
 class RaiseEvent(Command):
     """Command for raising an event."""
     def __init__(self, event):
-        assert isinstance(event, BroadcastEvent)
+        assert isinstance(event, (BroadcastEvent, DirectedEvent))
         self.event = event
 
     def __str__(self):
@@ -585,22 +625,28 @@ class Function:
     name : str - name of the function.
     params : List[str] - list of parameter names.
     cmd : Command - body of the function.
-    return_vars : List[str] - list of return variables.
+    return_var : [str, List[str]] - return variables.
 
     """
-    def __init__(self, name, params, cmd, return_vars):
+    def __init__(self, name, params, cmd, return_var):
         assert isinstance(cmd, Command)
         self.name = name
         self.params = tuple(params) if str(params) !="()" else None
         self.cmd = cmd
         self.type="MATLAB_FUNCTION"
 
+<<<<<<< HEAD
         if return_vars is None or isinstance(return_vars, (Var,FunctionCall)):
             self.return_vars =return_vars
+=======
+        if return_var is None or isinstance(return_var, str):
+            self.return_var = return_var
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         else:
-            self.return_vars = tuple(return_vars)
+            self.return_var = tuple(return_var)
 
     def __str__(self):
+<<<<<<< HEAD
         if self.return_vars is None:
             str_return_vars = ""
         elif isinstance(self.return_vars, (Var,FunctionCall)):
@@ -609,15 +655,25 @@ class Function:
             str_return_vars = "[" + ','.join(str(return_var) for return_var in self.return_vars) + "]="
 
         func_sig = str_return_vars + self.name + "(" + ",".join(str(param) for param in self.params) + ")"
+=======
+        if self.return_var is None:
+            str_return_var = ""
+        elif isinstance(self.return_var, str):
+            str_return_var = self.return_var + "="
+        else:
+            str_return_var = "[" + ','.join(self.return_var) + "]="
+
+        func_sig = str_return_var + self.name + "(" + ",".join(self.params) + ")"
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         str_cmd = '\n'.join('  ' + line for line in str(self.cmd).split('\n'))
         return "function %s\n%s" % (func_sig, str_cmd)
 
     def __repr__(self):
-        return "Function(%s,%s,%s,%s)" % (repr(self.name), repr(self.params), repr(self.cmd), repr(self.return_vars))
+        return "Function(%s,%s,%s,%s)" % (repr(self.name), repr(self.params), repr(self.cmd), repr(self.return_var))
 
     def __eq__(self, other):
         return isinstance(other, Function) and self.name == other.name and self.params == other.params and \
-            self.cmd == other.cmd and self.return_vars == other.return_vars
+            self.cmd == other.cmd and self.return_var == other.return_var
 
     def instantiate(self, vals=None):
         """Instantiate a procedure with given values for parameters.

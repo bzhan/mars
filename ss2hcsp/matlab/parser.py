@@ -8,20 +8,30 @@ from ss2hcsp.hcsp import hcsp
 
 
 grammar = r"""
+<<<<<<< HEAD
     ?lname: CNAME -> var_expr
         | func_cmd
     // Return value is either an CNAME or a list of CNAMEs
     ?return_var: "[" lname ("," lname)* "]" -> return_var
         | lname                            
 
+=======
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     // Expressions
 
-    ?atom_expr: lname
+    ?atom_expr: CNAME -> var_expr
+        | CNAME "(" ")" -> fun_expr
+        | CNAME "(" expr ("," expr)* ")" -> fun_expr
+        | "[" "]" -> list_expr
+        | "[" expr ("," expr)* "]" -> list_expr
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "(" expr ")"
+<<<<<<< HEAD
         | lname("." lname)+ -> direct_name
         
+=======
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
@@ -55,9 +65,17 @@ grammar = r"""
     ?cond: disj
 
     // Commands
+
+    ?lname: CNAME -> var_lname
+        | CNAME "(" expr ("," expr)* ")" -> fun_lname
+        | "[" lname ("," lname)* "]" -> list_lname
     
     // Assignment command includes possible type declarations
+<<<<<<< HEAD
     ?assign_cmd: ("int" | "float")? return_var "=" expr (";")? ->assign_cmd
+=======
+    ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     // Function call is also a command (this includes fprintf calls)
     ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
@@ -66,6 +84,7 @@ grammar = r"""
     ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
 
     ?event: CNAME -> event
+        | CNAME "." event -> directed_event
         | "after" "(" expr "," event ")"  -> after_event
         | "before" "(" expr "," event ")"  -> before_event
         | "at" "(" expr "," event ")"  -> at_event
@@ -81,11 +100,20 @@ grammar = r"""
 
     // Definition of functions
 
+    // Return value is either an CNAME or a list of CNAMEs
+    ?return_var: "[" CNAME ("," CNAME)* "]" -> return_var
+        | CNAME                             -> return_var_single
+
     // Signature of functions can be of three types: func, func(args) and x=func(args)
     ?func_sig: CNAME                                      -> func_sig_name
         | CNAME "(" ")"                                   -> func_sig_no_param
         | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
+<<<<<<< HEAD
         | return_var "=" CNAME ("(" ")")?                    -> func_sig_return_no_param
+=======
+        | return_var "=" CNAME                            -> func_sig_return_name
+        | return_var "=" CNAME "(" ")"                    -> func_sig_return_no_param
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
 
     ?function: "function" func_sig cmd ("end")? -> function
@@ -115,23 +143,26 @@ class MatlabTransformer(Transformer):
     def var_expr(self, s):
         return function.Var(str(s))
 
+<<<<<<< HEAD
     def return_var(self, *args):
         if all(isinstance(arg, (function.Var,function.FunctionCall)) for arg in args):
             return function.ListExpr(*list(arg for arg in args))
         else:
             return function.ListExpr(*list(function.Var(str(arg)) for arg in args))
+=======
+    def fun_expr(self, fun_name, *exprs):
+        return function.FunExpr(str(fun_name), *exprs)
+>>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
-    def return_var_single(self, arg):
-        return str(arg)
+    def list_expr(self, *args):
+        return function.ListExpr(*args)
 
     def num_expr(self, v):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
 
     def string_expr(self, s):
-        return function.AConst(str(s)[1:-1])  # remove quotes
-
-    def fun_expr(self, fun_name, *exprs):
-        return function.FunExpr(str(fun_name), *exprs)
+        # Remove quotes
+        return function.AConst(str(s)[1:-1])
 
     def times_expr(self, e1, e2):
         return function.OpExpr("*", e1, e2)
@@ -184,8 +215,17 @@ class MatlabTransformer(Transformer):
     def disj(self, b1, b2):
         return function.LogicExpr("||", b1, b2)
 
-    def assign_cmd(self, return_var, expr):
-        return function.Assign(return_var, expr)
+    def var_lname(self, s):
+        return function.Var(str(s))
+
+    def fun_lname(self, fun_name, *exprs):
+        return function.FunExpr(str(fun_name), *exprs)
+
+    def list_lname(self, *args):
+        return function.ListExpr(*args)
+
+    def assign_cmd(self, lname, expr):
+        return function.Assign(lname, expr)
 
     def func_cmd_has_param(self, name, *params):
         return function.FunctionCall(str(name), *params)
@@ -208,6 +248,9 @@ class MatlabTransformer(Transformer):
         else:
             return function.BroadcastEvent(name)
 
+    def directed_event(self, state_name, event):
+        return function.DirectedEvent(str(state_name), event)
+
     def after_event(self, expr, event):
         return function.TemporalEvent('after', expr, event)
 
@@ -223,6 +266,12 @@ class MatlabTransformer(Transformer):
     def event_cmd(self, event):
         return function.RaiseEvent(event)
 
+    def return_var(self, *args):
+        return tuple(str(arg) for arg in args)
+
+    def return_var_single(self, arg):
+        return str(arg)
+
     def func_sig_name(self, name):
         return str(name), (), None
 
@@ -231,6 +280,9 @@ class MatlabTransformer(Transformer):
 
     def func_sig_has_param(self, name, *params):
         return str(name), tuple(str(param) for param in params), None
+
+    def func_sig_return_name(self, return_var, name):
+        return str(name), (), return_var
 
     def func_sig_return_no_param(self, return_var, name):
         return str(name), (), return_var
@@ -275,5 +327,6 @@ expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTrans
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
 cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
 event_parser = Lark(grammar, start="event", parser="lalr", transformer=MatlabTransformer())
+func_sig_parser = Lark(grammar, start="func_sig", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
 transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())

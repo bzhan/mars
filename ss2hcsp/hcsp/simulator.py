@@ -54,16 +54,21 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, PlusExpr):
         # Sum of expressions
-        try:
+        if isinstance(eval_expr(expr.exprs[0], state), str):
+            res = ""
+            for s, e in zip(expr.signs, expr.exprs):
+                if s == '+':
+                    res += eval_expr(e, state)
+                else:
+                    raise SimulatorException("Type error when evaluating %s" % expr)
+        else:
             res = 0
             for s, e in zip(expr.signs, expr.exprs):
                 if s == '+':
                     res += eval_expr(e, state)
                 else:
                     res -= eval_expr(e, state)
-            return res
-        except TypeError:
-            raise SimulatorException("Type error when evaluating %s" % expr)
+        return res
 
     elif isinstance(expr, TimesExpr):
         # Product of expressions
@@ -75,7 +80,7 @@ def eval_expr(expr, state):
                 res /= eval_expr(e, state)
         return res
 
-    elif isinstance(expr, (FunExpr,hcsp.Function)):
+    elif isinstance(expr, FunExpr):
         # Special functions
         args = [eval_expr(e, state) for e in expr.exprs]
         if expr.fun_name == "min":
@@ -198,7 +203,7 @@ def eval_expr(expr, state):
             else:
                 return 0
         else:
-            raise NotImplementedError
+            raise SimulatorException("When evaluating %s: unrecognized function" % expr)
 
     elif isinstance(expr, ModExpr):
         multiple = 1000
@@ -818,10 +823,15 @@ class SimInfo:
         elif cur_hp.type == "log":
             # Output a log item to the simulator
             self.pos = step_pos(self.hp, self.pos, self.state, rec_vars, self.procedures)
-            log_expr = ''
-            for expr in cur_hp.exprs:
-                val = eval_expr(expr, self.state)
-                log_expr += str(val)
+            str_pat = eval_expr(cur_hp.pattern, self.state)
+            if not isinstance(str_pat, str):
+                str_pat = str(str_pat)
+            vals = tuple(eval_expr(e, self.state) for e in cur_hp.exprs)
+            try:
+                log_expr = str_pat % vals
+            except TypeError:
+                raise SimulatorException("When evaluating %s %% %s, wrong number of arguments" \
+                    % (str_pat, vals))
             self.reason = {"log": log_expr}
 
         elif cur_hp.type == "condition":
@@ -1194,6 +1204,9 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
             print('i:', num_event)
 
         new_event = xargs
+        # Process log/warning/error string
+        if 'str' in new_event:
+            new_event['str'] = new_event['str'].encode('utf-8').decode('unicode_escape').strip()
 
         # Append the first 2000 events
         if num_event <= 2000:

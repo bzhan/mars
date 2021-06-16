@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.5</P>
+      <P Name="ComputedModelVersion">1.14</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -43,7 +43,7 @@
     <Object PropName="BdWindowsInfo" ObjectID="1" ClassName="Simulink.BDWindowsInfo">
       <Object PropName="WindowsInfo" ObjectID="2" ClassName="Simulink.WindowInfo">
         <P Name="IsActive" Class="logical">1</P>
-        <P Name="Location" Class="double">[0.0, 23.0, 1280.0, 709.0]</P>
+        <P Name="Location" Class="double">[-7.0, -7.0, 1295.0, 695.0]</P>
         <Object PropName="ModelBrowserInfo" ObjectID="3" ClassName="Simulink.ModelBrowserInfo">
           <P Name="Visible" Class="logical">0</P>
           <P Name="DockPosition" Class="char">Left</P>
@@ -61,10 +61,10 @@
             <P Name="IsTabbed" Class="logical">1</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1578.0, 862.0]</P>
-            <P Name="ZoomFactor" Class="double">1.0</P>
-            <P Name="Offset" Class="double">[0.0, 0.0]</P>
-            <P Name="SceneRectInView" Class="double">[0.0, 0.0, 1052.0, 574.66666666666663]</P>
+            <P Name="Extents" Class="double">[1600.0, 840.0]</P>
+            <P Name="ZoomFactor" Class="double">1.0018785222291797</P>
+            <P Name="Offset" Class="double">[0.0, -6.8083333333333371]</P>
+            <P Name="SceneRectInView" Class="double">[0.0, -6.8083333333333371, 1064.6666666666665, 558.94999999999993]</P>
           </Object>
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">0</P>
@@ -79,18 +79,6 @@
         </Array>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*2">
           <Object ObjectID="7">
-            <P Name="Type" Class="char">GLUE2:DDG Component</P>
-            <P Name="ID" Class="char">SymbolManager</P>
-            <P Name="Visible" Class="logical">1</P>
-            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
-            <P Name="UserData" Class="char">0</P>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">169</P>
-            <P Name="Height" Class="int32">598</P>
-            <P Name="Minimized" Class="char">Unset</P>
-          </Object>
-          <Object ObjectID="8">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
             <P Name="ID" Class="char">Property Inspector</P>
             <P Name="Visible" Class="logical">0</P>
@@ -102,10 +90,22 @@
             <P Name="Height" Class="int32">320</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
+          <Object ObjectID="8">
+            <P Name="Type" Class="char">GLUE2:DDG Component</P>
+            <P Name="ID" Class="char">SymbolManager</P>
+            <P Name="Visible" Class="logical">1</P>
+            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
+            <P Name="UserData" Class="char">0</P>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Right</P>
+            <P Name="Width" Class="int32">169</P>
+            <P Name="Height" Class="int32">584</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
         </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAECAAADqvwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAAqAAADqgAAACwA////AAAGYgAAA6oAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAECAAADlPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAAqAAADlAAAACwA////AAAGeAAAA5QAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
-        <P Name="WindowUuid" Class="char">17823ccc-63ee-4eb4-82d7-d29d022a7765</P>
+        <P Name="WindowUuid" Class="char">6ba9f4ec-2fc0-4dbf-a62d-5824cfd62bde</P>
       </Object>
       <P Name="BDUuid" Class="char">316e6c24-8dea-4055-b5ba-69b6cea352e7</P>
     </Object>
@@ -117,9 +117,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Jun 05 17:11:25 2021</P>
-      <P Name="RTWModifiedTimeStamp">544813876</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:5&gt;</P>
+      <P Name="LastModifiedDate">Sat Jun 12 12:17:04 2021</P>
+      <P Name="RTWModifiedTimeStamp">545401018</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:14&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1050,7 +1050,7 @@
       <Block BlockType="Terminator"/>
     </BlockParameterDefaults>
     <System>
-      <P Name="Location">[0, 23, 1280, 732]</P>
+      <P Name="Location">[1, 5, 1281, 714]</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1068,7 +1068,7 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="SFBlockType">Chart</P>
         <System>
-          <P Name="Location">[0, 23, 1280, 732]</P>
+          <P Name="Location">[-7, -7, 1288, 688]</P>
           <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
@@ -1093,7 +1093,7 @@
             <P Name="FunctionName">sf_sfun</P>
             <P Name="PortCounts">[1 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
-            <P Name="EnableBusSupport">off</P>
+            <P Name="EnableBusSupport">on</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="1::91">
@@ -1126,18 +1126,18 @@
     </System>
   </Model>
   <Stateflow>
-    <machine id="34">
+    <machine id="35">
       <P Name="sfVersion">80000032</P>
       <P Name="sfDemoChecksum">[2988005370 2771551416 1695967507 1706016003]</P>
       <Children>
-        <target id="53" name="sfun">
+        <target id="55" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
-        <chart id="35">
+        <chart id="36">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[0 983 0 533]</P>
-          <P Name="zoomFactor">1.333</P>
+          <P Name="viewLimits">[0 1064.667 -6.808 552.142]</P>
+          <P Name="zoomFactor">1.331</P>
           <P Name="stateColor">[0.3803921568627451 0.2745098039215687 0.1803921568627451]</P>
           <P Name="stateLabelColor">[0.4588235294117647 0.2980392156862745 0.1411764705882353]</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
@@ -1145,10 +1145,9 @@
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
-          <P Name="viewObj">35</P>
+          <P Name="viewObj">36</P>
           <P Name="visible">1</P>
-          <subviewS/>
-          <P Name="ssIdHighWaterMark">33</P>
+          <P Name="ssIdHighWaterMark">34</P>
           <P Name="decomposition">SET_CHART</P>
           <P Name="chartFileNumber">3</P>
           <P Name="saturateOnIntegerOverflow">1</P>
@@ -1160,40 +1159,44 @@
               <P Name="labelString">A</P>
               <P Name="position">[179 97 574 219]</P>
               <P Name="fontSize">13</P>
-              <P Name="subviewer">35</P>
+              <P Name="subviewer">36</P>
               <P Name="type">AND_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <P Name="executionOrder">1</P>
+              <eml/>
               <Children>
                 <state SSID="7">
                   <P Name="labelString">A1</P>
                   <P Name="position">[216 153 90 60]</P>
                   <P Name="fontSize">13</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="9">
                   <P Name="labelString">A2
 en: f(&quot;en_A2&quot;)</P>
                   <P Name="position">[615 153 90 60]</P>
                   <P Name="fontSize">13</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="32">
                   <P Name="labelString">A3
 en: f(&quot;en_A3&quot;)</P>
                   <P Name="position">[421 233 90 60]</P>
                   <P Name="fontSize">13</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="8">
                   <P Name="labelString">{x=-1}</P>
-                  <P Name="labelPosition">[248 117 36.547 15]</P>
+                  <P Name="labelPosition">[248 117 36.281 17]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="intersection">[0 0 1 0 236.55 123 0 0]</P>
@@ -1204,7 +1207,7 @@ en: f(&quot;en_A3&quot;)</P>
                   </dst>
                   <P Name="midPoint">[236.55 138]</P>
                   <P Name="dataLimits">[234.15 238.95 123 153]</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
                     <P Name="sticky">BOTH_STICK</P>
@@ -1225,7 +1228,7 @@ en: f(&quot;en_A3&quot;)</P>
                   </dst>
                   <P Name="midPoint">[456.5 183]</P>
                   <P Name="dataLimits">[306 615 180.6 185.4]</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
                     <P Name="sticky">BOTH_STICK</P>
@@ -1234,7 +1237,7 @@ en: f(&quot;en_A3&quot;)</P>
                 </transition>
                 <transition SSID="33">
                   <P Name="labelString"/>
-                  <P Name="labelPosition">[598.945 236.945 0 0]</P>
+                  <P Name="labelPosition">[577 239 2 17]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="SSID">9</P>
@@ -1246,7 +1249,7 @@ en: f(&quot;en_A3&quot;)</P>
                   </dst>
                   <P Name="midPoint">[598.9448 254.9448]</P>
                   <P Name="dataLimits">[511 645 213 265.4]</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
                     <P Name="mode">MIRROR_SLIDE</P>
@@ -1261,13 +1264,13 @@ en: f(&quot;en_A3&quot;)</P>
               <P Name="position">[782.5 186.5 105 75]</P>
               <P Name="fontSize">13</P>
               <P Name="superState">SUBCHART</P>
-              <P Name="subviewer">35</P>
+              <P Name="subviewer">36</P>
               <P Name="type">FUNC_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <eml>
                 <P Name="isEML">1</P>
                 <P Name="script">function f(s)
-  fprintf(s);</P>
+  fprintf(s+&quot;\n&quot;);</P>
                 <P Name="editorLayout" Class="double">Matrix(4,1)
 [10.0, 5.0, 700.0, 500.0]</P>
               </eml>
@@ -1298,27 +1301,30 @@ en: f(&quot;en_A3&quot;)</P>
               <P Name="labelString">B</P>
               <P Name="position">[179 350 574 92]</P>
               <P Name="fontSize">13</P>
-              <P Name="subviewer">35</P>
+              <P Name="subviewer">36</P>
               <P Name="type">AND_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <P Name="executionOrder">2</P>
+              <eml/>
               <Children>
                 <state SSID="16">
                   <P Name="labelString">B1</P>
                   <P Name="position">[252 366 90 60]</P>
                   <P Name="fontSize">13</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <state SSID="17">
                   <P Name="labelString">B2
 en: f(&quot;en_B2&quot;)</P>
                   <P Name="position">[605 366 90 60]</P>
                   <P Name="fontSize">13</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
+                  <eml/>
                 </state>
                 <transition SSID="19">
                   <P Name="labelString"/>
@@ -1333,7 +1339,7 @@ en: f(&quot;en_B2&quot;)</P>
                   </dst>
                   <P Name="midPoint">[237 394]</P>
                   <P Name="dataLimits">[222 252 391.6 396.4]</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
                     <P Name="sticky">BOTH_STICK</P>
@@ -1354,7 +1360,7 @@ en: f(&quot;en_B2&quot;)</P>
                   </dst>
                   <P Name="midPoint">[469.5 396]</P>
                   <P Name="dataLimits">[342 605 393.6 398.4]</P>
-                  <P Name="subviewer">35</P>
+                  <P Name="subviewer">36</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
                     <P Name="sticky">BOTH_STICK</P>
@@ -1388,14 +1394,19 @@ en: f(&quot;en_B2&quot;)</P>
               <P Name="scope">LOCAL_EVENT</P>
               <P Name="trigger">FUNCTION_CALL_EVENT</P>
             </event>
+            <event SSID="34">
+              <P Name="name">F</P>
+              <P Name="scope">LOCAL_EVENT</P>
+              <P Name="trigger">FUNCTION_CALL_EVENT</P>
+            </event>
           </Children>
         </chart>
       </Children>
     </machine>
-    <instance id="52">
-      <P Name="machine">34</P>
+    <instance id="54">
+      <P Name="machine">35</P>
       <P Name="name">Chart</P>
-      <P Name="chart">35</P>
+      <P Name="chart">36</P>
     </instance>
   </Stateflow>
 </ModelInformation>
