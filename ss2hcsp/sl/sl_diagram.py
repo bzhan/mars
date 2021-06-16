@@ -4,7 +4,7 @@ import lark
 import html
 
 from ss2hcsp.sl.sl_line import SL_Line
-from ss2hcsp.matlab import function
+from ss2hcsp.matlab import function,convert
 from ss2hcsp.matlab.parser import function_parser, cmd_parser, transition_parser
 from ss2hcsp.matlab import convert
 
@@ -114,6 +114,17 @@ class SL_Diagram:
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
 
+        def get_acts(acts): 
+            lists=list()
+            if isinstance(acts,function.Sequence):
+                for act in [acts.cmd1,acts.cmd2]:
+                    if isinstance(act,function.Sequence):
+                        lists.extend(self.get_acts(act))
+                    else:
+                        lists.append(act)
+            else:
+                lists.append(acts)
+            return lists
         def get_transitions(blocks):
             """Obtain the list of transitions.
             
@@ -128,12 +139,13 @@ class SL_Diagram:
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
                     tran_label = get_attribute_value(block, "labelString")
-                    if tran_label:
-                        try:
-                            tran_label = transition_parser.parse(html.unescape(tran_label))
-                        except lark.exceptions.UnexpectedToken as e:
-                            print("When parsing transition label %s" % tran_label)
-                            raise e
+                    # if tran_label:
+                    #     try:
+                    #         tran_label = transition_parser.parse(html.unescape(tran_label))
+                    #         print(tran_label)
+                    #     except lark.exceptions.UnexpectedToken as e:
+                    #         print("When parsing transition label %s" % tran_label)
+                    #         raise e
                     order = int(get_attribute_value(block, "executionOrder"))
 
                     # Each transition must have exactly one source and destination
@@ -195,9 +207,21 @@ class SL_Diagram:
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
                         dest_state_name_list = list()
+                        return_var=None
+                        chart_state1=None
                         if fun_script:
                             # Has script, directly use parser for matlab functions
-                            _functions.append(function_parser.parse(fun_script))
+                            fun_name=function_parser.parse(fun_script).name
+                            hp= convert.convert_function(function_parser.parse(fun_script))
+                            ru=function_parser.parse(fun_script).return_vars
+                            exprs=function.ListExpr(function_parser.parse(fun_script).params) if function_parser.parse(fun_script).params is not None else None
+                            fun_type="MATLAB_FUNCTION"
+                            if isinstance(ru,(function.Var,function.FunctionCall)):
+                                return_var=ru
+                            elif isinstance(ru,tuple):
+                                return_var=function.ListExpr(*ru)
+                           
+                            # _functions.append(function_parser.parse(fun_script))
                         else:
                             dest_state_name_list=list()
                             fun_type="GRAPHICAL_FUNCTION"
@@ -278,7 +302,7 @@ class SL_Diagram:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
                             hp=None
-                            # _states.append(chart_state1)
+                            _states.append(chart_state1)
                             # if len(dest_state_name_list) == 0:
                             #     stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
                             #                  num_src=0,num_dest=0)
@@ -290,7 +314,7 @@ class SL_Diagram:
                             #     hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1)[0])
                             return_var =return_var if len(return_var)>0 else None
                             exprs=exprs if len(exprs)>0 else None
-                            _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
+                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states
@@ -300,18 +324,18 @@ class SL_Diagram:
                         # specify en, du, and ex actions.
                         labels = get_attribute_value(child, "labelString").split("\n")
                         name = labels[0]
-
                         # Get en, du and ex actions
                         en, du, ex = None, None, None
                         for label in labels[1:]:
-                            if label.startswith("en:"):
-                                en = cmd_parser.parse(label[3:])
-                            elif label.startswith("du:"):
-                                du = cmd_parser.parse(label[3:])
-                            elif label.startswith("ex:"):
-                                ex = cmd_parser.parse(label[3:])
-                            else:
-                                raise AssertionError("Parse XML: unrecognized state label %s" % label)
+                            if label!="":
+                                if label.startswith("en:"):  
+                                    en = get_acts(cmd_parser.parse(label[3:]))
+                                elif label.startswith("du:"):
+                                    du = get_acts(cmd_parser.parse(label[3:]))
+                                elif label.startswith("ex:"):
+                                    ex = get_acts(cmd_parser.parse(label[3:]))
+                                else:
+                                    raise AssertionError("Parse XML: unrecognized state label %s" % label)
 
                         # Get default_tran and out_trans
                         default_tran = None
@@ -460,9 +484,6 @@ class SL_Diagram:
                         value =val_lists
                      
                     else:
-                       
-                        # print(value)
-                        # print(aexpr_parser.parse(value).value)
                         value=value.strip()
                         if "," not in value:
                             value=str(value).replace(" ",",")

@@ -27,14 +27,14 @@ def convert_expr(e):
             return expr.ModExpr(convert_expr(e.exprs[0]), convert_expr(e.exprs[1]))
         else:
             raise NotImplementedError("Unknown operator %s" % e.op_name)
-    elif isinstance(e, function.FunExpr):
-        if e.fun_name == 'rand':
-            if len(e.exprs) == 0:
+    elif isinstance(e, function.FunctionCall):
+        if e.func_name == 'rand':
+            if len(e.args) == 0:
                 return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
             else:
                 raise NotImplementedError("Function rand: argument not supported")
         else:
-            return expr.FunExpr(e.fun_name, [convert_expr(ex) for ex in e.exprs])
+            return expr.FunExpr(e.func_name, [convert_expr(ex) for ex in e.args])
     elif isinstance(e, function.BConst):
         return expr.BConst(e.value)
     elif isinstance(e, function.LogicExpr):

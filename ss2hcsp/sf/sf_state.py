@@ -330,7 +330,7 @@ class SF_State:
                 name = str(fun.name)
                 if "(" in name:
                     name = name[:name.index("(")]
-                # fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
+                fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
 
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
@@ -408,18 +408,18 @@ class SF_State:
 
 
 class OR_State(SF_State):
-<<<<<<< HEAD
-    def __init__(self, ssid, out_trans=(), inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
-        super(OR_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
-        self.out_trans = out_trans
-        self.default_tran = default_tran  # The default transition to this state
-       #个人新添加的历史节点内容
-        self.has_history_junc=False  #The history junction to this state
-        self.acth=None   # the latest state
-        self.func_after=list()            
+# <<<<<<< HEAD
+#     def __init__(self, ssid, out_trans=(), inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
+#         super(OR_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
+#         self.out_trans = out_trans
+#         self.default_tran = default_tran  # The default transition to this state
+#        #个人新添加的历史节点内容
+#         self.has_history_junc=False  #The history junction to this state
+#         self.acth=None   # the latest state
+#         self.func_after=list()            
         
-        self.get_after_func()
-=======
+#         self.get_after_func()
+# =======
     """Represents an OR state."""
     def __init__(self, ssid, out_trans=(), inner_trans=(), name="", original_name="",
                  en=None, du=None, ex=None, default_tran=None):
@@ -428,8 +428,10 @@ class OR_State(SF_State):
         self.default_tran = default_tran  # default transition to this state
         self.has_history_junc = False     # history junction to this state
         self.acth = None                  # (when there is history junction) the latest state
+        self.func_after=list()               
+        self.get_after_func()
 
->>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
+# >>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
     def has_aux_var(self, var_name):
         """Return if the state has the auxiliary variable var_name
         

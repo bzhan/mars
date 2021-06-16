@@ -196,29 +196,29 @@ class FunExpr(AExpr):
         #     "min", "max", "abs", "gcd", "delay", "sqrt", "div",
         #     "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
         #     "bernoulli", "uniform"]
-        self.fun_name = fun_name
+        self.func_name = fun_name
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
-        self.exprs = exprs
+        self.args = exprs
 
     def __repr__(self):
-        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
+        return "Fun(%s, %s)" % (self.func_name, ", ".join(repr(expr) for expr in self.args))
 
     def __str__(self):
-        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
+        return "%s(%s)" % (self.func_name, ",".join(str(expr) for expr in self.args))
 
     def __eq__(self, other):
-        return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
+        return isinstance(other, FunExpr) and self.func_name == other.func_name and \
                self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("Fun", self.fun_name, self.exprs))
+        return hash(("Fun", self.func_name, self.args))
 
     def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.exprs))
+        return set().union(*(expr.get_vars() for expr in self.args))
 
     def subst(self, inst):
-        return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
+        return FunExpr(self.func_name, [expr.subst(inst) for expr in self.args])
 
 
 class ModExpr(AExpr):
@@ -520,8 +520,6 @@ def disj(*args):
         return args[0]
     # Select the minimal element as the head
     arg_strs = [str(arg) for arg in args]
-    print(77777)
-    print(args)
     min_arg_index = arg_strs.index(min(arg_strs))
     # return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
     return LogicExpr("||", args[0],disj(*args[1:]))

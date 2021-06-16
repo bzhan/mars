@@ -26,16 +26,16 @@ class Var(Expr):
         self.name = name
 
     def __repr__(self):
-        return "Var(%s)" % repr(self.name)
+        return "Var(%s)" % self.name
 
     def __str__(self):
-        return self.name
+        return str(self.name)
     
     def __eq__(self, other):
         return isinstance(other, Var) and self.name == other.name
 
     def __hash__(self):
-        return hash(("Var", self.name))
+        return hash(("Var", str(self.name)))
 
     def priority(self):
         return 100
@@ -52,16 +52,39 @@ class Var(Expr):
 
 class ListExpr(Expr):
     """List expressions."""
+   
     def __init__(self, *args):
         super(ListExpr, self).__init__()
-        assert all(isinstance(arg, Expr) for arg in args)
+        # for arg in args:
+        #     print(args)
+        #     print(type(arg))
+        # assert all(isinstance(arg, (Var,FunctionCall)) for arg in args)
         self.args = args
+        self.count=0
 
     def __repr__(self):
         return "ListExpr(%s)" % (','.join(repr(arg) for arg in self.args))
 
     def __str__(self):
         return "[%s]" % (','.join(str(arg) for arg in self.args))
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+      
+       return len(self.args)
+    def __getitem__(self,key):
+            return self.args[key]
+
+    def __next__(self):
+        # 获取下一个数
+        if self.count < len(self.args):
+            result = self.args[self.count]
+            self.count += 1
+            return result
+        else:
+            raise StopIteration
 
     def __eq__(self, other):
         return isinstance(other, ListExpr) and self.args == other.args
@@ -132,10 +155,11 @@ class OpExpr(Expr):
 
         else:
             s1, s2 = str(self.exprs[0]), str(self.exprs[1])
-            if self.exprs[0].priority() < self.priority():
-                s1 = '(' + s1 + ')'
-            if self.exprs[1].priority() <= self.priority():
-                s2 = '(' + s2 + ')'
+            if isinstance(self.exprs[0],OpExpr) or isinstance(self.exprs[1],OpExpr):
+                if self.exprs[0].priority() < self.priority():
+                    s1 = '(' + s1 + ')'
+                if self.exprs[1].priority() <= self.priority():
+                    s2 = '(' + s2 + ')'
             return '%s %s %s' % (s1, self.op_name, s2)
     
     def __eq__(self, other):
@@ -242,43 +266,48 @@ class LogicExpr(BExpr):
         super(LogicExpr, self).__init__()
         assert op_name in ["~", "&&", "||", "-->", "<-->"]
         assert (op_name == "~" and len(exprs) == 1) or (op_name != "~" and len(exprs) == 2)
-        self.op_name = op_name
-        self.exprs = tuple(exprs)
+       
+        self.op = op_name
+        exprs=tuple(exprs)
+        self.expr1=exprs[0]
+        self.expr2=exprs[1]
+        # self.exprs = tuple(exprs)
 
     def __repr__(self):
-        return "Logic(%s,%s)" % (repr(self.op_name), ','.join(repr(expr) for expr in self.exprs))
+        return "Logic(%s,%s)" % (repr(self.op), ','.join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        if self.op_name == '~':
-            s = str(self.exprs[0])
-            if self.exprs[0].priority() < self.priority():
+        if self.op == '~':
+            s = str(self.expr1)
+            if self.expr1.priority() < self.priority():
                 s = '(' + s + ')'
             return '~' + s
 
         else:
-            s1, s2 = str(self.exprs[0]), str(self.exprs[1])
-            if self.exprs[0].priority() < self.priority():
-                s1 = '(' + s1 + ')'
-            if self.exprs[1].priority() <= self.priority():
-                s2 = '(' + s2 + ')'
-            return '%s %s %s' % (s1, self.op_name, s2)
+            s1, s2 = str(self.expr1), str(self.expr2)
+            if isinstance(self.expr1,LogicExpr) or isinstance(self.expr2,LogicExpr):
+                if self.expr1.priority() < self.priority():
+                    s1 = '(' + s1 + ')'
+                if self.expr2.priority() <= self.priority():
+                    s2 = '(' + s2 + ')'
+            return '%s %s %s' % (s1, self.op, s2)
 
     def __eq__(self, other):
-        return isinstance(other, LogicExpr) and self.op_name == other.op_name and self.exprs == other.exprs
+        return isinstance(other, LogicExpr) and self.op == other.op and self.exprs == other.exprs
 
     def __hash__(self):
         return hash(("LogicExpr", self.op, self.exprs))
 
     def priority(self):
-        if self.op_name == '~':
+        if self.op == '~':
             return 40
-        elif self.op_name == '&&':
+        elif self.op == '&&':
             return 35
-        elif self.op_name == '||':
+        elif self.op == '||':
             return 30
-        elif self.op_name == '<-->':
+        elif self.op == '<-->':
             return 25
-        elif self.op_name == '-->':
+        elif self.op == '-->':
             return 20
         else:
             raise NotImplementedError
@@ -296,7 +325,7 @@ class RelExpr(BExpr):
     def __init__(self, op, expr1, expr2):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
-        assert isinstance(expr1, Expr) and isinstance(expr2, Expr)
+        assert isinstance(expr1, (Expr,FunctionCall)) and isinstance(expr2, (Expr,FunctionCall))
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
@@ -340,30 +369,35 @@ class Assign(Command):
     """
     def __init__(self, return_vars, expr):
         super(Assign, self).__init__()
-        assert isinstance(expr, Expr)
-        if isinstance(return_vars, str):
+        # assert isinstance(expr, Expr)
+        if isinstance(return_vars, (Var,FunctionCall)):
             self.return_vars = return_vars
         else:
-            self.return_vars = tuple(return_vars)
+            self.return_vars = return_vars
         self.expr = expr
-
     def __str__(self):
-        if isinstance(self.return_vars, str):
-            return "%s = %s" % (self.return_vars, self.expr)
+        if isinstance(self.return_vars, (Var,FunctionCall)):
+            return "%s := %s" % (str(self.return_vars), str(self.expr))
         else:
-            return "[%s] = %s" % (','.join(self.return_vars), self.expr)
+            return "[%s] := %s" % (','.join(str(return_var) for return_var in self.return_vars), str(self.expr))
 
     def __repr__(self):
-        return "Assign(%s,%s)" % (repr(self.return_vars), repr(self.expr))
+        return "Assign(%s,%s)" % (repr(str(self.return_vars)), repr(str(self.expr)))
 
     def __eq__(self, other):
         return isinstance(other, Assign) and self.return_vars == other.return_vars and \
             self.expr == other.expr
 
+    def priority(self):
+        return 100
+
+    def contain_hp(self, name):
+        return False
+
     def subst(self, inst):
         # Disallow instantiating return values
-        for var in self.return_vars:
-            assert var not in inst, "Cannot instantiate return value %s" % var
+        # for var in self.return_vars:
+        #     assert var not in inst, "Cannot instantiate return value %s" % var
         
         return Assign(self.return_vars, self.expr.subst(inst))
 
@@ -406,10 +440,10 @@ class Sequence(Command):
         self.cmd2 = cmd2
 
     def __str__(self):
-        return "%s;\n%s" % (str(self.cmd1), str(self.cmd2))
+        return "%s; %s" % (str(self.cmd1), Sequence(self.cmd2.cmd1,self.cmd2.cmd2) if isinstance(self.cmd2,Sequence) else str(self.cmd2))
 
     def __repr__(self):
-        return "Sequence(%s,%s)" % (repr(self.cmd1), repr(self.cmd2))
+        return "Sequence(%s,%s)" % (repr(self.cmd1), Sequence(self.cmd2.cmd1,self.cmd2.cmd2) if isinstance(self.cmd2,Sequence) else repr(self.cmd2) )
 
     def __eq__(self, other):
         return isinstance(other, Sequence) and self.cmd1 == other.cmd1 and self.cmd2 == other.cmd2
@@ -417,6 +451,11 @@ class Sequence(Command):
     def subst(self, inst):
         return Sequence(self.cmd1.subst(inst), self.cmd2.subst(inst))
 
+    def priority(self):
+        return 70
+
+    def contain_hp(self, name):
+        return False
 
 class IfElse(Command):
     """If-Else commands."""
@@ -430,10 +469,10 @@ class IfElse(Command):
     def __str__(self):
         if_str = str(self.cmd1)
         else_str = str(self.cmd2)
-        res = "if %s\n" % self.cond
-        res += '\n'.join('  ' + line for line in if_str.split('\n'))
-        res += '\nelse\n'
-        res += '\n'.join('  ' + line for line in else_str.split('\n'))
+        res = "if %s " % self.cond
+        res += ''.join(' ' + line for line in if_str.split('\n'))
+        res += ' else'
+        res += ''.join(' ' + line for line in else_str.split('\n'))
         return res
 
     def __repr__(self):
@@ -505,7 +544,7 @@ class TemporalEvent(Event):
     def __init__(self, temp_op, expr, event):
         assert temp_op in ('after', 'before', 'at', 'every')
         assert isinstance(event, Event)
-        assert isinstance(expr, Expr)
+        # assert isinstance(expr, Expr)
         self.temp_op = temp_op
         self.expr = expr
         self.event = event
@@ -552,23 +591,24 @@ class Function:
     def __init__(self, name, params, cmd, return_vars):
         assert isinstance(cmd, Command)
         self.name = name
-        self.params = tuple(params)
+        self.params = tuple(params) if str(params) !="()" else None
         self.cmd = cmd
+        self.type="MATLAB_FUNCTION"
 
-        if return_vars is None or isinstance(return_vars, str):
-            self.return_vars = return_vars
+        if return_vars is None or isinstance(return_vars, (Var,FunctionCall)):
+            self.return_vars =return_vars
         else:
             self.return_vars = tuple(return_vars)
 
     def __str__(self):
         if self.return_vars is None:
             str_return_vars = ""
-        elif isinstance(self.return_vars, str):
-            str_return_vars = self.return_vars + "="
+        elif isinstance(self.return_vars, (Var,FunctionCall)):
+            str_return_vars = str(self.return_vars) + "="
         else:
-            str_return_vars = "[" + ','.join(self.return_vars) + "]="
+            str_return_vars = "[" + ','.join(str(return_var) for return_var in self.return_vars) + "]="
 
-        func_sig = str_return_vars + self.name + "(" + ",".join(self.params) + ")"
+        func_sig = str_return_vars + self.name + "(" + ",".join(str(param) for param in self.params) + ")"
         str_cmd = '\n'.join('  ' + line for line in str(self.cmd).split('\n'))
         return "function %s\n%s" % (func_sig, str_cmd)
 
@@ -591,11 +631,15 @@ class Function:
         the function with the given values.
  
         """
+        params=None
         if vals is None:
             vals = tuple()
-
-        assert len(self.params) == len(vals), "Function instantiation: wrong number of inputs"
-        inst = dict(zip(self.params, vals))
+        if self.params is None:
+            params=tuple()
+        else:
+            params=self.params
+        # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
+        inst = dict(zip(params, vals))
         return self.cmd.subst(inst)
 
 
@@ -634,3 +678,14 @@ class TransitionLabel:
     def __eq__(self, other):
         return isinstance(other, TransitionLabel) and self.event == other.event and \
             self.cond == other.cond and self.cond_act == other.cond_act and self.tran_act == other.tran_act
+
+class DirectName:
+    """docstring for ClassName"""
+    def __init__(self, expr):
+        self.exprs = expr
+
+    def __str__(self):
+        return str(".".join(str(arg) for arg in self.exprs))
+
+    def __repr__(self):
+        return "str(%s)" %(".".join(repr(arg) for arg in self.exprs))
