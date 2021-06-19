@@ -3,7 +3,4 @@ chapter HHLProver
 session "HHLProver" = "Ordinary_Differential_Equations" +
   theories 
     HHLProver
-
-session "HHLProver_Ex" = "HHLProver" +
-  theories
     HHLProver_Ex
