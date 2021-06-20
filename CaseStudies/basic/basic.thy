@@ -15,6 +15,7 @@ lemma b1:
    apply (rule Valid_assign_sp)
   unfolding entails_def by auto
 
+
 lemma b2:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
      X ::= (\<lambda>s . s X + 1);
@@ -53,7 +54,6 @@ apply (rule Valid_strengthen_post)
   unfolding entails_def by auto
 
 
-
 lemma b4:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
      X ::= (\<lambda>s . s X + 1);
@@ -72,6 +72,7 @@ lemma b4:
   apply (auto simp add:entails_def)
   done
 
+
 lemma b5:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
      X ::= (\<lambda>s . s X + 1);
@@ -85,6 +86,7 @@ lemma b5:
   apply(auto simp add: entails_def)
   using someI 
   by (metis one_le_exp_iff)
+
 
 lemma b7:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 1 \<and> s T = 0}
@@ -118,7 +120,6 @@ lemma b7:
 apply(rule Valid_assign_sp)
   apply(auto simp add: entails_def)
   done
-
 
 
 lemma b8:
@@ -187,6 +188,7 @@ apply (rule Valid_strengthen_post)
     apply(auto simp add: entails_def)
   done
 
+
 lemma b10:
   "\<Turnstile> {\<lambda>s tr. s X > 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. 5, T := \<lambda>s. 1))) (\<lambda>s. s T < P1);
@@ -208,6 +210,7 @@ lemma b10:
   apply(rule exp_2)
   done
 
+
 lemma b11:
   "\<Turnstile> {\<lambda>s tr. s X = 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. 1, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -220,6 +223,7 @@ apply(rule Valid_inv_s_ge[where inv = "\<lambda>s. s X" and r = 0])
      apply (fast intro!: derivative_intros)
    apply(auto simp add: state2vec_def entails_def)
   done
+
 
 lemma b12:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 0}
@@ -250,6 +254,7 @@ apply clarify
       apply (fast intro!: derivative_intros)
      apply(auto simp add:state2vec_def entails_def)
   done
+
 
 lemma b13:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 0 \<and> s Z \<ge> 0}
@@ -293,6 +298,7 @@ apply(rule Valid_weaken_pre)
        apply (fast intro!: derivative_intros)
    apply(auto simp add:state2vec_def entails_def)
   done
+
 
 lemma b14:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 0 \<and> s Z \<ge> 0 \<and> s J \<ge> 0}
@@ -350,17 +356,20 @@ apply(rule Valid_weaken_pre)
    apply(auto simp add:state2vec_def entails_def)
   done
 
+
 lemma b15:
  "\<Turnstile> {\<lambda>s tr. s X > 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X > 0}"
   using exp_1 by auto
 
+
 lemma b16:
  "\<Turnstile> {\<lambda>s tr. s X > 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X + 1, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X > 0}"
   using exp_3 by auto
+
 
 lemma b17:
  "\<Turnstile> {\<lambda>s tr. s X > 0}
@@ -374,6 +383,7 @@ lemma b18:
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X , T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X \<ge> 0}"
   using exp_5 by auto
+
 
 lemma b19:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s Y \<ge> 0}
@@ -404,6 +414,7 @@ apply(rule Valid_weaken_pre)
    apply(auto simp add:state2vec_def entails_def)
   done
 
+
 lemma b21:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 1}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X ^ 2 + 2 * (s X ^ 4), T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -417,6 +428,7 @@ apply clarify
    apply(auto simp add:state2vec_def entails_def)
   by (simp add: power_increasing)
 
+
 lemma b22:
   "\<Turnstile> {\<lambda>s tr. s X ^ 2 + s Y ^ 2 = 1}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s Y, Y := \<lambda> s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -427,6 +439,7 @@ apply clarify
    apply (fast intro!: derivative_intros)
   apply(auto simp add:state2vec_def entails_def)
   done
+
 
 lemma b23:
   "\<Turnstile> {\<lambda>s tr. s X ^ 2 + s Y ^ 2 = 1 \<and> s Z - s X = 0}
@@ -449,7 +462,8 @@ apply clarify
    apply (fast intro!: derivative_intros)
     apply(auto simp add:state2vec_def entails_def)
   done
-  
+
+
 lemma b24:
   "\<Turnstile> {\<lambda>s tr. s Z ^ 2 + s J ^ 2 - s L ^ 2 * s M ^ 2 = 0 \<and> s Z + s L * s Y = 0 \<and> s J - s L * s X = 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s Z, Y := \<lambda> s. s J, Z := \<lambda> s. - s L * s J, J := \<lambda> s. s L * s Z , T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -509,7 +523,8 @@ apply clarify
     apply (fast intro!: derivative_intros)
  apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square power4_eq_xxxx)
   by (simp add: vector_space_over_itself.scale_scale)
-   
+
+
 lemma b26:
   "\<Turnstile> {\<lambda>s tr. s X ^ 3 > 5  \<and>  s Y > 2}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X ^ 3 + s X ^ 4, Y := \<lambda> s. 5 * s Y + s Y ^ 2, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -532,7 +547,8 @@ apply clarify
    apply(auto simp add:state2vec_def entails_def)
   done
 
-lemma 27:
+
+lemma b27:
  "\<Turnstile> {\<lambda>s tr. s X \<ge> 1  \<and> s Y = 10 \<and> s Z = -2}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s Y, Y := \<lambda> s. s Z + s Y ^ 2 - s Y))) (\<lambda>s. s Y > 0)
  {\<lambda>s tr. s X \<ge> 1  \<and>  s Y \<ge> 0 }"
@@ -558,7 +574,7 @@ apply clarify
   done
 
 
-lemma 28:
+lemma b28:
  "\<Turnstile> {\<lambda>s tr. s X ^ 4 * s Y ^ 2 + s X ^ 2 * s Y ^ 4 - 3 * s X ^ 2 * s Y ^ 2 + 1 \<le> c}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. 2 * s X ^ 4 * s Y + 4 * s X ^ 2 * s Y ^ 3 - 6 * s X ^ 2 * s Y, 
        Y := \<lambda> s. - 4 * s X ^ 3 * s Y ^ 2 - 2 * s X * s Y ^ 4  + 6 * s X * s Y ^ 2, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -570,7 +586,8 @@ apply clarify
   apply(auto simp add:state2vec_def entails_def algebra_simps power2_eq_square power4_eq_xxxx)
   done
 
-lemma 29:
+
+lemma b29:
   "\<Turnstile> {\<lambda>s tr. s X + s Z = 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. A * s X ^ 2 + B * s X, Z := \<lambda> s. A * s Z * s X + B * s Z, T := \<lambda> s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X + s Z = 0 }"
@@ -584,8 +601,7 @@ apply(simp add:vec2state_def)
   done
 
 
-
-lemma 31:
+lemma b31:
   "\<Turnstile> {\<lambda>s tr. s X + s Z \<ge> 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X ^ 2, Z := \<lambda> s. s Z * s X + s Y))) (\<lambda>s. s Y > s X ^ 2)
  {\<lambda>s tr. s X + s Z \<ge> 0 }"
@@ -599,7 +615,7 @@ lemma 31:
   done
 
 
-lemma 32:
+lemma b32:
   assumes "r\<le>0"
   shows "\<exists> f . \<Turnstile> {\<lambda>s tr. s X  = f}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . r + s X ^ 2, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -619,8 +635,7 @@ apply(auto simp add:  continuous_on_eq_continuous_within , intro continuous_intr
   done
 
 
-
-lemma 33:
+lemma b33:
   assumes "a^2 \<le> 4"
       and "b^2 \<ge> 1/3"
     shows "\<Turnstile> {\<lambda>s tr. s L \<ge> 0 \<and> s M \<ge> 0 \<and> s L ^ 2 * s X ^ 2 + s Y ^ 2 - s N \<le> 0}
@@ -736,7 +751,8 @@ apply(rule Valid_strengthen_post)
   apply(auto simp add:entails_def)
   done
 
-lemma 34:
+
+lemma b34:
   assumes "a\<ge>0"
   shows" \<Turnstile> {\<lambda>s tr. s X ^ 3 \<ge> -1}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4 + a, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
@@ -748,7 +764,7 @@ apply clarify
   apply(auto simp add:state2vec_def entails_def)
   using assms by auto
 
-lemma 35:
+lemma b35:
 "\<Turnstile> {\<lambda>s tr. s X + 1/2 * s Y ^ 2 =  a}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X * s Y, Y := \<lambda> s. - s X , T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X + 1/2 * s Y ^ 2 =  a }"
@@ -760,7 +776,7 @@ lemma 35:
   done
 
 
-lemma 36:
+lemma b36:
 "\<Turnstile> {\<lambda>s tr. 1/2 * s X ^ 2 - 1/2 * s Y ^ 2 >=  a}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y + s X * s Y ^ 2, Y := \<lambda> s. - s X + s X ^ 2 * s Y))) (\<lambda>s. s X > 0 \<and> s Y > 0)
  {\<lambda>s tr. 1/2 * s X ^ 2 - 1/2 * s Y ^ 2 >=  a }"
@@ -802,7 +818,8 @@ apply clarify
   done
   done
 
-lemma 37:
+
+lemma b37:
 "\<Turnstile> {\<lambda>s tr. - s X * s Y \<ge> a}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X - s Y + s X * s Y , Y := \<lambda> s. - s Y - s Y ^ 2, T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
  {\<lambda>s tr. - s X * s Y \<ge> a }"
@@ -814,7 +831,8 @@ apply clarify
   apply(auto simp add:state2vec_def entails_def algebra_simps power_add power2_eq_square )
   done
 
-lemma 38:
+
+lemma b38:
 "\<Turnstile> {\<lambda>s tr. 2 * s X ^ 3 \<ge> 1/4}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s X ^ 2  + s X ^ 4 , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
  {\<lambda>s tr. 2 * s X ^ 3 \<ge> 1/4}"
@@ -824,8 +842,9 @@ apply clarify
     apply (fast intro!: derivative_intros)
   apply(auto simp add:state2vec_def entails_def)
   done
-  
-lemma 39:
+
+
+lemma b39:
 "\<Turnstile> {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0 }
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . (s X - 3) ^ 4  + s Y ^ 5 , Y := \<lambda>  s. s Y ^ 2, T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X ^ 3 \<ge> -1 \<and> s Y ^ 5 \<ge> 0}"
@@ -864,7 +883,8 @@ apply clarify
   apply(auto simp add:state2vec_def entails_def)
   done
 
-lemma 40:
+
+lemma b40:
   assumes "A > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 }
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. A , T := \<lambda> s. 1 ))) (\<lambda>s. s T < P)
@@ -877,7 +897,7 @@ apply clarify
   using assms by auto
 
 
-lemma 41:
+lemma b41:
   assumes "A > 0" and "B > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 }
     Rep ( IChoice (IChoice (Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . 0))) (Z ::= (\<lambda> s . - B) );
@@ -914,7 +934,8 @@ apply(rule Valid_strengthen_post)
   apply(auto simp add:entails_def)
   done
 
-lemma 42:
+
+lemma b42:
   assumes "A > 0" and "B > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s X + 1/(2*B) * s Y ^ 2 < S}
     Rep (Cond (\<lambda>s. s X + 1/(2*B) * s Y ^ 2 < S)(Z ::= (\<lambda> s . A)) (Cond (\<lambda> s . s Y = 0) (Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . - B)));
@@ -961,7 +982,7 @@ apply(rule Valid_ode_not)
   by (smt divide_nonneg_pos power2_less_0)
 
 
-lemma 43:
+lemma b43:
   assumes "A > 0" 
   shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
     Rep (Cond (\<lambda>s. s Y = V)(Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . A));
@@ -984,7 +1005,7 @@ apply clarify
   by auto
 
 
-lemma 44:
+lemma b44:
   assumes "A > 0" 
   shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
     Rep ((Z ::= (\<lambda> s . A);
@@ -1005,7 +1026,7 @@ apply clarify
   by auto
 
 
-lemma 45:
+lemma b45:
   assumes "A > 0" 
   shows "\<Turnstile> {\<lambda>s tr. s Y \<le> V}
     Rep (Cond (\<lambda>s. s Y = V)(Z ::= (\<lambda> s . 0)) (Z ::= (\<lambda> s . A));
@@ -1032,20 +1053,8 @@ apply(rule Valid_ode_not)
   apply auto
   done
 
-schematic_goal
-  fixes x :: real
-  shows"((\<lambda>t. s X + s Y * t + s Z * (t * t) / 2) has_derivative ?f'81)
-            (at x within {- 1..ep + 1})"
-  apply (rule has_derivative_add)
-  apply (rule has_derivative_add)
-    apply (auto intro!: derivative_intros)[1]
-   apply (auto intro!: derivative_intros)[1]
-  apply (rule has_derivative_divide)
-   apply (auto intro!: derivative_intros)[1]
-  done
 
-
-lemma 46:
+lemma b46:
   assumes "A > 0" and "B > 0" and "ep > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s X + s Y ^ 2/(2 * B) \<le> S}
     Rep (Cond (\<lambda>s. s X + s Y ^ 2/(2 * B) + (A/B + 1)*(A/2 * ep^2 + ep * s Y)\<le> S)(Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . - B));
@@ -1183,8 +1192,7 @@ apply (rule exI[where x="1"])
     by (smt divide_nonneg_pos power2_less_0)
 
 
-
-lemma 49:
+lemma b49:
   assumes "c>0" and "p=2" and "d=3"
   shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> (5/4 * (s X - r)^ 2 + (s X - r) * s Y / 2 + (s Y ^ 2)/4 < c)}
 Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. - p * (s X - r) - d * s Y , T := \<lambda> s . 1))) (\<lambda>s. s T < P)
@@ -1202,7 +1210,7 @@ apply clarify
   by (smt mult.commute)
 
 
-lemma 50:
+lemma b50:
   assumes "p=2" and "d=3"
   shows"\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and>  s X - s M \<ge> 0 \<and> s X \<le> S \<and> (s M + S)- 2 * s L = 0 \<and> (5/4 * (s X - s L)^ 2 + (s X - s L) * s Y / 2 + (s Y ^ 2)/4 - ((S - s M)/2)^2 < 0)}
 Rep(
@@ -1354,7 +1362,8 @@ done
   qed
 done
 
-lemma 52:
+
+lemma b52:
  "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 \<and> s Z \<ge> 0 }
 Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda> s . s Y , Y := \<lambda>  s. s Z ))) (\<lambda>s. s Y > 0)
 {\<lambda> s t.  s Y \<ge>0}"
@@ -1373,7 +1382,7 @@ apply clarify
   done
 
 
-lemma 53:
+lemma b53:
   assumes"A\<ge>0" and "B>0"
   shows
  "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 }
@@ -1399,7 +1408,8 @@ apply clarify
   apply auto
   done
 
-lemma 54:
+
+lemma b54:
   assumes"A\<ge>0" and "B>0"
   shows
  "\<Turnstile> {\<lambda> s t. s Y \<ge> 0 }
@@ -1426,10 +1436,7 @@ apply clarify
   done
 
 
-
-
-
-lemma 55:
+lemma b55:
   assumes "A \<ge> 0" and "B > 0" and "ep > 0"
   shows "\<Turnstile> {\<lambda>s tr. s Y \<ge> 0 \<and> s Y ^ 2 \<le> (S - s X)*(2 * B)}
     Rep (Cond (\<lambda>s. (A + B)*(A * ep^2 + 2 * ep * s Y) + s Y ^ 2  \<le> (S - s X) * 2 * B)(Z ::= (\<lambda> s . A)) (Z ::= (\<lambda> s . - B));
@@ -1575,7 +1582,5 @@ apply (rule exI[where x="1"])
     using assms 
     by (smt mult_neg_pos zero_le_power2)
     
-    
-
 
 end
