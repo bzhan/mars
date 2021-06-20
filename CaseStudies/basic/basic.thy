@@ -1,8 +1,9 @@
 theory basic
-    imports HHLProver.ContinuousInv  HHLProver.BigStepParallel  basicprime
+  imports
+    HHLProver.ContinuousInv
+    HHLProver.BigStepParallel
+    basicprime
 begin
-
-
 
 
 lemma b1:
