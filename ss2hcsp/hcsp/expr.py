@@ -529,28 +529,11 @@ def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if true_expr in args:
         return true_expr
-<<<<<<< HEAD
-    args = set(args)  # delete repeated elements
-    if false_expr in args:
-        args.remove(false_expr)
-    args = tuple(args)
-    if len(args) == 0:
-        return false_expr
-    elif len(args) == 1:
-        return args[0]
-    # Select the minimal element as the head
-    arg_strs = [str(arg) for arg in args]
-    min_arg_index = arg_strs.index(min(arg_strs))
-    # return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
-    return LogicExpr("||", args[0],disj(*args[1:]))
-
-=======
     new_args = []
     for arg in args:
         if arg != false_expr and arg not in new_args:
             new_args.append(arg)
     return list_disj(*new_args)
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':
