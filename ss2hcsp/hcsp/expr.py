@@ -2,6 +2,7 @@
 
 import math
 import itertools
+from ss2hcsp.matlab import function
 
 
 def opt_round(x):
@@ -86,7 +87,7 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str))
+        assert isinstance(value, (int, float, list, str,function.AConst,function.ListExpr,function.ListExpr2))
         if isinstance(value, list):
             self.value = list(value)
         else:
@@ -196,29 +197,29 @@ class FunExpr(AExpr):
         #     "min", "max", "abs", "gcd", "delay", "sqrt", "div",
         #     "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
         #     "bernoulli", "uniform"]
-        self.func_name = fun_name
+        self.fun_name = fun_name
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
-        self.args = exprs
+        self.exprs = exprs
 
     def __repr__(self):
-        return "Fun(%s, %s)" % (self.func_name, ", ".join(repr(expr) for expr in self.args))
+        return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        return "%s(%s)" % (self.func_name, ",".join(str(expr) for expr in self.args))
+        return "%s(%s)" % (self.fun_name, ",".join(str(expr) for expr in self.exprs))
 
     def __eq__(self, other):
-        return isinstance(other, FunExpr) and self.func_name == other.func_name and \
+        return isinstance(other, FunExpr) and self.fun_name == other.fun_name and \
                self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("Fun", self.func_name, self.args))
+        return hash(("Fun", self.fun_name, self.exprs))
 
     def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.args))
+        return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
-        return FunExpr(self.func_name, [expr.subst(inst) for expr in self.args])
+        return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 
 
 class ModExpr(AExpr):
@@ -529,28 +530,28 @@ def disj(*args):
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if true_expr in args:
         return true_expr
-<<<<<<< HEAD
-    args = set(args)  # delete repeated elements
-    if false_expr in args:
-        args.remove(false_expr)
-    args = tuple(args)
-    if len(args) == 0:
-        return false_expr
-    elif len(args) == 1:
-        return args[0]
-    # Select the minimal element as the head
-    arg_strs = [str(arg) for arg in args]
-    min_arg_index = arg_strs.index(min(arg_strs))
-    # return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
-    return LogicExpr("||", args[0],disj(*args[1:]))
+# <<<<<<< HEAD
+#     args = set(args)  # delete repeated elements
+#     if false_expr in args:
+#         args.remove(false_expr)
+#     args = tuple(args)
+#     if len(args) == 0:
+#         return false_expr
+#     elif len(args) == 1:
+#         return args[0]
+#     # Select the minimal element as the head
+#     arg_strs = [str(arg) for arg in args]
+#     min_arg_index = arg_strs.index(min(arg_strs))
+#     # return LogicExpr("||", args[min_arg_index], disj(*args[:min_arg_index], *args[min_arg_index + 1:]))
+#     return LogicExpr("||", args[0],disj(*args[1:]))
 
-=======
+# =======
     new_args = []
     for arg in args:
         if arg != false_expr and arg not in new_args:
             new_args.append(arg)
     return list_disj(*new_args)
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':

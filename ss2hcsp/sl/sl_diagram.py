@@ -4,14 +4,11 @@ import lark
 import html
 
 from ss2hcsp.sl.sl_line import SL_Line
-<<<<<<< HEAD
+
 from ss2hcsp.matlab import function,convert
-from ss2hcsp.matlab.parser import function_parser, cmd_parser, transition_parser
-=======
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
     transition_parser, func_sig_parser
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 from ss2hcsp.matlab import convert
 
 from ss2hcsp.sl.port import Port
@@ -34,7 +31,7 @@ from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction,Function
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
@@ -125,7 +122,7 @@ class SL_Diagram:
             if isinstance(acts,function.Sequence):
                 for act in [acts.cmd1,acts.cmd2]:
                     if isinstance(act,function.Sequence):
-                        lists.extend(self.get_acts(act))
+                        lists.extend(get_acts(act))
                     else:
                         lists.append(act)
             else:
@@ -148,7 +145,6 @@ class SL_Diagram:
                     # if tran_label:
                     #     try:
                     #         tran_label = transition_parser.parse(html.unescape(tran_label))
-                    #         print(tran_label)
                     #     except lark.exceptions.UnexpectedToken as e:
                     #         print("When parsing transition label %s" % tran_label)
                     #         raise e
@@ -212,133 +208,43 @@ class SL_Diagram:
                         # Extract functions
                         fun_name = get_attribute_value(child, "labelString")
                         fun_script = get_attribute_value(child, "script")
-<<<<<<< HEAD
-                        dest_state_name_list = list()
-                        return_var=None
-                        chart_state1=None
-=======
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
                         if fun_script:
                             # Has script, directly use parser for matlab functions
                             fun_name=function_parser.parse(fun_script).name
-                            hp= convert.convert_function(function_parser.parse(fun_script))
-                            ru=function_parser.parse(fun_script).return_vars
+                            hp= convert.convert_cmd(function_parser.parse(fun_script).cmd)
+                            ru=function_parser.parse(fun_script).return_var
                             exprs=function.ListExpr(function_parser.parse(fun_script).params) if function_parser.parse(fun_script).params is not None else None
                             fun_type="MATLAB_FUNCTION"
                             if isinstance(ru,(function.Var,function.FunctionCall)):
                                 return_var=ru
                             elif isinstance(ru,tuple):
                                 return_var=function.ListExpr(*ru)
-                           
-                            # _functions.append(function_parser.parse(fun_script))
+                            _functions.append(function_parser.parse(fun_script))
+                            # _functions.append(Function(fun_name,exprs,ru,hp,None,fun_type))
                         else:
-<<<<<<< HEAD
-                            dest_state_name_list=list()
                             fun_type="GRAPHICAL_FUNCTION"
-                            out_trans_dict_inner=dict()
-                            junctions=list()
-                            return_var=list()
-                            exprs=list()
-                            fun_name = get_attribute_value(child, "labelString")
-                            if "=" in fun_name:
-                                left,right=fun_name.split("=")
-                                fun_name=right.strip()
-                            for data in child.getElementsByTagName(name="data"):
-                                var_name = data.getAttribute("name")
-                          
-                                scope=get_attribute_value(data, "scope")
-                                if scope == "FUNCTION_OUTPUT_DATA":
-                                    return_var.append(var_name)
-                                elif scope == "FUNCTION_INPUT_DATA":
-                                    exprs.append(var_name)
-                            return_var=function.ListExpr(*return_var)
-                            exprs=function.ListExpr(*exprs)
-                            for tran in child.getElementsByTagName(name ="transition"):
-                                tran_ssid = tran.getAttribute("SSID")
-                                tran_label = get_attribute_value(tran, "labelString")
-                                order = int(get_attribute_value(tran, "executionOrder"))
-                                # assert len([child for child in block.childNodes if child.nodeName == "src"]) == 1
-                                # assert len([child for child in block.childNodes if child.nodeName == "dst"]) == 1
-                                src_ssid, dst_ssid = None, None
-                                for child1 in tran.childNodes:
-                                    if child1.nodeName == "src":
-                                        src_ssid = get_attribute_value(child1, "SSID")
-                                    elif child1.nodeName == "dst":
-                                        dst_ssid = get_attribute_value(child1, "SSID")
-                                # assert dst_ssid  # each transition must have a destination state
-                                # assert tran_ssid not in _tran_dict
-                                transition=Transition(ssid=tran_ssid, label=tran_label, order=order,
-                                                                   src=src_ssid, dst=dst_ssid)
-                                
-                                # for act in transition.cond_acts+transition.tran_acts:
-                                #     if re.match(pattern="send\\(.*?\\)", string=act):
-                                #         acts=act.strip('send(').strip(')')
-                                #         if re.match(pattern="send\\(.*?,.*?\\)", string=act) or "." in acts:
-                                    
-                                #             if re.match(pattern="send\\(.*?,.*?\\)", string=act):
-                                #                 event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
-                                #                 path=dest_state_name1.split(".")
-                                #                 if "." in dest_state_name1:
-                                #                     path=dest_state_name1.split(".")
-                                #                     dest_state_name=path[len(path)-1]
-                                #                 else:
-                                #                     dest_state_name=dest_state_name1
-                                #             elif "." in acts:
-                                #                 path=acts.split(".")
-                                #                 dest_state_name=path[len(path)-2]
-                                #                 event=path[len(path)-1]
-                                #             dest_state_name_list.append(dest_state_name)
-                                # #######    
-                                out_trans_dict_inner[tran_ssid] = transition
-                            for jun in child.getElementsByTagName(name="junction"):
-                                ssid1 = jun.getAttribute("SSID")
-                                junc_type = get_attribute_value(block=jun, attribute="type")
-                                # Get default_tran and out_trans
-                                default_tran = None
-                                out_trans = list()
-                                for tran in out_trans_dict_inner.values():
-                                    src, dst = tran.src, tran.dst
-                                    if src is None and dst == ssid1:  # it is a default transition
-                                        default_tran = tran
-                                    elif src == ssid1:  # the src of tran is this state
-                                        out_trans.append(tran)
-                                out_trans.sort(key=operator.attrgetter("order"))
-                                junctions.append(Junction(ssid=ssid1, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))
-                            if "(" in fun_name:
-                                fun_name = fun_name[:fun_name.index("(")]
-                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
-                            # chart_state.funs = functions
-                            for state in  junctions:
-                                state.father = chart_state1
-                                chart_state1.children.append(state)
-                            hp=None
-                            _states.append(chart_state1)
-                            # if len(dest_state_name_list) == 0:
-                            #     stateflow = SF_Chart(name=fun_name, state=chart_state1, data={},
-                            #                  num_src=0,num_dest=0)
-                                
-                            #     stateflow.add_names()
-                            #     stateflow.find_root_for_states()
-                            #     stateflow.find_root_and_loc_for_trans()
-                            #     stateflow.parse_acts_on_states_and_trans()
-                            #     hp=hcsp.Sequence(hp_parser.parse("done:=0"),*chart_state1.activate(), stateflow.execute_trans_from_state(chart_state1)[0])
-                            return_var =return_var if len(return_var)>0 else None
-                            exprs=exprs if len(exprs)>0 else None
-                        _functions.append(Function(ssid, fun_name, hp, return_var,exprs,chart_state1,fun_type))
-=======
                             children = [c for c in child.childNodes if c.nodeName == "Children"]
                             assert len(children) == 1
                             sub_trans = get_transitions(children[0].childNodes)
                             sub_states, sub_junctions, sub_functions = get_children(child)
                             assert len(sub_states) == 0 and len(sub_functions) == 0
+
                             try:
                                 fun_name, fun_params, fun_return = func_sig_parser.parse(fun_name)
                             except lark.exceptions.UnexpectedToken as e:
                                 print("When parsing function signature", fun_name)
                                 raise e
+
+                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
+                            # chart_state.funs = functions
+                            for state in  sub_junctions:
+                                state.father = chart_state1
+                                chart_state1.children.append(state)
+                            # _states.append(chart_state1)
+                            hp=None
                             graph_fun = GraphicalFunction(fun_name, fun_params, fun_return, sub_trans, sub_junctions)
                             _functions.append(graph_fun)
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+                            # _functions.append(Function(fun_name,fun_params,fun_return,hp,chart_state1,fun_type))
 
                     elif state_type in ("AND_STATE", "OR_STATE"):
                         # Extract AND- and OR-states
@@ -353,13 +259,20 @@ class SL_Diagram:
                         for label in labels[1:]:
                             if label!="":
                                 if label.startswith("en:"):  
+                                    if label[3:]  == "":
+                                        continue
                                     en = get_acts(cmd_parser.parse(label[3:]))
                                 elif label.startswith("du:"):
+                                    if label[3:]  == "":
+                                        continue
                                     du = get_acts(cmd_parser.parse(label[3:]))
                                 elif label.startswith("ex:"):
+                                    if label[3:]  == "":
+                                        continue
                                     ex = get_acts(cmd_parser.parse(label[3:]))
                                 else:
-                                    raise AssertionError("Parse XML: unrecognized state label %s" % label)
+                                    en = get_acts(cmd_parser.parse(label))
+                                    # raise AssertionError("Parse XML: unrecognized state label %s" % label)
 
                         # Get default_tran and out_trans
                         default_tran = None
@@ -480,58 +393,17 @@ class SL_Diagram:
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
                 value = get_attribute_value(data, "initialValue")
-<<<<<<< HEAD
-                # value = eval(value) 
-                if value and "[" in value:
-                    if ";" in value:
-                        value_list = value.split(";")
-                        val_lists=list()
-                        for val in value_list:
-                            if "[" in val:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val = val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            elif "]" in val:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val="["+val
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            else:
-                                val=val.strip()
-                                if "," not in val:
-                                    val=str(val).replace(" ",",")
-                                    val ="["+val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                        value =val_lists
-                     
-                    else:
-                        value=value.strip()
-                        if "," not in value:
-                            value=str(value).replace(" ",",")
-                        value = list(aexpr_parser.parse(value).value)
-                     
-
-                elif value:
-                    value = eval(value) 
-                else:
-                    value = 0
-                scope=get_attribute_value(data, "scope")
-                sf_data=SF_Data(name=var_name,value=value,scope=scope)
-                if (len(data.getElementsByTagName(name="message"))>=1):
-=======
                 if value is not None:
                     try:
                         value = expr_parser.parse(value)
                     except lark.exceptions.UnexpectedToken as e:
                         print("When parsing value:", value)
                         raise e
+                else:
+                    value = 0
                 scope = get_attribute_value(data, "scope")
                 sf_data = SF_Data(name=var_name,value=value,scope=scope)
                 if len(data.getElementsByTagName(name="message")) >= 1:
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
                         break;
@@ -545,19 +417,6 @@ class SL_Diagram:
                             input_message_list.append(message)
                 else:
                     chart_data[var_name] = sf_data
-            # key_num=0;
-            # for key in list(chart_data.keys()):
-            #     if key=="true" or key=="false":
-            #         key1=key+str(key_num);
-            #         while key1 in list(chart_data.keys()):
-            #             key_num=key_num+1
-            #         if key1 not in list(chart_data.keys()):
-            #             sf_data1=chart_data[key]
-            #             del chart_data[key]
-            #             sf_data1.name=key1
-            #             chart_data[key1]=sf_data1
-
-            # chart_vars = [data.getAttribute("name") for data in chart.getElementsByTagName(name="data")]
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
 
@@ -628,37 +487,12 @@ class SL_Diagram:
             elif block_type == "DataStoreMemory":
                 init_value = get_attribute_value(block=block, attribute="InitialValue")
                 value = 0
-                if init_value and "[" in init_value:
-                    if ";" in init_value:
-                        value_list = init_value.split(";")
-                        val_lists = list()
-                        for val in value_list:
-                            if "[" in val:
-                                val = val.strip()
-                                if "," not in val:
-                                    val = str(val).replace(" ", ",")
-                                val = val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            elif "]" in val:
-                                val = val.strip()
-                                if "," not in val:
-                                    val = str(val).replace(" ", ",")
-                                val = "["+val
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                            else:
-                                val = val.strip()
-                                if "," not in val:
-                                    val = str(val).replace(" ", ",")
-                                val = "["+val+"]"
-                                val_lists.append(list(aexpr_parser.parse(val).value))
-                        value = val_lists
-                    else:
-                        init_value = init_value.strip()
-                        if "," not in init_value:
-                            init_value = str(init_value).replace(" ", ",")
-                        value = list(aexpr_parser.parse(init_value).value)
-                elif init_value:
-                    value = eval(value)
+                if init_value is not None:
+                    try:
+                        value = expr_parser.parse(init_value)
+                    except lark.exceptions.UnexpectedToken as e:
+                        print("When parsing value:", init_value)
+                        raise e
                 else:
                     value = 0
                 name = block.getAttribute("Name")
@@ -948,9 +782,6 @@ class SL_Diagram:
                     #     if fun.type == "GRAPHICAL_FUNCTION":
                     #         hp=hcsp.Sequence(hp_parser.parse("done:=0"),*fun.chart_state1.activate(), stateflow1.execute_trans_from_state(fun.chart_state1)[0])
                     #         fun.script=hp
-                    #         print(56890)
-                    #         print(hp)
-            
 
 
 

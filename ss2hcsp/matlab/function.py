@@ -101,6 +101,53 @@ class ListExpr(Expr):
     def subst(self, inst):
         return ListExpr(expr.subst(inst) for expr in self.args)
 
+class ListExpr2(Expr):
+    """List expressions."""
+   
+    def __init__(self, *args):
+        super(ListExpr2, self).__init__()
+        self.args = ["["+arg.replace(" ",",")+"]" for arg in args]
+        self.count=0
+
+    def __repr__(self):
+        return "ListExpr2(%s)" % (','.join(repr(arg) for arg in self.args))
+
+    def __str__(self):
+        return "[%s]" % (','.join(str(arg) for arg in self.args))
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+      
+       return len(self.args)
+    def __getitem__(self,key):
+            return self.args[key]
+
+    def __next__(self):
+        # 获取下一个数
+        if self.count < len(self.args):
+            result = self.args[self.count]
+            self.count += 1
+            return result
+        else:
+            raise StopIteration
+
+    def __eq__(self, other):
+        return isinstance(other, ListExpr) and self.args == other.args
+
+    def __hash__(self):
+        return hash(("ListExpr", self.args))
+
+    def priority(self):
+        return 100
+
+    def get_vars(self):
+        return set().union(*(arg.get_vars() for arg in self.args))
+
+    def subst(self, inst):
+        return ListExpr(expr.subst(inst) for expr in self.args)
+
 
 class AConst(Expr):
     """Matlab constants."""
@@ -267,17 +314,17 @@ class LogicExpr(BExpr):
         assert op_name in ["~", "&&", "||", "-->", "<-->"]
         assert (op_name == "~" and len(exprs) == 1) or (op_name != "~" and len(exprs) == 2)
        
-        self.op = op_name
-        exprs=tuple(exprs)
-        self.expr1=exprs[0]
-        self.expr2=exprs[1]
-        # self.exprs = tuple(exprs)
+        self.op_name = op_name
+        self.exprs = tuple(exprs)
+        self.expr1=self.exprs[0]
+        self.expr2=self.exprs[1]
+        
 
     def __repr__(self):
-        return "Logic(%s,%s)" % (repr(self.op), ','.join(repr(expr) for expr in self.exprs))
+        return "Logic(%s,%s)" % (repr(self.op_name), ','.join(repr(expr) for expr in self.exprs))
 
     def __str__(self):
-        if self.op == '~':
+        if self.op_name == '~':
             s = str(self.expr1)
             if self.expr1.priority() < self.priority():
                 s = '(' + s + ')'
@@ -290,24 +337,24 @@ class LogicExpr(BExpr):
                     s1 = '(' + s1 + ')'
                 if self.expr2.priority() <= self.priority():
                     s2 = '(' + s2 + ')'
-            return '%s %s %s' % (s1, self.op, s2)
+            return '%s %s %s' % (s1, self.op_name, s2)
 
     def __eq__(self, other):
-        return isinstance(other, LogicExpr) and self.op == other.op and self.exprs == other.exprs
+        return isinstance(other, LogicExpr) and self.op_name == other.op_name and self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("LogicExpr", self.op, self.exprs))
+        return hash(("LogicExpr", self.op_name, self.exprs))
 
     def priority(self):
-        if self.op == '~':
+        if self.op_name == '~':
             return 40
-        elif self.op == '&&':
+        elif self.op_name == '&&':
             return 35
-        elif self.op == '||':
+        elif self.op_name == '||':
             return 30
-        elif self.op == '<-->':
+        elif self.op_name == '<-->':
             return 25
-        elif self.op == '-->':
+        elif self.op_name == '-->':
             return 20
         else:
             raise NotImplementedError
@@ -325,7 +372,7 @@ class RelExpr(BExpr):
     def __init__(self, op, expr1, expr2):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
-        assert isinstance(expr1, (Expr,FunctionCall)) and isinstance(expr2, (Expr,FunctionCall))
+        assert isinstance(expr1, (Expr,FunctionCall,DirectName)) and isinstance(expr2, (Expr,FunctionCall,AConst))
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
@@ -372,33 +419,33 @@ class Assign(Command):
     """
     def __init__(self, lname, expr):
         super(Assign, self).__init__()
-<<<<<<< HEAD
-        # assert isinstance(expr, Expr)
-        if isinstance(return_vars, (Var,FunctionCall)):
-            self.return_vars = return_vars
-        else:
-            self.return_vars = return_vars
-=======
+# <<<<<<< HEAD
+#         # assert isinstance(expr, Expr)
+#         if isinstance(return_vars, (Var,FunctionCall)):
+#             self.return_vars = return_vars
+#         else:
+#             self.return_vars = return_vars
+# =======
         assert isinstance(expr, Expr)
-        assert isinstance(lname, (Var, FunExpr, ListExpr))
+        assert isinstance(lname, (Var, FunExpr, ListExpr,DirectName))
         self.lname = lname
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         self.expr = expr
     def __str__(self):
-<<<<<<< HEAD
-        if isinstance(self.return_vars, (Var,FunctionCall)):
-            return "%s := %s" % (str(self.return_vars), str(self.expr))
-        else:
-            return "[%s] := %s" % (','.join(str(return_var) for return_var in self.return_vars), str(self.expr))
+# <<<<<<< HEAD
+#         if isinstance(self.return_vars, (Var,FunctionCall)):
+#             return "%s := %s" % (str(self.return_vars), str(self.expr))
+#         else:
+#             return "[%s] := %s" % (','.join(str(return_var) for return_var in self.return_vars), str(self.expr))
 
-    def __repr__(self):
-        return "Assign(%s,%s)" % (repr(str(self.return_vars)), repr(str(self.expr)))
-=======
-        return "%s = %s" % (self.lname, self.expr)
+#     def __repr__(self):
+#         return "Assign(%s,%s)" % (repr(str(self.return_vars)), repr(str(self.expr)))
+# =======
+        return "%s := %s" % (self.lname, self.expr)
 
     def __repr__(self):
         return "Assign(%s,%s)" % (repr(self.lname), repr(self.expr))
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     def __eq__(self, other):
         return isinstance(other, Assign) and self.lname == other.lname and \
@@ -411,17 +458,17 @@ class Assign(Command):
         return False
 
     def subst(self, inst):
-<<<<<<< HEAD
-        # Disallow instantiating return values
-        # for var in self.return_vars:
-        #     assert var not in inst, "Cannot instantiate return value %s" % var
+# <<<<<<< HEAD
+#         # Disallow instantiating return values
+#         # for var in self.return_vars:
+#         #     assert var not in inst, "Cannot instantiate return value %s" % var
         
-        return Assign(self.return_vars, self.expr.subst(inst))
-=======
+#         return Assign(self.return_vars, self.expr.subst(inst))
+# =======
         # Disallow instantiating lname
         assert self.lname not in inst, "Cannot instantiate lname %s" % self.lname
         return Assign(self.lname, self.expr.subst(inst))
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 
 class FunctionCall(Command):
@@ -635,27 +682,27 @@ class Function:
         self.cmd = cmd
         self.type="MATLAB_FUNCTION"
 
-<<<<<<< HEAD
-        if return_vars is None or isinstance(return_vars, (Var,FunctionCall)):
-            self.return_vars =return_vars
-=======
+# <<<<<<< HEAD
+#         if return_vars is None or isinstance(return_vars, (Var,FunctionCall)):
+#             self.return_vars =return_vars
+# =======
         if return_var is None or isinstance(return_var, str):
             self.return_var = return_var
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         else:
             self.return_var = tuple(return_var)
 
     def __str__(self):
-<<<<<<< HEAD
-        if self.return_vars is None:
-            str_return_vars = ""
-        elif isinstance(self.return_vars, (Var,FunctionCall)):
-            str_return_vars = str(self.return_vars) + "="
-        else:
-            str_return_vars = "[" + ','.join(str(return_var) for return_var in self.return_vars) + "]="
+# <<<<<<< HEAD
+#         if self.return_vars is None:
+#             str_return_vars = ""
+#         elif isinstance(self.return_vars, (Var,FunctionCall)):
+#             str_return_vars = str(self.return_vars) + "="
+#         else:
+#             str_return_vars = "[" + ','.join(str(return_var) for return_var in self.return_vars) + "]="
 
-        func_sig = str_return_vars + self.name + "(" + ",".join(str(param) for param in self.params) + ")"
-=======
+#         func_sig = str_return_vars + self.name + "(" + ",".join(str(param) for param in self.params) + ")"
+# =======
         if self.return_var is None:
             str_return_var = ""
         elif isinstance(self.return_var, str):
@@ -664,7 +711,7 @@ class Function:
             str_return_var = "[" + ','.join(self.return_var) + "]="
 
         func_sig = str_return_var + self.name + "(" + ",".join(self.params) + ")"
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         str_cmd = '\n'.join('  ' + line for line in str(self.cmd).split('\n'))
         return "function %s\n%s" % (func_sig, str_cmd)
 

@@ -5,44 +5,6 @@ from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.sf.sf_state import GraphicalFunction
 
 
-<<<<<<< HEAD
-def convert_expr(e):
-    """Convert a Matlab expression to HCSP."""
-    if isinstance(e, function.Var):
-        return expr.AVar(e.name)
-    elif isinstance(e, function.ListExpr):
-        return expr.ListExpr(*(convert_expr(arg) for arg in e.args))
-    elif isinstance(e, function.AConst):
-        return expr.AConst(e.value)
-    elif isinstance(e, function.OpExpr):
-        if e.op_name == '-' and len(e.exprs) == 1:
-            return expr.PlusExpr(['-'], [convert_expr(e.exprs[0])])
-        elif e.op_name == '+':
-            return expr.PlusExpr(['+', '+'], [convert_expr(e.exprs[0]), convert_expr(e.exprs[1])])
-        elif e.op_name == '-':
-            return expr.PlusExpr(['+', '-'], [convert_expr(e.exprs[0]), convert_expr(e.exprs[1])])
-        elif e.op_name == '*':
-            return expr.TimesExpr(['*', '*'], [convert_expr(e.exprs[0]), convert_expr(e.exprs[1])])
-        elif e.op_name == '/':
-            return expr.TimesExpr(['*', '/'], [convert_expr(e.exprs[0]), convert_expr(e.exprs[1])])
-        elif e.op_name == '%':
-            return expr.ModExpr(convert_expr(e.exprs[0]), convert_expr(e.exprs[1]))
-        else:
-            raise NotImplementedError("Unknown operator %s" % e.op_name)
-    elif isinstance(e, function.FunctionCall):
-        if e.func_name == 'rand':
-            if len(e.args) == 0:
-                return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
-            else:
-                raise NotImplementedError("Function rand: argument not supported")
-        else:
-            return expr.FunExpr(e.func_name, [convert_expr(ex) for ex in e.args])
-    elif isinstance(e, function.BConst):
-        return expr.BConst(e.value)
-    elif isinstance(e, function.LogicExpr):
-        if e.op_name == '~':
-            return expr.NegExpr(convert_expr(e.exprs[0]))
-=======
 def subtract_one(e):
     assert isinstance(e, expr.AExpr)
     if isinstance(e, expr.AConst):
@@ -70,8 +32,11 @@ def convert_expr(e, *, procedures=None, arrays=None):
             return expr.AVar(e.name)
         elif isinstance(e, function.ListExpr):
             return expr.ListExpr(*(rec(arg) for arg in e.args))
-        elif isinstance(e, function.AConst):
-            return expr.AConst(e.value)
+        elif isinstance(e, (function.AConst,int)):
+            if isinstance(e,int):
+                return expr.AConst(e)
+            else:
+                return expr.AConst(e.value)
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
                 return expr.PlusExpr(['-'], [rec(e.exprs[0])])
@@ -118,7 +83,6 @@ def convert_expr(e, *, procedures=None, arrays=None):
                 return expr.LogicExpr(e.op_name, rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, function.RelExpr):
             return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         else:
             raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 
@@ -177,6 +141,11 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             raise NotImplementedError
 
     def convert(cmd):
+        if isinstance(cmd,list):
+            lists=list()
+            for c in cmd:
+                lists.append(convert(c))
+            return hcsp.seq(lists)
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
             return hcsp.seq([pre_act, hcsp.Assign(convert_lname(cmd.lname), hp_expr)])

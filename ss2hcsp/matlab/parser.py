@@ -8,30 +8,20 @@ from ss2hcsp.hcsp import hcsp
 
 
 grammar = r"""
-<<<<<<< HEAD
-    ?lname: CNAME -> var_expr
-        | func_cmd
-    // Return value is either an CNAME or a list of CNAMEs
-    ?return_var: "[" lname ("," lname)* "]" -> return_var
-        | lname                            
-
-=======
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     // Expressions
+    ?arr_num: expr ((",")? expr)* ->arr_num
 
     ?atom_expr: CNAME -> var_expr
+        | NUMBER -> num_expr
+        | ESCAPED_STRING -> string_expr
         | CNAME "(" ")" -> fun_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "[" "]" -> list_expr
-        | "[" expr ("," expr)* "]" -> list_expr
-        | SIGNED_NUMBER -> num_expr
-        | ESCAPED_STRING -> string_expr
+        | "[" expr ((",")? expr)* "]" -> list_expr
+        | "[" arr_num (";" arr_num)* "]" -> list_expr2
         | "(" expr ")"
-<<<<<<< HEAD
-        | lname("." lname)+ -> direct_name
-        
-=======
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+        | CNAME ("." CNAME)+ ->direct_name
+
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
@@ -57,6 +47,12 @@ grammar = r"""
         | "true" -> true_cond
         | "false" -> false_cond
         | "(" cond ")"
+        | "after" "(" expr "," event ")"  -> after_event
+        | "before" "(" expr "," event ")"  -> before_event
+        | "at" "(" expr "," event ")"  -> at_event
+        | "every" "(" expr "," event ")"  -> every_event
+
+
     
     ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
@@ -69,13 +65,10 @@ grammar = r"""
     ?lname: CNAME -> var_lname
         | CNAME "(" expr ("," expr)* ")" -> fun_lname
         | "[" lname ("," lname)* "]" -> list_lname
+        | CNAME ("." CNAME)+ ->direct_name
     
     // Assignment command includes possible type declarations
-<<<<<<< HEAD
-    ?assign_cmd: ("int" | "float")? return_var "=" expr (";")? ->assign_cmd
-=======
     ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     // Function call is also a command (this includes fprintf calls)
     ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
@@ -108,12 +101,8 @@ grammar = r"""
     ?func_sig: CNAME                                      -> func_sig_name
         | CNAME "(" ")"                                   -> func_sig_no_param
         | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
-<<<<<<< HEAD
-        | return_var "=" CNAME ("(" ")")?                    -> func_sig_return_no_param
-=======
         | return_var "=" CNAME                            -> func_sig_return_name
         | return_var "=" CNAME "(" ")"                    -> func_sig_return_no_param
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
 
     ?function: "function" func_sig cmd ("end")? -> function
@@ -143,19 +132,22 @@ class MatlabTransformer(Transformer):
     def var_expr(self, s):
         return function.Var(str(s))
 
-<<<<<<< HEAD
-    def return_var(self, *args):
-        if all(isinstance(arg, (function.Var,function.FunctionCall)) for arg in args):
-            return function.ListExpr(*list(arg for arg in args))
-        else:
-            return function.ListExpr(*list(function.Var(str(arg)) for arg in args))
-=======
+    def num_expr(self, v):
+        return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
+
+    def string_expr(self, s):
+        return function.AConst(str(s)[1:-1])  # remo
+
     def fun_expr(self, fun_name, *exprs):
         return function.FunExpr(str(fun_name), *exprs)
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     def list_expr(self, *args):
         return function.ListExpr(*args)
+
+    def arr_num(self,*args):
+        return "%s" %(" ".join(str(param) for param in args))
+    def list_expr2(self, *args):
+        return function.ListExpr2(*args)
 
     def num_expr(self, v):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))

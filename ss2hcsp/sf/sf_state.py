@@ -330,11 +330,12 @@ class SF_State:
         fun_dict = dict()
         if self.funs:
             for fun in self.funs:
-                assert (self.name, fun.name) not in fun_dict
-                name = str(fun.name)
-                if "(" in name:
-                    name = name[:name.index("(")]
-                fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
+                if isinstance(fun,Function):
+                    assert (self.name, fun.name) not in fun_dict
+                    name = str(fun.name)
+                    if "(" in name:
+                        name = name[:name.index("(")]
+                    fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
 
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
@@ -412,21 +413,6 @@ class SF_State:
 
 
 class OR_State(SF_State):
-<<<<<<< HEAD
-# <<<<<<< HEAD
-#     def __init__(self, ssid, out_trans=(), inner_trans=(), name="",original_name="", en=None, du=None, ex=None, default_tran=None):
-#         super(OR_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
-#         self.out_trans = out_trans
-#         self.default_tran = default_tran  # The default transition to this state
-#        #个人新添加的历史节点内容
-#         self.has_history_junc=False  #The history junction to this state
-#         self.acth=None   # the latest state
-#         self.func_after=list()            
-        
-#         self.get_after_func()
-# =======
-=======
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     """Represents an OR state."""
     def __init__(self, ssid, out_trans=(), inner_trans=(), name="", original_name="",
                  en=None, du=None, ex=None, default_tran=None):
@@ -435,16 +421,8 @@ class OR_State(SF_State):
         self.default_tran = default_tran  # default transition to this state
         self.has_history_junc = False     # history junction to this state
         self.acth = None                  # (when there is history junction) the latest state
-<<<<<<< HEAD
         self.func_after=list()               
         self.get_after_func()
-
-# >>>>>>> 0270220f3105a34b1558c3074f4c910c7cda7d53
-=======
-        self.func_after = list
-        self.get_after_func()
-
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     def has_aux_var(self, var_name):
         """Return if the state has the auxiliary variable var_name
         
@@ -484,6 +462,7 @@ class AND_State(SF_State):
                  en=None, du=None, ex=None, order=0):
         super(AND_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
         self.order = order                # order within the parent state 
+        self.func_after=list()
 
 
 class Junction:
@@ -549,3 +528,23 @@ class GraphicalFunction:
         res += "    " + str(self.default_tran) + "\n"
         res += ")"
         return res
+
+class Function:
+    def __init__(self, name, params, return_var, script,chart_state,fun_type):
+        self.name = name
+        self.exprs = params
+        self.return_var = return_var
+        self.script = script
+        self.chart_state=chart_state
+        self.fun_type=fun_type
+    def __str__(self):
+        res = "Function(%s,%s,%s\n" % (self.name, self.exprs, self.return_var)
+        res += "%s" %(self.script)
+        return res
+
+    def parse(self):
+        if self.fun_type == "GRAPHICAL_FUNCTION" and self.chart_state is not None:
+            return self.chart_state
+        elif self.fun_type == "MATLAB_FUNCTION":
+            return self.script
+

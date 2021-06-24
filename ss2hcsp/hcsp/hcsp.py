@@ -1,12 +1,8 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-<<<<<<< HEAD
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, RelExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr,LogicExpr
 from ss2hcsp.matlab import function
-=======
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 import re
 
 
@@ -272,7 +268,7 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, (AExpr,str))
+        assert isinstance(expr, (AExpr,str,int,function.AConst,function.ListExpr,function.ListExpr2,function.OpExpr))
         if isinstance(var_name, (str,function.Var)):
             var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
@@ -291,14 +287,14 @@ class Assign(HCSP):
             var_str = str(self.var_name)
         else:
             var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
-        return "Assign(%s,%s)" % (var_str, str(self.expr))
+        return  "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
         if isinstance(self.var_name, AExpr):
             var_str = str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
-        return var_str + " := " + str(self.expr)
+        return "%s := %s" % (var_str, self.expr)
 
     def __hash__(self):
         return hash(("Assign", self.var_name, self.expr))
@@ -340,13 +336,13 @@ class Assert(HCSP):
             return "assert(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
         else:
             return "assert(%s)" % self.bexpr
-<<<<<<< HEAD
-=======
+# <<<<<<< HEAD
+# =======
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
 
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
+# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -514,7 +510,6 @@ class OutputChannel(HCSP):
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
 
-<<<<<<< HEAD
 class Function(HCSP):
     def __init__(self, return_vars,fun_name,exprs):
         super(Function, self).__init__()
@@ -577,17 +572,13 @@ class Function(HCSP):
             else:
                 return  "%s := %s(%s)" %(self.return_vars,self.func_name,",".join(str(arg) for arg in self.args))
 
-
-=======
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
-
 class Sequence(HCSP):
     def __init__(self, *hps):
         super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
         self.type = "sequence"
-        assert all(isinstance(hp, HCSP) for hp in hps)
-        assert len(hps) >= 2
+        # assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 1
         self.hps = []
         for hp in hps:
             if isinstance(hp, Sequence):
@@ -983,12 +974,9 @@ class ITE(HCSP):
 
         """
         super(ITE, self).__init__()
-<<<<<<< HEAD
-        assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
-=======
-        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+#         assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)   
+        assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
->>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         if else_hp is None:
             else_hp = Skip()
         assert isinstance(else_hp, HCSP)

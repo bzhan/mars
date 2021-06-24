@@ -7,7 +7,7 @@ from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.matlab import convert
+from ss2hcsp.matlab import convert,parser
 from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
     AbsoluteTimeEvent, ImplicitEvent
 
@@ -69,6 +69,8 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
+                    if tran.label is not None:
+                        tran.label=parser.transition_parser.parse(tran.label)
                     if tran.label is not None and tran.label.event is not None and \
                         isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
@@ -76,6 +78,8 @@ class SFConvert:
                         self.temporal_guards[tran.src].append(tran.label.event)
             if isinstance(state, (AND_State, OR_State)) and state.inner_trans:
                 for tran in state.inner_trans:
+                    if tran.label is not None and isinstance(tran.label,str):
+                        tran.label=parser.transition_parser.parse(tran.label)
                     if tran.label is not None and tran.label.event is not None and \
                         isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
@@ -278,6 +282,9 @@ class SFConvert:
         """
         pre_acts, conds, cond_act, tran_act = [], [], hcsp.Skip(), hcsp.Skip()
         if label is not None:
+           
+            if isinstance(label,str):
+                label=parser.transition_parser.parse(label)
             if label.event is not None:
                 if isinstance(label.event, BroadcastEvent):
                     # Conversion of event condition E
@@ -713,6 +720,8 @@ class SFConvert:
                 all_procs[name] = proc
 
         # Procedures for graphical functions
+        print(778888)
+        print( self.procedures)
         for name, proc in self.procedures.items():
             if isinstance(proc, GraphicalFunction):
                 all_procs.update(self.convert_graphical_function(proc))
