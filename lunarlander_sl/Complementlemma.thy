@@ -1,14 +1,19 @@
 theory Complementlemma
-imports ContinuousInv  BigStepParallel 
+  imports
+    ContinuousInv
+    BigStepParallel 
 begin
 
+subsection \<open>More theorems about derivatives\<close>
 
-
+text \<open>
+  p' = q implies p[i]' = q[i] for each component i.
+\<close>
 lemma has_derivative_proj:
   fixes x :: vec
     and p :: "vec \<Rightarrow> vec"
   assumes "(p has_derivative q x) (at x within D)"
-  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q x v $ i)) (at x within D)"
+  shows "((\<lambda>v. p v $ i) has_derivative (\<lambda>v. q x v $ i)) (at x within D)"
   using assms unfolding has_derivative_def  
   apply auto
   subgoal
@@ -26,7 +31,9 @@ lemma has_derivative_proj:
     using tendsto_vec_nth by fastforce
   done
 
-
+text \<open>
+  p[i]' = q[i] for each component i implies p' = q.
+\<close>
 lemma has_derivative_projI:
   fixes p :: "vec \<Rightarrow> vec"
   assumes "\<forall>i. ((\<lambda>v. p v $ i) has_derivative (\<lambda> v. q t v $ i)) (at t within D)"
@@ -34,8 +41,8 @@ lemma has_derivative_projI:
   using assms unfolding  has_derivative_def
   apply auto
   subgoal
-unfolding bounded_linear_def bounded_linear_axioms_def
-  apply auto
+    unfolding bounded_linear_def bounded_linear_axioms_def
+    apply auto
   subgoal  
     unfolding linear_iff apply auto 
      apply (simp add: vec_eq_iff)
@@ -80,17 +87,51 @@ unfolding bounded_linear_def bounded_linear_axioms_def
         done
     qed
   done
-subgoal
+  subgoal
     by (auto intro: vec_tendstoI)
   done
 
+lemma derivative_exp [simp, derivative_intros]:
+  "(exp has_derivative (*) (exp (x :: real))) (at x)"
+  using DERIV_exp unfolding has_field_derivative_def
+  by auto
+
+lemma derivative_exp_const [derivative_intros]:
+  fixes c :: real
+  shows "((\<lambda>x. exp (c * x)) has_derivative (\<lambda>xa. xa * c * exp (c * x))) (at x)"
+proof-
+  have 1: "((*) c has_derivative (\<lambda>x. x * c)) (at x)"
+    apply (rule has_derivative_eq_rhs)
+     apply (auto intro!: derivative_intros)[1]
+    by auto
+  show ?thesis using has_derivative_exp[OF 1] 
+    by auto
+  qed
+
+lemma SOME_const_vderiv [derivative_intros, simp]:
+  fixes p :: " real \<Rightarrow> bool"
+  assumes "(f has_vderiv_on f') S"
+  shows "((\<lambda>t. (SOME k. p k) * f t) has_vderiv_on (\<lambda>t. (SOME k . p k) * f' t)) S"
+  apply (rule has_vderiv_on_eq_rhs)
+   apply (rule has_vderiv_on_mult)
+    apply (auto intro: derivative_intros)[1]
+  using assms apply auto
+  done
+
+
+subsection \<open>More theorems about logical operators\<close>
+
 theorem Valid_post_and:
-  "\<Turnstile> {P} c {\<lambda>s tr. Q1 s tr} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s tr . Q2 s tr} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s tr. Q1 s tr \<and> Q2 s tr}"
-  unfolding Valid_def entails_def by blast
+  assumes "\<Turnstile> {P} c {Q1}"
+    and "\<Turnstile> {P} c {Q2}"
+  shows "\<Turnstile> {P} c {\<lambda>s tr. Q1 s tr \<and> Q2 s tr}"
+  using assms unfolding Valid_def entails_def by blast
 
 theorem Valid_pre_cases:
-  "\<Turnstile> {\<lambda>s tr. P s \<and> Q s} c {R} \<Longrightarrow> \<Turnstile> {\<lambda>s tr. P s \<and> \<not> Q s} c {R} \<Longrightarrow> \<Turnstile> {\<lambda>s tr. P s} c {R}"
-  unfolding Valid_def entails_def by blast
+  assumes "\<Turnstile> {\<lambda>s tr. P s \<and> Q s} c {R}"
+    and "\<Turnstile> {\<lambda>s tr. P s \<and> \<not> Q s} c {R}"
+  shows "\<Turnstile> {\<lambda>s tr. P s} c {R}"
+  using assms unfolding Valid_def entails_def by blast
 
 theorem Valid_ichoice_sp_st:
   assumes "\<Turnstile> {P} c1 {Q}"
@@ -104,22 +145,18 @@ theorem Valid_cond_split:
   shows "\<Turnstile> {\<lambda>s t. P s t}
              IF b THEN c1 ELSE c2 FI
             {\<lambda>s t. Q s t}"
- using assms unfolding Valid_def
-  apply (auto elim!: condE seqE)
-  done
+  using assms unfolding Valid_def
+  by (auto elim!: condE seqE)
 
 theorem Valid_cond_split':
-  assumes "\<Turnstile> {\<lambda>s t. b s \<and> P s t} c1;d {Q}"
-    and "\<Turnstile> {\<lambda>s t. \<not>b s \<and> P s t} c2;d {Q}"
+  assumes "\<Turnstile> {\<lambda>s t. b s \<and> P s t} c1; d {Q}"
+    and "\<Turnstile> {\<lambda>s t. \<not>b s \<and> P s t} c2; d {Q}"
   shows "\<Turnstile> {\<lambda>s t. P s t}
-             IF b THEN c1 ELSE c2 FI;d
+             IF b THEN c1 ELSE c2 FI; d
             {\<lambda>s t. Q s t}"
- using assms unfolding Valid_def
+  using assms unfolding Valid_def
   apply (auto elim!: condE seqE)
-  apply (simp add: seqB)
-  apply (simp add: seqB)
-  done
-
+  by (auto simp add: seqB)
 
 theorem Valid_ode_not:
   assumes "\<And>s. P s \<Longrightarrow> \<not> b s"
@@ -128,12 +165,17 @@ theorem Valid_ode_not:
      Cont ode b
     {\<lambda>s tr. Q s}"
   unfolding Valid_def
-  using assms
-  by(auto elim: contE)
+  using assms by (auto elim: contE)
 
+subsection \<open>Differential invariant rules\<close>
+
+text \<open>
+  If the Lie derivative of inv with respect to ODE is zero, then inv
+  is an invariant of the state.
+\<close>
 theorem Valid_inv_s_eq:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) = 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s = r}
      Cont ode b
@@ -141,84 +183,59 @@ theorem Valid_inv_s_eq:
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-  proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
-        using 1 5 pre by auto
-    qed
-    done
-
-theorem Valid_inv_tr_eq:
-  fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) = 0"
-  shows "\<Turnstile> {\<lambda>s tr. inv s = r \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. inv s = r)) tr}"
-  unfolding Valid_def
-  apply (auto elim!: contE)
-  subgoal for tr1 d p
-    apply(simp add: join_assn_def)
-    apply(rule exI [where x="tr1"])
-    apply auto
-    apply (auto intro!: ode_inv_assn.intros)
-  subgoal premises pre for \<tau>
-    proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))= 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
-        using 1 5 pre by auto
-    qed
-    done
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec (p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s. g' (state2vec (p t)) (s *\<^sub>R ODE2Vec ode (p t)) = 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre by auto
+    show ?thesis
+      using mvt_real_eq[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
+      using 1 5 pre by auto
+  qed
   done
 
+text \<open>
+  Version of invariant rule with trace (already proved).
+\<close>
+lemmas Valid_inv_tr_eq = Valid_inv'
 
+text \<open>
+  Version of invariant rule with both state and trace.
+\<close>
 theorem Valid_inv_s_tr_eq:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) = 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s = r \<and> P tr \<and> b s}
      Cont ode b
     {\<lambda>s tr. inv s = r \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. inv s = r)) tr}"
-  apply(rule Valid_post_and)
-   apply(rule Valid_weaken_pre)
+  apply (rule Valid_post_and)
+   apply (rule Valid_weaken_pre)
     prefer 2
     apply(rule Valid_inv_s_eq)
      prefer 3
   subgoal
     by(auto simp add: entails_def)
     prefer 3
-    apply(rule Valid_inv_tr_eq)
+    apply (rule Valid_inv_tr_eq)
     using assms by auto
 
+text \<open>
+  If the Lie derivative of inv with respect to ODE is nonnegative, then
+  inv is a non-decreasing function of the state.
+\<close>
 theorem Valid_inv_s_ge:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<ge> r}
      Cont ode b
@@ -226,29 +243,32 @@ theorem Valid_inv_s_ge:
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-  proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<ge> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
-        using 1 5 pre by auto
-    qed
-    done
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<ge> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre by auto
+    show ?thesis
+      using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
+      using 1 5 pre by auto
+  qed
+  done
 
+text \<open>
+  Version of nonnegative invariant rule for trace.
+\<close>
 theorem Valid_inv_tr_ge:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<ge> r \<and> P tr \<and> b s}
      Cont ode b
@@ -261,29 +281,33 @@ theorem Valid_inv_tr_ge:
     apply auto
     apply (auto intro!: ode_inv_assn.intros)
   subgoal premises pre for \<tau>
-    proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<ge> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
-        using 1 5 pre by auto
-    qed
-    done
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<ge> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre by auto
+    show ?thesis
+      using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
+      using 1 5 pre by auto
+  qed
   done
+  done
+
+text \<open>
+  Version of nonnegative invariant rule for both state and trace.
+\<close>
 theorem Valid_inv_s_tr_ge:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<ge> r \<and> P tr \<and> b s}
      Cont ode b
@@ -299,9 +323,12 @@ theorem Valid_inv_s_tr_ge:
     apply(rule Valid_inv_tr_ge)
     using assms by auto
 
+text \<open>
+  Versions of invariant rule with inv s > r.
+\<close>
 theorem Valid_inv_s_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s > r}
      Cont ode b
@@ -309,30 +336,30 @@ theorem Valid_inv_s_g:
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-  proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<ge> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
-        using 1 5 pre by auto
-    qed
-    done
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<ge> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre by auto
+    show ?thesis
+      using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
+      using 1 5 pre by auto
+  qed
+  done
 
 
 theorem Valid_inv_tr_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s > r \<and> P tr \<and> b s}
      Cont ode b
@@ -345,30 +372,30 @@ theorem Valid_inv_tr_g:
     apply auto
     apply (auto intro!: ode_inv_assn.intros)
   subgoal premises pre for \<tau>
-    proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<ge> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre by auto
-      show ?thesis
-        using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
-        using 1 5 pre by auto
-    qed
-    done
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<ge> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre by auto
+    show ?thesis
+      using mvt_real_ge[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
+      using 1 5 pre by auto
+  qed
+  done
   done
 
 theorem Valid_inv_s_tr_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s > r \<and> P tr \<and> b s}
      Cont ode b
@@ -384,10 +411,13 @@ theorem Valid_inv_s_tr_g:
     apply(rule Valid_inv_tr_g)
     using assms by auto
 
-
+text \<open>
+  If the Lie derivative of inv with respect to ODE is nonpositive, then
+  inv is a non-increasing function of the state.
+\<close>
 theorem Valid_inv_s_le:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<le> r}
      Cont ode b
@@ -395,31 +425,30 @@ theorem Valid_inv_s_le:
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-  proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<le> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre 
-        using scaleR_nonneg_nonpos by fastforce
-      show ?thesis
-        using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
-        using 1 5 pre by auto
-    qed
-    done
-
+  proof -
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<le> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre 
+      using scaleR_nonneg_nonpos by fastforce
+    show ?thesis
+      using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
+      using 1 5 pre by auto
+  qed
+  done
 
 theorem Valid_inv_tr_le:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<le> r \<and> P tr \<and> b s}
      Cont ode b
@@ -432,31 +461,31 @@ theorem Valid_inv_tr_le:
     apply auto
     apply (auto intro!: ode_inv_assn.intros)
   subgoal premises pre for \<tau>
-    proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<le> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre
-        using scaleR_nonneg_nonpos by fastforce
-      show ?thesis
-        using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
-        using 1 5 pre by auto
-    qed
-    done
+  proof-
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t))\<le> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre
+      using scaleR_nonneg_nonpos by fastforce
+    show ?thesis
+      using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" \<tau>]
+      using 1 5 pre by auto
+  qed
+  done
   done
 
 theorem Valid_inv_s_tr_le:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s \<le> r \<and> P tr \<and> b s}
      Cont ode b
@@ -472,10 +501,12 @@ theorem Valid_inv_s_tr_le:
     apply(rule Valid_inv_tr_le)
   using assms by auto
 
-
+text \<open>
+  Version of invariant rule with inv < r.
+\<close>
 theorem Valid_inv_s_l:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s < r}
      Cont ode b
@@ -484,30 +515,29 @@ theorem Valid_inv_s_l:
   apply (auto elim!: contE)
   subgoal premises pre for d p
   proof-
-      have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
-        using pre assms
-        using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
-        by blast
-      have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
-      have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
-        using 2 3 that by auto
-      have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<le> 0" if "t\<in>{0 ..<d}" for t
-        using 4 assms(2) that pre 
-        using scaleR_nonneg_nonpos by fastforce
-      show ?thesis
-        using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
-        using 1 5 pre by auto
-    qed
-    done
-
+    have 1: "\<forall>t\<in>{0 .. d}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))) (at t within {0 .. d})"
+      using pre assms
+      using chainrule[of inv "\<lambda>x. g'(state2vec x)" ode p d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))"]
+      by blast
+    have 3: "\<forall>s. (s *\<^sub>R 1) = s" by simp
+    have 4: "\<forall>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) = s *\<^sub>R g' (state2vec(p t)) (ODE2Vec ode (p t))" if "t\<in>{0 .. d}" for t
+      using 2 3 that by auto
+    have 5: "\<forall>s\<ge>0. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)) \<le> 0" if "t\<in>{0 ..<d}" for t
+      using 4 assms(2) that pre 
+      using scaleR_nonneg_nonpos by fastforce
+    show ?thesis
+      using mvt_real_le[of d "(\<lambda>t. inv(p t))""\<lambda>t. (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ode (p t)))" d]
+      using 1 5 pre by auto
+  qed
+  done
 
 theorem Valid_inv_tr_l:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s < r \<and> P tr \<and> b s}
      Cont ode b
@@ -544,7 +574,7 @@ theorem Valid_inv_tr_l:
 
 theorem Valid_inv_s_tr_l:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
       and "\<forall>S. b S \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<le> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s < r \<and> P tr \<and> b s}
      Cont ode b
@@ -560,6 +590,12 @@ theorem Valid_inv_s_tr_l:
     apply(rule Valid_inv_tr_l)
   using assms by auto
 
+
+subsection \<open>Unique solution rules\<close>
+
+text \<open>
+  Strongest-postcondition rule for unique solutions, state only.
+\<close>
 theorem Valid_ode_unique_solution_s_sp:
   assumes "\<And>s. P s \<Longrightarrow> d s > 0 \<and> ODEsol ode (p s) (d s) \<and>
                 (\<forall>t. t \<ge> 0 \<and> t < d s \<longrightarrow> b (p s t)) \<and>
@@ -569,8 +605,8 @@ theorem Valid_ode_unique_solution_s_sp:
   shows "\<Turnstile>
     {\<lambda>s t. P s}
       Cont ode b
-    {\<lambda>s t. \<exists>s'.(s = p s' (d s')) \<and> P s'}"
-proof-
+    {\<lambda>s t. \<exists>s'. s = p s' (d s') \<and> P s'}"
+proof -
   have a: "s' = p s (d s) \<and> Wait\<^sub>t (d s) (\<lambda>\<tau>. State (p s \<tau>)) ({}, {}) tr2"
     if "ODE\<^sub>t s ode b s' tr2" "P s" for s s' tr2
   proof -
@@ -595,24 +631,29 @@ proof-
     done
 qed
 
+subsection \<open>More refined invariant rules\<close>
 
+text \<open>
+  Strengthen the nonnegative invariant rule by requiring that the
+  Lie derivative of inv is nonnegative only in the region inv \<ge> r.
+\<close>
 theorem Valid_inv_new_s_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "\<forall>S. b S \<longrightarrow> (inv S \<ge> r) \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
+      and "\<forall>S. b S \<longrightarrow> inv S \<ge> r \<longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> 0"
   shows "\<Turnstile> {\<lambda>s tr. inv s > r}
      Cont ode b
     {\<lambda>s tr. inv s > r}"
   unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-  proof-
-     obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
-       using pre unfolding ODEsol_def by auto
-      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
-        using pre assms e
-        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
-        by auto
+  proof -
+    obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
+     using pre unfolding ODEsol_def by auto
+    have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+      using pre assms e
+      using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+      by auto
     have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
         using 1 unfolding has_derivative_def bounded_linear_def 
         using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
@@ -627,9 +668,15 @@ theorem Valid_inv_new_s_g:
     qed
     done
 
+subsection \<open>Boundary rules\<close>
+
+text \<open>
+  Boundary rule: if the boundary condition is b s > r, then on reaching
+  the boundary we must have b s = r.
+\<close>
 theorem Valid_inv_b_s_ge:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. b s > r}
      Cont ode (\<lambda> s. b s > r)
     {\<lambda>s tr. b s = r}"
@@ -640,20 +687,20 @@ theorem Valid_inv_b_s_ge:
     assume "b (p d) \<noteq> r"
     then have g: "b (p d) < r" using pre by auto
       obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
-       using pre unfolding ODEsol_def by auto
-      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
-        using pre assms e
-        using chainrule'[of b "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
-        by auto
-      have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
-        apply(rule has_derivative_continuous)
-        apply(rule has_derivative_subset)
-        using 1 that e(1) pre(2) by auto
-      have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b (p t)) t"
-        apply auto subgoal for t
-        using continuous_within_open[of t "{-e<..<d+e}" "(\<lambda>t. b (p t))"]
-        using 2  e(1) by simp
-      done
+      using pre unfolding ODEsol_def by auto
+    have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. b (p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+      using pre assms e
+      using chainrule'[of b "\<lambda>x. g'(state2vec x)" p ode e d] 
+      by auto
+    have 2:"continuous (at t within {-e<..<d+e}) (\<lambda>t. b (p t))" if "t\<in>{0 .. d}" for t
+      apply(rule has_derivative_continuous)
+      apply(rule has_derivative_subset)
+      using 1 that e(1) pre(2) by auto
+    have 3:"\<forall>t\<in>{0 .. d}. isCont (\<lambda>t. b (p t)) t"
+      apply auto subgoal for t
+      using continuous_within_open[of t "{-e<..<d+e}" "\<lambda>t. b (p t)"]
+      using 2  e(1) by simp
+    done
     then obtain dd where dd:"b (p dd) = r" "dd \<in> {0..d}"
       using IVT2[of "(\<lambda>t. b (p t))" d r 0]
       using pre g by force
@@ -661,13 +708,15 @@ theorem Valid_inv_b_s_ge:
       using g  le_less by auto
     then show False using dd pre
       using atLeastAtMost_iff by blast
-      
     qed
     done
 
+text \<open>
+  Trace version of the boundary rule.
+\<close>
 theorem Valid_inv_b_tr_ge:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s > r}
      Cont ode (\<lambda> s. b s > r)
     {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<ge> r)) tr}"
@@ -708,12 +757,15 @@ theorem Valid_inv_b_tr_ge:
     done
   done
 
+text \<open>
+  Version of boundary rule with both state and trace.
+\<close>
 theorem Valid_inv_b_s_tr_ge:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s > r}
      Cont ode (\<lambda>s. b s > r)
-    {\<lambda>s tr. b s = r  \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<ge> r)) tr}"
+    {\<lambda>s tr. b s = r \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<ge> r)) tr}"
   apply(rule Valid_post_and)
    apply(rule Valid_weaken_pre)
     prefer 2
@@ -723,12 +775,15 @@ theorem Valid_inv_b_s_tr_ge:
   apply(auto simp add: entails_def)
     using assms by auto
 
-
+text \<open>
+  Two-boundary rules: if the boundary is b1 s > r1 and b2 s > r2, then
+  on reaching the boundary at least one of the inequality becomes equal.
+\<close>
 theorem Valid_inv_b_s_ge_and_ge:
   fixes b1 :: "state \<Rightarrow> real"
   fixes b2 :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
-      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' x) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. b1 s > r1 \<and> b2 s > r2}
      Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
     {\<lambda>s tr. b1 s = r1 \<or> b2 s = r2}"
@@ -790,12 +845,14 @@ subgoal premises pre for d p
     qed
     done
 
-
+text \<open>
+  Trace version of the two boundary rule.
+\<close>
 theorem Valid_inv_b_tr_ge_and_ge:
   fixes b1 :: "state \<Rightarrow> real"
   fixes b2 :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
-      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' x) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b1 s > r1 \<and> b2 s > r2}
      Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
     {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b1 s \<ge> r1 \<and> b2 s \<ge> r2)) tr}"
@@ -941,11 +998,14 @@ qed
 qed
   done
 
+text \<open>
+  Version of two-boundary rule with both state and trace.
+\<close>
 theorem Valid_inv_b_s_tr_ge_and_ge:
   fixes b1 :: "state \<Rightarrow> real"
   fixes b2 :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' (x)) (at x within UNIV)"
-      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b1 (vec2state v)) has_derivative g1' x) (at x within UNIV)"
+      and "\<forall>x. ((\<lambda>v. b2 (vec2state v)) has_derivative g2' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b1 s > r1 \<and> b2 s > r2}
      Cont ode (\<lambda> s. b1 s > r1 \<and> b2 s > r2)
     {\<lambda>s tr. (b1 s = r1 \<or> b2 s = r2) \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b1 s \<ge> r1 \<and> b2 s \<ge> r2)) tr}"
@@ -958,11 +1018,12 @@ theorem Valid_inv_b_s_tr_ge_and_ge:
   apply(auto simp add: entails_def)
   using assms by auto
 
-
-
+text \<open>
+  Boundary rule: less-than version.
+\<close>
 theorem Valid_inv_b_s_le:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. b s < r}
      Cont ode (\<lambda> s. b s < r)
     {\<lambda>s tr. b s = r}"
@@ -994,13 +1055,12 @@ theorem Valid_inv_b_s_le:
       using g  le_less by auto
     then show False using dd pre
       using atLeastAtMost_iff by blast
-      
     qed
     done
 
 theorem Valid_inv_b_tr_le:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s < r}
      Cont ode (\<lambda> s. b s < r)
     {\<lambda>s tr. (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<le> r)) tr}"
@@ -1043,10 +1103,10 @@ theorem Valid_inv_b_tr_le:
 
 theorem Valid_inv_b_s_tr_le:
   fixes b :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
+  assumes "\<forall>x. ((\<lambda>v. b (vec2state v)) has_derivative g' x) (at x within UNIV)"
   shows "\<Turnstile> {\<lambda>s tr. P tr \<and> b s < r}
      Cont ode (\<lambda>s. b s < r)
-    {\<lambda>s tr. b s = r  \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<le> r)) tr}"
+    {\<lambda>s tr. b s = r \<and> (P @\<^sub>t ode_inv_assn (\<lambda>s. b s \<le> r)) tr}"
   apply(rule Valid_post_and)
    apply(rule Valid_weaken_pre)
     prefer 2
@@ -1056,20 +1116,28 @@ theorem Valid_inv_b_s_tr_le:
   apply(auto simp add: entails_def)
     using assms by auto
 
+subsection \<open>Differential cut rules\<close>
+
+text \<open>
+  If c is an invariant, then it can be added to the boundary.
+\<close>
 theorem DC':
-  assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr.  c s \<and> (P @\<^sub>t ode_inv_assn c) tr}"
-      and "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> (\<lambda>s. b s \<and> c s) s}
-     Cont ode (\<lambda>s. b s \<and> c s)
-    {\<lambda>s tr. d s \<and> (P @\<^sub>t ode_inv_assn d) tr}"
-    shows "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. d s \<and> (P @\<^sub>t ode_inv_assn d) tr}"
-unfolding Valid_def
+  assumes
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. c s \<and> (P @\<^sub>t ode_inv_assn c) tr}"
+  and
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> (\<lambda>s. b s \<and> c s) s}
+         Cont ode (\<lambda>s. b s \<and> c s)
+        {\<lambda>s tr. d s \<and> (P @\<^sub>t ode_inv_assn d) tr}"
+  shows
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. d s \<and> (P @\<^sub>t ode_inv_assn d) tr}"
+  unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
-  proof-
+  proof -
     have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
       apply (rule big_step.intros)
       using pre by auto
@@ -1134,17 +1202,23 @@ subgoal premises pre for tr T p
   qed
   done
 
+text \<open>
+  Version of differential-cut rule with state only.
+\<close>
 theorem DC'':
-  assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
-      and "\<Turnstile> {\<lambda>s tr. init s \<and> (\<lambda>s. b s \<and> c s) s}
-     Cont ode (\<lambda>s. b s \<and> c s)
-    {\<lambda>s tr. d s}"
-    shows "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. d s }"
-unfolding Valid_def
+  assumes
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
+  and
+    "\<Turnstile> {\<lambda>s tr. init s \<and> (\<lambda>s. b s \<and> c s) s}
+         Cont ode (\<lambda>s. b s \<and> c s)
+        {\<lambda>s tr. d s}"
+  shows
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. d s }"
+  unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
@@ -1180,17 +1254,23 @@ unfolding Valid_def
   qed
   done
 
+text \<open>
+  Version of differential-cut rule, adding c to the conclusion.
+\<close>
 theorem DC''':
-  assumes "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
-      and "\<Turnstile> {\<lambda>s tr. init s \<and> (\<lambda>s. b s \<and> c s) s}
-     Cont ode (\<lambda>s. b s \<and> c s)
-    {\<lambda>s tr. d s}"
-    shows "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
-     Cont ode b
-    {\<lambda>s tr. c s \<and> d s }"
-unfolding Valid_def
+  assumes
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
+  and
+    "\<Turnstile> {\<lambda>s tr. init s \<and> (\<lambda>s. b s \<and> c s) s}
+         Cont ode (\<lambda>s. b s \<and> c s)
+        {\<lambda>s tr. d s}"
+  shows
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. c s \<and> d s }"
+  unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for tr T p
   proof-
@@ -1258,6 +1338,7 @@ subgoal premises pre for tr T p
   qed
   done
 
+subsection \<open>Local Lipschitz-Condition\<close>
 
 lemma local_lipschitz_t_v:
   "local_lipschitz UNIV UNIV (\<lambda> (t :: real) (v :: real). t * v)"
@@ -1278,7 +1359,6 @@ apply auto
     by linarith
   done
 
-
 lemma local_lipschitz_gt_v:
   fixes g :: "real \<Rightarrow> real"
   assumes "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
@@ -1288,9 +1368,15 @@ lemma local_lipschitz_gt_v:
   by auto
 
 
+subsection \<open>Darboux Invariant rules\<close>
+
+text \<open>
+  If f' = g * f, where g is continuous on a finite interval, and f equals
+  zero initially, then f always remain at zero.
+\<close>
 lemma dbxeq:
   fixes f :: "real \<Rightarrow> real"
-   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+   assumes "(f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 = 0"
@@ -1323,6 +1409,10 @@ interpret loc:ll_on_open_it "{-e<..<P+e}"
   show ?thesis using s2 s4 assms by auto
 qed
 
+text \<open>
+  Version of the previous theorem, where we assume f d = 0 at some d within
+  the interval, rather than at zero.
+\<close>
 lemma dbxeq':
   fixes f :: "real \<Rightarrow> real"
    assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
@@ -1460,9 +1550,12 @@ qed
 qed
 qed
 
+text \<open>
+  Version of theorem with f initially positive.
+\<close>
 lemma dbxg:
   fixes f :: "real \<Rightarrow> real"
-   assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+   assumes " (f has_vderiv_on (\<lambda>t. g t * f t)) {-e..P+e}" 
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 > 0" 
@@ -1492,9 +1585,12 @@ proof(rule ccontr)
   then show False using assms by auto
 qed
 
+text \<open>
+  Version of theorem with f initially negative.
+\<close>
 lemma dbxl:
   fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on (\<lambda> t . g t * f t)) {-e..P+e}" 
+  assumes " (f has_vderiv_on (\<lambda>t. g t * f t)) {-e..P+e}" 
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 < 0" 
@@ -1524,10 +1620,14 @@ proof(rule ccontr)
   then show False using assms by auto
 qed
 
+text \<open>
+  Darboux invariant theorem: if the Lie derivative of inv equals g * inv,
+  then inv is an invariant of the state.
+\<close>
 theorem Valid_dbx_s_eq:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "(\<lambda> S .  g' (state2vec S) (ODE2Vec ode S)) = (\<lambda> S. g S * inv S)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
+      and "(\<lambda>S. g' (state2vec S) (ODE2Vec ode S)) = (\<lambda> S. g S * inv S)"
       and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
   shows "\<Turnstile> {\<lambda>s tr. inv s = 0}
      Cont ode b
@@ -1572,11 +1672,14 @@ unfolding Valid_def
     qed
     done
 
-
+text \<open>
+  Version of theorem with inv initially positive, then it remains
+  positive.
+\<close>
 theorem Valid_dbx_s_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "(\<lambda> S .  g' (state2vec S) (ODE2Vec ode S)) = (\<lambda> S. g S * inv S)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
+      and "(\<lambda>S. g' (state2vec S) (ODE2Vec ode S)) = (\<lambda> S. g S * inv S)"
       and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
   shows "\<Turnstile> {\<lambda>s tr. inv s > 0}
      Cont ode b
@@ -1621,6 +1724,10 @@ unfolding Valid_def
     qed
     done
 
+text \<open>
+  Version of theorem with inv initially negative, then it remains
+  negative.
+\<close>
 theorem Valid_dbx_s_l:
   fixes inv :: "state \<Rightarrow> real"
   assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
@@ -1669,80 +1776,83 @@ unfolding Valid_def
     qed
     done
 
-  thm ivl_integral_has_vderiv_on
-  thm ivl_integral_has_vderiv_on_subset_segment
-  thm  mvt_simple_closed_segmentE
-  thm open_segment_eq_real_ivl
+text \<open>
+  Darboux's theorem, inequality version.
 
-
+  If f' \<ge> g * f, where g is continuous on a finite interval, and f is
+  positive initially, then f is always positive.
+\<close>
 lemma dbxgg:
   fixes f :: "real \<Rightarrow> real"
-  assumes " (f has_vderiv_on f') {-e..P+e}" 
-    and "\<forall> t \<in> {0<..<P} . f' t \<ge> g t * f t"
+  assumes "(f has_vderiv_on f') {-e..P+e}" 
+    and "\<forall>t \<in> {0<..<P} . f' t \<ge> g t * f t"
     and "e > 0 \<and> P > 0"
     and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
     and "f 0 > 0"
     and "D \<in> {0 .. P}"
   shows "f D > 0"
-proof(cases "D = 0")
+proof (cases "D = 0")
   case True
   then show ?thesis using assms by auto
 next
   case ca':False
   then show ?thesis
-  proof-
+  proof -
     have ca:"D > 0"
       using ca' assms by auto
-  have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
-    using assms(3) by auto
-  have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
-    using continuous_on_subset [OF assms(4) 0]
-    by auto
-  have 2:"continuous_on {-e/2..P+e/2} (\<lambda>t. -g t)"
-    using continuous_on_minus[OF 1]
-    by auto
-  have 3:"((\<lambda>u. ivl_integral 0 u (\<lambda>t.- g t)) has_vderiv_on (\<lambda>t.- g t)) {-e/2..P+e/2}"
-    using ivl_integral_has_vderiv_on_subset_segment[of "-e/2" "P+e/2" "(\<lambda>t.- g t)" "0"]
-    using 2 closed_segment_eq_real_ivl1 assms(3)
-    by auto
-  let ?h= "\<lambda>u. exp (ivl_integral 0 u (\<lambda>t.- g t))"
-  have 4:"(exp has_vderiv_on exp) UNIV"
-    unfolding has_vderiv_on_def 
-    using DERIV_exp has_field_derivative_iff_has_vector_derivative has_vector_derivative_def by blast
-  have 5:"(?h has_vderiv_on (\<lambda> t. - g t * ?h t)) {-e/2..P+e/2}"
-    using has_vderiv_on_compose2[OF 4 3]by auto
-  have 6:"(f has_vderiv_on f') {-e/2..P+e/2}"
-    using has_vderiv_on_subset[OF assms(1)] using assms(3) by auto
-  have 7:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {-e/2..P+e/2}"
-    using has_vderiv_on_mult[OF 6 5] by auto
-  have 8:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {0..D}"
-    using has_vderiv_on_subset[OF 7] using assms by auto
-  let ?e = "(\<lambda> t. f t * ?h t)"
-  let ?e' = "(\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )"
-  obtain y where y1:"?e D - ?e 0 = D * ?e' y" and y2:"y\<in>{0<..<D}"
-    using mvt_simple_closed_segmentE [of ?e ?e' 0 D]
-    using 8 ca open_segment_eq_real_ivl[of 0 D] closed_segment_eq_real_ivl1[of 0 D]
-    by smt
-  have 9:"?h y > 0"
-    by simp
-  have 10:"?e' y = (f' y - g y * f y) * ?h y" 
-    by(auto simp add: algebra_simps)
-  have 11:"(f' y - g y * f y) \<ge> 0 "
-    using y2 assms(2,3,6) by auto
-  have 12:"?e' y \<ge> 0" 
-    using 9 10 11 by auto
-  have 13:"?e D \<ge> ?e 0"
-    using y1 12 ca 
-    by (smt split_mult_pos_le)
-  have 14:"?e 0 > 0"
-    using assms by auto
-  have 15:"?e D > 0"
-    using 13 14 by auto
-  then show ?thesis 
-    using exp_gt_zero zero_less_mult_pos2 by blast
+    have 0:"{- e / 2..P + e / 2} \<subseteq> {- e<..<P + e}"
+      using assms(3) by auto
+    have 1:"continuous_on {-e/2..P+e/2} (\<lambda>t. g t)"
+      using continuous_on_subset [OF assms(4) 0]
+      by auto
+    have 2:"continuous_on {-e/2..P+e/2} (\<lambda>t. -g t)"
+      using continuous_on_minus[OF 1]
+      by auto
+    have 3:"((\<lambda>u. ivl_integral 0 u (\<lambda>t.- g t)) has_vderiv_on (\<lambda>t.- g t)) {-e/2..P+e/2}"
+      using ivl_integral_has_vderiv_on_subset_segment[of "-e/2" "P+e/2" "(\<lambda>t.- g t)" "0"]
+      using 2 closed_segment_eq_real_ivl1 assms(3)
+      by auto
+    let ?h= "\<lambda>u. exp (ivl_integral 0 u (\<lambda>t.- g t))"
+    have 4:"(exp has_vderiv_on exp) UNIV"
+      unfolding has_vderiv_on_def 
+      using DERIV_exp has_field_derivative_iff_has_vector_derivative has_vector_derivative_def by blast
+    have 5:"(?h has_vderiv_on (\<lambda> t. - g t * ?h t)) {-e/2..P+e/2}"
+      using has_vderiv_on_compose2[OF 4 3]by auto
+    have 6:"(f has_vderiv_on f') {-e/2..P+e/2}"
+      using has_vderiv_on_subset[OF assms(1)] using assms(3) by auto
+    have 7:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {-e/2..P+e/2}"
+      using has_vderiv_on_mult[OF 6 5] by auto
+    have 8:"((\<lambda> t. f t * ?h t) has_vderiv_on (\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )) {0..D}"
+      using has_vderiv_on_subset[OF 7] using assms by auto
+    let ?e = "(\<lambda> t. f t * ?h t)"
+    let ?e' = "(\<lambda> t.  f t * (- g t * ?h t) + f' t * ?h t )"
+    obtain y where y1:"?e D - ?e 0 = D * ?e' y" and y2:"y\<in>{0<..<D}"
+      using mvt_simple_closed_segmentE [of ?e ?e' 0 D]
+      using 8 ca open_segment_eq_real_ivl[of 0 D] closed_segment_eq_real_ivl1[of 0 D]
+      by smt
+    have 9:"?h y > 0"
+      by simp
+    have 10:"?e' y = (f' y - g y * f y) * ?h y" 
+      by(auto simp add: algebra_simps)
+    have 11:"(f' y - g y * f y) \<ge> 0 "
+      using y2 assms(2,3,6) by auto
+    have 12:"?e' y \<ge> 0" 
+      using 9 10 11 by auto
+    have 13:"?e D \<ge> ?e 0"
+      using y1 12 ca 
+      by (smt split_mult_pos_le)
+    have 14:"?e 0 > 0"
+      using assms by auto
+    have 15:"?e D > 0"
+      using 13 14 by auto
+    then show ?thesis 
+      using exp_gt_zero zero_less_mult_pos2 by blast
+  qed
 qed
-qed
-    
+
+text \<open>
+  Non-negative version of the previous theorem.
+\<close>
 lemma dbxgge:
   fixes f :: "real \<Rightarrow> real"
   assumes " (f has_vderiv_on f') {-e..P+e}" 
@@ -1808,58 +1918,61 @@ next
     using 13 14 by auto
   then show ?thesis 
     by (simp add: zero_le_mult_iff)
+  qed
 qed
-qed
 
-
-
-
+text \<open>
+  Darboux invariant theorem, version where the Lie derivative of inv
+  is greater than or equal to g * inv, and inv is positive initially.
+\<close>
 theorem Valid_dbxg_s_g:
   fixes inv :: "state \<Rightarrow> real"
-  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-      and "\<And> S. b S \<Longrightarrow> (g' (state2vec S) (ODE2Vec ode S)) \<ge> ( g S * inv S)"
+  assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' x) (at x within UNIV)"
+      and "\<And> S. b S \<Longrightarrow> g' (state2vec S) (ODE2Vec ode S) \<ge> (g S * inv S)"
       and "continuous_on UNIV (\<lambda> v. g (vec2state v))"
   shows "\<Turnstile> {\<lambda>s tr. inv s > 0}
      Cont ode b
     {\<lambda>s tr. inv s > 0}"
-unfolding Valid_def
+  unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-proof-
+  proof -
     obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
        using pre unfolding ODEsol_def by auto
-      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
-        using pre assms e
-        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
-        by blast
-      have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
-        using 1 2 by auto
-      have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
-        unfolding has_vderiv_on_def has_vector_derivative_def 
-        by (metis "3")
-      have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
-        using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
-        using has_derivative_subset
-        by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
-      have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
-        apply(auto simp add: continuous_on_eq_continuous_within)
-        using 5 has_derivative_continuous 
-        using greaterThanLessThan_iff by blast
-      have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
-        using assms(3) continuous_on_compose2 6
-        by (smt continuous_on_cong subset_UNIV vec_state_map1)
-      have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
-        using pre(4) assms(2) by auto
-      show ?thesis using dbxgg[OF 4 8 _ 7]
-        using pre e by auto
-    qed
-    done
+    have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+      using pre assms e
+      using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
+      by blast
+    have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
+      using 1 2 by auto
+    have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
+      unfolding has_vderiv_on_def has_vector_derivative_def 
+      by (metis "3")
+    have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
+      using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
+      using has_derivative_subset
+      by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
+    have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
+      apply(auto simp add: continuous_on_eq_continuous_within)
+      using 5 has_derivative_continuous 
+      using greaterThanLessThan_iff by blast
+    have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
+      using assms(3) continuous_on_compose2 6
+      by (smt continuous_on_cong subset_UNIV vec_state_map1)
+    have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
+      using pre(4) assms(2) by auto
+    show ?thesis using dbxgg[OF 4 8 _ 7]
+      using pre e by auto
+  qed
+  done
         
-
+text \<open>
+  Version of the previous theorem, where inv is initially non-negative.
+\<close>
 theorem Valid_dbxg_s_ge:
   fixes inv :: "state \<Rightarrow> real"
   assumes "\<forall>x. ((\<lambda>v. inv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
@@ -1868,69 +1981,41 @@ theorem Valid_dbxg_s_ge:
   shows "\<Turnstile> {\<lambda>s tr. inv s \<ge> 0}
      Cont ode b
     {\<lambda>s tr. inv s \<ge> 0}"
-unfolding Valid_def
+  unfolding Valid_def
   apply (auto elim!: contE)
   subgoal premises pre for d p
-proof-
+  proof -
     obtain e where e: "e > 0" "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ( ode) (p t))) {-e .. d+e}"
-       using pre unfolding ODEsol_def by auto
-      have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
-        using pre assms e
-        using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
-        by auto
-      have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
-        using 1 unfolding has_derivative_def bounded_linear_def 
-        using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
-        by blast
-      have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
-        using 1 2 by auto
-      have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
-        unfolding has_vderiv_on_def has_vector_derivative_def 
-        by (metis "3")
-      have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
-        using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
-        using has_derivative_subset
-        by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
-      have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
-        apply(auto simp add: continuous_on_eq_continuous_within)
-        using 5 has_derivative_continuous 
-        using greaterThanLessThan_iff by blast
-      have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
-        using assms(3) continuous_on_compose2 6
-        by (smt continuous_on_cong subset_UNIV vec_state_map1)
-      have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
-        using pre(4) assms(2) by auto
-      show ?thesis using dbxgge[OF 4 8 _ 7]
-        using pre e by auto
-    qed
-    done
-
-
-
-lemma derivative_exp[simp,derivative_intros]:
-" ((exp has_derivative (*) (exp (x :: real))) (at x))"
-  using DERIV_exp unfolding has_field_derivative_def
-  by auto
-
-lemma derivative_exp_const[derivative_intros]:
-"((\<lambda>x. exp ((c:: real) * x)) has_derivative (\<lambda>xa. xa * c * exp (c * x))) (at x)"
-proof-
-  have 1:"((*) c has_derivative (\<lambda>x. x * c)) (at x)"
-    apply (rule has_derivative_eq_rhs)
-     apply (auto intro!: derivative_intros)[1]
-    by auto
-  show ?thesis using has_derivative_exp[OF 1] 
-    by auto
+      using pre unfolding ODEsol_def by auto
+    have 1: "\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec ( ode) (p t)))) (at t within {-e .. d+e})"
+      using pre assms e
+      using chainrule'[of inv "\<lambda>x. g'(state2vec x)" p "( ode)" e d] 
+      by auto
+    have 2: "\<forall>s. g' (state2vec(p t)) ((s *\<^sub>R 1) *\<^sub>R ODE2Vec (ode) (p t)) = s *\<^sub>R g' (state2vec(p t)) (1 *\<^sub>R ODE2Vec (ode) (p t))" if "t\<in>{-e .. d+e}" for t
+      using 1 unfolding has_derivative_def bounded_linear_def 
+      using that linear_iff[of "(\<lambda>s. g' (state2vec(p t)) (s *\<^sub>R ODE2Vec (ode) (p t)))"]
+      by blast
+    have 3:"\<forall>t\<in>{-e .. d+e}. ((\<lambda>t. inv(p t)) has_derivative  (\<lambda>s. s *\<^sub>R  g' (state2vec(p t)) (ODE2Vec ode (p t)))) (at t within {-e .. d+e})"
+      using 1 2 by auto
+    have 4:"((\<lambda>t. inv(p t)) has_vderiv_on  (\<lambda>t.  g' (state2vec(p t)) (ODE2Vec ode (p t)))) ({-e .. d+e})"
+      unfolding has_vderiv_on_def has_vector_derivative_def 
+      by (metis "3")
+    have 5:"\<forall>x\<in>{- e<..<d + e}. ((\<lambda>t. state2vec (p t)) has_derivative (\<lambda>xa. xa *\<^sub>R ODE2Vec ode (p x))) (at x within {- e<..<d + e})"
+      using  e(2) unfolding has_vderiv_on_def has_vector_derivative_def 
+      using has_derivative_subset
+      by (metis atLeastAtMost_iff greaterThanLessThan_iff greaterThanLessThan_subseteq_atLeastAtMost_iff less_eq_real_def)
+    have 6:"continuous_on {-e<..<d+e} (\<lambda>t. state2vec (p t))"
+      apply(auto simp add: continuous_on_eq_continuous_within)
+      using 5 has_derivative_continuous 
+      using greaterThanLessThan_iff by blast
+    have 7:"continuous_on {-e<..<d+e} (\<lambda>t. g (p t))"
+      using assms(3) continuous_on_compose2 6
+      by (smt continuous_on_cong subset_UNIV vec_state_map1)
+    have 8:" \<forall>t\<in>{0<..<d}. g (p t) * inv (p t) \<le> g' (state2vec (p t)) (ODE2Vec ode (p t))"
+      using pre(4) assms(2) by auto
+    show ?thesis using dbxgge[OF 4 8 _ 7]
+      using pre e by auto
   qed
-
-lemma SOME_const_vderiv[derivative_intros,simp]:
-  fixes p :: " real \<Rightarrow> bool"
-  assumes "(f has_vderiv_on f') S"
-  shows "((\<lambda> t . (SOME k . p k) * f t ) has_vderiv_on (\<lambda> t . (SOME k . p k) * f' t )) S"
-  apply(rule has_vderiv_on_eq_rhs)
-  apply(rule has_vderiv_on_mult)
-    apply(auto intro: derivative_intros)[1]
-  using assms apply auto
   done
 
 end

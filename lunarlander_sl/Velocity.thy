@@ -289,7 +289,7 @@ next
       apply auto
       apply (rule entails_tassn_trans)
       apply (rule combine_assn_wait_emp)
-      by (rule false_assn_entails)
+      by auto
   next
     case (Cons v vs)
     show ?thesis

@@ -102,7 +102,7 @@ class HCSP:
         elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
                                InputChannel, OutputChannel, Function)):
             return False
-        elif isinstance(self, (Sequence, Parallel,function.Sequence)):
+        elif isinstance(self, (Sequence, Parallel)):
             for sub_hp in self.hps:
                 if sub_hp.contain_hp(name):
                     return True
@@ -336,13 +336,9 @@ class Assert(HCSP):
             return "assert(%s,%s)" % (self.bexpr, ','.join(str(msg) for msg in self.msgs))
         else:
             return "assert(%s)" % self.bexpr
-# <<<<<<< HEAD
-# =======
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
-
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -509,6 +505,7 @@ class OutputChannel(HCSP):
 
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
+
 
 class Function(HCSP):
     def __init__(self, return_vars,fun_name,exprs):
@@ -976,6 +973,7 @@ class ITE(HCSP):
         super(ITE, self).__init__()
 #         assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)   
         assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
+        # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
         if else_hp is None:
             else_hp = Skip()
@@ -1253,7 +1251,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, (HCSP,function.Assign,function.Sequence))
+            assert isinstance(_hp, HCSP)
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():

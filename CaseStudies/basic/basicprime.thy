@@ -1,6 +1,11 @@
 theory basicprime
-    imports HHLProver.ContinuousInv  HHLProver.BigStepParallel  HHLProver.Complementlemma
+  imports
+    HHLProver.ContinuousInv
+    HHLProver.BigStepParallel
+    HHLProver.Complementlemma
 begin
+
+text \<open>Variables\<close>
 
 definition T :: char where "T = CHR ''t''"
 definition X :: char where "X = CHR ''x''"
@@ -19,16 +24,16 @@ lemma vars_distinct [simp]: "T \<noteq> X" "T \<noteq> Y" "T \<noteq> Z" "T \<no
                             "L \<noteq> T" "L \<noteq> X" "L \<noteq> Y" "L \<noteq> Z" "L \<noteq> J" "L \<noteq> M" "L \<noteq> N"
                             "M \<noteq> T" "M \<noteq> X" "M \<noteq> Y" "M \<noteq> Z" "M \<noteq> J" "M \<noteq> L" "M \<noteq> N"
                             "N \<noteq> T" "N \<noteq> X" "N \<noteq> Y" "N \<noteq> Z" "N \<noteq> J" "N \<noteq> L" "N \<noteq> M"
-
   unfolding T_def X_def Y_def Z_def J_def  L_def M_def N_def by auto
 
 
-
-
+text \<open>
+  Analysis of <x' = -x, t' = 1> by explicit solution.
+\<close>
 lemma exp_1_subst:
-"(state2vec
-           (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. - s X)) a)
-                 (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then - v$X else 0)" for v
+  "(state2vec
+     (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. - s X)) a)
+          (vec2state v))) = (\<chi> a. if a = T then 1 else if a = X then -v $ X else 0)" for v
   apply(auto simp add: state2vec_def)
   using vec2state_def by auto
   
@@ -61,11 +66,13 @@ qed
 
 lemma exp_1_1:
   "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
+       Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+      {\<lambda>s tr. s X > 0}"
   apply (rule Valid_strengthen_post)
   prefer 2
-   apply (rule Valid_ode_unique_solution_s_sp[where d="\<lambda>s. P - s T" and p = "\<lambda>s. (\<lambda>t. s( X := s X * exp (-1 * t), T := s T + t))" ] )
+   apply (rule Valid_ode_unique_solution_s_sp[where
+              d="\<lambda>s. P - s T" and
+              p = "\<lambda>s. (\<lambda>t. s(X := s X * exp (-1 * t), T := s T + t))" ] )
      apply auto
   subgoal for s
     unfolding ODEsol_def has_vderiv_on_def
@@ -74,58 +81,55 @@ lemma exp_1_1:
     apply auto
      apply (rule has_vector_derivative_projI)
     apply (auto simp add: state2vec_def)
-    prefer 2
-apply (rule has_vector_derivative_eq_rhs)
+     prefer 2
+     apply (rule has_vector_derivative_eq_rhs)
       apply (auto intro!: derivative_intros)[1]
      apply (auto simp add: has_vector_derivative_def)
     apply (rule has_derivative_eq_rhs)
      apply (fast intro!: derivative_intros)[1]
     by auto
-    apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then - v $ X else 0)))"])
+   apply(rule c1_implies_local_lipschitz[where
+            f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v $ X else 0)))"])
        apply (subst exp_1_subst) 
       apply (rule has_derivative_eq_rhs)
         apply (rule exp_1_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_1_deriv_bounded)
   apply(auto simp add: entails_def)
   done
-  
-lemma exp_1_2:
- "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> \<not> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply(rule Valid_ode_not)
-  by auto
 
 lemma exp_1:
  "\<Turnstile> {\<lambda>s tr. s X > 0}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
+      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+     {\<lambda>s tr. s X > 0}"
   apply(rule Valid_pre_cases)
    apply(rule exp_1_1)
-   apply(rule exp_1_2)
-  done
+  apply (rule Valid_ode_not) by auto
 
+
+text \<open>
+  Analysis of <x' = x, t' = 1> by explicit solution
+\<close>
 lemma exp_2_subst:
-"(state2vec
-           (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. s X)) a)
-                 (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then  v$X else 0)" for v
+  "(state2vec
+     (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. s X)) a)
+          (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then v $ X else 0)" for v
   apply(auto simp add: state2vec_def)
   using vec2state_def by auto
 
 lemma exp_2_deriv_bounded:
-  "bounded_linear (\<lambda>v. \<chi> a. if a = T then 0 else if a = X then  v $ X else 0)"
+  "bounded_linear (\<lambda>v. \<chi> a. if a = T then 0 else if a = X then v $ X else 0)"
   apply (rule Real_Vector_Spaces.bounded_linear_intro[where K=1])
     apply (auto simp add: plus_vec_def scaleR_vec_def)
   by (simp add: norm_le_componentwise_cart)
 
 lemma exp_2_deriv:
-  "((\<lambda>v. \<chi> a. if a = T then 1 else if a = X then  v $ X else 0) has_derivative
-      (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ X else 0)))
+  "((\<lambda>v. \<chi> a. if a = T then 1 else if a = X then v $ X else 0) has_derivative
+      (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then v $ X else 0)))
      (at x)"
 proof -
-  have a: "((\<chi> a. if a = T then 1 else if a = X then  y $ X else 0) -
-            (\<chi> a. if a = T then 1 else if a = X then  x $ X else 0) -
-            (\<chi> a. if a = T then 0 else if a = X then  (y - x) $ X else 0)) = (\<chi> a. 0)" for y
+  have a: "((\<chi> a. if a = T then 1 else if a = X then y $ X else 0) -
+            (\<chi> a. if a = T then 1 else if a = X then x $ X else 0) -
+            (\<chi> a. if a = T then 0 else if a = X then (y - x) $ X else 0)) = (\<chi> a. 0)" for y
     by (auto simp add: minus_vec_def)
   show ?thesis
     apply (rule has_derivativeI)
@@ -139,14 +143,15 @@ proof -
     by (rule exp_2_deriv_bounded)
 qed
 
-
 lemma exp_2_1:
   "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
+       Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+      {\<lambda>s tr. s X > 0}"
   apply (rule Valid_strengthen_post)
   prefer 2
-   apply (rule Valid_ode_unique_solution_s_sp[where d="\<lambda>s. P - s T" and p = "\<lambda>s. (\<lambda>t. s( X := s X * exp (t), T := s T + t))" ] )
+  apply (rule Valid_ode_unique_solution_s_sp[where
+            d="\<lambda>s. P - s T" and
+            p = "\<lambda>s. (\<lambda>t. s(X := s X * exp t, T := s T + t))" ] )
      apply auto
   subgoal for s
     unfolding ODEsol_def has_vderiv_on_def
@@ -156,58 +161,54 @@ lemma exp_2_1:
      apply (rule has_vector_derivative_projI)
     apply (auto simp add: state2vec_def)
     prefer 2
-apply (rule has_vector_derivative_eq_rhs)
+    apply (rule has_vector_derivative_eq_rhs)
       apply (auto intro!: derivative_intros)[1]
      apply (auto simp add: has_vector_derivative_def)
     apply (rule has_derivative_eq_rhs)
      apply (fast intro!: derivative_intros)[1]
     by auto
-    apply(rule c1_implies_local_lipschitz[where f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  v $ X else 0)))"])
+  apply(rule c1_implies_local_lipschitz[where
+            f'="(\<lambda>_. Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then v $ X else 0)))"])
        apply (subst exp_2_subst) 
       apply (rule has_derivative_eq_rhs)
         apply (rule exp_2_deriv)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_2_deriv_bounded)
-  apply(auto simp add: entails_def)
+  apply (auto simp add: entails_def)
   done
-  
-lemma exp_2_2:
-  "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> \<not> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply(rule Valid_ode_not)
-  by auto
 
 lemma exp_2:
   "\<Turnstile> {\<lambda>s tr. s X > 0}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
+       Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+     {\<lambda>s tr. s X > 0}"
   apply(rule Valid_pre_cases)
    apply(rule exp_2_1)
-apply(rule exp_2_2)
-  done
+  apply(rule Valid_ode_not) by auto
 
 
+text \<open>
+  Analysis of <x' = -x + 1, t' = 1> by explicit solution.
+\<close>
 lemma exp_3_subst:
-"(state2vec (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. 1 - s X)) a)
-                          (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then 1- v$X else 0)" for v
+  "(state2vec
+      (\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. 1 - s X)) a)
+      (vec2state v))) = (\<chi> a. if a = T then 1 else if a = X then 1 - v $ X else 0)" for v
   apply(auto simp add: state2vec_def)
   using vec2state_def by auto
 
-
 lemma exp_3_deriv_bounded:
-  "bounded_linear (\<lambda>v. \<chi> a. if a = T then 0 else if a = X then  -v $ X else 0)"
+  "bounded_linear (\<lambda>v. \<chi> a. if a = T then 0 else if a = X then -v $ X else 0)"
   apply (rule Real_Vector_Spaces.bounded_linear_intro[where K=1])
     apply (auto simp add: plus_vec_def scaleR_vec_def)
   by (simp add: norm_le_componentwise_cart)
 
 lemma exp_3_deriv:
   "((\<lambda>v. \<chi> a. if a = T then 1 else if a = X then 1 - v $ X else 0) has_derivative
-      (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  -v $ X else 0)))
+      (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v $ X else 0)))
      (at x)"
 proof -
-  have a: "((\<chi> a. if a = T then 1 else if a = X then 1- y $ X else 0) -
-            (\<chi> a. if a = T then 1 else if a = X then 1- x $ X else 0) -
-            (\<chi> a. if a = T then 0 else if a = X then  -(y - x) $ X else 0)) = (\<chi> a. 0)" for y
+  have a: "((\<chi> a. if a = T then 1 else if a = X then 1 - y $ X else 0) -
+            (\<chi> a. if a = T then 1 else if a = X then 1 - x $ X else 0) -
+            (\<chi> a. if a = T then 0 else if a = X then -(y - x) $ X else 0)) = (\<chi> a. 0)" for y
     by (auto simp add: minus_vec_def)
   show ?thesis
     apply (rule has_derivativeI)
@@ -221,15 +222,15 @@ proof -
     by (rule exp_3_deriv_bounded)
 qed
 
-
-
 lemma exp_3_1:
   "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> s T < P}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s X + 1, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X > 0}"
   apply (rule Valid_strengthen_post)
   prefer 2
-   apply (rule Valid_ode_unique_solution_s_sp[where d="\<lambda>s. P - s T" and p = "\<lambda>s. (\<lambda>t. s( X := (s X - 1) * exp (-t) + 1, T := s T + t))" ] )
+   apply (rule Valid_ode_unique_solution_s_sp[where
+             d="\<lambda>s. P - s T" and
+             p = "\<lambda>s. (\<lambda>t. s(X := (s X - 1) * exp (-t) + 1, T := s T + t))" ] )
      apply auto
   subgoal for s
     unfolding ODEsol_def has_vderiv_on_def
@@ -268,116 +269,23 @@ apply (rule has_vector_derivative_eq_rhs)
   qed
  done
 
-lemma exp_3_2:
-  "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> \<not> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. -s X + 1, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply(rule Valid_ode_not)
-  by auto
-
 lemma exp_3:
   "\<Turnstile> {\<lambda>s tr. s X > 0}
      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. -s X + 1, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
  {\<lambda>s tr. s X > 0}"
   apply(rule Valid_pre_cases)
    apply(rule exp_3_1)
-apply(rule exp_3_2)
-  done
+  apply(rule Valid_ode_not) by auto
 
 
-(*
-
-lemma exp_4_subst:
-"(state2vec(\<lambda>a. (if a = T then \<lambda>s. 1 else ((\<lambda>_ _. 0)(X := \<lambda>s. - (s Y * s X))) a)
-                          (vec2state v))) = ( \<chi> a. if a = T then 1 else if a = X then -v$Y * v$X else 0)" for v
-  apply(auto simp add: state2vec_def)
-  using vec2state_def by auto
-
-
-lemma exp_4_deriv_bounded:
-  "bounded_linear (\<lambda>v. \<chi> a. if a = T then 0 else if a = X then  -v$Y*x$X - v$X*x$Y else 0)"
-  apply (rule Real_Vector_Spaces.bounded_linear_intro[where K=1])
-    apply (auto simp add: plus_vec_def scaleR_vec_def)
- 
-  sorry
-
-lemma exp_4_deriv:
-  "((\<lambda>(v ::vec). \<chi> a. if a = T then 1 else if a = X then -v$Y * v$X else 0) has_derivative
-      (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then  -v$Y*x$X - v$X*x$Y else 0)))
-     (at x)"
-proof -
- 
-  have a: "((\<chi> a. if a = T then 1 else if a = X then - (y::vec)$Y * y$X else 0) -
-            (\<chi> a. if a = T then 1 else if a = X then - (x::vec)$Y * x$X else 0) -
-            (\<chi> a. if a = T then 0 else if a = X then  - (y - x) $ Y * x $ X - (y - x) $ X * x $ Y else 0)) = (\<chi> i. if i = X then - (y - x)$X * (y - x)$Y else 0)" for y and x
-    apply (auto simp add: minus_vec_def)
-    apply (rule ext)
-    apply (auto simp add:left_diff_distrib' mult.commute right_diff_distrib')
-    done
-  show ?thesis
-    apply(rule has_derivative_projI)
-    apply auto
-    subgoal for i
-      apply (cases "i = T")
-      subgoal by auto
-      apply (cases "i = X")
-      subgoal apply auto
-         apply (rule has_derivative_eq_rhs)
-         apply (fast intro!: derivative_intros)[1]
-        by auto
-      subgoal by auto
-      done
-    done
-qed
-
-
-
-lemma exp_4_1:
-  "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s Y * s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply (rule Valid_strengthen_post)
-  prefer 2
-   apply (rule Valid_ode_unique_solution_s_sp[where d="\<lambda>s. P - s T" and p = "\<lambda>s. (\<lambda>t. s( X := (s X) * exp (-s Y * t), T := s T + t))" ] )
-     apply auto
-  subgoal for s
-    unfolding ODEsol_def has_vderiv_on_def
-    apply auto
-    apply (rule exI[where x="1"])
-    apply auto
-    apply (rule has_vector_derivative_projI)
-    apply (auto simp add: state2vec_def)
-    prefer 2
-apply (rule has_vector_derivative_eq_rhs)
-      apply (auto intro!: derivative_intros)[1]
-     apply (auto simp add: has_vector_derivative_def)
-    apply (rule has_derivative_eq_rhs)
-     apply (fast intro!: derivative_intros)[1]
-    by auto
-  subgoal
-    apply(rule c1_implies_local_lipschitz[where f'="(\<lambda> (t,x) . Blinfun (\<lambda>v. (\<chi> a. if a = T then 0 else if a = X then -v$Y*x$X - v$X*x$Y else 0)))"])
-       apply (subst exp_4_subst)
-     apply (rule has_derivative_eq_rhs)
-   apply (rule exp_4_deriv)
-       apply (auto simp add: bounded_linear_Blinfun_apply exp_4_deriv_bounded)
- sorry
-  apply(auto simp add: entails_def)
-  done
-
-
-lemma exp_4_2:
-  "\<Turnstile> {\<lambda>s tr. s X > 0 \<and> \<not> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s Y * s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply(rule Valid_ode_not)
-  by auto
-*)
-
+text \<open>
+  Analysis of <x' = -y * x, t = 1> by Darboux invariants (with g = -y).
+\<close>
 lemma exp_4:
   "\<Turnstile> {\<lambda>s tr. s X > 0}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s Y * s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X > 0}"
-  apply(rule Valid_dbx_s_g[where g="\<lambda> s . - s Y"])
+       Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. - s Y * s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+     {\<lambda>s tr. s X > 0}"
+  apply (rule Valid_dbx_s_g[where g="\<lambda> s . - s Y"])
     apply clarify
   unfolding vec2state_def
     apply (fast intro!: derivative_intros)[1]
@@ -385,13 +293,19 @@ lemma exp_4:
   apply(auto simp add: continuous_on_eq_continuous_within)
   done
 
+
+text \<open>
+  Analysis of <x' = x, t' = 1>, to show x remains non-negative.
+\<close>
 lemma exp_5_1:
   "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X \<ge> 0}"
+       Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+      {\<lambda>s tr. s X \<ge> 0}"
   apply (rule Valid_strengthen_post)
   prefer 2
-   apply (rule Valid_ode_unique_solution_s_sp[where d="\<lambda>s. P - s T" and p = "\<lambda>s. (\<lambda>t. s( X := s X * exp (t), T := s T + t))" ] )
+   apply (rule Valid_ode_unique_solution_s_sp[where
+             d="\<lambda>s. P - s T" and
+             p = "\<lambda>s. (\<lambda>t. s(X := s X * exp t, T := s T + t))" ] )
      apply auto
   subgoal for s
     unfolding ODEsol_def has_vderiv_on_def
@@ -414,27 +328,13 @@ apply (rule has_vector_derivative_eq_rhs)
        apply (auto simp add: bounded_linear_Blinfun_apply exp_2_deriv_bounded)
   apply(auto simp add: entails_def)
   done
-  
-lemma exp_5_2:
-  "\<Turnstile> {\<lambda>s tr. s X \<ge> 0 \<and> \<not> s T < P}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X \<ge> 0}"
-  apply(rule Valid_ode_not)
-  by auto
 
 lemma exp_5:
-  "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
-     Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
- {\<lambda>s tr. s X \<ge> 0}"
+ "\<Turnstile> {\<lambda>s tr. s X \<ge> 0}
+      Cont (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s X, T := \<lambda>s. 1))) (\<lambda>s. s T < P)
+     {\<lambda>s tr. s X \<ge> 0}"
   apply(rule Valid_pre_cases)
-   apply(rule exp_5_1)
-apply(rule exp_5_2)
-  done
-
-
-  
-
-
-
+   apply (rule exp_5_1)
+   apply (rule Valid_ode_not) by auto
 
 end
