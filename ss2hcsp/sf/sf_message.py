@@ -18,7 +18,7 @@ class SF_Data:
         super(SF_Data, self).__init__()
         assert isinstance(name, str) and isinstance(scope, str)
         if value is not None:
-            assert isinstance(value, function.Expr)
+            assert isinstance(value, (function.Expr,int))
         self.name = name
         self.value = value
         self.scope = scope

@@ -330,11 +330,12 @@ class SF_State:
         fun_dict = dict()
         if self.funs:
             for fun in self.funs:
-                assert (self.name, fun.name) not in fun_dict
-                name = str(fun.name)
-                if "(" in name:
-                    name = name[:name.index("(")]
-                # fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
+                if isinstance(fun,Function):
+                    assert (self.name, fun.name) not in fun_dict
+                    name = str(fun.name)
+                    if "(" in name:
+                        name = name[:name.index("(")]
+                    fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
 
         for child in self.children:
             if isinstance(child, (AND_State, OR_State)):
@@ -420,9 +421,8 @@ class OR_State(SF_State):
         self.default_tran = default_tran  # default transition to this state
         self.has_history_junc = False     # history junction to this state
         self.acth = None                  # (when there is history junction) the latest state
-        self.func_after = list
+        self.func_after=list()               
         self.get_after_func()
-
     def has_aux_var(self, var_name):
         """Return if the state has the auxiliary variable var_name
         
@@ -462,6 +462,7 @@ class AND_State(SF_State):
                  en=None, du=None, ex=None, order=0):
         super(AND_State, self).__init__(ssid, inner_trans, name,original_name, en, du, ex)
         self.order = order                # order within the parent state 
+        self.func_after=list()
 
 
 class Junction:
@@ -501,49 +502,49 @@ class Junction:
             var_set = var_set.union(tran.get_vars())
         return var_set
 
+class GraphicalFunction:
+    def __init__(self, name, params, return_var, transitions, junctions):
+        self.name = name
+        self.params = params
+        self.return_var = return_var
+        self.transitions = transitions
+        self.junctions = junctions
+
+        # Obtain default transition
+        self.default_tran = None
+        for ssid, tran in self.transitions.items():
+            if tran.src is None:
+                self.default_tran = tran
+                break
+        assert self.default_tran, "GraphicalFunction: no default transition found"
+
+    def __str__(self):
+        res = "GraphicalFunction(%s,%s,%s\n" % (self.name, self.params, self.return_var)
+        res += "  Junctions:\n"
+        for junc in self.junctions:
+            for line in str(junc).split('\n'):
+                res += "  " + line + "\n"
+        res += "  Default transition:\n"
+        res += "    " + str(self.default_tran) + "\n"
+        res += ")"
+        return res
 
 class Function:
-    def __init__(self, ssid, name, script,return_var,exprs,chart_state1,fun_type):
-        self.ssid = ssid
+    def __init__(self, name, params, return_var, script,chart_state,fun_type):
         self.name = name
-        self.type =fun_type
+        self.exprs = params
+        self.return_var = return_var
         self.script = script
-        self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
+        self.chart_state=chart_state
+        self.fun_type=fun_type
+    def __str__(self):
+        res = "Function(%s,%s,%s\n" % (self.name, self.exprs, self.return_var)
+        res += "%s" %(self.script)
+        return res
 
     def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        
-        if self.script is None:
-            return self.chart_state1
-        else:
+        if self.fun_type == "GRAPHICAL_FUNCTION" and self.chart_state is not None:
+            return self.chart_state
+        elif self.fun_type == "MATLAB_FUNCTION":
             return self.script
-    
 
-class Graphical_Function:
-    def __init__(self, ssid, name,return_var,exprs,chart_state1):
-        self.ssid = ssid
-        self.name = name
-        self.return_var = return_var
-        self.exprs = exprs
-        self.chart_state1=chart_state1
-
-    def parse(self):
-        # assert "==" not in self.script
-        # script = re.sub(pattern="=", repl=":=", string=self.script)
-        # acts = [act.strip("; ") for act in script.split("\n") if act.strip("; ")]
-        # assert re.match(pattern="function \\w+", string=acts[0])
-        # hps = [hp_parser.parse(act) for act in acts[1:]]
-        # assert all(isinstance(_hp, hp.Assign) for _hp in hps) and len(hps) >= 1
-        # result_hp = hp.Sequence(*hps) if len(hps) >= 2 else hps[0]
-        # if self.chart_state1 is not None:
-        #     return self.chart_state1
-        # else:
-            return self.script

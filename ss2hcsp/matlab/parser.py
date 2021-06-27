@@ -9,15 +9,19 @@ from ss2hcsp.hcsp import hcsp
 
 grammar = r"""
     // Expressions
+    ?arr_num: expr ((",")? expr)* ->arr_num
 
     ?atom_expr: CNAME -> var_expr
+        | NUMBER -> num_expr
+        | ESCAPED_STRING -> string_expr
         | CNAME "(" ")" -> fun_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "[" "]" -> list_expr
-        | "[" expr ("," expr)* "]" -> list_expr
-        | SIGNED_NUMBER -> num_expr
-        | ESCAPED_STRING -> string_expr
+        | "[" expr ((",")? expr)* "]" -> list_expr
+        | "[" arr_num (";" arr_num)* "]" -> list_expr2
         | "(" expr ")"
+        | CNAME ("." CNAME)+ ->direct_name
+
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
@@ -43,6 +47,12 @@ grammar = r"""
         | "true" -> true_cond
         | "false" -> false_cond
         | "(" cond ")"
+        | "after" "(" expr "," event ")"  -> after_event
+        | "before" "(" expr "," event ")"  -> before_event
+        | "at" "(" expr "," event ")"  -> at_event
+        | "every" "(" expr "," event ")"  -> every_event
+
+
     
     ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
 
@@ -55,6 +65,7 @@ grammar = r"""
     ?lname: CNAME -> var_lname
         | CNAME "(" expr ("," expr)* ")" -> fun_lname
         | "[" lname ("," lname)* "]" -> list_lname
+        | CNAME ("." CNAME)+ ->direct_name
     
     // Assignment command includes possible type declarations
     ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
@@ -90,6 +101,7 @@ grammar = r"""
     ?func_sig: CNAME                                      -> func_sig_name
         | CNAME "(" ")"                                   -> func_sig_no_param
         | CNAME "(" CNAME ("," CNAME)* ")"                -> func_sig_has_param
+        | return_var "=" CNAME                            -> func_sig_return_name
         | return_var "=" CNAME "(" ")"                    -> func_sig_return_no_param
         | return_var "=" CNAME "(" CNAME ("," CNAME)* ")" -> func_sig_return_has_param
 
@@ -120,11 +132,22 @@ class MatlabTransformer(Transformer):
     def var_expr(self, s):
         return function.Var(str(s))
 
+    def num_expr(self, v):
+        return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
+
+    def string_expr(self, s):
+        return function.AConst(str(s)[1:-1])  # remo
+
     def fun_expr(self, fun_name, *exprs):
         return function.FunExpr(str(fun_name), *exprs)
 
     def list_expr(self, *args):
         return function.ListExpr(*args)
+
+    def arr_num(self,*args):
+        return "%s" %(" ".join(str(param) for param in args))
+    def list_expr2(self, *args):
+        return function.ListExpr2(*args)
 
     def num_expr(self, v):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))
@@ -250,6 +273,9 @@ class MatlabTransformer(Transformer):
     def func_sig_has_param(self, name, *params):
         return str(name), tuple(str(param) for param in params), None
 
+    def func_sig_return_name(self, return_var, name):
+        return str(name), (), return_var
+
     def func_sig_return_no_param(self, return_var, name):
         return str(name), (), return_var
 
@@ -285,11 +311,14 @@ class MatlabTransformer(Transformer):
             else:
                 raise TypeError
         return function.TransitionLabel(event, cond, cond_act, tran_act)
+    def direct_name(self,*expr):
+        return function.DirectName(expr)
 
 
 expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
 cmd_parser = Lark(grammar, start="cmd", parser="lalr", transformer=MatlabTransformer())
 event_parser = Lark(grammar, start="event", parser="lalr", transformer=MatlabTransformer())
+func_sig_parser = Lark(grammar, start="func_sig", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
 transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())

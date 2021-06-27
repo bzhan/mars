@@ -375,7 +375,7 @@ def translate_discrete(diagram):
         del block_dict[name]
 
     # Get diagram sample time and the wait process
-    diagram_st = get_gcd([block.st for block in block_dict.values()])
+    diagram_st = get_gcd([block.st for block in block_dict.values()]) if len(block_dict) >0 else 1
     wait_st = hp.Sequence(hp.Wait(AConst(diagram_st)),
                           hp.Assign("t", PlusExpr("++", [AVar("t"), AConst(diagram_st)])))
 

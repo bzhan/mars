@@ -1,7 +1,8 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr,LogicExpr
+from ss2hcsp.matlab import function
 import re
 
 
@@ -127,8 +128,7 @@ class HCSP:
         """Returns the set of Var calls contained in self."""
         if isinstance(self, Var):
             return {self.name}
-        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
-                               InputChannel, OutputChannel, Function)):
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
             return set()
         elif isinstance(self, (Sequence, Parallel)):
             return set().union(*(hp.get_contain_hps() for hp in self.hps))
@@ -268,9 +268,9 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, AExpr)
-        if isinstance(var_name, str):
-            var_name = AVar(var_name)
+        assert isinstance(expr, (AExpr,str,int,function.AConst,function.ListExpr,function.ListExpr2,function.OpExpr))
+        if isinstance(var_name, (str,function.Var)):
+            var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
             self.var_name = var_name
         else:
@@ -287,14 +287,14 @@ class Assign(HCSP):
             var_str = str(self.var_name)
         else:
             var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
-        return "Assign(%s,%s)" % (var_str, str(self.expr))
+        return  "Assign(%s,%s)" % (var_str, str(self.expr))
 
     def __str__(self):
         if isinstance(self.var_name, AExpr):
             var_str = str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
-        return var_str + " := " + str(self.expr)
+        return "%s := %s" % (var_str, self.expr)
 
     def __hash__(self):
         return hash(("Assign", self.var_name, self.expr))
@@ -309,6 +309,8 @@ class Assign(HCSP):
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
 
+    def priority(self):
+        return 100
 
 class Assert(HCSP):
     def __init__(self, bexpr, msgs):
@@ -337,7 +339,6 @@ class Assert(HCSP):
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
-
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -502,9 +503,9 @@ class OutputChannel(HCSP):
     def sc_str(self):
         return re.sub(pattern="!", repl="!!", string=str(self))
 
-
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
+
 
 class Function(HCSP):
     def __init__(self, return_vars,fun_name,exprs):
@@ -512,42 +513,42 @@ class Function(HCSP):
         self.type = "function"
         self.return_vars = return_vars  # Channel
          # AExpr or None
-        self.exprs = exprs
+        self.args = exprs
        
-        self.fun_name = fun_name
+        self.func_name = fun_name
 
     def __eq__(self, other):
-        return self.type == other.type and self.return_var == other.return_var and self.fun_name == other.fun_name and self.exprs == other.exprs
+        return self.type == other.type and self.return_var == other.return_var and self.func_name == other.func_name and self.args == other.args
 
     def __repr__(self):
         if self.return_vars == "":
-            return "Fun(%s,%s)" % (self.fun_name, ",".join(str(arg) for arg in self.exprs))
+            return "Fun(%s,%s)" % (self.func_name, ",".join(str(arg) for arg in self.args))
         elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "Assign([%s],Fun(%s,%s))" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(repr(arg) for arg in self.exprs))
+            return "Assign([%s],Fun(%s,%s))" % (",".join(str(return_var) for return_var in self.return_vars),self.func_name, ",".join(repr(arg) for arg in self.args))
         else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "Assign(%s,Fun(%s,(0,1)))" % (self.return_vars,self.fun_name)
+            if self.func_name == "uniform" and len(self.args) == 0:
+                return "Assign(%s,Fun(%s,(0,1)))" % (self.return_vars,self.func_name)
             else:
-                return "Assign(%s,Fun(%s,%s))" % (self.return_vars,self.fun_name,",".join(repr(arg) for arg in self.exprs))
+                return "Assign(%s,Fun(%s,%s))" % (self.return_vars,self.func_name,",".join(repr(arg) for arg in self.args))
 
 
     def __str__(self):
         if self.return_vars == "":
-            return "%s(%s)" % (self.fun_name, ",".join(repr(arg) for arg in self.exprs))
+            return "%s(%s)" % (self.func_name, ",".join(repr(arg) for arg in self.args))
         elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.fun_name, ",".join(str(arg) for arg in self.exprs)) 
+            return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.func_name, ",".join(str(arg) for arg in self.args)) 
         else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
-                return "%s := %s(0,1)" % (self.return_vars,self.fun_name)
+            if self.func_name == "uniform" and len(self.args) == 0:
+                return "%s := %s(0,1)" % (self.return_vars,self.func_name)
             else:
-                return "%s := %s(%s)" % (self.return_vars,self.fun_name, ",".join(str(arg) for arg in self.exprs))
+                return "%s := %s(%s)" % (self.return_vars,self.func_name, ",".join(str(arg) for arg in self.args))
 
     def get_vars(self):
         if self.return_vars == "":
             var_set =set()
         else:
             var_set=set().union(self.return_vars.get_vars())
-        for expr in self.exprs:
+        for expr in self.args:
             if isinstance(expr,tuple):
                 for expr1 in expr:
                     var_set.update(expr1.get_vars())
@@ -557,26 +558,24 @@ class Function(HCSP):
 
     def sc_str(self):
         if self.return_vars == "":
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
+            if self.func_name == "uniform" and len(self.args) == 0:
                 return "%s(0,1)" %(self.func_name)
             else:
-                return "%s(%s)" %(self.func_name,",".join(str(arg) for arg in self.exprs))
+                return "%s(%s)" %(self.func_name,",".join(str(arg) for arg in self.args))
 
         else:
-            if self.fun_name == "uniform" and len(self.exprs) == 0:
+            if self.func_name == "uniform" and len(self.args) == 0:
                 return "%s := %s(0,1)" %(self.return_vars,self.func_name)
             else:
-                return  "%s := %s(%s)" %(self.return_vars,self.func_name,",".join(str(arg) for arg in self.exprs))
-
-
+                return  "%s := %s(%s)" %(self.return_vars,self.func_name,",".join(str(arg) for arg in self.args))
 
 class Sequence(HCSP):
     def __init__(self, *hps):
         super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
         self.type = "sequence"
-        assert all(isinstance(hp, HCSP) for hp in hps)
-        assert len(hps) >= 2
+        # assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 1
         self.hps = []
         for hp in hps:
             if isinstance(hp, Sequence):
@@ -972,7 +971,9 @@ class ITE(HCSP):
 
         """
         super(ITE, self).__init__()
-        assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
+#         assert all(isinstance(cond, BExpr) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)   
+        assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
+        # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
         if else_hp is None:
             else_hp = Skip()
@@ -1122,7 +1123,7 @@ def HCSP_subst(hp, inst):
             return inst[hp.name]
         else:
             return hp
-    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel, Function)):
+    elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
     elif isinstance(hp, (Loop, Recursion, Condition)):
         hp.hp = HCSP_subst(hp.hp, inst)

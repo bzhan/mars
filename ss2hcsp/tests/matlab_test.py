@@ -98,7 +98,7 @@ class MatlabTest(unittest.TestCase):
 
         for s, res in test_data:
             e = parser.expr_parser.parse(s)
-            expr = convert.convert_expr(e)
+            _, expr = convert.convert_expr(e)
             self.assertEqual(str(expr), res)
 
     def testConvertCondition(self):
@@ -110,7 +110,7 @@ class MatlabTest(unittest.TestCase):
 
         for s, res in test_data:
             cond = parser.cond_parser.parse(s)
-            cond_expr = convert.convert_expr(cond)
+            _, cond_expr = convert.convert_expr(cond)
             self.assertEqual(str(cond_expr), res)
 
     def testConvertCommand(self):

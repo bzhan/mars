@@ -1,8 +1,5 @@
-import re
-import lark
-
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem,Triggered_Subsystem
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction,GraphicalFunction
 from ss2hcsp.sf.sf_message import SF_Message
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj,LogicExpr,RelExpr,FunExpr
@@ -10,6 +7,7 @@ from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
 from ss2hcsp.hcsp.parser import aexpr_parser
+import re
 
 
 def get_common_ancestor(state0, state1, tran_type="out_trans"):
@@ -41,7 +39,7 @@ def get_hcsp(hps,root):  # get the hcsp from a list of hps
     _hps = []
     for i in range(len(hps)):
         assert hps[i]
-        if isinstance(hps[i], hp.HCSP):
+        if isinstance(hps[i], (hp.HCSP,function.Assign,function.Sequence)):
             if isinstance(hps[i], hp.OutputChannel) and (hps[i].ch_name.name.startswith("BR") or hps[i].ch_name.name.startswith("DBR")): #BR收到子图发来的消息广播申请
                 # For example, hps[i].expr.name = E_S1
                 #state_name = (lambda x: x[x.index("_") + 1:])(hps[i].expr.name)  # S1 split
@@ -60,7 +58,7 @@ def get_hcsp(hps,root):  # get the hcsp from a list of hps
                         longest_name=name
                 state_name = expr_name[len(longest_name)+1:]
                 #ch_expr = (lambda x: AConst('"' + x[:x.index("_")] + '"'))(hps[i].expr.name)  # AConst("e")
-                ch_expr = AConst('"'+longest_name+'"')
+                ch_expr = AConst(''+longest_name+'')
                 _hps.append(hp.OutputChannel(ch_name=hps[i].ch_name, expr=ch_expr))
                 j = i + 1
                 if hps[i].ch_name.name.startswith("BR"):
@@ -100,7 +98,7 @@ def get_hcsp(hps,root):  # get the hcsp from a list of hps
     else:
         return hp.Sequence(*_hps)
 def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simulink into an hcsp list
-    assert isinstance(acts, (list, tuple,str))
+    assert isinstance(acts,(list,tuple,str))
     # assert all(isinstance(act, str) for act in acts)
     assert isinstance(root, AND_State) and isinstance(location, (AND_State, OR_State))
     def get_name_from_mesg_list():
@@ -164,8 +162,8 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
     name_lists=get_name_from_mesg_list()
     trigger_edge_osig =0
     for act in acts:
-        if isinstance(act,cond_tran_Assign):
-            left=act.var_name
+        if isinstance(act,function.Assign):
+            left=act.lname
             right=act.expr
         # if re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])? *:=.+$", string=act)  or re.match(pattern="^(\\[)?(\\w+(,)?)*(\\w+\\(\\w*(,\\w*)*\\))*((,)?\\w+)*((,)?\\w+\\(\\w*(,\\w*)*\\))*(\\])? *:=.+$", string=act) and "." not in act:  # an assigment   
             # left,right=act.split(":=")
@@ -177,9 +175,9 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                 for var in DSM_vars:
                     if var in DSM_list:
                         hps.append(hp_parser.parse("ch_"+var+"?"+var))  
-            if isinstance(left,cond_tran_FunExpr):
-                data_name=str(left.fun_name)
-                left_exprs=[str(expr) for expr in left.exprs]
+            if isinstance(left,function.FunctionCall):
+                data_name=str(left.func_name)
+                left_exprs=[str(expr) for expr in left.args]
             # if  re.match(pattern="^\\w+\\(\\w*(,\\w+)*\\)", string=left):
                 
                 # data_name = left[:left.index("(")]
@@ -204,14 +202,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                     expr=expr+"-1"                                  
                                 left_temp = left_temp + "["+str(expr)+"]"
                             left=left_temp
-                        if isinstance(right,(cond_tran_FunExpr,cond_tran_AVar)):
+                        if isinstance(right,(function.FunctionCall,function.FunExpr,function.Var)):
                         # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)+$", string=right) or re.match(pattern="^\\w+$",string=right):
                             assert isinstance(root.chart, SF_Chart)
                             longest_path=root.chart.get_fun_by_path(str(right))
                             if longest_path is None:
-                                right_name=str(right.fun_name) if isinstance(right,cond_tran_FunExpr) else str(right)
-                                if isinstance(right,cond_tran_FunExpr):
-                                    right_exprs=[str(expr) for expr in right.exprs]
+                                right_name=str(right.fun_name) if isinstance(right,function.FunExpr) else str(right)
+                                if isinstance(right,function.FunctionCall,function.FunExpr):
+                                    if isinstance(right,function.FunctionCall):
+                                        exprs=right.args
+                                    else:
+                                        exprs=right.exprs
+                                    right_exprs=[str(expr) for expr in exprs]
                                 # if "(" in right:
                                     # strs1=re.findall(r"[(](.*?)[)]", right)
                                     # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -233,8 +235,12 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                     right=right_temp+str(right)[str(right).index(")")+1:]
                                 hps.append(hp_parser.parse(left+":="+right))
                             else:
-                                if isinstance(right,cond_tran_FunExpr):
-                                    right_exprs=[str(expr) for expr in right.exprs]
+                                if isinstance(right,function.FunctionCall,function.FunExpr):
+                                    if isinstance(right,function.FunctionCall):
+                                        exprs=right.args
+                                    else:
+                                        exprs=right.exprs
+                                    right_exprs=[str(expr) for expr in exprs]
                                 # if "(" in right:
                                     # strs1=re.findall(r"[(](.*?)[)]", right)
                                     # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -262,8 +268,13 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                     else:
                                         hps.append(hp_parser.parse(left+":="+str(return_var)))
                         else:
-                            if isinstance(right,cond_tran_FunExpr):
-                                right_exprs=[str(expr) for expr in right.exprs]
+                            if isinstance(right,function.FunctionCall,function.FunExpr):
+                                right_name=str(right.func_name) if isinstance(right,function.FunctionCall) else str(right.fun_name)
+                                if isinstance(right,function.FunctionCall):
+                                    exprs=right.args
+                                else:
+                                    exprs=right.exprs
+                                right_exprs=[str(expr) for expr in exprs]
                             
                                 if len(right_exprs) == 1:
 
@@ -295,24 +306,28 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         for var in DSM_vars:
                             if var in DSM_list:
                                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
-            elif isinstance(left,(cond_tran_AVar,cond_tran_ListExpr)):
+            elif isinstance(left,(function.Var,function.ListExpr)):
             # elif re.match(pattern="^(\\[)?\\w+(,\\w+)*(\\])?$", string=left) :  # a function
                     flag = 0
-                    if isinstance(left,cond_tran_AVar):
+                    if isinstance(left,function.Var):
                     # if "[" not in left:
                         for n,d in root.chart.data.items():
 
                             if left == d.name and d.scope == "DATA_STORE_MEMORY_DATA":
                                 flag=1
-                                if isinstance(right,(cond_tran_AVar,cond_tran_FunExpr)):
+                                if isinstance(right,(function.Var,function.FunctionCall,function.FunExpr)):
                                 # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)+$", string=right) or re.match(pattern="^\\w+$",string=right):
                                     assert isinstance(root.chart, SF_Chart)
                                     longest_path=root.chart.get_fun_by_path(str(right))
                                     if longest_path is None:
-                                        right_name=str(right.fun_name) if isinstance(right,cond_tran_FunExpr) else str(right)
+                                        right_name=str(right.fun_name) if isinstance(right,function.FunExpr) else str(right)
                                         # right_name=right[:right.index("(")] if "(" in right else right
-                                        if isinstance(right,cond_tran_FunExpr):
-                                            right_exprs=[str(expr) for expr in right.exprs]
+                                        if isinstance(right,function.FunctionCall,function.FunExpr):
+                                            if isinstance(right,function.FunctionCall):
+                                                exprs=right.args
+                                            else:
+                                                exprs=right.exprs
+                                            right_exprs=[str(expr) for expr in exprs]
                                         # if "(" in right:
                                             # strs1=re.findall(r"[(](.*?)[)]", right)
                                             # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -338,8 +353,12 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                             right=right_temp+str(right)[str(right).index(")")+1:]
                                         hps.append(hp_parser.parse(str(left+":="+right)))
                                     else:
-                                        if isinstance(right,cond_tran_FunExpr):
-                                             right_exprs=[str(expr) for expr in right.exprs]
+                                        if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                            if isinstance(right,function.FunctionCall):
+                                                exprs=right.args
+                                            else:
+                                                exprs=right.exprs
+                                            right_exprs=[str(expr) for expr in exprs]
                                         # if "(" in right:
                                             # strs1=re.findall(r"[(](.*?)[)]", right)
                                             # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -369,9 +388,13 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 hps.append(hp_parser.parse(sttr(left)+":="+str(return_var[0])))
                                   
                                 else:
-                                    right_name=str(right.fun_name) if isinstance(right,cond_tran_FunExpr) else str(right)
-                                    if isinstance(right,cond_tran_FunExpr):
-                                        right_exprs=[str(expr) for expr in right.exprs]
+                                    right_name=str(right.fun_name) if isinstance(right,function.FunExpr) else str(right)
+                                    if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                        if isinstance(right,function.FunctionCall):
+                                            exprs=right.args
+                                        else:
+                                            exprs=right.exprs
+                                        right_exprs=[str(expr) for expr in exprs]
                                     else:
                                         right_exprs=list()
                                     if len(right_exprs) == 1:
@@ -394,11 +417,11 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 if var in DSM_list:
                                                     hps.append(hp_parser.parse("ch_"+var+"!"+var))
 
-                    if flag ==0 or isinstance(left,cond_tran_ListExpr):
-                        if isinstance(right,(cond_tran_AVar,cond_tran_FunExpr)):
+                    if flag ==0 or isinstance(left,function.ListExpr):
+                        if isinstance(right,(function.Var,function.FunExpr,function.FunctionCall)):
                         # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
                             # if "[" in left:
-                            if isinstance(left,cond_tran_ListExpr):
+                            if isinstance(left,function.ListExpr):
                                 # strs=left.strip('[').strip(']')
                                 # left=list(strs.split(",")) if  "," in strs else [strs]
                                 left=[str(arg) for arg in left.args]
@@ -406,8 +429,12 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                
                                 left=[str(left)]
                             assert isinstance(root.chart, SF_Chart)
-                            if isinstance(right,cond_tran_FunExpr):
-                                 right_exprs=[str(expr) for expr in right.exprs]
+                            if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                if isinstance(right,function.FunctionCall):
+                                    exprs=right.args
+                                else:
+                                    exprs=right.exprs
+                                right_exprs=[str(expr) for expr in exprs]
                             # if "(" in right:
                                 # strs1=re.findall(r"[(](.*?)[)]", right)
                                 # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -455,13 +482,17 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 if var in DSM_list:
                                                     hps.append(hp_parser.parse("ch_"+var+"!"+var))
                             else:
-                                right_name=str(right.fun_name) if isinstance(right,cond_tran_FunExpr) else str(right)
+                                right_name=str(right.fun_name) if isinstance(right,function.FunExpr) else str(right)
                                 if len(left)==1:
                                     left=left[0]
                                 # if "[" not in left:
                                     # left =left[0]
-                                if isinstance(right,cond_tran_FunExpr):
-                                    right_exprs=[str(expr) for expr in right.exprs]
+                                if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                    if isinstance(right,function.FunctionCall):
+                                        exprs=right.args
+                                    else:
+                                        exprs=right.exprs
+                                    right_exprs=[str(expr) for expr in exprs]
                                 # if "(" in right:
                                 #     strs1=re.findall(r"[(](.*?)[)]", right)
                                 #     right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -498,7 +529,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                             if var in DSM_list:
                                                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
                         else:
-
                             hps.append(hp_parser.parse(str(act)))
                             if get_dataStoreList() is not None:
                                 DSM_vars=hp_parser.parse(str(act)).var_name.get_vars().union(hp_parser.parse(str(act)).expr.get_vars())
@@ -507,18 +537,22 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                     if var in DSM_list:
                                         hps.append(hp_parser.parse("ch_"+var+"!"+var))
             else:
-                if isinstance(right,(cond_tran_AVar,cond_tran_FunExpr)):
+                if isinstance(right,(function.Var,function.FunctionCall,function.FunExpr)):
                 # if re.match(pattern="^\\w+\\(\\w*(,\\w*)*\\)$", string=right) or re.match(pattern="^\\w+$",string=right) :
-                            if isinstance(left,cond_tran_ListExpr):
+                            if isinstance(left,function.ListExpr):
                                 left=[str(arg) for arg in left.args]
                             # if "[" in left:
                             #     strs=left.strip('[').strip(']')
                             #     left=list(strs.split(",")) if  "," in strs else [strs]
                             else:
-                                left=[left]
+                                left=[str(left)]
                             assert isinstance(root.chart, SF_Chart)
-                            if isinstance(right,cond_tran_FunExpr):
-                                right_exprs=[str(expr) for expr in right.exprs]
+                            if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                if isinstance(right,function.FunctionCall):
+                                    exprs=right.args
+                                else:
+                                    exprs=right.exprs
+                                right_exprs=[str(expr) for expr in exprs]
                             # if "(" in right:
                             #     strs1=re.findall(r"[(](.*?)[)]", right)
                             #     right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
@@ -545,7 +579,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                     if isinstance(return_var,function.ListExpr):
                                         for  var in range(0,len(return_var)):
                                             if is_dataStore(left[var]):
-                                                if isinstance(left[var],cond_tran_FunExpr):
+                                                if isinstance(left[var],function.FunExpr):
                                                     left_exprs2=[str(expr) for expr in left[var].exprs]
                                                 # if "(" in left[var]:
                                                     # strs2=re.findall(r"[(](.*?)[)]", left[var])
@@ -560,23 +594,8 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 hps.append(hp_parser.parse(str(left[var])+":="+str(return_var[var])))
                                                 # hps.append(hp_parser.parse("ch_"+left[var]+"!"+left[var]))
                                             else:
-                                                if isinstance(left[var],cond_tran_FunExpr): 
-                                                # if "(" in left[var]:
-                                                    # print(left[var])
-                                                    # strs1=re.findall(r"[(](.*?)[)]", left[var])
-                                                    # print(strs1)
-                                                    # left_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
-                                                    # if len(left_exprs) == 1:
-                                                    #     left[var] = left[var].replace("(", "[")
-                                                    #     left[var] = left[var].replace(")", "]")
-                                                    # elif len(left_exprs) >1:
-                                                    #     left_temp = left[var][:left[var].index("(")]
-                                                    #     for expr in left_exprs:
-                                                    #         left_temp = left_temp + "["+expr+"]"
-                                                    #     left[var]=left_temp
+                                                if isinstance(left[var],function.FunExpr): 
                                                     left_exprs2=[str(expr) for expr in left[var].exprs]
-                                                    # strs2=re.findall(r"[(](.*?)[)]", left[var])
-                                                    # left_exprs2=list(strs2[0].split(",")) if  "," in strs2[0] else [strs2[0]]
                                                     if len(left_exprs2) ==1:
                                                         if left_exprs2[0].isdigit():
                                                             left_exprs2[0]=int(left_exprs2[0])-1
@@ -601,18 +620,22 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                                 if var in DSM_list:
                                                     hps.append(hp_parser.parse("ch_"+var+"!"+var))
                             else:
-                                if isinstance(left,cond_tran_AVar):
+                                if len(left) == 1:
                                     left =str(left[0])
                                 # if "[" not in left:
                                     # left =left[0]
-                                if isinstance(right,cond_tran_FunExpr):
-                                    right_exprs=[str(expr) for expr in right.exprs]
+                                if isinstance(right,(function.FunctionCall,function.FunExpr)):
+                                    if isinstance(right,function.FunctionCall):
+                                        exprs=right.args
+                                    else:
+                                        exprs=right.exprs
+                                    right_exprs=[str(expr) for expr in exprs]
                                 # if "(" in right:
                                 #     strs1=re.findall(r"[(](.*?)[)]", right)
                                 #     right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
                                 
                                     if len(right_exprs) == 1:
-                                        right = right.fun_name+"["+str(int(right_exprs[0])-1)+"]"+str(right)[str(right).index(")")+1:]
+                                        right = right.fun_name+"["+str(str(right_exprs[0])+"-1")+"]"+str(right)[str(right).index(")")+1:]
                                         # right = right[:right.index("(")]+"["+str(int(right_exprs[0])-1)+"]"+right[right.index(")")+1:]
                                        
                                     elif len(right_exprs) > 1:
@@ -632,8 +655,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                                             if var in DSM_list:
                                                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
                                 else:
-
-                                    hps.append(hp_parser.parse(str(left+":="+right)))
+                                    hps.append(hp_parser.parse(str(left+":="+str(right))))
                                     if get_dataStoreList() is not None:
                                         DSM_vars=hp_parser.parse(str(act)).var_name.get_vars().union(hp_parser.parse(str(act)).expr.get_vars())
                                         DSM_list=get_dataStoreList()
@@ -650,15 +672,15 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         #             if var in DSM_list:
                         #                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
                 else:
-                    if isinstance(left,cond_tran_ListExpr):
+                    if isinstance(left,function.ListExpr):
                         left=[str(arg) for arg in left.args]
                     # if "[" in left:
                     #     strs=left.strip('[').strip(']')
                     #     left=list(strs.split(",")) if  "," in strs else [strs]
                     else:
                         left=[left]
-                    if isinstance(right,cond_tran_ListExpr):
-                        right=[str(arg) for arg in right.args]
+                    if isinstance(right,function.ListExpr):
+                        right=[str(arg) for arg in right.exprs]
                     # if "[" in right:
                     #     strs=right.strip('[').strip(']')
                     #     right=list(strs.split(",")) if  "," in strs else [strs]
@@ -675,12 +697,16 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         for var in DSM_vars:
                             if var in DSM_list:
                                 hps.append(hp_parser.parse("ch_"+var+"!"+var))
-        elif isinstance(act,(cond_tran_FunExpr,FunExpr)) and str(act.fun_name) != "send":
+        elif (isinstance(act,(function.FunctionCall)) and str(act.func_name) != "send") or (isinstance(act,(function.FunExpr,FunExpr)) and str(act.fun_name) != "send"):
         # elif re.match(pattern="^\\w+\\(\\w*(\\()?\\w*(,\\w*)*(\\))?(,\\w*)*\\)$", string=act) and not re.match(pattern="send\\(.*?\\)", string=act):  # a function
             assert isinstance(root.chart, SF_Chart)
             # hps.append(root.chart.fun_dict[root.chart.get_fun_by_path(str(act))])
             right=act
-            right_exprs=[str(expr) for expr in right.exprs]
+            if isinstance(act,function.FunctionCall):
+                exprs=right.args
+            else:
+                exprs=right.exprs
+            right_exprs=[str(expr) for expr in exprs]
             # strs1=re.findall(r"[(](.*)[)]", right)
             # right_exprs=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
             longest_path=root.chart.get_fun_by_path(str(right))
@@ -688,17 +714,18 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                 exprs=longest_path[1]
                 if exprs is not None and len(right_exprs) > 0:
                     for  var in range(0,len(exprs)):
-                        if isinstance(right_exprs[var],cond_tran_FunExpr):
+                        if isinstance(right_exprs[var],(function.FunctionCall,function.FunExpr)):
+                            name1=str(right_exprs[var].func_name) if isinstance( right_exprs[var],function.FunctionCall) else str( right_exprs[var].fun_name)
                         # if "(" in right_exprs[var]:
                             # strs1=re.findall(r"[(](.*?)[)]", right_exprs[var])
                             # right_exprs1=list(strs1[0].split(",")) if  "," in strs1[0] else [strs1[0]]
-                            right_exprs1=[str(expr) for expr in right_exprs[var].exprs]
+                            right_exprs1=[str(expr) for expr in right_exprs[var].args]
                             if len(right_exprs1) == 1:
 
-                                right_exprs[var] = right_exprs[var].fun_name+"["+str(right_exprs1[0]+"-1")+"]"+str(right_exprs[var])[str(right_exprs[var]).index(")")+1:]
+                                right_exprs[var] = name1+"["+str(right_exprs1[0]+"-1")+"]"+str(right_exprs[var])[str(right_exprs[var]).index(")")+1:]
                                
                             elif len(right_exprs1) > 1:
-                                right_temp = right_exprs[var].fun_name
+                                right_temp = name1
                                 for expr in right_exprs1:
                                     if expr.isdigit():
                                         expr=int(expr)-1
@@ -732,16 +759,16 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
             #     if path[-len(fun_path):] == fun_path:
             #         hps.append(fun)
             #         break
-        if (isinstance(act,cond_tran_AVar) and (str(act) not in name_lists) ) or (isinstance(act,cond_tran_FunExpr)) and (str(str(act).strip('send(').strip(')')) not in name_lists):
+        if (isinstance(act,function.Var) and (str(act) not in name_lists) ) or (isinstance(act,function.FunctionCall)) and (str(str(act).strip('send(').strip(')')) not in name_lists):
         # if (re.match(pattern="^\\w+$", string=act) and (str(act) not in name_lists) ) or (re.match(pattern="send\\(.*?\\)", string=act) and (str(act.strip('send(').strip(')')) not in name_lists)):
-            if (isinstance(act,cond_tran_AVar)) or isinstance(act,cond_tran_FunExpr):  # an event
+            if (isinstance(act,function.Var)) or isinstance(act,function.FunctionCall):  # an event
             # if (re.match(pattern="^\\w+$", string=act)) or re.match(pattern="send\\(.*?,.*?\\)", string=act) or (re.match(pattern="send\\(.*?\\)", string=act)):  # an event
                 assert isinstance(root.chart, SF_Chart)
                 # root.chart.has_event = True
                 root_num = re.findall(pattern="\\d+", string=root.name)
                 assert len(root_num) == 1
                 root_num = root_num[0]
-                if isinstance(act,cond_tran_AVar):
+                if isinstance(act,function.Var):
                 # if re.match(pattern="^\\w+$", string=act) :
                     flag =0
                     for e in root.chart.event_list:
@@ -755,7 +782,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         event = str(act) + "_" + location.name
                         hps.append(hp_parser.parse("BR" + root_num + "!" + event))
                         hps.append(hp.Var("X"))
-                if isinstance(act,cond_tran_FunExpr):
+                if isinstance(act,function.FunctionCall):
                 # if re.match(pattern="send\\(.*?\\)", string=act):
                     act=str(act)
                     acts=act.strip('send(').strip(')')
@@ -763,8 +790,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                         root.chart.has_event = True
                         if re.match(pattern="send\\(.*?,.*?\\)", string=act):
                             event , dest_state_name1 = [e.strip() for e in act[5:-1].split(",")]
-                            print(66666)
-                            print(event)
                             path=dest_state_name1.split(".")
                             if "." in dest_state_name1:
                                 path=dest_state_name1.split(".")
@@ -776,7 +801,6 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                             dest_state_name=path[len(path)-2]
                             event=path[len(path)-1]
                         _event=event + "_" + location.name
-                        print(_event)
                         for state in root.chart.all_states.values():
                             if state.original_name == dest_state_name:
                                 dest_state=state
@@ -861,8 +885,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
                             event = (act.strip('send(').strip(')')) + "_" + location.name
                             hps.append(hp_parser.parse("BR" + root_num + "!" +event ))
                             hps.append(hp.Var("X"))
-             
-            
+                     
     return hps
 
 
@@ -923,17 +946,15 @@ class SF_Chart(Subsystem):
         self.after_funcs_dicts=dict()#{state.ssid:A list of sequential logic contained in the output transition of the state}
         funs_state_name=list()
         children_list=list()
-
+        # # Gets the name of the GRAPHICAL_FUNCTION state
         # for fun in state.funs:
-        #     if fun.type == "GRAPHICAL_FUNCTION":
-        #             funs_state_name.append(fun.chart_state1.original_name)
-
-        # Remove the graph function from the child of the current state
-        for s in state.children:
-            if s.original_name not in funs_state_name:
-                # print(s.original_name )
-                children_list.append(s)
-        state.children=children_list 
+        #     if fun.fun_type == "GRAPHICAL_FUNCTION":
+        #         funs_state_name.append(fun.chart_state.original_name)
+        # #Remove the graph function from the child of the current state
+        # for s in state.children:
+        #     if s.original_name not in funs_state_name:
+        #         children_list.append(s)
+        # state.children=children_list 
         #Gets the full name of the state  
         for state in self.all_states.values():
             if isinstance(state,(AND_State,OR_State)):
@@ -952,7 +973,7 @@ class SF_Chart(Subsystem):
     def add_state_fun_after(self):
         #Parses the first parameter of the timing logic
         for state in self.all_states.values():
-            if isinstance(state,(AND_State,OR_State)):
+            if isinstance(state,(OR_State)):
                 if hasattr(state,"func_after") and state.has_aux_var("state_time"+str(state.ssid)) and len(state.func_after)>0:                          
                             for fun in state.func_after:
                                 self.after_funcs_dicts[state.ssid]=fun
@@ -964,7 +985,6 @@ class SF_Chart(Subsystem):
                 if isinstance(s,OR_State) and s.has_aux_var("state_time"+str(s.ssid)):
                     add_state_time.append(hp_parser.parse("state_time"+str(s.ssid)+" := "+"state_time"+str(s.ssid)+"+"+str(self.st)))
         return add_state_time
-
     def __str__(self):
         return "Chart(%s):\n%s" % (self.name, str(self.diagram))
 
@@ -1033,54 +1053,64 @@ class SF_Chart(Subsystem):
                 tran.location = get_common_ancestor(src_state, dst_state, "inner_trans")
 
     def singal_state_parse_acts_on_states_and_trans(self,state):
-        if self.all_states[state.ssid].is_parse_act == False:
+        if state.is_parse_act == False:
                
-                self.all_states[state.ssid].is_parse_act=True
-                if isinstance( self.all_states[state.ssid], (AND_State, OR_State)):
-                    if  self.all_states[state.ssid].en:
-                         self.all_states[state.ssid].en = parse_act_into_hp(acts= self.all_states[state.ssid].en, root= self.all_states[state.ssid].root, location= self.all_states[state.ssid])
-                    if  self.all_states[state.ssid].du:
-                        self.all_states[state.ssid].du = parse_act_into_hp(acts= self.all_states[state.ssid].du, root= self.all_states[state.ssid].root, location= self.all_states[state.ssid])
-                    if  self.all_states[state.ssid].ex:
-                         self.all_states[state.ssid].ex = parse_act_into_hp(acts= self.all_states[state.ssid].ex, root= self.all_states[state.ssid].root, location= self.all_states[state.ssid])
-                    if hasattr( self.all_states[state.ssid], "default_tran") and  self.all_states[state.ssid].default_tran:
-                        cond_acts =  self.all_states[state.ssid].default_tran.cond_acts
-                        tran_acts =  self.all_states[state.ssid].default_tran.tran_acts
-                        root =  self.all_states[state.ssid].default_tran.root
-                        location =  self.all_states[state.ssid].default_tran.location
-                        self.all_states[state.ssid].default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
-                        self.all_states[state.ssid].default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
-                    out_trans = list( self.all_states[state.ssid].out_trans) if hasattr( self.all_states[state.ssid], "out_trans") else list()
-                    inner_trans = list( self.all_states[state.ssid].inner_trans) if hasattr( self.all_states[state.ssid], "inner_trans") else list()
+                state.is_parse_act=True
+                if isinstance( state, (AND_State, OR_State)):
+                    if state.en:
+                         state.en = parse_act_into_hp(acts= state.en, root= state.root, location= state)
+                    if  state.du:
+                        state.du = parse_act_into_hp(acts= state.du, root= state.root, location=state)
+                    if  state.ex:
+                         state.ex = parse_act_into_hp(acts= state.ex, root= state.root, location= state)
+                    if hasattr( state, "default_tran") and  state.default_tran:
+                        cond_acts =  state.default_tran.cond_acts
+                        tran_acts =  state.default_tran.tran_acts
+                        root =  state.default_tran.root
+                        location =  state.default_tran.location
+                        state.default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
+                        state.default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
+                    out_trans = list(state.out_trans) if hasattr(state, "out_trans") else list()
+                    inner_trans = list(state.inner_trans) if hasattr( state, "inner_trans") else list()
                     for tran in out_trans + inner_trans:
                         tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, self.get_state_by_ssid(tran.src))                  
                         tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, self.get_state_by_ssid(tran.src))
-                elif isinstance( self.all_states[state.ssid], Junction):
-                    if hasattr( self.all_states[state.ssid], "default_tran") and  self.all_states[state.ssid].default_tran:
-                        cond_acts =  self.all_states[state.ssid].default_tran.cond_acts
-                        tran_acts =  self.all_states[state.ssid].default_tran.tran_acts
-                        root =  self.all_states[state.ssid].default_tran.root
-                        location =  self.all_states[state.ssid].default_tran.location
-                        self.all_states[state.ssid].default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
-                        self.all_states[state.ssid].default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
-                    for tran in  self.all_states[state.ssid].out_trans:
+                elif isinstance( state, Junction):
+                    if hasattr( state, "default_tran") and  self.all_states[state.ssid].default_tran:
+                        cond_acts =  state.default_tran.cond_acts
+                        tran_acts =  state.default_tran.tran_acts
+                        root =  state.default_tran.root
+                        location =  state.default_tran.location
+                        state.default_tran.cond_acts = parse_act_into_hp(cond_acts, root, location)
+                        state.default_tran.tran_acts = parse_act_into_hp(tran_acts, root, location)
+                    for tran in  state.out_trans:
                         tran.cond_acts = parse_act_into_hp(tran.cond_acts, tran.root, tran.location)
                         tran.tran_acts = parse_act_into_hp(tran.tran_acts, tran.root, tran.location)
                 else:
-                    print( self.all_states[state.ssid], type( self.all_states[state.ssid]))
+                    print( state, type( state))
                     raise RuntimeError("Error State!")
     def parse_after_func(self,lists,ssid):
         #Parse whether the first parameter in sequential logic is a function. 
         #If it is a function, parse it. If it is not a function, do not parse it
         hp_fun_onCon=list()
         for right in lists:
-            if isinstance(right,(cond_tran_FunExpr,cond_tran_AVar,FunExpr,AVar)): 
+            if isinstance(right,(function.FunctionCall,function.Var,FunExpr,AVar)): 
                 longest_path=self.get_fun_by_path(str(right))
-                right_name=str(right.fun_name) if isinstance(right,(cond_tran_FunExpr,FunExpr)) else str(right)
+                if isinstance(right,(function.FunctionCall)):
+                    right_name=str(right.func_name)
+                elif isinstance(right,FunExpr):
+                    right_name=str(right.fun_name)
+                else:
+                    right_name=str(right)
+                
                 if longest_path is None:
                     
-                    if isinstance(right,(cond_tran_FunExpr,FunExpr)):
-                        right_exprs=[str(expr) for expr in right.exprs]
+                    if isinstance(right,(function.FunctionCall,FunExpr)):
+                        if isinstance(right,function.FunctionCall):
+                            exprs=right.args
+                        else:
+                            exprs=right.exprs
+                        right_exprs=[str(expr) for expr in exprs]
                     else:
                         right_exprs=list()
                     if len(right_exprs) == 1:
@@ -1101,8 +1131,12 @@ class SF_Chart(Subsystem):
                     else:
                         right=right_name
                 else:
-                    if isinstance(right,(cond_tran_FunExpr,FunExpr)):
-                        right_exprs=[str(expr) for expr in right.exprs]
+                    if isinstance(right,(function.FunctionCall,FunExpr)):
+                        if isinstance(right,function.FunctionCall):
+                            exprs=right.args
+                        else:
+                            exprs=right.exprs
+                        right_exprs=[str(expr) for expr in exprs]
                     else:
                         right_exprs=list()
                     exprs=longest_path[1]
@@ -1188,7 +1222,6 @@ class SF_Chart(Subsystem):
             fun_path = tuple(fun_path[:].split("."))
         matched_paths = []
         for path, fun in self.fun_dict.items():
-          
             return_var=path[0]
             path1=path[2:]
             assert len(fun_path) <= len(path1)
@@ -1204,13 +1237,12 @@ class SF_Chart(Subsystem):
             longest_path = None
         if longest_path is not None:
             fun_hp=self.fun_dict[longest_path]
-           
             if isinstance(fun_hp,OR_State):
-                if not self.all_states[fun_hp.ssid].is_parse_act:
-                    for f in self.all_states[fun_hp.ssid].children:
-                        self.singal_state_parse_acts_on_states_and_trans(self.all_states[f.ssid])
+                if not fun_hp.is_parse_act:
+                    for f in fun_hp.children:
+                        self.singal_state_parse_acts_on_states_and_trans(fun_hp)
 
-                hps=hp.Sequence(hp_parser.parse("done := 0"),get_hcsp(self.all_states[fun_hp.ssid].activate(),self),self.execute_one_step_from_state(self.all_states[fun_hp.ssid]))
+                hps=hp.Sequence(hp_parser.parse("done := 0"),get_hcsp(fun_hp.activate(),self),self.execute_one_step_from_state(fun_hp))
                 self.fun_dict[longest_path]=hps
         return longest_path     
 
@@ -1328,23 +1360,37 @@ class SF_Chart(Subsystem):
         #The transformation conditions are parsed
         def get_conditions(tran_condition,ssid):
             logic_op=None
-            if isinstance(tran_condition,LogicExpr): 
-                logic_op= str(tran_condition.op) 
+            if isinstance(tran_condition,(LogicExpr,function.LogicExpr)): 
+                if isinstance(tran_condition,LogicExpr):
+                    logic_op= str(tran_condition.op) 
+                else:
+                    logic_op= str(tran_condition.op_name) 
                 conditions=[tran_condition.expr1,tran_condition.expr2]
             else:
                 conditions=[tran_condition]
             for condition in conditions:
-                if isinstance(condition,(RelExpr,CondExpr)):
+                if isinstance(condition,(function.RelExpr,RelExpr)):
                     op=str(condition.op)
                     left=condition.expr1
                     right=condition.expr2
-                    if isinstance(right,(cond_tran_FunExpr,cond_tran_AVar,FunExpr,AVar)): 
+
+                    if isinstance(right,(function.FunctionCall,function.FunExpr,function.Var,FunExpr,AVar)): 
                             longest_path=self.get_fun_by_path(str(right))
-                            right_name=str(right.fun_name) if isinstance(right,(cond_tran_FunExpr,FunExpr)) else str(right)
+                            if isinstance(right,(function.FunctionCall)):
+                                right_name=str(right.func_name)
+                            elif isinstance(right,(FunExpr,function.FunExpr)):
+                                right_name=str(right.fun_name)
+                            else:
+                                right_name=str(right)
+                            # right_name=str(right.fun_name) if isinstance(right,(function.FunctionCall,FunExpr)) else str(right)
                             if longest_path is None:
                                 
-                                if isinstance(right,(cond_tran_FunExpr,FunExpr)):
-                                    right_exprs=[str(expr) for expr in right.exprs]
+                                if isinstance(right,(function.FunctionCall,FunExpr)):
+                                    if isinstance(right,function.FunctionCall):
+                                        exprs=right.args
+                                    else:
+                                        exprs=right.exprs
+                                    right_exprs=[str(expr) for expr in exprs]
                                 else:
                                     right_exprs=list()
                                 if len(right_exprs) == 1:
@@ -1371,8 +1417,12 @@ class SF_Chart(Subsystem):
                                         else:
                                             right=str(right_name+"_"+str(return_var)+str(ssid))
                                 else:    
-                                    if isinstance(right,(cond_tran_FunExpr,FunExpr)):
-                                        right_exprs=[str(expr) for expr in right.exprs]
+                                    if isinstance(right,(function.FunctionCall,function.FunExpr,FunExpr)):
+                                        if isinstance(right,function.FunctionCall):
+                                            exprs=right.args
+                                        else:
+                                            exprs=right.exprs
+                                        right_exprs=[str(expr) for expr in exprs]
                                     else:
                                         right_exprs=list()
                                     exprs=longest_path[1]
@@ -1402,13 +1452,23 @@ class SF_Chart(Subsystem):
                         right=str(right)                  
 
 
-                    if isinstance(left,(cond_tran_FunExpr,cond_tran_AVar,FunExpr,AVar)):
+                    if isinstance(left,(function.FunctionCall,function.FunExpr,function.Var,FunExpr,AVar)):
                             longest_path=self.get_fun_by_path(str(left))
-                            left_name=str(left.fun_name) if isinstance(left,(cond_tran_FunExpr,FunExpr)) else str(left)
+                            if isinstance(left,(function.FunctionCall)):
+                                left_name=str(left.func_name)
+                            elif isinstance(left,(FunExpr,function.FunExpr)):
+                                left_name=str(left.fun_name)
+                            else:
+                                left_name=str(left)
+                            # left_name=str(left.fun_name) if isinstance(left,(function.FunctionCall,FunExpr)) else str(left)
                             if longest_path is None:
                                 
-                                if isinstance(left,(cond_tran_FunExpr,FunExpr)):
-                                    left_exprs=[str(expr) for expr in left.exprs]
+                                if isinstance(left,(function.FunctionCall,function.FunExpr,FunExpr)):
+                                    if isinstance(left,function.FunctionCall):
+                                        exprs=left.args
+                                    else:
+                                        exprs=left.exprs
+                                    left_exprs=[str(expr) for expr in exprs]
                                 else:
                                     left_exprs=list()
                                 if len(left_exprs) == 1:
@@ -1427,8 +1487,12 @@ class SF_Chart(Subsystem):
                                         left_temp = left_temp + "["+str(expr)+"]"
                                     left=left_temp+str(left)[str(left).index(")")+1:]
                             else:
-                                if isinstance(left,(cond_tran_FunExpr,FunExpr)):
-                                    left_exprs=[str(expr) for expr in left.exprs]
+                                if isinstance(left,(function.FunctionCall,function.FunExpr,FunExpr)):
+                                    if isinstance(left,function.FunctionCall):
+                                        exprs=left.args
+                                    else:
+                                        exprs=left.exprs
+                                    left_exprs=[str(expr) for expr in exprs]
                                 else:
                                     left_exprs=list()
                                 exprs=longest_path[1]
@@ -1443,7 +1507,6 @@ class SF_Chart(Subsystem):
                                           
                                     else:
                                         hp_fun_onCon.append(hp_parser.parse(str(return_var)+":= 0"))
-                                       
                                 hp_fun_onCon.append(self.fun_dict[longest_path])    
 
                                 if return_var is not None:
@@ -1457,7 +1520,7 @@ class SF_Chart(Subsystem):
                     else:
                         left=str(left)             
                     conds.append(bexpr_parser.parse(str(str(left)+op+str(right))))
-                elif isinstance(condition,LogicExpr):
+                elif isinstance(condition,(function.LogicExpr,LogicExpr)):
                     get_conditions(condition,ssid)
                 else:      
                     conds.append(bexpr_parser.parse(str(condition)))
@@ -1671,7 +1734,8 @@ class SF_Chart(Subsystem):
                                 # hp_loop.append(hp.Var(process_name))
                                 break
                             else:
-                                cond_exs.append(tran.condition)
+                                get_conditions(tran.condition,tran.src)
+                                cond_exs.extend(conds)
                     cond_ex= conj(*cond_exs) if len(cond_exs) >= 2 else cond_exs[0]
                     hps =  [hp.Sequence(process_name,hp.Loop(hp.ITE(hp_loop_local,hp.Skip()),cond_ex))]
                    
@@ -2023,7 +2087,7 @@ class SF_Chart(Subsystem):
             # Check if there is an X in the processes
             # If so, then there is an event triggered inner the states,
             # which means process S_i is recursive.
-            init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
+            init_vars = [hp.Assign(var_name, value.value) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
             for s in self.all_states.values():
                 if isinstance(s,OR_State) and s.has_aux_var("state_time"+str(s.ssid)):
                     init_vars.append(hp_parser.parse("state_time"+str(s.ssid)+" := 0"))
@@ -2336,7 +2400,8 @@ class SF_Chart(Subsystem):
         assert not self.has_event
         get_S_du_and_P_diag, analyse_P_diag = self.get_process()
         # Initialise variables
-        init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
+
+        init_vars = [hp.Assign(var_name, value.value) for var_name, value in sorted(self.data.items())  if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
         for s in self.all_states.values():
                 if isinstance(s,OR_State) and s.has_aux_var("state_time"+str(s.ssid)):
                     init_vars.append(hp_parser.parse("state_time"+str(s.ssid)+" := 0"))
@@ -2403,7 +2468,7 @@ class SF_Chart(Subsystem):
         # Delay one period at the first round
         if self.st == -1 or self.st == 0:
             self.st=0.1
-        init_vars = [hp.Assign(var_name, AConst(value.value)) for var_name, value in sorted(self.data.items()) if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
+        init_vars = [hp.Assign(var_name, value.value) for var_name, value in sorted(self.data.items()) if value.scope not in ['FUNCTION_OUTPUT_DATA',"FUNCTION_INPUT_DATA","DATA_STORE_MEMORY_DATA"]]
         init_hp = hp.Sequence(*init_hps, hp.Wait(AConst(self.st)),*self.add_state_time())
         
         # init_hp = hp.Sequence(*init_hps)

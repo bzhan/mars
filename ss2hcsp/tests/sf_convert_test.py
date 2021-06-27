@@ -1,6 +1,7 @@
 """Unit test for sf_convert."""
 
 import unittest
+import random
 
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
@@ -34,7 +35,7 @@ def run_test(self, filename, num_cycle, res, *,
     if print_chart:
         print(chart)
 
-    converter = sf_convert.SFConvert(chart, data_info=diagram.chart_parameters[chart.name]['data'])
+    converter = sf_convert.SFConvert(chart, chart_parameters=diagram.chart_parameters[chart.name])
     procs = converter.get_procs()
     hp = converter.get_toplevel_process()
 
@@ -133,6 +134,18 @@ class SFConvertTest(unittest.TestCase):
             ['log 1,1', 'delay 0.1', 'log 1,2', 'delay 0.1', 'log 1,3', 'delay 0.1',
              'log 1,4', 'delay 0.1', 'log 1,5', 'delay 0.1',
              'log 100,200,300,400,500', 'delay 0.1'])
+
+    def testGraphicalFunction(self):
+        run_test(self, "./Examples/Stateflow/tests/graphical_function.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testAfterRandom(self):
+        random.seed(0)  # for repeatability
+        run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
+            ['log en_A', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
+             'log en_B', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
+             'log en_A', 'log Picked 1', 'delay 1',
+             'log en_B', 'log Picked 3', 'delay 1'])
 
 
 if __name__ == "__main__":

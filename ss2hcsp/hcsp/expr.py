@@ -2,6 +2,7 @@
 
 import math
 import itertools
+from ss2hcsp.matlab import function
 
 
 def opt_round(x):
@@ -86,7 +87,7 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str))
+        assert isinstance(value, (int, float, list, str,function.AConst,function.ListExpr,function.ListExpr2))
         if isinstance(value, list):
             self.value = list(value)
         else:
@@ -534,7 +535,6 @@ def disj(*args):
         if arg != false_expr and arg not in new_args:
             new_args.append(arg)
     return list_disj(*new_args)
-
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':
         return [e.expr1] + split_disj(e.expr2)
