@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, false_expr, LogicExpr, ModExpr
+from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, ModExpr, conj
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -45,6 +45,8 @@ class Triggered_Subsystem(Subsystem):
         self.type = "triggered_subsystem"
         self.trigger_type = trigger_type
         self.st = -1
+        # A flag variable denoting if the subsystem was triggered at the last step
+        self.triggered = self.name + "_triggered"
 
     def __str__(self):
         return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
@@ -53,41 +55,63 @@ class Triggered_Subsystem(Subsystem):
     def __repr__(self):
         return str(self)
 
+    def get_pre_cur_trig_signals(self):
+        trig_var = self.dest_lines[-1].name
+        cur_sig = AVar(trig_var)
+        pre_sig = AVar("pre_" + trig_var)
+        return pre_sig, cur_sig
+
     def get_output_hp(self):
-        cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Var(self.name))
+        if_triggered = RelExpr("==", AVar(self.triggered), AConst(1))  # Triggered at the last step
+        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        trig_cond = self.get_discrete_triggered_condition()
+        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+
+        output_hp = hp.Sequence(
+            hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=self.triggered, expr=AConst(0)))],
+                   else_hp=hp.Condition(cond=conj(time_cond, trig_cond),
+                                        hp=hp.Sequence(
+                                            hp.Assign(var_name=self.triggered, expr=AConst(1)),
+                                            hp.Var(self.name)))),
+            hp.Assign(var_name=pre_sig.name, expr=cur_sig)
+        )
+
+        return output_hp
 
     def get_init_hps(self):
-        init_hps = []
-        for block in self.diagram.blocks:
+        # Initialize the triggered signal
+        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+        init_hps = [hp.Assign(var_name=self.triggered, expr=AConst(1)),  # name_triggered := true
+                    hp.Assign(var_name=pre_sig.name, expr=AConst(0)),  # pre_sig := 0
+                    hp.Assign(var_name=cur_sig.name, expr=AConst(0))]  # cur_sig := 0
+        # Initialize the variables of the inner blocks
+        for block in self.diagram.blocks_dict.values():
             if block.type == "constant":
                 out_var = block.src_lines[0][0].name
                 init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
             elif block.type == "unit_delay":
                 init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
             elif block.type == "triggered_subsystem":
-                init_hps.extend(block.get_init_hps)
+                init_hps.extend(block.get_init_hps())
         return init_hps
 
     def get_discrete_triggered_condition(self):
-        trig_var = self.dest_lines[-1].name
-        trig_sig = AVar(trig_var)
-        pre_sig = AVar("pre_" + trig_var)
-        # rising: (pre_sig < 0 && trig_sig >= 0) || (pre_sig == 0 && trig_x > 0)
+        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+        # rising: (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
         op0, op1, op2, op3 = "<", ">=", "==", ">"
-        if self.trigger_type == "falling":  # (pre_sig > 0 && trig_sig <= 0) || (pre_sig == 0 && trig_x < 0)
+        if self.trigger_type == "falling":  # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
             op0, op1, op2, op3 = ">", "<=", "==", "<"
-        elif self.trigger_type == "either":  # (pre_sig < 0 && trig_sig >= 0) || (pre_sig >= 0 && trig_x < 0)
+        elif self.trigger_type == "either":  # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
             op0, op1, op2, op3 = "<", ">=", ">=", "<"
         elif self.trigger_type == "function-call":
             raise RuntimeError("Not implemented yet")
         trig_cond = LogicExpr("||",
                               LogicExpr("&&",
                                         RelExpr(op0, pre_sig, AConst(0)),
-                                        RelExpr(op1, trig_sig, AConst(0))),
+                                        RelExpr(op1, cur_sig, AConst(0))),
                               LogicExpr("&&",
                                         RelExpr(op2, pre_sig, AConst(0)),
-                                        RelExpr(op3, trig_sig, AConst(0))))
+                                        RelExpr(op3, cur_sig, AConst(0))))
         return trig_cond
 
     def get_continuous_triggered_condition(self):
@@ -101,12 +125,25 @@ class Triggered_Subsystem(Subsystem):
         else:
             raise RuntimeError("Not implemented yet")
 
-    def get_procedure(self):
+    def delete_subsystems(self):
+        self.diagram.delete_subsystems()
+        for block in self.diagram.block_dict.values():
+            assert block.type not in ["subsystem", "enabled_subsystem"]
+            if block.type == "triggered_subsystem":
+                block.delete_subsystems()
+
+    def get_procedures(self):
         """ Get the procedure body by topological sort. """
         # Get a list of sorted blocks
-        block_dict = {name: block for name, block in self.diagram.block_dict
+        block_dict = {name: block for name, block in self.diagram.blocks_dict.items()
                       if block.type not in ["in_port", "out_port", "constant"]}
-        sorted_blocks = []
+
+        # Get a topological sort of the blocks
+        # First, move all the Unit_Delay blocks from block_dict to sorted_blocks
+        sorted_blocks = [block for block in block_dict.values() if block.type == "unit_delay"]
+        for block in sorted_blocks:
+            del block_dict[block.name]
+        # Get a topological sort of the remaining blocks
         while block_dict:
             head_block_names = []
             for name, block in block_dict.items():
@@ -118,40 +155,25 @@ class Triggered_Subsystem(Subsystem):
             for name in head_block_names:
                 del block_dict[name]
 
-        # Get the main body of the procedure
-        sorted_procedures = [hp.Var(block.name) for block in sorted_blocks]
-        main_body = hp.Sequence(*sorted_procedures)
+        # Get the OUTPUT of each block in sorted_blocks
+        output_hps = [block.get_output_hp() for block in sorted_blocks]
+        # Get the UPDATE of Unit_Delay blocks
+        update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
+        assert all(isinstance(process, hp.Condition) for process in output_hps + update_hps)
 
-        # Get the triggered condition
-        trig_var = self.dest_lines[-1].name
-        trig_sig = AVar(trig_var)
-        pre_sig = AVar("pre_"+trig_var)
-        trig_cond = self.get_discrete_triggered_condition()
+        result_hps = [process.hp for process in output_hps + update_hps]
+        result_hp = hp.Sequence(*result_hps) if len(result_hps) > 1 else result_hps[0]
+        procedures = [hp.Procedure(name=self.name, hp=result_hp)]
 
-        # Initializations
-        triggered = self.name + "_triggered"
-        init_hps = [hp.Assign(var_name=triggered, expr=true_expr),  # name_triggered := true
-                    hp.Assign(var_name=pre_sig.name, expr=AConst(0)),  # pre_sig := 0
-                    hp.Assign(var_name=trig_sig.name, expr=AConst(0))]  # trig_sig := 0
-        for block in self.diagram.blocks:
-            if block.type == "constant":
-                line_name = block.src_lines[0][0].name
-                init_hps.append(hp.Assign(var_name=line_name, expr=AConst(block.value)))
-        init_hp = hp.Sequence(*init_hps)
+        # Get the var-procedure mappings of the inner triggered subsystems
+        for block in sorted_blocks:
+            if block.type == "triggered_subsystem":
+                inner_procedures = block.get_procedures()
+                assert set(proc.name for proc in procedures).isdisjoint(
+                    set(proc.name for proc in inner_procedures))
+                procedures.extend(inner_procedures)
 
-        # Complete the main body and then return
-        if_triggered = RelExpr("==", AVar(triggered), true_expr)  # Triggered at the last step
-        procedure = hp.Sequence(init_hp,
-                                hp.Loop(
-                                    hp.Sequence(
-                                        hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=triggered, expr=false_expr))],
-                                               else_hp=hp.Condition(cond=trig_cond,
-                                                                    hp=hp.Sequence(hp.Assign(var_name=triggered,
-                                                                                             expr=true_expr),
-                                                                                   main_body))),
-                                        hp.Assign(var_name=pre_sig.name, expr=trig_sig))
-                                ))
-        return procedure
+        return procedures
 
 
 class Enabled_Subsystem(Subsystem):

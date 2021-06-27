@@ -9,6 +9,7 @@ import operator
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sl.mux.mux import Mux
+from ss2hcsp.hcsp.module import HCSPModule
 
 
 def translate_continuous(diagram):
@@ -393,16 +394,18 @@ def new_translate_discrete(diagram):
     sample_time = get_gcd([block.st for block in diagram])
     block_dict = {block.name: block for block in diagram}
 
-    # Get initializations
+    # Get initializations and procedures
     init_hps = []
+    procedures = []
     for block in block_dict.values():
         if block.type == "constant":
             out_var = block.src_lines[0][0].name
             init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
         elif block.type == "unit_delay":
             init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
-        elif block.type == "triggered_subsystems":
+        elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
+            procedures.extend(block.get_procedures())
     # Delete Constant blocks
     block_names = [name for name, block in block_dict.items() if block.type == "constant"]
     for name in block_names:
@@ -431,16 +434,18 @@ def new_translate_discrete(diagram):
     # Get the UPDATE of Unit_Delay blocks
     update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
 
-    return init_hps, output_hps, update_hps, sample_time
+    return init_hps, procedures, output_hps, update_hps, sample_time
 
 
 def new_translate_continuous(diagram):
     # Assume that all the continuous blocks are integrator blocks or triggered subsystems
     assert all(block.type in ["integrator", "triggered_subsystem"] for block in diagram)
-    init_hps = []
-    equations = []
+    # tt is the LOCAL evolution time of continuous process
+    init_hps = [hp.Assign(var_name="tt", expr=AConst(0))]
+    equations = [("tt", AConst(1))]  # tt_dot = 1
     constraints = []
     trig_procs = []
+    procedures = []
     for block in diagram:
         if block.type == "integrator":
             in_var = block.dest_lines[0].name
@@ -454,15 +459,16 @@ def new_translate_continuous(diagram):
             trig_cond = block.get_continuous_triggered_condition()
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(trig_cond.neg())
-    return init_hps, equations, constraints, trig_procs
+            procedures.extend(block.get_procedures())
+    return init_hps, equations, constraints, trig_procs, procedures
 
 
 def new_get_hcsp(discrete_diagram, continuous_diagram):
-    dis_init_hps, output_hps, update_hps, sample_time = new_translate_discrete(discrete_diagram)
-    con_init_hps, equations, constraints, trig_procs = new_translate_continuous(continuous_diagram)
+    dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = new_translate_discrete(discrete_diagram)
+    con_init_hps, equations, constraints, trig_procs, con_procedures = new_translate_continuous(continuous_diagram)
 
     # Initialization
-    init_hps = dis_init_hps + con_init_hps
+    init_hps = [hp.Assign(var_name="t", expr=AConst(0))] + dis_init_hps + con_init_hps
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     # Discrete process
@@ -470,16 +476,22 @@ def new_get_hcsp(discrete_diagram, continuous_diagram):
     discrete_hp = hp.Sequence(*discrete_hps)
 
     # Continuous process
-    time_constraint = RelExpr("<", AVar("t"), AConst(sample_time))
+    time_constraint = RelExpr("<", AVar("tt"), AConst(sample_time))
     constraints.append(time_constraint)
     continuous_hp = hp.ODE(eqs=equations, constraint=conj(*constraints))
     if trig_procs:
         trig_proc = hp.ITE(if_hps=trig_procs)
         continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc),
                                 constraint=time_constraint)
+    reset_tt = hp.Assign(var_name="tt", expr=AConst(0))
+    continuous_hp = hp.Sequence(continuous_hp, reset_tt)
 
-    # result process
-    return hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))
+    # main process
+    main_hp = hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))
+    # Get procedures
+    procedures = dis_procedures + con_procedures
+    result = HCSPModule(name="P", code=main_hp, procedures=procedures)
+    return result
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,

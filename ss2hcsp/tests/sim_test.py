@@ -428,7 +428,7 @@ class SimTest(unittest.TestCase):
         diagram.inherit_to_continuous()
         discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
         result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
-        # print(result_hp)
+        printTofile(path=directory+xml_file[:-3]+"txt", content=result_hp.export())
 
     def testContinuousTriggeredSubsystem(self):
         directory = "./Examples/Simulink_Triggered_Subsystem/"
@@ -439,7 +439,7 @@ class SimTest(unittest.TestCase):
         diagram.inherit_to_continuous()
         discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
         result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
-        # print(result_hp)
+        # print(result_hp.export())
 
 
 if __name__ == "__main__":
