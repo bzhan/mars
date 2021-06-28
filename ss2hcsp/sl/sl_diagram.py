@@ -236,7 +236,6 @@ class SL_Diagram:
                                 raise e
 
                             chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
-                            # chart_state.funs = functions
                             for state in  sub_junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
@@ -255,25 +254,24 @@ class SL_Diagram:
                         labels = get_attribute_value(child, "labelString").split("\n")
                         name = labels[0]
                         # Get en, du and ex actions
-                        en, du, ex = None, None, None
+                        en, du, ex = list(), list(), list()
                         for label in labels[1:]:
                             if label!="":
-                                if label.startswith("en:"):  
+                                if label.startswith("en:"): 
                                     if label[3:]  == "":
                                         continue
-                                    en = get_acts(cmd_parser.parse(label[3:]))
+                                    en.append(get_acts(cmd_parser.parse(label[3:])))
                                 elif label.startswith("du:"):
                                     if label[3:]  == "":
                                         continue
-                                    du = get_acts(cmd_parser.parse(label[3:]))
+                                    du.append(get_acts(cmd_parser.parse(label[3:])))
                                 elif label.startswith("ex:"):
                                     if label[3:]  == "":
                                         continue
-                                    ex = get_acts(cmd_parser.parse(label[3:]))
+                                    ex.append(get_acts(cmd_parser.parse(label[3:])))
                                 else:
-                                    en = get_acts(cmd_parser.parse(label))
+                                    en.append(get_acts(cmd_parser.parse(label)))
                                     # raise AssertionError("Parse XML: unrecognized state label %s" % label)
-
                         # Get default_tran and out_trans
                         default_tran = None
                         out_trans = list()

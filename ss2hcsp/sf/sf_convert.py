@@ -720,8 +720,6 @@ class SFConvert:
                 all_procs[name] = proc
 
         # Procedures for graphical functions
-        print(778888)
-        print( self.procedures)
         for name, proc in self.procedures.items():
             if isinstance(proc, GraphicalFunction):
                 all_procs.update(self.convert_graphical_function(proc))

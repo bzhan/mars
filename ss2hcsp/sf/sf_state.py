@@ -529,6 +529,29 @@ class GraphicalFunction:
         res += ")"
         return res
 
+    def instantiate(self, vals=None):
+        """Instantiate a procedure with given values for parameters.
+
+        vals : [None, List[Expr]] - list of expressions as input values.
+            Default to None if no input values.
+
+        Returns Command - instantiated command.
+        
+        This works by replacing occurrence of parameters in the body of
+        the function with the given values.
+ 
+        """
+        params=None
+        if vals is None:
+            vals = tuple()
+        if self.params is None:
+            params=tuple()
+        else:
+            params=self.params
+        # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
+        inst = dict(zip(params, vals))
+        return self.cmd.subst(inst)
+
 class Function:
     def __init__(self, name, params, return_var, script,chart_state,fun_type):
         self.name = name

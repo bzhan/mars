@@ -87,7 +87,7 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str,function.AConst,function.ListExpr,function.ListExpr2))
+        assert isinstance(value, (int, float, list, str,function.AConst,function.ListExpr,function.ListExpr2,function.Var))
         if isinstance(value, list):
             self.value = list(value)
         else:
@@ -103,7 +103,7 @@ class AConst(AExpr):
         return isinstance(other, AConst) and self.value == other.value
 
     def __hash__(self):
-        return hash(("AConst", self.value))
+        return hash(("AConst", str(self.value)))
 
     def get_vars(self):
         return set()

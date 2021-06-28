@@ -145,7 +145,7 @@ class MatlabTransformer(Transformer):
         return function.ListExpr(*args)
 
     def arr_num(self,*args):
-        return "%s" %(" ".join(str(param) for param in args))
+        return function.Arr_num(*args)
     def list_expr2(self, *args):
         return function.ListExpr2(*args)
 

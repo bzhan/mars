@@ -32,8 +32,10 @@ def convert_expr(e, *, procedures=None, arrays=None):
             return expr.AVar(e.name)
         elif isinstance(e, function.ListExpr):
             return expr.ListExpr(*(rec(arg) for arg in e.args))
-        elif isinstance(e, (function.AConst,int)):
-            if isinstance(e,int):
+        elif isinstance(e, function.ListExpr2):
+            return expr.ListExpr(*(rec(arg) for arg in e.args))
+        elif isinstance(e, (function.AConst,int,str)):
+            if isinstance(e,(int,str)):
                 return expr.AConst(e)
             else:
                 return expr.AConst(e.value)
@@ -133,8 +135,11 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             # in HCSP is 0-based.
             pre_act, args = conv_exprs(lname.exprs)
             assert pre_act == hcsp.Skip(), "convert_lname"
-            return expr.ArrayIdxExpr(
-                expr.AVar(lname.fun_name), [subtract_one(arg) for arg in args])
+            if len(lname.exprs) == 1:
+                return expr.ArrayIdxExpr(
+                    expr.AVar(lname.fun_name), [subtract_one(arg) for arg in args])
+            elif len(lname.exprs) ==2:
+                return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1]))
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg) for arg in lname.args]
         else:
@@ -154,10 +159,29 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             if cmd.func_name == 'fprintf':
                 pre_act, hp_exprs = conv_exprs(cmd.args)
                 return hcsp.seq([pre_act, hcsp.Log(hp_exprs[0], exprs=hp_exprs[1:])])
+            elif cmd.func_name == 'send':
+                args=cmd.args
+                if len(args) >1:
+                    event,direct_name=args[0],args[1]
+                    if isinstance(direct_name,function.DirectName):
+                        exprs=direct_name.exprs
+                        state_name=str(exprs[-1])
+                    elif isinstance(direct_name,function.Var):
+                        _,state_name=conv_expr(direct_name)             
+                elif len(args) == 1:
+                    if isinstance(args[0],function.DirectName):
+                        exprs=args[0].exprs
+                        event,state_name=exprs[-1],exprs[-2]
+                event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
+                return raise_event(event_name)
             else:
                 assert procedures is not None and cmd.func_name in procedures, \
                     "convert_cmd: procedure %s not found" % cmd.func_name
-                return convert(procedures[cmd.func_name].instantiate(cmd.args))
+                if isinstance(procedures[cmd.func_name],function.Function):
+                    return convert(procedures[cmd.func_name].instantiate(cmd.args))
+                elif isinstance(procedures[cmd.func_name],GraphicalFunction):
+                    return hcsp.seq([hcsp.Var(cmd.func_name)])
+
 
         elif isinstance(cmd, function.Sequence):
             if isinstance(cmd.cmd1, function.RaiseEvent) and still_there is not None:
