@@ -65,12 +65,19 @@ def convert_expr(e, *, procedures=None, arrays=None):
                 # in HCSP is 0-based.
                 return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
             elif procedures is not None and e.fun_name in procedures:
-                if len(e.exprs) > 0:
-                    raise NotImplementedError
+
+                # if len(e.exprs) > 0:
+                    # raise NotImplementedError
                 proc = procedures[e.fun_name]
                 if isinstance(proc, GraphicalFunction):
+                    if len(e.exprs) > 0:
+                        for index in range(0,len(e.exprs)):
+                            pre_acts.append(hcsp.Assign(expr.AVar(proc.params[index]),expr.AVar(str(e.exprs[index]))))
                     pre_acts.append(hcsp.Var(e.fun_name))
-                    return expr.AVar(proc.return_var)
+                    if isinstance(proc.return_var,str):
+                        return expr.AVar(proc.return_var)
+                    elif isinstance(proc.return_var,tuple):
+                        return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
                 else:
                     pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays))
                     return expr.AVar(proc.return_var)
@@ -153,7 +160,15 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return hcsp.seq(lists)
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
-            return hcsp.seq([pre_act, hcsp.Assign(convert_lname(cmd.lname), hp_expr)])
+            assign_name=convert_lname(cmd.lname)
+            cmd_list=list()
+            cmd_list.append(pre_act)
+            if isinstance(assign_name,list) and len(hp_expr)>1:
+                for index in range(0,len(assign_name)):
+                    cmd_list.append(hcsp.Assign(assign_name[index], hp_expr[index]))
+            else:
+                cmd_list.append(hcsp.Assign(assign_name, hp_expr))
+            return hcsp.seq(cmd_list)
 
         elif isinstance(cmd, function.FunctionCall):
             if cmd.func_name == 'fprintf':

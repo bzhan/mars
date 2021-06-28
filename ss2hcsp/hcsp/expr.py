@@ -260,6 +260,7 @@ class ListExpr(AExpr):
         args = tuple(args)
         assert all(isinstance(arg, AExpr) for arg in args)
         self.args = args
+        self.count = 0
 
     def __repr__(self):
         return "List(%s)" % (','.join(repr(arg) for arg in self.args))
@@ -272,7 +273,24 @@ class ListExpr(AExpr):
 
     def __hash__(self):
         return hash(("List", self.args))
-        
+    
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+      
+       return len(self.args)
+    def __getitem__(self,key):
+            return self.args[key]
+
+    def __next__(self):
+        if self.count < len(self.args):
+            result = self.args[self.count]
+            self.count += 1
+            return result
+        else:
+            raise StopIteration
+  
 
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))

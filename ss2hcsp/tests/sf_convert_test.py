@@ -124,7 +124,7 @@ class SFConvertTest(unittest.TestCase):
              'delay 0.1'],print_final=True)
         
     def testDirectedEventSend(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1, ['log en_A1', 'log en_B1', 'log ex_B1',
+        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1, ['log en_A1', 'log en_B1','log cond_act_B', 'log ex_B1',
              'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'],print_before_simp=True)
 
     def testDirectedEventSend2(self):
@@ -156,6 +156,10 @@ class SFConvertTest(unittest.TestCase):
     def testGraphicalFunction2(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1, ['log en_A', 'log set_mesg', 'log set_mesg',
              'log en_B','delay 0.1'],print_final=True)
+
+    def testGraphicalFunction3(self):
+        run_test(self, "./Examples/Stateflow/tests/graphical_function3_2018a.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],print_final=True)
         
     def testAfterRandom(self):
         random.seed(0)  # for repeatability

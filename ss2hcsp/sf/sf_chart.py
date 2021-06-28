@@ -955,7 +955,8 @@ class SF_Chart(Subsystem):
         #     if s.original_name not in funs_state_name:
         #         children_list.append(s)
         # state.children=children_list 
-        #Gets the full name of the state  
+       
+       #Gets the full name of the state  
         for state in self.all_states.values():
             if isinstance(state,(AND_State,OR_State)):
                 state.whole_name=state.get_state_whole_name()
