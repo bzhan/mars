@@ -35,17 +35,33 @@ class SFConvert:
         if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
             self.sample_time = self.chart_parameters['st']
 
+        #get the whole name of state
+        for state in self.chart.all_states.values():
+            if isinstance(state,(AND_State,OR_State)):
+                state.whole_name=state.get_state_whole_name()
         # Mapping name to state
         self.name_to_state = dict()
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, (AND_State, OR_State)):
-                self.name_to_state[state.name] = state
-
+                self.name_to_state[state.whole_name] = state
         # Dictionary of procedures
         self.procedures = dict()
         for fun in chart.diagram.funs:
             self.procedures[fun.name] = fun
-
+        def get_state(state,name):
+            if len(name)==0:
+                return state
+            n=name[0]
+            for child in state.children:
+                if child.name == n:
+                   return get_state(child,name[1:])
+        self.get_state=get_state
+        def get_state_by_path(name):
+            names_list=name[0]
+            for ssid, state in self.chart.all_states.items():
+                if state.name == names_list:
+                    return self.get_state(state,name[1:])
+        self.get_state_by_path=get_state_by_path
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
@@ -111,13 +127,16 @@ class SFConvert:
 
         elif isinstance(event, DirectedEvent):
             # First, find the innermost state name and event
+            state_name_path=list()
             st_name, ev = event.state_name, event.event
+            state_name_path.append(st_name)
             while isinstance(ev, DirectedEvent):
                 st_name, ev = ev.state_name, ev.event
-
+                state_name_path.append(st_name)
+            dest_state=self.get_state_by_path(state_name_path)
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(ev.name)])),
-                self.get_rec_during_proc(self.name_to_state[st_name]),
+                self.get_rec_during_proc(dest_state),
                 hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
         
         else:
@@ -133,15 +152,15 @@ class SFConvert:
 
     def en_proc_name(self, state):
         """en action of state."""
-        return "en_" + state.name
+        return "en_" + state.whole_name
 
     def du_proc_name(self, state):
         """du action of state."""
-        return "du_" + state.name
+        return "du_" + state.whole_name
 
     def ex_proc_name(self, state):
         """ex action of state."""
-        return "ex_" + state.name
+        return "ex_" + state.whole_name
 
     def active_state_name(self, state):
         """Variable indicating which child state of the current state is active.
@@ -152,31 +171,31 @@ class SFConvert:
         active, this variable is assigned the empty string.
 
         """
-        return state.name + "_st"
+        return state.whole_name + "_st"
 
     def history_name(self, state):
         """Name of the history variable for an OR-state with history junction."""
-        return state.name + "_hist"
+        return state.whole_name + "_hist"
 
     def entry_tick_name(self, state):
         """Counter for number of ticks since entry into state."""
-        return state.name + "_tick"
+        return state.whole_name + "_tick"
 
     def entry_time_name(self, state):
         """Counter for number of seconds since entry into state."""
-        return state.name + "_time"
+        return state.whole_name + "_time"
 
     def entry_proc_name(self, state):
         """Procedure for entry into state."""
-        return "entry_" + state.name
+        return "entry_" + state.whole_name
 
     def during_proc_name(self, state):
         """Procedure for executing at state."""
-        return "during_" + state.name
+        return "during_" + state.whole_name
 
     def exit_proc_name(self, state):
         """Procedure for exiting from state."""
-        return "exit_" + state.name
+        return "exit_" + state.whole_name
 
     def get_en_proc(self, state):
         if not state.en:
@@ -213,11 +232,11 @@ class SFConvert:
         
         # Set the activation variable
         if isinstance(state, OR_State):
-            procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst(state.name)))
+            procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst(state.whole_name)))
         
         # Set history junction
         if isinstance(state.father, OR_State) and state.father.has_history_junc:
-            procs.append(hcsp.Assign(self.history_name(state.father), expr.AConst(state.name)))
+            procs.append(hcsp.Assign(self.history_name(state.father), expr.AConst(state.whole_name)))
 
         # Set counter for implicit or absolute time events
         if state.ssid in self.implicit_events:
@@ -349,7 +368,7 @@ class SFConvert:
                     hist_name = self.history_name(state)
                     for child in state.children:
                         if isinstance(child, OR_State):
-                            conds.append((expr.RelExpr("==", expr.AVar(hist_name), expr.AConst(child.name)),
+                            conds.append((expr.RelExpr("==", expr.AVar(hist_name), expr.AConst(child.whole_name)),
                                           hcsp.seq([
                                               hcsp.Var(self.entry_proc_name(child)),
                                               self.get_rec_entry_proc(child)])))
@@ -377,7 +396,7 @@ class SFConvert:
                 ite = []
                 for child in state.children:
                     if isinstance(child, OR_State):
-                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
+                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
                                     hcsp.seq([
                                         self.get_rec_exit_proc(child),
                                         hcsp.Var(self.exit_proc_name(child))])))
@@ -401,11 +420,11 @@ class SFConvert:
             procs = []
 
             # Signal for whether one of the transitions is carried out
-            done = state.name + "_done"
+            done = state.whole_name + "_done"
 
             # Whether the state is still active
             still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                            expr.AConst(state.name))
+                                            expr.AConst(state.whole_name))
 
             # Whether the state has exited (so the parent state has no active states)
             still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
@@ -529,7 +548,7 @@ class SFConvert:
                 ite = []
                 for child in state.children:
                     if isinstance(child, OR_State):
-                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.name)),
+                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
                                     self.get_rec_during_proc(child)))
                 procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
             else:

@@ -122,6 +122,11 @@ class SFConvertTest(unittest.TestCase):
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'],print_final=True)
+    def testDirectedEvent2(self):
+        run_test(self, "./Examples/Stateflow/tests/directed_event2_2018a.xml", 1,
+            ['log en_A1','log en_B1_A1','log en_C1_A1','log ex_C1_A1','log en_C2_A2','log ex_B1_A1','log en_B2_A2','log ex_A1','log en_A2',
+             'log ex_A2','log en_A1','log ex_B2_A2','log en_B1_A1','log ex_C2_A2','log en_C1_A1',
+             'delay 0.1'],print_before_simp=True)
         
     def testDirectedEventSend(self):
         run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1, ['log en_A1', 'log en_B1','log cond_act_B', 'log ex_B1',
@@ -131,7 +136,7 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1, ['log en_A1', 'log en_B2', 'log en_B21',
              'log ex_B21', 'log ex_B2', 'log en_B4','log ex_A1','log en_A2','delay 0.1'],print_before_simp=True)
         
-    def testDirectedEvent2(self):
+    def testCopyofDirectedEvent(self):
         run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',

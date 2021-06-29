@@ -72,7 +72,7 @@ def convert_expr(e, *, procedures=None, arrays=None):
                 if isinstance(proc, GraphicalFunction):
                     if len(e.exprs) > 0:
                         for index in range(0,len(e.exprs)):
-                            pre_acts.append(hcsp.Assign(expr.AVar(proc.params[index]),expr.AVar(str(e.exprs[index]))))
+                            pre_acts.append(hcsp.Assign(expr.AVar(proc.params[index]),rec(e.exprs[index])))
                     pre_acts.append(hcsp.Var(e.fun_name))
                     if isinstance(proc.return_var,str):
                         return expr.AVar(proc.return_var)
@@ -152,6 +152,13 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
         else:
             raise NotImplementedError
 
+    def get_directed_event(state_name,event):
+        if len(state_name) == 1:
+            return function.DirectedEvent(str(state_name[0]),function.BroadcastEvent(str(event)))
+        st_name=str(state_name[0])
+        
+        return function.DirectedEvent(st_name,get_directed_event(state_name[1:],event))
+
     def convert(cmd):
         if isinstance(cmd,list):
             lists=list()
@@ -180,14 +187,18 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     event,direct_name=args[0],args[1]
                     if isinstance(direct_name,function.DirectName):
                         exprs=direct_name.exprs
-                        state_name=str(exprs[-1])
+                        event_name=get_directed_event(exprs,event)
+                        # state_name=str(exprs[-1])
+                        # event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
                     elif isinstance(direct_name,function.Var):
-                        _,state_name=conv_expr(direct_name)             
+                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))
+                        # _,state_name=conv_expr(direct_name)             
                 elif len(args) == 1:
                     if isinstance(args[0],function.DirectName):
                         exprs=args[0].exprs
-                        event,state_name=exprs[-1],exprs[-2]
-                event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
+                        event,state_name=exprs[-1],exprs[:len(exprs)-1]
+                        event_name=get_directed_event(state_name,event)
+                # event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
                 return raise_event(event_name)
             else:
                 assert procedures is not None and cmd.func_name in procedures, \

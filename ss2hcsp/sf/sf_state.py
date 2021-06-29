@@ -39,15 +39,16 @@ class SF_State:
         # self.modified_vars = sorted(list(self.get_modified_vars()))
 
     def get_state_whole_name(self):
-        if "(" in self.name:
-            self.name=str(self.name)[:str(self.name).index("(")]
-        s=self.name
-        if self.father is None:
-            return self.name
-        else:
-            child_s=self.father.get_state_whole_name()
-            s=child_s+"_"+s
-        return s
+        if isinstance(self,(OR_State,AND_State)):
+        # if "(" in self.name:
+        #     self.name=str(self.name)[:str(self.name).index("(")]
+            s=self.name
+            if self.father is None:
+                return self.name
+            else:
+                child_s=self.father.get_state_whole_name()
+                s=child_s+"_"+s
+            return s
 
     def __eq__(self, other):
         return self.ssid == other.ssid
