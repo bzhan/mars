@@ -529,6 +529,9 @@ definition conj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr 
 definition disj_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<or>\<^sub>t" 25) where
   "(P \<or>\<^sub>t Q) = (\<lambda>tr. P tr \<or> Q tr)"
 
+definition imp_assn :: "tassn \<Rightarrow> tassn \<Rightarrow> tassn" (infixr "\<longrightarrow>\<^sub>t" 25) where
+  "(P \<longrightarrow>\<^sub>t Q) = (\<lambda>tr. P tr \<longrightarrow> Q tr)"
+
 definition pure_assn :: "bool \<Rightarrow> tassn" ("\<up>") where
   "\<up>b = (\<lambda>_. b)"
 
