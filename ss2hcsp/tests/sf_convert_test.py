@@ -30,7 +30,6 @@ def run_test(self, filename, num_cycle, res, *,
     diagram.add_line_name()
     _, _, charts, _, _, _, _, _ = diagram.seperate_diagram()
     chart = charts[0]
-
     # Optional: print chart
     if print_chart:
         print(chart)
@@ -121,26 +120,26 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
-             'delay 0.1'],print_final=True)
+             'delay 0.1'])
     def testDirectedEvent2(self):
         run_test(self, "./Examples/Stateflow/tests/directed_event2_2018a.xml", 1,
             ['log en_A1','log en_B1_A1','log en_C1_A1','log ex_C1_A1','log en_C2_A2','log ex_B1_A1','log en_B2_A2','log ex_A1','log en_A2',
              'log ex_A2','log en_A1','log ex_B2_A2','log en_B1_A1','log ex_C2_A2','log en_C1_A1',
-             'delay 0.1'],print_before_simp=True)
+             'delay 0.1'])
         
     def testDirectedEventSend(self):
         run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1, ['log en_A1', 'log en_B1','log cond_act_B', 'log ex_B1',
-             'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'],print_before_simp=True)
+             'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'])
 
     def testDirectedEventSend2(self):
         run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1, ['log en_A1', 'log en_B2', 'log en_B21',
-             'log ex_B21', 'log ex_B2', 'log en_B4','log ex_A1','log en_A2','delay 0.1'],print_before_simp=True)
+             'log ex_B21', 'log ex_B2', 'log en_B4','log ex_A1','log en_A2','delay 0.1'])
         
     def testCopyofDirectedEvent(self):
         run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
-             'delay 0.1'],print_final=True)
+             'delay 0.1'])
         
     def testInnerTrans(self):
         run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 2,
@@ -152,20 +151,28 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/writer.xml", 6,
             ['log 1,1', 'delay 0.1', 'log 1,2', 'delay 0.1', 'log 1,3', 'delay 0.1',
              'log 1,4', 'delay 0.1', 'log 1,5', 'delay 0.1',
-             'log 100,200,300,400,500', 'delay 0.1'],print_final=True)
+             'log 100,200,300,400,500', 'delay 0.1'])
 
     def testGraphicalFunction(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'],print_final=True)
+            ['log en_A', 'log en_B', 'delay 0.1'])
         
     def testGraphicalFunction2(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1, ['log en_A', 'log set_mesg', 'log set_mesg',
-             'log en_B','delay 0.1'],print_final=True)
+             'log en_B','delay 0.1'])
 
     def testGraphicalFunction3(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function3_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'],print_final=True)
-        
+            ['log en_A', 'log en_B', 'delay 0.1'])
+    def testGraphicalFunction4(self):
+        run_test(self, "./Examples/Stateflow/tests/graphical_function4_2018a.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'],print_before_simp=True)
+#     def testCommunityCharts(self):
+#         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",3,
+#            ['log en_add', 'log en_add', 'delay 0.1'],print_before_simp=True)
+#     def testDsmExample(self):
+#         run_test(self, "./Examples/Stateflow/tests/DSM_example.xml",1,
+#             ['log en_A', 'log du_A', 'delay 0.1'],print_before_simp=True)    
     def testAfterRandom(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
