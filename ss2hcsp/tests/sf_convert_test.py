@@ -181,6 +181,14 @@ class SFConvertTest(unittest.TestCase):
              'log en_A', 'log Picked 1', 'delay 1',
              'log en_B', 'log Picked 3', 'delay 1'])
 
-
+    def testAfterTick(self):
+        random.seed(0)  # for repeatability
+        run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
+             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1', 
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
+             'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'],print_before_simp=True)
 if __name__ == "__main__":
     unittest.main()

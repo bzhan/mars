@@ -208,7 +208,18 @@ class SFConvert:
     def get_du_proc(self, state):
         if not state.du:
             return hcsp.Skip()
-        return self.convert_cmd(state.du)
+        ######
+        procs=[]
+        if state.ssid in self.implicit_events:
+
+            tick_name = self.entry_tick_name(state)
+            procs.append(hcsp.Condition(
+                    expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
+                    hcsp.Assign(
+                        expr.AVar(tick_name),
+                        expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+        return hcsp.Sequence(self.convert_cmd(state.du),*procs)
+        # return self.convert_cmd(state.du)
 
     def get_ex_proc(self, state):
         if not state.ex:
@@ -243,7 +254,7 @@ class SFConvert:
 
         # Set counter for implicit or absolute time events
         if state.ssid in self.implicit_events:
-            procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(0)))
+            procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(1)))
         if state.ssid in self.absolute_time_events:
             procs.append(hcsp.Assign(self.entry_time_name(state), expr.AConst(0)))
 
@@ -321,9 +332,12 @@ class SFConvert:
                             if label.event.event.name == 'sec':
                                 conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
                             else:
+                                
                                 raise NotImplementedError
-                        else:
-                            raise NotImplementedError
+                        elif isinstance(label.event.event,ImplicitEvent):
+                            # raise NotImplementedError
+                            if label.event.event.name == 'tick':
+                                    conds.append(expr.RelExpr(">=",expr.AVar(self.entry_tick_name(state)),e))
                     else:
                         raise NotImplementedError
                 else:
@@ -727,14 +741,15 @@ class SFConvert:
 
         
 
-        # Increment counter for implicit and absolute time events
-        for ssid in self.implicit_events:
-            tick_name = self.entry_tick_name(self.chart.all_states[ssid])
-            procs.append(hcsp.Condition(
-                expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
-                hcsp.Assign(
-                    expr.AVar(tick_name),
-                    expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+        # # Increment counter for implicit and absolute time events
+        # for ssid in self.implicit_events:
+        #     tick_name = self.entry_tick_name(self.chart.all_states[ssid])
+        #     procs.append(hcsp.Condition(
+        #         expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
+        #         hcsp.Assign(
+        #             expr.AVar(tick_name),
+        #             expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+        
         for ssid in self.absolute_time_events:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
             procs.append(hcsp.Condition(
