@@ -1254,6 +1254,55 @@ theorem DC'':
   qed
   done
 
+theorem DC''g:
+  assumes
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
+  and
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> (\<lambda>s. b s \<and> c s) s}
+         Cont ode b
+        {\<lambda> s tr. (c s \<and> (P @\<^sub>t ode_inv_assn c) tr) \<longrightarrow> d s tr}"
+  shows
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {d}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for tr T p
+  proof-
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre by auto
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using assms(1) 1
+      unfolding Valid_def using pre by auto
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using 2 unfolding join_assn_def by auto
+    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+      using tra2 apply (induct rule: ode_inv_assn.induct)
+      by auto
+    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+      using Tp tra3 tra2 by auto
+    have 4: "\<forall>t\<in>{0..T}. c (p t)"
+      using 3 apply (elim ode_inv_assn_elim)
+      apply auto
+      subgoal for d p' t
+        apply (frule WaitBlk_cong)
+        apply (frule WaitBlk_cong2)
+        by auto
+      done
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre 4 by auto
+    show ?thesis
+      using assms(2) 
+      unfolding Valid_def 
+      using pre 2 3 4 5
+      by (smt atLeastAtMost_iff)
+  qed
+  done
+
 text \<open>
   Version of differential-cut rule, adding c to the conclusion.
 \<close>
@@ -1338,6 +1387,88 @@ subgoal premises pre for tr T p
   qed
   done
 
+theorem DC'''g:
+  assumes
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. (P @\<^sub>t ode_inv_assn c) tr}"
+  and
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> (\<lambda>s. b s \<and> c s) s}
+         Cont ode (\<lambda>s. b s)
+        {\<lambda>s tr. (c s \<and> (P @\<^sub>t ode_inv_assn c) tr) \<longrightarrow> d s tr}"
+  shows
+    "\<Turnstile> {\<lambda>s tr. init s \<and> P tr \<and> b s}
+         Cont ode b
+        {\<lambda>s tr. c s \<and> d s tr}"
+  unfolding Valid_def
+  apply (auto elim!: contE)
+  subgoal premises pre for tr T p
+  proof-
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre by auto
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using assms(1) 1
+      unfolding Valid_def using pre by auto
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using 2 unfolding join_assn_def by auto
+    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+      using tra2 apply (induct rule: ode_inv_assn.induct)
+      by auto
+    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+      using Tp tra3 tra2 by auto
+    have 4: "\<forall>t\<in>{0..T}. c (p t)"
+      using 3 apply (elim ode_inv_assn_elim)
+      apply auto
+      subgoal for d p' t
+        apply (frule WaitBlk_cong)
+        apply (frule WaitBlk_cong2)
+        by auto
+      done
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre 4 by auto
+    show ?thesis
+      using assms(2) 
+      unfolding Valid_def 
+      using pre 4 5
+      by (smt atLeastAtMost_iff)
+  qed
+subgoal premises pre for tr T p
+  proof-
+    have 1:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre by auto
+    have 2:"(P @\<^sub>t ode_inv_assn c) (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using assms(1) 1
+      unfolding Valid_def using pre by auto
+    obtain tra1 tra2 where tra1:"P tra1" and tra2:"ode_inv_assn c tra2" and tra3:"tra1 @ tra2 = (tr @ [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})])"
+      using 2 unfolding join_assn_def by auto
+    obtain T' p' where Tp:"tra2 = [WaitBlk (ereal T') (\<lambda>\<tau>. State (p' \<tau>)) ({}, {})]"
+      using tra2 apply (induct rule: ode_inv_assn.induct)
+      by auto
+    have 3:"ode_inv_assn c [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+      using Tp tra3 tra2 by auto
+    have 4: "\<forall>t\<in>{0..T}. c (p t)"
+      using 3 apply (elim ode_inv_assn_elim)
+      apply auto
+      subgoal for d p' t
+        apply (frule WaitBlk_cong)
+        apply (frule WaitBlk_cong2)
+        by auto
+      done
+    have 5:"big_step (Cont ode b) (p 0) [WaitBlk (ereal T) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})] (p T)"
+      apply (rule big_step.intros)
+      using pre 4 by auto
+    show ?thesis
+      using assms(2) 
+      unfolding Valid_def 
+      using pre 2 3 4 5
+      by (smt atLeastAtMost_iff)
+  qed
+  done
+
+
 subsection \<open>Local Lipschitz-Condition\<close>
 
 lemma local_lipschitz_t_v:
@@ -1396,6 +1527,44 @@ interpret loc:ll_on_open_it "{-e<..<P+e}"
     unfolding solves_ode_def
     using assms    
     using has_vderiv_on_subset[OF assms(1)] by auto
+ have s2: "(loc.flow 0 0) t = (\<lambda>t. f t) t" if "t \<in> {0..P}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s1])
+   using that assms by auto
+  have s3:" ((\<lambda> t . 0) solves_ode (\<lambda> t v . g t * v)) {0..P} UNIV"
+ unfolding solves_ode_def
+  apply auto
+  by (simp add: has_vderiv_on_const)
+ have s4: "(loc.flow 0 0) t = (\<lambda>t. 0) t" if "t \<in> {0..P}" for t
+   apply (rule loc.maximal_existence_flow(2)[OF s3])
+  using that assms by auto
+  show ?thesis using s2 s4 assms by auto
+qed
+
+
+lemma dbxeq_weak:
+  fixes f :: "real \<Rightarrow> real"
+   assumes "(f has_vderiv_on (\<lambda> t . g t * f t)) {0..P}" 
+    and "e > 0 \<and> P > 0"
+    and "continuous_on {-e<..<P+e} (\<lambda>t. g t)"
+    and "f 0 = 0"
+    and "D \<in> {0 .. P}"
+  shows "f D = 0"
+proof-
+  have local:"local_lipschitz {-e<..<P+e} UNIV (\<lambda> t v . g t * v)"
+    using local_lipschitz_gt_v[OF assms(3)]
+    by auto
+interpret loc:ll_on_open_it "{-e<..<P+e}"
+      "\<lambda> t v . g t * v" UNIV 0
+      apply standard
+  using local apply auto
+  using assms(3)
+  by (simp add: continuous_on_mult_right)
+  have s1:" (f solves_ode (\<lambda> t v . g t * v)) {0..P} UNIV" 
+    unfolding solves_ode_def
+    apply auto
+    using assms    
+    using has_vderiv_on_subset[OF assms(1),of "{0..P}"] 
+    by fastforce
  have s2: "(loc.flow 0 0) t = (\<lambda>t. f t) t" if "t \<in> {0..P}" for t
    apply (rule loc.maximal_existence_flow(2)[OF s1])
    using that assms by auto
