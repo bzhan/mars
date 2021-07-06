@@ -12,7 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None):
+def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -63,7 +63,11 @@ def convert_expr(e, *, procedures=None, arrays=None):
             elif e.fun_name in arrays:
                 # Subtract one since indexing in Matlab is 1-based while indexing
                 # in HCSP is 0-based.
-                return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
+                if len(e.exprs) == 1:
+                    return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(arg)) for arg in e.exprs])
+                elif len(e.exprs) ==2:
+                    return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1])))
+                # return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
             elif procedures is not None and e.fun_name in procedures:
 
                 # if len(e.exprs) > 0:
@@ -75,11 +79,12 @@ def convert_expr(e, *, procedures=None, arrays=None):
                             pre_acts.append(hcsp.Assign(expr.AVar(proc.params[index]),rec(e.exprs[index])))
                     pre_acts.append(hcsp.Var(e.fun_name))
                     if isinstance(proc.return_var,str):
-                        return expr.AVar(proc.return_var)
+                        pre_acts.append(hcsp.Assign(expr.AVar(e.fun_name+"_"+proc.return_var),expr.AVar(proc.return_var)))
+                        return expr.AVar(str(e.fun_name)+"_"+proc.return_var)
                     elif isinstance(proc.return_var,tuple):
                         return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
                 else:
-                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays))
+                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays,array_value=array_value))
                     return expr.AVar(proc.return_var)
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
@@ -98,7 +103,7 @@ def convert_expr(e, *, procedures=None, arrays=None):
     res = rec(e)
     return hcsp.seq(pre_acts), res
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None):
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None,array_value=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -123,7 +128,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays)
+        return convert_expr(e, procedures=procedures, arrays=arrays,array_value=array_value)
 
     def conv_exprs(es):
         # Convert a list of expressions
@@ -148,6 +153,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             elif len(lname.exprs) ==2:
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1]))
         elif isinstance(lname, function.ListExpr):
+            # return expr.ListExpr(*[convert_lname(arg) for arg in lname.args])
             return [convert_lname(arg) for arg in lname.args]
         else:
             raise NotImplementedError
@@ -167,14 +173,28 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return hcsp.seq(lists)
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
+            
             assign_name=convert_lname(cmd.lname)
+            if isinstance(assign_name,list):
+                vars_set=hp_expr.get_vars().union(set(assign_name))
+            else:
+                vars_set=hp_expr.get_vars().union(assign_name.get_vars())
             cmd_list=list()
             cmd_list.append(pre_act)
-            if isinstance(assign_name,list) and len(hp_expr)>1:
-                for index in range(0,len(assign_name)):
-                    cmd_list.append(hcsp.Assign(assign_name[index], hp_expr[index]))
+            if isinstance(assign_name,list):
+                if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
+                    for index in range(0,len(assign_name)):
+                        cmd_list.append(hcsp.Assign(assign_name[index], hp_expr[index]))
+                elif isinstance(hp_expr,expr.AVar):
+                    cmd_list.append(hcsp.Assign(assign_name[0], hp_expr))
             else:
                 cmd_list.append(hcsp.Assign(assign_name, hp_expr))
+            if arrays is not None:
+                for var in vars_set:
+                    if var in arrays:
+                        data=array_value[var]
+                        if data.scope == "OUTPUT_DATA":
+                            cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
             return hcsp.seq(cmd_list)
 
         elif isinstance(cmd, function.FunctionCall):
