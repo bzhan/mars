@@ -69,41 +69,18 @@ inductive P_inv_ind :: "real \<Rightarrow> real \<Rightarrow> (real \<times> rea
   @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr1 
      \<and> P_inv_ind a' b' Fcs tr2) \<Longrightarrow> P_inv_ind a b ((a',b')#Fcs) (tr1@tr2)"
 
+inductive_cases P_inv_elim: "P_inv_ind a b l tr"
+
 inductive same_pair :: "(real \<times> real) list \<Rightarrow> bool" where
   "same_pair []"
 | " a = b \<Longrightarrow> same_pair Fcs \<Longrightarrow>same_pair ((a,b)#Fcs)"
 
 inductive_cases same_pair_elim: "same_pair l"
 
-
-lemma P_inv_snoc:
-"P_inv_ind a b fcs tr1 \<Longrightarrow> 
-  same_pair ((a,b)#fcs) \<longrightarrow> 
-    (Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1)({}, {}) 
-  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> _. True) ({''P2C''}, {}) 
-  @\<^sub>t out_inv_assn (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
-  @\<^sub>t in_inv_assn  (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
-  @\<^sub>t in_inv_assn  (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr2
-                   \<Longrightarrow> P_inv_ind a b (fcs@[(a',b')]) (tr1@tr2)"
-proof (induct rule: P_inv_ind.induct)
-  case (1 a b)
-  then show ?case 
-    apply auto
-    using same_pair.intros(1)
-    using same_pair.intros(2)[of a b "[]"]
-    using P_inv_ind.intros(2)[of a b a' b' tr2 "[]" "[]"]
-    unfolding pure_assn_def apply auto
-    using P_inv_ind.intros(1)
-    by auto
-next
-  case (2 a b a'' b'' tr1 fcs tr)
-  then show ?case 
-    using P_inv_ind.intros(2)[of a b a'' b'' tr1 "fcs @ [(a', b')]" "tr@tr2"]
-    apply auto
-    using same_pair.intros(2)[of a b "(a'', b'') # fcs"]
-    apply auto
-    done
-   qed     
+lemma same_pair_prop0:
+  "same_pair [(a,b)] \<Longrightarrow> a = b" 
+  "a = b \<Longrightarrow> same_pair [(a,b)]"
+  using same_pair.cases same_pair.intros by auto
 
 lemma same_pair_prop1:
   "same_pair ((a,b)#xs) \<Longrightarrow> same_pair xs"
@@ -148,7 +125,76 @@ next
     qed
     done
 qed
-   
+
+lemma same_pair_prop4:
+"same_pair (a@b) \<Longrightarrow> same_pair a"
+  apply(induct a arbitrary: b)
+   apply (auto simp add:same_pair.intros)
+  subgoal premises pre for a b l1 l2
+  proof-
+    have 1:"a=b"
+      using pre(2)
+      using same_pair.cases by auto
+    have 2:"same_pair (l1 @ l2)"
+      using pre(2)
+      using same_pair.cases by auto
+    have 3:"same_pair l1"
+      using pre(1)[OF 2] by auto
+    show ?thesis using same_pair.intros(2)[OF 1 3] by auto
+  qed
+  done
+
+
+lemma P_inv_snoc:
+"P_inv_ind a b fcs tr1 \<Longrightarrow> 
+  same_pair ((a,b)#fcs) \<longrightarrow> 
+    (Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1)({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> _. True) ({''P2C''}, {}) 
+  @\<^sub>t out_inv_assn (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t in_inv_assn  (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t in_inv_assn  (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr2
+                   \<Longrightarrow> P_inv_ind a b (fcs@[(a',b')]) (tr1@tr2)"
+proof (induct rule: P_inv_ind.induct)
+  case (1 a b)
+  then show ?case 
+    apply auto
+    using same_pair.intros(1)
+    using same_pair.intros(2)[of a b "[]"]
+    using P_inv_ind.intros(2)[of a b a' b' tr2 "[]" "[]"]
+    unfolding pure_assn_def apply auto
+    using P_inv_ind.intros(1)
+    by auto
+next
+  case (2 a b a'' b'' tr1 fcs tr)
+  then show ?case 
+    using P_inv_ind.intros(2)[of a b a'' b'' tr1 "fcs @ [(a', b')]" "tr@tr2"]
+    apply auto
+    using same_pair.intros(2)[of a b "(a'', b'') # fcs"]
+    apply auto
+    done
+qed     
+
+
+lemma same_pair_prop5:
+"\<not> same_pair ((a, b) # list1) \<Longrightarrow>  list2 \<noteq> [] \<Longrightarrow>P_inv_ind a b (list1 @ list2) tr"
+  apply(induct list2 arbitrary: a b list1 tr)
+  apply auto
+  subgoal premises pre for a' b' list2 a b list1 tr
+  proof-
+    have "\<not> same_pair ((a, b) # (list1@[(a',b')]))"
+    proof(rule ccontr)
+      assume "\<not> \<not> same_pair ((a, b) # list1 @ [(a', b')])"
+      then have "same_pair ((a, b) # list1 @ [(a', b')])" by auto
+      then have "same_pair ((a, b) # list1)"
+        using same_pair_prop4[of "(a, b) # list1" "[(a', b')]"]
+        by auto
+      then show False using pre by auto
+    qed
+    then show ?thesis 
+      using pre(1)[of a b "list1 @ [(a', b')]" tr] 
+  qed
+  done
+
 
 theorem Valid_post_imp:
   assumes "\<Turnstile> {P} c {Q1}"
@@ -794,6 +840,177 @@ subgoal for s1 tr1 s2 tr2
       qed
       done
     done
+  subgoal 
+      apply clarify
+      subgoal for s tr
+        apply(rule conjI)
+        subgoal premises pre 
+        proof-
+          have 1:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>s v. v = s X)) ''P2C'' [OutBlock ''P2C'' (s X)]"
+            by(auto simp add: out_inv_assn.simps srb2gsrb.simps)
+          have 2:"Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>_. True) ({''P2C''}, {}) []"
+            by(auto simp add: wait_inv_assn.simps)
+          show ?thesis 
+            using 1 2 pre(5)
+            apply(auto simp add: join_assn_def) 
+            by blast
+        qed
+        apply clarify
+        subgoal premises pre for d p
+        proof-
+          obtain ep where ep:"((\<lambda>t. state2vec (p t)) has_vderiv_on
+          (\<lambda>t. ODE2Vec
+                (ODE ((\<lambda>_ _. 0)
+                      (X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1)))
+                (p t)))
+            {- ep..d + ep}" "ep > 0"
+            using pre unfolding ODEsol_def by auto
+        have a1:"((\<lambda> x. (p x) A) has_vector_derivative 0) (at x within {- ep..d + ep})" if "x \<in> {- ep..d + ep}" for x
+          using has_vderiv_on_proj[OF ep(1),of A] unfolding state2vec_def  has_vderiv_on_def
+          using that apply (auto simp add:state2vec_def) done
+        then have a2:"(\<And>x. 0 \<le> x \<Longrightarrow> x \<le> d \<Longrightarrow> ((\<lambda> x. (p x) A) has_derivative (\<lambda> x. 0) ) (at x within {0..d}))"
+          unfolding has_vector_derivative_def using ep(2) pre(6) has_derivative_subset[of "(\<lambda> x. (p x) A)" "(\<lambda>x. x *\<^sub>R 0)" _ "{- ep..d + ep}" "{0..d}"]
+          by auto
+        have a3: "p t A = p 0 A" if "t \<in> {0 .. d}" for t
+          using that a2 mvt_simple[of 0 t "\<lambda> x. (p x) A" "\<lambda> _ _ . 0" ] pre has_derivative_subset 
+          by (smt atLeastAtMost_iff atLeastatMost_subset_iff)
+        have b1:"((\<lambda> x. (p x) B) has_vector_derivative 0) (at x within {- ep..d + ep})" if "x \<in> {- ep..d + ep}" for x
+          using has_vderiv_on_proj[OF ep(1),of B] unfolding state2vec_def  has_vderiv_on_def
+          using that apply (auto simp add:state2vec_def) done
+        then have b2:"(\<And>x. 0 \<le> x \<Longrightarrow> x \<le> d \<Longrightarrow> ((\<lambda> x. (p x) B) has_derivative (\<lambda> x. 0) ) (at x within {0..d}))"
+          unfolding has_vector_derivative_def using ep(2) pre(6) has_derivative_subset[of "(\<lambda> x. (p x) B)" "(\<lambda>x. x *\<^sub>R 0)" _ "{- ep..d + ep}" "{0..d}"]
+          by auto
+        have b3: "p t B = p 0 B" if "t \<in> {0 .. d}" for t
+          using that b2 mvt_simple[of 0 t "\<lambda> x. (p x) B" "\<lambda> _ _ . 0" ] pre has_derivative_subset 
+          by (smt atLeastAtMost_iff atLeastatMost_subset_iff)
+        have 4:"\<forall>x. ((\<lambda>v. (\<lambda> s. s X + s Y) (vec2state v)) has_derivative (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) x) (at x within UNIV)"
+          apply clarify
+          apply(auto simp add:vec2state_def)
+          done
+        have 5:"\<forall>t\<in>{-ep .. d+ep}. ((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_derivative  (\<lambda>s. (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) (s *\<^sub>R ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t)))) (at t within {-ep .. d+ep})"
+          using chainrule'[OF 4 ep(1)] using ep(2) by auto 
+        have 6:" (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) (s *\<^sub>R ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t))
+                = s *\<^sub>R (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) (ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t))" if "t\<in>{-ep .. d+ep}" for t s
+          using 5 unfolding has_derivative_def bounded_linear_def 
+          using that 
+          by (metis (no_types, lifting) scaleR_add_right vector_scaleR_component)
+        have 7:"\<forall>t\<in>{-ep .. d+ep}. ((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_derivative  (\<lambda>s. s *\<^sub>R (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) ( ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t)))) (at t within {-ep .. d+ep})"
+          using 5 6 by auto
+        have 8:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_derivative  (\<lambda>s. s *\<^sub>R (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) ( ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t)))) (at t within {0 .. d})"
+          apply clarify apply(rule has_derivative_subset[where s= "{-ep .. d+ep}"]) using 7 ep(2) by auto
+        have 9:"((\<lambda>t. p t X + p t Y) has_derivative
+             (\<lambda>s. s * (p t A * (p t X)\<^sup>2 + p t B * p t Y * p t X)))
+             (at t within {0..d})" if "t\<in>{0..d}" for t
+          using 8 that by (auto simp add: state2vec_def)
+        have 10:"p 0 A = p 0 B" if "same_pair ((a, b) # Fc)"
+          using same_pair_prop1[OF that]
+          using same_pair_prop3 pre by auto
+        have 11:"((\<lambda>t. p t X + p t Y) has_derivative
+                (\<lambda>s. s * (p 0 A * (p t X * p t X) + p 0 B * p t Y * p t X)))
+                (at t within {0..d})" if "t\<in>{0..d} " for t
+          using 9 apply(simp add: power2_eq_square)
+          using a3 b3 that 
+          proof -
+            assume a1: "\<And>t. 0 \<le> t \<and> t \<le> d \<Longrightarrow> ((\<lambda>t. p t X + p t Y) has_derivative (\<lambda>s. s * (p t A * (p t X * p t X) + p t B * p t Y * p t X))) (at t within {0..d})"
+              have f2: "p t B = p 0 B"
+                  by (metis b3 that)
+              have "p t A = p 0 A"
+                  by (metis a3 that)
+              then show ?thesis
+                  using f2 a1 that by fastforce
+              qed
+        have 12:"((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_vderiv_on (\<lambda> t . (\<lambda> t. p 0 A * p t X) t * ((\<lambda>t. (\<lambda> s. s X + s Y) (p t))) t)) {0..d}" if "same_pair ((a, b) # Fc)"
+          unfolding has_vderiv_on_def has_vector_derivative_def
+          using 11 10 that
+          by(auto simp add: algebra_simps)
+        have 13:"((\<lambda>t. state2vec (p t)) has_vderiv_on
+          (\<lambda>t. ODE2Vec
+                (ODE ((\<lambda>_ _. 0)
+                      (X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1)))
+                (p t)))
+            {- ep<..<d + ep}"
+          apply(rule has_vderiv_on_subset [OF ep(1)]) by auto
+        have 14:"continuous_on {-ep<..<d+ep} (\<lambda>t. state2vec (p t))"
+          apply(auto simp add: continuous_on_eq_continuous_within)
+          using 13 unfolding has_vderiv_on_def has_vector_derivative_def
+          using has_derivative_continuous 
+          using greaterThanLessThan_iff by blast
+        have 15:"continuous_on UNIV (\<lambda> v. p 0 A * vec2state v  X)"
+          apply(auto simp add: continuous_on_eq_continuous_within vec2state_def) 
+          done
+        have 16:"continuous_on {-ep<..<d+ep} (\<lambda>t. p 0 A * p t X)"
+          using continuous_on_compose2[OF 15 14] by auto
+        have 17:" p t X + p t Y = 0" if "t\<in>{0..d}" "same_pair ((a, b) # Fc)"for t
+          using dbxeq_weak[OF 12 _ 16] that using pre ep(2) unfolding inv_def by auto
+        have 18:"Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>_. True) ({''P2C''}, {})
+                    [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({''P2C''}, {})]" if "same_pair ((a, b) # Fc)"
+          apply(auto simp add:wait_inv_assn.simps gsb2gsrb.simps sb2gsb.simps inv_def)
+          apply(rule exI[where x= "d"])
+          apply(rule exI[where x= "(\<lambda>\<tau>. State (p \<tau>))"])
+          apply auto using pre 17 that by auto
+        have 19:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>s v. v = s X)) ''P2C''
+                   [OutBlock ''P2C'' (p d X)]"
+          by(auto simp add:out_inv_assn.simps srb2gsrb.simps)
+        show ?thesis
+          apply(auto simp add: join_assn_def inv_def)
+          subgoal using a3
+            using pre(3) pre(7) by auto
+          subgoal using b3
+            using pre(4) pre(7) by auto
+          subgoal 
+            using 18 19 pre(5) apply(auto simp add: join_assn_def)
+            by force
+          subgoal using 17 by (smt atLeastAtMost_iff pre(7))
+          done
+      qed
+      done
+    done
+  done
+  apply(rule Valid_seq)
+  apply(rule Valid_receive_sp)
+  apply(rule Valid_seq)
+  apply(rule Valid_receive_sp)
+  apply(rule Valid_strengthen_post)
+  prefer 2
+  apply(rule Valid_assign_sp)
+  apply(simp add: entails_def)
+  apply(rule conjI)
+  subgoal
+    apply clarify
+    subgoal for s tr pt pb nb
+      apply(rule exI[where x="[(s A, s B)]"])
+      apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def)
+      subgoal for tr1 tr3 tr2
+        using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3"]
+        using P_inv_ind.intros(1)
+      by auto
+      subgoal for tr1 tr3 tr2
+      using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3"]
+        using P_inv_ind.intros(1)
+      by auto
+      subgoal for tr2b tr2a tr1a tr1b tr1c tr1d
+       using P_inv_snoc[of a b "[]" tr1a "s A" "s B" "tr1b @ tr1c @ tr1d @ tr2a @ tr2b"]
+      by auto
+    subgoal for tr2b tr2a tr1a tr1b tr1c tr1d
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s A)) ''C2P'' tr2a")
+       prefer 2
+      subgoal
+        apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+        done
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s B)) ''C2P'' tr2b")
+       prefer 2
+      subgoal
+        apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+        done
+      using P_inv_snoc[of a b "[]" tr1a "s A" "s B" "tr1b @ tr1c @ tr1d @ tr2a @ tr2b"]
+      apply(auto simp add: join_assn_def) by blast
+    done
+  done
+  apply clarify
+  subgoal for s tr pt pb nb
+    apply(rule exI[where x="Fc@[(s A, s B)]"])
+    apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def)
+
 
 
           
