@@ -55,13 +55,9 @@ class ListExpr(Expr):
    
     def __init__(self, *args):
         super(ListExpr, self).__init__()
-        # for arg in args:
-        #     print(args)
-        #     print(type(arg))
         # assert all(isinstance(arg, (Var,FunctionCall)) for arg in args)
         self.args = args
         self.count=0
-
     def __repr__(self):
         return "ListExpr(%s)" % (','.join(repr(arg) for arg in self.args))
 
@@ -101,12 +97,25 @@ class ListExpr(Expr):
     def subst(self, inst):
         return ListExpr(expr.subst(inst) for expr in self.args)
 
+class Arr_num(Expr):
+    def __init__(self, *args):
+        super(Arr_num, self).__init__()
+        self.args = tuple(args)
+    def __repr__(self):
+        return "Arr_num(%s)" % (' '.join(repr(arg) for arg in self.args))
+
+    def __str__(self):
+        return "%s" % (' '.join(str(arg) for arg in self.args))
+
 class ListExpr2(Expr):
     """List expressions."""
    
     def __init__(self, *args):
         super(ListExpr2, self).__init__()
-        self.args = ["["+arg.replace(" ",",")+"]" for arg in args]
+        args_list=list()
+        for arg in args:
+            args_list.append(ListExpr(*arg.args))
+        self.args = [arg for arg in args_list]
         self.count=0
 
     def __repr__(self):
@@ -419,33 +428,15 @@ class Assign(Command):
     """
     def __init__(self, lname, expr):
         super(Assign, self).__init__()
-# <<<<<<< HEAD
-#         # assert isinstance(expr, Expr)
-#         if isinstance(return_vars, (Var,FunctionCall)):
-#             self.return_vars = return_vars
-#         else:
-#             self.return_vars = return_vars
-# =======
         assert isinstance(expr, Expr)
         assert isinstance(lname, (Var, FunExpr, ListExpr,DirectName))
         self.lname = lname
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         self.expr = expr
     def __str__(self):
-# <<<<<<< HEAD
-#         if isinstance(self.return_vars, (Var,FunctionCall)):
-#             return "%s := %s" % (str(self.return_vars), str(self.expr))
-#         else:
-#             return "[%s] := %s" % (','.join(str(return_var) for return_var in self.return_vars), str(self.expr))
-
-#     def __repr__(self):
-#         return "Assign(%s,%s)" % (repr(str(self.return_vars)), repr(str(self.expr)))
-# =======
         return "%s := %s" % (self.lname, self.expr)
 
     def __repr__(self):
         return "Assign(%s,%s)" % (repr(self.lname), repr(self.expr))
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
     def __eq__(self, other):
         return isinstance(other, Assign) and self.lname == other.lname and \
@@ -458,17 +449,9 @@ class Assign(Command):
         return False
 
     def subst(self, inst):
-# <<<<<<< HEAD
-#         # Disallow instantiating return values
-#         # for var in self.return_vars:
-#         #     assert var not in inst, "Cannot instantiate return value %s" % var
-        
-#         return Assign(self.return_vars, self.expr.subst(inst))
-# =======
         # Disallow instantiating lname
         assert self.lname not in inst, "Cannot instantiate lname %s" % self.lname
         return Assign(self.lname, self.expr.subst(inst))
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
 
 
 class FunctionCall(Command):
@@ -681,28 +664,13 @@ class Function:
         self.params = tuple(params) if str(params) !="()" else None
         self.cmd = cmd
         self.type="MATLAB_FUNCTION"
-
-# <<<<<<< HEAD
-#         if return_vars is None or isinstance(return_vars, (Var,FunctionCall)):
-#             self.return_vars =return_vars
-# =======
         if return_var is None or isinstance(return_var, str):
             self.return_var = return_var
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         else:
             self.return_var = tuple(return_var)
 
     def __str__(self):
-# <<<<<<< HEAD
-#         if self.return_vars is None:
-#             str_return_vars = ""
-#         elif isinstance(self.return_vars, (Var,FunctionCall)):
-#             str_return_vars = str(self.return_vars) + "="
-#         else:
-#             str_return_vars = "[" + ','.join(str(return_var) for return_var in self.return_vars) + "]="
 
-#         func_sig = str_return_vars + self.name + "(" + ",".join(str(param) for param in self.params) + ")"
-# =======
         if self.return_var is None:
             str_return_var = ""
         elif isinstance(self.return_var, str):
@@ -711,7 +679,6 @@ class Function:
             str_return_var = "[" + ','.join(self.return_var) + "]="
 
         func_sig = str_return_var + self.name + "(" + ",".join(self.params) + ")"
-# >>>>>>> 322c219fd8b5b230aeadedff7c175f1cb21f0e94
         str_cmd = '\n'.join('  ' + line for line in str(self.cmd).split('\n'))
         return "function %s\n%s" % (func_sig, str_cmd)
 

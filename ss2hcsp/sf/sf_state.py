@@ -39,15 +39,16 @@ class SF_State:
         # self.modified_vars = sorted(list(self.get_modified_vars()))
 
     def get_state_whole_name(self):
-        if "(" in self.name:
-            self.name=str(self.name)[:str(self.name).index("(")]
-        s=self.name
-        if self.father is None:
-            return self.name
-        else:
-            child_s=self.father.get_state_whole_name()
-            s=child_s+"_"+s
-        return s
+        if isinstance(self,(OR_State,AND_State)):
+        # if "(" in self.name:
+        #     self.name=str(self.name)[:str(self.name).index("(")]
+            s=self.name
+            if self.father is None:
+                return self.name
+            else:
+                child_s=self.father.get_state_whole_name()
+                s=child_s+"_"+s
+            return s
 
     def __eq__(self, other):
         return self.ssid == other.ssid
@@ -528,6 +529,29 @@ class GraphicalFunction:
         res += "    " + str(self.default_tran) + "\n"
         res += ")"
         return res
+
+    def instantiate(self, vals=None):
+        """Instantiate a procedure with given values for parameters.
+
+        vals : [None, List[Expr]] - list of expressions as input values.
+            Default to None if no input values.
+
+        Returns Command - instantiated command.
+        
+        This works by replacing occurrence of parameters in the body of
+        the function with the given values.
+ 
+        """
+        params=None
+        if vals is None:
+            vals = tuple()
+        if self.params is None:
+            params=tuple()
+        else:
+            params=self.params
+        # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
+        inst = dict(zip(params, vals))
+        return self.cmd.subst(inst)
 
 class Function:
     def __init__(self, name, params, return_var, script,chart_state,fun_type):

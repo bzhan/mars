@@ -1290,7 +1290,7 @@ class HCSPProcess:
     def substitute(self):
         """Substitute program variables for their definitions."""
         def _substitute(_hp):
-            assert isinstance(_hp, HCSP)
+            assert isinstance(_hp, (HCSP,function.Assign))
             if isinstance(_hp, Var):
                 _name = _hp.name
                 if _name in substituted.keys():
