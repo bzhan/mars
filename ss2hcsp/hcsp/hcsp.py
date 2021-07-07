@@ -463,6 +463,25 @@ class InputChannel(HCSP):
         return re.sub(pattern="\\?", repl="??", string=str(self))
 
 
+class ParaInputChannel(InputChannel):
+    def __init__(self, ch_name, paras, var_name=None):
+        super(ParaInputChannel, self).__init__(ch_name, var_name)
+        assert all(isinstance(para, (int, float, str)) for para in paras)
+        self.paras = paras
+
+    def __str__(self):
+        result = str(self.ch_name)
+        for para in self.paras:
+            if isinstance(para, str):
+                result += "[\"" + str(para) + "\"]"
+            else:
+                result += "[" + str(para) + "]"
+        result += "?"
+        if self.var_name:
+            result += str(self.var_name)
+        return result
+
+
 class OutputChannel(HCSP):
     def __init__(self, ch_name, expr=None):
         super(OutputChannel, self).__init__()
@@ -502,6 +521,26 @@ class OutputChannel(HCSP):
 
     def sc_str(self):
         return re.sub(pattern="!", repl="!!", string=str(self))
+
+
+class ParaOutputChannel(OutputChannel):
+    def __init__(self, ch_name, paras, expr=None):
+        super(ParaOutputChannel, self).__init__(ch_name, expr)
+        assert all(isinstance(para, (int, float, str)) for para in paras)
+        self.paras = paras
+
+    def __str__(self):
+        result = str(self.ch_name)
+        for para in self.paras:
+            if isinstance(para, str):
+                result += "[\"" + str(para) + "\"]"
+            else:
+                result += "[" + str(para) + "]"
+        result += "!"
+        if self.expr:
+            result += str(self.expr)
+        return result
+
 
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"

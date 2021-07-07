@@ -30,6 +30,7 @@ from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem, Enab
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
+from ss2hcsp.sl.Discrete.discrete_PID_controller import DiscretePID
 from ss2hcsp.sl.MathOperations.min_max import MinMax
 from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction,Function
 from ss2hcsp.sf.sf_chart import SF_Chart
@@ -466,7 +467,7 @@ class SL_Diagram:
         # The following dictionary is used to replace the port names as formatted ones.
         # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
         # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
-        port_name_dict = {}  # in the form {old_name: new_name}
+        port_name_dict = dict()  # in the form {old_name: new_name}
         for block in blocks:
             block_type = block.getAttribute("BlockType")
             # Delete spaces in block_name
@@ -526,6 +527,25 @@ class SL_Diagram:
                     relation = "!="
                 self.add_block(Relation(name=block_name, relation=relation, st=sample_time))
             elif block_type == "Reference":
+                # check if it is a discrete PID
+                block_type = get_attribute_value(block, "SourceType")
+                if block_type and block_type.startswith("PID"):
+                    controller = get_attribute_value(block, "Controller")
+                    st = eval(get_attribute_value(block, "SampleTime"))
+                    assert get_attribute_value(block, "IntegratorMethod") == "Backward Euler"
+                    assert get_attribute_value(block, "FilterMethod") == "Forward Euler"
+                    p = eval(get_attribute_value(block, "P"))
+                    i = eval(get_attribute_value(block, "I"))
+                    d = eval(get_attribute_value(block, "D"))
+                    init_value = eval(get_attribute_value(block, "InitialConditionForIntegrator"))
+                    upper_limit = eval(get_attribute_value(block, "UpperSaturationLimit"))
+                    lower_limit = eval(get_attribute_value(block, "LowerSaturationLimit"))
+                    assert get_attribute_value(block, "AntiWindupMode") == "back-calculation"
+                    kb = eval(get_attribute_value(block, "Kb"))
+                    self.add_block(DiscretePID(name=block_name, controller=controller, st=st, pid=[p, i, d],
+                                               init_value=init_value, saturation=[lower_limit, upper_limit], kb=kb))
+                    continue
+
                 relop = get_attribute_value(block, "relop")
                 # assert relop
                 if relop:
@@ -602,7 +622,7 @@ class SL_Diagram:
                     port_number = "1"
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "in_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_type="in_port"))
+                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="in_port"))
             elif block_type == "Outport":
                 port_number = get_attribute_value(block=block, attribute="Port")
                 port_name= block.getAttribute("Name")
@@ -611,7 +631,7 @@ class SL_Diagram:
                 assert block_name not in port_name_dict
                 
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_type="out_port"))
+                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
