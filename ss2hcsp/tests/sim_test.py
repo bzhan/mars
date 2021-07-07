@@ -15,7 +15,7 @@ from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
-from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
+from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp, get_thread_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
 
 
@@ -439,7 +439,20 @@ class SimTest(unittest.TestCase):
         diagram.inherit_to_continuous()
         discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
         result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
-        # print(result_hp.export())
+        printTofile(path=directory+xml_file[:-3]+"txt", content=result_hp.export())
+
+    def testTranslateThread(self):
+        directory = "./Examples/AADL/CCS/Simulink/"
+        # xml_file = "comp_obs_pos_imp.xml"
+        # xml_file = "velo_voter_imp.xml"
+        # xml_file = "PI_ctr_imp.xml"
+        xml_file = "img_acq_imp.xml"
+        diagram = SL_Diagram(location=directory + xml_file)
+        _ = diagram.parse_xml()
+        diagram.add_line_name()
+        thread_hp = get_thread_hcsp(name="img_acq_imp", discrete_diagram=list(diagram.blocks_dict.values()),
+                                    deadline=0.01, max_et=0.045, prior=1)
+        print(thread_hp.export())
 
 
 if __name__ == "__main__":
