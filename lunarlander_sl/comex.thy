@@ -73,24 +73,28 @@ using C_inv_ind.intros(1) by blast
 
 
 
-lemma C_inv_prop1_assit1:
-"C_inv_ind (x # list) tr \<Longrightarrow> \<exists> tr1 tr2.(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+
+lemma C_inv_prop1:
+"C_inv_ind (x#list) = Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'' @\<^sub>t C_inv_ind (list)"
+  apply(rule ext)
+  subgoal for tr
+  proof-
+    have 1:"C_inv_ind (x # list) tr \<Longrightarrow> \<exists> tr1 tr2.(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1 \<and> C_inv_ind (list) tr2 \<and> tr = tr1@tr2"
-  apply(rule local.C_inv_ind.cases[of "(x # list)" "tr"])
-  by auto
-
-lemma C_inv_prop1_assit2:
-"C_inv_ind (x # list) tr \<Longrightarrow> ((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+    apply(rule local.C_inv_ind.cases[of "(x # list)" "tr"])
+      by auto
+    have 2:"C_inv_ind (x # list) tr \<Longrightarrow> ((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr "
-  using C_inv_prop1_assit1
+  using 1
   by(auto simp add:join_assn_def)
-
-lemma C_inv_prop1_assit3:
-"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+  have 3:"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr 
@@ -98,10 +102,8 @@ lemma C_inv_prop1_assit3:
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1 \<and> C_inv_ind (list) tr2 \<and> tr = tr1 @ tr2)"
-  by(auto simp add:join_assn_def)
-    
-lemma C_inv_prop1_assit4:    
-"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+    by(auto simp add:join_assn_def)
+  have 4:"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr 
@@ -112,24 +114,15 @@ proof-
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1" "C_inv_ind (list) tr2" "tr = tr1@tr2"
-    using pre C_inv_prop1_assit3[of x list tr] by auto
+    using 3 pre by auto
   then have "C_inv_ind (x#list) tr"
     using C_inv_ind.intros(2)[of x tr1 list tr2] by auto
   then show ?thesis by auto
 qed
   done
-   
-lemma C_inv_prop1:
-"C_inv_ind (x#list) = Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
-@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
-@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
-@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'' @\<^sub>t C_inv_ind (list)"
-  apply(rule ext)
-  subgoal for tr
-    using C_inv_prop1_assit2 C_inv_prop1_assit4 join_assoc
-    by auto
+   then show ?thesis using 2 4 by(auto simp add: join_assoc)
+  qed
   done
-    
   
     
 
@@ -1282,6 +1275,26 @@ inductive tot_block :: "real list  \<Rightarrow> tassn" where
    tot_block fc tr2 \<Longrightarrow>
    tot_block (x#fc) (tr1@tr2)"
 
+lemma tot_block_snoc:
+"tot_block fc tr1 \<Longrightarrow> 
+  (Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {})  @\<^sub>t
+   Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. True) ({''P2C''}, {})  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = x)''P2C''  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' ) tr2 \<Longrightarrow>
+  tot_block (fc@[x]) (tr1@tr2)"
+proof(induct rule : tot_block.induct)
+case 1
+  then show ?case 
+    using tot_block.intros(2)[of x tr2 "[]" "[]"]
+    using tot_block.intros(1) by auto
+next
+  case (2 x' tr1 fc tr)
+  then show ?case 
+    using tot_block.intros(2)[of x' tr1 "fc @ [x]" "tr@tr2"]
+    by auto
+qed
+
 lemma tot_block_prop1:
 "tot_block (x#list) = Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {})  @\<^sub>t
    Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. True) ({''P2C''}, {})  @\<^sub>t
@@ -1518,25 +1531,7 @@ qed
 
 
 
-lemma tot_block_snoc:
-"tot_block fc tr1 \<Longrightarrow> 
-  (Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {})  @\<^sub>t
-   Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. True) ({''P2C''}, {})  @\<^sub>t
-   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = x)''P2C''  @\<^sub>t
-   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' @\<^sub>t
-   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' ) tr2 \<Longrightarrow>
-  tot_block (fc@[x]) (tr1@tr2)"
-proof(induct rule : tot_block.induct)
-case 1
-  then show ?case 
-    using tot_block.intros(2)[of x tr2 "[]" "[]"]
-    using tot_block.intros(1) by auto
-next
-  case (2 x' tr1 fc tr)
-  then show ?case 
-    using tot_block.intros(2)[of x' tr1 "fc @ [x]" "tr@tr2"]
-    by auto
-qed
+
 
 lemma entails_tassn_cancel_both_m:
   assumes "P \<Longrightarrow>\<^sub>t Q"
