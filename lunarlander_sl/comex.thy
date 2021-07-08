@@ -65,6 +65,14 @@ proof (induct rule: C_inv_ind.induct)
       by auto
 qed
 
+lemma C_inv_prop0:
+"C_inv_ind [] = emp\<^sub>t"
+using C_inv_ind.cases 
+apply(auto simp add: emp_assn_def)
+using C_inv_ind.intros(1) by blast
+
+
+
 lemma C_inv_prop1_assit1:
 "C_inv_ind (x # list) tr \<Longrightarrow> \<exists> tr1 tr2.(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
@@ -98,12 +106,29 @@ lemma C_inv_prop1_assit4:
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr 
 \<Longrightarrow> C_inv_ind (x#list) tr"
+  subgoal premises pre
 proof-
   obtain tr1 and tr2 where g:"(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
 @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
 @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1" "C_inv_ind (list) tr2" "tr = tr1@tr2"
-    using C_inv_prop1_assit3[of x list tr]
+    using pre C_inv_prop1_assit3[of x list tr] by auto
+  then have "C_inv_ind (x#list) tr"
+    using C_inv_ind.intros(2)[of x tr1 list tr2] by auto
+  then show ?thesis by auto
+qed
+  done
+   
+lemma C_inv_prop1:
+"C_inv_ind (x#list) = Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'' @\<^sub>t C_inv_ind (list)"
+  apply(rule ext)
+  subgoal for tr
+    using C_inv_prop1_assit2 C_inv_prop1_assit4 join_assoc
+    by auto
+  done
     
   
     
@@ -330,6 +355,67 @@ next
     done
 qed     
 
+lemma P_inv_prop0:
+"P_inv_ind a b [] = emp\<^sub>t"
+using P_inv_ind.cases 
+apply(auto simp add: emp_assn_def)
+  using P_inv_ind.intros(1) by blast
+
+lemma P_inv_prop1:
+  assumes "a=b"
+  shows "P_inv_ind a b ((a',b')#list) = Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'' @\<^sub>t P_inv_ind a' b' list"
+  apply(rule ext)
+  subgoal for tr
+proof-
+  have 1:"P_inv_ind a b ((a',b')#list) tr \<Longrightarrow> \<exists> tr1 tr2. (Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr1 \<and> P_inv_ind a' b' list tr2 \<and> tr= tr1@tr2"
+    apply(rule P_inv_ind.cases[of a b "(a', b') # list" tr])
+    using assms by auto
+  then have 2:"P_inv_ind a b ((a',b')#list) tr \<Longrightarrow> ((Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') @\<^sub>t P_inv_ind a' b' list) tr"
+    by(auto simp add:join_assn_def)
+  have 3:"((Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') @\<^sub>t P_inv_ind a' b' list) tr 
+   \<Longrightarrow> \<exists> tr1 tr2. (Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr1 \<and> P_inv_ind a' b' list tr2 \<and> tr= tr1@tr2"
+    by(auto simp add: join_assn_def)
+  have 4:"((Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') @\<^sub>t P_inv_ind a' b' list) tr 
+   \<Longrightarrow> P_inv_ind a b ((a',b')#list) tr"
+    subgoal premises pre
+  proof-
+    obtain tr1 tr2 where g:"(Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}) 
+  @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {})
+  @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
+  @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr1 \<and> P_inv_ind a' b' list tr2 \<and> tr= tr1@tr2"
+      using pre 3 by auto
+    then show ?thesis
+      using P_inv_ind.intros(2)[of a b a' b' tr1 list tr2] assms by auto
+  qed
+  done
+  then show ?thesis using 2 4 by(auto simp add: join_assoc)
+qed
+  done
 
 theorem Valid_post_imp:
   assumes "\<Turnstile> {P} c {Q1}"
@@ -1231,17 +1317,45 @@ case Nil
   next
     case (Cons c list)
     then show ?thesis 
-      apply(auto simp add:entails_tassn_def pure_assn_def conj_assn_def same_pair.intros)
-      unfolding combine_assn_def
+      apply(auto simp add:same_pair.intros C_inv_prop1[of c list] P_inv_prop0)
+      apply (rule entails_tassn_trans)
+       apply (subst combine_assn_emp_waitinv)
+       apply auto
+      apply (rule entails_tassn_trans)
+       apply (subst combine_assn_emp_ininv)
       apply auto
-      subgoal for tr tr1 tr2
-
-        
-      
+      by (rule false_assn_entails)
   qed
+
 next
-  case (Cons a ps)
-  then show ?case sorry
+  case (Cons p ps)
+  note Cons1 = Cons
+  then show ?case 
+  proof (cases cs)
+      case Nil
+      then show ?thesis
+        apply(cases p)
+        apply(auto simp add:C_inv_prop0 P_inv_prop1 same_pair.intros)
+        subgoal for a' b'
+          apply (rule entails_tassn_trans)
+           apply (subst combine_assn_waitinv_emp)
+           apply auto
+      apply (rule entails_tassn_trans)
+           apply (subst combine_assn_waitinv_emp)
+           apply auto
+      apply (rule entails_tassn_trans)
+           apply (subst combine_assn_outinv_emp)
+            apply auto
+          by (rule false_assn_entails)
+        done
+    next
+      case (Cons c list)
+      then show ?thesis
+        apply (cases p)
+        subgoal for a' b'
+          apply(auto simp add:P_inv_prop1 C_inv_prop1)
+      qed
+
 qed
 
 end

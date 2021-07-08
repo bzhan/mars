@@ -44,8 +44,22 @@ lemma combine_assn_emp_ininv:
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_inv_assn.cases)
   by (auto elim: sync_elims)
 
+lemma combine_assn_ininv_emp:
+  "ch \<in> chs \<Longrightarrow> combine_assn chs (Ininv\<^sub>t r g ch @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
+  unfolding combine_assn_def
+  apply (rule ext)
+  apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: in_inv_assn.cases)
+  by (auto elim: sync_elims)
+
 lemma combine_assn_emp_outinv:
   "ch \<in> chs \<Longrightarrow> combine_assn chs emp\<^sub>t (Outinv\<^sub>t r g ch @\<^sub>t P) = false\<^sub>A"
+  unfolding combine_assn_def
+  apply (rule ext)
+  apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_inv_assn.cases)
+  by (auto elim: sync_elims)
+
+lemma combine_assn_outinv_emp:
+  "ch \<in> chs \<Longrightarrow> combine_assn chs (Outinv\<^sub>t r g ch @\<^sub>t P) emp\<^sub>t= false\<^sub>A"
   unfolding combine_assn_def
   apply (rule ext)
   apply (auto simp add: false_assn_def emp_assn_def join_assn_def elim!: out_inv_assn.cases)
@@ -68,6 +82,12 @@ lemma combine_assn_emp_waitinv:
 join_assn_def false_assn_def)
   by (auto elim: sync_elims)
 
+lemma combine_assn_waitinv_emp:
+  "combine_assn chs  (Waitinv\<^sub>t  p dp rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t combine_assn chs  P emp\<^sub>t"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def wait_inv_assn.simps emp_assn_def 
+join_assn_def false_assn_def)
+  by (auto elim: sync_elims)
 
 lemma combine_assn_waitinv_ininv:
   assumes "ch \<in> chs"
