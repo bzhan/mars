@@ -18,9 +18,14 @@ inductive io_inv_assn :: "(gstate \<Rightarrow>  bool) \<Rightarrow> (gstate \<R
   "r s  \<Longrightarrow> g s v \<Longrightarrow> IOinv\<^sub>t r g ch [IOBlock ch v]"
 
 inductive wait_inv_assn :: "(gstate \<Rightarrow> real \<Rightarrow> bool) \<Rightarrow> (real \<Rightarrow> bool) \<Rightarrow> rdy_info \<Rightarrow> tassn" ("Waitinv\<^sub>t") where
-  "Waitinv\<^sub>t r dp rdy []"
+  "dp 0 \<Longrightarrow> Waitinv\<^sub>t r dp rdy []"
 | "d > 0 \<Longrightarrow> dp d \<Longrightarrow> (\<forall>t\<in>{0..d}. r (p t) t) \<Longrightarrow> Waitinv\<^sub>t r dp rdy [WaitBlk (ereal d) p rdy]" 
 
+inductive wait_out_inv_assn ::"(gstate \<Rightarrow> real \<Rightarrow> bool) \<Rightarrow> (real \<Rightarrow> bool) \<Rightarrow> (gstate \<Rightarrow> real \<Rightarrow> bool) 
+                                          \<Rightarrow> rdy_info \<Rightarrow> cname  \<Rightarrow> tassn" ("Waitoutinv\<^sub>t") where
+  "dp 0 \<Longrightarrow> \<exists> s. r s 0 \<and> g s v \<Longrightarrow> Waitoutinv\<^sub>t r dp g rdy ch [OutBlock ch v]"
+| "d > 0 \<Longrightarrow> dp d \<Longrightarrow> (\<forall>t\<in>{0..d}. r (p t) t) \<Longrightarrow> g (p d) v 
+                \<Longrightarrow> Waitoutinv\<^sub>t r dp g rdy ch [WaitBlk (ereal d) p rdy, OutBlock ch v]"
 
 inductive sb2gsb :: "(state \<Rightarrow> bool) \<Rightarrow> (gstate \<Rightarrow> bool)" where
  "p s \<Longrightarrow> sb2gsb p (State s)"
@@ -72,8 +77,14 @@ lemma combine_assn_ininv_outinv:
   unfolding combine_assn_def
   apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def io_inv_assn.simps
                         out_inv_assn.simps in_inv_assn.simps pgsb2gsb.simps pgsrb2gsrb.simps)
-  apply (auto elim: sync_elims)
-  by (metis append_Cons append_self_conv2 combine_blocks_pairE)
+          apply (auto elim: sync_elims)
+  subgoal for tr tr1 tr2 s1 v1 s2 v2
+    apply(rule exI[where x= "[IOBlock ch v1]"])
+    apply auto
+     apply(rule exI[where x= "ParState s1 s2"])
+    using combine_blocks_pairE apply blast
+    by (meson combine_blocks_pairE)
+  done
 
 lemma combine_assn_emp_waitinv:
   "combine_assn chs emp\<^sub>t (Waitinv\<^sub>t  p dp rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t combine_assn chs emp\<^sub>t P"

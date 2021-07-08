@@ -1265,6 +1265,78 @@ inductive tot_block :: "real list  \<Rightarrow> tassn" where
    tot_block fc tr2 \<Longrightarrow>
    tot_block (x#fc) (tr1@tr2)"
 
+lemma g1:
+ "combine_assn chs
+     (Waitinv\<^sub>t r (\<lambda>d. d = 1) ({}, {}) @\<^sub>t P)
+     (Waitinv\<^sub>t (\<lambda>_ _. True) ((<) 1) ({}, {}) @\<^sub>t Q) 
+      \<Longrightarrow>\<^sub>t 
+   (Waitinv\<^sub>t (pgsrb2gsrb r (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {}) 
+      @\<^sub>t combine_assn chs P (Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> d. d > 0) ({}, {}) @\<^sub>t Q))"
+proof-
+  have *:"(Waitinv\<^sub>t (pgsrb2gsrb r (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {}) 
+      @\<^sub>t combine_assn chs P (Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> d. d > 0) ({}, {}) @\<^sub>t Q)) tr"
+    if "(Waitinv\<^sub>t r (\<lambda>d. d = 1) ({}, {}) @\<^sub>t P) tr1" 
+       "(Waitinv\<^sub>t (\<lambda>_ _. True) ((<) 1) ({}, {}) @\<^sub>t Q)  tr2"
+       "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+  proof-
+    from that(1) [unfolded join_assn_def]
+    obtain tr11 tr12 where a:"Waitinv\<^sub>t r (\<lambda>d. d = 1) ({}, {}) tr11" 
+                             "P tr12" "tr1 = tr11@tr12"
+      by auto
+    from that(2) [unfolded join_assn_def]
+    obtain tr21 tr22 where b:"Waitinv\<^sub>t (\<lambda>_ _. True) ((<) 1) ({}, {}) tr21"
+                                "Q tr22" "tr2 = tr21@tr22"
+      by auto
+    have 1:"(Waitinv\<^sub>t (pgsrb2gsrb r (\<lambda>_ _. True)) (\<lambda>d. d = 1) ({}, {}) @\<^sub>t
+     combine_assn chs P (Waitinv\<^sub>t (\<lambda>_ _. True) ((<) 0) ({}, {}) @\<^sub>t Q))
+     tr" if "combine_blocks chs (WaitBlk (ereal 1) d ({}, {}) # tr12)
+     (WaitBlk (ereal p1) p2 ({}, {}) # tr22) tr" "p1>1" "\<forall>t\<in>{0..1}. r (d t) t" for r d p1 p2
+      using that(1)
+      apply (elim combine_blocks_waitE3)
+      using that apply auto
+      subgoal for blks
+        apply (subst join_assn_def)
+        apply(rule exI[where x= "[WaitBlk (ereal 1) (\<lambda>t. ParState (d t) (p2 t)) ({}, {})]"])
+        apply(rule exI[where x= blks])
+        apply(auto simp add:wait_inv_assn.simps pgsrb2gsrb.simps combine_assn_def)
+        apply(rule exI[where x="tr12"]) using a apply auto
+        apply(rule exI[where x="(WaitBlk (ereal (p1 - 1)) (\<lambda>t. p2 (t + 1)) ({}, {}) # tr22)"]) 
+        apply(auto simp add:wait_inv_assn.simps join_assn_def)
+        apply(rule exI[where x= "[WaitBlk (ereal (p1 - 1)) (\<lambda>t. p2 (t + 1)) ({}, {})]"])
+        using b by auto
+      done
+    show ?thesis
+      using a(1) apply (cases rule: wait_inv_assn.cases)
+      using b(1) apply (cases rule: wait_inv_assn.cases)
+      apply auto
+      using b(1) apply (cases rule: wait_inv_assn.cases)
+       apply auto
+      subgoal for d p1 p2
+        using 1[of d p1 p2 r]
+        using that a b by auto
+      done
+  qed
+  then show ?thesis
+         apply (subst combine_assn_def)
+    by (auto simp add: entails_tassn_def)
+qed 
+
+lemma g2:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs
+     (Waitinv\<^sub>t r (\<lambda>d. True) ({ch}, {}) @\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ch @\<^sub>t P)
+     (Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> d. d > 0) ({}, {}) @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ch @\<^sub>t Q) 
+      \<Longrightarrow>\<^sub>t 
+   (Waitinv\<^sub>t (pgsrb2gsrb r (\<lambda>_ _ . True))(\<lambda>_. True) ({ch}, {}) 
+      @\<^sub>t IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = x) ch  @\<^sub>t combine_assn chs P Q )"
+
+
+
+
+
+
+
+
 
 lemma tot_block_snoc:
 "tot_block fc tr1 \<Longrightarrow> 
