@@ -65,6 +65,48 @@ proof (induct rule: C_inv_ind.induct)
       by auto
 qed
 
+lemma C_inv_prop1_assit1:
+"C_inv_ind (x # list) tr \<Longrightarrow> \<exists> tr1 tr2.(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1 \<and> C_inv_ind (list) tr2 \<and> tr = tr1@tr2"
+  apply(rule local.C_inv_ind.cases[of "(x # list)" "tr"])
+  by auto
+
+lemma C_inv_prop1_assit2:
+"C_inv_ind (x # list) tr \<Longrightarrow> ((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr "
+  using C_inv_prop1_assit1
+  by(auto simp add:join_assn_def)
+
+lemma C_inv_prop1_assit3:
+"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr 
+\<Longrightarrow> \<exists> tr1 tr2. ((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1 \<and> C_inv_ind (list) tr2 \<and> tr = tr1 @ tr2)"
+  by(auto simp add:join_assn_def)
+    
+lemma C_inv_prop1_assit4:    
+"((Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') @\<^sub>t C_inv_ind (list)) tr 
+\<Longrightarrow> C_inv_ind (x#list) tr"
+proof-
+  obtain tr1 and tr2 where g:"(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1" "C_inv_ind (list) tr2" "tr = tr1@tr2"
+    using C_inv_prop1_assit3[of x list tr]
+    
+  
+    
 
 lemma C_rep:
   "\<Turnstile> {\<lambda>s tr. s X = x \<and> emp\<^sub>t tr}
@@ -1166,11 +1208,36 @@ case Nil
   then show ?case 
   proof(cases cs)
     case Nil
-    then show ?thesis sorry
-      
+    then show ?thesis 
+      apply (auto simp add:entails_tassn_def pure_assn_def conj_assn_def same_pair.intros)
+      subgoal premises pre for tr
+    proof-
+      have 1:"P_inv_ind a a [] = emp\<^sub>t"
+        using P_inv_ind.cases 
+        apply(auto simp add: emp_assn_def)
+        using P_inv_ind.intros(1) by blast
+      have 2:"C_inv_ind [] = emp\<^sub>t"
+        using C_inv_ind.cases 
+        apply(auto simp add: emp_assn_def)
+        using C_inv_ind.intros(1) by blast
+      have 3:"tot_block [] = emp\<^sub>t"
+        using tot_block.cases 
+        apply(auto simp add: emp_assn_def)
+        using tot_block.intros(1) by blast
+      show ?thesis
+        using 1 2 3 pre by simp
+    qed
+    done
   next
-    case (Cons a list)
-    then show ?thesis sorry
+    case (Cons c list)
+    then show ?thesis 
+      apply(auto simp add:entails_tassn_def pure_assn_def conj_assn_def same_pair.intros)
+      unfolding combine_assn_def
+      apply auto
+      subgoal for tr tr1 tr2
+
+        
+      
   qed
 next
   case (Cons a ps)
