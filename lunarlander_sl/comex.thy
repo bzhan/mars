@@ -1127,7 +1127,55 @@ apply (rule Valid_weaken_pre)
   done
   done
 
+inductive tot_block :: "real list  \<Rightarrow> tassn" where
+  "tot_block  [] []"
+| "(Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {})  @\<^sub>t
+   Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. True) ({''P2C''}, {})  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = x)''P2C''  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' ) tr1\<Longrightarrow> 
+   tot_block fc tr2 \<Longrightarrow>
+   tot_block (x#fc) (tr1@tr2)"
 
-          
+
+lemma tot_block_snoc:
+"tot_block fc tr1 \<Longrightarrow> 
+  (Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. d = 1) ({}, {})  @\<^sub>t
+   Waitinv\<^sub>t (pgsrb2gsrb (gsb2gsrb(sb2gsb inv)) (\<lambda>_ _ . True))(\<lambda> d. True) ({''P2C''}, {})  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = x)''P2C''  @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' @\<^sub>t
+   IOinv\<^sub>t (\<lambda> _. True)(\<lambda> s v. v = p x)''C2P'' ) tr2 \<Longrightarrow>
+  tot_block (fc@[x]) (tr1@tr2)"
+proof(induct rule : tot_block.induct)
+case 1
+  then show ?case 
+    using tot_block.intros(2)[of x tr2 "[]" "[]"]
+    using tot_block.intros(1) by auto
+next
+  case (2 x' tr1 fc tr)
+  then show ?case 
+    using tot_block.intros(2)[of x' tr1 "fc @ [x]" "tr@tr2"]
+    by auto
+qed
+
+
+lemma combine:
+ "combine_assn {''P2C'', ''C2P''} (P_inv_ind a a ps) (C_inv_ind cs) \<Longrightarrow>\<^sub>t  tot_block cs \<and>\<^sub>t \<up>(same_pair ((a,a)#ps))"
+proof(induction ps arbitrary: cs a)
+case Nil
+  then show ?case 
+  proof(cases cs)
+    case Nil
+    then show ?thesis sorry
+      
+  next
+    case (Cons a list)
+    then show ?thesis sorry
+  qed
+next
+  case (Cons a ps)
+  then show ?case sorry
+qed
+
 end
 end
