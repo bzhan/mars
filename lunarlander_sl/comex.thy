@@ -9,9 +9,10 @@ locale comex =
   fixes t1 :: real  
   fixes t2 :: real  
   fixes t3 :: real 
-  assumes t1: "t1 > 0"
-  assumes t2: "t2 > 0"
-  assumes t3: "t3 > 0"
+  fixes p :: "real \<Rightarrow> real"
+  assumes t1: "t1 > 1"
+  assumes t2: "t2 > 1"
+  assumes t3: "t3 > 1"
 begin
 definition T :: char where "T = CHR ''t''"
 definition A :: char where "A = CHR ''a''"
@@ -31,19 +32,136 @@ lemma vars_distinct [simp]: "T \<noteq> X" "T \<noteq> Y" "T \<noteq> A" "T \<no
 definition Control :: proc where
   "Control =   
 Rep(
-  Wait (\<lambda> t. t1);
+  IChoice (Wait (\<lambda> t. t1)) (Wait (\<lambda> t. t2));
   Cm (''P2C''[?]X);
-  Cm (''C2P''[!](\<lambda> s. s X + 1));
-  Cm (''C2P''[!](\<lambda> s. s X + 1));
-  Wait (\<lambda> t. t2);
-  Cm (''P2C''[?]X);
-  Cm (''C2P''[!](\<lambda> s. s X + 1));
-  Cm (''C2P''[!](\<lambda> s. s X + 1));
-  Wait (\<lambda> t. t3);
-  Cm (''P2C''[?]X);
-  Cm (''C2P''[!](\<lambda> s. s X + 1));
-  Cm (''C2P''[!](\<lambda> s. s X + 1))
+  Cm (''C2P''[!](\<lambda> s. p (s X) ));
+  Cm (''C2P''[!](\<lambda> s. p (s X) ))
 ) "
+
+inductive C_inv_ind :: " real list \<Rightarrow> tassn" where
+  "C_inv_ind [] []"
+| "(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr1
+\<Longrightarrow> C_inv_ind list tr2 \<Longrightarrow> C_inv_ind (x#list) (tr1@tr2)"
+
+lemma C_inv_snoc:
+"C_inv_ind fcs tr1 \<Longrightarrow> 
+(Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})
+@\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = x)) ''P2C''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P''
+@\<^sub>t Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p x)) ''C2P'') tr2
+\<Longrightarrow> C_inv_ind (fcs@[x]) (tr1@tr2)"
+proof (induct rule: C_inv_ind.induct)
+  case 1
+    then show ?case 
+      using C_inv_ind.intros(2)[of x tr2 "[]" "[]"]
+      using C_inv_ind.intros(1) by auto
+  next
+  case (2 x' tr1 list tr)
+    then show ?case 
+      using C_inv_ind.intros(2)[of x' tr1 "list@[x]" "tr@tr2"]
+      by auto
+qed
+
+
+lemma C_rep:
+  "\<Turnstile> {\<lambda>s tr. s X = x \<and> emp\<^sub>t tr}
+    Control
+   {\<lambda>s tr. \<exists>Fc . s X = last (x#Fc) \<and> C_inv_ind Fc tr}"
+  unfolding Control_def
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_rep)
+   prefer 2
+  subgoal
+    apply(simp add:entails_def)
+    apply clarify
+    apply(rule exI[where x="[]"])
+    apply (auto simp add: C_inv_ind.intros emp_assn_def)
+    done
+  apply(rule Valid_ex_pre)
+  subgoal for Fc
+    apply(rule Valid_seq)
+     apply(rule Valid_ichoice_sp)
+      apply(rule Valid_wait_sp)
+     apply(rule Valid_wait_sp)
+    apply(rule Valid_weaken_pre[where P'="\<lambda>s tr. s X = last (x # Fc) \<and> (C_inv_ind Fc @\<^sub>t Waitinv\<^sub>t (\<lambda>_ _. True) (\<lambda> t. t > 1) ({}, {})) tr"])
+    subgoal 
+      using t1 t2
+      apply(auto simp add:entails_def pure_assn_def conj_assn_def join_assn_def wait_assn.simps wait_inv_assn.simps)
+      by fastforce+
+    apply(rule Valid_seq)
+     apply(rule Valid_receive_sp)
+    apply(rule Valid_ex_pre)
+    subgoal for px
+      apply(rule Valid_ex_pre)
+      subgoal for nx
+    apply(rule Valid_seq)
+     apply(rule Valid_send_sp)
+    apply(rule Valid_strengthen_post)
+     prefer 2
+     apply(rule Valid_send_sp)
+    apply(simp add: entails_def pure_assn_def conj_assn_def)
+        apply(rule conjI)
+        subgoal apply clarify
+          subgoal for S tr
+            apply(rule exI[where x="Fc@[S X]"])
+            apply (auto simp add: join_assn_def)
+            subgoal premises pre for tr5 tr4 tr1 tr3 tr2
+            proof-
+              have 1:"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = S X)) ''P2C'' tr3"
+                using pre(8)
+                by(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+              have 2:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p(S X))) ''C2P'' tr4"
+                using pre(6)
+                by(auto simp add: out_assn.simps out_inv_assn.simps srb2gsrb.simps)
+              have 3:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p(S X))) ''C2P'' tr5"
+                using pre(4)
+                by(auto simp add: out_assn.simps out_inv_assn.simps srb2gsrb.simps)
+              show ?thesis 
+                using C_inv_snoc[of "[]" "tr1" "S X" "tr2 @ tr3 @ tr4 @ tr5"]
+                using pre 1 2 3 
+                apply(auto simp add: join_assn_def) by blast
+            qed
+            done
+          done
+        subgoal apply clarify
+          subgoal for S tr
+            apply(rule exI[where x="Fc@[S X]"])
+            apply (auto simp add: join_assn_def)
+            subgoal premises pre for tr5 tr4 tr1 tr3 tr2
+            proof-
+              have 1:"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = S X)) ''P2C'' tr3"
+                using pre(8)
+                by(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+              have 2:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p(S X))) ''C2P'' tr4"
+                using pre(6)
+                by(auto simp add: out_assn.simps out_inv_assn.simps srb2gsrb.simps)
+              have 3:"Outinv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = p(S X))) ''C2P'' tr5"
+                using pre(4)
+                by(auto simp add: out_assn.simps out_inv_assn.simps srb2gsrb.simps)
+              show ?thesis 
+                using C_inv_snoc[of "Fc" "tr1" "S X" "tr2 @ tr3 @ tr4 @ tr5"]
+                using pre 1 2 3 
+                apply(auto simp add: join_assn_def) by blast
+            qed
+            done
+          done
+        done
+      done
+    done
+  done
+
+            
+        
+        
+
+
+
+
+
 
 definition Plant :: proc where
   "Plant =   
@@ -57,8 +175,6 @@ definition inv :: "state \<Rightarrow> bool" where
 "inv s = (s X + s Y = 0)"
 
 
-
-
 inductive P_inv_ind :: "real \<Rightarrow> real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
   "P_inv_ind a b [] []"
 | " a = b \<longrightarrow> (
@@ -68,8 +184,6 @@ inductive P_inv_ind :: "real \<Rightarrow> real \<Rightarrow> (real \<times> rea
   @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = a')) ''C2P'' 
   @\<^sub>t Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = b')) ''C2P'') tr1 
      \<and> P_inv_ind a' b' Fcs tr2) \<Longrightarrow> P_inv_ind a b ((a',b')#Fcs) (tr1@tr2)"
-
-inductive_cases P_inv_elim: "P_inv_ind a b l tr"
 
 inductive same_pair :: "(real \<times> real) list \<Rightarrow> bool" where
   "same_pair []"
@@ -175,27 +289,6 @@ next
 qed     
 
 
-lemma same_pair_prop5:
-"\<not> same_pair ((a, b) # list1) \<Longrightarrow>  list2 \<noteq> [] \<Longrightarrow>P_inv_ind a b (list1 @ list2) tr"
-  apply(induct list2 arbitrary: a b list1 tr)
-  apply auto
-  subgoal premises pre for a' b' list2 a b list1 tr
-  proof-
-    have "\<not> same_pair ((a, b) # (list1@[(a',b')]))"
-    proof(rule ccontr)
-      assume "\<not> \<not> same_pair ((a, b) # list1 @ [(a', b')])"
-      then have "same_pair ((a, b) # list1 @ [(a', b')])" by auto
-      then have "same_pair ((a, b) # list1)"
-        using same_pair_prop4[of "(a, b) # list1" "[(a', b')]"]
-        by auto
-      then show False using pre by auto
-    qed
-    then show ?thesis 
-      using pre(1)[of a b "list1 @ [(a', b')]" tr] 
-  qed
-  done
-
-
 theorem Valid_post_imp:
   assumes "\<Turnstile> {P} c {Q1}"
     and "\<Turnstile> {P} c {\<lambda>s tr. Q1 s tr \<longrightarrow> Q2 s tr}"
@@ -223,8 +316,7 @@ apply (rule Valid_weaken_pre)
                   (s T = 1)
                 \<and> (s A = fst (last ((a, b) # Fc))) 
                 \<and> (s B = snd (last ((a, b) # Fc))) 
-                \<and> (same_pair (((a, b) # Fc)) 
-    \<longrightarrow> (P_inv_ind a b Fc @\<^sub>t Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {})) t )
+                \<and> (P_inv_ind a b Fc @\<^sub>t (\<up> (same_pair ((a, b) # Fc)) \<longrightarrow>\<^sub>t  Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda> d. d = 1) ({}, {}))) t 
                 \<and> (same_pair (((a, b) # Fc)) \<longrightarrow> inv s) "])
       subgoal
         apply(rule Valid_post_imp)
@@ -237,11 +329,12 @@ apply (rule Valid_weaken_pre)
         subgoal
           apply(auto simp add:state2vec_def entails_def)
           done
-        apply(rule Valid_strengthen_post[where Q = "\<lambda> s t. s A = fst (last ((a, b) # Fc)) \<and>
-               s B = snd (last ((a, b) # Fc)) \<and> ((s T = 1 \<longrightarrow>((same_pair ((a, b) # Fc) \<longrightarrow>
-                (P_inv_ind a b Fc @\<^sub>t Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}))
-                 t))) \<and> (
-               (same_pair ((a, b) # Fc) \<longrightarrow> local.inv s)))"])
+        apply(rule Valid_strengthen_post[where Q = "\<lambda> s t. 
+               s A = fst (last ((a, b) # Fc)) 
+             \<and> s B = snd (last ((a, b) # Fc)) 
+             \<and> (s T = 1 \<longrightarrow>
+                (P_inv_ind a b Fc @\<^sub>t (\<up> (same_pair ((a, b) # Fc)) \<longrightarrow>\<^sub>t Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}))) t) 
+             \<and> (same_pair ((a, b) # Fc) \<longrightarrow> local.inv s)"])
         subgoal 
           apply(auto simp add: entails_def)
           done
@@ -264,9 +357,8 @@ apply (rule Valid_weaken_pre)
         apply(rule Valid_strengthen_post[where Q = "\<lambda>s t. s B = snd (last ((a, b) # Fc)) \<and> 
           (s A = fst (last ((a, b) # Fc)) \<and>
               (P_inv_ind a b Fc @\<^sub>t ode_inv_assn (\<lambda>s. s A = fst (last ((a, b) # Fc)))) t \<longrightarrow> (s T = 1 \<longrightarrow>
-               same_pair ((a, b) # Fc) \<longrightarrow>
-               (P_inv_ind a b Fc @\<^sub>t
-                Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}))
+              (P_inv_ind a b Fc @\<^sub>t (\<up> (same_pair ((a, b) # Fc)) \<longrightarrow>\<^sub>t
+                Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {})))
                 t) \<and>
               (same_pair ((a, b) # Fc) \<longrightarrow> local.inv s))"])
          apply(simp add: entails_def)
@@ -292,7 +384,7 @@ apply (rule Valid_weaken_pre)
           apply (auto simp add: same_pair.intros )
           subgoal for s1 tr1 s2 tr2
             apply (elim contE)
-             apply (simp add: join_assn_def)
+             apply (simp add: join_assn_def pure_assn_def imp_assn_def join_assn_def)
             subgoal premises pre for d p
       proof-
         obtain ep where ep:"((\<lambda>t. state2vec (p t)) has_vderiv_on
@@ -326,16 +418,16 @@ apply (rule Valid_weaken_pre)
         have 8:"\<forall>t\<in>{0 .. d}. ((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_derivative  (\<lambda>s. s *\<^sub>R (\<lambda>_. (\<lambda>x. x $ X + x $ Y)) (state2vec(p t)) ( ODE2Vec (ODE ((\<lambda>_ _. 0)(X := \<lambda>s. s A * (s X)\<^sup>2, Y := \<lambda>s. s B * s Y * s X, T := \<lambda>s. 1))) (p t)))) (at t within {0 .. d})"
           apply clarify apply(rule has_derivative_subset[where s= "{-ep .. d+ep}"]) using 7 ep(2) by auto
         have 9:"ode_inv_assn (\<lambda>s. s B = s1 B) tr2"
-          using pre(6,8,10,13) by(auto simp add:join_assn_def ode_inv_assn.simps)
+          using pre by(auto simp add:join_assn_def ode_inv_assn.simps)
         have 10:"\<forall>t\<in>{0 .. d}. p t B = b"
           using 9 pre(13) apply(elim ode_inv_assn_elim)  
           subgoal premises prems for d' p'
           proof -
             have a: "d = d'"
-              using prems(1,2)
+              using prems pre
               using WaitBlk_cong by blast
             have b: "State (p \<tau>) = State (p' \<tau>)" if "0 \<le> \<tau>" "ereal \<tau> \<le> ereal d" for \<tau>
-              using prems(1,2) WaitBlk_cong2 a that by blast
+              using prems pre(12)  WaitBlk_cong2 a that by fastforce
             have c: "p \<tau> = p' \<tau>" if "0 \<le> \<tau>" "\<tau> \<le> d" for \<tau>
               using b that by auto
             show ?thesis
@@ -343,32 +435,31 @@ apply (rule Valid_weaken_pre)
           qed
           done
         have 11:"ode_inv_assn (\<lambda>s. s A = s1 A) tr2"
-          using pre(6,8,10,13) by(auto simp add:join_assn_def ode_inv_assn.simps)
+          using pre by(auto simp add:join_assn_def ode_inv_assn.simps)
         have 12:"\<forall>t\<in>{0 .. d}. p t A = a"
           using 11 pre(13) apply(elim ode_inv_assn_elim)  
           subgoal premises prems for d' p'
           proof -
             have a: "d = d'"
-              using prems(1,2)
+              using prems pre
               using WaitBlk_cong by blast
             have b: "State (p \<tau>) = State (p' \<tau>)" if "0 \<le> \<tau>" "ereal \<tau> \<le> ereal d" for \<tau>
-              using prems(1,2) WaitBlk_cong2 a that by blast
+              using prems(1,2) pre(12) WaitBlk_cong2 a that by fastforce
             have c: "p \<tau> = p' \<tau>" if "0 \<le> \<tau>" "\<tau> \<le> d" for \<tau>
               using b that by auto
             show ?thesis
               using c prems(3) a pre by auto
           qed
           done
-        have 13:"a=b"
-          using pre(2,3,12) using same_pair.cases 
-          by (metis list.distinct(1) list.inject prod.inject)
+        have 13:"a=b" if "same_pair [(s1 A, s1 B)]"
+          using pre that same_pair_prop0 by auto
         have 14:"((\<lambda>t. p t X + p t Y) has_derivative
              (\<lambda>s. s * (p t A * (p t X)\<^sup>2 + p t B * p t Y * p t X)))
              (at t within {0..d})" if "t\<in>{0..d}" for t
           using 8 that by (auto simp add: state2vec_def)
-        have 15:"((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_vderiv_on (\<lambda> t . (\<lambda> t. a * p t X) t * ((\<lambda>t. (\<lambda> s. s X + s Y) (p t))) t)) {0..d}"
+        have 15:"((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_vderiv_on (\<lambda> t . (\<lambda> t. a * p t X) t * ((\<lambda>t. (\<lambda> s. s X + s Y) (p t))) t)) {0..d}" if "same_pair [(s1 A, s1 B)]"
           unfolding has_vderiv_on_def has_vector_derivative_def
-          using 10 12 13 14 by (auto simp add: power2_eq_square algebra_simps)
+          using 10 12 13 14 that by (auto simp add: power2_eq_square algebra_simps)
         have 16:"((\<lambda>t. state2vec (p t)) has_vderiv_on
           (\<lambda>t. ODE2Vec
                 (ODE ((\<lambda>_ _. 0)
@@ -386,15 +477,15 @@ apply (rule Valid_weaken_pre)
           done
         have 19:"continuous_on {-ep<..<d+ep} (\<lambda>t. a * p t X)"
           using continuous_on_compose2[OF 18 17] by auto
-        have 20:" p t X + p t Y = 0" if "t\<in>{0..d}" for t
+        have 20:" p t X + p t Y = 0" if "t\<in>{0..d}" "same_pair [(s1 A, s1 B)]"for t
           using dbxeq_weak[OF 15 _ 19] that using pre ep(2) unfolding inv_def by auto
         have 21:"Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}) 
-                  [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+                  [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]" if "same_pair [(s1 A, s1 B)]"
           apply(auto simp add:wait_inv_assn.simps)
           apply(rule exI[where x= "(\<lambda>\<tau>. State (p \<tau>))"])
           apply(auto simp add:gsb2gsrb.simps sb2gsb.simps inv_def)
-          using 20 3 by auto
-        show ?thesis using 21 pre apply(auto simp add: join_assn_def) done
+          using 20 3 that by auto
+        show ?thesis using 21 pre apply(auto simp add: join_assn_def pure_assn_def imp_assn_def) done 
       qed
       done
     subgoal for s1 tr1 s2 tr2
@@ -493,11 +584,11 @@ apply (rule Valid_weaken_pre)
       done
     subgoal for s1 tr1 s2 tr2
       using same_pair_prop2[of "(a, b) # Fc"]
-      by auto
+      by (auto simp add: pure_assn_def imp_assn_def join_assn_def) 
     subgoal for s1 tr1 s2 tr2
       using same_pair_prop2[of "(a, b) # Fc"]
       by auto
-subgoal for s1 tr1 s2 tr2
+    subgoal for s1 tr1 s2 tr2
             apply (elim contE)
              apply (simp add: join_assn_def)
             subgoal premises pre for d p
@@ -539,10 +630,10 @@ subgoal for s1 tr1 s2 tr2
           subgoal premises prems for d' p'
           proof -
             have a: "d = d'"
-              using prems(1,2)
+              using prems(1,2) pre
               using WaitBlk_cong by blast
             have b: "State (p \<tau>) = State (p' \<tau>)" if "0 \<le> \<tau>" "ereal \<tau> \<le> ereal d" for \<tau>
-              using prems(1,2) WaitBlk_cong2 a that by blast
+              using prems(1,2) pre(12) WaitBlk_cong2 a that by fastforce
             have c: "p \<tau> = p' \<tau>" if "0 \<le> \<tau>" "\<tau> \<le> d" for \<tau>
               using b that by auto
             show ?thesis
@@ -556,26 +647,26 @@ subgoal for s1 tr1 s2 tr2
           subgoal premises prems for d' p'
           proof -
             have a: "d = d'"
-              using prems(1,2)
+              using prems(1,2) pre
               using WaitBlk_cong by blast
             have b: "State (p \<tau>) = State (p' \<tau>)" if "0 \<le> \<tau>" "ereal \<tau> \<le> ereal d" for \<tau>
-              using prems(1,2) WaitBlk_cong2 a that by blast
+              using prems(1,2) pre(12) WaitBlk_cong2 a that by fastforce
             have c: "p \<tau> = p' \<tau>" if "0 \<le> \<tau>" "\<tau> \<le> d" for \<tau>
               using b that by auto
             show ?thesis
               using c prems(3) a pre by auto
           qed
           done
-        have 13:"fst (last Fc)=snd (last Fc)"
-          using pre same_pair_prop1 same_pair_prop3
+        have 13:"fst (last Fc)=snd (last Fc)" if "same_pair ((a, b) # Fc)"
+          using pre same_pair_prop1 same_pair_prop3 that
           by auto
         have 14:"((\<lambda>t. p t X + p t Y) has_derivative
              (\<lambda>s. s * (p t A * (p t X)\<^sup>2 + p t B * p t Y * p t X)))
              (at t within {0..d})" if "t\<in>{0..d}" for t
           using 8 that by (auto simp add: state2vec_def)
-        have 15:"((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_vderiv_on (\<lambda> t . (\<lambda> t. (fst (last Fc)) * p t X) t * ((\<lambda>t. (\<lambda> s. s X + s Y) (p t))) t)) {0..d}"
+        have 15:"((\<lambda>t. (\<lambda> s. s X + s Y) (p t)) has_vderiv_on (\<lambda> t . (\<lambda> t. (fst (last Fc)) * p t X) t * ((\<lambda>t. (\<lambda> s. s X + s Y) (p t))) t)) {0..d}" if "same_pair ((a, b) # Fc)"
           unfolding has_vderiv_on_def has_vector_derivative_def
-          using 10 12 13 14 by (auto simp add: power2_eq_square algebra_simps)
+          using 10 12 13 14 that by (auto simp add: power2_eq_square algebra_simps)
         have 16:"((\<lambda>t. state2vec (p t)) has_vderiv_on
           (\<lambda>t. ODE2Vec
                 (ODE ((\<lambda>_ _. 0)
@@ -593,15 +684,15 @@ subgoal for s1 tr1 s2 tr2
           done
         have 19:"continuous_on {-ep<..<d+ep} (\<lambda>t. fst (last Fc) * p t X)"
           using continuous_on_compose2[OF 18 17] by auto
-        have 20:" p t X + p t Y = 0" if "t\<in>{0..d}" for t
+        have 20:" p t X + p t Y = 0" if "t\<in>{0..d}" "same_pair ((a, b) # Fc)"for t
           using dbxeq_weak[OF 15 _ 19] that using pre ep(2) unfolding inv_def by auto
         have 21:"Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}) 
-                  [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]"
+                  [WaitBlk (ereal d) (\<lambda>\<tau>. State (p \<tau>)) ({}, {})]" if "same_pair ((a, b) # Fc)"
           apply(auto simp add:wait_inv_assn.simps)
           apply(rule exI[where x= "(\<lambda>\<tau>. State (p \<tau>))"])
           apply(auto simp add:gsb2gsrb.simps sb2gsb.simps inv_def)
-          using 20 3 by auto
-        show ?thesis using 21 pre apply(auto simp add: join_assn_def) done
+          using 20 3 that by auto
+        show ?thesis using 21 pre by(auto simp add: join_assn_def pure_assn_def imp_assn_def) 
       qed
       done
     subgoal for s1 tr1 s2 tr2
@@ -704,11 +795,10 @@ subgoal for s1 tr1 s2 tr2
   apply(rule Valid_interrupt_Out[where Q="\<lambda>s t. 
            s A = fst (last ((a, b) # Fc)) \<and>
            s B = snd (last ((a, b) # Fc)) \<and>
-           (same_pair ((a, b) # Fc) \<longrightarrow>
-            (P_inv_ind a b Fc @\<^sub>t
-             Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}) @\<^sub>t
+           ((P_inv_ind a b Fc @\<^sub>t (\<up> (same_pair ((a, b) # Fc)) \<longrightarrow>\<^sub>t
+             (Waitinv\<^sub>t (gsb2gsrb (sb2gsb local.inv)) (\<lambda>d. d = 1) ({}, {}) @\<^sub>t
              Waitinv\<^sub>t (gsb2gsrb(sb2gsb inv)) (\<lambda>_. True) ({''P2C''}, {}) @\<^sub>t
-             out_inv_assn (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'')
+             out_inv_assn (\<lambda>_. True) (srb2gsrb (\<lambda> s v. v = s X)) ''P2C'')))
              t) \<and>
            (same_pair ((a, b) # Fc) \<longrightarrow> local.inv s)"])
    prefer 2
@@ -727,7 +817,7 @@ subgoal for s1 tr1 s2 tr2
             by(auto simp add: wait_inv_assn.simps)
           show ?thesis 
             using 1 2 pre(5)
-            apply(auto simp add: join_assn_def) 
+            apply(auto simp add: join_assn_def pure_assn_def imp_assn_def) 
             by blast
         qed
         apply clarify
@@ -833,7 +923,7 @@ subgoal for s1 tr1 s2 tr2
           subgoal using b3
             by (smt atLeastAtMost_iff pre(7))
           subgoal 
-            using 18 19 pre(5) apply(auto simp add: join_assn_def)
+            using 18 19 pre(5) apply(auto simp add: join_assn_def pure_assn_def imp_assn_def)
             by force
           subgoal using 17 by (smt atLeastAtMost_iff pre(7))
           done
@@ -852,7 +942,7 @@ subgoal for s1 tr1 s2 tr2
             by(auto simp add: wait_inv_assn.simps)
           show ?thesis 
             using 1 2 pre(5)
-            apply(auto simp add: join_assn_def) 
+            apply(auto simp add: join_assn_def pure_assn_def imp_assn_def) 
             by blast
         qed
         apply clarify
@@ -958,7 +1048,7 @@ subgoal for s1 tr1 s2 tr2
           subgoal using b3
             using pre(4) pre(7) by auto
           subgoal 
-            using 18 19 pre(5) apply(auto simp add: join_assn_def)
+            using 18 19 pre(5) apply(auto simp add: join_assn_def pure_assn_def imp_assn_def)
             by force
           subgoal using 17 by (smt atLeastAtMost_iff pre(7))
           done
@@ -979,38 +1069,63 @@ subgoal for s1 tr1 s2 tr2
     apply clarify
     subgoal for s tr pt pb nb
       apply(rule exI[where x="[(s A, s B)]"])
-      apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def)
-      subgoal for tr1 tr3 tr2
-        using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3"]
+      apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def imp_assn_def)
+      subgoal for tr4 tr1 tr3 tr2
+        using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3 @ tr4"]
+        using P_inv_ind.intros(1)
+        by auto
+      subgoal for tr6 tr1 tr5 tr2 tr3 tr4
+      using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3 @ tr4 @ tr5 @ tr6"]
         using P_inv_ind.intros(1)
       by auto
-      subgoal for tr1 tr3 tr2
-      using P_inv_snoc[of a b "[]" "[]" "s A" "s B" "tr1 @ tr2 @ tr3"]
-        using P_inv_ind.intros(1)
+      subgoal for tr4 tr1 tr3 tr2 
+       using P_inv_snoc[of a b "[]" tr1 "s A" "s B" "tr2 @ tr3 @ tr4"]
       by auto
-      subgoal for tr2b tr2a tr1a tr1b tr1c tr1d
-       using P_inv_snoc[of a b "[]" tr1a "s A" "s B" "tr1b @ tr1c @ tr1d @ tr2a @ tr2b"]
-      by auto
-    subgoal for tr2b tr2a tr1a tr1b tr1c tr1d
-      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s A)) ''C2P'' tr2a")
+    subgoal for tr6 tr1 tr5 tr2 tr3 tr4
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s A)) ''C2P'' tr5")
        prefer 2
       subgoal
         apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
         done
-      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s B)) ''C2P'' tr2b")
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s B)) ''C2P'' tr6")
        prefer 2
       subgoal
         apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
         done
-      using P_inv_snoc[of a b "[]" tr1a "s A" "s B" "tr1b @ tr1c @ tr1d @ tr2a @ tr2b"]
+      using P_inv_snoc[of a b "[]" tr1 "s A" "s B" "tr2 @ tr3 @ tr4 @ tr5 @ tr6"]
       apply(auto simp add: join_assn_def) by blast
     done
   done
   apply clarify
   subgoal for s tr pt pb nb
     apply(rule exI[where x="Fc@[(s A, s B)]"])
-    apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def)
-
+    apply (auto simp add: pure_assn_def conj_assn_def join_assn_def inv_def imp_assn_def)
+    subgoal for tr4 tr1 tr3 tr2
+      using P_inv_snoc[of a b Fc tr1 "s A" "s B" "tr2 @ tr3 @ tr4"]
+      by auto
+    subgoal for tr6 tr1 tr5 tr2 tr3 tr4
+      using P_inv_snoc[of a b Fc tr1 "s A" "s B" "tr2 @ tr3 @ tr4 @ tr5 @ tr6"]
+      by auto
+    subgoal for tr4 tr1 tr3 tr2
+      using P_inv_snoc[of a b Fc tr1 "s A" "s B" "tr2 @ tr3 @ tr4"]
+      by auto
+    subgoal for tr6 tr1 tr5 tr2 tr3 tr4
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s A)) ''C2P'' tr5")
+       prefer 2
+      subgoal
+        apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+        done
+      apply(subgoal_tac"Ininv\<^sub>t (\<lambda>_. True) (srb2gsrb (\<lambda>sa v. v = s B)) ''C2P'' tr6")
+       prefer 2
+      subgoal
+        apply(auto simp add: in_assn.simps in_inv_assn.simps srb2gsrb.simps)
+        done
+      using P_inv_snoc[of a b Fc tr1 "s A" "s B" "tr2 @ tr3 @ tr4 @ tr5 @ tr6"]
+      apply(auto simp add:join_assn_def) by blast
+    done
+  done
+  done
+  done
 
 
           
