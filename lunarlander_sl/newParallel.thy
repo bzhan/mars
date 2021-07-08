@@ -22,10 +22,10 @@ inductive wait_inv_assn :: "(gstate \<Rightarrow> real \<Rightarrow> bool) \<Rig
 | "d > 0 \<Longrightarrow> dp d \<Longrightarrow> (\<forall>t\<in>{0..d}. r (p t) t) \<Longrightarrow> Waitinv\<^sub>t r dp rdy [WaitBlk (ereal d) p rdy]" 
 
 inductive wait_out_inv_assn ::"(gstate \<Rightarrow> real \<Rightarrow> bool) \<Rightarrow> (real \<Rightarrow> bool) \<Rightarrow> (gstate \<Rightarrow> real \<Rightarrow> bool) 
-                                          \<Rightarrow> rdy_info \<Rightarrow> cname  \<Rightarrow> tassn" ("Waitoutinv\<^sub>t") where
-  "dp 0 \<Longrightarrow> \<exists> s. r s 0 \<and> g s v \<Longrightarrow> Waitoutinv\<^sub>t r dp g rdy ch [OutBlock ch v]"
+                                          \<Rightarrow> rdy_info \<Rightarrow> cname  \<Rightarrow> tassn" ("WaitOutinv\<^sub>t") where
+  "dp 0 \<Longrightarrow> \<exists> s. r s 0 \<and> g s v \<Longrightarrow> WaitOutinv\<^sub>t r dp g rdy ch [OutBlock ch v]"
 | "d > 0 \<Longrightarrow> dp d \<Longrightarrow> (\<forall>t\<in>{0..d}. r (p t) t) \<Longrightarrow> g (p d) v 
-                \<Longrightarrow> Waitoutinv\<^sub>t r dp g rdy ch [WaitBlk (ereal d) p rdy, OutBlock ch v]"
+                \<Longrightarrow> WaitOutinv\<^sub>t r dp g rdy ch [WaitBlk (ereal d) p rdy, OutBlock ch v]"
 
 inductive sb2gsb :: "(state \<Rightarrow> bool) \<Rightarrow> (gstate \<Rightarrow> bool)" where
  "p s \<Longrightarrow> sb2gsb p (State s)"
@@ -292,10 +292,63 @@ show ?thesis
   using * by auto
 qed
 
-
+lemma combine_assn_waitoutinv_emp:
+  assumes "ch \<in> chs"
+  shows "combine_assn chs (WaitOutinv\<^sub>t r dp g rdy ch @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def emp_assn_def false_assn_def wait_out_inv_assn.simps)
+  using assms by (auto elim: sync_elims)
         
- 
-
-
+lemma combine_assn_waitoutinv_ininv:
+  assumes "ch \<in> chs"
+    and "ch \<in> fst rdy"
+  shows "combine_assn chs (WaitOutinv\<^sub>t rr dp g1 rdy ch @\<^sub>t P) (Ininv\<^sub>t r g2 ch @\<^sub>t Q) \<Longrightarrow>\<^sub>t 
+         (IOinv\<^sub>t (pgsb2gsb (\<lambda> s. rr s 0) r) (pgsrb2gsrb g1 g2) ch @\<^sub>t combine_assn chs P Q)"
+proof-
+  have *:"(IOinv\<^sub>t (pgsb2gsb (\<lambda> s. rr s 0) r) (pgsrb2gsrb g1 g2) ch @\<^sub>t combine_assn chs P Q) tr"
+    if "(WaitOutinv\<^sub>t rr dp g1 rdy ch @\<^sub>t P) tr1" "(Ininv\<^sub>t r g2 ch @\<^sub>t Q) tr2" "combine_blocks chs tr1 tr2 tr" for tr tr1 tr2
+  proof -
+    from that(1)[unfolded join_assn_def]
+    obtain tr11 tr12 where a: "WaitOutinv\<^sub>t rr dp g1 rdy ch tr11" "P tr12" "tr1 = tr11 @ tr12"
+      by auto
+    from that(2)[unfolded join_assn_def]
+    obtain tr21 tr22 where b: "Ininv\<^sub>t r g2 ch tr21" "Q tr22" "tr2 = tr21 @ tr22"
+      by auto
+    show ?thesis
+      using a(1) apply (cases rule: wait_out_inv_assn.cases)
+      subgoal for v
+        using b(1) apply (cases rule: in_inv_assn.cases)
+        subgoal for s' v'
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_pairE) using assms(1) apply auto
+          apply (auto simp add: conj_assn_def pure_assn_def join_assn_def)
+          apply (rule exI[where x="[IOBlock ch v']"])
+          apply (auto intro: io_assn.intros)
+          unfolding combine_assn_def using a(2) b(2) apply auto
+          subgoal for s tr'
+            using io_inv_assn.intros[of "(pgsb2gsb (\<lambda>s. rr s 0) r)" "ParState s s'" "(pgsrb2gsrb g1 g2)" v ch]
+            by(auto simp add:pgsb2gsb.simps pgsrb2gsrb.simps)
+          done
+        subgoal for d s' v'
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_pairE2) using assms by auto
+        subgoal for s'
+          using that(3) unfolding a(3) b(3) apply auto
+          apply (elim combine_blocks_pairE2) by (rule assms)
+        done
+      using b(1) apply (cases rule: in_inv_assn.cases)
+      using that(3) unfolding a(3) b(3) apply auto
+      subgoal apply (elim combine_blocks_pairE2') by (rule assms)
+      subgoal for d' apply (elim combine_blocks_waitE1)
+        using assms(2) apply (cases rdy) by auto
+      subgoal apply (elim combine_blocks_waitE1)
+        using assms(2) apply (cases rdy) by auto
+      done
+  qed
+show ?thesis
+    apply (subst combine_assn_def)
+    apply (auto simp add: entails_tassn_def)
+    using * by auto
+qed
 
 end
