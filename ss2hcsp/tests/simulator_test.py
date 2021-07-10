@@ -46,8 +46,6 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
 
     # Extract and compare trace of events
     res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
-    print(33333)
-    print(res_trace)
     self.assertEqual(res_trace, trace)
 
     # Optional: print time series
