@@ -89,7 +89,10 @@ class SFConvert:
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
                     if tran.label is not None:
-                        tran.label=parser.transition_parser.parse(tran.label)
+                        print(tran.label)
+                        print(type(tran.label))
+                        if isinstance(tran.label,str):
+                            tran.label=parser.transition_parser.parse(tran.label)
                     if tran.label is not None and tran.label.event is not None and \
                         isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
@@ -763,9 +766,13 @@ class SFConvert:
     def get_global_vars(self):
         procs = []
         for data_store in self.data_stores:
+            out_comms=[]
             pre_act, val = self.convert_expr(data_store.value) 
-            procs.append(hcsp.Assign(data_store.dataStore_name, val))     
-        return hcsp.seq(procs)
+            procs.append(hcsp.Assign(data_store.dataStore_name, val)) 
+            out_comms.append((hcsp.InputChannel("ch_"+str(data_store.dataStore_name),expr.AVar(data_store.dataStore_name)),hcsp.Skip()))
+            out_comms.append((hcsp.OutputChannel("ch_"+str(data_store.dataStore_name),expr.AVar(data_store.dataStore_name)),hcsp.Skip()))    
+            procs.append(hcsp.SelectComm(*out_comms))
+        return hcsp.Sequence(*procs)
 
     def get_procs(self):
         """Returns the list of procedures."""
@@ -794,16 +801,19 @@ class SFConvert:
         # Initialization and iteration
         all_procs[self.init_name()] = self.get_init_proc()
         all_procs[self.exec_name()] = self.get_exec_proc()
-        # all_procs["init_global_vars"]=self.get_global_vars()
         return all_procs
 
     def get_toplevel_process(self):
         """Returns the top-level process for chart."""
         return hcsp.Sequence(
-            # hcsp.Var("init_global_vars"),
             hcsp.Var(self.init_name()),
             hcsp.Loop(self.get_iteration()))
     def get_data_store_process(self):
         return hcsp.Var("init_global_vars")
-   
+
+    def get_glable_proc(self):
+
+        all_procs = dict()
+        all_procs["init_global_vars"]=self.get_global_vars()
+        return all_procs
 
