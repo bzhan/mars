@@ -390,19 +390,46 @@ def translate_discrete(diagram):
 
 
 def new_translate_discrete(diagram):
-    assert all(block.st > 0 for block in diagram)
-    sample_time = get_gcd([block.st for block in diagram])
+    # assert all(block.st > 0 for block in diagram)
+    assert isinstance(diagram, list)  # diagram is a list of blocks
+    sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, float))])
     block_dict = {block.name: block for block in diagram}
 
+    # Get the (in- or out-)ports of the form {port_name: variable_name}
+    in_ports = dict()
+    out_ports = dict()
+    for block in block_dict.values():
+        for dest_line in block.dest_lines:
+            src_block = dest_line.src_block
+            if src_block.type == "in_port":
+                if src_block.port_name not in in_ports:
+                    in_ports[src_block.port_name] = dest_line.name
+                else:
+                    assert in_ports[src_block.port_name] == dest_line.name
+        for src_lines in block.src_lines:
+            for src_line in src_lines:
+                dest_block = src_line.dest_block
+                if dest_block.type == "out_port":
+                    if dest_block.port_name not in out_ports:
+                        out_ports[dest_block.port_name] = src_line.name
+                    else:
+                        assert out_ports[dest_block.port_name] == src_line.name
+    # Delete in_ and out_ports from block_dict
+    port_names = [name for name, block in block_dict.items() if block.type in ("in_port", "out_port")]
+    for port_name in port_names:
+        del block_dict[port_name]
+
     # Get initializations and procedures
-    init_hps = []
-    procedures = []
+    init_hps = list()
+    procedures = list()
     for block in block_dict.values():
         if block.type == "constant":
             out_var = block.src_lines[0][0].name
             init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
         elif block.type == "unit_delay":
             init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
+        elif block.type == "discrete_PID_controller":
+            init_hps.extend(block.get_init_hps())
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
             procedures.extend(block.get_procedures())
@@ -434,7 +461,126 @@ def new_translate_discrete(diagram):
     # Get the UPDATE of Unit_Delay blocks
     update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
 
-    return init_hps, procedures, output_hps, update_hps, sample_time
+    return init_hps, procedures, output_hps, update_hps, sample_time, in_ports, out_ports
+
+
+def get_thread_hcsp(name, discrete_diagram, deadline, max_et, prior=0, processor=0, reqResources=None):
+    """
+    :param name: the name of the thread
+    :param discrete_diagram: the discrete Simulink diagram of the thread
+    :param deadline: the deadline of the thread, and deadline <= period
+    :param max_et: maximal execution time
+    :param prior: the priority of the thread
+    :param processor: the thread is bound to processor
+    :param reqResources: Resources required, like buses and so on
+    :return: two HCSPs (modules) for the thread: Dispatch and Execution
+    """
+
+    init_hps, procedures, output_hps, update_hps, _, in_ports, out_ports = new_translate_discrete(discrete_diagram)
+
+    # Add state := "wait" and prior := ?? to the initialization list
+    init_hps.extend([hp.Assign(var_name="state", expr=AConst("wait")),
+                     hp.Assign(var_name="prior", expr=AConst(prior))])
+    init_hps = hp.Sequence(*init_hps) if len(init_hps) >= 2 else init_hps[0]
+    # if state == "wait" then ...
+    cond_wait = RelExpr("==", AVar("state"), AConst("wait"))
+    hp_wait = list()
+    hp_wait.append(hp.ParaInputChannel(ch_name="dis", paras=[name]))
+    _inputs = [hp.ParaInputChannel(ch_name="inputs", paras=[name, port], var_name=in_var)
+               for port, in_var in in_ports.items()]
+    hp_wait.extend(_inputs)
+    hp_wait.extend([hp.Assign(var_name="t", expr=AConst(0)),
+                    hp.Assign(var_name="entered", expr=AConst(0)),
+                    hp.Assign(var_name="state", expr=AConst("ready"))])
+    hp_wait = hp.Sequence(*hp_wait)
+    # elif state == "ready" then ...
+    cond_ready = RelExpr("==", AVar("state"), AConst("ready"))
+    hp_ready = list()
+    hp_ready.append(hp.ParaOutputChannel(ch_name="reqProcessor", paras=[processor, name], expr=AVar("prior")))
+    hp_ready.append(hp.ODE_Comm(eqs=[("t", AConst(1))], constraint=RelExpr("<", AVar("t"), AConst(deadline)),
+                                io_comms=[(hp.ParaInputChannel(ch_name="run", paras=[processor, name]),
+                                           hp.Assign(var_name="state", expr=AConst("running")))]
+                                )
+                    )
+    hp_ready.append(hp.Condition(cond=RelExpr("==", AVar("t"), AConst(deadline)),
+                                 hp=hp.SelectComm((hp.ParaOutputChannel(ch_name="exit", paras=[processor, name]),
+                                                   hp.Assign(var_name="state", expr=AConst("wait"))),
+                                                  (hp.ParaInputChannel(ch_name="run", paras=[processor, name]),
+                                                   hp.Assign(var_name="state", expr=AConst("running")))
+                                                  )
+                                 )
+                    )
+    hp_ready = hp.Sequence(*hp_ready)
+    # elif state == "running"
+    cond_running = RelExpr("==", AVar("state"), AConst("running"))
+    #   entered == 0 -> ...
+    entered0 = RelExpr("==", AVar("entered"), AConst(0))
+    entered0_hp = list()
+    entered0_hp.append(hp.Assign(var_name="c", expr=AConst(0)))
+    #       The main hcsp of the thread is output_hps + updata_hps
+    entered0_hp.extend([output_hp.hp for output_hp in output_hps])
+    entered0_hp.extend([update_hp.hp for update_hp in update_hps])
+    entered0_hp.append(hp.Assign(var_name="entered", expr=AConst(1)))
+    entered0_hp = hp.Condition(cond=entered0, hp=hp.Sequence(*entered0_hp))
+    #   entered == 1 -> ...
+    entered1 = RelExpr("==", AVar("entered"), AConst(1))
+    entered1_hp = list()
+    entered1_hp.append(hp.ODE_Comm(eqs=[("t", AConst(1)), ("c", AConst(1))],
+                                   constraint=conj(RelExpr("<", AVar("c"), AConst(max_et)),
+                                                   RelExpr("<", AVar("t"), AConst(deadline))),
+                                   io_comms=[(hp.ParaInputChannel(ch_name="preempt", paras=[processor, name]),
+                                              hp.Assign(var_name="state", expr=AConst("ready")))
+                                             ]
+                                   )
+                       )
+    # state == "running" -> ...
+    #   if c == max_et then ...
+    cond_max_et = RelExpr("==", AVar("c"), AConst(max_et))
+    _outputs = [hp.ParaOutputChannel(ch_name="outputs", paras=[name, port], expr=AVar(out_var))
+                for port, out_var in out_ports.items()]
+    _outputs = hp.Sequence(*_outputs) if len(_outputs) >= 2 else _outputs[0]
+    to_wait = hp.SelectComm((hp.ParaInputChannel(ch_name="preempt", paras=[processor, name]),
+                             hp.Assign(var_name="state", expr=AConst("wait"))),
+                            (hp.ParaOutputChannel(ch_name="free", paras=[processor, name]),
+                             hp.Assign(var_name="state", expr=AConst("wait")))
+                            )
+    hp_max_et = hp.Sequence(_outputs, to_wait)
+    if reqResources:
+        # At present, we assume that BUS is the only required resource.
+        assert reqResources == "bus"
+        block_hp = hp.SelectComm((hp.ParaInputChannel(ch_name="preempt", paras=[processor, name]),
+                                  hp.Assign(var_name="state", expr=AConst("await"))),
+                                 (hp.ParaOutputChannel(ch_name="free", paras=[processor, name]),
+                                  hp.Assign(var_name="state", expr=AConst("await")))
+                                 )
+        hp_max_et = hp.SelectComm((hp.ParaOutputChannel(ch_name="reqBus", paras=[name]), hp_max_et),
+                                  (hp.ParaInputChannel(ch_name="block", paras=[name]), block_hp))
+    hp_running = hp.ITE(if_hps=[(cond_max_et, hp_max_et)], else_hp=to_wait)
+    hp_running = hp.Condition(cond=cond_running, hp=hp_running)
+    entered1_hp.append(hp_running)
+    entered1_hp = hp.Condition(cond=entered1, hp=hp.Sequence(*entered1_hp))
+    hp_running = hp.Sequence(entered0_hp, entered1_hp)
+    # else (state == "await")
+    unblock_hp = hp.ODE_Comm(eqs=[("t", AConst(1))], constraint=RelExpr("<", AVar("t"), AConst(deadline)),
+                             io_comms=[(hp.ParaInputChannel(ch_name="unblock", paras=[name]),
+                                        hp.Assign(var_name="state", expr=AConst("ready")))]
+                             )
+    time_out = hp.Condition(cond=RelExpr("==", AVar("t"), AConst(deadline)),
+                            hp=hp.Assign(var_name="state", expr=AConst("wait"))
+                            )
+    hp_await = hp.Sequence(unblock_hp, time_out)
+
+    # Get EXE_thread
+    # execute_thead = hp.HCSP()
+    if reqResources:
+        execute_thead = hp.ITE(if_hps=[(cond_wait, hp_wait), (cond_ready, hp_ready), (cond_running, hp_running)],
+                               else_hp=hp_await)
+    else:
+        execute_thead = hp.ITE(if_hps=[(cond_wait, hp_wait), (cond_ready, hp_ready)],
+                               else_hp=hp_running)
+    return HCSPModule(name=name, code=hp.Sequence(init_hps, hp.Loop(execute_thead)),
+                      outputs=set(out_ports.values()), procedures=procedures)
+    # return execute_thead
 
 
 def new_translate_continuous(diagram):
@@ -464,7 +610,7 @@ def new_translate_continuous(diagram):
 
 
 def new_get_hcsp(discrete_diagram, continuous_diagram):
-    dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = new_translate_discrete(discrete_diagram)
+    dis_init_hps, dis_procedures, output_hps, update_hps, sample_time, _, _ = new_translate_discrete(discrete_diagram)
     con_init_hps, equations, constraints, trig_procs, con_procedures = new_translate_continuous(continuous_diagram)
 
     # Initialization
