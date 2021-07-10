@@ -199,11 +199,11 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             else:
                 cmd_list.append(hcsp.Assign(assign_name, hp_expr))
             if arrays is not None:
-                for var in vars_set.union(name_set):
-                    if var in arrays:
-                        data=array_value[var]
-                        if data.scope == "OUTPUT_DATA":
-                            cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
+            #     for var in vars_set.union(name_set):
+            #         if var in arrays:
+            #             data=array_value[var]
+            #             if data.scope == "OUTPUT_DATA":
+            #                 cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
                 for var in name_set:
                     if var in arrays:
                         data=array_value[var]

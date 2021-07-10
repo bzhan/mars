@@ -46,6 +46,8 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
 
     # Extract and compare trace of events
     res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
+    print(33333)
+    print(res_trace)
     self.assertEqual(res_trace, trace)
 
     # Optional: print time series
@@ -139,7 +141,7 @@ class SimulatorTest(unittest.TestCase):
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, None)
-            self.assertEqual(info.callstack.top_pos(), pos2)
+            self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
     def testExecStep2(self):
@@ -164,7 +166,7 @@ class SimulatorTest(unittest.TestCase):
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()
             self.assertEqual(info.reason, reason)
-            self.assertEqual(info.callstack.top_pos(), pos)
+            self.assertEqual(info.pos, pos)
             self.assertEqual(info.state, state)
 
     def testExecProcess(self):
@@ -182,14 +184,14 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2, reason in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            while info.callstack.top_pos() is not None:
+            while info.pos is not None:
                 info.exec_step()
                 if info.reason is not None:
                     break
-            if info.callstack.top_pos() is None:
+            if info.pos is None:
                 info.reason = "end"
             self.assertEqual(info.reason, reason)
-            self.assertEqual(info.callstack.top_pos(), pos2)
+            self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
     def testExecInputComm(self):
@@ -204,7 +206,7 @@ class SimulatorTest(unittest.TestCase):
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_input_comm(Channel(ch_name), val)
-            self.assertEqual(info.callstack.top_pos(), pos2)
+            self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
     def testExecOutputComm(self):
@@ -221,7 +223,7 @@ class SimulatorTest(unittest.TestCase):
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             res = info.exec_output_comm(Channel(ch_name))
             self.assertEqual(res, val)
-            self.assertEqual(info.callstack.top_pos(), pos2)
+            self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
     def testExecDelay(self):
@@ -242,7 +244,7 @@ class SimulatorTest(unittest.TestCase):
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             info.exec_step()  # obtain delay value
             info.exec_delay(delay)
-            self.assertEqual(info.callstack.top_pos(), pos2)
+            self.assertEqual(info.pos, pos2)
             self.assertEqual(info.state, state2)
 
     def assertAlmostEqualState(self, st1, st2):
