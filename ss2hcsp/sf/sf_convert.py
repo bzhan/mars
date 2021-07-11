@@ -89,7 +89,8 @@ class SFConvert:
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
                     if tran.label is not None:
-                        tran.label=parser.transition_parser.parse(tran.label)
+                        if isinstance(tran.label,str):
+                            tran.label=parser.transition_parser.parse(tran.label)
                     if tran.label is not None and tran.label.event is not None and \
                         isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
@@ -117,7 +118,13 @@ class SFConvert:
                         self.absolute_time_events.add(ssid)
         self.implicit_events = sorted(list(self.implicit_events))
         self.absolute_time_events = sorted(list(self.absolute_time_events))
-
+        self.output_datas=list()
+        self.input_datas=list()
+        for vname, info in self.data.items():
+            if info.scope == "OUTPUT_DATA":
+                self.output_datas.append(info)  
+            if info.scope == "INPUT_DATA":
+                self.input_datas.append(info)
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
 
@@ -218,6 +225,14 @@ class SFConvert:
                     hcsp.Assign(
                         expr.AVar(tick_name),
                         expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+        if len(self.output_datas) >0:
+            for data in output_datas:
+                procs.append(hcsp.OutputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.InputChannel("ch_"+"response", expr.AVar("response")))  
+        if len(self.input_datas) >0:
+            for data in self.input_datas:
+                procs.append(hcsp.InputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.OutputChannel("ch_"+"response", expr.AConst(1)))
         return hcsp.Sequence(self.convert_cmd(state.du),*procs)
         # return self.convert_cmd(state.du)
 
@@ -299,7 +314,14 @@ class SFConvert:
         for state in reversed(self.get_chain_to_ancestor(dst, ancestor)):
             procs.append(hcsp.Var(self.entry_proc_name(state)))
         procs.append(self.get_rec_entry_proc(dst))
-            
+        if len(self.output_datas) >0:
+            for data in self.output_datas:
+                procs.append(hcsp.OutputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.InputChannel("ch_"+"response", expr.AVar("response")))  
+        if len(self.input_datas) >0:
+            for data in self.input_datas:
+                procs.append(hcsp.InputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.OutputChannel("ch_"+"response", expr.AConst(1)))
         return hcsp.seq(procs)
 
     def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
@@ -701,13 +723,27 @@ class SFConvert:
 
         self.data=data_dict
         # Initialize variables
+        
         for vname, info in self.data.items():
             # if info.value is not None:
             if info.value is not None and info.scope != "INPUT_DATA":
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
-            elif info.scope == "INPUT_DATA":
-                procs.append(hcsp.InputChannel("ch_"+str(vname), expr.AVar(vname)))
+                # if info.scope == "OUTPUT_DATA":
+                #     self.output_datas.append(info)
+                    # procs.append(hcsp.OutputChannel("ch_"+str(vname), expr.AVar(vname)))
+            # elif info.scope == "INPUT_DATA":
+            #     self.input_datas.append(info)
+                # procs.append(hcsp.InputChannel("ch_"+str(vname), expr.AVar(vname)))
+        if len(self.output_datas) >0:
+            for data in self.output_datas:
+                procs.append(hcsp.OutputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.InputChannel("ch_"+"response", expr.AVar("response")))   
+        if len(self.input_datas) >0:
+            for data in self.input_datas:
+               procs.append(hcsp.InputChannel("ch_"+str(data.name), expr.AVar(data.name)))
+            # procs.append(hcsp.InputChannel("ch_"+"response", expr.AVar("response")))  
+          
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
@@ -725,6 +761,12 @@ class SFConvert:
         # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
+        if len(self.output_datas) >0:
+            for data in self.output_datas:
+                procs.append(hcsp.OutputChannel("ch_"+str(data.name), expr.AVar(data.name))) 
+            procs.append(hcsp.InputChannel("ch_"+"response", expr.AVar("response")))  
+        if len(self.input_datas) >0:
+            procs.append(hcsp.OutputChannel("ch_"+"response", expr.AConst(1)))
 
         return hcsp.seq(procs)
 
@@ -733,13 +775,20 @@ class SFConvert:
 
     def get_iteration(self):
         procs = []
+        # for vname, info in self.data.items():
+        #     # if info.value is not None:
+        #     if info.scope == "INPUT_DATA":
+        #         procs.append(hcsp.InputChannel("ch_"+str(vname), expr.AVar(vname)))
 
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
 
-        
+        # for var,data in self.data.items():
+            
+        #     if data.scope == "OUTPUT_DATA":
+        #         procs.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
 
         # # Increment counter for implicit and absolute time events
         # for ssid in self.implicit_events:
@@ -763,9 +812,13 @@ class SFConvert:
     def get_global_vars(self):
         procs = []
         for data_store in self.data_stores:
+            out_comms=[]
             pre_act, val = self.convert_expr(data_store.value) 
-            procs.append(hcsp.Assign(data_store.dataStore_name, val))     
-        return hcsp.seq(procs)
+            procs.append(hcsp.Assign(data_store.dataStore_name, val)) 
+            out_comms.append((hcsp.InputChannel("ch_"+str(data_store.dataStore_name),expr.AVar(data_store.dataStore_name)),hcsp.Skip()))
+            out_comms.append((hcsp.OutputChannel("ch_"+str(data_store.dataStore_name),expr.AVar(data_store.dataStore_name)),hcsp.Skip()))    
+            procs.append(hcsp.SelectComm(*out_comms))
+        return hcsp.Sequence(*procs)
 
     def get_procs(self):
         """Returns the list of procedures."""
@@ -794,16 +847,19 @@ class SFConvert:
         # Initialization and iteration
         all_procs[self.init_name()] = self.get_init_proc()
         all_procs[self.exec_name()] = self.get_exec_proc()
-        # all_procs["init_global_vars"]=self.get_global_vars()
         return all_procs
 
     def get_toplevel_process(self):
         """Returns the top-level process for chart."""
         return hcsp.Sequence(
-            # hcsp.Var("init_global_vars"),
             hcsp.Var(self.init_name()),
             hcsp.Loop(self.get_iteration()))
     def get_data_store_process(self):
         return hcsp.Var("init_global_vars")
-   
+
+    def get_glable_proc(self):
+
+        all_procs = dict()
+        all_procs["init_global_vars"]=self.get_global_vars()
+        return all_procs
 

@@ -173,14 +173,23 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return hcsp.seq(lists)
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
-            
+            name_set=set()
             assign_name=convert_lname(cmd.lname)
             if isinstance(assign_name,list):
-                vars_set=hp_expr.get_vars().union(set(assign_name))
+                for i in range(0,len(assign_name)):
+                    name_set=name_set.union(assign_name[i].get_vars())
+                vars_set=hp_expr.get_vars()
             else:
-                vars_set=hp_expr.get_vars().union(assign_name.get_vars())
+                name_set=name_set.union(assign_name.get_vars())
+                vars_set=hp_expr.get_vars()
             cmd_list=list()
             cmd_list.append(pre_act)
+            if arrays is not None:
+                for var in vars_set:
+                    if var in arrays:
+                        data=array_value[var]
+                        if data.scope == "DATA_STORE_MEMORY_DATA":
+                            cmd_list.append(hcsp.InputChannel('ch_' + str(var), expr.AVar(var)))
             if isinstance(assign_name,list):
                 if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
                     for index in range(0,len(assign_name)):
@@ -190,11 +199,17 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             else:
                 cmd_list.append(hcsp.Assign(assign_name, hp_expr))
             if arrays is not None:
-                for var in vars_set:
+            #     for var in vars_set.union(name_set):
+            #         if var in arrays:
+            #             data=array_value[var]
+            #             if data.scope == "OUTPUT_DATA":
+            #                 cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
+                for var in name_set:
                     if var in arrays:
                         data=array_value[var]
-                        if data.scope == "OUTPUT_DATA":
+                        if data.scope == "DATA_STORE_MEMORY_DATA":
                             cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
+
             return hcsp.seq(cmd_list)
 
         elif isinstance(cmd, function.FunctionCall):

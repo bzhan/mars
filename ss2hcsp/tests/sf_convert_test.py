@@ -29,14 +29,31 @@ def run_test(self, filename, num_cycle, res, *,
     model_name = diagram.parse_xml()
     diagram.add_line_name()
     _, _, charts, _, _, _, _, _ = diagram.seperate_diagram()
-    chart = charts[0]
+    # chart = charts[0]
     # Optional: print chart
     if print_chart:
         print(chart)
 
-    converter = sf_convert.SFConvert(chart, chart_parameters=diagram.chart_parameters[chart.name])
-    procs = converter.get_procs()
-    hp = converter.get_toplevel_process()
+    # converter = sf_convert.SFConvert(chart, chart_parameters=diagram.chart_parameters[chart.name])
+    # procs = converter.get_procs()
+    # hp = converter.get_toplevel_process()
+
+    procs=dict()
+    hp_lists=list()
+    procs_list=list()
+    proc_lists=list()
+    DSM_proc=None
+    DSM_hp=None
+    if len(charts) >=1:
+        for chart in charts:
+            converter = sf_convert.SFConvert(chart, chart_parameters=diagram.chart_parameters[chart.name])
+            proc = converter.get_procs()
+#             DSM_proc=converter.get_data_store_process()
+            procs_list.append(proc)
+#             procs.update(proc)
+            hp_lists.append(converter.get_toplevel_process())
+#     hp_lists.append(DSM_proc)
+    hp=hcsp.Sequence(*hp_lists)
 
     # Optional: print HCSP program before simplification
     if print_before_simp:
@@ -70,7 +87,8 @@ def run_test(self, filename, num_cycle, res, *,
             print('\n' + name + " ::=\n" + pprint(proc))
 
     # Test result using simulator
-    run_simulator_test(self, [(procs, hp)], num_cycle, res)
+    # run_simulator_test(self, [(procs, hp)], num_cycle, res)
+    run_simulator_test(self,[(procs_list[i], hp_lists[i])for i in range(0,len(hp_lists)) ], num_cycle, res)
 
 
 class SFConvertTest(unittest.TestCase):
@@ -121,22 +139,27 @@ class SFConvertTest(unittest.TestCase):
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'])
+
     def testDirectedEvent2(self):
         run_test(self, "./Examples/Stateflow/tests/directed_event2_2018a.xml", 1,
-            ['log en_A1','log en_B1_A1','log en_C1_A1','log ex_C1_A1','log en_C2_A2','log ex_B1_A1','log en_B2_A2','log ex_A1','log en_A2',
-             'log ex_A2','log en_A1','log ex_B2_A2','log en_B1_A1','log ex_C2_A2','log en_C1_A1',
+            ['log en_A1', 'log en_B1_A1', 'log en_C1_A1', 'log ex_C1_A1', 'log en_C2_A2',
+             'log ex_B1_A1', 'log en_B2_A2', 'log ex_A1', 'log en_A2',
+             'log ex_A2', 'log en_A1', 'log ex_B2_A2', 'log en_B1_A1', 'log ex_C2_A2', 'log en_C1_A1',
              'delay 0.1'])
         
     def testDirectedEventSend(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1, ['log en_A1', 'log en_B1','log cond_act_B', 'log ex_B1',
-             'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1,
+            ['log en_A1', 'log en_B1', 'log cond_act_B', 'log ex_B1',
+             'log en_B2', 'log ex_A1', 'log en_A2', 'delay 0.1'])
 
     def testDirectedEventSend2(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1, ['log en_A1', 'log en_B2', 'log en_B21',
-             'log ex_B21', 'log ex_B2', 'log en_B4','log ex_A1','log en_A2','delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1,
+            ['log en_A1', 'log en_B2', 'log en_B21',
+             'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'])
         
     def testCopyofDirectedEvent(self):
-        run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,['log en_A1', 'log en_B1', 'log en_C1',
+        run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,
+            ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'])
@@ -158,21 +181,29 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log en_B', 'delay 0.1'])
         
     def testGraphicalFunction2(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1, ['log en_A', 'log set_mesg', 'log set_mesg',
-             'log en_B','delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1,
+            ['log en_A', 'log set_mesg', 'log set_mesg',
+             'log en_B', 'delay 0.1'])
 
     def testGraphicalFunction3(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function3_2018a.xml", 1,
             ['log en_A', 'log en_B', 'delay 0.1'])
+
     def testGraphicalFunction4(self):
         run_test(self, "./Examples/Stateflow/tests/graphical_function4_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'],print_before_simp=True)
-#     def testCommunityCharts(self):
-#         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",3,
-#            ['log en_add', 'log en_add', 'delay 0.1'],print_before_simp=True)
+            ['log en_A', 'log en_B', 'delay 0.1'])
+    
+    def testCommunityCharts(self):
+        run_test(self, "./Examples/Stateflow/tests/community_charts.xml", 8,
+           ['IO ch_first_SN 0', 'IO ch_last_SN 0', 'log en_A1', 'log en_A1_1', 'IO ch_response 1',
+            'log en_add', 'log con_act_chart1', 'log en_B1', 'log en_B1_1', 'IO ch_first_SN 0', 
+            'IO ch_last_SN 0', 'IO ch_response 1', 'log con_actB', 'log en_B', 'delay 0.1', 
+            'log du_b1', 'IO ch_first_SN 1'])
+
 #     def testDsmExample(self):
 #         run_test(self, "./Examples/Stateflow/tests/DSM_example.xml",1,
-#             ['log en_A', 'log du_A', 'delay 0.1'],print_before_simp=True)    
+#             ['log en_A', 'log du_A', 'delay 0.1'],print_before_simp=True)
+
     def testAfterRandom(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
@@ -182,13 +213,14 @@ class SFConvertTest(unittest.TestCase):
              'log en_B', 'log Picked 3', 'delay 1'])
 
     def testAfterTick(self):
-        random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
              'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1', 
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
              'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'],print_before_simp=True)
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+
+
 if __name__ == "__main__":
     unittest.main()
