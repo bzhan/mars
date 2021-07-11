@@ -39,7 +39,7 @@ from ss2hcsp.sf.sf_message import SF_Message,SF_Data
 from ss2hcsp.sf.sf_event import SF_Event
 from ss2hcsp.sl.discrete_buffer import Discrete_Buffer
 from ss2hcsp.sl.mux.mux import Mux
-from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory,DataStoreRead
+from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
 from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
@@ -496,11 +496,11 @@ class SL_Diagram:
                     value = 0
                 name = block.getAttribute("Name")
                 dataStoreName = get_attribute_value(block, "DataStoreName")
-                self.add_block(DataStoreMemory(name=name, value=value,dataStore_name=dataStoreName))
+                self.add_block(DataStoreMemory(name=name, value=value, dataStoreName=dataStoreName))
             elif block_type == "DataStoreRead":
-                name=block.getAttribute("Name")
-                dataStoreName=get_attribute_value(block,"DataStoreName")
-                self.add_block(DataStoreRead(name=name,dataStoreName=dataStoreName))
+                name = block.getAttribute("Name")
+                dataStoreName = get_attribute_value(block,"DataStoreName")
+                self.add_block(DataStoreRead(name=name, dataStoreName=dataStoreName))
             elif block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = eval(value) if value else 1
@@ -1168,7 +1168,7 @@ class SL_Diagram:
         return discrete_diagram, continuous_diagram
 
     def seperate_diagram(self):
-        """Seperate a diagram into discrete and continous subdiagrams."""
+        """Seperate a diagram into discrete and continuous subdiagrams."""
         # delete in and out-ports
         blocks_dict = {name: block for name, block in self.blocks_dict.items()
                        if block.type not in ['in_port', 'out_port']}
@@ -1176,12 +1176,17 @@ class SL_Diagram:
         sf_charts = [block for block in blocks_dict.values() if block.type == "stateflow"]
         for name in [block.name for block in sf_charts]:
             del blocks_dict[name]
+
+        # Data store memory
         dataStoreMemorys = [block for block in blocks_dict.values() if block.type == "DataStoreMemory"]
         for name in [block.name for block in dataStoreMemorys]:
             del blocks_dict[name]
+
+        # Data store read
         dataStoreReads = [block for block in blocks_dict.values() if block.type == "DataStoreRead"]
         for name in [block.name for block in dataStoreReads]:
             del blocks_dict[name]
+
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]

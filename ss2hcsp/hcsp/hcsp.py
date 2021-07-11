@@ -268,8 +268,8 @@ class Assign(HCSP):
     def __init__(self, var_name, expr):
         super(Assign, self).__init__()
         self.type = "assign"
-        assert isinstance(expr, (AExpr,str,int,function.AConst,function.ListExpr,function.ListExpr2,function.OpExpr))
-        if isinstance(var_name, (str,function.Var)):
+        assert isinstance(expr, (AExpr, str, int))
+        if isinstance(var_name, str):
             var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
             self.var_name = var_name

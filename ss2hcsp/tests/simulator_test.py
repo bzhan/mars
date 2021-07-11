@@ -40,7 +40,6 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
                 procedures[name] = Procedure(name, proc_hp)
             infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
 
-
     # Perform the simulation
     res = simulator.exec_parallel(infos, num_io_events=num_events)
 

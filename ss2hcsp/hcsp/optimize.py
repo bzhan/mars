@@ -147,6 +147,12 @@ def targeted_replace(hp, repls):
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
             return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
+        elif hp.type == 'select_comm':
+            new_io_comms = []
+            for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                new_out_hp = rec(out_hp, cur_pos + (i,))
+                new_io_comms.append((comm_hp, new_out_hp))
+            return hcsp.SelectComm(*new_io_comms)
         else:
             raise NotImplementedError
     return rec(hp, tuple())
@@ -181,6 +187,12 @@ def targeted_remove(hp, remove_locs):
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
             return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
+        elif hp.type == 'select_comm':
+            new_io_comms = []
+            for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                new_out_hp = rec(out_hp, cur_pos + (i,))
+                new_io_comms.append((comm_hp, new_out_hp))
+            return hcsp.SelectComm(*new_io_comms)
         else:
             raise NotImplementedError
     return rec(hp, tuple())
@@ -294,7 +306,20 @@ class HCSPAnalysis:
                 for exit_loc in self.infos[cur_pos].exits:
                     self.add_edge(exit_loc, cur_pos)
 
+            elif hp.type == 'select_comm':
+                for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                    rec(out_hp, cur_pos + (i,))
+
+                # Possible entry into each select
+                for i in range(len(hp.io_comms)):
+                    self.add_edge(cur_pos, cur_pos + (i,))
+
+                # Possible exit from each branch
+                for i in range(len(hp.io_comms)):
+                    self.infos[cur_pos].exits.extend(self.infos[cur_pos + (i,)].exits)
+
             else:
+                print(hp.type)
                 raise NotImplementedError
 
         rec(self.hp, tuple())
@@ -374,14 +399,14 @@ class HCSPAnalysis:
                     for prev_loc in reach_defs:
                         def_hp = self.infos[prev_loc].sub_hp
                         assert def_hp.type == 'assign'
-                        assigned.add(def_hp.expr)
+                        assigned.add((def_hp.var_name, def_hp.expr))
                     
                     # If there is a unique assigned value which is a constant,
                     # add to replacement list.
                     if len(assigned) != 1:
                         continue
-                    unique_assign = assigned.pop()
-                    if isinstance(unique_assign, AConst):
+                    unique_var_name, unique_assign = assigned.pop()
+                    if isinstance(unique_var_name, expr.AVar) and isinstance(unique_assign, AConst):
                         if loc not in repls:
                             repls[loc] = dict()
                         repls[loc][var] = unique_assign
