@@ -17,7 +17,6 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
-from ss2hcsp.aadl.get_modules import get_thread_module, get_bus_module
 
 
 def printTofile(path, content):
@@ -441,41 +440,6 @@ class SimTest(unittest.TestCase):
         discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
         result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
         printTofile(path=directory+xml_file[:-3]+"txt", content=result_hp.export())
-
-    def testTranslateThread(self):
-        directory = "./Examples/AADL/CCS/Simulink/"
-        xml_file = "comp_obs_pos_imp.xml"
-        # xml_file = "velo_voter_imp.xml"
-        # xml_file = "PI_ctr_imp.xml"
-        # xml_file = "img_acq_imp.xml"
-        diagram = SL_Diagram(location=directory + xml_file)
-        _ = diagram.parse_xml()
-        diagram.add_line_name()
-        thread_hp = get_thread_module(name="img_acq_imp",
-                                      ports={"obs_pos_radar": "in data", "proc_img": "in data",
-                                             "in_event0": "in event", "in_event1": "in event",
-                                             "obs_pos": "out data",
-                                             "out_event0": "out event", "out_event1": "out event"},
-                                      discrete_diagram=list(diagram.blocks_dict.values()),
-                                      deadline=0.01, max_et=0.045, prior=1,
-                                      reqResources="bus")
-        # print(thread_hp.export())
-
-    def testBus(self):
-        bus_module = get_bus_module(name="bus",
-                                    thread_ports={"th0": {"d00": "out data", "d01": "out data",
-                                                          "e00": "out event", "e01": "out event"},
-                                                  "th1": {"d10": "out data", "d11": "out data",
-                                                          "e10": "out event", "e11": "out event"}
-                                                  },
-                                    device_ports={"dv2": {"d20": "out data", "d21": "out data",
-                                                          "e20": "out event", "e21": "out event"},
-                                                  "dv3": {"d30": "out data", "d31": "out data",
-                                                          "e30": "out event", "e31": "out event"}
-                                                  },
-                                    latency=2
-                                    )
-        print(bus_module.export())
 
 
 if __name__ == "__main__":

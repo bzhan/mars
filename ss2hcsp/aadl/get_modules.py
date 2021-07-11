@@ -1,5 +1,5 @@
-from ss2hcsp.sl.get_hcsp import new_translate_discrete
-from ss2hcsp.hcsp.expr import AConst, AVar, RelExpr, conj
+from ss2hcsp.sl.get_hcsp import new_translate_discrete, new_translate_continuous
+from ss2hcsp.hcsp.expr import AConst, AVar, RelExpr, conj, disj, true_expr
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.module import HCSPModule
 
@@ -272,3 +272,72 @@ def get_bus_module(name, thread_ports, device_ports, latency):
 
     return HCSPModule(name="BUS_"+name, code=bus_hcsp, procedures=procesures)
 
+
+def get_databuffer_module(recv_num=1):
+    init_hp = hp.Assign(var_name="data", expr=AVar("init_value"))
+    paras = ["send", "out_port"]
+    io_comms = [(hp.ParaInputChannel(ch_name="outputs", paras=paras[-2:], var_name="data"), hp.Skip())]
+    for i in range(recv_num):
+        paras.append("recv"+str(i))
+        paras.append("in_port"+str(i))
+        io_comms.append((hp.ParaOutputChannel(ch_name="inputs", paras=paras[-2:], expr=AVar("data")), hp.Skip()))
+    paras.append("init_value")
+    transfer = hp.Loop(hp.ODE_Comm(eqs=[("data", AConst(0))], io_comms=io_comms, constraint=true_expr))
+
+    return HCSPModule(name="DataBuffer", params=paras, code=hp.Sequence(init_hp, transfer))
+
+
+def get_continuous_module(name, ports, continuous_diagram):
+    """
+    ports: {device: (port_name, port_type)}
+    """
+    init_hps, equations, constraints, _, _ = new_translate_continuous(continuous_diagram)
+    assert isinstance(init_hps[0], hp.Assign) and init_hps[0].var_name.name == "tt" and init_hps[0].expr.value == 0
+    assert equations[0][0] == "tt" and equations[0][1].value == 1
+    init_hps = init_hps[1:]
+    equations = equations[1:]
+
+    in_comms = list()
+    out_comms = list()
+    recv_flags = list()
+    send_flags = list()
+    for device, (port_name, port_type) in ports.items():
+        if port_type == "in data":
+            recv_flags.append(device + "_" + port_name)
+            init_hps.append(hp.Assign(var_name=recv_flags[-1], expr=AConst(0)))
+            in_comms.append((hp.ParaInputChannel(ch_name="outputs", paras=[device, port_name], var_name=port_name),
+                             hp.Assign(var_name=recv_flags[-1], expr=AConst(1))))
+        elif port_type == "out data":
+            send_flags.append(device + "_" + port_name)
+            init_hps.append(hp.Assign(var_name=send_flags[-1], expr=AConst(0)))
+            out_comms.append((hp.ParaOutputChannel(ch_name="inputs", paras=[device, port_name], expr=AVar(port_name)),
+                              hp.Assign(var_name=send_flags[-1], expr=AConst(1))))
+        else:
+            raise RuntimeError("Not implemented!")
+    init_hps = hp.Sequence(*init_hps) if len(init_hps) >= 2 else init_hps[0]
+
+    assert send_flags
+    assert len(send_flags) == len(out_comms)
+    send_hp = out_comms[0][0]
+    if len(send_flags) >= 2:
+        loop_conds = [RelExpr("==", AVar(send_flag), AConst(0)) for send_flag in send_flags]
+        loop_conds = disj(*loop_conds)
+        send_hp = hp.Loop(constraint=loop_conds, hp=hp.SelectComm(*out_comms))
+
+    assert recv_flags
+    assert len(recv_flags) == len(in_comms)
+    recv_hp = in_comms[0][0]
+    if len(recv_flags) >= 2:
+        loop_conds = [RelExpr("==", AVar(recv_flag), AConst(0)) for recv_flag in recv_flags]
+        loop_conds = disj(*loop_conds)
+        recv_hp = hp.Loop(constraint=loop_conds, hp=hp.SelectComm(*in_comms))
+
+    io_comms = list()
+    io_comms.extend([(in_comm, hp.Skip()) for in_comm, _ in in_comms])
+    io_comms.extend([(out_comm, hp.Skip()) for out_comm, _ in out_comms])
+    ode = hp.ODE_Comm(eqs=equations, constraint=conj(*constraints), io_comms=io_comms)
+    ode_loop = hp.Loop(ode)
+
+    code = hp.Sequence(init_hps, send_hp, recv_hp, ode_loop)
+
+    return HCSPModule(name=name, code=code, outputs=[out_comm.expr.name for out_comm, _ in out_comms])
