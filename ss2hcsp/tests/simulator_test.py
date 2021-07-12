@@ -40,12 +40,13 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
                 procedures[name] = Procedure(name, proc_hp)
             infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
 
-
     # Perform the simulation
     res = simulator.exec_parallel(infos, num_io_events=num_events)
 
     # Extract and compare trace of events
     res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
+    print(3333)
+    print(res_trace)
     self.assertEqual(res_trace, trace)
 
     # Optional: print time series

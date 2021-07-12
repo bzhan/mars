@@ -189,7 +189,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     if var in arrays:
                         data=array_value[var]
                         if data.scope == "DATA_STORE_MEMORY_DATA":
-                            cmd_list.append(hcsp.InputChannel('ch_' + str(var), expr.AVar(var)))
+                            cmd_list.append(hcsp.InputChannel('read_' + str(var), expr.AVar(var)))
             if isinstance(assign_name,list):
                 if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
                     for index in range(0,len(assign_name)):
@@ -208,8 +208,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     if var in arrays:
                         data=array_value[var]
                         if data.scope == "DATA_STORE_MEMORY_DATA":
-                            cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
-
+                            cmd_list.append(hcsp.OutputChannel('write_' + str(var), expr.AVar(var)))
             return hcsp.seq(cmd_list)
 
         elif isinstance(cmd, function.FunctionCall):
