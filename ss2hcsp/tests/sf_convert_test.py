@@ -200,10 +200,11 @@ class SFConvertTest(unittest.TestCase):
             'log con_actB', 'log en_B', 'log du_b1', 'IO ch_first_SN 1', 'IO ch_last_SN 2'])
 
     def testDsmExample(self):
-        run_test(self, "./Examples/Stateflow/tests/DSM_example.xml", 7,
-            ['IO read_myglobal [0,0]', 'log en_A1', 'IO read_myglobal [0,0]', 'log du_A1',
-             'IO write_myglobal [0,0]', 'IO read_myglobal [0,0]', 'log en_A',
-             'IO read_myglobal [0,0]', 'log du_A', 'IO write_myglobal [0,0]', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/DSM_example.xml", 9,
+            ['IO read_myglobal [0,0]', 'log en_A1', 'IO write_myglobal [0,4]', 'IO read_myglobal [0,4]',
+             'log du_A1', 'IO write_myglobal [0,4]', 'IO read_myglobal [0,4]', 'log en_A',
+             'IO write_myglobal [4,4]', 'IO read_myglobal [4,4]', 'log du_A', 'IO write_myglobal [4,4]',
+             'delay 0.1'])
 
     def testAfterRandom(self):
         random.seed(0)  # for repeatability

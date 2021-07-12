@@ -731,6 +731,11 @@ class SFConvert:
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
 
+        # Write data store variable
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.OutputChannel("write_"+vname, expr.AVar(vname)))
+
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
