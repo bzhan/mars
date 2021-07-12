@@ -8,12 +8,40 @@ begin
 
   next_v := veh_v+des_a*period;
   next_s := veh_pos+veh_v*period+0.5*des_a*period*period;
-  v_limit := protected_curve([obs_pos, next_s, max_v, min_a]);
+
+  # compute protected_curve (v_limit)
+  if obs_pos <= 0 then
+    v_limit := max_v
+  else
+    distance := obs_pos - next_s;
+    if distance > max_v * max_v / (-2 * min_a) then
+      v_limit := max_v
+    elif distance >= 0 then
+      v_limit := sqrt(-2 * min_a * distance)
+    else
+      v_limit := 0
+    endif
+  endif;
+
   if next_v <= v_limit then
     cmd := des_a
   else
     next_s := veh_pos+veh_v*period;
-    v_limit := protected_curve([obs_pos, next_s, max_v, min_a]);
+
+    # compute protected_curve (v_limit)
+    if obs_pos <= 0 then
+      v_limit := max_v
+    else
+      distance := obs_pos - next_s;
+      if distance > max_v * max_v / (-2 * min_a) then
+        v_limit := max_v
+      elif distance >= 0 then
+        v_limit := sqrt(-2 * min_a * distance)
+      else
+        v_limit := 0
+      endif
+    endif;
+
     if veh_v <= v_limit then
       cmd := 0
     else

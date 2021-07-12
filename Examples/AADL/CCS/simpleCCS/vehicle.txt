@@ -13,9 +13,7 @@ outputs["emerg_imp"]["cmd"]?cmd;
 (
   <veh_pos_dot = veh_v, veh_v_dot = cmd & true> |> [] (
     inputs["emerg_imp"]["veh_v"]!veh_v -->
-      skip,
-    inputs["emerg_imp"]["veh_pos"]!veh_pos -->
-      skip,
+      inputs["emerg_imp"]["veh_pos"]!veh_pos,
     outputs["emerg_imp"]["cmd"]?cmd -->
       skip
   )
