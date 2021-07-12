@@ -832,6 +832,7 @@ class SFConvert:
         # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
+# <<<<<<< HEAD
         # in_chs = []
         # for port_id, in_var in self.chart.port_to_in_var.items():
         #     line = self.chart.dest_lines[port_id]
@@ -858,6 +859,14 @@ class SFConvert:
         #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
         #             procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
         self.get_input_output_data(procs)
+# =======
+
+#         # Write data store variable
+#         for vname, info in self.data.items():
+#             if info.scope == "DATA_STORE_MEMORY_DATA":
+#                 procs.append(hcsp.OutputChannel("write_"+vname, expr.AVar(vname)))
+
+# >>>>>>> 4f57bee9ecbb6b84e6524b6954c122d5add62148
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
