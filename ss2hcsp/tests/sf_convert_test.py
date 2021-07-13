@@ -190,22 +190,23 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log en_B', 'delay 0.1'],print_before_simp=True)
     def testCommunityCharts(self):
         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
-           ['IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'log en_add', 
-            'log en_A1', 'log en_A1_1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1',
-            'IO ch_response_x1_0 1', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1',
-            'log en_B1_1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 
-            'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 1',
-            'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B', 
-            'log du_b1', 'IO ch_x0_0 1', 'IO ch_x1_0 2'],print_before_simp=True)
+           ['IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'log en_add',
+            'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log en_A1', 'log en_A1_1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 
+            'log con_actB', 'log en_B', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'log con_act_chart1', 'log en_B1', 'log en_B1_1', 
+            'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'IO ch_x0_0 2', 'IO ch_x1_0 1', 
+            'log du_b1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B',
+            'IO ch_x0_0 1', 'IO ch_x1_0 2'],print_before_simp=True)
         
     def testCommunityCharts1(self):
-        run_test(self, "./Examples/Stateflow/tests/community_charts1.xml",10,
-           ['IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 
-            'IO ch_response_x1_0 1', 'log en_add', 
-            'log en_A1', 'log en_A1_1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 
-            'IO ch_x0_0 0', 'IO ch_x1_0 0'],print_before_simp=True)
+        run_test(self, "./Examples/Stateflow/tests/community_charts1.xml",31,
+          ['IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 
+           'log en_add', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log en_A1', 'log en_A1_1',
+           'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'log con_actB', 'log en_B', 'IO ch_x2_0 1', 'IO ch_x3_0 1',
+           'IO ch_x0_0 1', 'IO ch_x1_0 1', 'log con_act_chart1', 'log en_B1', 'log en_B1_1', 'IO ch_response_x0_0 1', 
+           'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2',
+           'IO ch_x1_0 1', 'log du_b1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B',
+           'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 2', 'log du_b1', 'IO ch_response_x0_0 1'],print_before_simp=True)
     def testDsmExample(self):
-# <<<<<<< HEAD
         run_test(self, "./Examples/Stateflow/tests/DSM_example.xml",20,
            ['IO read_myglobal [0,0]', 'log en_A1', 'IO write_myglobal [0,4]', 'log du_A1', 
             'IO read_myglobal [0,4]', 'log en_A', 'IO write_myglobal [3,4]', 'log du_A', 
@@ -214,14 +215,6 @@ class SFConvertTest(unittest.TestCase):
             'IO read_myglobal [5,4]', 'delay 0.1', 'log du_A', 'log du_A1', 'IO read_myglobal [5,4]', 
             'IO write_myglobal [6,4]', 'IO read_myglobal [6,4]', 'delay 0.1', 'log du_A', 'log du_A1', 
             'IO read_myglobal [6,4]', 'IO write_myglobal [7,4]', 'IO read_myglobal [7,4]', 'delay 0.1'],print_before_simp=True)  
-# =======
-#         run_test(self, "./Examples/Stateflow/tests/DSM_example.xml", 9,
-#             ['IO read_myglobal [0,0]', 'log en_A1', 'IO write_myglobal [0,4]', 'IO read_myglobal [0,4]',
-#              'log du_A1', 'IO write_myglobal [0,4]', 'IO read_myglobal [0,4]', 'log en_A',
-#              'IO write_myglobal [4,4]', 'IO read_myglobal [4,4]', 'log du_A', 'IO write_myglobal [4,4]',
-#              'delay 0.1'])
-
-# >>>>>>> 4f57bee9ecbb6b84e6524b6954c122d5add62148
     def testAfterRandom(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
@@ -238,7 +231,6 @@ class SFConvertTest(unittest.TestCase):
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
              'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'],print_before_simp=True)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -759,3 +759,29 @@ class DirectName:
 
     def __repr__(self):
         return "str(%s)" %(".".join(repr(arg) for arg in self.exprs))
+
+
+class StateInnerOperate:
+    def __init__(self,name,op):
+        self.name=name
+        self.op=op
+    def __str__(self):
+        return self.name+":"+self.op
+    def __repr__(self):
+        return "StateInnerOperate(%s,%s)" %(self.name,self.op)
+class StateOperate:
+    def __init__(self,name,en_op,du_op,ex_op):
+        self.name=name
+        self.en_op=en_op
+        self.du_op=du_op
+        self.ex_op=ex_op
+    def __str__(self):
+        state_name=self.name+"\n"
+        state_en_op=self.en_op.name+" : "+self.op+"\n"
+        state_du_op=self.du_op.name+" : "+self.op+"\n"
+        state_ex_op=self.ex_op.name+" : "+self.op+"\n"
+        return state_name+state_en_op+state_du_op+state_ex_op
+
+    def __repr__(self):
+        return "StateOperate(%s,%s,%s,%s)" %(self.name,self.en_op,self.du_op,self.ex_op)
+

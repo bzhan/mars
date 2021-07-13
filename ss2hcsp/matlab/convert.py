@@ -67,11 +67,8 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
                     return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(arg)) for arg in e.exprs])
                 elif len(e.exprs) ==2:
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1])))
-                # return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(ex)) for ex in e.exprs])
             elif procedures is not None and e.fun_name in procedures:
 
-                # if len(e.exprs) > 0:
-                    # raise NotImplementedError
                 proc = procedures[e.fun_name]
                 if isinstance(proc, GraphicalFunction):
                     if len(e.exprs) > 0:
@@ -153,7 +150,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             elif len(lname.exprs) ==2:
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1]))
         elif isinstance(lname, function.ListExpr):
-            # return expr.ListExpr(*[convert_lname(arg) for arg in lname.args])
             return [convert_lname(arg) for arg in lname.args]
         else:
             raise NotImplementedError
@@ -199,11 +195,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             else:
                 cmd_list.append(hcsp.Assign(assign_name, hp_expr))
             if arrays is not None:
-            #     for var in vars_set.union(name_set):
-            #         if var in arrays:
-            #             data=array_value[var]
-            #             if data.scope == "OUTPUT_DATA":
-            #                 cmd_list.append(hcsp.OutputChannel('ch_' + str(var), expr.AVar(var)))
                 for var in name_set:
                     if var in arrays:
                         data=array_value[var]
@@ -222,17 +213,13 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     if isinstance(direct_name,function.DirectName):
                         exprs=direct_name.exprs
                         event_name=get_directed_event(exprs,event)
-                        # state_name=str(exprs[-1])
-                        # event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
                     elif isinstance(direct_name,function.Var):
-                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))
-                        # _,state_name=conv_expr(direct_name)             
+                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))           
                 elif len(args) == 1:
                     if isinstance(args[0],function.DirectName):
                         exprs=args[0].exprs
                         event,state_name=exprs[-1],exprs[:len(exprs)-1]
                         event_name=get_directed_event(state_name,event)
-                # event_name=function.DirectedEvent(str(state_name),function.BroadcastEvent(str(event)))
                 return raise_event(event_name)
             else:
                 assert procedures is not None and cmd.func_name in procedures, \

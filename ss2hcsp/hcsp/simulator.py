@@ -851,7 +851,6 @@ class SimInfo:
         """
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars, self.procedures)
-
         if cur_hp.type == "skip":
             self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
