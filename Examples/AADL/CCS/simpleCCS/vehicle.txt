@@ -6,15 +6,15 @@ begin
 veh_v := init_v;
 veh_pos := init_pos;
 
-inputs["emerg_imp"]["veh_v"]!veh_v;
-inputs["emerg_imp"]["veh_pos"]!veh_pos;
-outputs["emerg_imp"]["cmd"]?cmd;
+inputs_veh_v!veh_v;
+inputs_veh_pos!veh_pos;
+outputs_cmd?cmd;
 
 (
   <veh_pos_dot = veh_v, veh_v_dot = cmd & true> |> [] (
-    inputs["emerg_imp"]["veh_v"]!veh_v -->
-      inputs["emerg_imp"]["veh_pos"]!veh_pos,
-    outputs["emerg_imp"]["cmd"]?cmd -->
+    inputs_veh_v!veh_v -->
+      inputs_veh_pos!veh_pos,
+    outputs_cmd?cmd -->
       skip
   )
 )**

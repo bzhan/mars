@@ -3,11 +3,11 @@
 module EXE_emerg_imp(max_v, min_a, des_a, max_et, period, obs_pos):
 begin
 (
-  inputs["emerg_imp"]["veh_v"]?veh_v;
-  inputs["emerg_imp"]["veh_pos"]?veh_pos;
+  inputs_veh_v?veh_v;
+  inputs_veh_pos?veh_pos;
 
-  next_v := veh_v+des_a*period;
-  next_s := veh_pos+veh_v*period+0.5*des_a*period*period;
+  next_v := veh_v+des_a*(period+max_et);
+  next_s := veh_pos+veh_v*(period+max_et)+0.5*des_a*(period+max_et)*(period+max_et);
 
   # compute protected_curve (v_limit)
   if obs_pos <= 0 then
@@ -26,7 +26,7 @@ begin
   if next_v <= v_limit then
     cmd := des_a
   else
-    next_s := veh_pos+veh_v*period;
+    next_s := veh_pos+veh_v*(period+max_et);
 
     # compute protected_curve (v_limit)
     if obs_pos <= 0 then
@@ -51,7 +51,7 @@ begin
 
   wait(max_et);
 
-  outputs["emerg_imp"]["cmd"]!cmd;
+  outputs_cmd!cmd;
 
   wait(period-max_et)
 )**
