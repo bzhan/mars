@@ -39,6 +39,17 @@ definition T :: char where "T = CHR ''k''"
 definition Command_a :: char where "Command_a = CHR ''n''"
 
 
+definition Train :: proc where
+  "Train =
+      Cm (''Train2Control''[!](\<lambda>s. s V));
+      Cm (''Train2Control''[!](\<lambda>s. s S));
+      Cm (''Control2Train''[?]A);
+    Rep (
+      Interrupt (ODE ((\<lambda>_ _. 0)(S := (\<lambda>s. s V),
+                           V := (\<lambda>s. s A)))) (\<lambda> s. True)
+      [(''Train2Control''[!](\<lambda>s. s V), Cm (''Train2Control''[!](\<lambda>s. s S));Cm (''Control2Train''[?]A))]
+    )"
+
 
 
 definition fs :: "real \<Rightarrow> real" where
@@ -93,6 +104,36 @@ lemma fs_at_most_limit:
     subgoal using V_limit by auto
     done
 
+
+lemma fs_prop1:
+  assumes "v \<le> fs(s)"
+    and "v \<ge> 0"
+    and "s \<le> Stop_point"
+  shows "v^2 \<le> 2 * A_minus * (Stop_point - s)"
+proof-
+  have 1: "v^2 \<le> 2 * A_minus * (Stop_point - s)" if "Stop_point - s \<ge> Pull_curve_max_d"
+  proof-
+    have 11: "v\<le>V_limit"
+      using assms(1) that unfolding fs_def Let_def by auto
+    then have 12: "v^2\<le>V_limit^2"
+      using assms(2) V_limit by simp
+    have 13:" V_limit^2 \<le>2 * A_minus * (Stop_point - s)" 
+      using that A_minus unfolding Pull_curve_max_d_def
+      by (auto simp add: power2_eq_square field_simps)
+    then show ?thesis using 12 by auto
+  qed
+  have 2:"v^2 \<le> 2 * A_minus * (Stop_point - s)" if "Stop_point - s < Pull_curve_max_d"
+  proof-
+    have 21:"v \<le> Pull_curve_coeff * sqrt(Stop_point - s)"
+      using assms that unfolding fs_def by auto
+    then show ?thesis using assms A_minus unfolding Pull_curve_coeff_def 
+      by (metis power2_eq_square real_sqrt_le_iff real_sqrt_mult real_sqrt_pow2)
+  qed
+  show ?thesis using 1 2 assms 
+    by linarith
+qed
+
+
 fun loop_once :: "real \<times> real \<Rightarrow> real \<times> real" where
   "loop_once (s, v) = 
     (let a = com_a s v in
@@ -113,8 +154,6 @@ proof -
       using that unfolding com_a_def by auto
     have 2:"(s', v') = (s + v * Period + A_plus * Period\<^sup>2 / 2,v + A_plus * Period )" 
       using assms 1   that loop_once.simps by auto
-    have 21:"s' = s + v * Period + A_plus * Period\<^sup>2 / 2"
-      using 2 by auto
     have 3:"v' \<le> fs s'" 
       using that 2
       unfolding fs_def Let_def by auto
@@ -142,8 +181,7 @@ proof -
           by(auto simp add: power2_eq_square)
         then have "s + v * Period + A_plus * Period\<^sup>2/2 \<le> Stop_point"
           using assms by auto
-        then show ?thesis using 
-            assms 21 by auto 
+        then show ?thesis using 2 apply auto done
       qed
     qed
      show ?thesis using 3 4 by auto
@@ -157,7 +195,7 @@ proof -
     have 3:"v' \<le> fs s'" 
       using 2 that
       unfolding fs_def Let_def by auto
-    have 5:"s' \<le> Stop_point" 
+    have 4:"s' \<le> Stop_point" 
     proof-
       have "v \<le> 0" if "s' > Stop_point"
         using 2 3 unfolding fs_def Let_def 
@@ -165,25 +203,23 @@ proof -
       then have"s\<ge>s'" if "s' > Stop_point" using 2 that
         by (smt Period old.prod.inject zero_less_mult_pos2)
       then show ?thesis using assms 
-        using leI 
+        using leI 2   by auto
     qed
-    then show ?thesis using 3 4 5 by auto
+    then show ?thesis using 3 4  by auto
   qed
-  have case3:"v' \<le> fs s' \<and> v' \<ge> 0 \<and> s' \<le> Stop_point" if cond3:
+  have case3:"v' \<le> fs s'  \<and> s' \<le> Stop_point" if cond3:
     "\<not> v + A_plus * Period \<le> fs (s + v * Period + A_plus * Period\<^sup>2 / 2)"
-    "\<not> v \<le> fs (s + v * Period)" "v>0"
+    "\<not> v \<le> fs (s + v * Period)" 
   proof-
     have 1: "com_a s v = -A_minus" using that unfolding com_a_def by auto
-    have case31: "v' \<le> fs s' \<and> v' \<ge> 0 \<and> s' \<le> Stop_point" if cond31:"v -A_minus * Period >0"
-    proof-
-      have 2:"(s',v') = (s + v * Period - A_minus * Period\<^sup>2 / 2, v - A_minus  * Period)"
-        using assms 1 cond31 cond3 loop_once.simps by auto
-      have 3:"s' \<le> Stop_point"
+    have 2:"(s',v') = (s + v * Period - A_minus * Period\<^sup>2 / 2, v - A_minus  * Period)"
+        using assms 1  cond3 loop_once.simps by auto
+    have 31:"s' \<le> Stop_point" if "v\<ge>0"
         using 2 apply auto
         subgoal premises pre
         proof-
           have "v^2 \<le> 2 * A_minus * (Stop_point - s)"
-              using fs_prop1 assms by auto
+              using fs_prop1 assms that by auto
           then have "v^2 - 2 * A_minus * v * Period + A_minus^2 * Period^2 \<le> 
                       2 * A_minus * (Stop_point - s) - 2 * A_minus * v * Period + A_minus^2 * Period^2"
             by auto
@@ -192,13 +228,26 @@ proof -
             by (auto simp add: algebra_simps power2_eq_square)
           then have "(v - A_minus * Period)^2 \<le> 2 * A_minus * (Stop_point - (s + v * Period - 1/2 * A_minus * Period^2))"
             by (auto simp add: algebra_simps power2_eq_square)
-          then have " 2 * A_minus * (Stop_point - (s + v * Period - 1/2 * A_minus * Period^2)) > 0"
-            by (smt that zero_less_power)
-          then show ?thesis using A_minus 
-            by (smt mult_cancel_right1 mult_le_0_iff times_divide_eq_left)
-        qed
-        done
-       have 4:"v' \<le> fs s'"
+          then have " 2 * A_minus * (Stop_point - (s + v * Period - 1/2 * A_minus * Period^2)) \<ge> 0"
+            by (smt zero_le_power2)
+          then have "(Stop_point - (s + v * Period - 1/2 * A_minus * Period^2)) \<ge> 0"
+            by (metis A_minus less_eq_real_def linordered_ab_group_add_class.double_add_le_zero_iff_single_add_le_zero mult_less_cancel_right not_one_le_zero not_real_square_gt_zero one_add_one zero_le_mult_iff zero_less_mult_iff)
+          then show ?thesis by auto
+            qed
+            done
+          have 32:"s' \<le> Stop_point" if "v<0"
+            using 2 apply auto
+            apply (subgoal_tac"s \<le> Stop_point")
+             prefer 2 using assms apply auto
+            apply (subgoal_tac"v * Period \<le> 0")
+            prefer 2 using that Period 
+             apply (smt cond3(2) fs_at_least_zero)
+            apply (subgoal_tac" A_minus * Period\<^sup>2 / 2 \<ge> 0")
+             prefer 2
+            subgoal
+              using A_minus by(auto simp add:power2_eq_square)
+            by linarith
+       have 41:"v' \<le> fs s'" if "v\<ge>0"
         using 2
         unfolding fs_def Let_def apply auto
         subgoal using assms(1) fs_at_most_limit A_minus Period 
@@ -206,7 +255,7 @@ proof -
         subgoal premises pre
         proof-
           have "v^2 \<le> 2 * A_minus * (Stop_point - s)"
-            using fs_prop1 assms by auto
+            using fs_prop1 assms that by auto
           then have "v^2 - 2 * A_minus * v * Period + A_minus^2 * Period^2 \<le> 
                       2 * A_minus * (Stop_point - s) - 2 * A_minus * v * Period + A_minus^2 * Period^2"
             by auto
@@ -217,47 +266,57 @@ proof -
             by (auto simp add: algebra_simps power2_eq_square)
           then have a:"sqrt((v - A_minus * Period)^2) \<le> sqrt(2 * A_minus * (Stop_point - (s + v * Period - 1/2 * A_minus * Period^2)))"
             using real_sqrt_le_iff by blast
-          have b:"(v - A_minus * Period) = sqrt((v - A_minus * Period)^2)" 
-            using cond31 by auto
+          have b:"(v - A_minus * Period) <= sqrt((v - A_minus * Period)^2)" 
+            by auto
           have c:"sqrt(2 * A_minus * (Stop_point - (s + v * Period - 1/2 * A_minus * Period^2))) = sqrt(2 * A_minus) * sqrt((Stop_point - (s + v * Period - 1/2 * A_minus * Period^2)))"
             by (simp add: real_sqrt_mult)
           show ?thesis using a b c unfolding Pull_curve_coeff_def by auto
         qed
         subgoal using assms fs_at_most_limit A_minus Period 
           using Pull_curve_max_d_ge_zero by linarith
-        subgoal using 3 by auto
+        subgoal using 31 that by auto
         done
-      have 5:"v'\<ge>0"
-        using 2 cond31 by auto
-      show ?thesis using 3 4 5 by auto
+      have 42:"v' \<le> fs s'" if "v<0"
+        using 2
+        unfolding fs_def Let_def apply auto
+        subgoal using assms(1) fs_at_most_limit A_minus Period 
+          by (smt mult_diff_mult real_mult_less_iff1)
+        subgoal 
+          apply(subgoal_tac "s + v * Period - A_minus * Period\<^sup>2 / 2  \<le> s")
+           prefer 2 subgoal
+           apply (subgoal_tac"s \<le> Stop_point")
+             prefer 2 using assms apply auto
+            apply (subgoal_tac"v * Period \<le> 0")
+            prefer 2 using that Period 
+             apply (smt cond3(2) fs_at_least_zero)
+            apply (subgoal_tac" A_minus * Period\<^sup>2 / 2 \<ge> 0")
+             prefer 2
+            subgoal
+              using A_minus by(auto simp add:power2_eq_square)
+            apply linarith
+            done
+            apply(subgoal_tac" \<not> Pull_curve_max_d \<le> Stop_point - s")
+             prefer 2
+             apply simp
+            apply(subgoal_tac"v \<le> Pull_curve_coeff * sqrt (Stop_point - s)")
+            prefer 2
+            subgoal using assms unfolding fs_def Let_def by auto
+            apply(subgoal_tac"v - A_minus * Period \<le> v")
+            prefer 2 subgoal using A_minus 
+              by (smt cond3(2) fs_at_least_zero that)
+            apply(subgoal_tac"Pull_curve_coeff * sqrt (Stop_point - s)\<le>Pull_curve_coeff * sqrt (Stop_point - (s + v * Period - A_minus * Period\<^sup>2 / 2))")
+             apply linarith
+            by simp
+          subgoal using assms fs_at_most_limit A_minus Period 
+            using Pull_curve_max_d_ge_zero by linarith
+          subgoal using that A_minus 
+            using "32" by auto
+          done
+       show ?thesis using 31 32 41 42 
+         using leI by blast
     qed
-    have case32: "v' \<le> fs s' \<and> v' \<ge> 0 \<and> s' \<le> Stop_point" if cond32:"v -A_minus * Period \<le> 0"
-    proof-
-      have 2:"(s',v') = (s + v^2/(2*A_minus), 0)"
-        using 1 assms cond32 loop_once.simps by auto
-      have 3:"s' \<le> Stop_point"
-      proof-
-        have "v\<^sup>2 \<le> 2 * A_minus * (Stop_point - s)"
-          using 2 assms fs_prop1 by auto
-        then have "v\<^sup>2 /(2* A_minus) \<le> Stop_point - s"
-          using A_minus
-          by (smt divide_divide_eq_left divide_less_cancel real_divide_square_eq)
-        then have "s + v\<^sup>2 /(2* A_minus) \<le> Stop_point"
-          by auto
-        then show ?thesis
-          using 2 by auto
-      qed
-      have 4: "v'\<le>fs s'"
-        using 2 3 fs_at_least_zero by auto
-      have 5: "v'\<ge> 0"
-        using 2 by auto
-      show ?thesis using 3 4 5 by auto
-    qed
-    show ?thesis
-      using case31 case32 by linarith
-  qed
   show ?thesis
-    using case0 case1 case2 case3
+    using case1 case2 case3
     by linarith
 qed
 end
