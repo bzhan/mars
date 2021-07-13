@@ -70,7 +70,7 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures)
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,array_value=self.data)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
@@ -225,13 +225,13 @@ class SFConvert:
         procs_input=[]
         procs_out=[]
         procs_response=[]
-        if len(state.children) == 0:
+        # if len(state.children) == 0:
             
             # self.get_input_data(procs_input)
             
-            self.get_output_data(procs_out)
+            # self.get_output_data(procs_out)
             
-            self.input_recieve_response(procs_response)
+            # self.input_recieve_response(procs_response)
         return hcsp.Sequence(*procs_input,self.convert_cmd(state.du), *procs,*procs_response,*procs_out)
 
     def get_ex_proc(self, state):
@@ -341,8 +341,8 @@ class SFConvert:
             # self.get_input_data(procs)
             procs.append(hcsp.Var(self.entry_proc_name(state)))
         procs.append(self.get_rec_entry_proc(dst))
-        self.input_recieve_response(procs)
-        self.get_output_data(procs)
+        # self.input_recieve_response(procs)
+        # self.get_output_data(procs)
         return hcsp.seq(procs)
 
     def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
@@ -749,14 +749,12 @@ class SFConvert:
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
 
-        # Read input data
-        self.get_input_data(procs)
-
-        # Give response
-        self.input_recieve_response(procs)
-
-        # Write output data
-        self.get_output_data(procs)
+        # # Read input data
+        # self.get_input_data(procs)
+        # #give response
+        # self.input_recieve_response(procs)
+        # #write output data
+        # self.get_output_data(procs)
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
@@ -772,12 +770,13 @@ class SFConvert:
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
         # Recursive entry into diagram
-        self.get_input_data(procs)
+        
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
+        self.get_input_data(procs)
+        # self.input_recieve_response(procs)
 
-        self.input_recieve_response(procs)
         self.get_output_data(procs)
         
         # Write data store variable
@@ -803,10 +802,15 @@ class SFConvert:
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
+
+      
+        self.get_output_data(procs)
+
         # Write data store variable
         for vname, info in self.data.items():
             if info.scope == "DATA_STORE_MEMORY_DATA":
                 procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+
 
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
