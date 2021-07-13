@@ -62,12 +62,12 @@ def run_test(self, filename, num_cycle, res, *,
         hp = hcsp.reduce_procedures(hp, procs)
         procs_list[i] = (procs, hp)
 
-    # # Reduce skip
-    # for i, (procs, hp) in enumerate(procs_list):
-    #     hp = optimize.simplify(hp)
-    #     for name in procs:
-    #         procs[name] = optimize.simplify(procs[name])
-    #     procs_list[i] = (procs, hp)
+    # Reduce skip
+    for i, (procs, hp) in enumerate(procs_list):
+        hp = optimize.simplify(hp)
+        for name in procs:
+            procs[name] = optimize.simplify(procs[name])
+        procs_list[i] = (procs, hp)
 
     # Optional: print HCSP program after simplification
     if print_after_simp:
@@ -76,12 +76,12 @@ def run_test(self, filename, num_cycle, res, *,
             for name, proc in procs.items():
                 print('\n' + name + " ::=\n" + pprint(proc))
 
-    # # Optimize through static analysis
-    # for i, (procs, hp) in enumerate(procs_list):
-    #     hp = optimize.full_optimize(hp, ignore_end={'_ret'})
-    #     for name in procs:
-    #         procs[name] = optimize.full_optimize(procs[name])
-    #     procs_list[i] = (procs, hp)
+    # Optimize through static analysis
+    for i, (procs, hp) in enumerate(procs_list):
+        hp = optimize.full_optimize(hp, ignore_end={'_ret'})
+        for name in procs:
+            procs[name] = optimize.full_optimize(procs[name])
+        procs_list[i] = (procs, hp)
 
     # Optional: print final HCSP program
     if print_final:
