@@ -55,6 +55,7 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
             else:
                 raise NotImplementedError("Unknown operator %s" % e.op_name)
         elif isinstance(e, function.FunExpr):
+            print(e.fun_name)
             if e.fun_name == 'rand':
                 if len(e.exprs) == 0:
                     return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
@@ -67,6 +68,8 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
                     return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(arg)) for arg in e.exprs])
                 elif len(e.exprs) ==2:
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1])))
+                elif len(e.exprs) ==3:
+                    return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1]))),subtract_one(rec(e.exprs[2])))
             elif procedures is not None and e.fun_name in procedures:
 
                 proc = procedures[e.fun_name]
@@ -149,6 +152,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     expr.AVar(lname.fun_name), [subtract_one(arg) for arg in args])
             elif len(lname.exprs) ==2:
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1]))
+            elif len(lname.exprs) ==3:
+                    return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1])),subtract_one(args[2]))
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg) for arg in lname.args]
         else:
@@ -162,6 +167,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
         return function.DirectedEvent(st_name,get_directed_event(state_name[1:],event))
 
     def convert(cmd):
+        
         if isinstance(cmd,list):
             lists=list()
             for c in cmd:
@@ -170,6 +176,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
             name_set=set()
+            vars_set=set()
             assign_name=convert_lname(cmd.lname)
             if isinstance(assign_name,list):
                 for i in range(0,len(assign_name)):
@@ -177,7 +184,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 vars_set=hp_expr.get_vars()
             else:
                 name_set=name_set.union(assign_name.get_vars())
-                vars_set=hp_expr.get_vars()
+                if hp_expr is not None:
+                    vars_set=hp_expr.get_vars()
             cmd_list=list()
             cmd_list.append(pre_act)
             if arrays is not None:
