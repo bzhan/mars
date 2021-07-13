@@ -190,8 +190,11 @@ def eval_expr(expr, state):
                 # raise  SimulatorException("Unrecognized process variable:" + str(np.zeros((args[0],args[1],args[2]),dtype=[['x','int'],['y','int']])))
                 return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
         elif expr.fun_name == "protected_curve":
-            assert len(args) == 4
-            obs_pos, veh_pos, max_v, min_a = args
+            # assert len(args) == 4
+            # obs_pos, veh_pos, max_v, min_a = args
+            a, = args
+            assert len(a) == 4
+            obs_pos, veh_pos, max_v, min_a = a
             if obs_pos <= 0:
                 return max_v
             assert min_a < 0

@@ -1,0 +1,22 @@
+%type: module
+
+module PHY_vehicle_imp(init_v, init_pos):
+output veh_v, veh_pos, cmd;
+begin
+veh_v := init_v;
+veh_pos := init_pos;
+
+inputs_veh_v!veh_v;
+inputs_veh_pos!veh_pos;
+outputs_cmd?cmd;
+
+(
+  <veh_pos_dot = veh_v, veh_v_dot = cmd & true> |> [] (
+    inputs_veh_v!veh_v -->
+      inputs_veh_pos!veh_pos,
+    outputs_cmd?cmd -->
+      skip
+  )
+)**
+end
+endmodule

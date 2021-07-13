@@ -1,0 +1,10 @@
+%type: module
+import vehicle
+import emerg_imp
+
+system
+
+vehicle = PHY_vehicle_imp($0, $0) ||
+emerg_imp = EXE_emerg_imp($10, $-3, $3, $0.001, $0.005, $20)
+
+endsystem

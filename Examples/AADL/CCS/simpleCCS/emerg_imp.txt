@@ -1,0 +1,59 @@
+%type: module
+
+module EXE_emerg_imp(max_v, min_a, des_a, max_et, period, obs_pos):
+begin
+(
+  inputs_veh_v?veh_v;
+  inputs_veh_pos?veh_pos;
+
+  next_v := veh_v+des_a*(period+max_et);
+  next_s := veh_pos+veh_v*(period+max_et)+0.5*des_a*(period+max_et)*(period+max_et);
+
+  # compute protected_curve (v_limit)
+  if obs_pos <= 0 then
+    v_limit := max_v
+  else
+    distance := obs_pos - next_s;
+    if distance > max_v * max_v / (-2 * min_a) then
+      v_limit := max_v
+    elif distance >= 0 then
+      v_limit := sqrt(-2 * min_a * distance)
+    else
+      v_limit := 0
+    endif
+  endif;
+
+  if next_v <= v_limit then
+    cmd := des_a
+  else
+    next_s := veh_pos+veh_v*(period+max_et);
+
+    # compute protected_curve (v_limit)
+    if obs_pos <= 0 then
+      v_limit := max_v
+    else
+      distance := obs_pos - next_s;
+      if distance > max_v * max_v / (-2 * min_a) then
+        v_limit := max_v
+      elif distance >= 0 then
+        v_limit := sqrt(-2 * min_a * distance)
+      else
+        v_limit := 0
+      endif
+    endif;
+
+    if veh_v <= v_limit then
+      cmd := 0
+    else
+      cmd := min_a
+    endif
+  endif;
+
+  wait(max_et);
+
+  outputs_cmd!cmd;
+
+  wait(period-max_et)
+)**
+end
+endmodule
