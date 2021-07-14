@@ -153,6 +153,12 @@ def targeted_replace(hp, repls):
                 new_out_hp = rec(out_hp, cur_pos + (i,))
                 new_io_comms.append((comm_hp, new_out_hp))
             return hcsp.SelectComm(*new_io_comms)
+        elif hp.type == 'ode_comm':
+            new_io_comms = []
+            for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                new_out_hp = rec(out_hp, cur_pos + (i,))
+                new_io_comms.append((comm_hp, new_out_hp))
+            return hcsp.ODE_Comm(hp.eqs, hp.constraint, new_io_comms)
         else:
             raise NotImplementedError
     return rec(hp, tuple())
@@ -193,6 +199,12 @@ def targeted_remove(hp, remove_locs):
                 new_out_hp = rec(out_hp, cur_pos + (i,))
                 new_io_comms.append((comm_hp, new_out_hp))
             return hcsp.SelectComm(*new_io_comms)
+        elif hp.type == 'ode_comm':
+            new_io_comms = []
+            for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
+                new_out_hp = rec(out_hp, cur_pos + (i,))
+                new_io_comms.append((comm_hp, new_out_hp))
+            return hcsp.ODE_Comm(hp.eqs, hp.constraint, new_io_comms)
         else:
             raise NotImplementedError
     return rec(hp, tuple())
@@ -306,7 +318,7 @@ class HCSPAnalysis:
                 for exit_loc in self.infos[cur_pos].exits:
                     self.add_edge(exit_loc, cur_pos)
 
-            elif hp.type == 'select_comm':
+            elif hp.type == 'select_comm' or hp.type == 'ode_comm':
                 for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
                     rec(out_hp, cur_pos + (i,))
 

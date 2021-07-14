@@ -9,7 +9,7 @@ from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 
 
-def run_test(self, infos, num_events, trace, *, print_time_series=False,
+def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_series=False,
              print_state=False, warning=None):
     """Test function for HCSP processes.
 
@@ -20,6 +20,7 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
 
     num_events : int - number of communication or waiting events to simulate.
     trace : List[str] - expected output trace.
+    io_filter : str -> bool - which IO events to remain in the trace.
     print_time_series : bool - whether to show time series.
     print_state : bool - whether to show final state.
     warning : [None, str] - if not None, execution must raise a warning whose
@@ -43,10 +44,14 @@ def run_test(self, infos, num_events, trace, *, print_time_series=False,
     # Perform the simulation
     res = simulator.exec_parallel(infos, num_io_events=num_events)
 
+    if io_filter is None:
+        io_filter = lambda s: True
+
     # Extract and compare trace of events
-    res_trace = [event['str'] for event in res['trace'] if event['str'] not in ('start', 'step')]
-    print(3333)
-    print(res_trace)
+    res_trace = [event['str'] for event in res['trace']
+                 if event['str'] not in ('start', 'step') and
+                    (event['type'] != 'comm' or io_filter(event['ch_name']))]
+    # print(res_trace)
     self.assertEqual(res_trace, trace)
 
     # Optional: print time series

@@ -8,7 +8,7 @@ from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.matlab import function,convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
-    transition_parser, func_sig_parser
+    transition_parser, func_sig_parser,state_op_parser
 from ss2hcsp.matlab import convert
 
 from ss2hcsp.sl.port import Port
@@ -252,27 +252,15 @@ class SL_Diagram:
                         # The format of state labels is as follows:
                         # First line is the name of the state, the remaining lines
                         # specify en, du, and ex actions.
-                        labels = get_attribute_value(child, "labelString").split("\n")
-                        name = labels[0]
-                        # Get en, du and ex actions
+                        labels = get_attribute_value(child, "labelString")
+                        label=state_op_parser.parse(labels)
+                        name = str(label.name)
+                        # # Get en, du and ex actions
                         en, du, ex = list(), list(), list()
-                        for label in labels[1:]:
-                            if label!="":
-                                if label.startswith("en:"): 
-                                    if label[3:]  == "":
-                                        continue
-                                    en.append(get_acts(cmd_parser.parse(label[3:])))
-                                elif label.startswith("du:"):
-                                    if label[3:]  == "":
-                                        continue
-                                    du.append(get_acts(cmd_parser.parse(label[3:])))
-                                elif label.startswith("ex:"):
-                                    if label[3:]  == "":
-                                        continue
-                                    ex.append(get_acts(cmd_parser.parse(label[3:])))
-                                else:
-                                    en.append(get_acts(cmd_parser.parse(label)))
-                                    # raise AssertionError("Parse XML: unrecognized state label %s" % label)
+                        en.append(get_acts(label.en_op.op) if label.en_op is not None else [])
+                        du.append(get_acts(label.du_op.op) if label.du_op is not None else [])
+                        ex.append(get_acts(label.ex_op.op) if label.ex_op is not None else [])
+                        
                         # Get default_tran and out_trans
                         default_tran = None
                         out_trans = list()

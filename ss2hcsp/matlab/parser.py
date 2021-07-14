@@ -113,6 +113,13 @@ grammar = r"""
     ?tran_act: cmd -> tran_act
     ?transition: (event)? ("[" cond "]")? ("{" cond_act "}")? ("/{" tran_act "}")? -> transition
 
+    ?entry_op: ("en" | "entry") ":" cmd -> entry_op
+    ?during_op: ("du" | "during") ":" cmd ->during_op
+    ?exit_op: ("ex" | "exit") ":" cmd  ->exit_op
+
+    ?state_op: lname (entry_op)? (during_op)? (exit_op)? -> state_op
+        | lname cmd  -> state_op
+
     %import common.CNAME
     %import common.WS
     %import common.INT
@@ -314,6 +321,33 @@ class MatlabTransformer(Transformer):
     def direct_name(self,*expr):
         return function.DirectName(expr)
 
+    def entry_op(self,cmd):
+
+        return function.StateInnerOperate("en",cmd)
+    def during_op(self,cmd):
+
+        return function.StateInnerOperate("du",cmd)
+    def exit_op(self,cmd):
+        return function.StateInnerOperate("ex",cmd)
+
+    def state_op(self,*args):
+        name, en_op, du_op, ex_op = None, None, None, None
+        for arg in args:
+            if isinstance(arg, function.Var):
+                name = arg
+            elif isinstance(arg, function.StateInnerOperate):
+                if arg.name == "en":
+                    en_op = arg
+                elif arg.name == "du":
+                    du_op=arg
+                elif arg.name == "ex":
+                    ex_op=arg
+            elif isinstance(arg,function.Sequence):
+                en_op=function.StateInnerOperate("en",arg)
+        return function.StateOperate(name, en_op, du_op, ex_op)
+   
+       
+
 
 expr_parser = Lark(grammar, start="expr", parser="lalr", transformer=MatlabTransformer())
 cond_parser = Lark(grammar, start="cond", parser="lalr", transformer=MatlabTransformer())
@@ -322,3 +356,4 @@ event_parser = Lark(grammar, start="event", parser="lalr", transformer=MatlabTra
 func_sig_parser = Lark(grammar, start="func_sig", parser="lalr", transformer=MatlabTransformer())
 function_parser = Lark(grammar, start="function", parser="lalr", transformer=MatlabTransformer())
 transition_parser = Lark(grammar, start="transition", parser="lalr", transformer=MatlabTransformer())
+state_op_parser=Lark(grammar, start="state_op", parser="lalr", transformer=MatlabTransformer())

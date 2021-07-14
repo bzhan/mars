@@ -70,7 +70,7 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures)
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,array_value=self.data)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
@@ -222,33 +222,17 @@ class SFConvert:
                     hcsp.Assign(
                         expr.AVar(tick_name),
                         expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
-
-        # in_chs = []
-        # for port_id, in_var in self.chart.port_to_in_var.items():
-        #     line = self.chart.dest_lines[port_id]
-        #     ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #     in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
-        # if len(in_chs)>0:
-        #     procs.extend(in_chs)
-        #     for port_id, in_var in self.chart.port_to_in_var.items():
-        #         line = self.chart.dest_lines[port_id]
-        #         ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #         procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
-        # out_chs = []
-        # for port_id, out_var in self.chart.port_to_out_var.items():
-        #     lines = self.chart.src_lines[port_id]
-        #     for line in lines:
-        #         ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #         out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
-        # if len(out_chs)>0:
-        #     procs.extend(out_chs)
-        #     for port_id, out_var in self.chart.port_to_out_var.items():
-        #         lines = self.chart.src_lines[port_id]
-        #         for line in lines:
-        #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #             procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
-        self.get_input_output_data(procs)
-        return hcsp.Sequence(self.convert_cmd(state.du), *procs)
+        procs_input=[]
+        procs_out=[]
+        procs_response=[]
+        # if len(state.children) == 0:
+            
+            # self.get_input_data(procs_input)
+            
+            # self.get_output_data(procs_out)
+            
+            # self.input_recieve_response(procs_response)
+        return hcsp.Sequence(*procs_input,self.convert_cmd(state.du), *procs,*procs_response,*procs_out)
 
     def get_ex_proc(self, state):
         if not state.ex:
@@ -291,7 +275,7 @@ class SFConvert:
         procs.append(hcsp.Var(self.en_proc_name(state)))
         return hcsp.seq(procs)
 
-    def get_input_output_data(self,procs):
+    def get_input_data(self,procs):
         in_chs = []
         for port_id, in_var in self.chart.port_to_in_var.items():
             line = self.chart.dest_lines[port_id]
@@ -299,11 +283,7 @@ class SFConvert:
             in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
         if len(in_chs)>0:
             procs.extend(in_chs)
-            for port_id, in_var in self.chart.port_to_in_var.items():
-                line = self.chart.dest_lines[port_id]
-                if line.src_block.type == "stateflow":
-                    ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-                    procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
+    def get_output_data(self,procs):        
         out_chs = []
         for port_id, out_var in self.chart.port_to_out_var.items():
             lines = self.chart.src_lines[port_id]
@@ -317,6 +297,12 @@ class SFConvert:
                 for line in lines:
                     ch_name = "ch_response_" + line.name + "_" + str(line.branch)
                     procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
+    def input_recieve_response(self,procs):
+        for port_id, in_var in self.chart.port_to_in_var.items():
+                line = self.chart.dest_lines[port_id]
+                if line.src_block.type == "stateflow":
+                    ch_name = "ch_response_" + line.name + "_" + str(line.branch)
+                    procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
     def get_transition_proc(self, src, dst, tran_act=None):
         """Get procedure for transitioning between two states.
 
@@ -352,34 +338,11 @@ class SFConvert:
             
         # Enter states from ancestor to state1
         for state in reversed(self.get_chain_to_ancestor(dst, ancestor)):
+            # self.get_input_data(procs)
             procs.append(hcsp.Var(self.entry_proc_name(state)))
         procs.append(self.get_rec_entry_proc(dst))
-
-        self.get_input_output_data(procs)
-        # in_chs = []
-        # for port_id, in_var in self.chart.port_to_in_var.items():
-        #     line = self.chart.dest_lines[port_id]
-        #     ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #     in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
-        # if len(in_chs)>0:
-        #     procs.extend(in_chs)
-        #     for port_id, in_var in self.chart.port_to_in_var.items():
-        #         line = self.chart.dest_lines[port_id]
-        #         ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #         procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
-        # out_chs = []
-        # for port_id, out_var in self.chart.port_to_out_var.items():
-        #     lines = self.chart.src_lines[port_id]
-        #     for line in lines:
-        #         ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #         out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
-        # if len(out_chs)>0:
-        #     procs.extend(out_chs)
-        #     for port_id, out_var in self.chart.port_to_out_var.items():
-        #         lines = self.chart.src_lines[port_id]
-        #         for line in lines:
-        #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #             procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
+        # self.input_recieve_response(procs)
+        # self.get_output_data(procs)
         return hcsp.seq(procs)
 
     def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
@@ -778,12 +741,7 @@ class SFConvert:
         # Read data store variable
         for vname, info in self.data.items():
             if info.scope == "DATA_STORE_MEMORY_DATA":
-                procs.append(hcsp.InputChannel("read_"+vname, expr.AVar(vname)))
-
-        # # Read input data
-        # for vname, info in self.data.items():
-        #     if info.scope == "INPUT_DATA":
-        #         procs.append(hcsp.InputChannel("ch_"+vname, expr.AVar(vname)))
+                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
 
         # Initialize variables
         for vname, info in self.data.items():
@@ -791,30 +749,12 @@ class SFConvert:
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
 
-        # in_chs = []
-        # for port_id, in_var in self.chart.port_to_in_var.items():
-        #     line = self.chart.dest_lines[port_id]
-        #     print(type(line.src_block))
-        #     ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #     in_chs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
-        # if len(in_chs)>0:
-        #     procs.extend(in_chs)
-
-        # out_chs = []
-        # for port_id, out_var in self.chart.port_to_out_var.items():
-        #     lines = self.chart.src_lines[port_id]
-        #     for line in lines:
-        #         ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #         print(type(out_var))
-        #         out_chs.append(hcsp.OutputChannel(ch_name ,expr.AVar(out_var)))
-        # if len(out_chs)>0:
-        #     procs.extend(out_chs)
-        #     for port_id, out_var in self.chart.port_to_out_var.items():
-        #         lines = self.chart.src_lines[port_id]
-        #         for line in lines:
-        #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #             procs.append(hcsp.InputChannel(ch_name, expr.AVar("response")))  
-        self.get_input_output_data(procs)
+        # # Read input data
+        # self.get_input_data(procs)
+        # #give response
+        # self.input_recieve_response(procs)
+        # #write output data
+        # self.get_output_data(procs)
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
@@ -830,43 +770,20 @@ class SFConvert:
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
         # Recursive entry into diagram
+        
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
+        
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
-# <<<<<<< HEAD
-        # in_chs = []
-        # for port_id, in_var in self.chart.port_to_in_var.items():
-        #     line = self.chart.dest_lines[port_id]
-        #     ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #     in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
-        # if len(in_chs)>0:
-        #     # procs.extend(in_chs)
-        #     for port_id, in_var in self.chart.port_to_in_var.items():
-        #         line = self.chart.dest_lines[port_id]
-        #         if line.src_block.type == "stateflow":
-        #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #             procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
-        # out_chs = []
-        # for port_id, out_var in self.chart.port_to_out_var.items():
-        #     lines = self.chart.src_lines[port_id]
-        #     for line in lines:
-        #         ch_name = "ch_" + line.name + "_" + str(line.branch)
-        #         out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
-        # if len(out_chs)>0:
-        #     procs.extend(out_chs)
-        #     for port_id, out_var in self.chart.port_to_out_var.items():
-        #         lines = self.chart.src_lines[port_id]
-        #         for line in lines:
-        #             ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-        #             procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
-        self.get_input_output_data(procs)
-# =======
+        self.get_input_data(procs)
+        # self.input_recieve_response(procs)
 
-#         # Write data store variable
-#         for vname, info in self.data.items():
-#             if info.scope == "DATA_STORE_MEMORY_DATA":
-#                 procs.append(hcsp.OutputChannel("write_"+vname, expr.AVar(vname)))
+        self.get_output_data(procs)
+        
+        # Write data store variable
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
 
-# >>>>>>> 4f57bee9ecbb6b84e6524b6954c122d5add62148
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
@@ -874,29 +791,26 @@ class SFConvert:
 
     def get_iteration(self):
         procs = []
+       
+        self.get_input_data(procs)
 
         # Read data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.InputChannel("read_"+vname, expr.AVar(vname)))
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
 
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
+
+      
+        self.get_output_data(procs)
+
         # Write data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.OutputChannel("write_"+vname, expr.AVar(vname)))
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
 
-        # # Write output data
-        # for vname, info in self.data.items():
-        #     if info.scope == "OUTPUT_DATA":
-        #         procs.append(hcsp.OutputChannel("ch_"+vname, expr.AVar(vname)))
-
-        # # Read input data
-        # for vname, info in self.data.items():
-        #     if info.scope == "INPUT_DATA":
-        #         procs.append(hcsp.InputChannel("ch_"+vname, expr.AVar(vname)))
 
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
@@ -949,23 +863,27 @@ class SFConvert:
             hcsp.Loop(self.get_iteration()))
 
 
-def convertDataStoreMemory(dsm):
-    """Conversion function for data store memory."""
+def convertDataStoreMemory(dsm, charts):
+    """Conversion function for data store memory.
+    
+    If data store memory is present, it is responsible for synchronizing
+    the order of execution of different Stateflow charts. It performs
+    read-write for each chart in alphabetical order, ensuring that
+    initialization and execution of charts proceed in the same order.
+
+    """
     _, init_value = convert.convert_expr(dsm.value)
+    dsm_name = dsm.dataStoreName
+    chart_names = sorted(list(chart.name for chart in charts))
+    cmds = []
+    for name in chart_names:
+        cmds.append(hcsp.OutputChannel("read_" + name + "_" + dsm_name, expr.AVar(dsm_name)))
+        cmds.append(hcsp.InputChannel("write_" + name + "_" + dsm_name, expr.AVar(dsm_name)))
     return hcsp.Sequence(
         hcsp.Assign(expr.AVar(dsm.dataStoreName), init_value),
-        hcsp.Loop(hcsp.SelectComm(
-            (hcsp.OutputChannel("read_"+dsm.dataStoreName, expr.AVar(dsm.dataStoreName)), hcsp.Skip()),
-            (hcsp.InputChannel("write_"+dsm.dataStoreName, expr.AVar(dsm.dataStoreName)), hcsp.Skip())))
+        hcsp.Loop(hcsp.seq(cmds))
     )
-# def get_continuous_name(self,continuou):
-#         return "PC_"+str(continuou.name)
-    
-# def get_continuous_process(self):
-#     return hcsp.Var(self.get_continuous_name(self.continuous))
 
-def get_continuous_proc(continuous):
-
-   
+def get_continuous_proc(continuous): 
     return translate_continuous(continuous)
         

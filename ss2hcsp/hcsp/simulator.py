@@ -821,7 +821,10 @@ class SimInfo:
 
         """
         if isinstance(lname, AVar):
+            print(lname)
+            print(val)
             self.state[lname.name] = copy.deepcopy(val)
+            print(self.state)
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
@@ -854,7 +857,6 @@ class SimInfo:
         """
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars, self.procedures)
-
         if cur_hp.type == "skip":
             self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
