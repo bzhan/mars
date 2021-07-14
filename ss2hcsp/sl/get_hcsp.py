@@ -466,7 +466,7 @@ def new_translate_discrete(diagram):
 
 def new_translate_continuous(diagram):
     # Assume that all the continuous blocks are integrator blocks or triggered subsystems
-    assert all(block.type in ["integrator", "triggered_subsystem"] for block in diagram)
+    # assert all(block.type in ["integrator", "triggered_subsystem"] for block in diagram)
     # tt is the LOCAL evolution time of continuous process
     init_hps = [hp.Assign(var_name="tt", expr=AConst(0))]
     equations = [("tt", AConst(1))]  # tt_dot = 1

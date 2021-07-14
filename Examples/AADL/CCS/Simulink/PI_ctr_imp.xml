@@ -1,47 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="velo_voter_imp">
+  <Model Name="PI_ctr_imp">
     <P Name="Version">9.1</P>
     <P Name="SavedCharacterEncoding">GB2312</P>
     <GraphicalInterface>
-      <P Name="NumRootInports">4</P>
-      <Inport Name="wheel_valid">
+      <P Name="NumRootInports">2</P>
+      <Inport Name="des_v">
         <P Name="BusObject"/>
-        <P Name="SignalName">wheel_valid</P>
+        <P Name="SignalName">des_v</P>
         <P Name="OutputFunctionCall">off</P>
         <P Name="SampleTime">-1</P>
         <P Name="UnitExpr">inherit</P>
       </Inport>
-      <Inport Name="wheel_v">
+      <Inport Name="veh_v">
         <P Name="BusObject"/>
-        <P Name="SignalName">wheel_v</P>
-        <P Name="OutputFunctionCall">off</P>
-        <P Name="SampleTime">-1</P>
-        <P Name="UnitExpr">inherit</P>
-      </Inport>
-      <Inport Name="laser_valid">
-        <P Name="BusObject"/>
-        <P Name="SignalName">laser_valid</P>
-        <P Name="OutputFunctionCall">off</P>
-        <P Name="SampleTime">-1</P>
-        <P Name="UnitExpr">inherit</P>
-      </Inport>
-      <Inport Name="laser_v">
-        <P Name="BusObject"/>
-        <P Name="SignalName">laser_v</P>
+        <P Name="SignalName">veh_v</P>
         <P Name="OutputFunctionCall">off</P>
         <P Name="SampleTime">-1</P>
         <P Name="UnitExpr">inherit</P>
       </Inport>
       <P Name="NumRootOutports">1</P>
-      <Outport Name="veh_v">
+      <Outport Name="des_a">
         <P Name="BusObject"/>
         <P Name="BusOutputAsStruct">off</P>
-        <P Name="SignalName">veh_v</P>
+        <P Name="SignalName">des_a</P>
         <P Name="UnitExpr">inherit</P>
       </Outport>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.6</P>
+      <P Name="ComputedModelVersion">1.10</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -51,7 +37,13 @@
       <P Name="HasTerminateEvent">0</P>
       <P Name="IsExportFunctionModel">0</P>
       <P Name="NumParameterArguments">0</P>
-      <P Name="NumExternalFileReferences">0</P>
+      <P Name="NumExternalFileReferences">1</P>
+      <ExternalFileReference>
+        <P Name="Reference">simulink/Continuous/PID Controller</P>
+        <P Name="Path">PI_ctr_imp/Discrete PID Controller</P>
+        <P Name="SID">17</P>
+        <P Name="Type">LIBRARY_BLOCK</P>
+      </ExternalFileReference>
       <P Name="OrderedModelArguments">1</P>
     </GraphicalInterface>
     <P Name="DiagnosticSuppressor">on</P>
@@ -66,7 +58,7 @@
     <Object PropName="HDLParams" ObjectID="1" ClassName="slprops.hdlmdlprops">
       <Array PropName="mdlProps" Type="Cell" Dimension="1*2">
         <Cell Class="char">HDLSubsystem</Cell>
-        <Cell Class="char">velo_voter_imp</Cell>
+        <Cell Class="char">PI_ctr_imp</Cell>
       </Array>
     </Object>
     <P Name="ScopeRefreshTime">0.035000</P>
@@ -97,7 +89,7 @@
           <P Name="IsActive" Class="logical">1</P>
           <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
           <P Name="LoadSaveID" Class="char">0</P>
-          <P Name="Extents" Class="double">[1242.0, 533.0]</P>
+          <P Name="Extents" Class="double">[937.0, 298.0]</P>
           <P Name="ZoomFactor" Class="double">1.0</P>
           <P Name="Offset" Class="double">[0.0, 0.0]</P>
         </Object>
@@ -105,40 +97,40 @@
           <Object ObjectID="7">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
             <P Name="ID" Class="char">Property Inspector</P>
-            <P Name="Visible" Class="logical">0</P>
+            <P Name="Visible" Class="logical">1</P>
             <P Name="CreateCallback" Class="char"/>
             <P Name="UserData" Class="char"/>
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">640</P>
-            <P Name="Height" Class="int32">480</P>
+            <P Name="Width" Class="int32">300</P>
+            <P Name="Height" Class="int32">564</P>
           </Object>
           <Object ObjectID="8">
             <P Name="Type" Class="char">GLUE2:SpreadSheet</P>
             <P Name="ID" Class="char">ModelData</P>
-            <P Name="Visible" Class="logical">0</P>
+            <P Name="Visible" Class="logical">1</P>
             <P Name="CreateCallback" Class="char">DataView.createSpreadSheetComponent</P>
             <P Name="UserData" Class="char"/>
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Bottom</P>
-            <P Name="Width" Class="int32">640</P>
-            <P Name="Height" Class="int32">480</P>
+            <P Name="Width" Class="int32">971</P>
+            <P Name="Height" Class="int32">206</P>
           </Object>
         </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAwAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAEwAAACUPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAEYAAAJQAAAALgD///8AAAADAAADzwAAAOr8AQAAAAL8AAAAAAAAA88AAAAAAP////r/////AQAAAAD7/////wAAAAAA/////wAAAaAA////AAAFAAAAAlAAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAD/////8AAAAAAP////8AAAAAAAAAAP////8BAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAAhP////8AAAAAAAAAAP////8BAAAA9v////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAABev////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAD3/////8AAAAAAAAAAP////8BAAAEDv////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAA==</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAwAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAEwAAACUPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAQAAAEYAAAJQAAAAmgD///8AAAADAAADzwAAAOr8AQAAAAT8AAAAAAAABQAAAAAAAP////r/////AQAAAAD8AAAAAAAAA88AAAAAAP////r/////AQAAAAD8AAAAAAAAA88AAAAAAP////r/////AQAAAAD7/////wEAAAAAAAADzwAAAaAA////AAADzwAAAWUAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAD/////8AAAAAAP////8AAAAAAAAAAP////8BAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAAhP////8AAAAAAAAAAP////8BAAAA9v////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAABev////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAP////8BAAAD3/////8AAAAAAAAAAP////8BAAAEDv////8AAAAAAAAAAP////8AAAAAAP////8AAAAAAAAAAA==</P>
       </Object>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
-      <P Name="Created">Mon Mar 29 18:50:53 2021</P>
+      <P Name="Created">Mon Mar 29 17:04:15 2021</P>
       <P Name="Creator">BEAR</P>
       <P Name="UpdateHistory">UpdateHistoryNever</P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Wed Jul 14 21:03:34 2021</P>
-      <P Name="RTWModifiedTimeStamp">548197410</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:6&gt;</P>
+      <P Name="LastModifiedDate">Wed Jul 14 21:36:15 2021</P>
+      <P Name="RTWModifiedTimeStamp">548199373</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:10&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -195,10 +187,10 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="9" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">velo_voter_imp</P>
+        <P Name="model_" Class="char">PI_ctr_imp</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">velo_voter_imp</Cell>
+          <Cell Class="char">PI_ctr_imp</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
           <Cell Class="double">[]</Cell>
@@ -243,7 +235,7 @@
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="StartTime">0.0</P>
-              <P Name="StopTime">10.0</P>
+              <P Name="StopTime">15</P>
               <P Name="AbsTol">auto</P>
               <P Name="AutoScaleAbsTol">on</P>
               <P Name="FixedStep">auto</P>
@@ -900,7 +892,7 @@
               <P Name="DisabledProps">[]</P>
               <P Name="Description"/>
               <P Name="StartTime">0.0</P>
-              <P Name="StopTime">10.0</P>
+              <P Name="StopTime">inf</P>
               <P Name="AbsTol">auto</P>
               <P Name="AutoScaleAbsTol">on</P>
               <P Name="FixedStep">auto</P>
@@ -917,14 +909,14 @@
               <P Name="RelTol">1e-3</P>
               <P Name="EnableMultiTasking">off</P>
               <P Name="ConcurrentTasks">off</P>
-              <P Name="Solver">FixedStepAuto</P>
-              <P Name="SolverName">FixedStepAuto</P>
+              <P Name="Solver">FixedStepDiscrete</P>
+              <P Name="SolverName">FixedStepDiscrete</P>
               <P Name="SolverJacobianMethodControl">auto</P>
               <P Name="ShapePreserveControl">DisableAll</P>
               <P Name="ZeroCrossControl">UseLocalSettings</P>
               <P Name="ZeroCrossAlgorithm">Nonadaptive</P>
               <P Name="AlgebraicLoopSolver">TrustRegion</P>
-              <P Name="SolverInfoToggleStatus">off</P>
+              <P Name="SolverInfoToggleStatus">on</P>
               <P Name="IsAutoAppliedInSIP">off</P>
               <P Name="SolverResetMethod">Fast</P>
               <P Name="PositivePriorityOrder">off</P>
@@ -1372,7 +1364,7 @@
                   <P Name="GeneratePreprocessorConditionals">Use local settings</P>
                   <P Name="CombineOutputUpdateFcns">on</P>
                   <P Name="CombineSignalStateStructs">on</P>
-                  <P Name="SuppressErrorStatus">off</P>
+                  <P Name="SuppressErrorStatus">on</P>
                   <P Name="IncludeFileDelimiter">Auto</P>
                   <P Name="ERTCustomFileBanners">on</P>
                   <P Name="SupportAbsoluteTime">off</P>
@@ -1383,7 +1375,7 @@
                   <P Name="SupportNonFinite">on</P>
                   <P Name="SupportComplex">off</P>
                   <P Name="PurelyIntegerCode">off</P>
-                  <P Name="SupportContinuousTime">on</P>
+                  <P Name="SupportContinuousTime">off</P>
                   <P Name="SupportNonInlinedSFcns">off</P>
                   <P Name="RemoveDisableFunc">off</P>
                   <P Name="RemoveResetFunc">on</P>
@@ -1547,10 +1539,10 @@
               <P Name="HDLCActiveTab">0</P>
             </Object>
           </Array>
-          <P Name="Name">QuickStart_50021_3_29_19_0_38290112</P>
+          <P Name="Name">QuickStart_50021_3_29_20_55_30207502</P>
           <P Name="ExtraOptions">-aBlockCommentType=&quot;BlockPathComment&quot; -aIgnoreTestpoints=0 </P>
-          <P Name="CurrentDlgPage">Code Generation</P>
-          <P Name="ConfigPrmDlgPosition">[ 71, 71, 1061, 731 ]</P>
+          <P Name="CurrentDlgPage">Solver</P>
+          <P Name="ConfigPrmDlgPosition">[ 71, 70, 1061, 730 ]</P>
         </Object>
       </Array>
       <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="23" ClassName="Simulink.ConfigSet"/>
@@ -1567,7 +1559,7 @@
           <Object Reference="true" PropName="ParentMapping" ObjectID="36"/>
         </Object>
         <Object PropName="OutputFunctionMappings" ObjectID="38" ClassName="Simulink.CoderDictionary.PeriodicFunctionMapping">
-          <P Name="Period" Class="double">0.2</P>
+          <P Name="Period" Class="double">0.007</P>
           <P Name="Offset" Class="double">0.0</P>
           <P Name="Prototype" Class="char"/>
           <P Name="SimulinkFunctionName" Class="char">Step</P>
@@ -1641,7 +1633,7 @@
             <P Name="MemorySection" Class="double">[]</P>
           </Object>
         </Object>
-        <P Name="Name" Class="char">velo_voter_imp_c</P>
+        <P Name="Name" Class="char">PI_ctr_imp_c</P>
         <P Name="Active" Class="logical">1</P>
       </Object>
       <Object PropName="DataTransfer" ObjectID="51" ClassName="Simulink.GlobalDataTransfer">
@@ -1725,18 +1717,6 @@
       <P Name="ToolTip">on</P>
     </MaskParameterDefaults>
     <BlockParameterDefaults>
-      <Block BlockType="Constant">
-        <P Name="Value">1</P>
-        <P Name="VectorParams1D">on</P>
-        <P Name="SamplingMode">Sample based</P>
-        <P Name="OutMin">[]</P>
-        <P Name="OutMax">[]</P>
-        <P Name="OutDataTypeStr">Inherit: Inherit from &apos;Constant value&apos;</P>
-        <P Name="LockScale">off</P>
-        <P Name="SampleTime">inf</P>
-        <P Name="FramePeriod">inf</P>
-        <P Name="PreserveConstantTs">off</P>
-      </Block>
       <Block BlockType="Inport">
         <P Name="Port">1</P>
         <P Name="OutputFunctionCall">off</P>
@@ -1777,20 +1757,6 @@
         <P Name="OutputWhenUnconnectedValue">0</P>
         <P Name="VectorParamsAs1DForOutWhenUnconnected">off</P>
       </Block>
-      <Block BlockType="Product">
-        <P Name="Inputs">2</P>
-        <P Name="Multiplication">Element-wise(.*)</P>
-        <P Name="CollapseMode">All dimensions</P>
-        <P Name="CollapseDim">1</P>
-        <P Name="InputSameDT">on</P>
-        <P Name="OutMin">[]</P>
-        <P Name="OutMax">[]</P>
-        <P Name="OutDataTypeStr">Inherit: Same as first input</P>
-        <P Name="LockScale">off</P>
-        <P Name="RndMeth">Zero</P>
-        <P Name="SaturateOnIntegerOverflow">on</P>
-        <P Name="SampleTime">-1</P>
-      </Block>
       <Block BlockType="Sum">
         <P Name="IconShape">rectangular</P>
         <P Name="Inputs">++</P>
@@ -1806,20 +1772,6 @@
         <P Name="SaturateOnIntegerOverflow">on</P>
         <P Name="SampleTime">-1</P>
       </Block>
-      <Block BlockType="Switch">
-        <P Name="Criteria">u2 &gt;= Threshold</P>
-        <P Name="Threshold">0</P>
-        <P Name="InputSameDT">on</P>
-        <P Name="OutMin">[]</P>
-        <P Name="OutMax">[]</P>
-        <P Name="OutDataTypeStr">Inherit: Inherit via internal rule</P>
-        <P Name="LockScale">off</P>
-        <P Name="RndMeth">Floor</P>
-        <P Name="SaturateOnIntegerOverflow">on</P>
-        <P Name="ZeroCross">on</P>
-        <P Name="SampleTime">-1</P>
-        <P Name="AllowDiffInputSizes">off</P>
-      </Block>
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[0, 23, 1280, 732]</P>
@@ -1828,188 +1780,224 @@
       <P Name="DomainSpecType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
       <P Name="ReportName">simulink-default.rpt</P>
-      <P Name="SIDHighWatermark">11</P>
-      <Block BlockType="Inport" Name="wheel_valid" SID="1">
-        <P Name="Position">[325, 273, 355, 287]</P>
-        <P Name="ZOrder">10</P>
+      <P Name="SIDHighWatermark">25</P>
+      <Block BlockType="Inport" Name="des_v" SID="22">
+        <P Name="Position">[280, 208, 310, 222]</P>
+        <P Name="ZOrder">5722</P>
         <P Name="IconDisplay">Port number</P>
         <Port>
           <P Name="PortNumber">1</P>
-          <P Name="Name">wheel_valid</P>
+          <P Name="Name">des_v</P>
         </Port>
       </Block>
-      <Block BlockType="Inport" Name="wheel_v" SID="2">
-        <P Name="Position">[325, 233, 355, 247]</P>
-        <P Name="ZOrder">11</P>
+      <Block BlockType="Inport" Name="veh_v" SID="23">
+        <P Name="Position">[280, 243, 310, 257]</P>
+        <P Name="ZOrder">5723</P>
         <P Name="Port">2</P>
         <P Name="IconDisplay">Port number</P>
-        <Port>
-          <P Name="PortNumber">1</P>
-          <P Name="Name">wheel_v</P>
-        </Port>
-      </Block>
-      <Block BlockType="Inport" Name="laser_valid" SID="3">
-        <P Name="Position">[325, 363, 355, 377]</P>
-        <P Name="ZOrder">12</P>
-        <P Name="Port">3</P>
-        <P Name="IconDisplay">Port number</P>
-        <Port>
-          <P Name="PortNumber">1</P>
-          <P Name="Name">laser_valid</P>
-        </Port>
-      </Block>
-      <Block BlockType="Inport" Name="laser_v" SID="4">
-        <P Name="Position">[325, 318, 355, 332]</P>
-        <P Name="ZOrder">13</P>
-        <P Name="Port">4</P>
-        <P Name="IconDisplay">Port number</P>
-        <Port>
-          <P Name="PortNumber">1</P>
-          <P Name="Name">laser_v</P>
-        </Port>
-      </Block>
-      <Block BlockType="Sum" Name="Add" SID="7">
-        <P Name="Ports">[2, 1]</P>
-        <P Name="Position">[610, 307, 640, 338]</P>
-        <P Name="ZOrder">16</P>
-        <P Name="InputSameDT">off</P>
-        <P Name="OutDataTypeStr">Inherit: Inherit via internal rule</P>
-        <P Name="SaturateOnIntegerOverflow">off</P>
-      </Block>
-      <Block BlockType="Constant" Name="Constant" SID="8">
-        <P Name="Position">[610, 360, 640, 390]</P>
-        <P Name="ZOrder">18</P>
-        <P Name="Value">2</P>
-      </Block>
-      <Block BlockType="Product" Name="Divide" SID="9">
-        <P Name="Ports">[2, 1]</P>
-        <P Name="Position">[700, 317, 730, 348]</P>
-        <P Name="ZOrder">17</P>
-        <P Name="Inputs">*/</P>
-        <P Name="InputSameDT">off</P>
-        <P Name="OutDataTypeStr">Inherit: Inherit via internal rule</P>
-        <P Name="RndMeth">Floor</P>
-        <P Name="SaturateOnIntegerOverflow">off</P>
         <Port>
           <P Name="PortNumber">1</P>
           <P Name="Name">veh_v</P>
         </Port>
       </Block>
-      <Block BlockType="Switch" Name="Switch" SID="5">
-        <P Name="Position">[465, 260, 515, 300]</P>
-        <P Name="ZOrder">14</P>
-        <P Name="Criteria">u2 &gt; Threshold</P>
+      <Block BlockType="Sum" Name="Add" SID="24">
+        <P Name="Ports">[2, 1]</P>
+        <P Name="Position">[390, 197, 420, 268]</P>
+        <P Name="ZOrder">5724</P>
+        <P Name="Inputs">+-</P>
         <P Name="InputSameDT">off</P>
+        <P Name="OutDataTypeStr">Inherit: Inherit via internal rule</P>
         <P Name="SaturateOnIntegerOverflow">off</P>
       </Block>
-      <Block BlockType="Switch" Name="Switch1" SID="6">
-        <P Name="Position">[465, 350, 515, 390]</P>
-        <P Name="ZOrder">15</P>
-        <P Name="Criteria">u2 &gt; Threshold</P>
-        <P Name="InputSameDT">off</P>
-        <P Name="SaturateOnIntegerOverflow">off</P>
+      <Block BlockType="Reference" Name="Discrete PID Controller" SID="17">
+        <P Name="Ports">[1, 1]</P>
+        <P Name="Position">[505, 217, 545, 253]</P>
+        <P Name="ZOrder">5717</P>
+        <P Name="LibraryVersion">1.441</P>
+        <P Name="SourceBlock">simulink/Continuous/PID Controller</P>
+        <P Name="SourceType">PID 1dof</P>
+        <P Name="SourceProductName">Simulink</P>
+        <P Name="SourceProductBaseCode">SL</P>
+        <InstanceData>
+          <P Name="ContentPreviewEnabled">on</P>
+          <P Name="Controller">PI</P>
+          <P Name="TimeDomain">Discrete-time</P>
+          <P Name="SampleTime">0.007</P>
+          <P Name="IntegratorMethod">Backward Euler</P>
+          <P Name="FilterMethod">Forward Euler</P>
+          <P Name="Form">Parallel</P>
+          <P Name="UseFilter">on</P>
+          <P Name="ControllerParametersSource">internal</P>
+          <P Name="P">1</P>
+          <P Name="I">1</P>
+          <P Name="D">0</P>
+          <P Name="N">100</P>
+          <P Name="InitialConditionSource">internal</P>
+          <P Name="InitialConditionForIntegrator">0</P>
+          <P Name="InitialConditionForFilter">0</P>
+          <P Name="ExternalReset">none</P>
+          <P Name="IgnoreLimit">off</P>
+          <P Name="ZeroCross">on</P>
+          <P Name="LimitOutput">on</P>
+          <P Name="UpperSaturationLimit">3</P>
+          <P Name="LowerSaturationLimit">-3</P>
+          <P Name="LinearizeAsGain">off</P>
+          <P Name="AntiWindupMode">back-calculation</P>
+          <P Name="Kb">1</P>
+          <P Name="TrackingMode">off</P>
+          <P Name="Kt">1</P>
+          <P Name="RndMeth">Floor</P>
+          <P Name="SaturateOnIntegerOverflow">off</P>
+          <P Name="LockScale">off</P>
+          <P Name="PParamMin">[]</P>
+          <P Name="PParamMax">[]</P>
+          <P Name="PParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="IParamMin">[]</P>
+          <P Name="IParamMax">[]</P>
+          <P Name="IParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="DParamMin">[]</P>
+          <P Name="DParamMax">[]</P>
+          <P Name="DParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="NParamMin">[]</P>
+          <P Name="NParamMax">[]</P>
+          <P Name="NParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="KbParamMin">[]</P>
+          <P Name="KbParamMax">[]</P>
+          <P Name="KbParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="KtParamMin">[]</P>
+          <P Name="KtParamMax">[]</P>
+          <P Name="KtParamDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="POutMin">[]</P>
+          <P Name="POutMax">[]</P>
+          <P Name="POutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="PGainOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="PProdOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="IOutMin">[]</P>
+          <P Name="IOutMax">[]</P>
+          <P Name="IOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="IGainOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="IProdOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="DOutMin">[]</P>
+          <P Name="DOutMax">[]</P>
+          <P Name="DOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="DGainOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="DProdOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="NOutMin">[]</P>
+          <P Name="NOutMax">[]</P>
+          <P Name="NOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="NGainOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="NProdOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="KbOutMin">[]</P>
+          <P Name="KbOutMax">[]</P>
+          <P Name="KbOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="KtOutMin">[]</P>
+          <P Name="KtOutMax">[]</P>
+          <P Name="KtOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="IntegratorOutMin">[]</P>
+          <P Name="IntegratorOutMax">[]</P>
+          <P Name="IntegratorOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="FilterOutMin">[]</P>
+          <P Name="FilterOutMax">[]</P>
+          <P Name="FilterOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumOutMin">[]</P>
+          <P Name="SumOutMax">[]</P>
+          <P Name="SumOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI1OutMin">[]</P>
+          <P Name="SumI1OutMax">[]</P>
+          <P Name="SumI1OutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI2OutMin">[]</P>
+          <P Name="SumI2OutMax">[]</P>
+          <P Name="SumI2OutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI3OutMin">[]</P>
+          <P Name="SumI3OutMax">[]</P>
+          <P Name="SumI3OutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumDOutMin">[]</P>
+          <P Name="SumDOutMax">[]</P>
+          <P Name="SumDOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI1AccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI2AccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumI3AccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumDAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SaturationOutMin">[]</P>
+          <P Name="SaturationOutMax">[]</P>
+          <P Name="SaturationOutDataTypeStr">Inherit: Same as input</P>
+          <P Name="IntegratorContinuousStateAttributes">&apos;&apos;</P>
+          <P Name="IntegratorStateMustResolveToSignalObject">off</P>
+          <P Name="IntegratorRTWStateStorageClass">Auto</P>
+          <P Name="FilterContinuousStateAttributes">&apos;&apos;</P>
+          <P Name="FilterStateMustResolveToSignalObject">off</P>
+          <P Name="FilterRTWStateStorageClass">Auto</P>
+          <P Name="DifferentiatorICPrevScaledInput">0</P>
+          <P Name="DifferentiatorOutMin">[]</P>
+          <P Name="DifferentiatorOutMax">[]</P>
+          <P Name="DifferentiatorOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="InitialConditionSetting">Auto</P>
+          <P Name="FilterDiffNumProductOutputDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="FilterDiffDenProductOutputDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="FilterDiffNumAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="FilterDiffDenAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="FilterDiffOutCoefMin">[]</P>
+          <P Name="FilterDiffOutCoefMax">[]</P>
+          <P Name="FilterDiffOutCoefDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumDenAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumDenOutMin">[]</P>
+          <P Name="SumDenOutMax">[]</P>
+          <P Name="SumDenOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumNumAccumDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="SumNumOutMin">[]</P>
+          <P Name="SumNumOutMax">[]</P>
+          <P Name="SumNumOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="ReciprocalOutMin">[]</P>
+          <P Name="ReciprocalOutMax">[]</P>
+          <P Name="ReciprocalOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="DivideOutMin">[]</P>
+          <P Name="DivideOutMax">[]</P>
+          <P Name="DivideOutDataTypeStr">Inherit: Inherit via internal rule</P>
+          <P Name="TunerSelectOption">Transfer Function Based (PID Tuner App)</P>
+        </InstanceData>
+        <Port>
+          <P Name="PortNumber">1</P>
+          <P Name="Name">des_a</P>
+        </Port>
       </Block>
-      <Block BlockType="Outport" Name="veh_v" SID="10">
-        <P Name="Position">[795, 328, 825, 342]</P>
-        <P Name="ZOrder">9</P>
+      <Block BlockType="Outport" Name="des_a" SID="25">
+        <P Name="Position">[645, 228, 675, 242]</P>
+        <P Name="ZOrder">5725</P>
         <P Name="IconDisplay">Port number</P>
       </Block>
       <Line>
-        <P Name="Name">wheel_valid</P>
-        <P Name="ZOrder">1</P>
+        <P Name="Name">des_v</P>
+        <P Name="ZOrder">19</P>
         <P Name="Labels">[1, 1]</P>
-        <P Name="SrcBlock">wheel_valid</P>
+        <P Name="SrcBlock">des_v</P>
         <P Name="SrcPort">1</P>
-        <P Name="DstBlock">Switch</P>
-        <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">2</P>
-        <P Name="SrcBlock">Add</P>
-        <P Name="SrcPort">1</P>
-        <P Name="DstBlock">Divide</P>
-        <P Name="DstPort">1</P>
-      </Line>
-      <Line>
-        <P Name="Name">laser_valid</P>
-        <P Name="ZOrder">3</P>
-        <P Name="Labels">[1, 1]</P>
-        <P Name="SrcBlock">laser_valid</P>
-        <P Name="SrcPort">1</P>
-        <P Name="DstBlock">Switch1</P>
-        <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="Name">laser_v</P>
-        <P Name="ZOrder">6</P>
-        <P Name="Labels">[1, 1]</P>
-        <P Name="SrcBlock">laser_v</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[49, 0]</P>
-        <Branch>
-          <P Name="ZOrder">5</P>
-          <P Name="Points">[0, 30]</P>
-          <P Name="DstBlock">Switch1</P>
-          <P Name="DstPort">1</P>
-        </Branch>
-        <Branch>
-          <P Name="ZOrder">4</P>
-          <P Name="Points">[0, -30]</P>
-          <P Name="DstBlock">Switch</P>
-          <P Name="DstPort">3</P>
-        </Branch>
-      </Line>
-      <Line>
-        <P Name="ZOrder">7</P>
-        <P Name="SrcBlock">Constant</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[25, 0; 0, -35]</P>
-        <P Name="DstBlock">Divide</P>
-        <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">8</P>
-        <P Name="SrcBlock">Switch</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[43, 0; 0, 35]</P>
         <P Name="DstBlock">Add</P>
         <P Name="DstPort">1</P>
-      </Line>
-      <Line>
-        <P Name="Name">wheel_v</P>
-        <P Name="ZOrder">11</P>
-        <P Name="SrcBlock">wheel_v</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[28, 0]</P>
-        <Branch>
-          <P Name="ZOrder">10</P>
-          <P Name="Points">[0, 145]</P>
-          <P Name="DstBlock">Switch1</P>
-          <P Name="DstPort">3</P>
-        </Branch>
-        <Branch>
-          <P Name="ZOrder">9</P>
-          <P Name="Labels">[0, 1]</P>
-          <P Name="Points">[22, 0; 0, 25]</P>
-          <P Name="DstBlock">Switch</P>
-          <P Name="DstPort">1</P>
-        </Branch>
-      </Line>
-      <Line>
-        <P Name="ZOrder">12</P>
-        <P Name="SrcBlock">Switch1</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[43, 0; 0, -40]</P>
-        <P Name="DstBlock">Add</P>
-        <P Name="DstPort">2</P>
       </Line>
       <Line>
         <P Name="Name">veh_v</P>
-        <P Name="ZOrder">13</P>
-        <P Name="Labels">[1, 0]</P>
-        <P Name="SrcBlock">Divide</P>
+        <P Name="ZOrder">20</P>
+        <P Name="Labels">[1, 1]</P>
+        <P Name="SrcBlock">veh_v</P>
         <P Name="SrcPort">1</P>
-        <P Name="DstBlock">veh_v</P>
+        <P Name="DstBlock">Add</P>
+        <P Name="DstPort">2</P>
+      </Line>
+      <Line>
+        <P Name="ZOrder">21</P>
+        <P Name="SrcBlock">Add</P>
+        <P Name="SrcPort">1</P>
+        <P Name="DstBlock">Discrete PID Controller</P>
+        <P Name="DstPort">1</P>
+      </Line>
+      <Line>
+        <P Name="Name">des_a</P>
+        <P Name="ZOrder">22</P>
+        <P Name="Labels">[1, 1]</P>
+        <P Name="SrcBlock">Discrete PID Controller</P>
+        <P Name="SrcPort">1</P>
+        <P Name="DstBlock">des_a</P>
         <P Name="DstPort">1</P>
       </Line>
     </System>
