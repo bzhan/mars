@@ -56,7 +56,15 @@ def parse_hcsp():
         else:
             sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs, procedures=info.procedures))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
-            json_procs = {proc.name:str(proc.hp) for proc in info.procedures}
+            json_procs = []
+            for proc in info.procedures:
+                proc_lines, proc_mapping = pprint.pprint_lines(proc.hp, record_pos=True)
+                json_procs.append({
+                    'name': proc.name,
+                    'text': str(proc.hp),
+                    'lines': proc_lines,
+                    'mapping': proc_mapping
+                })
             hcsp_info.append({
                 'name': name,
                 'text': str(hp),
@@ -81,7 +89,8 @@ def run_hcsp():
     profile = False
 
     def convert_procs(procs):
-        return {name:hcsp.Procedure(name, hp) for name, hp in procs.items()}
+        return {proc['name']:hcsp.Procedure(proc['name'], proc['text'])
+                for proc in procs}
 
     infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'],
                                procedures=convert_procs(info['procedures']))
