@@ -187,7 +187,6 @@ def eval_expr(expr, state):
             return random.randint(1, args[0])
         elif expr.fun_name == "zeros":
             if len(args) == 3:
-                # raise  SimulatorException("Unrecognized process variable:" + str(np.zeros((args[0],args[1],args[2]),dtype=[['x','int'],['y','int']])))
                 return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
         elif expr.fun_name == "protected_curve":
             # assert len(args) == 4
@@ -821,10 +820,7 @@ class SimInfo:
 
         """
         if isinstance(lname, AVar):
-            print(lname)
-            print(val)
             self.state[lname.name] = copy.deepcopy(val)
-            print(self.state)
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
@@ -1116,7 +1112,7 @@ class SimInfo:
             assert 'delay' in self.reason
             assert self.reason['delay'] >= delay
             if self.reason['delay'] == delay:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+                self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             else:
                 self.callstack.renew(self.callstack.top_pos()[:-1] + (self.callstack.top_pos()[-1] + delay,))
 
@@ -1160,7 +1156,7 @@ class SimInfo:
                     self.state[var_name] = opt_round(sol.y[i][-1])
 
             if finish_ode:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars)
+                self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             else:
                 if 'delay' in self.reason:
                     self.reason['delay'] -= delay
