@@ -37,7 +37,7 @@ module EXE_img_acq_imp():
 begin
   processing_state := 0;
   state := "wait";
-  prior := "1";
+  prior := 1;
   (
     if state == "wait" then
       dis["img_acq_imp"]?;
@@ -51,7 +51,7 @@ begin
         run[0]["img_acq_imp"]? -->
           state := "running"
       );
-      t == 0.045 -> (
+      t == 0.045 && state == "ready" -> (
         exit[0]["img_acq_imp"]! -->
           state := "wait" $
         run[0]["img_acq_imp"]? -->
@@ -95,7 +95,7 @@ module EXE_comp_obs_pos_imp():
 begin
   x0 := 0;
   state := "wait";
-  prior := "1";
+  prior := 1;
   (
     if state == "wait" then
       dis["comp_obs_pos_imp"]?;
@@ -110,7 +110,7 @@ begin
         run[0]["comp_obs_pos_imp"]? -->
           state := "running"
       );
-      t == 0.097 -> (
+      t == 0.097 && state == "ready" -> (
         exit[0]["comp_obs_pos_imp"]! -->
           state := "wait" $
         run[0]["comp_obs_pos_imp"]? -->
@@ -168,7 +168,7 @@ module EXE_PI_ctr_imp():
 begin
   Integrator_DSTATE := 0;
   state := "wait";
-  prior := "1";
+  prior := 1;
   (
     if state == "wait" then
       dis["PI_ctr_imp"]?;
@@ -183,7 +183,7 @@ begin
         run[0]["PI_ctr_imp"]? -->
           state := "running"
       );
-      t == 0.007 -> (
+      t == 0.007 && state == "ready" -> (
         exit[0]["PI_ctr_imp"]! -->
           state := "wait" $
         run[0]["PI_ctr_imp"]? -->
@@ -248,7 +248,7 @@ begin
   min_a := -3;
   max_v := 10;
   state := "wait";
-  prior := "2";
+  prior := 2;
   (
     if state == "wait" then
       dis["emerg_imp"]?;
@@ -265,13 +265,13 @@ begin
         run[0]["emerg_imp"]? -->
           state := "running"
       );
-      t == 0.005 -> (
+      t == 0.005 && state == "ready" -> (
         exit[0]["emerg_imp"]! -->
           state := "wait" $
         run[0]["emerg_imp"]? -->
           state := "running"
       )
-    else
+    elif state == "running" then
       entered == 0 -> (
         c := 0;
         next_v := veh_v+des_a*1.0;
@@ -297,7 +297,7 @@ begin
         );
         state == "running" -> (
           if c == 0.001 then
-            reqBus["bus0"]! -->
+            reqBus["emerg_imp"]! -->
               outputs["emerg_imp"]["cmd"]!cmd;
               (preempt[0]["emerg_imp"]? --> state := "wait" $ free[0]["emerg_imp"]! --> state := "wait")
             $
@@ -311,6 +311,9 @@ begin
           endif
         )
       )
+    else
+      <t_dot = 1 & t < 0.005> |> [] (unblock["emerg_imp"]? --> state := "ready");
+      t == 0.005 -> state := "wait"
     endif
   )**
 end
@@ -320,7 +323,7 @@ module EXE_velo_voter_imp():
 begin
   x3 := 2;
   state := "wait";
-  prior := "1";
+  prior := 1;
   (
     if state == "wait" then
       dis["velo_voter_imp"]?;
@@ -337,7 +340,7 @@ begin
         run[0]["velo_voter_imp"]? -->
           state := "running"
       );
-      t == 0.008 -> (
+      t == 0.008 && state == "ready" -> (
         exit[0]["velo_voter_imp"]! -->
           state := "wait" $
         run[0]["velo_voter_imp"]? -->
@@ -391,7 +394,7 @@ module EXE_pan_ctr_th_imp():
 begin
   des_v := 0;
   state := "wait";
-  prior := "0";
+  prior := 0;
   (
     if state == "wait" then
       dis["pan_ctr_th_imp"]["event"]?event;
@@ -404,7 +407,7 @@ begin
         run[0]["pan_ctr_th_imp"]? -->
           state := "running"
       );
-      t == 0.1 -> (
+      t == 0.1 && state == "ready" -> (
         exit[0]["pan_ctr_th_imp"]! -->
           state := "wait" $
         run[0]["pan_ctr_th_imp"]? -->
@@ -475,17 +478,21 @@ endmodule
 
 module DEVICE_actuator():
 begin
-  inputs["actuator"]["cmd"]?cmd;
-  outputs["PHY_vehicle_imp"]["veh_a"]!cmd;
-  wait(0.002)
+  (
+    inputs["actuator"]["cmd"]?cmd;
+    outputs["PHY_vehicle_imp"]["veh_a"]!cmd;
+    wait(0.002)
+  )**
 end
 endmodule
 
 module DEVICE_gps():
 begin
-  inputs["PHY_vehicle_imp"]["veh_s"]?data;
-  outputs["gps"]["veh_pos"]!data;
-  wait(0.006)
+  (
+    inputs["PHY_vehicle_imp"]["veh_s"]?data;
+    outputs["gps"]["veh_pos"]!data;
+    wait(0.006)
+  )**
 end
 endmodule
 

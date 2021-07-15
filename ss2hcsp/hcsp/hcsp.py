@@ -473,7 +473,7 @@ class ParaInputChannel(InputChannel):
     def __str__(self):
         result = str(self.ch_name)
         for para in self.paras:
-            if self.is_str:
+            if isinstance(para, str) and self.is_str:
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"
@@ -534,7 +534,7 @@ class ParaOutputChannel(OutputChannel):
     def __str__(self):
         result = str(self.ch_name)
         for para in self.paras:
-            if self.is_str:
+            if isinstance(para, str) and self.is_str:
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"

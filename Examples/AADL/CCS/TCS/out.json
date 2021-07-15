@@ -193,7 +193,7 @@
         },
         "period": "2ms",
         "impl": "Simulink",
-        "computation": "inputs[\"actuator\"][\"cmd\"]?cmd;\n  outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd;\n  wait(0.002)"
+        "computation": "(inputs[\"actuator\"][\"cmd\"]?cmd;\n  outputs[\"PHY_vehicle_imp\"][\"veh_a\"]!cmd;\n  wait(0.002))**"
     },
     "gps": {
         "category": "device",
@@ -208,7 +208,7 @@
         },
         "period": "6ms",
         "impl": "Simulink",
-        "computation": "inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data;\n  outputs[\"gps\"][\"veh_pos\"]!data;\n  wait(0.006)"
+        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_s\"]?data;\n  outputs[\"gps\"][\"veh_pos\"]!data;\n  wait(0.006))**"
     },
     "laser": {
         "category": "device",
@@ -344,9 +344,9 @@
     "conn9": {
         "category": "connection",
         "source": "img_acq_imp",
-        "source_port": "proc_imp",
+        "source_port": "proc_img",
         "targets": ["comp_obs_pos_imp"],
-        "target_ports": ["proc_imp"],
+        "target_ports": ["proc_img"],
         "type": "data",
         "init_value": 0.0,
         "bus": ""

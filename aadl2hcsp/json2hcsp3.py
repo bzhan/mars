@@ -30,7 +30,7 @@ if state == "wait" then
 elif state == "ready" then
     reqProcessor[sid][name]!prior;
     <t_dot = 1 & t < DL> |> [] (run[sid][name]? --> state := "running");
-    t == DL ->
+    t == DL && state == "ready" ->
         (
         exit[sid][name]! --> state := "wait"
         $
@@ -75,13 +75,13 @@ if state == "wait" then
 elif state == "ready" then
     reqProcessor[sid][name]!prior;
     <t_dot = 1 & t < DL> |> [] (run[sid][name]? --> state := "running");
-    t == DL ->
+    t == DL && state == "ready" ->
         (
         exit[sid][name]! --> state := "wait"
         $
         run[sid][name]? --> state := "running"
         )
-else
+elif state == "running" then
     entered == 0 ->
     (
         c := 0;
@@ -95,7 +95,7 @@ else
         state == "running" ->
             (
             if c == max_c then
-                reqBus[bus]! --> (@OUTPUT; (preempt[sid][name]? --> state := "wait" $ free[sid][name]! --> state := "wait"))
+                reqBus[name]! --> (@OUTPUT; (preempt[sid][name]? --> state := "wait" $ free[sid][name]! --> state := "wait"))
                 $
                 block[name]? --> (preempt[sid][name]? --> state := "await" $ free[sid][name]! --> state := "await")
             else
@@ -103,6 +103,9 @@ else
             endif
             )
     )
+else
+    <t_dot = 1 & t < 0.005> |> [] (unblock["emerg_imp"]? --> state := "ready");
+    t == 0.005 -> state := "wait"
 endif
 )**
 end
@@ -297,7 +300,7 @@ def translate_bus(name, info, json_info):
 def translate_model(json_info):
     """Overall translation"""
     # Construct the components
-    component_mod_insts = []
+    component_mod_insts = [module.HCSPModuleInst("scheduler", "SCHEDULLER_HPF", [expr.AConst(0)])]
     for name, info in json_info.items():
         if info['category'] == 'thread':
             if info['dispatch_protocol'] == 'periodic':
