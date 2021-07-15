@@ -5,7 +5,7 @@ procedure BLOCK begin
   t := 0;
   (
     <t_dot = 1 & t < 0.001> |> [] (
-      block[emerg_imp]! -->
+      block["emerg_imp"]! -->
         skip
     )
   ){t < 0.001}**
@@ -41,7 +41,7 @@ begin
     inputs["bus0"]["event"]?event -->
       @BLOCK;
       outputs["bus0"]["event"]!event $
-    unblock[emerg_imp]! -->
+    unblock["emerg_imp"]! -->
       skip
   )**
 end

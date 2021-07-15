@@ -81,7 +81,7 @@ def run_hcsp():
     profile = False
 
     def convert_procs(procs):
-        return [hcsp.Procedure(name, hp) for name, hp in procs.items()]        
+        return {name:hcsp.Procedure(name, hp) for name, hp in procs.items()}
 
     infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'],
                                procedures=convert_procs(info['procedures']))

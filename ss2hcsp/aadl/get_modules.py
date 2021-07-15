@@ -218,7 +218,7 @@ def get_bus_module(name, thread_ports, device_ports, latency):
         assert len(transfer) >= 2
         transfer = hp.Sequence(*transfer)
         reqBus_hps.append((reqBus, transfer))
-        unblock_hps.append((hp.ParaOutputChannel(ch_name="unblock", paras=[sender]), hp.Skip()))
+        unblock_hps.append((hp.ParaOutputChannel(ch_name="unblock", paras=[sender], is_str=True), hp.Skip()))
 
     for sender, ports in device_ports.items():
         get_datas = list()
@@ -256,7 +256,7 @@ def get_bus_module(name, thread_ports, device_ports, latency):
 
     # Get procedures of BLOCK and BLOCK_by_thread
     procesures = list()
-    io_comms = [(hp.ParaOutputChannel(ch_name="block", paras=[thread]), hp.Skip())
+    io_comms = [(hp.ParaOutputChannel(ch_name="block", paras=[thread], is_str=True), hp.Skip())
                 for thread in thread_ports.keys()]
     reset_t = hp.Assign(var_name="t", expr=AConst(0))
     eqs = [("t", AConst(1))]
