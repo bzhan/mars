@@ -166,9 +166,9 @@ def get_bus_module(name, thread_ports, device_ports, latency):
 
     reqBus_hps = list()
     unblock_hps = list()
-    io_comms = list()
+    # io_comms = list()
     for sender, ports in thread_ports.items():
-        reqBus = hp.ParaInputChannel(ch_name="reqBus", paras=[sender])
+        reqBus = hp.ParaInputChannel(ch_name="reqBus", paras=[sender], is_str=True)
         get_datas = list()
         put_datas = list()
         get_events = list()
@@ -178,14 +178,14 @@ def get_bus_module(name, thread_ports, device_ports, latency):
         for port_name, port_type in ports.items():
             if port_type == "out data":
                 get_datas.append(hp.ParaInputChannel(ch_name="outputs", paras=[sender, port_name],
-                                                     var_name=port_name))
+                                                     var_name=port_name, is_str=True))
                 put_datas.append(hp.ParaOutputChannel(ch_name="outputs", paras=[name, port_name],
-                                                      expr=AVar(port_name)))
+                                                      expr=AVar(port_name), is_str=True))
             elif port_type == "out event":
                 get_events.append(hp.ParaInputChannel(ch_name="outputs", paras=[sender, port_name],
-                                                      var_name=port_name))
+                                                      var_name=port_name, is_str=True))
                 put_events.append(hp.ParaOutputChannel(ch_name="outputs", paras=[name, port_name],
-                                                       expr=AVar(port_name)))
+                                                       expr=AVar(port_name), is_str=True))
                 init_events.append(hp.Assign(var_name=port_name, expr=AConst("")))
             else:
                 raise RuntimeError("port type must be either out data or out event!")
@@ -227,12 +227,12 @@ def get_bus_module(name, thread_ports, device_ports, latency):
         for port_name, port_type in ports.items():
             if port_type == "out data":
                 get_datas.append(hp.ParaInputChannel(ch_name="outputs", paras=[sender, port_name],
-                                                     var_name=port_name))
+                                                     var_name=port_name, is_str=True))
                 put_datas.append(hp.ParaOutputChannel(ch_name="outputs", paras=[name, port_name],
-                                                      expr=AVar(port_name)))
+                                                      expr=AVar(port_name), is_str=True))
             elif port_type == "out event":
                 get_events.append(hp.ParaInputChannel(ch_name="inputs", paras=[name, port_name],
-                                                      var_name="event"))
+                                                      var_name="event", is_str=True))
             else:
                 raise RuntimeError("port type must be either out data or out event!")
         if get_datas:
@@ -246,7 +246,7 @@ def get_bus_module(name, thread_ports, device_ports, latency):
         if get_events:
             for get_event in get_events:
                 put_event = hp.ParaOutputChannel(ch_name="outputs", paras=get_event.paras,
-                                                 expr=get_event.var_name)
+                                                 expr=get_event.var_name, is_str=True)
                 transfer = hp.Sequence(hp.Var("BLOCK"), put_event)
                 reqBus_hps.append((get_event, transfer))
     io_comms = list()
