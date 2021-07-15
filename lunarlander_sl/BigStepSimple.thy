@@ -560,6 +560,10 @@ lemma emp_unit_right [simp]:
   "(P @\<^sub>t emp\<^sub>t) = P"
   unfolding join_assn_def emp_assn_def by auto
 
+lemma emp_unit_right':
+  "P = (P @\<^sub>t emp\<^sub>t) "
+  unfolding join_assn_def emp_assn_def by auto
+
 lemma join_assoc:
   "(P @\<^sub>t Q) @\<^sub>t R = P @\<^sub>t (Q @\<^sub>t R)"
   unfolding join_assn_def by fastforce
@@ -590,6 +594,10 @@ lemma pure_assn_entails [simp]:
 lemma entails_tassn_cancel_left:
   "Q \<Longrightarrow>\<^sub>t R \<Longrightarrow> P @\<^sub>t Q \<Longrightarrow>\<^sub>t P @\<^sub>t R"
   by (auto simp add: entails_tassn_def join_assn_def)
+
+lemma entails_tassn_cancel_left_emp:
+  "Q \<Longrightarrow>\<^sub>t emp\<^sub>t  \<Longrightarrow> P @\<^sub>t Q \<Longrightarrow>\<^sub>t P "
+  by (auto simp add: entails_tassn_def join_assn_def emp_assn_def)
 
 lemma entails_tassn_cancel_right:
   "P \<Longrightarrow>\<^sub>t Q \<Longrightarrow> P @\<^sub>t R \<Longrightarrow>\<^sub>t Q @\<^sub>t R"
