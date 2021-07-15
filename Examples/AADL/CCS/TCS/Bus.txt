@@ -5,7 +5,7 @@ procedure BLOCK begin
   t := 0;
   (
     <t_dot = 1 & t < 0.001> |> [] (
-      block["emerg_imp"]! -->
+      block[emerg_imp]! -->
         skip
     )
   ){t < 0.001}**
@@ -15,33 +15,33 @@ procedure BLOCK_by_emerg_imp begin
 end
 begin
   (
-    reqBus["emerg_imp"]? -->
-      outputs["emerg_imp"]["cmd"]?cmd;
+    reqBus[emerg_imp]? -->
+      outputs[emerg_imp][cmd]?cmd;
       @BLOCK_by_emerg_imp;
-      outputs["bus0"]["cmd"]!cmd $
-    outputs["camera"]["img"]?img -->
+      outputs[bus0][cmd]!cmd $
+    outputs[camera][img]?img -->
       @BLOCK;
-      outputs["bus0"]["img"]!img $
-    outputs["radar"]["obs_pos_radar"]?obs_pos_radar -->
+      outputs[bus0][img]!img $
+    outputs[radar][obs_pos_radar]?obs_pos_radar -->
       @BLOCK;
-      outputs["bus0"]["obs_pos_radar"]!obs_pos_radar $
-    outputs["gps"]["veh_pos"]?veh_pos -->
+      outputs[bus0][obs_pos_radar]!obs_pos_radar $
+    outputs[gps][veh_pos]?veh_pos -->
       @BLOCK;
-      outputs["bus0"]["veh_pos"]!veh_pos $
-    outputs["laser"]["laser_valid"]?laser_valid -->
-      outputs["laser"]["laser_v"]?laser_v;
+      outputs[bus0][veh_pos]!veh_pos $
+    outputs[laser][laser_valid]?laser_valid -->
+      outputs[laser][laser_v]?laser_v;
       @BLOCK;
-      outputs["bus0"]["laser_valid"]!laser_valid;
-      outputs["bus0"]["laser_v"]!laser_v $
-    outputs["wheel"]["wheel_valid"]?wheel_valid -->
-      outputs["wheel"]["wheel_v"]?wheel_v;
+      outputs[bus0][laser_valid]!laser_valid;
+      outputs[bus0][laser_v]!laser_v $
+    outputs[wheel][wheel_valid]?wheel_valid -->
+      outputs[wheel][wheel_v]?wheel_v;
       @BLOCK;
-      outputs["bus0"]["wheel_valid"]!wheel_valid;
-      outputs["bus0"]["wheel_v"]!wheel_v $
-    inputs["bus0"]["event"]?event -->
+      outputs[bus0][wheel_valid]!wheel_valid;
+      outputs[bus0][wheel_v]!wheel_v $
+    inputs[bus0][event]?event -->
       @BLOCK;
-      outputs["bus0"]["event"]!event $
-    unblock["emerg_imp"]! -->
+      outputs[bus0][event]!event $
+    unblock[emerg_imp]! -->
       skip
   )**
 end

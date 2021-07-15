@@ -5,9 +5,9 @@ begin
   data := init_value;
   (
     <data_dot = 0 & true> |> [] (
-      outputs["send"]["out_port"]?data -->
+      outputs[send][out_port]?data -->
         skip,
-      inputs["recv0"]["in_port0"]!data -->
+      inputs[recv0][in_port0]!data -->
         skip
     )
   )**
@@ -19,11 +19,11 @@ begin
   data := init_value;
   (
     <data_dot = 0 & true> |> [] (
-      outputs["send"]["out_port"]?data -->
+      outputs[send][out_port]?data -->
         skip,
-      inputs["recv0"]["in_port0"]!data -->
+      inputs[recv0][in_port0]!data -->
         skip,
-      inputs["recv1"]["in_port1"]!data -->
+      inputs[recv1][in_port1]!data -->
         skip
     )
   )**
