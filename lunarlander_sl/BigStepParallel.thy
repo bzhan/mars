@@ -504,6 +504,17 @@ lemma combine_assn_in_out:
   subgoal apply (elim combine_blocks_pairE) by auto
   by (auto elim!: sync_elims)
 
+
+lemma combine_assn_in_out':
+  "ch \<in> chs \<Longrightarrow>
+   combine_assn chs (In\<^sub>t s1 ch v) (Out\<^sub>t s2 ch w) \<Longrightarrow>\<^sub>t
+   (\<up>(v = w) \<and>\<^sub>t (IO\<^sub>t ch v))"
+  unfolding combine_assn_def
+  apply (auto simp add: entails_tassn_def join_assn_def pure_assn_def conj_assn_def
+                        io_assn.simps out_assn.simps in_assn.simps)
+  by (auto elim: sync_elims)
+
+
 lemma combine_assn_wait_emp:
   assumes "d > 0"
   shows "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t false\<^sub>A"
