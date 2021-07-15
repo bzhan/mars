@@ -10,7 +10,7 @@ from ss2hcsp.hcsp import module
 
 class Json2HCSP3Test(unittest.TestCase):
     def testJson2HCSP3(self):
-        json_file = "./Examples/AADL/CCS/TCS/out.json"
+        json_file = "./Examples/AADL/CCS/TCS/model_1bus_1ms.json"
         with open(json_file, 'r') as f:
             dic = json.load(f)
 
@@ -42,11 +42,11 @@ class Json2HCSP3Test(unittest.TestCase):
             else:
                 raise NotImplementedError
 
-        # with open('./Examples/AADL/CCS/TCS/other_modules.txt', 'w') as f:
-        #     f.write("%type: module\n\n")
-        #     for mod in mods:
-        #         f.write(mod.export())
-        #         f.write('\n\n')
+        with open('./Examples/AADL/CCS/TCS/other_modules.txt', 'w') as f:
+            f.write("%type: module\n\n")
+            for mod in mods:
+                f.write(mod.export())
+                f.write('\n\n')
 
         with open('./Examples/AADL/CCS/TCS/DataBuffer.txt', 'w') as f:
             f.write("%type: module\n\n")

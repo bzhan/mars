@@ -19,11 +19,12 @@ class SFConvert:
     chart_parameters - additional parameters.
 
     """
-    def __init__(self, chart=None, *, chart_parameters=None):
+    def __init__(self, chart=None, *, chart_parameters=None, translate_io=True):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
         self.chart_parameters = chart_parameters
+        self.translate_io = translate_io
 
         # List of data variables
         self.data = dict()
@@ -222,17 +223,8 @@ class SFConvert:
                     hcsp.Assign(
                         expr.AVar(tick_name),
                         expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
-        procs_input=[]
-        procs_out=[]
-        procs_response=[]
-        # if len(state.children) == 0:
-            
-            # self.get_input_data(procs_input)
-            
-            # self.get_output_data(procs_out)
-            
-            # self.input_recieve_response(procs_response)
-        return hcsp.Sequence(*procs_input,self.convert_cmd(state.du), *procs,*procs_response,*procs_out)
+
+        return hcsp.Sequence(self.convert_cmd(state.du), *procs)
 
     def get_ex_proc(self, state):
         if not state.ex:
@@ -275,34 +267,29 @@ class SFConvert:
         procs.append(hcsp.Var(self.en_proc_name(state)))
         return hcsp.seq(procs)
 
-    def get_input_data(self,procs):
+    def get_input_data(self, procs):
+        if not self.translate_io:
+            return
         in_chs = []
         for port_id, in_var in self.chart.port_to_in_var.items():
             line = self.chart.dest_lines[port_id]
             ch_name = "ch_" + line.name + "_" + str(line.branch)
             in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
-        if len(in_chs)>0:
+        if len(in_chs) > 0:
             procs.extend(in_chs)
-    def get_output_data(self,procs):        
+
+    def get_output_data(self, procs):
+        if not self.translate_io:
+            return
         out_chs = []
         for port_id, out_var in self.chart.port_to_out_var.items():
             lines = self.chart.src_lines[port_id]
             for line in lines:
                 ch_name = "ch_" + line.name + "_" + str(line.branch)
                 out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
-        if len(out_chs)>0:
+        if len(out_chs) > 0:
             procs.extend(out_chs)
-            for port_id, out_var in self.chart.port_to_out_var.items():
-                lines = self.chart.src_lines[port_id]
-                for line in lines:
-                    ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-                    procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
-    def input_recieve_response(self,procs):
-        for port_id, in_var in self.chart.port_to_in_var.items():
-                line = self.chart.dest_lines[port_id]
-                if line.src_block.type == "stateflow":
-                    ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-                    procs.append(hcsp.OutputChannel(ch_name, expr.AConst(1)))
+
     def get_transition_proc(self, src, dst, tran_act=None):
         """Get procedure for transitioning between two states.
 
@@ -338,11 +325,9 @@ class SFConvert:
             
         # Enter states from ancestor to state1
         for state in reversed(self.get_chain_to_ancestor(dst, ancestor)):
-            # self.get_input_data(procs)
             procs.append(hcsp.Var(self.entry_proc_name(state)))
         procs.append(self.get_rec_entry_proc(dst))
-        # self.input_recieve_response(procs)
-        # self.get_output_data(procs)
+
         return hcsp.seq(procs)
 
     def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
@@ -749,13 +734,6 @@ class SFConvert:
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
 
-        # # Read input data
-        # self.get_input_data(procs)
-        # #give response
-        # self.input_recieve_response(procs)
-        # #write output data
-        # self.get_output_data(procs)
-
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.has_history_junc:
@@ -775,7 +753,6 @@ class SFConvert:
         
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
         self.get_input_data(procs)
-        # self.input_recieve_response(procs)
 
         self.get_output_data(procs)
         
@@ -802,8 +779,6 @@ class SFConvert:
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
-
-      
         self.get_output_data(procs)
 
         # Write data store variable

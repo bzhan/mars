@@ -252,18 +252,23 @@ def get_bus_module(name, thread_ports, device_ports, latency):
     io_comms = list()
     io_comms.extend(reqBus_hps)
     io_comms.extend(unblock_hps)
-    bus_hcsp = hp.Loop(hp.SelectComm(*io_comms))
+    assert len(io_comms) >= 1
+    bus_hcsp = hp.Loop(hp.SelectComm(*io_comms)) if len(io_comms) >= 2\
+        else hp.Loop(hp.Sequence(io_comms[0][0], io_comms[0][1]))
 
     # Get procedures of BLOCK and BLOCK_by_thread
     procesures = list()
     io_comms = [(hp.ParaOutputChannel(ch_name="block", paras=[thread], is_str=True), hp.Skip())
                 for thread in thread_ports.keys()]
     reset_t = hp.Assign(var_name="t", expr=AConst(0))
-    eqs = [("t", AConst(1))]
-    constraint = RelExpr("<", AVar("t"), AConst(latency))
-    ode = hp.ODE_Comm(eqs=eqs, constraint=constraint, io_comms=io_comms)
-    ode_loop = hp.Loop(constraint=constraint, hp=ode)
-    procesures.append(hp.Procedure(name="BLOCK", hp=hp.Sequence(reset_t, ode_loop)))
+    if len(io_comms) >= 1:
+        eqs = [("t", AConst(1))]
+        constraint = RelExpr("<", AVar("t"), AConst(latency))
+        ode = hp.ODE_Comm(eqs=eqs, constraint=constraint, io_comms=io_comms)
+        ode_loop = hp.Loop(constraint=constraint, hp=ode)
+        procesures.append(hp.Procedure(name="BLOCK", hp=hp.Sequence(reset_t, ode_loop)))
+    else:
+        procesures.append(hp.Procedure(name="BLOCK", hp=hp.Wait(AConst(latency))))
     for i in range(len(io_comms)):
         thread = io_comms[i][0].paras[0]
         if len(io_comms) >= 2:
@@ -308,12 +313,14 @@ def get_continuous_module(name, ports, continuous_diagram, outputs):
         if port_type == "in data":
             recv_flags.append(name + "_" + port_name)
             init_hps.append(hp.Assign(var_name=recv_flags[-1], expr=AConst(0)))
-            in_comms.append((hp.ParaInputChannel(ch_name="outputs", paras=[name, port_name], var_name=var_name),
+            in_comms.append((hp.ParaInputChannel(ch_name="outputs", paras=[name, port_name], var_name=var_name,
+                                                 is_str=True),
                              hp.Assign(var_name=recv_flags[-1], expr=AConst(1))))
         elif port_type == "out data":
             send_flags.append(name + "_" + port_name)
             init_hps.append(hp.Assign(var_name=send_flags[-1], expr=AConst(0)))
-            out_comms.append((hp.ParaOutputChannel(ch_name="inputs", paras=[name, port_name], expr=AVar(var_name)),
+            out_comms.append((hp.ParaOutputChannel(ch_name="inputs", paras=[name, port_name], expr=AVar(var_name),
+                                                   is_str=True),
                               hp.Assign(var_name=send_flags[-1], expr=AConst(1))))
         else:
             raise RuntimeError("Not implemented!")

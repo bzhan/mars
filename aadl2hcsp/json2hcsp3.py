@@ -185,11 +185,16 @@ def translate_thread(name, info, bus=None):
         diagram.add_line_name()
         _, _, charts, _, _, _, _, _ = diagram.seperate_diagram()
         assert len(charts) == 1
-        converter = sf_convert.SFConvert(charts[0], chart_parameters=diagram.chart_parameters[charts[0].name])
-        _init_hp = converter.get_init_proc()
-        _dis_comp = converter.get_iteration()
-        _procesures = []
-        return _init_hp, _procesures, _dis_comp
+        converter = sf_convert.SFConvert(charts[0], chart_parameters=diagram.chart_parameters[charts[0].name],
+                                         translate_io=False)
+        _init_hp = hcsp.Var(converter.init_name())
+        _dis_comp = hcsp.Var(converter.exec_name())
+        _procedures = converter.get_procs()
+        procs = []
+        for _name, _hp in _procedures.items():
+            procs.append(hcsp.Procedure(_name, _hp))
+
+        return _init_hp, procs, _dis_comp
 
     initlizations = list()
     if info['initialization']:
@@ -207,12 +212,15 @@ def translate_thread(name, info, bus=None):
     inst = {
         "INIT": hcsp.Sequence(*initlizations) if initlizations else hcsp.Skip(),
         "INPUT": input_hp,
-        "DISCRETE_COMPUTATION": dis_comp,
+        "DISCRETE_COMPUTATION": hcsp.Sequence(parser.hp_parser.parse("EL := push(EL, event)"),
+                                              dis_comp,
+                                              parser.hp_parser.parse("EL := pop(EL)"))
+        if "event_input" in info else dis_comp,
         "OUTPUT": hcsp.Sequence(*outputs)
     }
     hp = hcsp.HCSP_subst(hp_info.hp, inst)
     # new_mod = module.HCSPModule("EXE_" + name, [], [], hp)
-    new_mod = module.HCSPModule(name="EXE_"+name, code=hp, procedures=procesures)
+    new_mod = module.HCSPModule(name="EXE_"+name, code=hp, procedures=procesures, outputs=info["display"])
     return new_mod
 
 
@@ -221,7 +229,7 @@ def translate_device(name, info):
     if info['impl'] == 'Simulink':
         hp = parser.hp_parser.parse(info['computation'])
         # new_mod = module.HCSPModule("DEVICE_" + name, [], [], hp)
-        new_mod = module.HCSPModule(name="DEVICE_" + name, code=hp)
+        new_mod = module.HCSPModule(name="DEVICE_" + name, code=hp, outputs=info['display'])
         return new_mod
 
     elif info['impl'] == 'Channel':
@@ -242,7 +250,7 @@ def translate_device(name, info):
 
         hp = hcsp.Loop(hcsp.Sequence(*(inputs + outputs + [wait_hp])))
         # new_mod = module.HCSPModule("DEVICE_" + name, [], [], hp)
-        new_mod = module.HCSPModule(name="DEVICE_" + name, code=hp)
+        new_mod = module.HCSPModule(name="DEVICE_" + name, code=hp, outputs=info['display'])
         return new_mod
 
     else:

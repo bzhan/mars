@@ -34,7 +34,6 @@ end
 endmodule
 
 module EXE_img_acq_imp():
-output image, new_image;
 begin
   processing_state := 0;
   state := "wait";
@@ -93,7 +92,6 @@ end
 endmodule
 
 module EXE_comp_obs_pos_imp():
-output obs_pos_radar, proc_img, obs_pos;
 begin
   x0 := 0;
   state := "wait";
@@ -167,7 +165,6 @@ end
 endmodule
 
 module EXE_PI_ctr_imp():
-output des_v, veh_v, des_a;
 begin
   Integrator_DSTATE := 0;
   state := "wait";
@@ -247,136 +244,9 @@ end
 endmodule
 
 module EXE_emerg_imp():
-output des_a, veh_v, obs_pos, veh_pos, cmd;
-procedure en_emerg_imp_state begin
-  skip
-end
-procedure du_emerg_imp_state begin
-  skip
-end
-procedure ex_emerg_imp_state begin
-  skip
-end
-procedure entry_emerg_imp_state begin
-  emerg_imp_st := "emerg_imp_state";
-  @en_emerg_imp_state
-end
-procedure during_emerg_imp_state begin
-  emerg_imp_state_done := 0;
-  true -> (
-    next_v := veh_v+des_a*period;
-    next_s := veh_pos+veh_v*period+0.5*des_a*period*period;
-    emerg_imp_st == "emerg_imp_state" -> (
-      @J14_1;
-      emerg_imp_state_done := _ret
-    )
-  );
-  emerg_imp_st == "emerg_imp_state" && emerg_imp_state_done == 0 -> @du_emerg_imp_state;
-  _ret := emerg_imp_state_done
-end
-procedure exit_emerg_imp_state begin
-  @ex_emerg_imp_state;
-  emerg_imp_st := ""
-end
-procedure en_emerg_imp begin
-  skip
-end
-procedure du_emerg_imp begin
-  skip
-end
-procedure ex_emerg_imp begin
-  skip
-end
-procedure entry_emerg_imp begin
-  @en_emerg_imp
-end
-procedure during_emerg_imp begin
-  @du_emerg_imp;
-  _ret := 0
-end
-procedure exit_emerg_imp begin
-  @ex_emerg_imp
-end
-procedure J14_1 begin
-  J14_done := 0;
-  distance := obs_pos-next_s;
-  max_d := max_v*max_v/(-2*min_a);
-  if obs_pos <= 0 || distance >= max_d then
-    v_lim := max_v
-  else
-    if distance >= 0 then
-      v_lim := sqrt(-2*min_a*distance)
-    else
-      v_lim := 0
-    endif
-  endif;
-  next_v <= v_lim -> (
-    @exit_emerg_imp_state;
-    cmd := des_a;
-    @entry_emerg_imp_state;
-    _ret := 1;
-    J14_done := _ret
-  );
-  J14_done == 0 -> (
-    next_s := veh_pos+veh_v*period;
-    @J20_1;
-    J14_done := _ret
-  );
-  _ret := J14_done
-end
-procedure J20_1 begin
-  J20_done := 0;
-  distance := obs_pos-next_s;
-  max_d := max_v*max_v/(-2*min_a);
-  if obs_pos <= 0 || distance >= max_d then
-    v_lim := max_v
-  else
-    if distance >= 0 then
-      v_lim := sqrt(-2*min_a*distance)
-    else
-      v_lim := 0
-    endif
-  endif;
-  veh_v <= v_lim -> (
-    @exit_emerg_imp_state;
-    cmd := 0;
-    @entry_emerg_imp_state;
-    _ret := 1;
-    J20_done := _ret
-  );
-  J20_done == 0 -> (
-    @exit_emerg_imp_state;
-    cmd := min_a;
-    @entry_emerg_imp_state;
-    _ret := 1;
-    J20_done := _ret
-  );
-  _ret := J20_done
-end
-procedure init_emerg_imp begin
-  EL := [];
-  v_lim := 0;
-  max_v := 10;
-  min_a := -3;
-  period := 0.005;
-  cmd := 0;
-  next_v := 0;
-  next_s := 0;
-  @entry_emerg_imp;
-  @entry_emerg_imp_state
-end
-procedure exec_emerg_imp begin
-  @during_emerg_imp;
-  _ret == 0 -> (
-    if emerg_imp_st == "emerg_imp_state" then
-      @during_emerg_imp_state
-    else
-      skip
-    endif
-  )
-end
 begin
-  @init_emerg_imp;
+  min_a := -3;
+  max_v := 10;
   state := "wait";
   prior := 2;
   (
@@ -404,7 +274,20 @@ begin
     elif state == "running" then
       entered == 0 -> (
         c := 0;
-        @exec_emerg_imp;
+        next_v := veh_v+des_a*1.0;
+        next_s := veh_pos+veh_v*1.0+0.5*des_a*1.0*1.0;
+        v_limit := protected_curve([obs_pos, next_s, max_v, min_a]);
+        if next_v <= v_limit then
+          cmd := des_a
+        else
+          next_s := veh_pos+veh_v*1.0;
+          v_limit := protected_curve([obs_pos, next_s, max_v, min_a]);
+          if veh_v <= v_limit then
+            cmd := 0
+          else
+            cmd := min_a
+          endif
+        endif;
         entered := 1
       );
       entered == 1 -> (
@@ -416,17 +299,10 @@ begin
           if c == 0.001 then
             reqBus["emerg_imp"]! -->
               outputs["emerg_imp"]["cmd"]!cmd;
-              (
-                preempt[0]["emerg_imp"]? -->
-                  state := "wait" $
-                free[0]["emerg_imp"]! -->
-                  state := "wait"
-              ) $
-            block["emerg_imp"]? --> (
-              preempt[0]["emerg_imp"]? -->
-                state := "await" $
-              free[0]["emerg_imp"]! -->
-                state := "await")
+              (preempt[0]["emerg_imp"]? --> state := "wait" $ free[0]["emerg_imp"]! --> state := "wait")
+            $
+            block["emerg_imp"]? -->
+              (preempt[0]["emerg_imp"]? --> state := "await" $ free[0]["emerg_imp"]! --> state := "await")
           else
             preempt[0]["emerg_imp"]? -->
               state := "wait" $
@@ -436,10 +312,7 @@ begin
         )
       )
     else
-      <t_dot = 1 & t < 0.005> |> [] (
-        unblock["emerg_imp"]? -->
-          state := "ready"
-      );
+      <t_dot = 1 & t < 0.005> |> [] (unblock["emerg_imp"]? --> state := "ready");
       t == 0.005 -> state := "wait"
     endif
   )**
@@ -447,7 +320,6 @@ end
 endmodule
 
 module EXE_velo_voter_imp():
-output wheel_v, laser_v, veh_v;
 begin
   x3 := 2;
   state := "wait";
@@ -519,87 +391,8 @@ end
 endmodule
 
 module EXE_pan_ctr_th_imp():
-output des_v;
-procedure en_pan_ctr_th_imp_update begin
-  skip
-end
-procedure du_pan_ctr_th_imp_update begin
-  skip
-end
-procedure ex_pan_ctr_th_imp_update begin
-  skip
-end
-procedure entry_pan_ctr_th_imp_update begin
-  pan_ctr_th_imp_st := "pan_ctr_th_imp_update";
-  @en_pan_ctr_th_imp_update
-end
-procedure during_pan_ctr_th_imp_update begin
-  pan_ctr_th_imp_update_done := 0;
-  EL != [] && top(EL) == "inc" -> (
-    skip;
-    pan_ctr_th_imp_st == "pan_ctr_th_imp_update" -> (
-      @exit_pan_ctr_th_imp_update;
-      des_v := des_v+1;
-      @entry_pan_ctr_th_imp_update;
-      _ret := 1;
-      pan_ctr_th_imp_update_done := _ret
-    )
-  );
-  pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 && EL != [] && top(EL) == "dec" -> (
-    skip;
-    pan_ctr_th_imp_st == "pan_ctr_th_imp_update" -> (
-      @exit_pan_ctr_th_imp_update;
-      des_v := des_v-1;
-      @entry_pan_ctr_th_imp_update;
-      _ret := 1;
-      pan_ctr_th_imp_update_done := _ret
-    )
-  );
-  pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 -> @du_pan_ctr_th_imp_update;
-  _ret := pan_ctr_th_imp_update_done
-end
-procedure exit_pan_ctr_th_imp_update begin
-  @ex_pan_ctr_th_imp_update;
-  pan_ctr_th_imp_st := ""
-end
-procedure en_pan_ctr_th_imp begin
-  skip
-end
-procedure du_pan_ctr_th_imp begin
-  skip
-end
-procedure ex_pan_ctr_th_imp begin
-  skip
-end
-procedure entry_pan_ctr_th_imp begin
-  @en_pan_ctr_th_imp
-end
-procedure during_pan_ctr_th_imp begin
-  @du_pan_ctr_th_imp;
-  _ret := 0
-end
-procedure exit_pan_ctr_th_imp begin
-  @ex_pan_ctr_th_imp
-end
-procedure init_pan_ctr_th_imp begin
-  EL := [];
-  des_v := 0;
-  @entry_pan_ctr_th_imp;
-  des_v := 0;
-  @entry_pan_ctr_th_imp_update
-end
-procedure exec_pan_ctr_th_imp begin
-  @during_pan_ctr_th_imp;
-  _ret == 0 -> (
-    if pan_ctr_th_imp_st == "pan_ctr_th_imp_update" then
-      @during_pan_ctr_th_imp_update
-    else
-      skip
-    endif
-  )
-end
 begin
-  @init_pan_ctr_th_imp;
+  des_v := 0;
   state := "wait";
   prior := 0;
   (
@@ -623,9 +416,8 @@ begin
     else
       entered == 0 -> (
         c := 0;
-        EL := push(EL,event);
-        @exec_pan_ctr_th_imp;
-        EL := pop(EL);
+        event == "inc" -> des_v := des_v+1;
+        event == "dec" -> des_v := des_v-1;
         entered := 1
       );
       entered == 1 -> (
@@ -656,7 +448,6 @@ end
 endmodule
 
 module DEVICE_camera():
-output img;
 begin
   (
     outputs["camera"]["img"]!-1;
@@ -666,7 +457,6 @@ end
 endmodule
 
 module DEVICE_radar():
-output obs_pos_radar;
 begin
   t := 0;
   data := 0.0;
@@ -687,7 +477,6 @@ end
 endmodule
 
 module DEVICE_actuator():
-output cmd;
 begin
   (
     inputs["actuator"]["cmd"]?cmd;
@@ -698,7 +487,6 @@ end
 endmodule
 
 module DEVICE_gps():
-output data;
 begin
   (
     inputs["PHY_vehicle_imp"]["veh_s"]?data;
@@ -715,7 +503,7 @@ begin
     t := 0;
     <t_dot = 1 & t < 0.01> |> [] (
       outputs["laser"]["laser_valid"]!1.0 -->
-        error := 0;
+        error := uniform(-0.5,0.5);
         x := data+error;
         outputs["laser"]["laser_v"]!data+error
     );
@@ -731,7 +519,7 @@ begin
     t := 0;
     <t_dot = 1 & t < 0.01> |> [] (
       outputs["wheel"]["wheel_valid"]!1.0 -->
-        error := 0;
+        error := uniform(-0.5,0.5);
         x := data+error;
         outputs["wheel"]["wheel_v"]!data+error
     );

@@ -18,6 +18,7 @@
     },
     "img_acq_imp": {
         "category": "thread",
+        "display": ["image", "new_image"],
         "input": {
             "img": {
                 "var": "image",
@@ -34,10 +35,11 @@
         "period": "45ms",
         "Deadline": "45ms",
         "Compute_Execution_Time": "10ms",
-        "priority": "1"
+        "priority": 1
     },
     "comp_obs_pos_imp": {
         "category": "thread",
+        "display": ["obs_pos_radar", "proc_img", "obs_pos"],
         "input": {
             "obs_pos_radar": {
                 "var": "obs_pos_radar",
@@ -58,10 +60,11 @@
         "period": "97ms",
         "Deadline": "97ms",
         "Compute_Execution_Time": "20ms",
-        "priority": "1"
+        "priority": 1
     },
     "PI_ctr_imp": {
         "category": "thread",
+        "display": ["des_v", "veh_v", "des_a"],
         "input": {
             "des_v": {
                 "var": "des_v",
@@ -82,10 +85,11 @@
         "period": "7ms",
         "Deadline": "7ms",
         "Compute_Execution_Time": "1ms",
-        "priority": "1"
+        "priority": 1
     },
     "emerg_imp": {
         "category": "thread",
+        "display": ["des_a", "veh_v", "obs_pos", "veh_pos", "cmd"],
         "input": {
             "des_a": {
                 "var": "des_a",
@@ -108,16 +112,17 @@
             "cmd": "cmd"
         },
         "impl": "Stateflow",
-        "initialization": "min_a := -3; max_v := 10",
-        "discrete_computation": "./Examples/AADL/CCS/Simulink/pan_ctr_th_imp.xml",
+        "initialization": "",
+        "discrete_computation": "./Examples/AADL/CCS/Simulink/emerg_imp.xml",
         "dispatch_protocol": "periodic",
         "period": "5ms",
         "Deadline": "5ms",
         "Compute_Execution_Time": "1ms",
-        "priority": "2"
+        "priority": 2
     },
     "velo_voter_imp": {
         "category": "thread",
+        "display": ["wheel_v", "laser_v", "veh_v"],
         "input": {
             "wheel_v": {
                 "var": "wheel_v",
@@ -146,10 +151,11 @@
         "period": "8ms",
         "Deadline": "8ms",
         "Compute_Execution_Time": "1ms",
-        "priority": "1"
+        "priority": 1
     },
     "pan_ctr_th_imp": {
         "category": "thread",
+        "display": ["des_v"],
         "event_input": {
             "event": "event"
         },
@@ -157,15 +163,16 @@
             "des_v": "des_v"
         },
         "impl": "Stateflow",
-        "initialization": "des_v := 0",
+        "initialization": "",
         "discrete_computation": "./Examples/AADL/CCS/Simulink/pan_ctr_th_imp.xml",
         "dispatch_protocol": "aperiodic",
         "Deadline": "100ms",
         "Compute_Execution_Time": "10ms",
-        "priority": "0"
+        "priority": 0
     },
     "camera": {
         "category": "device",
+        "display": ["img"],
         "output": {
             "img": "img"
         },
@@ -174,6 +181,7 @@
     },
     "radar": {
         "category": "device",
+        "display": ["obs_pos_radar"],
         "output": {
             "obs_pos_radar": "obs_pos_radar"
         },
@@ -182,6 +190,7 @@
     },
     "actuator": {
         "category": "device",
+        "display": ["cmd"],
         "input": {
             "cmd": {
                 "var": "cmd",
@@ -197,6 +206,7 @@
     },
     "gps": {
         "category": "device",
+        "display": ["data"],
         "input": {
             "veh_s": {
                 "var": "data",
@@ -212,6 +222,7 @@
     },
     "laser": {
         "category": "device",
+        "display": [],
         "input": {
             "veh_l_v": {
                 "var": "veh_l_v",
@@ -228,6 +239,7 @@
     },
     "wheel": {
         "category": "device",
+        "display": [],
         "input": {
             "veh_v_w": {
                 "var": "veh_v_w",
@@ -244,6 +256,7 @@
     },
     "user_panel": {
         "category": "device",
+        "display": [],
         "input": {},
         "output": {
             "event": "event"
@@ -279,7 +292,7 @@
         "target_ports": ["cmd"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": "bus1"
     },
     "conn3": {
         "category": "connection",
@@ -393,6 +406,10 @@
     },
     "bus0": {
         "category": "bus",
-        "latency": "1ms"
+        "latency": "5ms"
+    },
+    "bus1": {
+        "category": "bus",
+        "latency": "5ms"
     }
 }
