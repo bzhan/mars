@@ -80,11 +80,20 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             new_line(indent)
             start_pos(pos)
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
-                add_str("%s -->" % comm_hp)
-                rec(out_hp, indent+2, pos+(i,))
-                if i != len(hp.io_comms) - 1:
-                    add_str(" $")
-                    new_line(indent)
+                if out_hp.type == 'select_comm':
+                    add_str("%s --> (" % comm_hp)
+                    rec(out_hp, indent+2, pos+(i,))
+                    if i != len(hp.io_comms) - 1:
+                        add_str(") $")
+                        new_line(indent)
+                    else:
+                        add_str(")")
+                else:
+                    add_str("%s -->" % comm_hp)
+                    rec(out_hp, indent+2, pos+(i,))
+                    if i != len(hp.io_comms) - 1:
+                        add_str(" $")
+                        new_line(indent)
             end_pos(pos)
 
         elif hp.type == 'loop':

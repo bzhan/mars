@@ -17,6 +17,7 @@ class PPrintTest(unittest.TestCase):
             for k, v in mapping.items():
                 print("%s: (%s, %s) -> (%s, %s)" % (k, v['start_x'], v['start_y'], v['end_x'], v['end_y']))
         self.assertEqual(lines, res_list)
+        self.assertEqual(parser.hp_parser.parse('\n'.join(lines)), hp)
 
     def test1(self):
         self.run_test("x := 1; y := 2; z := 3", [
@@ -186,6 +187,20 @@ class PPrintTest(unittest.TestCase):
             '  x < 2 &&',
             '  v < 1',
             '>'
+        ])
+
+    def test19(self):
+        self.run_test("ch1?x --> (ch2?y --> skip $ ch3?z --> skip) $ ch4?x --> (ch5?y --> skip $ ch6?z --> skip)", [
+            'ch1?x --> (',
+            '  ch2?y -->',
+            '    skip $',
+            '  ch3?z -->',
+            '    skip) $',
+            'ch4?x --> (',
+            '  ch5?y -->',
+            '    skip $',
+            '  ch6?z -->',
+            '    skip)'
         ])
 
     def testVanPerPol_continuous1(self):
