@@ -55,7 +55,6 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
             else:
                 raise NotImplementedError("Unknown operator %s" % e.op_name)
         elif isinstance(e, function.FunExpr):
-            print(e.fun_name)
             if e.fun_name == 'rand':
                 if len(e.exprs) == 0:
                     return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])

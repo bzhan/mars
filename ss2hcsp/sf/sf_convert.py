@@ -19,12 +19,13 @@ class SFConvert:
     chart_parameters - additional parameters.
 
     """
-    def __init__(self, chart=None, *, chart_parameters=None):
+    def __init__(self, chart=None,Dsms=None, *, chart_parameters=None):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
         self.chart_parameters = chart_parameters
 
+        self.Dsms=Dsms
         # List of data variables
         self.data = dict()
         if 'data' in self.chart_parameters:
@@ -292,11 +293,11 @@ class SFConvert:
                 out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
         if len(out_chs)>0:
             procs.extend(out_chs)
-            for port_id, out_var in self.chart.port_to_out_var.items():
-                lines = self.chart.src_lines[port_id]
-                for line in lines:
-                    ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-                    procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
+            # for port_id, out_var in self.chart.port_to_out_var.items():
+            #     lines = self.chart.src_lines[port_id]
+            #     for line in lines:
+            #         ch_name = "ch_response_" + line.name + "_" + str(line.branch)
+            #         procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
     def input_recieve_response(self,procs):
         for port_id, in_var in self.chart.port_to_in_var.items():
                 line = self.chart.dest_lines[port_id]
@@ -738,11 +739,13 @@ class SFConvert:
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
         
-        # Read data store variable
-        for vname, info in self.data.items():
-            if info.scope == "DATA_STORE_MEMORY_DATA":
-                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        # # Read data store variable
+        # for vname, info in self.data.items():
+        #     if info.scope == "DATA_STORE_MEMORY_DATA":
+        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
 
+        for info in self.Dsms:
+            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
         # Initialize variables
         for vname, info in self.data.items():
             if info.value is not None and info.scope != "INPUT_DATA" and info.scope != "DATA_STORE_MEMORY_DATA":
@@ -774,16 +777,19 @@ class SFConvert:
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
+       
+        
+        # Write data store variable
+        # for vname, info in self.data.items():
+        #     if info.scope == "DATA_STORE_MEMORY_DATA":
+        #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        for info in self.Dsms:
+            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+
         self.get_input_data(procs)
         # self.input_recieve_response(procs)
 
         self.get_output_data(procs)
-        
-        # Write data store variable
-        for vname, info in self.data.items():
-            if info.scope == "DATA_STORE_MEMORY_DATA":
-                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
@@ -792,27 +798,32 @@ class SFConvert:
     def get_iteration(self):
         procs = []
        
-        self.get_input_data(procs)
+       
 
         # Read data store variable
-        for vname, info in self.data.items():
-            if info.scope == "DATA_STORE_MEMORY_DATA":
-                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-
+        # for vname, info in self.data.items():
+        #     if info.scope == "DATA_STORE_MEMORY_DATA":
+        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        for info in self.Dsms:
+            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
 
       
+       
+
+        # # Write data store variable
+        # for vname, info in self.data.items():
+        #     if info.scope == "DATA_STORE_MEMORY_DATA":
+        #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        for info in self.Dsms:
+            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+
         self.get_output_data(procs)
-
-        # Write data store variable
-        for vname, info in self.data.items():
-            if info.scope == "DATA_STORE_MEMORY_DATA":
-                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-
-
         # Wait the given sample time
+        self.get_input_data(procs)
+        
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         # Update counter for absolute time events
@@ -870,7 +881,6 @@ def convertDataStoreMemory(dsm, charts):
     the order of execution of different Stateflow charts. It performs
     read-write for each chart in alphabetical order, ensuring that
     initialization and execution of charts proceed in the same order.
-
     """
     _, init_value = convert.convert_expr(dsm.value)
     dsm_name = dsm.dataStoreName
