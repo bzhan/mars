@@ -175,19 +175,25 @@ class HPTransformer(Transformer):
         return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
     
     def array_idx_expr1(self, a, i):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve"]:
+        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
+                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
+                 "del_proc"]:
             return expr.FunExpr(a, [i])
         else:
             return expr.ArrayIdxExpr1(expr.AVar(str(a)), i)
 
     def array_idx_expr1_2(self, a, i,j):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve"]:
+        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
+                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
+                 "del_proc"]:
             return expr.FunExpr(a, [i,j])
         else:
             return expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.AVar(str(a)), i), j)
 
     def array_idx_expr1_3(self, a, i,j,k):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve"]:
+        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
+                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
+                 "del_proc"]:
             return expr.FunExpr(a, [i,j,k])
         else:
             return expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.AVar(str(a)), i), j),k)

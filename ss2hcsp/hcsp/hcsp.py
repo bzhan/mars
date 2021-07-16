@@ -464,15 +464,16 @@ class InputChannel(HCSP):
 
 
 class ParaInputChannel(InputChannel):
-    def __init__(self, ch_name, paras, var_name=None):
+    def __init__(self, ch_name, paras, var_name=None, is_str=False):
         super(ParaInputChannel, self).__init__(ch_name, var_name)
         assert all(isinstance(para, (int, float, str)) for para in paras)
         self.paras = paras
+        self.is_str = is_str
 
     def __str__(self):
         result = str(self.ch_name)
         for para in self.paras:
-            if isinstance(para, str):
+            if isinstance(para, str) and self.is_str:
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"
@@ -524,15 +525,16 @@ class OutputChannel(HCSP):
 
 
 class ParaOutputChannel(OutputChannel):
-    def __init__(self, ch_name, paras, expr=None):
+    def __init__(self, ch_name, paras, expr=None, is_str=False):
         super(ParaOutputChannel, self).__init__(ch_name, expr)
         assert all(isinstance(para, (int, float, str)) for para in paras)
         self.paras = paras
+        self.is_str = is_str
 
     def __str__(self):
         result = str(self.ch_name)
         for para in self.paras:
-            if isinstance(para, str):
+            if isinstance(para, str) and self.is_str:
                 result += "[\"" + str(para) + "\"]"
             else:
                 result += "[" + str(para) + "]"

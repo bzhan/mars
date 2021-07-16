@@ -13,7 +13,7 @@ from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp import optimize
 
 
-def run_test(self, filename, num_cycle, res, *,
+def run_test(self, filename, num_cycle, res, *, io_filter=None,
              print_chart=False, print_before_simp=False, print_after_simp=False, print_final=False):
     """Test function for Stateflow diagrams.
 
@@ -91,7 +91,7 @@ def run_test(self, filename, num_cycle, res, *,
                 print('\n' + name + " ::=\n" + pprint(proc))
 
     # Test result using simulator
-    run_simulator_test(self, procs_list, num_cycle, res)
+    run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter)
 
 
 class SFConvertTest(unittest.TestCase):
@@ -215,16 +215,11 @@ class SFConvertTest(unittest.TestCase):
            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
 
     def testDsmExample(self):
+        io_filter = lambda s: not (s.startswith("read") or s.startswith("write"))
         run_test(self, "./Examples/Stateflow/tests/DSM_example.xml", 20,
-            ['IO read_Chart_myglobal [0,0]', 'log en_A', 'IO write_Chart_myglobal [3,0]',
-             'IO read_Chart1_myglobal [3,0]', 'log en_A1', 'IO write_Chart1_myglobal [3,4]',
-             'IO read_Chart_myglobal [3,4]', 'log du_A', 'IO write_Chart_myglobal [4,4]',
-             'IO read_Chart1_myglobal [4,4]', 'log du_A1', 'IO write_Chart1_myglobal [4,4]', 'delay 0.1',
-             'IO read_Chart_myglobal [4,4]', 'log du_A', 'IO write_Chart_myglobal [5,4]',
-             'IO read_Chart1_myglobal [5,4]', 'log du_A1', 'IO write_Chart1_myglobal [5,4]', 'delay 0.1',
-             'IO read_Chart_myglobal [5,4]', 'log du_A', 'IO write_Chart_myglobal [6,4]',
-             'IO read_Chart1_myglobal [6,4]', 'log du_A1', 'IO write_Chart1_myglobal [6,4]', 'delay 0.1',
-             'IO read_Chart_myglobal [6,4]'])
+            ['log en_A', 'log en_A1', 'log du_A', 'log du_A1', 'delay 0.1',
+             'log du_A', 'log du_A1', 'delay 0.1',
+             'log du_A', 'log du_A1', 'delay 0.1'], io_filter=io_filter)
 
     def testAfterRandom(self):
         random.seed(0)  # for repeatability

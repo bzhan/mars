@@ -2,7 +2,7 @@
 
 import os
 
-from ss2hcsp.hcsp.hcsp import HCSPInfo, Channel
+from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import expr
 
@@ -141,7 +141,7 @@ class HCSPModuleInst:
 
         # Next, instantiate code and each procedure
         code = module.code.subst_comm(inst)
-        procedures = [function.subst_comm(inst) for procedure in module.procedures]
+        procedures = [Procedure(proc.name, proc.hp.subst_comm(inst)) for proc in module.procedures]
         
         return HCSPInfo(self.name, code, outputs=module.outputs, procedures=procedures)
 
@@ -157,7 +157,7 @@ class HCSPSystem:
         self.module_insts = module_insts
 
     def __str__(self):
-        return ' || '.join(str(module_inst) for module_inst in self.module_insts)
+        return ' ||\n'.join(module_inst.export() for module_inst in self.module_insts)
 
     def __repr__(self):
         return "System(%s)" % ("; ".join(str(module_inst) for module_inst in self.module_insts))

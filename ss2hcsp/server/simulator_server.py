@@ -12,6 +12,7 @@ sys.path.append("..")
 from ss2hcsp.hcsp import simulator
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
+from ss2hcsp.hcsp import hcsp
 from ss2hcsp.server.get_port_service import get_aadl_port_service, get_simulink_port_service
 from ss2hcsp.server.sequence_diagram import print_sequence_diagram
 
@@ -43,7 +44,7 @@ def parse_hcsp():
     sim_infos = []
     hcsp_info = []
     for info in infos:
-        name, hp = info.name, info.hp
+        name, hp, procs = info.name, info.hp, info.procedures
         if hp.type == 'parallel':
             if not all(sub_hp.type == 'var' for sub_hp in hp.hps):
                 return raise_error("Group definition must be a parallel of variables.\n  %s" % line)
@@ -53,14 +54,24 @@ def parse_hcsp():
                 'parallel': [sub_hp.name for sub_hp in hp.hps]
             })
         else:
-            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs))
+            sim_infos.append(simulator.SimInfo(name, hp, outputs=info.outputs, procedures=info.procedures))
             lines, mapping = pprint.pprint_lines(hp, record_pos=True)
+            json_procs = []
+            for proc in info.procedures:
+                proc_lines, proc_mapping = pprint.pprint_lines(proc.hp, record_pos=True)
+                json_procs.append({
+                    'name': proc.name,
+                    'text': str(proc.hp),
+                    'lines': proc_lines,
+                    'mapping': proc_mapping
+                })
             hcsp_info.append({
                 'name': name,
                 'text': str(hp),
                 'outputs': info.outputs,
                 'lines': lines,
-                'mapping': mapping
+                'mapping': mapping,
+                'procedures': json_procs
             })
 
     warnings = simulator.check_comms(sim_infos)
@@ -77,7 +88,12 @@ def run_hcsp():
     num_steps = data['num_steps']
     profile = False
 
-    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'])
+    def convert_procs(procs):
+        return {proc['name']:hcsp.Procedure(proc['name'], proc['text'])
+                for proc in procs}
+
+    infos = [simulator.SimInfo(info['name'], info['text'], outputs=info['outputs'],
+                               procedures=convert_procs(info['procedures']))
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
