@@ -10,7 +10,6 @@ from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.hcsp import optimize
 
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
@@ -27,68 +26,9 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     """
     diagram = SL_Diagram(location=filename)
-    model_name = diagram.parse_xml()
-    diagram.add_line_name()
-    _, continuous, charts, _, _, _, dsms, dsrs = diagram.seperate_diagram()
-
-    # Optional: print chart
-    if print_chart:
-        for chart in charts:
-            print(chart)
-
-    procs_list = []
-    for chart in charts:
-        converter = sf_convert.SFConvert(chart,Dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
-        hp = converter.get_toplevel_process()
-        procs = converter.get_procs()
-        procs_list.append((procs, hp))
-
-    for dsm in dsms:
-        procs_list.append((dict(), sf_convert.convertDataStoreMemory(dsm, charts)))
-
-    for c in continuous:
-        procs_list.append((dict(), sf_convert.get_continuous_proc(c)))
-
-
-    # Optional: print HCSP program before simplification
-    if print_before_simp:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
-
-    # Reduce procedures
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = hcsp.reduce_procedures(hp, procs)
-        procs_list[i] = (procs, hp)
-
-    # Reduce skip
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = optimize.simplify(hp)
-        for name in procs:
-            procs[name] = optimize.simplify(procs[name])
-        procs_list[i] = (procs, hp)
-
-    # Optional: print HCSP program after simplification
-    if print_after_simp:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
-
-    # Optimize through static analysis
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = optimize.full_optimize(hp, ignore_end={'_ret'})
-        for name in procs:
-            procs[name] = optimize.full_optimize(procs[name])
-        procs_list[i] = (procs, hp)
-
-    # Optional: print final HCSP program
-    if print_final:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+    procs_list = sf_convert.convert_diagram(
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
+        print_after_simp=print_after_simp, print_final=print_final)
 
     # Test result using simulator
     run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter)
@@ -240,8 +180,8 @@ class SFConvertTest(unittest.TestCase):
 
     def testSFNew(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 1000,
-            [])
+        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 10,
+            [], print_final=True)
 
 
 if __name__ == "__main__":
