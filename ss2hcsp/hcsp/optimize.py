@@ -222,12 +222,12 @@ class LocationInfo:
         self.exits = []
 
         # Reaching definitions
-        self.reach_before = []
-        self.reach_after = []
+        self.reach_before = set()
+        self.reach_after = set()
 
         # Live variables
-        self.live_before = []
-        self.live_after = []
+        self.live_before = set()
+        self.live_after = set()
 
     def __str__(self):
         lines = []
@@ -236,10 +236,6 @@ class LocationInfo:
             lines.append("  Code: %s" % str(self.sub_hp))
         lines.append("  Edges: %s" % (', '.join(str(edge) for edge in self.edges)))
         lines.append("  Edges (rev): %s" % (', '.join(str(edge) for edge in self.rev_edges)))
-        if self.reach_before:
-            lines.append("  Reach before: %s" % (', '.join(str(var) for var in self.reach_before)))
-        if self.reach_after:
-            lines.append("  Reach after: %s" % (', '.join(str(var) for var in self.reach_after)))
         return '\n'.join(lines)
 
     def __repr__(self):
@@ -352,40 +348,43 @@ class HCSPAnalysis:
         Nielson et al. Principles of Program Analysis, Section 2.1.2.
 
         """
+        # Propagate from reach_before to reach_after
+        def propagate_before_after(info, var, loc):
+            if (var, loc) not in info.reach_after and \
+                (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
+                info.reach_after.add((var, loc))
+
         # Initial definitions
         for var in self.all_vars:
-            self.infos[()].reach_before.append((var, None))
+            self.infos[()].reach_before.add((var, None))
+            propagate_before_after(self.infos[()], var, None)
 
         # Assignments
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'assign':
                 for write_vars in get_write_vars(info.sub_hp.var_name):
-                    info.reach_after.append((write_vars, loc))
+                    info.reach_after.add((write_vars, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'var':
                 for var in self.all_vars:
-                    self.infos[loc].reach_after.append((var, None))
+                    self.infos[loc].reach_after.add((var, None))
 
-        # Propagate
+        # Use dictionary order as approximation for a good traversal order
+        process_order = sorted(self.infos.keys())
+
+        # Propagate reach_after to reach_before of successor
         while True:
             found = False
-            # Propagate from reach before to reach after
-            for _, info in self.infos.items():
-                for var, loc in info.reach_before:
-                    if (var, loc) not in info.reach_after and \
-                        (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
-                        found = True
-                        info.reach_after.append((var, loc))
-
-            # Propagate from reach after to reach before of successor
-            for _, info in self.infos.items():
+            for process_loc in process_order:
+                info = self.infos[process_loc]
                 for var, loc in info.reach_after:
                     for next_loc in info.edges:
                         if (var, loc) not in self.infos[next_loc].reach_before:
                             found = True
-                            self.infos[next_loc].reach_before.append((var, loc))
+                            self.infos[next_loc].reach_before.add((var, loc))
+                            propagate_before_after(self.infos[next_loc], var, loc)
 
             if not found:
                 break
@@ -432,38 +431,45 @@ class HCSPAnalysis:
         Nielson et al. Principles of Program Analysis, Section 2.1.4
 
         """
+        # Propagate from live_after to live_before
+        def propagate_after_before(info, var):
+            if var not in info.live_before and \
+                (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
+                info.live_before.add(var)
+
         # All variables are live at the end, except those in ignore_end
         for loc in self.infos[()].exits:
-            self.infos[loc].live_after = list(self.all_vars - self.ignore_end)
+            info = self.infos[loc]
+            for var in self.all_vars - self.ignore_end:
+                info.live_after.add(var)
+                propagate_after_before(info, var)
 
         # Live variables for commands
         for loc, info in self.infos.items():
             if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):
-                self.infos[loc].live_before = list(get_read_vars(info.sub_hp))
+                for var in get_read_vars(info.sub_hp):
+                    self.infos[loc].live_before.add(var)
         
         # Before procedure calls, any variable may be used
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'var':
-                self.infos[loc].live_before = list(self.all_vars)
+                for var in self.all_vars:
+                    self.infos[loc].live_before.add(var)
 
-        # Propagate
+        # Use reverse dictionary order as approximation for good traversal order
+        process_order = reversed(sorted(self.infos.keys()))
+
+        # Propagate from reach before to reach after of predecessor
         while True:
             found = False
-            # Propagate from reach after to reach before
-            for _, info in self.infos.items():
-                for var in info.live_after:
-                    if var not in info.live_before and \
-                        (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
-                        found = True
-                        info.live_before.append(var)
-            
-            # Propagate from reach before to reach after of predecessor
-            for _, info in self.infos.items():
+            for process_loc in self.infos.keys():
+                info = self.infos[process_loc]
                 for var in info.live_before:
                     for prev_loc in info.rev_edges:
                         if var not in self.infos[prev_loc].live_after:
                             found = True
-                            self.infos[prev_loc].live_after.append(var)
+                            self.infos[prev_loc].live_after.add(var)
+                            propagate_after_before(self.infos[prev_loc], var)
 
             if not found:
                 break

@@ -235,7 +235,7 @@
         },
         "period": "10ms",
         "impl": "Simulink",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
     },
     "wheel": {
         "category": "device",
@@ -252,7 +252,7 @@
         },
         "period": "10ms",
         "impl": "Simulink",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
     },
     "user_panel": {
         "category": "device",
@@ -272,7 +272,7 @@
         "target_ports": ["img"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": ""
     },
     "conn1": {
         "category": "connection",
@@ -282,7 +282,7 @@
         "target_ports": ["obs_pos_radar"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": ""
     },
     "conn2": {
         "category": "connection",
@@ -292,7 +292,7 @@
         "target_ports": ["cmd"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus1"
+        "bus": ""
     },
     "conn3": {
         "category": "connection",
@@ -302,7 +302,7 @@
         "target_ports": ["veh_pos"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": ""
     },
     "conn4": {
         "category": "connection",
@@ -311,8 +311,8 @@
         "targets": ["velo_voter_imp"],
         "target_ports": ["laser_valid"],
         "type": "data",
-        "init_value": 0.0,
-        "bus": "bus0"
+        "init_value": -1.0,
+        "bus": ""
     },
     "conn5": {
         "category": "connection",
@@ -322,7 +322,7 @@
         "target_ports": ["laser_v"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": ""
     },
     "conn6": {
         "category": "connection",
@@ -331,8 +331,8 @@
         "targets": ["velo_voter_imp"],
         "target_ports": ["wheel_valid"],
         "type": "data",
-        "init_value": 0.0,
-        "bus": "bus0"
+        "init_value": -1.0,
+        "bus": ""
     },
     "conn7": {
         "category": "connection",
@@ -342,7 +342,7 @@
         "target_ports": ["wheel_v"],
         "type": "data",
         "init_value": 0.0,
-        "bus": "bus0"
+        "bus": ""
     },
     "conn8": {
         "category": "connection",
@@ -352,7 +352,7 @@
         "target_ports": ["event"],
         "type": "event",
         "init_value": "",
-        "bus": "bus0"
+        "bus": ""
     },
     "conn9": {
         "category": "connection",
@@ -403,13 +403,5 @@
         "type": "data",
         "init_value": 0.0,
         "bus": ""
-    },
-    "bus0": {
-        "category": "bus",
-        "latency": "5ms"
-    },
-    "bus1": {
-        "category": "bus",
-        "latency": "5ms"
     }
 }

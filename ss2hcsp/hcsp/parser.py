@@ -91,6 +91,7 @@ grammar = r"""
         | "(" cmd ")**" -> repeat_cmd
         | "(" cmd "){" cond "}**" -> repeat_cond_cmd
         | "<" ode_seq "&" cond ">" -> ode
+        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
         | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
@@ -368,6 +369,9 @@ class HPTransformer(Transformer):
 
     def ode(self, eqs, constraint):
         return hcsp.ODE(eqs, constraint)
+
+    def ode_comm_const(self, constraint, io_comms):
+        return hcsp.ODE_Comm([], constraint, io_comms)
 
     def ode_comm(self, eqs, constraint, io_comms):
         return hcsp.ODE_Comm(eqs, constraint, io_comms)

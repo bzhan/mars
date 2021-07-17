@@ -68,7 +68,7 @@ class HCSPModule:
                 body = pprint.pprint(procedure.hp)
                 for line in body.split('\n'):
                     res += "  " + line + "\n"
-                res += "end\n"
+                res += "end\n\n"
             return res
 
         def str_of_code(code):
@@ -247,6 +247,13 @@ class HCSPDeclarations:
         for name in sorted(self.modules.keys()):
             res += '  ' + repr(self.modules[name]) + '\n'
         res += '  ' + repr(self.system) + '\n)'
+        return res
+
+    def export(self):
+        res = "%type: module\n\n"
+        for name, m in self.modules.items():
+            res += m.export() + "\n"
+        res += "system\n" + str(self.system) + "\nendsystem\n"
         return res
 
     def generateHCSPInfo(self):

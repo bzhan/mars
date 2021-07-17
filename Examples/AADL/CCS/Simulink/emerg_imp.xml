@@ -41,7 +41,7 @@
         <P Name="UnitExpr">inherit</P>
       </Outport>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.14</P>
+      <P Name="ComputedModelVersion">1.15</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -111,7 +111,7 @@
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Right</P>
             <P Name="Width" Class="int32">254</P>
-            <P Name="Height" Class="int32">217</P>
+            <P Name="Height" Class="int32">191</P>
           </Object>
           <Object ObjectID="8">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -122,7 +122,7 @@
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Right</P>
             <P Name="Width" Class="int32">254</P>
-            <P Name="Height" Class="int32">326</P>
+            <P Name="Height" Class="int32">352</P>
           </Object>
           <Object ObjectID="9">
             <P Name="Type" Class="char">GLUE2:SpreadSheet</P>
@@ -136,7 +136,7 @@
             <P Name="Height" Class="int32">480</P>
           </Object>
         </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAwAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAECAAACUPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAQAAAEYAAAFiAAAAmgD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAGpAAAA7QAAABgA////AAAAAwAAA/0AAADq/AEAAAAD/AAAAAAAAAP9AAAAAAD////6/////wEAAAAA/AAAAAAAAAP9AAAAAAD////6/////wEAAAAA+/////8AAAAAAP////8AAAGgAP///wAAA/0AAAJQAAAAAQAAAAIAAAABAAAAAvwAAAABAAAAAgAAAA//////AAAAAAD/////AAAAAAAAAAD/////AQAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAAIT/////AAAAAAAAAAD/////AQAAAPb/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAAXr/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAA9//////AAAAAAAAAAD/////AQAABA7/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAA=</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAwAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABzAP///wAAAAEAAAECAAACUPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAQAAAEYAAAF8AAAAmgD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgEAAAHDAAAA0wAAABgA////AAAAAwAAA/0AAADq/AEAAAAD/AAAAAAAAAP9AAAAAAD////6/////wEAAAAA/AAAAAAAAAP9AAAAAAD////6/////wEAAAAA+/////8AAAAAAP////8AAAGgAP///wAAA/0AAAJQAAAAAQAAAAIAAAABAAAAAvwAAAABAAAAAgAAAA//////AAAAAAD/////AAAAAAAAAAD/////AQAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAAIT/////AAAAAAAAAAD/////AQAAAPb/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAAXr/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAD/////AQAAA9//////AAAAAAAAAAD/////AQAABA7/////AAAAAAAAAAD/////AAAAAAD/////AAAAAAAAAAA=</P>
       </Object>
     </Object>
     <P Name="HideAutomaticNames">on</P>
@@ -147,9 +147,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Thu Jul 15 15:51:53 2021</P>
-      <P Name="RTWModifiedTimeStamp">548265099</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:14&gt;</P>
+      <P Name="LastModifiedDate">Fri Jul 16 13:24:25 2021</P>
+      <P Name="RTWModifiedTimeStamp">548342655</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:15&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -3384,7 +3384,6 @@
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">30</P>
           <P Name="visible">1</P>
-          <subviewS/>
           <P Name="ssIdHighWaterMark">28</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="sampleTime">-1</P>
@@ -3489,7 +3488,7 @@ end</P>
             <data SSID="4" name="period">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
-                <P Name="initialValue">0.005</P>
+                <P Name="initialValue">1</P>
                 <type>
                   <P Name="primitive">SF_DOUBLE_TYPE</P>
                   <P Name="isSigned">1</P>

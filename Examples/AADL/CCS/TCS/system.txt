@@ -6,7 +6,7 @@ import ACT_aperiodic
 import DataBuffer
 import EventBuffer
 import Bus
-import BusBuffer
+import BusEventBuffer
 
 system
 
@@ -39,7 +39,7 @@ conn5 = DataBuffer1($"bus0", $"laser_v", $"velo_voter_imp", $"laser_v", $0.0) ||
 conn6 = DataBuffer1($"bus0", $"wheel_valid", $"velo_voter_imp", $"wheel_valid", $0.0) ||
 conn7 = DataBuffer1($"bus0", $"wheel_v", $"velo_voter_imp", $"wheel_v", $0.0) ||
 conn8 = EventBuffer($"bus0", $"event", $"pan_ctr_th_imp", $"event") ||
-busBuffer_conn8 = BusBuffer($"user_panel", $"event", $"bus0", $"event") ||
+busEventBuffer_conn8 = BusEventBuffer($"user_panel", $"event", $"bus0", $"event") ||
 conn9 = DataBuffer1($"img_acq_imp", $"proc_img", $"comp_obs_pos_imp", $"proc_img", $0.0) ||
 conn10 = DataBuffer1($"comp_obs_pos_imp", $"obs_pos", $"emerg_imp", $"obs_pos", $0.0) ||
 conn11 = DataBuffer2($"velo_voter_imp", $"veh_v", $"PI_ctr_imp", $"veh_v", $"emerg_imp", $"veh_v", $0.0) ||

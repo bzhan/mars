@@ -406,6 +406,6 @@
     },
     "bus0": {
         "category": "bus",
-        "latency": "1ms"
+        "latency": "3ms"
     }
 }

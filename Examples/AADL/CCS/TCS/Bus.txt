@@ -4,14 +4,14 @@ module Bus_bus0():
 procedure BLOCK begin
   t := 0;
   (
-    <t_dot = 1 & t < 0.001> |> [] (
+    <t_dot = 1 & t < 0.003> |> [] (
       block["emerg_imp"]! -->
         skip
     )
-  ){t < 0.001}**
+  ){t < 0.003}**
 end
 procedure BLOCK_by_emerg_imp begin
-  wait(0.001)
+  wait(0.003)
 end
 begin
   (
