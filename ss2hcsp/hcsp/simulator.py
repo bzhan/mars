@@ -865,6 +865,7 @@ class SimInfo:
         """
         if isinstance(lname, AVar):
             self.state[lname.name] = copy.deepcopy(val)
+            # print(self.state)
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
