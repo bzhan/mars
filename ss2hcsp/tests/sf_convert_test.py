@@ -13,22 +13,39 @@ from ss2hcsp.hcsp.pprint import pprint
 
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
-             print_chart=False, print_before_simp=False, print_after_simp=False, print_final=False):
+             print_chart=False, print_before_simp=False, print_after_simp=False,
+             print_final=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
     num_cycle : int - number of cycles of Stateflow diagram to simulate.
     res : List[str] - expected output events.
+    io_filter : str -> bool - (optional) filter for IO events to display.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
     print_after_simp : bool - print HCSP program after simplification.
     print_final : bool - print HCSP program after optimization.
+    output_to_file : str - (optional) name of file to output HCSP.
 
     """
     diagram = SL_Diagram(location=filename)
     procs_list = sf_convert.convert_diagram(
         diagram, print_chart=print_chart, print_before_simp=print_before_simp,
         print_after_simp=print_after_simp, print_final=print_final)
+
+    # Optional: output converted HCSP to file
+    if output_to_file is not None:
+        modules = []
+        module_insts = []
+        for i, (procs, hp) in enumerate(procs_list):
+            procs_lst = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+            modules.append(module.HCSPModule("P" + str(i), code=hp, procedures=procs_lst))
+            module_insts.append(module.HCSPModuleInst("P" + str(i), "P" + str(i), []))
+        system = module.HCSPSystem(module_insts)
+        declarations = module.HCSPDeclarations(modules + [system])
+
+        with open(output_to_file, "w") as f:
+            f.write(declarations.export())
 
     # Test result using simulator
     run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter)
@@ -181,7 +198,7 @@ class SFConvertTest(unittest.TestCase):
     def testSFNew(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 10,
-            [], print_final=True)
+            [], print_final=True, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
 
 if __name__ == "__main__":
