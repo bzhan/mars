@@ -455,6 +455,7 @@ class App extends React.Component {
             hcsp_info: this.state.hcsp_info,
             num_steps: this.state.num_steps,
             num_show: this.state.num_show,
+            show_event_only: this.state.show_event_only
         })
         if ('error' in response.data) {
             this.setState({
@@ -592,7 +593,8 @@ class App extends React.Component {
             hcsp_info: this.state.hcsp_info,
             num_steps: 999,
             num_show: 999,
-            start_event: start_event
+            start_event: start_event,
+            show_event_only: this.state.show_event_only
         })
         console.log(response);
         if ('error' in response.data) {

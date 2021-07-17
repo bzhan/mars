@@ -1316,7 +1316,7 @@ def extract_event(infos):
         return "deadlock"
 
 def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
-                  show_interval=None, start_event=None):
+                  show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1376,7 +1376,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         new_event['infos'] = cur_info
 
         # Finally add to trace
-        res['trace'].append(new_event)
+        if not show_event_only or new_event['type'] != 'step':
+            res['trace'].append(new_event)
 
     def log_time_series(info, time, state):
         """Log the given time series for program with the given name."""
