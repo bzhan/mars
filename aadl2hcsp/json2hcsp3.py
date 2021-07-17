@@ -340,11 +340,19 @@ def translate_model(json_info):
             if info['type'] == "data":
                 args.append(expr.AConst(info['init_value']))
                 component_mod_insts.append(module.HCSPModuleInst(name, "DataBuffer"+str(len(targets)), args))
+                # if info['bus']:
+                #     component_mod_insts.append(module.HCSPModuleInst("busDataBuffer_"+name,
+                #                                                      "DataBuffer"+str(len(targets)),
+                #                                                      [expr.AConst(info['source']),
+                #                                                       expr.AConst(source_port),
+                #                                                       expr.AConst(source),
+                #                                                       expr.AConst(source_port),
+                #                                                       expr.AConst(0)]))
             elif info['type'] == "event":
                 assert len(targets) == 1
                 component_mod_insts.append(module.HCSPModuleInst(name, "EventBuffer", args))
                 if info['bus']:
-                    component_mod_insts.append(module.HCSPModuleInst("busBuffer_"+name, "BusBuffer",
+                    component_mod_insts.append(module.HCSPModuleInst("busEventBuffer_"+name, "BusEventBuffer",
                                                                      [expr.AConst(info['source']),
                                                                       expr.AConst(source_port),
                                                                       expr.AConst(source),

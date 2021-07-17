@@ -1,6 +1,6 @@
 %type: module
 
-module BusBuffer(send, out_port, recv, in_port):
+module BusEventBuffer(send, out_port, recv, in_port):
 begin
 queue := [];
 (

@@ -358,7 +358,7 @@ procedure init_emerg_imp begin
   v_lim := 0;
   max_v := 10;
   min_a := -3;
-  period := 0.005;
+  period := 1;
   cmd := 0;
   next_v := 0;
   next_s := 0;
