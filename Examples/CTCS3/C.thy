@@ -44,71 +44,73 @@ lemma train_vars_distinct [simp]: "A \<noteq> V" "A \<noteq> S" "A \<noteq> T"
                                   "T \<noteq> A" "T \<noteq> V" "T \<noteq> S"
   unfolding A_def V_def S_def T_def by auto
 
-definition Train :: proc where
-  "Train =
-      Cm (''Train2Control''[!](\<lambda>s. s V));
-      Cm (''Train2Control''[!](\<lambda>s. s S));
-      Cm (''Control2Train''[?]A);
-    Rep (
-      Interrupt (ODE ((\<lambda>_ _. 0)(S := (\<lambda>s. s V),
-                           V := (\<lambda>s. s A)))) (\<lambda> s. True)
-      [(''Train2Control''[!](\<lambda>s. s V), Cm (''Train2Control''[!](\<lambda>s. s S));Cm (''Control2Train''[?]A))]
-    )"
+definition Plant :: proc where
+  "Plant =
+      Cm (''P2C''[!](\<lambda>s. s V));
+      Cm (''P2C''[!](\<lambda>s. s S));
+      Cm (''C2P''[?]A);
+      Rep (
+      Interrupt 
+      (ODE ((\<lambda>_ _. 0)(S := (\<lambda>s. s V),
+                      V := (\<lambda>s. s A))))(\<lambda> s. True)
+      [(''P2C''[!](\<lambda>s. s V),
+            Cm (''P2C''[!](\<lambda>s. s S));
+            Cm (''C2P''[?]A))])"
 
 
-fun Train_inv :: "real \<times> real \<times> real \<Rightarrow> (real\<times>real)  list \<Rightarrow> tassn" where
-  "Train_inv (v0, s0, a0) [] = emp\<^sub>t"
-| "Train_inv (v0, s0, a0) ((T_t,a) # as) =
+fun Plant_inv :: "real \<times> real \<times> real \<Rightarrow> (real\<times>real)  list \<Rightarrow> tassn" where
+  "Plant_inv (v0, s0, a0) [] = emp\<^sub>t"
+| "Plant_inv (v0, s0, a0) ((T_t,a) # as) =
     WaitOut\<^sub>t T_t (\<lambda>t.  ((\<lambda>_. 0)(V := v0+a0*t, S := s0+v0*t+1/2*a0*t*t,
-                                            A := a0))) ''Train2Control'' (\<lambda> s. s V) ({''Train2Control''},{})@\<^sub>t    
-    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0+a0*T_t, S := s0+v0*T_t+1/2*a0*T_t*T_t, A := a0))) ''Train2Control'' (s0+v0*T_t+1/2*a0*T_t*T_t)) @\<^sub>t
-    (In\<^sub>t (State ((\<lambda>_. 0)(V := v0+a0*T_t, S := s0+v0*T_t+1/2*a0*T_t*T_t, A := a0))) ''Control2Train'' a) @\<^sub>t
-    Train_inv (v0+a0*T_t, s0+v0*T_t+1/2*a0*T_t*T_t, a) (as)"
+                                            A := a0))) ''P2C'' (\<lambda> s. s V) ({''P2C''},{})@\<^sub>t    
+    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0+a0*T_t, S := s0+v0*T_t+1/2*a0*T_t*T_t, A := a0))) ''P2C'' (s0+v0*T_t+1/2*a0*T_t*T_t)) @\<^sub>t
+    (In\<^sub>t (State ((\<lambda>_. 0)(V := v0+a0*T_t, S := s0+v0*T_t+1/2*a0*T_t*T_t, A := a0))) ''C2P'' a) @\<^sub>t
+    Plant_inv (v0+a0*T_t, s0+v0*T_t+1/2*a0*T_t*T_t, a) (as)"
 
-fun Train_block :: "real \<times> real \<times> real \<Rightarrow> real \<Rightarrow> (real\<times>real)  list \<Rightarrow> tassn" where
-"Train_block (v0, s0, a00) a0 as =  
-    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''Train2Control'' v0) @\<^sub>t    
-    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''Train2Control'' s0) @\<^sub>t
-    (In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''Control2Train'' a0) @\<^sub>t 
-    Train_inv (v0, s0, a0) as"
+fun Plant_block :: "real \<times> real \<times> real \<Rightarrow> real \<Rightarrow> (real\<times>real)  list \<Rightarrow> tassn" where
+"Plant_block (v0, s0, a00) a0 as =  
+    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''P2C'' v0) @\<^sub>t    
+    (Out\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''P2C'' s0) @\<^sub>t
+    (In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, A := a00))) ''C2P'' a0) @\<^sub>t 
+    Plant_inv (v0, s0, a0) as"
 
-fun Train_end_state :: "real \<times> real \<times> real  \<Rightarrow> (real\<times>real)  list\<Rightarrow> state" where
-  "Train_end_state (v0, s0, a0) [] = ((\<lambda>_. 0)(V := v0, S := s0, A := a0))"
-| "Train_end_state (v0, s0, a0) ((T_t,a) # rest) =
-   Train_end_state (v0 + a0 * T_t, s0 + v0 * T_t + 
+fun Plant_end_state :: "real \<times> real \<times> real  \<Rightarrow> (real\<times>real)  list\<Rightarrow> state" where
+  "Plant_end_state (v0, s0, a0) [] = ((\<lambda>_. 0)(V := v0, S := s0, A := a0))"
+| "Plant_end_state (v0, s0, a0) ((T_t,a) # rest) =
+   Plant_end_state (v0 + a0 * T_t, s0 + v0 * T_t + 
                           1/2 * a0 * T_t * T_t, a) rest"
 
-lemma Train_end_state_rw:
-  "(Train_end_state (v0, s0, a0) xs) =
-   (\<lambda>_. 0)(V := Train_end_state (v0, s0, a0) xs V,
-           S := Train_end_state (v0, s0, a0) xs S,
-           A := Train_end_state (v0, s0, a0) xs A)"
+lemma Plant_end_state_rw:
+  "(Plant_end_state (v0, s0, a0) xs) =
+   (\<lambda>_. 0)(V := Plant_end_state (v0, s0, a0) xs V,
+           S := Plant_end_state (v0, s0, a0) xs S,
+           A := Plant_end_state (v0, s0, a0) xs A)"
   apply (induct xs arbitrary: v0 s0 a0) by auto
 
-definition Train_ode_state :: "state \<Rightarrow> real \<Rightarrow> state" where
-  "Train_ode_state s T_t = (\<lambda>_. 0)(V := s V + s A * T_t,
+definition Plant_ode_state :: "state \<Rightarrow> real \<Rightarrow> state" where
+  "Plant_ode_state s T_t = (\<lambda>_. 0)(V := s V + s A * T_t,
            S := s S + s V * T_t + s A * T_t * T_t / 2,
            A := s A)"
 
-lemma Train_end_state_snoc:
-  "Train_end_state (v0, s0, a0) (xs @ [(T_t,a)]) =
-   (Train_ode_state (Train_end_state (v0, s0, a0) (xs)) T_t) (A := a)"
-  apply (induct xs arbitrary: v0 s0 a0 ) unfolding Train_ode_state_def by auto
+lemma Plant_end_state_snoc:
+  "Plant_end_state (v0, s0, a0) (xs @ [(T_t,a)]) =
+   (Plant_ode_state (Plant_end_state (v0, s0, a0) (xs)) T_t) (A := a)"
+  apply (induct xs arbitrary: v0 s0 a0 ) unfolding Plant_ode_state_def by auto
 
 
-lemma Train_inv_snoc:
-  "Train_inv (v0, s0, a0) (xs @ [(T_t,a)]) =
-   Train_inv (v0, s0, a0) xs @\<^sub>t
-   WaitOut\<^sub>t T_t (\<lambda>t.  Train_ode_state(Train_end_state (v0, s0, a0) xs) t) ''Train2Control'' (\<lambda> s. s V) ({''Train2Control''},{})@\<^sub>t    
-   Out\<^sub>t (State (Train_ode_state(Train_end_state (v0, s0, a0) xs) T_t)) ''Train2Control'' (Train_end_state (v0, s0, a0) xs S  +
-            Train_end_state (v0, s0, a0) xs V * T_t  +
-            (Train_end_state (v0, s0, a0) xs A) * T_t  * T_t / 2) @\<^sub>t
-   In\<^sub>t (State (Train_ode_state(Train_end_state (v0, s0, a0) xs) T_t)) ''Control2Train'' a 
+lemma Plant_inv_snoc:
+  "Plant_inv (v0, s0, a0) (xs @ [(T_t,a)]) =
+   Plant_inv (v0, s0, a0) xs @\<^sub>t
+   WaitOut\<^sub>t T_t (\<lambda>t.  Plant_ode_state(Plant_end_state (v0, s0, a0) xs) t) ''P2C'' (\<lambda> s. s V) ({''P2C''},{})@\<^sub>t    
+   Out\<^sub>t (State (Plant_ode_state(Plant_end_state (v0, s0, a0) xs) T_t)) ''P2C'' (Plant_end_state (v0, s0, a0) xs S  +
+            Plant_end_state (v0, s0, a0) xs V * T_t  +
+            (Plant_end_state (v0, s0, a0) xs A) * T_t  * T_t / 2) @\<^sub>t
+   In\<^sub>t (State (Plant_ode_state(Plant_end_state (v0, s0, a0) xs) T_t)) ''C2P'' a 
    "
 proof (induct xs arbitrary: v0 s0 a0 )
   case Nil
   then show ?case 
-    unfolding Train_ode_state_def apply (auto simp add: fun_upd_def)
+    unfolding Plant_ode_state_def apply (auto simp add: fun_upd_def)
     done
 next
   case (Cons a xs)
@@ -119,26 +121,26 @@ next
     done
 qed
 
-lemma Train_block_snoc:
-  "Train_block (v0, s0, a00) a0 (xs @ [(T_t,a)]) =
-   Train_block (v0, s0, a00) a0  xs @\<^sub>t
-   WaitOut\<^sub>t T_t (\<lambda>t.  Train_ode_state(Train_end_state (v0, s0, a0) xs) t) ''Train2Control'' (\<lambda> s. s V) ({''Train2Control''},{})@\<^sub>t    
-   Out\<^sub>t (State (Train_ode_state(Train_end_state (v0, s0, a0) xs) T_t)) ''Train2Control'' (Train_end_state (v0, s0, a0) xs S  +
-            Train_end_state (v0, s0, a0) xs V * T_t  +
-            (Train_end_state (v0, s0, a0) xs A) * T_t  * T_t / 2) @\<^sub>t
-   In\<^sub>t (State (Train_ode_state(Train_end_state (v0, s0, a0) xs) T_t)) ''Control2Train'' a 
+lemma Plant_block_snoc:
+  "Plant_block (v0, s0, a00) a0 (xs @ [(T_t,a)]) =
+   Plant_block (v0, s0, a00) a0  xs @\<^sub>t
+   WaitOut\<^sub>t T_t (\<lambda>t.  Plant_ode_state(Plant_end_state (v0, s0, a0) xs) t) ''P2C'' (\<lambda> s. s V) ({''P2C''},{})@\<^sub>t    
+   Out\<^sub>t (State (Plant_ode_state(Plant_end_state (v0, s0, a0) xs) T_t)) ''P2C'' (Plant_end_state (v0, s0, a0) xs S  +
+            Plant_end_state (v0, s0, a0) xs V * T_t  +
+            (Plant_end_state (v0, s0, a0) xs A) * T_t  * T_t / 2) @\<^sub>t
+   In\<^sub>t (State (Plant_ode_state(Plant_end_state (v0, s0, a0) xs) T_t)) ''C2P'' a 
    "
   apply auto
-  using Train_inv_snoc[of v0 s0 a0 xs T_t a]
+  using Plant_inv_snoc[of v0 s0 a0 xs T_t a]
   by (auto simp add: join_assoc)
 
-lemma Train_prop:
+lemma Plant_prop:
   "\<Turnstile>
     {\<lambda>s tr. s = (\<lambda>_. 0)(V := v0, S := s0, A := a00) \<and> emp\<^sub>t tr}
-      Train
-    {\<lambda>s tr. \<exists>a0 xs. s = Train_end_state (v0, s0, a0) xs \<and>
-                 Train_block (v0, s0, a00) a0 xs tr}"
-  unfolding Train_def
+      Plant
+    {\<lambda>s tr. \<exists>a0 xs. s = Plant_end_state (v0, s0, a0) xs \<and>
+                 Plant_block (v0, s0, a00) a0 xs tr}"
+  unfolding Plant_def
   apply(rule Valid_seq)
    apply (rule Valid_send_sp_st)
   apply(rule Valid_seq)
@@ -159,8 +161,8 @@ apply(rule Valid_seq)
       by (auto simp add: join_assoc)
     apply(rule Valid_ex_pre)
     subgoal for xs
-      apply(rule Valid_ode_out_unique_solution[where p="\<lambda> t. Train_ode_state(Train_end_state (v0, s0, a0) xs) t"])
-          apply(auto simp add:Train_ode_state_def ODEsolInf_def has_vderiv_on_def)
+      apply(rule Valid_ode_out_unique_solution[where p="\<lambda> t. Plant_ode_state(Plant_end_state (v0, s0, a0) xs) t"])
+          apply(auto simp add:Plant_ode_state_def ODEsolInf_def has_vderiv_on_def)
       subgoal
         apply (rule exI[where x="1"])
         apply auto
@@ -176,10 +178,10 @@ apply(rule Valid_seq)
    proof-
      have eq: "i \<noteq> S \<Longrightarrow>
            i \<noteq> V \<Longrightarrow>
-           (\<lambda>t. if i = A then Train_end_state (v0, s0, a0) xs A
-                 else ((\<lambda>_. 0)(V := Train_end_state (v0, s0, a0) xs V + Train_end_state (v0, s0, a0) xs A * t,
-                               S := Train_end_state (v0, s0, a0) xs S + Train_end_state (v0, s0, a0) xs V * t + Train_end_state (v0, s0, a0) xs A * t * t / 2))
-                       i) = (\<lambda>t. if i = A then Train_end_state (v0, s0, a0) xs A else 0)"
+           (\<lambda>t. if i = A then Plant_end_state (v0, s0, a0) xs A
+                 else ((\<lambda>_. 0)(V := Plant_end_state (v0, s0, a0) xs V + Plant_end_state (v0, s0, a0) xs A * t,
+                               S := Plant_end_state (v0, s0, a0) xs S + Plant_end_state (v0, s0, a0) xs V * t + Plant_end_state (v0, s0, a0) xs A * t * t / 2))
+                       i) = (\<lambda>t. if i = A then Plant_end_state (v0, s0, a0) xs A else 0)"
        by auto
      have 1: ?thesis if "i = A"
        using eq that by auto
@@ -188,7 +190,7 @@ apply(rule Valid_seq)
      show ?thesis using 1 2 by linarith
        qed
        done
-     subgoal using Train_end_state_rw by auto
+     subgoal using Plant_end_state_rw by auto
      subgoal
    proof-
     have bl:"bounded_linear (\<lambda>(v::vec) . \<chi> x. if x = V then (v$A) else if x = S then (v$V) else 0)"
@@ -215,10 +217,10 @@ apply(rule Valid_seq)
       subgoal for tr a
         apply(rule exI[where x="xs@[(T_t,a)]"])
         apply auto
-        subgoal using Train_end_state_snoc Train_end_state_rw
-          by(auto simp add: Train_ode_state_def)
-        using Train_inv_snoc
-        by(auto simp add: Train_ode_state_def join_assoc)
+        subgoal using Plant_end_state_snoc Plant_end_state_rw
+          by(auto simp add: Plant_ode_state_def)
+        using Plant_inv_snoc
+        by(auto simp add: Plant_ode_state_def join_assoc)
       done
     done
   done
@@ -251,32 +253,32 @@ lemma control_vars_distinct [simp]: "Command_a \<noteq> V" "Command_a \<noteq> S
 
 definition Control :: proc where
   "Control =
-      Cm (''Train2Control''[?]V);
-      Cm (''Train2Control''[?]S);
+      Cm (''P2C''[?]V);
+      Cm (''P2C''[?]S);
       Command_a ::= (\<lambda>s. com_a (s S) (s V));
-      Cm (''Control2Train''[!](\<lambda>s. s Command_a));
+      Cm (''C2P''[!](\<lambda>s. s Command_a));
     Rep(
       Wait (\<lambda> s. Period);
-      Cm (''Train2Control''[?]V);
-      Cm (''Train2Control''[?]S);
+      Cm (''P2C''[?]V);
+      Cm (''P2C''[?]S);
       Command_a ::= (\<lambda>s. com_a (s S) (s V));
-      Cm (''Control2Train''[!](\<lambda>s. s Command_a)))"
+      Cm (''C2P''[!](\<lambda>s. s Command_a)))"
 
 fun Control_inv :: "real \<times> real \<times> real  \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
   "Control_inv (v0, s0, a0) [] = emp\<^sub>t"
 | "Control_inv (v0, s0, a0) ((v, s) # rest) =
     Wait\<^sub>t Period (\<lambda> t. (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0)))) ({},{}) @\<^sub>t
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0))) ''Train2Control'' v @\<^sub>t
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0))) ''Train2Control'' s @\<^sub>t
-    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := com_a s v)))  ''Control2Train'' (com_a s v)  @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0))) ''P2C'' v @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0))) ''P2C'' s @\<^sub>t
+    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := com_a s v)))  ''C2P'' (com_a s v)  @\<^sub>t
     Control_inv (v,s,com_a s v) rest"
 
 
 fun Control_block :: "real \<times> real \<times> real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> (real \<times> real) list \<Rightarrow> tassn" where
   "Control_block (v0, s0, a0) v s rest  =
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0))) ''Train2Control'' v @\<^sub>t
-    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0))) ''Train2Control'' s @\<^sub>t
-    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := com_a s v)))  ''Control2Train'' (com_a s v)  @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := a0))) ''P2C'' v @\<^sub>t
+    In\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s0, Command_a := a0))) ''P2C'' s @\<^sub>t
+    Out\<^sub>t (State ((\<lambda>_. 0)(V := v, S := s, Command_a := com_a s v)))  ''C2P'' (com_a s v)  @\<^sub>t
     Control_inv (v,s,com_a s v) rest"
 
 
@@ -314,9 +316,9 @@ lemma Control_inv_snoc:
   "Control_inv (v0, s0, a0) (xs @ [(v, s)]) =
    Control_inv (v0, s0, a0) xs @\<^sub>t
    Wait\<^sub>t Period (\<lambda> t. (State ((Control_end_state (v0, s0, a0) xs)))) ({},{})@\<^sub>t
-   In\<^sub>t (State ((Control_end_state (v0, s0, a0) xs))) ''Train2Control'' v @\<^sub>t
-   In\<^sub>t (State ((Control_end_state (v0, s0, a0) xs)(V := v))) ''Train2Control'' s @\<^sub>t
-   Out\<^sub>t (State (control_state (Control_end_state (v0, s0, a0) xs) v s)) ''Control2Train'' ((control_state (Control_end_state (v0, s0, a0) xs) v s) Command_a)"
+   In\<^sub>t (State ((Control_end_state (v0, s0, a0) xs))) ''P2C'' v @\<^sub>t
+   In\<^sub>t (State ((Control_end_state (v0, s0, a0) xs)(V := v))) ''P2C'' s @\<^sub>t
+   Out\<^sub>t (State (control_state (Control_end_state (v0, s0, a0) xs) v s)) ''C2P'' ((control_state (Control_end_state (v0, s0, a0) xs) v s) Command_a)"
   apply (induct xs arbitrary: v0 s0 a0 )
    apply (auto simp add: join_assoc Control_end_state_snoc control_state_def fun_upd_twist)[1]
   apply (auto simp add: join_assoc Control_end_state_snoc fun_upd_twist)
@@ -462,6 +464,8 @@ fun loop_once :: "real \<times> real \<Rightarrow> real \<times> real" where
      let v' = v + a * Period in
      let s' = s + v * Period + a * Period * Period / 2 in
       (s', v'))"
+
+
 declare loop_once.simps[simp del]
 
 
@@ -659,24 +663,24 @@ fun tot_inv :: "real \<times> real \<Rightarrow> nat \<Rightarrow> tassn" where
   "tot_inv (s0, v0) 0 = emp\<^sub>t"
 | "tot_inv (s0, v0) (Suc n) =
    (\<up>(loop_invariant (s0, v0)) \<and>\<^sub>t Wait\<^sub>t (Period) (\<lambda>t. ParState (State ((\<lambda>_. 0)(V := v0 + com_a s0 v0 * t, S := s0 + v0 * t + com_a s0 v0 * t * t / 2, A := com_a s0 v0))) 
-                    (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := com_a s0 v0)) )) ({''Train2Control''}, {})) @\<^sub>t
-   IO\<^sub>t ''Train2Control'' (snd (loop_once (s0, v0))) @\<^sub>t
-   IO\<^sub>t ''Train2Control'' (fst (loop_once (s0, v0))) @\<^sub>t
-   IO\<^sub>t ''Control2Train'' (com_a (fst (loop_once (s0, v0))) (snd (loop_once (s0, v0)))) @\<^sub>t
+                    (State ((\<lambda>_. 0)(V := v0, S := s0, Command_a := com_a s0 v0)) )) ({''P2C''}, {})) @\<^sub>t
+   IO\<^sub>t ''P2C'' (snd (loop_once (s0, v0))) @\<^sub>t
+   IO\<^sub>t ''P2C'' (fst (loop_once (s0, v0))) @\<^sub>t
+   IO\<^sub>t ''C2P'' (com_a (fst (loop_once (s0, v0))) (snd (loop_once (s0, v0)))) @\<^sub>t
    tot_inv (loop_once (s0, v0) ) n"
 
 
 
 fun tot_block :: "real \<times> real \<Rightarrow> nat \<Rightarrow> tassn" where
 "tot_block (s0, v0) n =   
-   IO\<^sub>t ''Train2Control'' v0 @\<^sub>t
-   IO\<^sub>t ''Train2Control'' s0 @\<^sub>t
-   IO\<^sub>t ''Control2Train'' (com_a s0 v0) @\<^sub>t tot_inv (s0, v0) n "
+   IO\<^sub>t ''P2C'' v0 @\<^sub>t
+   IO\<^sub>t ''P2C'' s0 @\<^sub>t
+   IO\<^sub>t ''C2P'' (com_a s0 v0) @\<^sub>t tot_inv (s0, v0) n "
 
 lemma combine0:
   "loop_invariant (s0, v0) \<Longrightarrow> 
-   combine_assn {''Train2Control'', ''Control2Train''}
-     (Train_inv (v0, s0, com_a s0 v0) as) (Control_inv (v0, s0, com_a s0 v0) vs) 
+   combine_assn {''P2C'', ''C2P''}
+     (Plant_inv (v0, s0, com_a s0 v0) as) (Control_inv (v0, s0, com_a s0 v0) vs) 
       \<Longrightarrow>\<^sub>t  tot_inv (s0,v0) (length as)"
 proof (induct as arbitrary: vs s0 v0)
 case Nil
@@ -754,8 +758,8 @@ qed
 
 lemma combine:
   "loop_invariant (s0, v0) \<Longrightarrow> 
-   combine_assn {''Train2Control'', ''Control2Train''}
-     (Train_block (v0, s0, a00) a0 as) (Control_block (v00', s00', a00') v0' s0' vs) 
+   combine_assn {''P2C'', ''C2P''}
+     (Plant_block (v0, s0, a00) a0 as) (Control_block (v00', s00', a00') v0' s0' vs) 
       \<Longrightarrow>\<^sub>t  tot_block (s0,v0) (length as)"
   apply auto
 apply (rule entails_tassn_trans)
@@ -773,23 +777,23 @@ apply (rule entails_tassn_trans)
   apply(rule combine0)
   by auto
 
-definition system :: pproc where
-  "system = Parallel (Single Train)
-                     {''Train2Control'', ''Control2Train''}
+definition System :: pproc where
+  "System = Parallel (Single Plant)
+                     {''P2C'', ''C2P''}
                      (Single Control)"
 
 
-lemma system_Prop:
+lemma System_Prop:
   assumes "loop_invariant (s0, v0)"
   shows "\<Turnstile>\<^sub>p
     {pair_assn (\<lambda>s. s = ((\<lambda>_. 0)(V := v0, S := s0, A := a00)))
                (\<lambda>s. s = ((\<lambda>_. 0)(V := v00', S := s00', Command_a := a00')))}
-      system
+      System
     {\<exists>\<^sub>g n. trace_gassn (tot_block (s0,v0) n)}"
-unfolding system_def
+unfolding System_def
   apply (rule ParValid_conseq')
     apply (rule ParValid_Parallel')
-  apply (rule Train_prop)
+  apply (rule Plant_prop)
   apply (rule Control_prop)
   apply (auto simp add: sing_gassn_split sing_gassn_ex)
   apply (rule sync_gassn_ex_pre_left)

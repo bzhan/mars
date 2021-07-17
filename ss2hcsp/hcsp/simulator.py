@@ -1314,7 +1314,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=400, num_show=None,
+def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
                   show_interval=None, start_event=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.

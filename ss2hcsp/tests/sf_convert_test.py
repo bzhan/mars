@@ -38,7 +38,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     procs_list = []
     for chart in charts:
-        converter = sf_convert.SFConvert(chart, chart_parameters=diagram.chart_parameters[chart.name])
+        converter = sf_convert.SFConvert(chart,Dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
         procs_list.append((procs, hp))
@@ -197,22 +197,22 @@ class SFConvertTest(unittest.TestCase):
 
     def testCommunityCharts(self):
         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
-           ['IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'log en_add',
-            'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log en_A1', 'log en_A1_1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 
-            'log con_actB', 'log en_B', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'log con_act_chart1', 'log en_B1', 'log en_B1_1', 
-            'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'IO ch_x0_0 2', 'IO ch_x1_0 1', 
-            'log du_b1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B',
-            'IO ch_x0_0 1', 'IO ch_x1_0 2'])
+           ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1',
+            'log en_B1_1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2',
+            'IO ch_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actAdd',
+            'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1',
+            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 3', 'delay 0.1'])
         
     def testCommunityCharts1(self):
         run_test(self, "./Examples/Stateflow/tests/community_charts1.xml",31,
-          ['IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 
-           'log en_add', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log en_A1', 'log en_A1_1',
-           'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'log con_actB', 'log en_B', 'IO ch_x2_0 1', 'IO ch_x3_0 1',
-           'IO ch_x0_0 1', 'IO ch_x1_0 1', 'log con_act_chart1', 'log en_B1', 'log en_B1_1', 'IO ch_response_x0_0 1', 
-           'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2',
-           'IO ch_x1_0 1', 'log du_b1', 'IO ch_response_x0_0 1', 'IO ch_response_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B',
-           'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 2', 'log du_b1', 'IO ch_response_x0_0 1'])
+          ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0',
+           'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1', 'log en_B1_1',
+           'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd',
+           'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2', 'IO ch_x1_0 1', 'delay 0.1',
+           'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 2',
+           'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2',
+           'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1',
+           'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
 
     def testDsmExample(self):
         io_filter = lambda s: not (s.startswith("read") or s.startswith("write"))
@@ -238,10 +238,10 @@ class SFConvertTest(unittest.TestCase):
              'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
 
-    # def testSFNew(self):
-    #     random.seed(0)  # for repeatability
-    #     run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 1,
-    #         [])
+    def testSFNew(self):
+        random.seed(0)  # for repeatability
+        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 1000,
+            [])
 
 
 if __name__ == "__main__":

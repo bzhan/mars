@@ -846,7 +846,7 @@
           <P Name="ConfigPrmDlgPosition">[ 195, 90, 1085, 830 ]</P>
         </Object>
       </Array>
-      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="9" ClassName="Simulink.ConfigSet"/>
+      <Object Reference="true1" PropName="ActiveConfigurationSet" ObjectID="9" ClassName="Simulink.ConfigSet"/>
     </ConfigurationSet>
     <ConcurrentExecutionSettings>
       <Object PropName="DataTransfer" ObjectID="22" ClassName="Simulink.GlobalDataTransfer">
@@ -1471,7 +1471,7 @@ Read2</P>
               <eml>
                 <P Name="isEML">1</P>
                 <P Name="script">function y=random
-  y=unidrnd(10);
+  y=unidrnd(2);
  
   
  
@@ -3422,11 +3422,11 @@ buffer_acknack(rid,4)=mn}</P>
                               <P Name="labelString">
 SUCCESS[seq_num_2&gt;received_num]
 {index=seq_num_2;
-received_set(ReaderId_2,index)=true;
+received_set(ReaderId_2,index)=true1;
 received_num=check_received(WriterId,ReaderId_2,received_num);
 missing_num=check_missing(WriterId,ReaderId_2,missing_num);
 RHC2(index)=buffer_data(WriterId,ReaderId_2,index);
-buffer_data(WriterId,ReaderId_2,index)=false}</P>
+buffer_data(WriterId,ReaderId_2,index)=false1}</P>
                               <P Name="labelPosition">[2579.615 454.027 365.562 114]</P>
                               <P Name="fontSize">12</P>
                               <src>
@@ -3837,11 +3837,11 @@ hFlag=0}</P>
                             </state>
                             <transition SSID="233">
                               <P Name="labelString">SUCCESS[seq_num_1&gt;received_num]
-{index=seq_num_1;received_set(WriterId,index)=true;
+{index=seq_num_1;received_set(WriterId,index)=true1;
 received_num=check_received(WriterId,ReaderId_1,received_num);
 missing_num=check_missing(WriterId,ReaderId_1,missing_num);
 RHC(index)=buffer_data(WriterId,ReaderId_1,index);
-buffer_data(WriterId,ReaderId_1,index)=false;}</P>
+buffer_data(WriterId,ReaderId_1,index)=false1;}</P>
                               <P Name="labelPosition">[1862.952 507.425 365.562 86]</P>
                               <P Name="fontSize">12</P>
                               <src>
@@ -4318,7 +4318,7 @@ hFlag=0}
                         </data>
                         <transition SSID="61">
                           <P Name="labelString">after(heartbeatPeriod,sec)
-[acked_all()==false&amp;&amp;empty()==true]
+[acked_all()==false1&amp;&amp;empty()==true1]
 {hb_count=set_final_Flag(WriterId,hb_count);
 set_liveliness_Flag(WriterId, liveliness);
 set_heartbeatSN(WriterId);
@@ -4367,10 +4367,10 @@ send(HEARTBEAT,model.channel_Heartbeat);
                           <P Name="executionOrder">1</P>
                         </transition>
                         <transition SSID="60">
-                          <P Name="labelString">[cansend==true&amp;&amp;empty()==false]
+                          <P Name="labelString">[cansend==true1&amp;&amp;empty()==false1]
 {set_message(index);
 select_channel(index);
-unsent(index) = false;
+unsent(index) = false1;
 index = index + 1}</P>
                           <P Name="labelPosition">[1263.335 478.153 184.625 72]</P>
                           <P Name="fontSize">12</P>
@@ -4394,7 +4394,7 @@ index = index + 1}</P>
                           <P Name="executionOrder">2</P>
                         </transition>
                         <transition SSID="642">
-                          <P Name="labelString">[acked_all()==false]</P>
+                          <P Name="labelString">[acked_all()==false1]</P>
                           <P Name="labelPosition">[968.194 553.519 106.625 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -4415,7 +4415,7 @@ index = index + 1}</P>
                           <P Name="executionOrder">1</P>
                         </transition>
                         <transition SSID="56">
-                          <P Name="labelString">[acked_all()==false&amp;&amp;empty()==false]</P>
+                          <P Name="labelString">[acked_all()==false1&amp;&amp;empty()==false1]</P>
                           <P Name="labelPosition">[1182.246 557.027 202.578 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -4437,7 +4437,7 @@ index = index + 1}</P>
                           <P Name="executionOrder">2</P>
                         </transition>
                         <transition SSID="641">
-                          <P Name="labelString">[acked_all()==true]{complete=true}</P>
+                          <P Name="labelString">[acked_all()==true1]{complete=true1}</P>
                           <P Name="labelPosition">[918.059 616.662 186.266 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -4458,7 +4458,7 @@ index = index + 1}</P>
                           <P Name="executionOrder">3</P>
                         </transition>
                         <transition SSID="62">
-                          <P Name="labelString">[empty()==true]</P>
+                          <P Name="labelString">[empty()==true1]</P>
                           <P Name="labelPosition">[1238.086 610.351 83.938 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -4620,7 +4620,7 @@ ackFlag=1}</P>
                           <P Name="dataType">Inherit: From definition in chart</P>
                         </data>
                         <transition SSID="68">
-                          <P Name="labelString">[cansend==true&amp;&amp;repair_num(id)&lt;=request_num(id)]
+                          <P Name="labelString">[cansend==true1&amp;&amp;repair_num(id)&lt;=request_num(id)]
 {set_message(repair_num(id));
 select_channel(repair_num(id));
 repair_num(id) = repair_num(id) + 1}</P>
@@ -4671,7 +4671,7 @@ ackFlag=0}</P>
                           <P Name="executionOrder">1</P>
                         </transition>
                         <transition SSID="70">
-                          <P Name="labelString">[cansend==false||repair_num(id)&gt;request_num(id)]
+                          <P Name="labelString">[cansend==false1||repair_num(id)&gt;request_num(id)]
 </P>
                           <P Name="labelPosition">[871.273 765.112 271.797 30]</P>
                           <P Name="fontSize">12</P>
@@ -4985,7 +4985,7 @@ ackFlag=1}</P>
                       <P Name="executionOrder">1</P>
                     </transition>
                     <transition SSID="767">
-                      <P Name="labelString">[channel()==true]</P>
+                      <P Name="labelString">[channel()==true1]</P>
                       <P Name="labelPosition">[3559.071 654.261 93.297 16]</P>
                       <P Name="fontSize">12</P>
                       <src>
@@ -5148,7 +5148,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                       <P Name="executionOrder">1</P>
                     </transition>
                     <transition SSID="729">
-                      <P Name="labelString">[channel()==true]</P>
+                      <P Name="labelString">[channel()==true1]</P>
                       <P Name="labelPosition">[3563.629 1030.669 93.297 16]</P>
                       <P Name="fontSize">12</P>
                       <src>
@@ -6327,7 +6327,7 @@ send(SUCCESS,model.RTPS_Reader.RTPS_Reader_2)}</P>
                           <P Name="executionOrder">1</P>
                         </transition>
                         <transition SSID="357">
-                          <P Name="labelString">[channel()==true]</P>
+                          <P Name="labelString">[channel()==true1]</P>
                           <P Name="labelPosition">[917.629 1178.244 93.297 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -6395,7 +6395,7 @@ send(SUCCESS,model.RTPS_Reader.RTPS_Reader_1)}</P>
                           <P Name="executionOrder">1</P>
                         </transition>
                         <transition SSID="350">
-                          <P Name="labelString">[channel()==true]</P>
+                          <P Name="labelString">[channel()==true1]</P>
                           <P Name="labelPosition">[1147.281 1234.852 93.297 16]</P>
                           <P Name="fontSize">12</P>
                           <src>
@@ -6561,7 +6561,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                       <P Name="executionOrder">1</P>
                     </transition>
                     <transition SSID="802">
-                      <P Name="labelString">[channel()==true]</P>
+                      <P Name="labelString">[channel()==true1]</P>
                       <P Name="labelPosition">[3563.629 1316.321 93.297 16]</P>
                       <P Name="fontSize">12</P>
                       <src>
@@ -7005,7 +7005,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="130">
-                  <P Name="labelString">[i&gt;=1&amp;&amp;received_set(rid,i)==true]</P>
+                  <P Name="labelString">[i&gt;=1&amp;&amp;received_set(rid,i)==true1]</P>
                   <P Name="labelPosition">[327.512 831.91 177.906 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7234,7 +7234,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="119">
-                  <P Name="labelString">[i&lt;=5&amp;&amp;received_set(rid,i)==true]</P>
+                  <P Name="labelString">[i&lt;=5&amp;&amp;received_set(rid,i)==true1]</P>
                   <P Name="labelPosition">[328.796 986.646 177.906 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7794,7 +7794,7 @@ lastSN=buffer_heartbeat(4)}</P>
               </props>
               <P Name="dataType">double</P>
             </data>
-            <data SSID="679" name="false">
+            <data SSID="679" name="false1">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
                 <P Name="initialValue">0</P>
@@ -7809,7 +7809,7 @@ lastSN=buffer_heartbeat(4)}</P>
               </props>
               <P Name="dataType">double</P>
             </data>
-            <data SSID="680" name="true">
+            <data SSID="680" name="true1">
               <P Name="scope">LOCAL_DATA</P>
               <props>
                 <P Name="initialValue">1</P>
