@@ -1388,9 +1388,14 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
             "state": dict()
         }
         for k, v in state.items():
-            if (info.outputs is None or any(k in output for output in info.outputs)) and \
-                isinstance(v, (int, float)):
-                new_entry['state'][k] = v
+            if info.outputs is not None and any(k in output for output in info.outputs):
+                if isinstance(v, (int, float)):
+                    new_entry['state'][k] = v
+                elif isinstance(v, list):
+                    for i, val in enumerate(v):
+                        new_entry['state'][k+'['+str(i)+']'] = val
+                else:
+                    pass
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
