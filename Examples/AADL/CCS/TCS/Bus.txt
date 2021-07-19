@@ -10,9 +10,11 @@ procedure BLOCK begin
     )
   ){t < 0.003}**
 end
+
 procedure BLOCK_by_emerg_imp begin
   wait(0.003)
 end
+
 begin
   (
     reqBus["emerg_imp"]? -->

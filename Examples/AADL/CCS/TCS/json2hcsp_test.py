@@ -10,7 +10,6 @@ from ss2hcsp.hcsp import module
 
 class Json2HCSP3Test(unittest.TestCase):
     def testJson2HCSP3(self):
-        json_file = "./Examples/AADL/CCS/TCS/model_1bus.json"
         with open(json_file, 'r') as f:
             dic = json.load(f)
 
@@ -76,4 +75,5 @@ class Json2HCSP3Test(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    json_file = "./Examples/AADL/CCS/TCS/model_1bus.json"
     unittest.main()
