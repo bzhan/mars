@@ -115,18 +115,26 @@ def run_hcsp():
         print("Time:", time.perf_counter() - clock)
 
         # # export the time series data of Plant to files
-        # directory = "/Users/BEAR/Projects/mars/CaseStudies/lander/"
-        # plant_file = open(directory + 'HCSP_data.txt', 'w')
-        # for time_states in res['time_series']['Plant']:
-        #     print(time_states['state'])
-        #     if len(time_states['state']) < 4:
-        #         continue
-        #     plant_file.write(str(time_states['time']) + '\t')
-        #     # plant_file.write(str(time_states['state']['s']) + '\t')
-        #     # plant_file.write(str(time_states['state']['v']) + '\t')
-        #     # plant_file.write(str(time_states['state']['m']) + '\t')
-        #     plant_file.write(str(time_states['state']['v']) + '\n')
-        # plant_file.close()
+        # directory = "/Users/BEAR/Projects/mars/Examples/AADL/CCS/TCS/data/"
+        # s_file = open(directory + 'HCSP_s_3bus_7ms_p1s_noise_con8', 'w')
+        # v_file = open(directory + 'HCSP_v_3bus_7ms_p1s_noise_con8', 'w')
+        # for time_states in res['time_series']['vehicle_imp']:
+        #     if 's' in time_states['state']:
+        #         s_file.write(str(time_states['time']) + ',')
+        #         s_file.write(str(time_states['state']['s']) + '\n')
+        #     if 'v' in time_states['state']:
+        #         v_file.write(str(time_states['time']) + ',')
+        #         v_file.write(str(time_states['state']['v']) + '\n')
+        # s_file.close()
+        # v_file.close()
+        #
+        # obs_file = open(directory + 'HCSP_obs_3bus_7ms_p1s_noise_con8', 'w')
+        # for time_states in res['time_series']['emerg_imp']:
+        #     if 'obs_pos' in time_states['state']:
+        #         obs_file.write(str(time_states['time']) + ',')
+        #         obs_file.write(str(time_states['state']['obs_pos']) + '\n')
+        # obs_file.close()
+        #
         # print("DONE!")
 
 

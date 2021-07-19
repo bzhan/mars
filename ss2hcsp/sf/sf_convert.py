@@ -732,9 +732,9 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-
-        for info in self.Dsms:
-            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        if self.Dsms:
+            for info in self.Dsms:
+                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
         # Initialize variables
         for vname, info in self.data.items():
             if info.value is not None and info.scope != "INPUT_DATA" and info.scope != "DATA_STORE_MEMORY_DATA":
@@ -765,8 +765,9 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        for info in self.Dsms:
-            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        if self.Dsms:
+            for info in self.Dsms:
+                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
         self.get_input_data(procs)
 
