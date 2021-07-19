@@ -121,6 +121,56 @@ class Process extends React.Component {
                         {this.state.show_process ? "Hide Process" : "Show Process"}
                     </a>
                 </div>
+                <div className="prcedure">
+                    {
+                        this.state.show_process ? (
+                            <div>
+                                {
+                                    this.props.procedures.map((info, index) => {
+                                        return(
+                                            <div>Procedure{index}:{info.name}
+                                            {        
+                                                    info.lines.map((str, line_no) => {
+                                                        if (this.props.pos === undefined) {
+                                                            return <pre key={line_no}>{str}</pre>
+                                                        }
+                                                        const pos = this.props.pos;
+                                                        var bg_start, bg_end;
+                                                        if (line_no === pos.start_x) {
+                                                            bg_start = pos.start_y;
+                                                        } else if (line_no > pos.start_x) {
+                                                            bg_start = 0;
+                                                        } else {
+                                                            bg_start = str.length;
+                                                        }
+                                                        if (line_no === pos.end_x) {
+                                                            bg_end = pos.end_y;
+                                                        } else if (line_no < pos.end_x) {
+                                                            bg_end = str.length;
+                                                        } else {
+                                                            bg_end = 0;
+                                                        }
+                                                        if (bg_start < bg_end) {
+                                                            return (
+                                                                <pre key={line_no}>
+                                                                    <span>{str.slice(0, bg_start)}</span>
+                                                                    <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                                                        {str.slice(bg_start, bg_end)}
+                                                                    </span>
+                                                                    <span>{str.slice(bg_end, str.length)}</span>
+                                                                </pre>)
+                                                        }
+                                                        return <pre key={line_no}>{str}</pre>
+                                                    })
+                                            }
+                                            </div>  
+                                        )    
+                                    })
+                                }
+                            </div>
+                        ) : null
+                    }
+                </div>
                 <div className="program-text">
                     {
                         this.state.show_process ? (
@@ -455,6 +505,7 @@ class App extends React.Component {
             hcsp_info: this.state.hcsp_info,
             num_steps: this.state.num_steps,
             num_show: this.state.num_show,
+            show_event_only: this.state.show_event_only
         })
         if ('error' in response.data) {
             this.setState({
@@ -592,7 +643,8 @@ class App extends React.Component {
             hcsp_info: this.state.hcsp_info,
             num_steps: 999,
             num_show: 999,
-            start_event: start_event
+            start_event: start_event,
+            show_event_only: this.state.show_event_only
         })
         console.log(response);
         if ('error' in response.data) {
@@ -632,7 +684,7 @@ class App extends React.Component {
                         }
                         else if (this.state.history.length === 0) {
                             // No data is available
-                            return <Process key={index} index={index} lines={info.lines}
+                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
                                 name={hcsp_name} pos={undefined} state={[]}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
                                 npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
@@ -658,7 +710,7 @@ class App extends React.Component {
                             var time_series = this.state.time_series[hcsp_name];
                             if (pos === 'end') {
                                 // End of data set
-                                return <Process key={index} index={index} lines={info.lines}
+                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
                                     name={hcsp_name} pos={undefined} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
                                     npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
@@ -671,7 +723,7 @@ class App extends React.Component {
                                         pos = info.mapping[this.state.history[hpos].ori_pos[hcsp_name]];
                                     }
                                 }
-                                return <Process key={index} index={index} lines={info.lines}
+                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
                                     name={hcsp_name} pos={pos} state={state}
                                     time_series={time_series} event_time={event_time} hpos={hpos}
                                     npos={npos} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
