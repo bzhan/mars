@@ -101,12 +101,12 @@ class SimulatorTest(unittest.TestCase):
     def testStringOfPos(self):
         test_data = [
             ("x := 1; x := x + 1", (1,), "p1"),
-            ("x := 1; wait(1)", (1, 0), "p1,w0"),
+            ("x := 1; wait(1)", (1, 0), "p1,0"),
             ("rec X.(x := 1; wait(1); @X)", (), "p"),
             ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
             ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
             ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,w0"),
+            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
         ]
 
         for hp, pos, expected_pos in test_data:

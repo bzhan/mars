@@ -13,3 +13,9 @@
 
 .idea
 slprj/
+event_output.json
+.vscode/
+sequence_diaggram.txt
+simulator_events.txt
+ss2hcsp/event_output.json
+ss2hcsp/import_path.txt

@@ -87,6 +87,7 @@ def run_hcsp():
     data = json.loads(request.get_data())
     infos = data['hcsp_info']
     num_steps = data['num_steps']
+    show_event_only = data['show_event_only']
     profile = False
 
     def convert_procs(procs):
@@ -98,7 +99,10 @@ def run_hcsp():
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
-    show_interval = 50000 if num_show > 50000 else None
+    if not show_event_only and num_show > 50000:
+        show_interval = 50000
+    else:
+        show_interval = None
     if 'start_event' in data:
         start_event = data['start_event']
     else:
@@ -113,7 +117,7 @@ def run_hcsp():
         clock = time.perf_counter()
         res = simulator.exec_parallel(
             infos, num_steps=num_steps, num_show=num_show, show_interval=show_interval,
-            start_event=start_event)
+            start_event=start_event, show_event_only=show_event_only)
         print("Time:", time.perf_counter() - clock)
 
         # # export the time series data of Plant to files

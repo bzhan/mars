@@ -111,6 +111,8 @@ def get_write_vars(lname):
         return {lname.name}
     elif isinstance(lname, expr.ArrayIdxExpr):
         return get_write_vars(lname.expr1)
+    elif isinstance(lname, expr.FieldNameExpr):
+        return get_write_vars(lname.expr)
     else:
         raise NotImplementedError
 
@@ -340,9 +342,13 @@ class HCSPAnalysis:
     def compute_reaching_definition(self):
         """Reaching definition analysis.
 
-        For each program location, compute the set of assignments that can
-        possibly reach this location. Each assignment is given by the variable
-        assigned and the location where it occurs.
+        For each program location, compute the set of assignments that
+        can possibly reach this location. Each assignment is given by
+        the variable assigned and the location where it occurs.
+
+        Note for assignment to array elements, we keep name of the
+        array rather than the specific element. Likewise for assignment
+        to field names.
 
         Reference:
         Nielson et al. Principles of Program Analysis, Section 2.1.2.
@@ -390,8 +396,9 @@ class HCSPAnalysis:
                 break
 
     def detect_replacement(self):
-        """Replacement is possible if a variable occurs in an expression and
-        there is only one possible assignment of the variable leading to it.
+        """Replacement is possible if a variable occurs in an
+        expression and there is only one possible assignment of the
+        variable leading to it.
         
         """
         repls = dict()
@@ -405,22 +412,34 @@ class HCSPAnalysis:
                     if any(prev_loc is None for prev_loc in reach_defs):
                         continue
 
-                    # Obtain the set of expressions assigned to
-                    assigned = set()
+                    # Obtain the unique expression assigned to. The replacement
+                    # is valid only if all three of the following conditions hold:
+                    #   1. all assignments are to constant expressions.
+                    #   2. all assignments are the same.
+                    #   3. all assignments are to variable itself, rather than to
+                    #      some array index or field name.
+                    unique_assign = None
                     for prev_loc in reach_defs:
                         def_hp = self.infos[prev_loc].sub_hp
                         assert def_hp.type == 'assign'
-                        assigned.add((def_hp.var_name, def_hp.expr))
+                        if not isinstance(def_hp.var_name, expr.AVar):
+                            unique_assign = None
+                            break
+                        if not isinstance(def_hp.expr, AConst):
+                            unique_assign = None
+                            break
+                        if unique_assign is not None and def_hp.expr != unique_assign:
+                            unique_assign = None
+                            break
+                        unique_assign = def_hp.expr
                     
                     # If there is a unique assigned value which is a constant,
                     # add to replacement list.
-                    if len(assigned) != 1:
+                    if not unique_assign:
                         continue
-                    unique_var_name, unique_assign = assigned.pop()
-                    if isinstance(unique_var_name, expr.AVar) and isinstance(unique_assign, AConst):
-                        if loc not in repls:
-                            repls[loc] = dict()
-                        repls[loc][var] = unique_assign
+                    if loc not in repls:
+                        repls[loc] = dict()
+                    repls[loc][var] = unique_assign
 
         return repls
 
@@ -431,10 +450,13 @@ class HCSPAnalysis:
         Nielson et al. Principles of Program Analysis, Section 2.1.4
 
         """
-        # Propagate from live_after to live_before
+        # Propagate from live_after to live_before. Note propagation
+        # is forbidden only if the variable is exactly equal to the
+        # left hand side of assignment. Assigning to indices or field
+        # names does not count.
         def propagate_after_before(info, var):
             if var not in info.live_before and \
-                (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
+                (info.sub_hp.type != "assign" or expr.AVar(var) != info.sub_hp.var_name):
                 info.live_before.add(var)
 
         # All variables are live at the end, except those in ignore_end
