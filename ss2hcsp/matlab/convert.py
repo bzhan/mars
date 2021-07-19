@@ -149,12 +149,18 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             pre_act, args = conv_exprs(lname.exprs)
             assert pre_act == hcsp.Skip(), "convert_lname"
             if len(lname.exprs) == 1:
+                pre_act, hp_e = conv_expr(lname.exprs[0])
                 return expr.ArrayIdxExpr(
-                    expr.AVar(lname.fun_name), [subtract_one(arg) for arg in args])
+                    expr.AVar(lname.fun_name), [subtract_one(hp_e)])
             elif len(lname.exprs) ==2:
-                return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1]))
+                _, hp_e1 = conv_expr(lname.exprs[0])
+                _, hp_e2 = conv_expr(lname.exprs[1])
+                return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2))
             elif len(lname.exprs) ==3:
-                    return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(args[0])),subtract_one(args[1])),subtract_one(args[2]))
+                _, hp_e1 = conv_expr(lname.exprs[0])
+                _, hp_e2 = conv_expr(lname.exprs[1])
+                _, hp_e3 = conv_expr(lname.exprs[2])
+                return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2)),subtract_one(hp_e3))
         elif isinstance(lname, function.ListExpr):
             return [convert_lname(arg) for arg in lname.args]
         else:

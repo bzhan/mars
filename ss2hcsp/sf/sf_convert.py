@@ -36,7 +36,7 @@ class SFConvert:
             self.data = self.chart_parameters['data']
 
         # Sample time
-        self.sample_time = 0.1
+        self.sample_time = 0.2
         if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
             self.sample_time = self.chart_parameters['st']
 
@@ -347,7 +347,7 @@ class SFConvert:
         """
         pre_acts, conds, cond_act, tran_act = [], [], hcsp.Skip(), hcsp.Skip()
         if label is not None:
-           
+
             if isinstance(label,str):
                 label=parser.transition_parser.parse(label)
             if label.event is not None:
@@ -656,6 +656,8 @@ class SFConvert:
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
                     pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
+                    if isinstance(cond,expr.BConst):
+                        cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
                     act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
                     act = hcsp.seq([cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
                     if i == 0:
@@ -688,6 +690,8 @@ class SFConvert:
         procs.append(hcsp.Assign(done, expr.AConst(0)))
         for i, tran in enumerate(junc.out_trans):
             pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
+            if isinstance(cond,expr.BConst):
+                cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
             assert tran_act == hcsp.Skip(), \
                 "convert_graphical_function_junc: no transition action in graphical functions."
             act = hcsp.seq([cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
@@ -918,37 +922,37 @@ def convert_diagram(diagram,
             for name, proc in procs.items():
                 print('\n' + name + " ::=\n" + pprint(proc))
 
-    # Reduce procedures
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = hcsp.reduce_procedures(hp, procs)
-        procs_list[i] = (procs, hp)
+    # # Reduce procedures
+    # for i, (procs, hp) in enumerate(procs_list):
+    #     hp = hcsp.reduce_procedures(hp, procs)
+    #     procs_list[i] = (procs, hp)
 
-    # Reduce skip
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = optimize.simplify(hp)
-        for name in procs:
-            procs[name] = optimize.simplify(procs[name])
-        procs_list[i] = (procs, hp)
+    # # Reduce skip
+    # for i, (procs, hp) in enumerate(procs_list):
+    #     hp = optimize.simplify(hp)
+    #     for name in procs:
+    #         procs[name] = optimize.simplify(procs[name])
+    #     procs_list[i] = (procs, hp)
 
-    # Optional: print HCSP program after simplification
-    if print_after_simp:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+    # # Optional: print HCSP program after simplification
+    # if print_after_simp:
+    #     for procs, hp in procs_list:
+    #         print(pprint(hp))
+    #         for name, proc in procs.items():
+    #             print('\n' + name + " ::=\n" + pprint(proc))
 
-    # Optimize through static analysis
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = optimize.full_optimize(hp, ignore_end={'_ret'})
-        for name in procs:
-            procs[name] = optimize.full_optimize(procs[name])
-        procs_list[i] = (procs, hp)
+    # # Optimize through static analysis
+    # for i, (procs, hp) in enumerate(procs_list):
+    #     hp = optimize.full_optimize(hp, ignore_end={'_ret'})
+    #     for name in procs:
+    #         procs[name] = optimize.full_optimize(procs[name])
+    #     procs_list[i] = (procs, hp)
 
-    # Optional: print final HCSP program
-    if print_final:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+    # # Optional: print final HCSP program
+    # if print_final:
+    #     for procs, hp in procs_list:
+    #         print(pprint(hp))
+    #         for name, proc in procs.items():
+    #             print('\n' + name + " ::=\n" + pprint(proc))
 
     return procs_list

@@ -865,7 +865,6 @@ class SimInfo:
         """
         if isinstance(lname, AVar):
             self.state[lname.name] = copy.deepcopy(val)
-            # print(self.state)
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
@@ -1315,7 +1314,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
+def exec_parallel(infos, *, num_io_events=None, num_steps=100000, num_show=None,
                   show_interval=None, start_event=None):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
