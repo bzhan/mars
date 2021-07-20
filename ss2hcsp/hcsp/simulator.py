@@ -1,3 +1,4 @@
+
 """Simulation for HCSP programs.
 
 The state is given by a dictionary from variable names to numbers.
@@ -453,21 +454,21 @@ def get_ode_delay(hp, state):
     return test_cond(hp.constraint)
 
 class Frame:
-    def __init__(self,pos=None,lasthp=None,curhp=None,rec_vars=None,proc=None):
+    def __init__(self,pos=None,lasthp=None,curhp=None,rec_vars=None,proc=None,thisproc=None):
         self.pos = pos
         self.proc = proc #hcsp.Procedure
         self.curhp = curhp #cur hcsp
         self.lasthp = lasthp #last hcsp
         self.rec_vars = rec_vars 
         self.innerpos = pos #inner position, use for display
+        self.thisproc = thisproc
         
     
 class Callstack:
 
-    def __init__(self,pos,globalhp,lasthp,curhp,rec_vars,proc,onlyforpos):
-        self.callstack = [Frame(pos,lasthp,curhp,rec_vars,proc)]    
+    def __init__(self,pos,globalhp,lasthp,curhp,rec_vars,proc,thisproc):
+        self.callstack = [Frame(pos,lasthp,curhp,rec_vars,proc,thisproc)]    
         self.globalhp = globalhp
-        self.onlyforpos = onlyforpos #boolen used when just concey pos, used in callstack_temp, when only for pos, it is True
 
     def renewinnerpos(self):
         # if curhp is 'start', skip renew
@@ -484,10 +485,8 @@ class Callstack:
                 elif lastpos is None:
                         self.callstack[-1].innerpos = curpos
                 else:
-                    self.callstack[-1].innerpos = curpos[len(lastpos):]
-            
-            #if has recursion, renew cur-place by deleting inner recursion cycles 
-            
+                    self.callstack[-1].innerpos = curpos[len(lastpos)+1:]
+            #if has recursion, renew cur-place by deleting inner recursion cycles            
             pos = copy.deepcopy(self.callstack[-1].pos)
             rec_list = []
             length=len(self.callstack[-1].innerpos)
@@ -499,16 +498,10 @@ class Callstack:
             if len(rec_list) >= 2:
                 self.callstack[-1].innerpos = pos[:rec_list[0]] + pos[rec_list[-1]:]
                 self.callstack[-1].innerpos = self.callstack[-1].innerpos[(len(pos)-length):]
-            
-
-            
-
-        
-
-    def push(self,pos,lasthp,curhp,rec_vars,proc):
+ 
+    def push(self,pos,lasthp,curhp,rec_vars,proc,thisproc):
         # when percedure shift occur,push
-        self.callstack.append(Frame(pos,lasthp,curhp,rec_vars,proc))
-        self.renewinnerpos()
+        self.callstack.append(Frame(pos,lasthp,curhp,rec_vars,proc,thisproc))
     
     def renew(self,pos,lasthp,curhp,rec_vars):
         # renew pos in same percedure or main part
@@ -516,8 +509,7 @@ class Callstack:
         self.callstack[-1].curhp=curhp
         self.callstack[-1].lasthp=lasthp
         self.callstack[-1].rec_vars=rec_vars
-        if self.onlyforpos == False:
-            self.renewinnerpos()
+        
 
     def pop(self):
         if self.callstack:
@@ -531,6 +523,9 @@ class Callstack:
     def top_procedure(self):
         return self.callstack[-1].proc
 
+    def top_cur_proc(self):
+        return self.callstack[-1].thisproc
+
     def top_curhp(self):
         return self.callstack[-1].curhp
 
@@ -541,16 +536,38 @@ class Callstack:
         return self.callstack[-1].innerpos  
 
     def getinfo(self):
+        self.renewinnerpos()
         callstack_info={
+            'pos':[],
+            'innerpos':[],
             'procedure':[],
-            'hp':[]
+            # 'curhp':[],
+            # 'lasthp':[]
         }
-        stack=copy.deepcopy(self.callstack)
+        stack=copy.deepcopy(self)
         while len(stack.callstack)!=0:
-            callstack_info['pos'].append(stack.top_pos())
-            callstack_info['innerpos'].append(stack.top_innerpos())
-            callstack_info['procedure'].append(stack.top_procedure())
-            callstack_info['hp'].append(stack.top_hp())
+            pos=stack.top_pos()
+            if pos is None:
+                callstack_info['pos'].append('end')
+            else:
+                callstack_info['pos'].append('p' + ','.join(str(p) for p in pos))
+
+            innerpos=stack.top_innerpos()
+            if innerpos is None:
+                callstack_info['innerpos'].append('end')
+            else:
+                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))
+            
+            if stack.top_cur_proc() is None:
+                callstack_info['procedure'].append(stack.top_cur_proc())
+            else:
+                callstack_info['procedure'].append(stack.top_cur_proc().name)
+
+            # can add procedure,curhp,lasthp into callstack display here
+
+            
+            # callstack_info['curhp'].append(stack.top_curhp())
+            # callstack_info['lasthp'].append(stack.top_lasthp())
             stack.pop()
         return callstack_info
 
@@ -655,7 +672,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
         assert callstack.top_pos() is not None, "step_pos: already reached the end."
         if hp.type == 'sequence':
             assert len(callstack.top_pos()) > 0 and callstack.top_pos()[0] < len(hp.hps)
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
             sub_step = helper(hp.hps[callstack.top_pos()[0]], callstack_temp)
             if sub_step.top_pos() is None:
                 if callstack.top_pos()[0] == len(hp.hps) - 1:
@@ -680,7 +697,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
         elif hp.type == 'select_comm':
             assert len(callstack.top_pos()) > 0
             _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True) #only use for convey pos in recursion, the containing of globalhp just avoid a bug
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None) #only use for convey pos in recursion, the containing of globalhp just avoid a bug
             sub_step = helper(out_hp, callstack_temp)
             if sub_step.top_pos() is None:
                 callstack.renew(None,hp,'end',rec_vars)
@@ -710,7 +727,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             if len(callstack.top_pos()) == 0:
                 callstack.renew(None,hp,'end',rec_vars)
                 return callstack
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
             sub_step = helper(hp.hp, callstack_temp)
             if sub_step.top_pos() is None:
                 callstack.renew(None,hp,'end',rec_vars)
@@ -726,7 +743,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             return callstack
         elif hp.type == 'recursion':
             rec_vars[hp.entry] = hp
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
             sub_step = helper(hp.hp, callstack_temp)
             if sub_step.top_pos() is None:
                 callstack.renew(None,hp,'end',rec_vars)
@@ -743,7 +760,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                 rec_hp = procs[hp.name].hp
             else:
                 raise SimulatorException("Unrecognized process variable: " + hp.name)
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
             sub_step = helper(rec_hp, callstack_temp)
             if sub_step.top_pos() is None:
                 callstack.renew(None,hp,'end',rec_vars)
@@ -759,7 +776,7 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                 return callstack
 
             _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+            callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
             sub_step = helper(out_hp, callstack_temp)
             if sub_step.top_pos() is None:
                 callstack.renew(None,hp,'end',rec_vars)
@@ -773,11 +790,11 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             assert len(callstack.top_pos()) > 0
             if callstack.top_pos()[0] < len(hp.if_hps):
                 _, sub_hp = hp.if_hps[callstack.top_pos()[0]]
-                callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+                callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
                 sub_step = helper(sub_hp, callstack_temp)
             else:
                 assert callstack.top_pos()[0] == len(hp.if_hps)
-                callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],True)
+                callstack_temp=Callstack(callstack.top_pos()[1:],callstack.globalhp,[],[],[],[],None)
                 sub_step = helper(hp.else_hp, callstack_temp)
         
             if sub_step.top_pos() is None:
@@ -811,36 +828,38 @@ def parse_pos(hp, pos):
 
     return pos
 
-def remove_rec(hp, pos, rec_vars=None, procs=None):
-    """Given a position in a program possibly with recursion and
-    procedure calls, return the simplest expression for the same position
-    in the program (removing recursion). This simpler position is used
-    for display in user interface.
+# def remove_rec(hp, pos, rec_vars=None, procs=None):
+#     """Given a position in a program possibly with recursion and
+#     procedure calls, return the simplest expression for the same position
+#     in the program (removing recursion). This simpler position is used
+#     for display in user interface.
 
-    """
-    if pos is None:
-        return None
+#     """
+#     if pos is None:
+#         return None
 
-    rec_list = []
-    for i in range(len(pos)+1):
-        sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
-        if sub_hp.type == 'recursion':
-            rec_list.append(i)
+#     rec_list = []
+#     for i in range(len(pos)+1):
+#         sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
+#         if sub_hp.type == 'recursion':
+#             rec_list.append(i)
 
-    if len(rec_list) >= 2:
-        pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
-    return pos
+#     if len(rec_list) >= 2:
+#         pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
+#     return pos
 
-def string_of_pos(hp, pos, rec_vars=None, procs=None):
-    """Convert pos in internal representation to string form."""
-    if pos is None:
-        return 'end'
-    else:
-        return 'p' + ','.join(str(p) for p in pos) 
+# def string_of_pos(hp, pos, rec_vars=None, procs=None):
+#     """Convert pos in internal representation to string form."""
+#     if pos is None:
+#         return 'end'
+#     else:
+#         return 'p' + ','.join(str(p) for p in pos) 
 
-def disp_of_pos(hp, pos, rec_vars=None, procs=None):
-    return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
+# def disp_of_pos(hp, pos, rec_vars=None, procs=None):
+#     return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
 
+def disp_of_callstack(callstack):
+    return callstack.getinfo()
 
 class SimInfo:
     """Represents a (non-parallel) HCSP program together with
@@ -878,7 +897,7 @@ class SimInfo:
         else:
             assert isinstance(pos, tuple)
         
-        self.callstack = Callstack(pos,copy.deepcopy(self.hp),self.hp,get_pos(self.hp,pos,None,self.procedures),[],[],False)
+        self.callstack = Callstack(pos,copy.deepcopy(self.hp),self.hp,get_pos(self.hp,pos,None,self.procedures),[],[],None)
 
         # Current state
         if state is None:
@@ -1028,7 +1047,7 @@ class SimInfo:
                 proc = self.procedures[cur_hp.name]
                 pos=self.callstack.top_pos() + (0,) + start_pos(proc.hp)
                 thishp=get_pos(self.hp,pos,rec_vars,self.procedures)
-                self.callstack.push(pos,self.hp,thishp,rec_vars,self.procedures)
+                self.callstack.push(pos,self.hp,thishp,rec_vars,self.procedures,proc)
                 self.reason = None
                 return
 
@@ -1255,7 +1274,7 @@ class SimInfo:
                     for i in range(len(sol.t)):
                         for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
                             self.state[var_name] = opt_round(yval[i])
-                        time_series.append({'time': t_eval[i], 'state': copy.copy(self.state)})
+                        time_series.append({'time': t_eval[i], 'state': copy.deepcopy(self.state)})
 
                 # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
@@ -1411,8 +1430,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         # Fill in information about current position
         cur_info = dict()
         for info in infos:
-            info_pos = disp_of_pos(info.hp, info.callstack.top_pos(), None, info.procedures)
-            cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
+            info_callstack = disp_of_callstack(info.callstack)
+            cur_info[info.name] = {'callstack': info_callstack, 'state': copy.deepcopy(info.state)}
         new_event['infos'] = cur_info
 
         # Finally add to trace
@@ -1456,7 +1475,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         num_event = 0
 
         # List of processes that have been updated in the last round.
-        start_pos = dict((info.name, disp_of_pos(info.hp, info.callstack.top_pos())) for info in infos)
+        start_pos = dict((info.name, disp_of_callstack(info.callstack)) for info in infos)
 
         # Record event and time series at the beginning.
         log_event(ori_pos=start_pos, type="start", str="start")
@@ -1478,7 +1497,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         # stuck, find the stopping reasons.
         for info in infos:
             while info.callstack.top_pos() is not None and not num_event >= start_id + num_steps:
-                ori_pos = {info.name: disp_of_pos(info.hp, info.callstack.top_pos(), None, info.procedures)}
+                ori_pos = {info.name: disp_of_callstack(info.callstack)}
                 try:
                     info.exec_step()
                 except SimulatorAssertionException as e:
@@ -1517,7 +1536,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
             assert min_delay >= 0, "min_delay %s less than zero" % min_delay
-            ori_pos = dict((infos[p].name, disp_of_pos(infos[p].hp, infos[p].callstack.top_pos(), None, infos[p].procedures)) for p in delay_pos)
+            ori_pos = dict((infos[p].name, disp_of_callstack(infos[p].callstack)) for p in delay_pos)
 
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
@@ -1532,8 +1551,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
             res['time'] += min_delay
         else:  # event[0] == "comm"
             _, id_out, id_in, out_ch, in_ch, inst_out, inst_in = event
-            ori_pos = {infos[id_out].name: disp_of_pos(infos[id_out].hp, infos[id_out].callstack.top_pos(), None, infos[id_out].procedures),
-                       infos[id_in].name: disp_of_pos(infos[id_in].hp, infos[id_in].callstack.top_pos(), None, infos[id_in].procedures)}
+            ori_pos = {infos[id_out].name: disp_of_callstack(infos[id_out].callstack),
+                       infos[id_in].name: disp_of_callstack(infos[id_in].callstack)}
             try:
                 val = infos[id_out].exec_output_comm(out_ch, inst=inst_out)
                 infos[id_in].exec_input_comm(in_ch, val, inst=inst_in)

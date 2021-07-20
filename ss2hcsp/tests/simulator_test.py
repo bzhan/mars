@@ -98,21 +98,21 @@ class SimulatorTest(unittest.TestCase):
             expr = parser.bexpr_parser.parse(expr)
             self.assertEqual(simulator.eval_expr(expr, state), res)
 
-    def testStringOfPos(self):
-        test_data = [
-            ("x := 1; x := x + 1", (1,), "p1"),
-            ("x := 1; wait(1)", (1, 0), "p1,0"),
-            ("rec X.(x := 1; wait(1); @X)", (), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
-        ]
+    # def testStringOfPos(self):
+    #     test_data = [
+    #         ("x := 1; x := x + 1", (1,), "p1"),
+    #         ("x := 1; wait(1)", (1, 0), "p1,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
+    #     ]
 
-        for hp, pos, expected_pos in test_data:
-            hp = parser.hp_parser.parse(hp)
-            pos = simulator.remove_rec(hp, pos)
-            self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
+    #     for hp, pos, expected_pos in test_data:
+    #         hp = parser.hp_parser.parse(hp)
+    #         pos = simulator.remove_rec(hp, pos)
+    #         self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
 
     def testExecStep(self):
         test_data = [
@@ -596,6 +596,12 @@ class SimulatorTest(unittest.TestCase):
             "(x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread))**",
             "ch[0]!; out?x; ch[1]!; out?x"
         ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
+
+    def testExecParallel49(self):
+        run_test(self, [
+            "a := [[0,1],[2,3]]; b := [0,1,2]; a[0][1] := 4; a[1][0] := 5; b[1] := a[1][1]; ch!a; ch!b",
+            "ch?x; ch?y"
+        ], 3, ['IO ch [[0,4],[5,3]]', 'IO ch [0,3,2]', 'deadlock'])
 
     def testProcedure1(self):
         run_test(self, [
