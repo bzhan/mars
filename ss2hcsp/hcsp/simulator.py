@@ -1255,7 +1255,7 @@ class SimInfo:
                     for i in range(len(sol.t)):
                         for (var_name, _), yval in zip(cur_hp.eqs, sol.y):
                             self.state[var_name] = opt_round(yval[i])
-                        time_series.append({'time': t_eval[i], 'state': copy.copy(self.state)})
+                        time_series.append({'time': t_eval[i], 'state': copy.deepcopy(self.state)})
 
                 # Update state with values at the end
                 for i, (var_name, _) in enumerate(cur_hp.eqs):
@@ -1412,7 +1412,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         cur_info = dict()
         for info in infos:
             info_pos = disp_of_pos(info.hp, info.callstack.top_pos(), None, info.procedures)
-            cur_info[info.name] = {'pos': info_pos, 'state': copy.copy(info.state)}
+            cur_info[info.name] = {'pos': info_pos, 'state': copy.deepcopy(info.state)}
         new_event['infos'] = cur_info
 
         # Finally add to trace

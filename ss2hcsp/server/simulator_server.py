@@ -6,6 +6,7 @@ import math
 import time
 from pstats import Stats
 import cProfile
+import random
 
 import sys
 sys.path.append("..")
@@ -97,7 +98,7 @@ def run_hcsp():
              for info in infos if 'parallel' not in info]
 
     num_show = data['num_show']
-    show_interval = 10000 if num_show > 10000 else None
+    show_interval = 40000 if num_show > 40000 else None
     if 'start_event' in data:
         start_event = data['start_event']
     else:
@@ -108,6 +109,7 @@ def run_hcsp():
         pr.enable()
 
     try:
+        random.seed(0)
         clock = time.perf_counter()
         res = simulator.exec_parallel(
             infos, num_steps=num_steps, num_show=num_show, show_interval=show_interval,

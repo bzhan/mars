@@ -597,6 +597,12 @@ class SimulatorTest(unittest.TestCase):
             "ch[0]!; out?x; ch[1]!; out?x"
         ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
 
+    def testExecParallel49(self):
+        run_test(self, [
+            "a := [[0,1],[2,3]]; b := [0,1,2]; a[0][1] := 4; a[1][0] := 5; b[1] := a[1][1]; ch!a; ch!b",
+            "ch?x; ch?y"
+        ], 3, ['IO ch [[0,4],[5,3]]', 'IO ch [0,3,2]', 'deadlock'])
+
     def testProcedure1(self):
         run_test(self, [
             ({"incr": "x := x + 1"},
