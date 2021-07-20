@@ -1,11 +1,12 @@
 """Converting a Stateflow chart to HCSP process."""
 
-from ss2hcsp.sl.get_hcsp import get_hcsp,translate_continuous
+from ss2hcsp.sl import get_hcsp
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.sf.sf_chart import get_common_ancestor
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp import optimize
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert,parser
 from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
@@ -19,14 +20,15 @@ class SFConvert:
     chart_parameters - additional parameters.
 
     """
-    def __init__(self, chart=None,Dsms=None, *, chart_parameters=None, translate_io=True):
+    def __init__(self, chart=None, *, dsms=None, chart_parameters=None, translate_io=True):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
         self.chart_parameters = chart_parameters
         self.translate_io = translate_io
 
-        self.Dsms=Dsms
+        self.dsms = dsms
+
         # List of data variables
         self.data = dict()
         if 'data' in self.chart_parameters:
@@ -732,8 +734,8 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        if self.Dsms:
-            for info in self.Dsms:
+        if self.dsms:
+            for info in self.dsms:
                 procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
         # Initialize variables
         for vname, info in self.data.items():
@@ -765,8 +767,8 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        if self.Dsms:
-            for info in self.Dsms:
+        if self.dsms:
+            for info in self.dsms:
                 procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
         self.get_input_data(procs)
@@ -786,7 +788,7 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        for info in self.Dsms:
+        for info in self.dsms:
             procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
@@ -795,7 +797,7 @@ class SFConvert:
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
         #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        for info in self.Dsms:
+        for info in self.dsms:
             procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
         self.get_output_data(procs)
@@ -852,7 +854,7 @@ class SFConvert:
             hcsp.Loop(self.get_iteration()))
 
 
-def convertDataStoreMemory(dsm, charts):
+def convert_data_store_memory(dsm, charts):
     """Conversion function for data store memory.
     
     If data store memory is present, it is responsible for synchronizing
@@ -872,6 +874,79 @@ def convertDataStoreMemory(dsm, charts):
         hcsp.Loop(hcsp.seq(cmds))
     )
 
-def get_continuous_proc(continuous): 
-    return translate_continuous(continuous)
-        
+def convert_diagram(diagram,
+                    print_chart=False, print_before_simp=False,
+                    print_after_simp=False, print_final=False):
+    """Full conversion function for Stateflow.
+
+    diagram : SL_Diagram - input diagram.
+    print_chart : bool - print parsed chart.
+    print_before_simp : bool - print HCSP program before simplification.
+    print_after_simp : bool - print HCSP program after simplification.
+    print_final : bool - print HCSP program after optimization.
+
+    """
+    # Initial stages
+    diagram.parse_xml()
+    diagram.add_line_name()
+    _, continuous, charts, _, _, _, dsms, dsrs = diagram.seperate_diagram()
+
+    # Optional: print chart
+    if print_chart:
+        for chart in charts:
+            print(chart)
+
+    procs_list = []
+    for chart in charts:
+        converter = SFConvert(chart, dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
+        hp = converter.get_toplevel_process()
+        procs = converter.get_procs()
+        procs_list.append((procs, hp))
+
+    for dsm in dsms:
+        procs_list.append((dict(), convert_data_store_memory(dsm, charts)))
+
+    for c in continuous:
+        procs_list.append((dict(), get_hcsp.translate_continuous(c)))
+
+    # Optional: print HCSP program before simplification
+    if print_before_simp:
+        for procs, hp in procs_list:
+            print(pprint(hp))
+            for name, proc in procs.items():
+                print('\n' + name + " ::=\n" + pprint(proc))
+
+    # Reduce procedures
+    for i, (procs, hp) in enumerate(procs_list):
+        hp = hcsp.reduce_procedures(hp, procs)
+        procs_list[i] = (procs, hp)
+
+    # Reduce skip
+    for i, (procs, hp) in enumerate(procs_list):
+        hp = optimize.simplify(hp)
+        for name in procs:
+            procs[name] = optimize.simplify(procs[name])
+        procs_list[i] = (procs, hp)
+
+    # Optional: print HCSP program after simplification
+    if print_after_simp:
+        for procs, hp in procs_list:
+            print(pprint(hp))
+            for name, proc in procs.items():
+                print('\n' + name + " ::=\n" + pprint(proc))
+
+    # Optimize through static analysis
+    for i, (procs, hp) in enumerate(procs_list):
+        hp = optimize.full_optimize(hp, ignore_end={'_ret'})
+        for name in procs:
+            procs[name] = optimize.full_optimize(procs[name])
+        procs_list[i] = (procs, hp)
+
+    # Optional: print final HCSP program
+    if print_final:
+        for procs, hp in procs_list:
+            print(pprint(hp))
+            for name, proc in procs.items():
+                print('\n' + name + " ::=\n" + pprint(proc))
+
+    return procs_list
