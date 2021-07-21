@@ -91,9 +91,9 @@ class SFConvert:
             elif isinstance(state, Junction) and state.default_tran and not state.out_trans:
                 self.junction_map[ssid] = {"J"+ssid: ("J"+ssid,hcsp.Skip())}
 
-        # Set of done variables. These are considered inactive at the end of
-        # procedures (to help with live variable analysis)
-        self.done_vars = set()
+        # Set of local variables. These are considered inactive at the end of
+        # procedures (to help with code optimization).
+        self.local_vars = set()
 
         # Find all states which has a transition guarded by temporal event.
         self.temporal_guards = dict()
@@ -489,7 +489,7 @@ class SFConvert:
 
             # Signal for whether one of the transitions is carried out
             done = state.whole_name + "_done"
-            self.done_vars.add(done)
+            self.local_vars.add(done)
 
             # Whether the state is still active
             still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
@@ -660,7 +660,7 @@ class SFConvert:
                 self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, None)
                 procs = []
                 done = "J" + state.ssid + "_done"
-                self.done_vars.add(done)
+                self.local_vars.add(done)
                 procs.append(hcsp.Assign(done, expr.AConst(0)))
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
@@ -695,7 +695,7 @@ class SFConvert:
         
         procs = []
         done = "J" + junc.ssid + "_done"
-        self.done_vars.add(done)
+        self.local_vars.add(done)
         procs.append(hcsp.Assign(done, expr.AConst(0)))
         for i, tran in enumerate(junc.out_trans):
             pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
@@ -884,15 +884,12 @@ def convert_data_store_memory(dsm, charts):
         hcsp.Loop(hcsp.seq(cmds))
     )
 
-def convert_diagram(diagram,
-                    print_chart=False, print_before_simp=False,
-                    print_after_simp=False, print_final=False):
+def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
-    print_after_simp : bool - print HCSP program after simplification.
     print_final : bool - print HCSP program after optimization.
 
     """
@@ -932,34 +929,12 @@ def convert_diagram(diagram,
 
     # Reduce procedures
     for name, (procs, hp) in proc_map.items():
-        hp = hcsp.reduce_procedures(hp, procs)
-        proc_map[name] = (procs, hp)
-
-    # Reduce skip
-    for name, (procs, hp) in proc_map.items():
-        hp = optimize.simplify(hp)
-        for proc_name in procs:
-            procs[proc_name] = optimize.simplify(procs[proc_name])
-        proc_map[name] = (procs, hp)
-
-    # Optional: print HCSP program after simplification
-    if print_after_simp:
-        for name, (procs, hp) in proc_map.items():
-            print(name + " ::=\n" + pprint(hp))
-            for proc_name, proc in procs.items():
-                print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
-            print()
-
-    # Optimize through static analysis
-    for name, (procs, hp) in proc_map.items():
         if name in converter_map:
-            done_vars = converter_map[name].done_vars
+            local_vars = converter_map[name].local_vars
         else:
-            done_vars = set()
-        hp = optimize.full_optimize(hp, ignore_end={'_ret'}.union(done_vars))
-        for proc_name in procs:
-            procs[proc_name] = optimize.full_optimize(procs[proc_name], ignore_end=done_vars)
-        proc_map[name] = (procs, hp)
+            local_vars = set()
+        proc_map[name] = optimize.full_optimize_module(
+            procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
 
     # Optional: print final HCSP program
     if print_final:

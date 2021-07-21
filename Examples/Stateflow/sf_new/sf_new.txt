@@ -1,19 +1,6 @@
 %type: module
 
 module Chart():
-output complete;
-procedure during_Chart_model_RTPS_Writer begin
-  _ret := 0
-end
-
-procedure during_Chart_model_RTPS_Writer_Writer_repair begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_RTPS_Writer_Writer_repair_repairing begin
-  Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing"
-end
-
 procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
   Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
   cansend == 1 && repair_num[id-1] <= request_num[id-1] -> (
@@ -23,7 +10,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     J462_done := 0;
     i == 1 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_1;
       _ret == 0 -> (
         if Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" then
           @during_Chart_model_channel_channel_1_try
@@ -42,7 +28,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     );
     J462_done == 0 && i == 2 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_2;
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
@@ -61,7 +46,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     );
     J462_done == 0 && i == 3 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_3;
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
@@ -80,7 +64,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     );
     J462_done == 0 && i == 4 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_4;
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
@@ -99,7 +82,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     );
     J462_done == 0 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_5;
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
@@ -117,24 +99,13 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     );
     repair_num[id-1] := repair_num[id-1]+1;
     Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> (
-      Chart_model_RTPS_Writer_Writer_repair_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_repair_repairing;
-      _ret := 1;
+      Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1
     )
   );
   Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" && Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 && (cansend == 0 || repair_num[id-1] > request_num[id-1]) -> (
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> (
-      Chart_model_RTPS_Writer_Writer_repair_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_repair_waiting;
-      Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_repair_repairing_done
-end
-
-procedure entry_Chart_model_RTPS_Writer_Writer_repair_waiting begin
-  Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting"
+    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting"
+  )
 end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
@@ -144,8 +115,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
       Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair";
       Chart_model_RTPS_Writer_Writer_repair_must_repair_time := 0;
       ackFlag := 0;
-      @entry_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-      _ret := 1;
+      Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en";
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1
     )
   );
@@ -158,41 +128,27 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
     acked_num[id-1] := an;
     request_num[id-1] := rn;
     ackFlag := 1;
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" -> (
-      Chart_model_RTPS_Writer_Writer_repair_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_repair_waiting;
-      Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_repair_waiting_done
+    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" -> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting"
+  )
 end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair begin
-  Chart_model_RTPS_Writer_Writer_repair_must_repair_done := 0;
   Chart_model_RTPS_Writer_Writer_repair_must_repair_time >= heartbeatResponseDelay -> (
     repair_num[id-1] := acked_num[id-1]+1;
     ackFlag := 0;
     Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" -> (
       if Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" then
-        @exit_Chart_model_RTPS_Writer_Writer_repair_must_repair_en
+        Chart_model_RTPS_Writer_Writer_repair_must_repair_st := ""
       else
         skip
       endif;
       Chart_model_RTPS_Writer_Writer_repair_must_repair_time := -1;
-      Chart_model_RTPS_Writer_Writer_repair_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_repair_repairing;
-      Chart_model_RTPS_Writer_Writer_repair_must_repair_done := 1
+      Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing"
     )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_repair_must_repair_done
-end
-
-procedure entry_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
-  Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en"
+  )
 end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
-  Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 0;
   EL != [] && top(EL) == "ACKNACK2" -> (
     id := ack_id;
     wid := WriterId;
@@ -202,25 +158,8 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
     acked_num[id-1] := an;
     request_num[id-1] := rn;
     ackFlag := 1;
-    Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" -> (
-      @exit_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-      @entry_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-      Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done
-end
-
-procedure exit_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
-  Chart_model_RTPS_Writer_Writer_repair_must_repair_st := ""
-end
-
-procedure during_Chart_model_RTPS_Writer_Writer_send begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_RTPS_Writer_Writer_send_pushing begin
-  Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing"
+    Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" -> Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en"
+  )
 end
 
 procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
@@ -244,7 +183,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     J462_done := 0;
     i == 1 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_1;
       _ret == 0 -> (
         if Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" then
           @during_Chart_model_channel_channel_1_try
@@ -263,7 +201,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     );
     J462_done == 0 && i == 2 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_2;
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
@@ -282,7 +219,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     );
     J462_done == 0 && i == 3 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_3;
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
@@ -301,7 +237,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     );
     J462_done == 0 && i == 4 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_4;
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
@@ -320,7 +255,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     );
     J462_done == 0 -> (
       EL := push(EL,"TRY");
-      @during_Chart_model_channel_channel_5;
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
@@ -338,13 +272,8 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
     );
     unsent[index-1] := 0;
     index := index+1;
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" -> (
-      Chart_model_RTPS_Writer_Writer_send_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_send_pushing;
-      Chart_model_RTPS_Writer_Writer_send_pushing_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_send_pushing_done
+    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" -> Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing"
+  )
 end
 
 procedure entry_Chart_model_RTPS_Writer_Writer_send_announcing begin
@@ -359,19 +288,16 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   @empty;
   empty_flag := flag;
   Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod && acked_all_flag == 0 && empty_flag == 1 -> (
-    wid := WriterId;
     count := hb_count;
     J33_done := 0;
     count == 3 -> (
       buffer_heartbeat[wid-1][0] := NO_SET;
       count1 := 0;
-      @J34;
       J33_done := 1
     );
     J33_done == 0 -> (
       buffer_heartbeat[wid-1][0] := SET;
-      count1 := count+1;
-      @J34
+      count1 := count+1
     );
     set_final_Flag_count1 := count1;
     hb_count := set_final_Flag_count1;
@@ -381,7 +307,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
     buffer_heartbeat[wid-1][2] := first_SN;
     buffer_heartbeat[wid-1][3] := last_SN;
     EL := push(EL,"HEARTBEAT");
-    @during_Chart_model_channel_Heartbeat;
     _ret == 0 -> (
       if Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" then
         @during_Chart_model_channel_Heartbeat_try
@@ -395,9 +320,9 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
     sendFlag := 1;
     Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" -> (
       sendFlag := 0;
-      @exit_Chart_model_RTPS_Writer_Writer_send_announcing;
+      Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
+      Chart_model_RTPS_Writer_Writer_send_st := "";
       @entry_Chart_model_RTPS_Writer_Writer_send_announcing;
-      _ret := 1;
       Chart_model_RTPS_Writer_Writer_send_announcing_done := 1
     )
   );
@@ -407,9 +332,8 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   empty_flag := flag;
   Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" && Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 && acked_all_flag == 0 && empty_flag == 0 -> (
     Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" -> (
-      @exit_Chart_model_RTPS_Writer_Writer_send_announcing;
-      @entry_Chart_model_RTPS_Writer_Writer_send_pushing;
-      _ret := 1;
+      Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
+      Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing";
       Chart_model_RTPS_Writer_Writer_send_announcing_done := 1
     )
   );
@@ -418,47 +342,21 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" && Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 && acked_all_flag == 1 -> (
     complete := 1;
     Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" -> (
-      @exit_Chart_model_RTPS_Writer_Writer_send_announcing;
-      Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_idle";
-      Chart_model_RTPS_Writer_Writer_send_announcing_done := 1
+      Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
+      Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_idle"
     )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_send_announcing_done
-end
-
-procedure exit_Chart_model_RTPS_Writer_Writer_send_announcing begin
-  Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
-  Chart_model_RTPS_Writer_Writer_send_st := ""
+  )
 end
 
 procedure during_Chart_model_RTPS_Writer_Writer_send_idle begin
-  Chart_model_RTPS_Writer_Writer_send_idle_done := 0;
   @acked_all;
   acked_all_flag := flag;
   acked_all_flag == 0 -> (
     Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle" -> (
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      @entry_Chart_model_RTPS_Writer_Writer_send_announcing;
-      Chart_model_RTPS_Writer_Writer_send_idle_done := 1
+      @entry_Chart_model_RTPS_Writer_Writer_send_announcing
     )
-  );
-  _ret := Chart_model_RTPS_Writer_Writer_send_idle_done
-end
-
-procedure during_Chart_model_RTPS_Reader begin
-  _ret := 0
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1 begin
-  _ret := 0
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begin
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready"
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begin
@@ -471,9 +369,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
     get_heartbeatSN_lastSN := lastSN;
     missing_num := get_heartbeatSN_lastSN;
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-      _ret := 1;
+      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1
     )
   );
@@ -495,17 +391,8 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
     missing_num := check_missing_sn2;
     RHC[index-1] := buffer_data[WriterId-1][ReaderId_1-1][index-1];
     buffer_data[WriterId-1][ReaderId_1-1][index-1] := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response begin
-  _ret := 0
+    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" -> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready"
+  )
 end
 
 procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack begin
@@ -514,7 +401,6 @@ procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack begin
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_done := 0;
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time >= nackResponseDelay -> (
     ack_id := ReaderId_1;
     wid := WriterId;
@@ -526,7 +412,6 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send
     buffer_acknack[rid-1][2] := rn;
     buffer_acknack[rid-1][3] := mn;
     EL := push(EL,"ACKNACK");
-    @during_Chart_model_channel_Acknack_1;
     _ret == 0 -> (
       if Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" then
         @during_Chart_model_channel_Acknack_1_try
@@ -540,20 +425,12 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send
     hFlag := 0;
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" -> (
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := -1;
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_done := 1
+      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting"
     )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_done
-end
-
-procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting begin
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting"
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting begin
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done := 0;
   EL != [] && top(EL) == "HEARTBEAT2" -> (
     hFlag := 1;
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting" -> (
@@ -561,24 +438,16 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting b
       buffer_heartbeat[WriterId-1][livelinessFlag-1] == NO_SET -> (
         Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
         @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack;
-        _ret := 1;
         J224_done := 1
       );
       J224_done == 0 && buffer_heartbeat[WriterId-1][finalFlag-1] == SET -> (
         hFlag := 0;
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-        @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
+        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
         J224_done := 1
       );
-      J224_done == 0 -> (
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack";
-        J224_done := 1
-      );
-      _ret := J224_done;
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done := _ret
+      J224_done == 0 -> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack"
     )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack begin
@@ -587,31 +456,13 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" -> (
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
       @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack;
-      _ret := 1;
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 1
     )
   );
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" && Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done == 0 && missing_num <= received_num -> (
     hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
-      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2 begin
-  _ret := 0
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begin
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready"
+    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" -> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting"
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begin
@@ -624,9 +475,7 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
     get_heartbeatSN_lastSN := lastSN;
     missing_num2 := get_heartbeatSN_lastSN;
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-      _ret := 1;
+      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1
     )
   );
@@ -648,17 +497,8 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
     missing_num2 := check_missing_sn2;
     RHC2[index2-1] := buffer_data[WriterId-1][ReaderId_2-1][index2-1];
     buffer_data[WriterId-1][ReaderId_2-1][index2-1] := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done
-end
-
-procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response begin
-  _ret := 0
+    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" -> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready"
+  )
 end
 
 procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack begin
@@ -667,7 +507,6 @@ procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack begin
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_done := 0;
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time >= nackResponseDelay -> (
     ack_id := ReaderId_2;
     wid := WriterId;
@@ -679,7 +518,6 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send
     buffer_acknack[rid-1][2] := rn;
     buffer_acknack[rid-1][3] := mn;
     EL := push(EL,"ACKNACK");
-    @during_Chart_model_channel_Acknack_2;
     _ret == 0 -> (
       if Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" then
         @during_Chart_model_channel_Acknack_2_try
@@ -693,12 +531,9 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send
     hFlag := 0;
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" -> (
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := -1;
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_done := 1
+      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting"
     )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_done
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack begin
@@ -707,27 +542,16 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" -> (
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
       @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack;
-      _ret := 1;
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 1
     )
   );
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" && Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done == 0 && missing_num2 <= received_num2 -> (
     hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" -> (
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-      @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 1
-    )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done
-end
-
-procedure entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting begin
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting"
+    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" -> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting"
+  )
 end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting begin
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done := 0;
   EL != [] && top(EL) == "HEARTBEAT2" -> (
     hFlag := 1;
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" -> (
@@ -735,36 +559,19 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting b
       buffer_heartbeat[WriterId-1][livelinessFlag-1] == NO_SET -> (
         Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
         @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack;
-        _ret := 1;
         J191_done := 1
       );
       J191_done == 0 && buffer_heartbeat[WriterId-1][finalFlag-1] == SET -> (
         hFlag := 0;
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-        @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
+        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
         J191_done := 1
       );
-      J191_done == 0 -> (
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack";
-        J191_done := 1
-      );
-      _ret := J191_done;
-      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done := _ret
+      J191_done == 0 -> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack"
     )
-  );
-  _ret := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done
-end
-
-procedure during_Chart_model_channel_channel_1 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_channel_1_try begin
-  Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try"
+  )
 end
 
 procedure during_Chart_model_channel_channel_1_try begin
-  Chart_model_channel_channel_1_try_done := 0;
   EL != [] && top(EL) == "TRY" -> (
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" -> (
       J360_done := 0;
@@ -779,29 +586,20 @@ procedure during_Chart_model_channel_channel_1_try begin
         d1 := y;
         Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_1";
         Chart_model_channel_channel_1_delay_1_time := 0;
-        _ret := 1;
         J360_done := 1
       );
       J360_done == 0 -> (
         buffer_data[WriterId-1][ReaderId_2-1][0] := 0;
-        Chart_model_channel_channel_1_st := "";
-        @entry_Chart_model_channel_channel_1_next;
-        J360_done := 1
-      );
-      _ret := J360_done;
-      Chart_model_channel_channel_1_try_done := _ret
+        Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next"
+      )
     )
-  );
-  _ret := Chart_model_channel_channel_1_try_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_1_delay_1 begin
-  Chart_model_channel_channel_1_delay_1_done := 0;
   Chart_model_channel_channel_1_delay_1_time >= d1 -> (
     seq_num_1 := 1;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -809,7 +607,6 @@ procedure during_Chart_model_channel_channel_1_delay_1 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -824,21 +621,15 @@ procedure during_Chart_model_channel_channel_1_delay_1 begin
     EL := pop(EL);
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_1" -> (
       Chart_model_channel_channel_1_delay_1_time := -1;
-      Chart_model_channel_channel_1_st := "";
-      @entry_Chart_model_channel_channel_1_next;
-      Chart_model_channel_channel_1_delay_1_done := 1
+      Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next"
     )
-  );
-  _ret := Chart_model_channel_channel_1_delay_1_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_1_delay_2 begin
-  Chart_model_channel_channel_1_delay_2_done := 0;
   Chart_model_channel_channel_1_delay_2_time >= d1 -> (
     seq_num_2 := 1;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -846,7 +637,6 @@ procedure during_Chart_model_channel_channel_1_delay_2 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -861,16 +651,9 @@ procedure during_Chart_model_channel_channel_1_delay_2 begin
     EL := pop(EL);
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_2" -> (
       Chart_model_channel_channel_1_delay_2_time := -1;
-      Chart_model_channel_channel_1_st := "";
-      @entry_Chart_model_channel_channel_1_try;
-      Chart_model_channel_channel_1_delay_2_done := 1
+      Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try"
     )
-  );
-  _ret := Chart_model_channel_channel_1_delay_2_done
-end
-
-procedure entry_Chart_model_channel_channel_1_next begin
-  Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next"
+  )
 end
 
 procedure during_Chart_model_channel_channel_1_next begin
@@ -887,31 +670,16 @@ procedure during_Chart_model_channel_channel_1_next begin
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" -> (
       Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_2";
       Chart_model_channel_channel_1_delay_2_time := 0;
-      _ret := 1;
       Chart_model_channel_channel_1_next_done := 1
     )
   );
   Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" && Chart_model_channel_channel_1_next_done == 0 -> (
     buffer_data[WriterId-1][ReaderId_1-1][0] := 0;
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" -> (
-      Chart_model_channel_channel_1_st := "";
-      @entry_Chart_model_channel_channel_1_try;
-      Chart_model_channel_channel_1_next_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_1_next_done
-end
-
-procedure during_Chart_model_channel_channel_2 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_channel_2_try begin
-  Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try"
+    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" -> Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try"
+  )
 end
 
 procedure during_Chart_model_channel_channel_2_try begin
-  Chart_model_channel_channel_2_try_done := 0;
   EL != [] && top(EL) == "TRY" -> (
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" -> (
       J517_done := 0;
@@ -926,29 +694,20 @@ procedure during_Chart_model_channel_channel_2_try begin
         d2 := y;
         Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_1";
         Chart_model_channel_channel_2_delay_1_time := 0;
-        _ret := 1;
         J517_done := 1
       );
       J517_done == 0 -> (
         buffer_data[WriterId-1][0][1] := 0;
-        Chart_model_channel_channel_2_st := "";
-        @entry_Chart_model_channel_channel_2_next;
-        J517_done := 1
-      );
-      _ret := J517_done;
-      Chart_model_channel_channel_2_try_done := _ret
+        Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next"
+      )
     )
-  );
-  _ret := Chart_model_channel_channel_2_try_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_2_delay_1 begin
-  Chart_model_channel_channel_2_delay_1_done := 0;
   Chart_model_channel_channel_2_delay_1_time >= d2 -> (
     seq_num_1 := 2;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -956,7 +715,6 @@ procedure during_Chart_model_channel_channel_2_delay_1 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -971,21 +729,15 @@ procedure during_Chart_model_channel_channel_2_delay_1 begin
     EL := pop(EL);
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1" -> (
       Chart_model_channel_channel_2_delay_1_time := -1;
-      Chart_model_channel_channel_2_st := "";
-      @entry_Chart_model_channel_channel_2_next;
-      Chart_model_channel_channel_2_delay_1_done := 1
+      Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next"
     )
-  );
-  _ret := Chart_model_channel_channel_2_delay_1_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_2_delay_2 begin
-  Chart_model_channel_channel_2_delay_2_done := 0;
   Chart_model_channel_channel_2_delay_2_time >= d2 -> (
     seq_num_2 := 2;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -993,7 +745,6 @@ procedure during_Chart_model_channel_channel_2_delay_2 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -1008,16 +759,9 @@ procedure during_Chart_model_channel_channel_2_delay_2 begin
     EL := pop(EL);
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" -> (
       Chart_model_channel_channel_2_delay_2_time := -1;
-      Chart_model_channel_channel_2_st := "";
-      @entry_Chart_model_channel_channel_2_try;
-      Chart_model_channel_channel_2_delay_2_done := 1
+      Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try"
     )
-  );
-  _ret := Chart_model_channel_channel_2_delay_2_done
-end
-
-procedure entry_Chart_model_channel_channel_2_next begin
-  Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next"
+  )
 end
 
 procedure during_Chart_model_channel_channel_2_next begin
@@ -1034,31 +778,16 @@ procedure during_Chart_model_channel_channel_2_next begin
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" -> (
       Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_2";
       Chart_model_channel_channel_2_delay_2_time := 0;
-      _ret := 1;
       Chart_model_channel_channel_2_next_done := 1
     )
   );
   Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" && Chart_model_channel_channel_2_next_done == 0 -> (
     buffer_data[WriterId-1][1][1] := 0;
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" -> (
-      Chart_model_channel_channel_2_st := "";
-      @entry_Chart_model_channel_channel_2_try;
-      Chart_model_channel_channel_2_next_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_2_next_done
-end
-
-procedure during_Chart_model_channel_channel_3 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_channel_3_try begin
-  Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try"
+    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" -> Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try"
+  )
 end
 
 procedure during_Chart_model_channel_channel_3_try begin
-  Chart_model_channel_channel_3_try_done := 0;
   EL != [] && top(EL) == "TRY" -> (
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" -> (
       J535_done := 0;
@@ -1073,29 +802,20 @@ procedure during_Chart_model_channel_channel_3_try begin
         d3 := y;
         Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_1";
         Chart_model_channel_channel_3_delay_1_time := 0;
-        _ret := 1;
         J535_done := 1
       );
       J535_done == 0 -> (
         buffer_data[WriterId-1][0][2] := 0;
-        Chart_model_channel_channel_3_st := "";
-        @entry_Chart_model_channel_channel_3_next;
-        J535_done := 1
-      );
-      _ret := J535_done;
-      Chart_model_channel_channel_3_try_done := _ret
+        Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next"
+      )
     )
-  );
-  _ret := Chart_model_channel_channel_3_try_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_3_delay_1 begin
-  Chart_model_channel_channel_3_delay_1_done := 0;
   Chart_model_channel_channel_3_delay_1_time >= d3 -> (
     seq_num_1 := 3;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -1103,7 +823,6 @@ procedure during_Chart_model_channel_channel_3_delay_1 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -1118,21 +837,15 @@ procedure during_Chart_model_channel_channel_3_delay_1 begin
     EL := pop(EL);
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1" -> (
       Chart_model_channel_channel_3_delay_1_time := -1;
-      Chart_model_channel_channel_3_st := "";
-      @entry_Chart_model_channel_channel_3_next;
-      Chart_model_channel_channel_3_delay_1_done := 1
+      Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next"
     )
-  );
-  _ret := Chart_model_channel_channel_3_delay_1_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_3_delay_2 begin
-  Chart_model_channel_channel_3_delay_2_done := 0;
   Chart_model_channel_channel_3_delay_2_time >= d3 -> (
     seq_num_2 := 3;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -1140,7 +853,6 @@ procedure during_Chart_model_channel_channel_3_delay_2 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -1155,16 +867,9 @@ procedure during_Chart_model_channel_channel_3_delay_2 begin
     EL := pop(EL);
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" -> (
       Chart_model_channel_channel_3_delay_2_time := -1;
-      Chart_model_channel_channel_3_st := "";
-      @entry_Chart_model_channel_channel_3_try;
-      Chart_model_channel_channel_3_delay_2_done := 1
+      Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try"
     )
-  );
-  _ret := Chart_model_channel_channel_3_delay_2_done
-end
-
-procedure entry_Chart_model_channel_channel_3_next begin
-  Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next"
+  )
 end
 
 procedure during_Chart_model_channel_channel_3_next begin
@@ -1181,31 +886,16 @@ procedure during_Chart_model_channel_channel_3_next begin
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" -> (
       Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_2";
       Chart_model_channel_channel_3_delay_2_time := 0;
-      _ret := 1;
       Chart_model_channel_channel_3_next_done := 1
     )
   );
   Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" && Chart_model_channel_channel_3_next_done == 0 -> (
     buffer_data[WriterId-1][1][2] := 0;
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" -> (
-      Chart_model_channel_channel_3_st := "";
-      @entry_Chart_model_channel_channel_3_try;
-      Chart_model_channel_channel_3_next_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_3_next_done
-end
-
-procedure during_Chart_model_channel_channel_4 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_channel_4_try begin
-  Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try"
+    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" -> Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try"
+  )
 end
 
 procedure during_Chart_model_channel_channel_4_try begin
-  Chart_model_channel_channel_4_try_done := 0;
   EL != [] && top(EL) == "TRY" -> (
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" -> (
       J553_done := 0;
@@ -1220,29 +910,20 @@ procedure during_Chart_model_channel_channel_4_try begin
         d4 := y;
         Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_1";
         Chart_model_channel_channel_4_delay_1_time := 0;
-        _ret := 1;
         J553_done := 1
       );
       J553_done == 0 -> (
         buffer_data[WriterId-1][0][3] := 0;
-        Chart_model_channel_channel_4_st := "";
-        @entry_Chart_model_channel_channel_4_next;
-        J553_done := 1
-      );
-      _ret := J553_done;
-      Chart_model_channel_channel_4_try_done := _ret
+        Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next"
+      )
     )
-  );
-  _ret := Chart_model_channel_channel_4_try_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_4_delay_1 begin
-  Chart_model_channel_channel_4_delay_1_done := 0;
   Chart_model_channel_channel_4_delay_1_time >= d4 -> (
     seq_num_1 := 4;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -1250,7 +931,6 @@ procedure during_Chart_model_channel_channel_4_delay_1 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -1265,21 +945,15 @@ procedure during_Chart_model_channel_channel_4_delay_1 begin
     EL := pop(EL);
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1" -> (
       Chart_model_channel_channel_4_delay_1_time := -1;
-      Chart_model_channel_channel_4_st := "";
-      @entry_Chart_model_channel_channel_4_next;
-      Chart_model_channel_channel_4_delay_1_done := 1
+      Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next"
     )
-  );
-  _ret := Chart_model_channel_channel_4_delay_1_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_4_delay_2 begin
-  Chart_model_channel_channel_4_delay_2_done := 0;
   Chart_model_channel_channel_4_delay_2_time >= d4 -> (
     seq_num_2 := 4;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -1287,7 +961,6 @@ procedure during_Chart_model_channel_channel_4_delay_2 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -1302,16 +975,9 @@ procedure during_Chart_model_channel_channel_4_delay_2 begin
     EL := pop(EL);
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" -> (
       Chart_model_channel_channel_4_delay_2_time := -1;
-      Chart_model_channel_channel_4_st := "";
-      @entry_Chart_model_channel_channel_4_try;
-      Chart_model_channel_channel_4_delay_2_done := 1
+      Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try"
     )
-  );
-  _ret := Chart_model_channel_channel_4_delay_2_done
-end
-
-procedure entry_Chart_model_channel_channel_4_next begin
-  Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next"
+  )
 end
 
 procedure during_Chart_model_channel_channel_4_next begin
@@ -1328,31 +994,16 @@ procedure during_Chart_model_channel_channel_4_next begin
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" -> (
       Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_2";
       Chart_model_channel_channel_4_delay_2_time := 0;
-      _ret := 1;
       Chart_model_channel_channel_4_next_done := 1
     )
   );
   Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" && Chart_model_channel_channel_4_next_done == 0 -> (
     buffer_data[WriterId-1][1][3] := 0;
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" -> (
-      Chart_model_channel_channel_4_st := "";
-      @entry_Chart_model_channel_channel_4_try;
-      Chart_model_channel_channel_4_next_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_4_next_done
-end
-
-procedure during_Chart_model_channel_channel_5 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_channel_5_try begin
-  Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try"
+    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" -> Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try"
+  )
 end
 
 procedure during_Chart_model_channel_channel_5_try begin
-  Chart_model_channel_channel_5_try_done := 0;
   EL != [] && top(EL) == "TRY" -> (
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" -> (
       J571_done := 0;
@@ -1367,29 +1018,20 @@ procedure during_Chart_model_channel_channel_5_try begin
         d5 := y;
         Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_1";
         Chart_model_channel_channel_5_delay_1_time := 0;
-        _ret := 1;
         J571_done := 1
       );
       J571_done == 0 -> (
         buffer_data[WriterId-1][0][4] := 0;
-        Chart_model_channel_channel_5_st := "";
-        @entry_Chart_model_channel_channel_5_next;
-        J571_done := 1
-      );
-      _ret := J571_done;
-      Chart_model_channel_channel_5_try_done := _ret
+        Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next"
+      )
     )
-  );
-  _ret := Chart_model_channel_channel_5_try_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_5_delay_1 begin
-  Chart_model_channel_channel_5_delay_1_done := 0;
   Chart_model_channel_channel_5_delay_1_time >= d5 -> (
     seq_num_1 := 5;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -1397,7 +1039,6 @@ procedure during_Chart_model_channel_channel_5_delay_1 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -1412,21 +1053,15 @@ procedure during_Chart_model_channel_channel_5_delay_1 begin
     EL := pop(EL);
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1" -> (
       Chart_model_channel_channel_5_delay_1_time := -1;
-      Chart_model_channel_channel_5_st := "";
-      @entry_Chart_model_channel_channel_5_next;
-      Chart_model_channel_channel_5_delay_1_done := 1
+      Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next"
     )
-  );
-  _ret := Chart_model_channel_channel_5_delay_1_done
+  )
 end
 
 procedure during_Chart_model_channel_channel_5_delay_2 begin
-  Chart_model_channel_channel_5_delay_2_done := 0;
   Chart_model_channel_channel_5_delay_2_time >= d5 -> (
     seq_num_2 := 5;
     EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -1434,7 +1069,6 @@ procedure during_Chart_model_channel_channel_5_delay_2 begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -1449,16 +1083,9 @@ procedure during_Chart_model_channel_channel_5_delay_2 begin
     EL := pop(EL);
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" -> (
       Chart_model_channel_channel_5_delay_2_time := -1;
-      Chart_model_channel_channel_5_st := "";
-      @entry_Chart_model_channel_channel_5_try;
-      Chart_model_channel_channel_5_delay_2_done := 1
+      Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try"
     )
-  );
-  _ret := Chart_model_channel_channel_5_delay_2_done
-end
-
-procedure entry_Chart_model_channel_channel_5_next begin
-  Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next"
+  )
 end
 
 procedure during_Chart_model_channel_channel_5_next begin
@@ -1475,31 +1102,16 @@ procedure during_Chart_model_channel_channel_5_next begin
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" -> (
       Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_2";
       Chart_model_channel_channel_5_delay_2_time := 0;
-      _ret := 1;
       Chart_model_channel_channel_5_next_done := 1
     )
   );
   Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" && Chart_model_channel_channel_5_next_done == 0 -> (
     buffer_data[WriterId-1][1][4] := 0;
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" -> (
-      Chart_model_channel_channel_5_st := "";
-      @entry_Chart_model_channel_channel_5_try;
-      Chart_model_channel_channel_5_next_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_5_next_done
-end
-
-procedure during_Chart_model_channel_Heartbeat begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_Heartbeat_try begin
-  Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try"
+    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" -> Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try"
+  )
 end
 
 procedure during_Chart_model_channel_Heartbeat_try begin
-  Chart_model_channel_Heartbeat_try_done := 0;
   EL != [] && top(EL) == "HEARTBEAT" -> (
     Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" -> (
       J764_done := 0;
@@ -1514,28 +1126,16 @@ procedure during_Chart_model_channel_Heartbeat_try begin
         d_hb := y;
         Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_delay";
         Chart_model_channel_Heartbeat_delay_time := 0;
-        _ret := 1;
         J764_done := 1
       );
-      J764_done == 0 -> (
-        Chart_model_channel_Heartbeat_st := "";
-        @entry_Chart_model_channel_Heartbeat_try;
-        J764_done := 1
-      );
-      _ret := J764_done;
-      Chart_model_channel_Heartbeat_try_done := _ret
+      J764_done == 0 -> Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try"
     )
-  );
-  _ret := Chart_model_channel_Heartbeat_try_done
+  )
 end
 
 procedure during_Chart_model_channel_Heartbeat_delay begin
-  Chart_model_channel_Heartbeat_delay_done := 0;
   Chart_model_channel_Heartbeat_delay_time >= d_hb -> (
     EL := push(EL,"HEARTBEAT2");
-    @during_Chart_model_RTPS_Reader;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -1543,7 +1143,6 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -1555,8 +1154,6 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -1564,7 +1161,6 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
     _ret == 0 -> (
       if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -1579,24 +1175,12 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
     EL := pop(EL);
     Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_delay" -> (
       Chart_model_channel_Heartbeat_delay_time := -1;
-      Chart_model_channel_Heartbeat_st := "";
-      @entry_Chart_model_channel_Heartbeat_try;
-      Chart_model_channel_Heartbeat_delay_done := 1
+      Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try"
     )
-  );
-  _ret := Chart_model_channel_Heartbeat_delay_done
-end
-
-procedure during_Chart_model_channel_Acknack_1 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_Acknack_1_try begin
-  Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try"
+  )
 end
 
 procedure during_Chart_model_channel_Acknack_1_try begin
-  Chart_model_channel_Acknack_1_try_done := 0;
   EL != [] && top(EL) == "ACKNACK" -> (
     Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" -> (
       J723_done := 0;
@@ -1611,28 +1195,17 @@ procedure during_Chart_model_channel_Acknack_1_try begin
         d_ack1 := y;
         Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_delay";
         Chart_model_channel_Acknack_1_delay_time := 0;
-        _ret := 1;
         J723_done := 1
       );
-      J723_done == 0 -> (
-        Chart_model_channel_Acknack_1_st := "";
-        @entry_Chart_model_channel_Acknack_1_try;
-        J723_done := 1
-      );
-      _ret := J723_done;
-      Chart_model_channel_Acknack_1_try_done := _ret
+      J723_done == 0 -> Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try"
     )
-  );
-  _ret := Chart_model_channel_Acknack_1_try_done
+  )
 end
 
 procedure during_Chart_model_channel_Acknack_1_delay begin
-  Chart_model_channel_Acknack_1_delay_done := 0;
   Chart_model_channel_Acknack_1_delay_time >= d_ack1 -> (
     ack_id := ReaderId_1;
     EL := push(EL,"ACKNACK2");
-    @during_Chart_model_RTPS_Writer;
-    @during_Chart_model_RTPS_Writer_Writer_repair;
     _ret == 0 -> (
       if Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" then
         @during_Chart_model_RTPS_Writer_Writer_repair_repairing
@@ -1651,7 +1224,6 @@ procedure during_Chart_model_channel_Acknack_1_delay begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Writer_Writer_send;
     _ret == 0 -> (
       if Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" then
         @during_Chart_model_RTPS_Writer_Writer_send_pushing
@@ -1666,24 +1238,12 @@ procedure during_Chart_model_channel_Acknack_1_delay begin
     EL := pop(EL);
     Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_delay" -> (
       Chart_model_channel_Acknack_1_delay_time := -1;
-      Chart_model_channel_Acknack_1_st := "";
-      @entry_Chart_model_channel_Acknack_1_try;
-      Chart_model_channel_Acknack_1_delay_done := 1
+      Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try"
     )
-  );
-  _ret := Chart_model_channel_Acknack_1_delay_done
-end
-
-procedure during_Chart_model_channel_Acknack_2 begin
-  _ret := 0
-end
-
-procedure entry_Chart_model_channel_Acknack_2_try begin
-  Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try"
+  )
 end
 
 procedure during_Chart_model_channel_Acknack_2_try begin
-  Chart_model_channel_Acknack_2_try_done := 0;
   EL != [] && top(EL) == "ACKNACK" -> (
     Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" -> (
       J807_done := 0;
@@ -1698,28 +1258,17 @@ procedure during_Chart_model_channel_Acknack_2_try begin
         d_ack2 := y;
         Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_delay";
         Chart_model_channel_Acknack_2_delay_time := 0;
-        _ret := 1;
         J807_done := 1
       );
-      J807_done == 0 -> (
-        Chart_model_channel_Acknack_2_st := "";
-        @entry_Chart_model_channel_Acknack_2_try;
-        J807_done := 1
-      );
-      _ret := J807_done;
-      Chart_model_channel_Acknack_2_try_done := _ret
+      J807_done == 0 -> Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try"
     )
-  );
-  _ret := Chart_model_channel_Acknack_2_try_done
+  )
 end
 
 procedure during_Chart_model_channel_Acknack_2_delay begin
-  Chart_model_channel_Acknack_2_delay_done := 0;
   Chart_model_channel_Acknack_2_delay_time >= d_ack2 -> (
     ack_id := ReaderId_2;
     EL := push(EL,"ACKNACK2");
-    @during_Chart_model_RTPS_Writer;
-    @during_Chart_model_RTPS_Writer_Writer_repair;
     _ret == 0 -> (
       if Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" then
         @during_Chart_model_RTPS_Writer_Writer_repair_repairing
@@ -1738,7 +1287,6 @@ procedure during_Chart_model_channel_Acknack_2_delay begin
         skip
       endif
     );
-    @during_Chart_model_RTPS_Writer_Writer_send;
     _ret == 0 -> (
       if Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" then
         @during_Chart_model_RTPS_Writer_Writer_send_pushing
@@ -1753,19 +1301,15 @@ procedure during_Chart_model_channel_Acknack_2_delay begin
     EL := pop(EL);
     Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_delay" -> (
       Chart_model_channel_Acknack_2_delay_time := -1;
-      Chart_model_channel_Acknack_2_st := "";
-      @entry_Chart_model_channel_Acknack_2_try;
-      Chart_model_channel_Acknack_2_delay_done := 1
+      Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try"
     )
-  );
-  _ret := Chart_model_channel_Acknack_2_delay_done
+  )
 end
 
 procedure J625 begin
   J625_done := 0;
   i > 2 -> (
     flag := 1;
-    @J627;
     J625_done := 1
   );
   J625_done == 0 && i <= 2 && buffer_acknack[i-1][2] == 5 -> (
@@ -1773,14 +1317,7 @@ procedure J625 begin
     @J625;
     J625_done := 1
   );
-  J625_done == 0 -> (
-    flag := 0;
-    @J627
-  )
-end
-
-procedure J627 begin
-  skip
+  J625_done == 0 -> flag := 0
 end
 
 procedure acked_all begin
@@ -1792,7 +1329,6 @@ procedure J11 begin
   J11_done := 0;
   i > last_SN -> (
     flag := 1;
-    @J13;
     J11_done := 1
   );
   J11_done == 0 && i <= last_SN && unsent[i-1] == 0 -> (
@@ -1800,23 +1336,12 @@ procedure J11 begin
     @J11;
     J11_done := 1
   );
-  J11_done == 0 -> (
-    flag := 0;
-    @J13
-  )
-end
-
-procedure J13 begin
-  skip
+  J11_done == 0 -> flag := 0
 end
 
 procedure empty begin
   i := first_SN;
   @J11
-end
-
-procedure J34 begin
-  skip
 end
 
 procedure J47 begin
@@ -1894,7 +1419,6 @@ begin
   buffer_acknack := [[0,0,0,0],[0,0,0,0]];
   ack_id := 0;
   received_set := [[0,0,0,0,0],[0,0,0,0,0]];
-  buffer_data := 0;
   seq_num_1 := 0;
   seq_num_2 := 0;
   complete := 0;
@@ -1937,21 +1461,21 @@ begin
   Chart_model_channel_Heartbeat_delay_time := -1;
   Chart_model_channel_Acknack_2_delay_time := -1;
   Chart_st := "Chart_model";
-  @entry_Chart_model_RTPS_Writer_Writer_repair_waiting;
+  Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
   buffer_data := zeros(1,2,5);
   @entry_Chart_model_RTPS_Writer_Writer_send_announcing;
-  @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-  @entry_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
-  @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-  @entry_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-  @entry_Chart_model_channel_channel_1_try;
-  @entry_Chart_model_channel_channel_2_try;
-  @entry_Chart_model_channel_channel_3_try;
-  @entry_Chart_model_channel_channel_4_try;
-  @entry_Chart_model_channel_channel_5_try;
-  @entry_Chart_model_channel_Heartbeat_try;
-  @entry_Chart_model_channel_Acknack_1_try;
-  @entry_Chart_model_channel_Acknack_2_try;
+  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
+  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
+  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+  Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try";
+  Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try";
+  Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try";
+  Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try";
+  Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try";
+  Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
+  Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
+  Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
   write_Chart_WHC!WHC;
   write_Chart_RHC!RHC;
   write_Chart_RHC2!RHC2;
@@ -1963,29 +1487,25 @@ begin
     read_Chart_WHC?WHC;
     read_Chart_RHC?RHC;
     read_Chart_RHC2?RHC2;
+    _ret := 0;
     if Chart_st == "Chart_model" then
       _ret := 0;
-      @during_Chart_model_RTPS_Writer;
-      @during_Chart_model_RTPS_Writer_Writer_repair;
-      _ret == 0 -> (
-        if Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" then
-          @during_Chart_model_RTPS_Writer_Writer_repair_repairing
-        elif Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" then
-          @during_Chart_model_RTPS_Writer_Writer_repair_waiting
-        elif Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" then
-          @during_Chart_model_RTPS_Writer_Writer_repair_must_repair;
-          _ret == 0 -> (
-            if Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" then
-              @during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en
-            else
-              skip
-            endif
-          )
-        else
-          skip
-        endif
-      );
-      @during_Chart_model_RTPS_Writer_Writer_send;
+      if Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" then
+        @during_Chart_model_RTPS_Writer_Writer_repair_repairing
+      elif Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" then
+        @during_Chart_model_RTPS_Writer_Writer_repair_waiting
+      elif Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" then
+        @during_Chart_model_RTPS_Writer_Writer_repair_must_repair;
+        _ret == 0 -> (
+          if Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" then
+            @during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en
+          else
+            skip
+          endif
+        )
+      else
+        skip
+      endif;
       _ret == 0 -> (
         if Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" then
           @during_Chart_model_RTPS_Writer_Writer_send_pushing
@@ -1997,9 +1517,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_RTPS_Reader;
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
       _ret == 0 -> (
         if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" then
           @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready
@@ -2007,7 +1524,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response;
       _ret == 0 -> (
         if Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" then
           @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack
@@ -2019,8 +1535,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
       _ret == 0 -> (
         if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
           @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
@@ -2028,7 +1542,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
       _ret == 0 -> (
         if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
           @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
@@ -2041,21 +1554,17 @@ begin
         endif
       );
       _ret := 0;
-      @during_Chart_model_channel_channel_1;
-      _ret == 0 -> (
-        if Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" then
-          @during_Chart_model_channel_channel_1_try
-        elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_1" then
-          @during_Chart_model_channel_channel_1_delay_1
-        elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_2" then
-          @during_Chart_model_channel_channel_1_delay_2
-        elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" then
-          @during_Chart_model_channel_channel_1_next
-        else
-          skip
-        endif
-      );
-      @during_Chart_model_channel_channel_2;
+      if Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" then
+        @during_Chart_model_channel_channel_1_try
+      elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_1" then
+        @during_Chart_model_channel_channel_1_delay_1
+      elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_2" then
+        @during_Chart_model_channel_channel_1_delay_2
+      elif Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" then
+        @during_Chart_model_channel_channel_1_next
+      else
+        skip
+      endif;
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
@@ -2069,7 +1578,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_channel_3;
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
@@ -2083,7 +1591,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_channel_4;
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
@@ -2097,7 +1604,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_channel_5;
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
@@ -2111,7 +1617,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_Heartbeat;
       _ret == 0 -> (
         if Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" then
           @during_Chart_model_channel_Heartbeat_try
@@ -2121,7 +1626,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_Acknack_1;
       _ret == 0 -> (
         if Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" then
           @during_Chart_model_channel_Acknack_1_try
@@ -2131,7 +1635,6 @@ begin
           skip
         endif
       );
-      @during_Chart_model_channel_Acknack_2;
       _ret == 0 -> (
         if Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" then
           @during_Chart_model_channel_Acknack_2_try
@@ -2173,11 +1676,6 @@ begin
 end
 endmodule
 module DDS_Writer():
-procedure entry_DDS_Writer_add begin
-  DDS_Writer_st := "DDS_Writer_add";
-  DDS_Writer_add_time := 0
-end
-
 begin
   EL := [];
   read_DDS_Writer_WHC?WHC;
@@ -2185,43 +1683,39 @@ begin
   read_DDS_Writer_RHC2?RHC2;
   flag := 0;
   cachechanges := [100,200,300,400,500];
-  DDS_Writer_add_time := -1;
   i := 1;
   first_SN := 1;
   last_SN := 0;
   y := unidrnd(10);
   d := y;
-  @entry_DDS_Writer_add;
+  DDS_Writer_st := "DDS_Writer_add";
+  DDS_Writer_add_time := 0;
   write_DDS_Writer_WHC!WHC;
   write_DDS_Writer_RHC!RHC;
   write_DDS_Writer_RHC2!RHC2;
-  ch_x2_0!first_SN;
-  ch_x3_0!last_SN;
+  ch_x2_0!1;
+  ch_x3_0!0;
   (
     read_DDS_Writer_WHC?WHC;
     read_DDS_Writer_RHC?RHC;
     read_DDS_Writer_RHC2?RHC2;
-    if DDS_Writer_st == "DDS_Writer_add" then
-      DDS_Writer_add_time >= d && i <= 5 -> (
-        WHC[i-1] := cachechanges[i-1];
-        first_SN := 1;
-        last_SN := i;
-        i := i+1;
-        y := unidrnd(10);
-        d := y;
-        DDS_Writer_st == "DDS_Writer_add" -> (
-          DDS_Writer_add_time := -1;
-          DDS_Writer_st := "";
-          @entry_DDS_Writer_add
-        )
-      )
-    else
-      skip
-    endif;
+    DDS_Writer_add_done := 0;
+    DDS_Writer_add_time >= d && i <= 5 -> (
+      WHC[i-1] := cachechanges[i-1];
+      first_SN := 1;
+      last_SN := i;
+      i := i+1;
+      y := unidrnd(10);
+      d := y;
+      DDS_Writer_st := "DDS_Writer_add";
+      DDS_Writer_add_time := 0;
+      DDS_Writer_add_done := 1
+    );
+    _ret := DDS_Writer_add_done;
     write_DDS_Writer_WHC!WHC;
     write_DDS_Writer_RHC!RHC;
     write_DDS_Writer_RHC2!RHC2;
-    ch_x2_0!first_SN;
+    ch_x2_0!1;
     ch_x3_0!last_SN;
     wait(0.1);
     DDS_Writer_add_time != -1 -> DDS_Writer_add_time := DDS_Writer_add_time+0.1

@@ -245,11 +245,11 @@ class LocationInfo:
 
 
 class HCSPAnalysis:
-    def __init__(self, hp, *, ignore_end=None):
+    def __init__(self, hp, *, local_vars=None):
         self.hp = hp
-        if ignore_end is None:
-            ignore_end = set()
-        self.ignore_end = ignore_end
+        if local_vars is None:
+            local_vars = set()
+        self.local_vars = local_vars
         self.infos = dict()
 
         self.all_vars = set()
@@ -459,10 +459,10 @@ class HCSPAnalysis:
                 (info.sub_hp.type != "assign" or expr.AVar(var) != info.sub_hp.var_name):
                 info.live_before.add(var)
 
-        # All variables are live at the end, except those in ignore_end
+        # All variables are live at the end, except those in local_vars
         for loc in self.infos[()].exits:
             info = self.infos[loc]
-            for var in self.all_vars - self.ignore_end:
+            for var in self.all_vars - self.local_vars:
                 info.live_after.add(var)
                 propagate_after_before(info, var)
 
@@ -475,7 +475,7 @@ class HCSPAnalysis:
         # Before procedure calls, any variable may be used
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'var':
-                for var in self.all_vars - self.ignore_end:
+                for var in self.all_vars - self.local_vars:
                     self.infos[loc].live_before.add(var)
 
         # Use reverse dictionary order as approximation for good traversal order
@@ -507,24 +507,57 @@ class HCSPAnalysis:
         return dead_code
 
 
-def full_optimize(hp, *, ignore_end=None):
+def full_optimize(hp, *, local_vars=None):
+    """Full optimization of a single HCSP program.
+
+    hp : HCSP - program to be optimized.
+    local_vars : set[str] - list of local variables.
+
+    """
     while True:
         old_hp = hp
 
         # Replace constants
-        analysis = HCSPAnalysis(hp, ignore_end=ignore_end)
+        analysis = HCSPAnalysis(hp, local_vars=local_vars)
         analysis.compute_reaching_definition()
         repls = analysis.detect_replacement()
         hp = targeted_replace(hp, repls)
-        hp = simplify(hp)
 
         # Deadcode elimination
-        analysis = HCSPAnalysis(hp, ignore_end=ignore_end)
+        analysis = HCSPAnalysis(hp, local_vars=local_vars)
         analysis.compute_live_variable()
         dead_code = analysis.detect_dead_code()
         hp = targeted_remove(hp, dead_code)
+
+        # Simplification
         hp = simplify(hp)
 
         if hp == old_hp:
             break
     return hp
+
+def full_optimize_module(procs, hp, *, local_vars=None, local_vars_proc=None):
+    """Full optimization of a single HCSP program, along with procedures.
+
+    hp : HCSP - program to be optimized.
+    procs : dict[str, HCSP] - dictionary of procedures.
+    local_vars : set[str] - list of local variables in hp.
+    local_vars_proc : set[str] - list of local variables in procs.
+
+    """
+    while True:
+        old_hp = hp
+        old_procs = dict()
+        for name, proc in procs.items():
+            old_procs[name] = proc
+
+        hp = hcsp.reduce_procedures(hp, procs)
+        hp = full_optimize(hp, local_vars=local_vars)
+        for name in procs:
+            procs[name] = full_optimize(procs[name], local_vars=local_vars_proc)
+        
+        if hp == old_hp and len(old_procs) == len(procs) and \
+            all(procs[name] == old_procs[name] for name in procs):
+            break
+
+    return procs, hp

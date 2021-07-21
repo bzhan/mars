@@ -15,8 +15,8 @@ from ss2hcsp.hcsp.pprint import pprint
 
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
-             print_chart=False, print_before_simp=False, print_after_simp=False,
-             print_final=False, print_res=False, profile=False, output_to_file=None):
+             print_chart=False, print_before_simp=False, print_final=False,
+             print_res=False, profile=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -25,7 +25,6 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     io_filter : str -> bool - (optional) filter for IO events to display.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
-    print_after_simp : bool - print HCSP program after simplification.
     print_final : bool - print HCSP program after optimization.
     output_to_file : str - (optional) name of file to output HCSP.
 
@@ -36,8 +35,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
-        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
-        print_after_simp=print_after_simp, print_final=print_final)
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp, print_final=print_final)
 
     if profile:
         p = Stats(pr)
@@ -215,8 +213,18 @@ class SFConvertTest(unittest.TestCase):
 
     def testSFNew(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 10,
-            [], output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+        pat = [
+            'IO read_Chart_WHC [0,0,0,0,0]', 'IO read_Chart_RHC [0,0,0,0,0]',
+            'IO read_Chart_RHC2 [0,0,0,0,0]', 'IO write_Chart_WHC [0,0,0,0,0]',
+            'IO write_Chart_RHC [0,0,0,0,0]', 'IO write_Chart_RHC2 [0,0,0,0,0]',
+            'IO read_DDS_Writer_WHC [0,0,0,0,0]', 'IO read_DDS_Writer_RHC [0,0,0,0,0]',
+            'IO read_DDS_Writer_RHC2 [0,0,0,0,0]', 'IO write_DDS_Writer_WHC [0,0,0,0,0]',
+            'IO write_DDS_Writer_RHC [0,0,0,0,0]', 'IO write_DDS_Writer_RHC2 [0,0,0,0,0]',
+            'IO ch_x0_0 1', 'IO ch_x1_0 1', 'IO ch_x2_0 1', 'IO ch_x3_0 0'
+        ]
+        res = pat * 2 + ['delay 0.1'] + pat + ['delay 0.1']
+        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 50,
+            res, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
 
 if __name__ == "__main__":
