@@ -1,6 +1,6 @@
 import unittest
 
-from ss2hcsp.sf.sf_parser import parser
+from ss2hcsp.matlab import parser
 from ss2hcsp.matlab import convert
 
 

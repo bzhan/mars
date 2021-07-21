@@ -738,10 +738,6 @@ class SL_Diagram:
                             sf_block_type = get_attribute_value(b, "SFBlockType")
                         
                             if sf_block_type == "Chart":
-                                # stateflow1 = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                #              num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
-                                #              input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
-                                #              is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts)
                                 sf_charts[block_name1] = b
 
                     if triggers:
@@ -750,47 +746,6 @@ class SL_Diagram:
                         for child in subsystem.childNodes :
                             if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
                                 trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
-                        # event_list=chart_paras["event_list"]
-                        # if trigger_type == "":
-                        #     for event in event_list:
-                        #         if event.scope == "INPUT_EVENT" and event.trigger != None:
-                        #             if event.trigger == "RISING_EDGE_EVENT":
-                        #                 trigger_type ="rising"
-                        #             elif event.trigger == "FALLING_EDGE_EVENT":
-                        #                 trigger_type="falling"
-
-                        ###  
-                    #######
-                    # state_funs=AND_State(ssid=-1,name="and_state")
-                    # state_funs.children=chart_paras["state"].children
-                    # for fun in chart_paras["state"].funs:
-                    #     if fun.type == "GRAPHICAL_FUNCTION":
-                    #         fun_state = fun.chart_state1
-
-                    #         state_funs.children.insert(0,fun_state)
-                    # state_funs.funs=chart_paras["state"].funs
-                    # stateflow1 = SF_Chart(name="fun_name", state=state_funs, data=chart_paras["data"],
-                    #                      num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
-                    #                      input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
-                    #                      is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
-                                    
-                    # stateflow1.add_names()
-                    # stateflow1.find_root_for_states()
-                    # stateflow1.find_root_and_loc_for_trans()
-                    # stateflow1.parse_acts_on_states_and_trans()
-                    # for fun in chart_paras["state"].funs:
-                    #     if fun.type == "GRAPHICAL_FUNCTION":
-                    #         hp=hcsp.Sequence(hp_parser.parse("done:=0"),*fun.chart_state1.activate(), stateflow1.execute_trans_from_state(fun.chart_state1)[0])
-                    #         fun.script=hp
-
-
-
-######
-
-                    # for s in chart_paras["state"].children:
-                    #     for fun in state_fun.funs:
-                    #         if fun.type == "GRAPHICAL_FUNCTION" and  s.original_name == fun.chart_state1.original_name:
-                    #             chart_paras["state"].children.remove(s)
 
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
