@@ -433,8 +433,10 @@ class SL_Diagram:
 
         # Extract name of the model
         models = self.model.getElementsByTagName("Model")
-        assert len(models) == 1
-        self.name = models[0].getAttribute("Name")
+        assert len(models) <= 1
+        self.name = ""
+        if models:
+            self.name = models[0].getAttribute("Name")
 
         system = self.model.getElementsByTagName("System")[0]
         max_step = 0.2
@@ -852,7 +854,7 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                subsystem.diagram.parse_xml(self.name, default_SampleTimes)
+                subsystem.diagram.parse_xml(default_SampleTimes)
                 self.add_block(subsystem)
 
         # Add lines
