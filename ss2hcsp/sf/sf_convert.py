@@ -274,33 +274,27 @@ class SFConvert:
         procs.append(hcsp.Var(self.en_proc_name(state)))
         return hcsp.seq(procs)
 
-    def get_input_data(self, procs):
-        if not self.translate_io:
-            return
-        in_chs = []
-        for port_id, in_var in self.chart.port_to_in_var.items():
-            line = self.chart.dest_lines[port_id]
-            ch_name = "ch_" + line.name + "_" + str(line.branch)
-            in_chs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
-        if len(in_chs) > 0:
-            procs.extend(in_chs)
-
-    def get_output_data(self, procs):
-        if not self.translate_io:
-            return
-        out_chs = []
-        for port_id, out_var in self.chart.port_to_out_var.items():
-            lines = self.chart.src_lines[port_id]
-            for line in lines:
+    def get_input_data(self):
+        """Receive input data."""
+        procs = []
+        if self.translate_io:
+            for port_id, in_var in self.chart.port_to_in_var.items():
+                line = self.chart.dest_lines[port_id]
                 ch_name = "ch_" + line.name + "_" + str(line.branch)
-                out_chs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
-        if len(out_chs) > 0:
-            procs.extend(out_chs)
-            # for port_id, out_var in self.chart.port_to_out_var.items():
-            #     lines = self.chart.src_lines[port_id]
-            #     for line in lines:
-            #         ch_name = "ch_response_" + line.name + "_" + str(line.branch)
-            #         procs.append(hcsp.InputChannel(ch_name, expr.AVar("response"))) 
+                procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
+        return procs
+
+    def get_output_data(self):
+        """Send output data."""
+        procs = []
+        if self.translate_io:
+            for port_id, out_var in self.chart.port_to_out_var.items():
+                lines = self.chart.src_lines[port_id]
+                for line in lines:
+                    ch_name = "ch_" + line.name + "_" + str(line.branch)
+                    procs.append(hcsp.OutputChannel(ch_name, expr.AVar(out_var)))
+        return procs
+
     def get_transition_proc(self, src, dst, tran_act=None):
         """Get procedure for transitioning between two states.
 
@@ -740,16 +734,13 @@ class SFConvert:
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
         
-        # # Read data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        if self.dsms:
-            for info in self.dsms:
-                procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        # Read from DSM                
+        for info in self.dsms:
+            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+
         # Initialize variables
         for vname, info in self.data.items():
-            if info.value is not None and info.scope != "INPUT_DATA" and info.scope != "DATA_STORE_MEMORY_DATA":
+            if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
 
@@ -762,28 +753,22 @@ class SFConvert:
         for ssid in self.implicit_events:
             tick_name = self.entry_tick_name(self.chart.all_states[ssid])
             procs.append(hcsp.Assign(expr.AVar(tick_name), expr.AConst(-1)))
+
         for ssid in self.absolute_time_events:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
         # Recursive entry into diagram
-        
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
-        
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
-       
         
         # Write data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
-        if self.dsms:
-            for info in self.dsms:
-                procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        for info in self.dsms:
+            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
-        self.get_input_data(procs)
+        procs.extend(self.get_input_data())
+        procs.extend(self.get_output_data())
 
-        self.get_output_data(procs)
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
@@ -791,29 +776,22 @@ class SFConvert:
 
     def get_iteration(self):
         procs = []
-       
-       
 
         # Read data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
         for info in self.dsms:
             procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
-        # self.get_output_data(procs)
-        # # Write data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+
+        # Write data store variable
         for info in self.dsms:
             procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
-        self.get_output_data(procs)
+        procs.extend(self.get_output_data())
+        procs.extend(self.get_input_data())
+
         # Wait the given sample time
-        self.get_input_data(procs)
-        
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         # Update counter for absolute time events

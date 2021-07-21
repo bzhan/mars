@@ -1387,16 +1387,6 @@ begin
   read_Chart_WHC?WHC;
   read_Chart_RHC?RHC;
   read_Chart_RHC2?RHC2;
-  i := 0;
-  wid := 0;
-  rid := 0;
-  rn := 0;
-  mn := 0;
-  flag := 0;
-  y := 0;
-  count := 0;
-  count1 := 0;
-  sn := 0;
   hFlag := 0;
   index2 := 0;
   received_num2 := 0;
@@ -1410,10 +1400,6 @@ begin
   repair_num := [0,0];
   id := 0;
   request_num := [0,0];
-  an := 0;
-  sn2 := 0;
-  sn1 := 0;
-  lastSN := 0;
   buffer_heartbeat := [[0,0,0,0]];
   unsent := [1,1,1,1,1];
   buffer_acknack := [[0,0,0,0],[0,0,0,0]];
