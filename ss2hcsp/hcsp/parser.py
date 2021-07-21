@@ -125,11 +125,11 @@ grammar = r"""
     ?module_inst: module_args    -> module_inst_noname
         | CNAME "=" module_args  -> module_inst
 
-    ?system: "system" module_inst ("||" module_inst)* "endsystem"
+    ?system: "system" module_inst ("||" module_inst)* "endsystem"  -> system
 
     ?import: "import" CNAME   -> hcsp_import
 
-    ?decls: "%type: module" (module | import | system)*
+    ?decls: "%type: module" (module | import | system)* -> decls
 
     %import common.CNAME
     %import common.WS

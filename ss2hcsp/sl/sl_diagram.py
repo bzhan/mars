@@ -109,6 +109,9 @@ class SL_Diagram:
 
         # XML data structure
         self.model = None
+
+        # Name of the diagram, set by parse_xml
+        self.name = None
         
         # Parsed model of the XML file
         if location:
@@ -129,6 +132,7 @@ class SL_Diagram:
             else:
                 lists.append(acts)
             return lists
+
         def get_transitions(blocks):
             """Obtain the list of transitions.
             
@@ -325,12 +329,18 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    for tran in out_trans_dict.values():
+
+                    dictMerged2 = dict(out_trans_dict)
+                    dictMerged2.update(all_out_trans)
+
+                    for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
                         if src is None and dst == ssid:  # it is a default transition
                             default_tran = tran
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
+                        else:
+                            all_out_trans[tran.ssid] = tran
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))   
@@ -407,7 +417,7 @@ class SL_Diagram:
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
 
-    def parse_xml(self, model_name="", default_SampleTimes=()):
+    def parse_xml(self, default_SampleTimes=()):
         # Extract BlockParameterDefaults
         if not default_SampleTimes:
             default_SampleTimes = dict()
@@ -421,10 +431,11 @@ class SL_Diagram:
 
         self.parse_stateflow_xml()
 
+        # Extract name of the model
         models = self.model.getElementsByTagName("Model")
-        assert len(models) <= 1
-        if models:
-            model_name = models[0].getAttribute("Name")
+        assert len(models) == 1
+        self.name = models[0].getAttribute("Name")
+
         system = self.model.getElementsByTagName("System")[0]
         max_step = 0.2
         # start_time = 0.0
@@ -701,17 +712,8 @@ class SL_Diagram:
                     trigger_dest=list()
                     lines = [child for child in system.childNodes if child.nodeName == "Line"]
                     for line in lines:
-                        # line_name = get_attribute_value(block=line, attribute="Name")
-                        # if not line_name:
-                        #     line_name = "?"
-                        # ch_name = "?"
                         src_block = get_attribute_value(block=line, attribute="SrcBlock")
                         if src_block == block_name:
-
-                        # if src_block in port_name_dict:  # an input port
-                        #     ch_name = model_name + "_" + src_block
-                        #     src_block = port_name_dict[src_block]
-                        # src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
                             branches = [branch for branch in line.getElementsByTagName(name="Branch")
                                         if not branch.getElementsByTagName(name="Branch")]
                             if not branches:
@@ -720,14 +722,6 @@ class SL_Diagram:
                             for branch in branches:
                                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                                 trigger_dest.append(dest_block)
-                            #     assert ch_name == "?"
-                            #     ch_name = model_name + "_" + dest_block
-                            #     dest_block = port_name_dict[dest_block]
-                            # dest_port = get_attribute_value(block=branch, attribute="DstPort")
-                            # dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
-                            # if dest_block in self.blocks_dict:
-                            #     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
-                            #                   name=line_name, ch_name=ch_name)
 
                     assert len(triggers) <= 1
                     is_triggered_chart=False
@@ -751,8 +745,6 @@ class SL_Diagram:
                     if triggers:
                         is_triggered_chart=True
                         num_dest=1
-                        ###
-                        
                         for child in subsystem.childNodes :
                             if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
                                 trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
@@ -860,8 +852,7 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                inner_model_name = subsystem.diagram.parse_xml(model_name, default_SampleTimes)
-                assert inner_model_name == model_name
+                subsystem.diagram.parse_xml(self.name, default_SampleTimes)
                 self.add_block(subsystem)
 
         # Add lines
@@ -873,7 +864,7 @@ class SL_Diagram:
             ch_name = "?"
             src_block = get_attribute_value(block=line, attribute="SrcBlock")
             if src_block in port_name_dict:  # an input port
-                ch_name = model_name + "_" + src_block
+                ch_name = self.name + "_" + src_block
                 src_block = port_name_dict[src_block]
             elif src_block not in self.blocks_dict:
                 continue
@@ -887,7 +878,7 @@ class SL_Diagram:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                 if dest_block in port_name_dict:  # an output port
                     # assert ch_name == "?"
-                    ch_name = model_name + "_" + dest_block
+                    ch_name = self.name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
                 dest_port = -1 if dest_port in ["trigger", "enable"] else int(dest_port) - 1
@@ -900,8 +891,6 @@ class SL_Diagram:
         for block in self.blocks:
             if block.type == "signalBuilder":
                 block.rename_src_lines()
-
-        return model_name
 
     def add_block(self, block):
         """Add given block to the diagram."""

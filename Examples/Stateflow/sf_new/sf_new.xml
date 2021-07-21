@@ -7,7 +7,11 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
+<<<<<<< HEAD
       <P Name="ComputedModelVersion">1.114</P>
+=======
+      <P Name="ComputedModelVersion">1.119</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -61,7 +65,11 @@
         <Object PropName="ExplorerBarInfo" ObjectID="5" ClassName="Simulink.ExplorerBarInfo">
           <P Name="Visible" Class="logical">1</P>
         </Object>
+<<<<<<< HEAD
         <Array PropName="EditorsInfo" Type="Simulink.EditorInfo" Dimension="1*2">
+=======
+        <Array PropName="EditorsInfo" Type="Simulink.EditorInfo" Dimension="1*3">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
@@ -69,8 +77,13 @@
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1864.0, 701.0]</P>
             <P Name="ZoomFactor" Class="double">1.25</P>
+<<<<<<< HEAD
             <P Name="Offset" Class="double">[0.0, 0.0]</P>
             <P Name="SceneRectInView" Class="double">[0.0, 0.0, 994.13333333333333, 373.86666666666667]</P>
+=======
+            <P Name="Offset" Class="double">[-5.6843418860808015e-14, 0.0]</P>
+            <P Name="SceneRectInView" Class="double">[-5.6843418860808015e-14, 0.0, 994.13333333333333, 373.86666666666667]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
@@ -78,12 +91,31 @@
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
             <P Name="Extents" Class="double">[1864.0, 701.0]</P>
+<<<<<<< HEAD
             <P Name="ZoomFactor" Class="double">0.5</P>
             <P Name="Offset" Class="double">[1020.8866417687643, 27.295021776154197]</P>
             <P Name="SceneRectInView" Class="double">[1020.8866417687643, 27.295021776154197, 2485.3333333333335, 934.66666666666663]</P>
           </Object>
         </Array>
         <Object PropName="DockComponentsInfo" ObjectID="8" ClassName="Simulink.DockComponentInfo">
+=======
+            <P Name="ZoomFactor" Class="double">1.1825182358466901</P>
+            <P Name="Offset" Class="double">[1966.1778973818386, 355.24240148986553]</P>
+            <P Name="SceneRectInView" Class="double">[1966.1778973818386, 355.24240148986553, 1050.8646962022619, 395.20179830353305]</P>
+          </Object>
+          <Object ObjectID="8">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">11</P>
+            <P Name="Extents" Class="double">[1864.0, 701.0]</P>
+            <P Name="ZoomFactor" Class="double">1.4998125234345705</P>
+            <P Name="Offset" Class="double">[105.57999999999998, 105.507]</P>
+            <P Name="SceneRectInView" Class="double">[105.57999999999998, 105.507, 828.54800000000012, 311.59450000000004]</P>
+          </Object>
+        </Array>
+        <Object PropName="DockComponentsInfo" ObjectID="9" ClassName="Simulink.DockComponentInfo">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
           <P Name="ID" Class="char">Property Inspector</P>
           <P Name="Visible" Class="logical">0</P>
@@ -97,7 +129,11 @@
         </Object>
         <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAAAAAAAAPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD///8AAAeAAAADCQAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAA</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
+<<<<<<< HEAD
         <P Name="WindowUuid" Class="char">50bc2f7c-556a-41d1-a078-d42046c6f459</P>
+=======
+        <P Name="WindowUuid" Class="char">e0d468de-da11-4466-9bbb-8cb8da2571ae</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
       </Object>
       <P Name="BDUuid" Class="char">df2ec552-f1eb-48b9-8c65-2968a862f294</P>
     </Object>
@@ -109,9 +145,15 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
+<<<<<<< HEAD
       <P Name="LastModifiedDate">Tue Jul 20 21:24:57 2021</P>
       <P Name="RTWModifiedTimeStamp">548717166</P>
       <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:114&gt;</P>
+=======
+      <P Name="LastModifiedDate">Wed Jul 21 17:23:18 2021</P>
+      <P Name="RTWModifiedTimeStamp">548788956</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:119&gt;</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -171,7 +213,11 @@
       <P Name="AccelTemplateMakefile">accel_default_tmf</P>
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
+<<<<<<< HEAD
       <Object PropName="DataLoggingOverride" ObjectID="9" ClassName="Simulink.SimulationData.ModelLoggingInfo">
+=======
+      <Object PropName="DataLoggingOverride" ObjectID="10" ClassName="Simulink.SimulationData.ModelLoggingInfo">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
         <P Name="model_" Class="char">sf_new</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
@@ -212,11 +258,19 @@
     </ModelReferenceSettings>
     <ConfigurationSet>
       <Array PropName="ConfigurationSets" Type="Handle" Dimension="1*1">
+<<<<<<< HEAD
         <Object ObjectID="10" Version="20.0.1" ClassName="Simulink.ConfigSet">
           <P Name="DisabledProps" Class="double">[]</P>
           <P Name="Description"/>
           <Array PropName="Components" Type="Handle" Dimension="1*10">
             <Object ObjectID="11" Version="20.0.1" ClassName="Simulink.SolverCC">
+=======
+        <Object ObjectID="11" Version="20.0.1" ClassName="Simulink.ConfigSet">
+          <P Name="DisabledProps" Class="double">[]</P>
+          <P Name="Description"/>
+          <Array PropName="Components" Type="Handle" Dimension="1*10">
+            <Object ObjectID="12" Version="20.0.1" ClassName="Simulink.SolverCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -257,7 +311,11 @@
               <P Name="MinimalZcImpactIntegration">off</P>
               <P Name="ODENIntegrationMethod">ode3</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="12" Version="20.0.1" ClassName="Simulink.DataIOCC">
+=======
+            <Object ObjectID="13" Version="20.0.1" ClassName="Simulink.DataIOCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -297,7 +355,11 @@
               <P Name="LoggingFileName">out.mat</P>
               <P Name="LoggingIntervals">[-inf, inf]</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="13" Version="20.0.1" ClassName="Simulink.OptimizationCC">
+=======
+            <Object ObjectID="14" Version="20.0.1" ClassName="Simulink.OptimizationCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*9">
                 <Cell Class="char">BooleansAsBitfields</Cell>
                 <Cell Class="char">PassReuseOutputArgsAs</Cell>
@@ -366,7 +428,11 @@
               <P Name="DenormalBehavior">GradualUnderflow</P>
               <P Name="EfficientTunableParamExpr">off</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="14" Version="20.0.1" ClassName="Simulink.DebuggingCC">
+=======
+            <Object ObjectID="15" Version="20.0.1" ClassName="Simulink.DebuggingCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*1">
                 <Cell Class="char">UseOnlyExistingSharedCode</Cell>
               </Array>
@@ -482,7 +548,11 @@
               <P Name="DebugExecutionForFMUViaOutOfProcess">off</P>
               <P Name="ArithmeticOperatorsInVariantConditions">warning</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="15" Version="20.0.1" ClassName="Simulink.HardwareCC">
+=======
+            <Object ObjectID="16" Version="20.0.1" ClassName="Simulink.HardwareCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -530,7 +600,11 @@
               <P Name="UseSimulinkCoderFeatures">on</P>
               <P Name="HardwareBoardFeatureSet">EmbeddedCoderHSP</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="16" Version="20.0.1" ClassName="Simulink.ModelReferenceCC">
+=======
+            <Object ObjectID="17" Version="20.0.1" ClassName="Simulink.ModelReferenceCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -548,7 +622,11 @@
               <P Name="PropagateSignalLabelsOutOfModel">on</P>
               <P Name="SupportModelReferenceSimTargetCustomCode">off</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="17" Version="20.0.1" ClassName="Simulink.SFSimCC">
+=======
+            <Object ObjectID="18" Version="20.0.1" ClassName="Simulink.SFSimCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -580,7 +658,11 @@
               <P Name="DefaultCustomCodeFunctionArrayLayout">NotSpecified</P>
               <P Name="CustomCodeUndefinedFunction">UseInterfaceOnly</P>
             </Object>
+<<<<<<< HEAD
             <Object BackupClass="Simulink.RTWCC" ObjectID="18" Version="20.0.1" ClassName="Simulink.RTWCC">
+=======
+            <Object BackupClass="Simulink.RTWCC" ObjectID="19" Version="20.0.1" ClassName="Simulink.RTWCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*16">
                 <Cell Class="char">IncludeHyperlinkInReport</Cell>
                 <Cell Class="char">GenerateTraceInfo</Cell>
@@ -662,7 +744,11 @@
               <P Name="CheckMdlBeforeBuild">Off</P>
               <P Name="SharedConstantsCachingThreshold">1024</P>
               <Array PropName="Components" Type="Handle" Dimension="1*2">
+<<<<<<< HEAD
                 <Object ObjectID="19" Version="20.0.1" ClassName="Simulink.CodeAppCC">
+=======
+                <Object ObjectID="20" Version="20.0.1" ClassName="Simulink.CodeAppCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*28">
                     <Cell Class="char">IgnoreCustomStorageClasses</Cell>
                     <Cell Class="char">IgnoreTestpoints</Cell>
@@ -746,7 +832,11 @@
                   <P Name="ReservedNameArray" Class="double">[]</P>
                   <P Name="EnumMemberNameClash">error</P>
                 </Object>
+<<<<<<< HEAD
                 <Object BackupClass="Simulink.TargetCC" ObjectID="20" Version="20.0.1" ClassName="Simulink.GRTTargetCC">
+=======
+                <Object BackupClass="Simulink.TargetCC" ObjectID="21" Version="20.0.1" ClassName="Simulink.GRTTargetCC">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*16">
                     <Cell Class="char">IncludeMdlTerminateFcn</Cell>
                     <Cell Class="char">SuppressErrorStatus</Cell>
@@ -845,7 +935,11 @@
                 </Object>
               </Array>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="21" Version="20.0.1" ClassName="SlCovCC.ConfigComp">
+=======
+            <Object ObjectID="22" Version="20.0.1" ClassName="SlCovCC.ConfigComp">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">Simulink Coverage Configuration Component</P>
               <P Name="Components" Class="double">[]</P>
@@ -884,7 +978,11 @@
               <P Name="CovStopTime">0</P>
               <P Name="CovMcdcMode">Masking</P>
             </Object>
+<<<<<<< HEAD
             <Object ObjectID="22" Version="20.0.1" ClassName="hdlcoderui.hdlcc">
+=======
+            <Object ObjectID="23" Version="20.0.1" ClassName="hdlcoderui.hdlcc">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">HDL Coder custom configuration component</P>
               <P Name="Components" Class="double">[]</P>
@@ -901,10 +999,17 @@
           <P Name="ExtraOptions">-aIgnoreTestpoints=0 </P>
         </Object>
       </Array>
+<<<<<<< HEAD
       <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="10" ClassName="Simulink.ConfigSet"/>
     </ConfigurationSet>
     <ConcurrentExecutionSettings>
       <Object PropName="DataTransfer" ObjectID="23" ClassName="Simulink.GlobalDataTransfer">
+=======
+      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="11" ClassName="Simulink.ConfigSet"/>
+    </ConfigurationSet>
+    <ConcurrentExecutionSettings>
+      <Object PropName="DataTransfer" ObjectID="24" ClassName="Simulink.GlobalDataTransfer">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
         <P Name="DefaultTransitionBetweenSyncTasks" Class="char">Ensure deterministic transfer (maximum delay)</P>
         <P Name="DefaultTransitionBetweenAsyncTasks" Class="char">Ensure data integrity only</P>
         <P Name="DefaultTransitionBetweenContTasks" Class="char">Ensure deterministic transfer (minimum delay)</P>
@@ -1268,7 +1373,11 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="SFBlockType">Chart</P>
         <System>
+<<<<<<< HEAD
           <P Name="Location">[-6, -6, 1287, 767]</P>
+=======
+          <P Name="Location">[-7, -7, 1288, 688]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1495,6 +1604,7 @@ Read2</P>
     <machine id="838">
       <P Name="sfVersion">80000032</P>
       <Children>
+<<<<<<< HEAD
         <target id="1243" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
@@ -1503,6 +1613,16 @@ Read2</P>
           <P Name="name">DDS_Writer</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
           <P Name="viewLimits">[105.58 935.684 105.507 516.892]</P>
+=======
+        <target id="1241" name="sfun">
+          <P Name="description">Default Simulink S-Function Target.</P>
+        </target>
+        <target id="1242" name="rtw"/>
+        <chart id="839">
+          <P Name="name">DDS_Writer</P>
+          <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
+          <P Name="viewLimits">[105.58 934.128 105.507 417.102]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           <P Name="zoomFactor">0.889</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
@@ -1735,8 +1855,13 @@ last_SN=i;i = i + 1}</P>
         <chart id="852">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
+<<<<<<< HEAD
           <P Name="viewLimits">[1020.887 3506.22 27.295 961.962]</P>
           <P Name="zoomFactor">2.667</P>
+=======
+          <P Name="viewLimits">[1966.178 3017.043 355.242 750.444]</P>
+          <P Name="zoomFactor">1.128</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
@@ -3510,12 +3635,21 @@ buffer_acknack(rid,4)=mn}</P>
                             </state>
                             <transition SSID="185">
                               <P Name="labelString">SUCCESS[seq_num_2&gt;received_num2]
+<<<<<<< HEAD
 {index=seq_num_2;
 received_set(ReaderId_2,index)=true;
 received_num2=check_received(WriterId,ReaderId_2,received_num2);
 missing_num=check_missing(WriterId,ReaderId_2,missing_num);
 RHC2(index)=buffer_data(WriterId,ReaderId_2,index);
 buffer_data(WriterId,ReaderId_2,index)=false}</P>
+=======
+{index2=seq_num_2;
+received_set(ReaderId_2,index2)=true;
+received_num2=check_received(WriterId,ReaderId_2,received_num2);
+missing_num2=check_missing(WriterId,ReaderId_2,missing_num2);
+RHC2(index2)=buffer_data(WriterId,ReaderId_2,index2);
+buffer_data(WriterId,ReaderId_2,index2)=false}</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                               <P Name="labelPosition">[2579.615 454.027 378.703 100]</P>
                               <P Name="fontSize">12</P>
                               <src>
@@ -3539,8 +3673,8 @@ buffer_data(WriterId,ReaderId_2,index)=false}</P>
                             </transition>
                             <transition SSID="186">
                               <P Name="labelString">HEARTBEAT2
-{missing_num=get_heartbeatSN(1,2);}</P>
-                              <P Name="labelPosition">[2744.804 584.168 206.281 30]</P>
+{missing_num2=get_heartbeatSN(1,2);}</P>
+                              <P Name="labelPosition">[2744.804 584.168 212.953 30]</P>
                               <P Name="fontSize">12</P>
                               <src>
                                 <P Name="SSID">184</P>
@@ -3648,10 +3782,17 @@ buffer_data(WriterId,ReaderId_2,index)=false}</P>
                             <transition SSID="192">
                               <P Name="labelString">after(nackResponseDelay,sec)
 {ack_id=ReaderId_2;
+<<<<<<< HEAD
 set_acknack(WriterId,ack_id,received_num2,missing_num);
 send(ACKNACK,model.channel_Acknack_2);
 hFlag=0}</P>
                               <P Name="labelPosition">[2499.251 710.626 319.016 72]</P>
+=======
+set_acknack(WriterId,ack_id,received_num2,missing_num2);
+send(ACKNACK,model.channel_Acknack_2);
+hFlag=0}</P>
+                              <P Name="labelPosition">[2499.251 710.626 325.688 72]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                               <P Name="fontSize">12</P>
                               <src>
                                 <P Name="SSID">188</P>
@@ -3673,8 +3814,13 @@ hFlag=0}</P>
                               <P Name="executionOrder">1</P>
                             </transition>
                             <transition SSID="193">
+<<<<<<< HEAD
                               <P Name="labelString">[missing_num&gt;received_num2]</P>
                               <P Name="labelPosition">[2789.014 754.81 168.297 16]</P>
+=======
+                              <P Name="labelString">[missing_num2&gt;received_num2]</P>
+                              <P Name="labelPosition">[2789.014 754.81 174.969 16]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                               <P Name="fontSize">12</P>
                               <src>
                                 <P Name="SSID">190</P>
@@ -3806,8 +3952,13 @@ hFlag=0}</P>
                               <P Name="executionOrder">2</P>
                             </transition>
                             <transition SSID="654">
+<<<<<<< HEAD
                               <P Name="labelString">[missing_num&lt;=received_num2]{hFlag=0}</P>
                               <P Name="labelPosition">[2592.647 873.424 226.969 16]</P>
+=======
+                              <P Name="labelString">[missing_num2&lt;=received_num2]{hFlag=0}</P>
+                              <P Name="labelPosition">[2592.647 873.424 233.641 16]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                               <P Name="fontSize">12</P>
                               <src>
                                 <P Name="SSID">190</P>
@@ -3834,7 +3985,7 @@ hFlag=0}</P>
                             </junction>
                           </Children>
                         </state>
-                        <data SSID="242" name="index">
+                        <data SSID="242" name="index2">
                           <P Name="scope">LOCAL_DATA</P>
                           <props>
                             <P Name="initialValue">0</P>
@@ -3876,7 +4027,7 @@ hFlag=0}</P>
                           </props>
                           <P Name="dataType">Inherit: From definition in chart</P>
                         </data>
-                        <data SSID="247" name="missing_num">
+                        <data SSID="247" name="missing_num2">
                           <P Name="scope">LOCAL_DATA</P>
                           <props>
                             <P Name="initialValue">0</P>
@@ -7229,7 +7380,11 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
             </state>
             <state SSID="144">
               <P Name="labelString">sn2  = check_received(wid, rid,sn1)</P>
+<<<<<<< HEAD
               <P Name="position">[165.8051 886.5406 414.4408 179.0507]</P>
+=======
+              <P Name="position">[329.1829 898.9299 250.6575 158.2529]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
               <P Name="fontSize">12</P>
               <P Name="subviewer">852</P>
               <P Name="type">FUNC_STATE</P>
@@ -7318,6 +7473,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 </data>
                 <transition SSID="155">
                   <P Name="labelString">{i=sn1+1}</P>
+<<<<<<< HEAD
                   <P Name="labelPosition">[204.325 905.733 52.672 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7330,6 +7486,20 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="midPoint">[232.0921 933.5176]</P>
                   <P Name="visible">0</P>
                   <P Name="dataLimits">[218.767 253.418 931.118 935.918]</P>
+=======
+                  <P Name="labelPosition">[384.014 929.388 52.672 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="intersection">[0 1 0 0 398.4554 957.1724 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">150</P>
+                    <P Name="intersection">[4 -1 0 0 433.1062 957.1724 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[411.7808 957.1724]</P>
+                  <P Name="visible">0</P>
+                  <P Name="dataLimits">[398.455 433.106 954.772 959.572]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="subviewer">852</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
@@ -7339,6 +7509,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 </transition>
                 <transition SSID="156">
                   <P Name="labelString">{sn2=i-1}</P>
+<<<<<<< HEAD
                   <P Name="labelPosition">[314.124 938.53 49.656 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7352,6 +7523,21 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="midPoint">[306.7556 933.5176]</P>
                   <P Name="visible">0</P>
                   <P Name="dataLimits">[267.418 354.094 931.118 935.918]</P>
+=======
+                  <P Name="labelPosition">[487.917 961.801 49.656 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">150</P>
+                    <P Name="intersection">[2 1 0 0 447.1062 957.1724 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">151</P>
+                    <P Name="intersection">[4 -1 0 0 526.9846 957.1724 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[483.0454 957.1724]</P>
+                  <P Name="visible">0</P>
+                  <P Name="dataLimits">[447.106 526.985 954.772 959.572]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="subviewer">852</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
@@ -7361,6 +7547,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 </transition>
                 <transition SSID="118">
                   <P Name="labelString"/>
+<<<<<<< HEAD
                   <P Name="labelPosition">[331.481 961.032 0 0]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7374,6 +7561,21 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="midPoint">[331.4805 979.0325]</P>
                   <P Name="visible">0</P>
                   <P Name="dataLimits">[266.312 389.912 937.293 1016.457]</P>
+=======
+                  <P Name="labelPosition">[493.75 979.293 0 0]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">153</P>
+                    <P Name="intersection">[4 -0.8008 -0.5989 0 535.3809 1028.4294 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">150</P>
+                    <P Name="intersection">[2 0.8008 0.5989 0 445.7119 961.3649 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[493.7496 997.2929]</P>
+                  <P Name="visible">0</P>
+                  <P Name="dataLimits">[445.712 535.381 961.365 1028.429]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="subviewer">852</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
@@ -7383,6 +7585,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 </transition>
                 <transition SSID="119">
                   <P Name="labelString">[i&lt;=5&amp;&amp;received_set(rid,i)==true]</P>
+<<<<<<< HEAD
                   <P Name="labelPosition">[139.1 970.567 177.906 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7396,6 +7599,21 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="midPoint">[226.1308 973.8282]</P>
                   <P Name="visible">0</P>
                   <P Name="dataLimits">[191.196 255.882 938.85 1014.901]</P>
+=======
+                  <P Name="labelPosition">[314.827 987.852 177.906 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">150</P>
+                    <P Name="intersection">[3 -0.6763 0.7366 0 435.3722 962.3288 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">152</P>
+                    <P Name="intersection">[1 0.6763 -0.7366 0 375.5706 1027.4655 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[408.1766 991.9506]</P>
+                  <P Name="visible">0</P>
+                  <P Name="dataLimits">[375.571 435.372 962.329 1027.466]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="subviewer">852</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
@@ -7405,6 +7623,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 </transition>
                 <transition SSID="120">
                   <P Name="labelString">{i = i + 1}</P>
+<<<<<<< HEAD
                   <P Name="labelPosition">[283.131 1022.241 49.297 16]</P>
                   <P Name="fontSize">12</P>
                   <src>
@@ -7418,6 +7637,21 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="midPoint">[287.2338 1020.2326]</P>
                   <P Name="visible">0</P>
                   <P Name="dataLimits">[193.661 388.807 1017.833 1022.633]</P>
+=======
+                  <P Name="labelPosition">[443.57 1034.63 49.297 16]</P>
+                  <P Name="fontSize">12</P>
+                  <src>
+                    <P Name="SSID">152</P>
+                    <P Name="intersection">[2 1 0 0 377.8366 1032.6219 0 0]</P>
+                  </src>
+                  <dst>
+                    <P Name="SSID">153</P>
+                    <P Name="intersection">[4 -1 0 0 533.9865 1032.6219 0 0]</P>
+                  </dst>
+                  <P Name="midPoint">[451.9115 1032.6219]</P>
+                  <P Name="visible">0</P>
+                  <P Name="dataLimits">[377.837 533.986 1030.222 1035.022]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="subviewer">852</P>
                   <P Name="drawStyle">SMART</P>
                   <slide>
@@ -7426,25 +7660,41 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <junction SSID="150">
+<<<<<<< HEAD
                   <P Name="position">[260.4175 933.5176 7]</P>
+=======
+                  <P Name="position">[440.1062 957.1724 7]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="visible">0</P>
                   <P Name="subviewer">852</P>
                   <P Name="type">CONNECTIVE_JUNCTION</P>
                 </junction>
                 <junction SSID="151">
+<<<<<<< HEAD
                   <P Name="position">[361.0937 933.5176 7]</P>
+=======
+                  <P Name="position">[533.9846 957.1724 7]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="visible">0</P>
                   <P Name="subviewer">852</P>
                   <P Name="type">CONNECTIVE_JUNCTION</P>
                 </junction>
                 <junction SSID="152">
+<<<<<<< HEAD
                   <P Name="position">[186.6609 1020.2326 7]</P>
+=======
+                  <P Name="position">[370.8366 1032.6219 7]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="visible">0</P>
                   <P Name="subviewer">852</P>
                   <P Name="type">CONNECTIVE_JUNCTION</P>
                 </junction>
                 <junction SSID="153">
+<<<<<<< HEAD
                   <P Name="position">[395.8068 1020.2326 7]</P>
+=======
+                  <P Name="position">[540.9865 1032.6219 7]</P>
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
                   <P Name="visible">0</P>
                   <P Name="subviewer">852</P>
                   <P Name="type">CONNECTIVE_JUNCTION</P>
@@ -7543,7 +7793,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
                 <transition SSID="147">
                   <P Name="labelString">{firstSN=buffer_heartbeat(3);
 lastSN=buffer_heartbeat(4)}</P>
-                  <P Name="labelPosition">[370.078 1127.981 154.922 30]</P>
+                  <P Name="labelPosition">[370.078 1127.981 154.719 30]</P>
                   <P Name="fontSize">12</P>
                   <src>
                     <P Name="SSID">146</P>
@@ -7841,13 +8091,12 @@ lastSN=buffer_heartbeat(4)}</P>
             <data SSID="648" name="complete">
               <P Name="scope">OUTPUT_DATA</P>
               <props>
-                <P Name="initialValue">0</P>
+                <P Name="initialValue">false</P>
                 <array>
                   <P Name="size">-1</P>
                 </array>
                 <type>
-                  <P Name="method">SF_INHERITED_TYPE</P>
-                  <P Name="primitive">SF_DOUBLE_TYPE</P>
+                  <P Name="primitive">SF_BOOLEAN_TYPE</P>
                   <P Name="isSigned">1</P>
                   <P Name="wordLength">16</P>
                 </type>
@@ -7857,7 +8106,7 @@ lastSN=buffer_heartbeat(4)}</P>
                   <P Name="name">inherit</P>
                 </unit>
               </props>
-              <P Name="dataType">Inherit: Same as Simulink</P>
+              <P Name="dataType">boolean</P>
             </data>
             <data SSID="672" name="SET">
               <P Name="scope">CONSTANT_DATA</P>
@@ -7943,6 +8192,7 @@ lastSN=buffer_heartbeat(4)}</P>
               </props>
               <P Name="dataType">double</P>
             </data>
+<<<<<<< HEAD
             <data SSID="679" name="false">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
@@ -7979,6 +8229,8 @@ lastSN=buffer_heartbeat(4)}</P>
               </props>
               <P Name="dataType">Inherit: From definition in chart</P>
             </data>
+=======
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
             <data SSID="681" name="first_SN">
               <P Name="scope">INPUT_DATA</P>
               <props>
@@ -8249,7 +8501,11 @@ lastSN=buffer_heartbeat(4)}</P>
       <P Name="name">DDS_Writer</P>
       <P Name="chart">839</P>
     </instance>
+<<<<<<< HEAD
     <instance id="1242">
+=======
+    <instance id="1240">
+>>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
       <P Name="machine">838</P>
       <P Name="name">Chart</P>
       <P Name="chart">852</P>
