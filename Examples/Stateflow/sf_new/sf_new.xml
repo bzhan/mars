@@ -7,11 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-<<<<<<< HEAD
-      <P Name="ComputedModelVersion">1.114</P>
-=======
       <P Name="ComputedModelVersion">1.119</P>
->>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>

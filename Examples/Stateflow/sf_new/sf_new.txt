@@ -1,25 +1,5 @@
 %type: module
 
-<<<<<<< HEAD
-module P0():
-output RHC2;
-procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
-  Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
-  cansend == true1 && repair_num[id-1] <= request_num[id-1] -> (
-    sn := repair_num[id-1];
-    @set_message;
-    i := repair_num[id-1];
-    @select_channel;
-    repair_num[id-1] := repair_num[id-1]+1;
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> (
-      Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
-      Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1
-    )
-  );
-  Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" && Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 && (cansend == false1 || repair_num[id-1] > request_num[id-1]) -> (
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> (
-      Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
-=======
 module Chart():
 output RHC;
 procedure during_Chart_model_RTPS_Writer begin
@@ -147,7 +127,6 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
     Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" -> (
       Chart_model_RTPS_Writer_Writer_repair_st := "";
       @entry_Chart_model_RTPS_Writer_Writer_repair_waiting;
->>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1
     )
   );

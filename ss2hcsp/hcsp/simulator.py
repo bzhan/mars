@@ -1430,13 +1430,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
         # Fill in information about current position
         cur_info = dict()
         for info in infos:
-<<<<<<< HEAD
             info_callstack = disp_of_callstack(info.callstack)
             cur_info[info.name] = {'callstack': info_callstack, 'state': copy.deepcopy(info.state)}
-=======
-            info_pos = disp_of_pos(info.hp, info.callstack.top_pos(), None, info.procedures)
-            cur_info[info.name] = {'pos': info_pos, 'state': copy.deepcopy(info.state)}
->>>>>>> 4fe0575f5ee0ac04c010751a28c546f954b5514c
         new_event['infos'] = cur_info
 
         # Finally add to trace
