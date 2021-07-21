@@ -147,12 +147,6 @@ class SL_Diagram:
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
                     tran_label = get_attribute_value(block, "labelString")
-                    # if tran_label:
-                    #     try:
-                    #         tran_label = transition_parser.parse(html.unescape(tran_label))
-                    #     except lark.exceptions.UnexpectedToken as e:
-                    #         print("When parsing transition label %s" % tran_label)
-                    #         raise e
                     order = int(get_attribute_value(block, "executionOrder"))
 
                     # Each transition must have exactly one source and destination
@@ -171,7 +165,6 @@ class SL_Diagram:
                                                       src=src_ssid, dst=dst_ssid)
             return tran_dict
 
-        #  历史节点修改
         all_out_trans = dict()
 
         def get_children(block):
@@ -240,7 +233,7 @@ class SL_Diagram:
                                 print("When parsing function signature", fun_name)
                                 raise e
 
-                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
+                            chart_state1 = OR_State(ssid=ssid, name=fun_name)
                             for state in  sub_junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
@@ -298,10 +291,10 @@ class SL_Diagram:
                             assert default_tran is None and out_trans == [], \
                                 "Parse XML: AND_STATE should not have default transition or outgoing transitions."
                             order = int(get_attribute_value(child, "executionOrder"))
-                            _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name,original_name=name, en=en, du=du, ex=ex,
-                                            order=order)
+                            _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name, en=en, du=du, ex=ex,
+                                               order=order)
                         elif state_type == "OR_STATE":
-                            _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,original_name=name,
+                            _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,
                                             en=en, du=du, ex=ex, default_tran=default_tran)
                         else:
                             print(state_type)
