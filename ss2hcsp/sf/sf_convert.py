@@ -354,9 +354,9 @@ class SFConvert:
         """
         pre_acts, conds, cond_act, tran_act = [], [], hcsp.Skip(), hcsp.Skip()
         if label is not None:
-           
-            if isinstance(label,str):
-                label=parser.transition_parser.parse(label)
+            if isinstance(label, str):
+                label = parser.transition_parser.parse(label)
+
             if label.event is not None:
                 if isinstance(label.event, BroadcastEvent):
                     # Conversion of event condition E

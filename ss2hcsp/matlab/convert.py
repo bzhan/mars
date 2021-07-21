@@ -55,7 +55,6 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
             else:
                 raise NotImplementedError("Unknown operator %s" % e.op_name)
         elif isinstance(e, function.FunExpr):
-            
             if e.fun_name == 'rand':
                 if len(e.exprs) == 0:
                     return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
@@ -66,14 +65,12 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
                 # in HCSP is 0-based.
                 if len(e.exprs) == 1:
                     return expr.ArrayIdxExpr(e.fun_name, [subtract_one(rec(arg)) for arg in e.exprs])
-                elif len(e.exprs) ==2:
+                elif len(e.exprs) == 2:
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1])))
-                elif len(e.exprs) ==3:
+                elif len(e.exprs) == 3:
                     return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(e.fun_name),subtract_one(rec(e.exprs[0]))),subtract_one(rec(e.exprs[1]))),subtract_one(rec(e.exprs[2])))
             elif procedures is not None and e.fun_name in procedures:
-                
                 proc = procedures[e.fun_name]
-               
                 if isinstance(proc, GraphicalFunction):
                     if len(e.exprs) > 0:
                         for index in range(0,len(e.exprs)):
@@ -90,7 +87,10 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):
-            return expr.BConst(e.value)
+            if e.value:
+                return expr.AConst("1")
+            else:
+                return expr.AConst("0")
         elif isinstance(e, function.LogicExpr):
             if e.op_name == '~':
                 return expr.NegExpr(rec(e.exprs[0]))
@@ -152,11 +152,11 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 pre_act, hp_e = conv_expr(lname.exprs[0])
                 return expr.ArrayIdxExpr(
                     expr.AVar(lname.fun_name), [subtract_one(hp_e)])
-            elif len(lname.exprs) ==2:
+            elif len(lname.exprs) == 2:
                 _, hp_e1 = conv_expr(lname.exprs[0])
                 _, hp_e2 = conv_expr(lname.exprs[1])
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2))
-            elif len(lname.exprs) ==3:
+            elif len(lname.exprs) == 3:
                 _, hp_e1 = conv_expr(lname.exprs[0])
                 _, hp_e2 = conv_expr(lname.exprs[1])
                 _, hp_e3 = conv_expr(lname.exprs[2])
@@ -181,72 +181,37 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return hcsp.seq(lists)
         if isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
-# <<<<<<< HEAD
-#             name_set=set()
-#             vars_set=set()
-#             assign_name=convert_lname(cmd.lname)
-#             if isinstance(assign_name,list):
-#                 for i in range(0,len(assign_name)):
-#                     name_set=name_set.union(assign_name[i].get_vars())
-#                 vars_set=hp_expr.get_vars()
-#             else:
-#                 name_set=name_set.union(assign_name.get_vars())
-#                 if hp_expr is not None:
-#                     vars_set=hp_expr.get_vars()
-# =======
-            # name_set=set()
-            assign_name=convert_lname(cmd.lname)
-            # if isinstance(assign_name,list):
-            #     for i in range(0,len(assign_name)):
-            #         name_set=name_set.union(assign_name[i].get_vars())
-            #     vars_set=hp_expr.get_vars()
-            # else:
-            #     name_set=name_set.union(assign_name.get_vars())
-            #     vars_set=hp_expr.get_vars()
-# >>>>>>> adef5ed30bdf662c1ddf5756ac1dc0d4943be7ef
-            cmd_list=list()
-            cmd_list.append(pre_act)
-            # if arrays is not None:
-            #     for var in vars_set:
-            #         if var in arrays:
-            #             data=array_value[var]
-            #             if data.scope == "DATA_STORE_MEMORY_DATA":
-            #                 cmd_list.append(hcsp.InputChannel('read_' + str(var), expr.AVar(var)))
-            if isinstance(assign_name,list):
-                if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
-                    for index in range(0,len(assign_name)):
+            assign_name = convert_lname(cmd.lname)
+            cmd_list = [pre_act]
+            if isinstance(assign_name, list):
+                if isinstance(hp_expr, expr.ListExpr) and len(hp_expr)>=1:
+                    for index in range(len(assign_name)):
                         cmd_list.append(hcsp.Assign(assign_name[index], hp_expr[index]))
-                elif isinstance(hp_expr,expr.AVar):
+                elif isinstance(hp_expr, expr.AVar):
                     cmd_list.append(hcsp.Assign(assign_name[0], hp_expr))
             else:
                 cmd_list.append(hcsp.Assign(assign_name, hp_expr))
-            # if arrays is not None:
-            #     for var in name_set:
-            #         if var in arrays:
-            #             data=array_value[var]
-            #             if data.scope == "DATA_STORE_MEMORY_DATA":
-            #                 cmd_list.append(hcsp.OutputChannel('write_' + str(var), expr.AVar(var)))
             return hcsp.seq(cmd_list)
 
         elif isinstance(cmd, function.FunctionCall):
-
             if cmd.func_name == 'fprintf':
                 pre_act, hp_exprs = conv_exprs(cmd.args)
                 return hcsp.seq([pre_act, hcsp.Log(hp_exprs[0], exprs=hp_exprs[1:])])
             elif cmd.func_name == 'send':
-                args=cmd.args
-                if len(args) >1:
-                    event,direct_name=args[0],args[1]
-                    if isinstance(direct_name,function.DirectName):
-                        exprs=direct_name.exprs
-                        event_name=get_directed_event(exprs,event)
-                    elif isinstance(direct_name,function.Var):
-                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))           
+                args = cmd.args
+                if len(args) > 1:
+                    event, direct_name = args[0], args[1]
+                    if isinstance(direct_name, function.DirectName):
+                        exprs = direct_name.exprs
+                        event_name = get_directed_event(exprs,event)
+                    elif isinstance(direct_name, function.Var):
+                        event_name = function.DirectedEvent(
+                            str(direct_name), function.BroadcastEvent(str(event)))           
                 elif len(args) == 1:
                     if isinstance(args[0],function.DirectName):
-                        exprs=args[0].exprs
-                        event,state_name=exprs[-1],exprs[:len(exprs)-1]
-                        event_name=get_directed_event(state_name,event)
+                        exprs = args[0].exprs
+                        event, state_name = exprs[-1] , exprs[:-1]
+                        event_name = get_directed_event(state_name, event)
                 return raise_event(event_name)
             else:
                 assert procedures is not None and cmd.func_name in procedures, \
@@ -262,7 +227,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                             expr_list.append(hcsp.Assign(expr.AVar(proc.params[index]),val))
 
                     return hcsp.seq([*expr_list,hcsp.Var(cmd.func_name)])
-
 
         elif isinstance(cmd, function.Sequence):
             if isinstance(cmd.cmd1, function.RaiseEvent) and still_there is not None:
