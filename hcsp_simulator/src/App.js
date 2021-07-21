@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft } from '@fortawesome/free-solid-svg-icons'
 import { Chart } from 'chart.js'
 import axios from "axios"
+import _ from 'lodash'
 
 // Plugin for drawing vertical lines on the graph.
 const verticalLinePlugin = {
@@ -130,11 +131,27 @@ class Process extends React.Component {
                                         return(
                                             <div>Procedure{index}:{info.name}
                                             {        
+                                                    
                                                     info.lines.map((str, line_no) => {
-                                                        if (this.props.pos === undefined) {
+                                                        
+                                                        if (this.props.callstack === undefined) {
                                                             return <pre key={line_no}>{str}</pre>
                                                         }
-                                                        const pos = this.props.pos;
+                                                        var tag = 0;//tag=0,not in procedure
+                                                        for(var ind = 0; ind < this.props.callstack.procedure.length; ind++){
+                                                            if (info.name === this.props.callstack.procedure[ind]){
+                                                                tag=1;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (tag === 0) {
+                                                            return <pre key={line_no}>{str}</pre>
+                                                        }
+                                                        if (this.props.callstack['innerpos'][ind] === undefined) {
+                                                            return <pre key={line_no}>{str}</pre>
+                                                        }
+                                                        
+                                                        const pos = this.props.callstack['innerpos'][ind];
                                                         var bg_start, bg_end;
                                                         if (line_no === pos.start_x) {
                                                             bg_start = pos.start_y;
@@ -177,10 +194,13 @@ class Process extends React.Component {
                             <div>
                                 {
                                     this.props.lines.map((str, line_no) => {
-                                        if (this.props.pos === undefined) {
+                                        if (this.props.callstack === undefined) {
                                             return <pre key={line_no}>{str}</pre>
                                         }
-                                        const pos = this.props.pos;
+                                        const pos = this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1];
+                                        if (pos === undefined) {
+                                            return <pre key={line_no}>{str}</pre>
+                                        }
                                         var bg_start, bg_end;
                                         if (line_no === pos.start_x) {
                                             bg_start = pos.start_y;
@@ -685,20 +705,20 @@ class App extends React.Component {
                         else if (this.state.history.length === 0) {
                             // No data is available
                             return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                name={hcsp_name} pos={undefined} state={[]}
+                                name={hcsp_name} callstack={undefined} state={[]}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
                                 npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
-                            var pos, state;
+                            var callstack, state;
                             if (typeof (event.infos[hcsp_name]) === 'number') {
                                 var prev_id = event.infos[hcsp_name];
                                 var prev_info = this.state.history[prev_id].infos[hcsp_name];
-                                pos = prev_info.pos;
+                                callstack = prev_info.callstack;
                                 state = prev_info.state;
                             } else {
-                                pos = event.infos[hcsp_name].pos;
+                                callstack = event.infos[hcsp_name].callstack;
                                 state = event.infos[hcsp_name].state;
                             }
                             var event_time;
@@ -708,26 +728,54 @@ class App extends React.Component {
                                 event_time = [event.time, event.time + event.delay_time];
                             }
                             var time_series = this.state.time_series[hcsp_name];
-                            if (pos === 'end') {
-                                // End of data set
-                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                    name={hcsp_name} pos={undefined} state={state}
-                                    time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
-                            } else {
-                                var npos = false;
-                                var pos = info.mapping[pos];
-                                if (hpos < this.state.history.length) {
-                                    if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos) {
-                                        npos = true;
-                                        pos = info.mapping[this.state.history[hpos].ori_pos[hcsp_name]];
-                                    }
+                            
+                            var new_callstack=_.cloneDeep(callstack);
+                            for (var i = 0; i < callstack['innerpos'].length; i++){
+                                var pos = callstack['innerpos'][i]
+                                if (pos === 'end') {
+                                    // End of data set
+                                    return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                                        name={hcsp_name} callstack={undefined} state={state}
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                                 }
-                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                    name={hcsp_name} pos={pos} state={state}
-                                    time_series={time_series} event_time={event_time} hpos={hpos}
-                                    npos={npos} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
+                            }    
+                            var npos = false;
+                            for (i = 0; i < callstack['innerpos'].length; i++){
+                                new_callstack['innerpos'][i] = info.mapping[callstack['innerpos'][i]]
                             }
+                            if (hpos < this.state.history.length) {   
+                                if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos){
+                                    npos = true;
+                                    new_callstack['innerpos']=[];
+                                    new_callstack['pos']=[];
+                                    new_callstack['procedure']=[];
+                                    for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
+                                        var proc = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
+                                        if (proc === null){
+                                            new_callstack['innerpos'][i] = info.mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];
+                                        }
+                                        else{
+                                            for (var ind=0 ; index < info.procedures.length ; ind++){    
+                                                if(info.procedures[ind].name === proc)
+                                                        break;
+                                            }
+                                            new_callstack['innerpos'][i] = info.procedures[ind].mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];       
+                                        }
+                                    }
+                                    for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
+                                        new_callstack['pos'][i] = this.state.history[hpos].ori_pos[hcsp_name].pos[i];
+                                    }
+                                
+                                    for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
+                                        new_callstack['procedure'][i] = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
+                                    }
+                                }   
+                            }     
+                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                                        name={hcsp_name} callstack={new_callstack} state={state}
+                                        time_series={time_series} event_time={event_time} hpos={hpos}
+                                        npos={npos} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                         }
                     })}
                 </Container>

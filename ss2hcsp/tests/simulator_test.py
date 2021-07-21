@@ -114,21 +114,21 @@ class SimulatorTest(unittest.TestCase):
             expr = parser.bexpr_parser.parse(expr)
             self.assertEqual(simulator.eval_expr(expr, state), res)
 
-    def testStringOfPos(self):
-        test_data = [
-            ("x := 1; x := x + 1", (1,), "p1"),
-            ("x := 1; wait(1)", (1, 0), "p1,0"),
-            ("rec X.(x := 1; wait(1); @X)", (), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
-        ]
+    # def testStringOfPos(self):
+    #     test_data = [
+    #         ("x := 1; x := x + 1", (1,), "p1"),
+    #         ("x := 1; wait(1)", (1, 0), "p1,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
+    #     ]
 
-        for hp, pos, expected_pos in test_data:
-            hp = parser.hp_parser.parse(hp)
-            pos = simulator.remove_rec(hp, pos)
-            self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
+    #     for hp, pos, expected_pos in test_data:
+    #         hp = parser.hp_parser.parse(hp)
+    #         pos = simulator.remove_rec(hp, pos)
+    #         self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
 
     def testExecStep(self):
         test_data = [
