@@ -74,12 +74,12 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,array_value=self.data)
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there, arrays=self.data.keys(),array_value=self.data)
+                                       still_there=still_there, arrays=self.data.keys())
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, init_tran_act) to the

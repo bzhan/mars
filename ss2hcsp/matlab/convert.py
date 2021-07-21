@@ -12,7 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
+def convert_expr(e, *, procedures=None, arrays=None):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -82,7 +82,7 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
                     elif isinstance(proc.return_var,tuple):
                         return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
                 else:
-                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays,array_value=array_value))
+                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays))
                     return expr.AVar(proc.return_var)
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
@@ -104,7 +104,7 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
     res = rec(e)
     return hcsp.seq(pre_acts), res
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None,array_value=None):
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -129,7 +129,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays,array_value=array_value)
+        return convert_expr(e, procedures=procedures, arrays=arrays)
 
     def conv_exprs(es):
         # Convert a list of expressions
