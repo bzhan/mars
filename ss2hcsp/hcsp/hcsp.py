@@ -1224,6 +1224,16 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
     for name, proc in procs.items():
         dep_relation[name] = proc.get_contain_hps()
 
+    # Construct reverse dependency relation, for heuristic selection of
+    # inlined functions
+    rev_dep_relation = dict()
+    rev_dep_relation[""] = 0
+    for name in procs:
+        rev_dep_relation[name] = 0
+    for name, contains in dep_relation.items():
+        for contain in contains:
+            rev_dep_relation[contain] += 1
+
     # Set of procedures to be inlined, in order of removal
     inline_order = []
 
@@ -1249,7 +1259,23 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
         if found:
             continue
 
-        break
+        # No procedure is found, move one procedure to fixed
+        protect_name = None
+        for name in dep_relation:
+            if name not in fixed and name not in inline_order and name in prefer_protect:
+                protect_name = name
+                break
+        
+        if protect_name is None:
+            protect_count = None
+            for name in dep_relation:
+                if name not in fixed and name not in inline_order:
+                    if protect_count is None or rev_dep_relation[name] > protect_count:
+                        protect_name = name
+                        protect_count = rev_dep_relation[name]
+        
+        assert protect_name is not None
+        fixed.add(protect_name)
 
     # Next, recursively perform substitutions
     for inline_name in inline_order:
