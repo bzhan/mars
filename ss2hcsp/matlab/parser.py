@@ -9,7 +9,7 @@ from ss2hcsp.hcsp import hcsp
 
 grammar = r"""
     // Expressions
-    ?arr_num: expr ((",")? expr)* ->arr_num
+    ?arr_num: expr ((",")? expr)* -> arr_num
 
     ?atom_expr: CNAME -> var_expr
         | NUMBER -> num_expr
@@ -155,11 +155,11 @@ class MatlabTransformer(Transformer):
     def list_expr(self, *args):
         return function.ListExpr(*args)
 
-    def arr_num(self,*args):
-        return function.Arr_num(*args)
+    def arr_num(self, *args):
+        return function.ListExpr(*args)
 
     def list_expr2(self, *args):
-        return function.ListExpr2(*args)
+        return function.ListExpr(*args)
 
     def num_expr(self, v):
         return function.AConst(float(v) if '.' in v or 'e' in v else int(v))

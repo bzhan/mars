@@ -32,10 +32,8 @@ def convert_expr(e, *, procedures=None, arrays=None):
             return expr.AVar(e.name)
         elif isinstance(e, function.ListExpr):
             return expr.ListExpr(*(rec(arg) for arg in e.args))
-        elif isinstance(e, function.ListExpr2):
-            return expr.ListExpr(*(rec(arg) for arg in e.args))
-        elif isinstance(e, (function.AConst,int,str)):
-            if isinstance(e,(int,str)):
+        elif isinstance(e, (function.AConst, int, str)):
+            if isinstance(e, (int, str)):
                 return expr.AConst(e)
             else:
                 return expr.AConst(e.value)
