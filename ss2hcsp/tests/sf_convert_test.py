@@ -14,7 +14,7 @@ from ss2hcsp.hcsp.pprint import pprint
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
              print_chart=False, print_before_simp=False, print_after_simp=False,
-             print_final=False, output_to_file=None):
+             print_final=False, print_res=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -48,7 +48,8 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
             f.write(declarations.export())
 
     # Test result using simulator
-    run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter)
+    run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter,
+                       print_res=print_res)
 
 
 class SFConvertTest(unittest.TestCase):
@@ -190,10 +191,15 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
-             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1', 
+             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1',
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
              'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+
+    def testJunInState(self):
+        run_test(self, "./Examples/Stateflow/tests/jun_in_state.xml", 11,
+            ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
+             'log t1', 'log t2', 'log enC', 'log enC2'], print_res=True)
 
     def testSFNew(self):
         random.seed(0)  # for repeatability
