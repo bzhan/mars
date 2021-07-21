@@ -199,7 +199,7 @@ class Process extends React.Component {
                                         }
                                         const pos = this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1];
                                         if (pos === undefined) {
-                                            return <pre key={line_no}>{str}</pre>
+                                            return  <pre key={line_no}>{str}</pre>
                                         }
                                         var bg_start, bg_end;
                                         if (line_no === pos.start_x) {
