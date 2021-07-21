@@ -1,7 +1,7 @@
 %type: module
 
 module Chart():
-output RHC2;
+output complete;
 procedure during_Chart_model_RTPS_Writer begin
   _ret := 0
 end
@@ -46,10 +46,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
-        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
-          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1" then
           @during_Chart_model_channel_channel_2_delay_1
+        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
+          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" then
           @during_Chart_model_channel_channel_2_next
         else
@@ -65,10 +65,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
-        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
-          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1" then
           @during_Chart_model_channel_channel_3_delay_1
+        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
+          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" then
           @during_Chart_model_channel_channel_3_next
         else
@@ -84,10 +84,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
-        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
-          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1" then
           @during_Chart_model_channel_channel_4_delay_1
+        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
+          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" then
           @during_Chart_model_channel_channel_4_next
         else
@@ -103,10 +103,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
-        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
-          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1" then
           @during_Chart_model_channel_channel_5_delay_1
+        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
+          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" then
           @during_Chart_model_channel_channel_5_next
         else
@@ -267,10 +267,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
-        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
-          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1" then
           @during_Chart_model_channel_channel_2_delay_1
+        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
+          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" then
           @during_Chart_model_channel_channel_2_next
         else
@@ -286,10 +286,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
-        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
-          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1" then
           @during_Chart_model_channel_channel_3_delay_1
+        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
+          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" then
           @during_Chart_model_channel_channel_3_next
         else
@@ -305,10 +305,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
-        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
-          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1" then
           @during_Chart_model_channel_channel_4_delay_1
+        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
+          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" then
           @during_Chart_model_channel_channel_4_next
         else
@@ -324,10 +324,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
-        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
-          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1" then
           @during_Chart_model_channel_channel_5_delay_1
+        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
+          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" then
           @during_Chart_model_channel_channel_5_next
         else
@@ -769,12 +769,14 @@ procedure during_Chart_model_channel_channel_1_try begin
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" -> (
       J360_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d1 := y;
         Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_1";
         Chart_model_channel_channel_1_delay_1_time := 0;
         _ret := 1;
@@ -795,10 +797,8 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_1 begin
   Chart_model_channel_channel_1_delay_1_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_1_delay_1_time >= y -> (
+  Chart_model_channel_channel_1_delay_1_time >= d1 -> (
     seq_num_1 := 1;
-    log("Send 1 to reader 1");
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
@@ -834,10 +834,8 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_2 begin
   Chart_model_channel_channel_1_delay_2_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_1_delay_2_time >= y -> (
+  Chart_model_channel_channel_1_delay_2_time >= d1 -> (
     seq_num_2 := 1;
-    log("Send 1 to reader 2");
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
     @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
@@ -878,12 +876,14 @@ end
 procedure during_Chart_model_channel_channel_1_next begin
   Chart_model_channel_channel_1_next_done := 0;
   x := uniform(0,1);
-  if x > 0.6 then
+  if x > 0.4 then
     y := 1
   else
     y := 0
   endif;
   y == 1 -> (
+    y := uniform(0,1);
+    d1 := y;
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" -> (
       Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_2";
       Chart_model_channel_channel_1_delay_2_time := 0;
@@ -916,12 +916,14 @@ procedure during_Chart_model_channel_channel_2_try begin
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" -> (
       J517_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d2 := y;
         Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_1";
         Chart_model_channel_channel_2_delay_1_time := 0;
         _ret := 1;
@@ -940,48 +942,9 @@ procedure during_Chart_model_channel_channel_2_try begin
   _ret := Chart_model_channel_channel_2_try_done
 end
 
-procedure during_Chart_model_channel_channel_2_delay_2 begin
-  Chart_model_channel_channel_2_delay_2_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_2_delay_2_time >= y -> (
-    seq_num_2 := 2;
-    EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
-      else
-        skip
-      endif
-    );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
-      else
-        skip
-      endif
-    );
-    EL := pop(EL);
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" -> (
-      Chart_model_channel_channel_2_delay_2_time := -1;
-      Chart_model_channel_channel_2_st := "";
-      @entry_Chart_model_channel_channel_2_try;
-      Chart_model_channel_channel_2_delay_2_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_2_delay_2_done
-end
-
 procedure during_Chart_model_channel_channel_2_delay_1 begin
   Chart_model_channel_channel_2_delay_1_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_2_delay_1_time >= y -> (
+  Chart_model_channel_channel_2_delay_1_time >= d2 -> (
     seq_num_1 := 2;
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
@@ -1016,6 +979,43 @@ procedure during_Chart_model_channel_channel_2_delay_1 begin
   _ret := Chart_model_channel_channel_2_delay_1_done
 end
 
+procedure during_Chart_model_channel_channel_2_delay_2 begin
+  Chart_model_channel_channel_2_delay_2_done := 0;
+  Chart_model_channel_channel_2_delay_2_time >= d2 -> (
+    seq_num_2 := 2;
+    EL := push(EL,"SUCCESS");
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
+      else
+        skip
+      endif
+    );
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
+      else
+        skip
+      endif
+    );
+    EL := pop(EL);
+    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" -> (
+      Chart_model_channel_channel_2_delay_2_time := -1;
+      Chart_model_channel_channel_2_st := "";
+      @entry_Chart_model_channel_channel_2_try;
+      Chart_model_channel_channel_2_delay_2_done := 1
+    )
+  );
+  _ret := Chart_model_channel_channel_2_delay_2_done
+end
+
 procedure entry_Chart_model_channel_channel_2_next begin
   Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next"
 end
@@ -1023,12 +1023,14 @@ end
 procedure during_Chart_model_channel_channel_2_next begin
   Chart_model_channel_channel_2_next_done := 0;
   x := uniform(0,1);
-  if x > 0.6 then
+  if x > 0.4 then
     y := 1
   else
     y := 0
   endif;
   y == 1 -> (
+    y := uniform(0,1);
+    d2 := y;
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" -> (
       Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_2";
       Chart_model_channel_channel_2_delay_2_time := 0;
@@ -1061,12 +1063,14 @@ procedure during_Chart_model_channel_channel_3_try begin
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" -> (
       J535_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d3 := y;
         Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_1";
         Chart_model_channel_channel_3_delay_1_time := 0;
         _ret := 1;
@@ -1085,48 +1089,9 @@ procedure during_Chart_model_channel_channel_3_try begin
   _ret := Chart_model_channel_channel_3_try_done
 end
 
-procedure during_Chart_model_channel_channel_3_delay_2 begin
-  Chart_model_channel_channel_3_delay_2_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_3_delay_2_time >= y -> (
-    seq_num_2 := 3;
-    EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
-      else
-        skip
-      endif
-    );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
-      else
-        skip
-      endif
-    );
-    EL := pop(EL);
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" -> (
-      Chart_model_channel_channel_3_delay_2_time := -1;
-      Chart_model_channel_channel_3_st := "";
-      @entry_Chart_model_channel_channel_3_try;
-      Chart_model_channel_channel_3_delay_2_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_3_delay_2_done
-end
-
 procedure during_Chart_model_channel_channel_3_delay_1 begin
   Chart_model_channel_channel_3_delay_1_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_3_delay_1_time >= y -> (
+  Chart_model_channel_channel_3_delay_1_time >= d3 -> (
     seq_num_1 := 3;
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
@@ -1161,6 +1126,43 @@ procedure during_Chart_model_channel_channel_3_delay_1 begin
   _ret := Chart_model_channel_channel_3_delay_1_done
 end
 
+procedure during_Chart_model_channel_channel_3_delay_2 begin
+  Chart_model_channel_channel_3_delay_2_done := 0;
+  Chart_model_channel_channel_3_delay_2_time >= d3 -> (
+    seq_num_2 := 3;
+    EL := push(EL,"SUCCESS");
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
+      else
+        skip
+      endif
+    );
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
+      else
+        skip
+      endif
+    );
+    EL := pop(EL);
+    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" -> (
+      Chart_model_channel_channel_3_delay_2_time := -1;
+      Chart_model_channel_channel_3_st := "";
+      @entry_Chart_model_channel_channel_3_try;
+      Chart_model_channel_channel_3_delay_2_done := 1
+    )
+  );
+  _ret := Chart_model_channel_channel_3_delay_2_done
+end
+
 procedure entry_Chart_model_channel_channel_3_next begin
   Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next"
 end
@@ -1168,12 +1170,14 @@ end
 procedure during_Chart_model_channel_channel_3_next begin
   Chart_model_channel_channel_3_next_done := 0;
   x := uniform(0,1);
-  if x > 0.6 then
+  if x > 0.4 then
     y := 1
   else
     y := 0
   endif;
   y == 1 -> (
+    y := uniform(0,1);
+    d3 := y;
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" -> (
       Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_2";
       Chart_model_channel_channel_3_delay_2_time := 0;
@@ -1206,12 +1210,14 @@ procedure during_Chart_model_channel_channel_4_try begin
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" -> (
       J553_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d4 := y;
         Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_1";
         Chart_model_channel_channel_4_delay_1_time := 0;
         _ret := 1;
@@ -1230,48 +1236,9 @@ procedure during_Chart_model_channel_channel_4_try begin
   _ret := Chart_model_channel_channel_4_try_done
 end
 
-procedure during_Chart_model_channel_channel_4_delay_2 begin
-  Chart_model_channel_channel_4_delay_2_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_4_delay_2_time >= y -> (
-    seq_num_2 := 4;
-    EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
-      else
-        skip
-      endif
-    );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
-      else
-        skip
-      endif
-    );
-    EL := pop(EL);
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" -> (
-      Chart_model_channel_channel_4_delay_2_time := -1;
-      Chart_model_channel_channel_4_st := "";
-      @entry_Chart_model_channel_channel_4_try;
-      Chart_model_channel_channel_4_delay_2_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_4_delay_2_done
-end
-
 procedure during_Chart_model_channel_channel_4_delay_1 begin
   Chart_model_channel_channel_4_delay_1_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_4_delay_1_time >= y -> (
+  Chart_model_channel_channel_4_delay_1_time >= d4 -> (
     seq_num_1 := 4;
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
@@ -1306,6 +1273,43 @@ procedure during_Chart_model_channel_channel_4_delay_1 begin
   _ret := Chart_model_channel_channel_4_delay_1_done
 end
 
+procedure during_Chart_model_channel_channel_4_delay_2 begin
+  Chart_model_channel_channel_4_delay_2_done := 0;
+  Chart_model_channel_channel_4_delay_2_time >= d4 -> (
+    seq_num_2 := 4;
+    EL := push(EL,"SUCCESS");
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
+      else
+        skip
+      endif
+    );
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
+      else
+        skip
+      endif
+    );
+    EL := pop(EL);
+    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" -> (
+      Chart_model_channel_channel_4_delay_2_time := -1;
+      Chart_model_channel_channel_4_st := "";
+      @entry_Chart_model_channel_channel_4_try;
+      Chart_model_channel_channel_4_delay_2_done := 1
+    )
+  );
+  _ret := Chart_model_channel_channel_4_delay_2_done
+end
+
 procedure entry_Chart_model_channel_channel_4_next begin
   Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next"
 end
@@ -1313,12 +1317,14 @@ end
 procedure during_Chart_model_channel_channel_4_next begin
   Chart_model_channel_channel_4_next_done := 0;
   x := uniform(0,1);
-  if x > 0.6 then
+  if x > 0.4 then
     y := 1
   else
     y := 0
   endif;
   y == 1 -> (
+    y := uniform(0,1);
+    d4 := y;
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" -> (
       Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_2";
       Chart_model_channel_channel_4_delay_2_time := 0;
@@ -1351,12 +1357,14 @@ procedure during_Chart_model_channel_channel_5_try begin
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" -> (
       J571_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d5 := y;
         Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_1";
         Chart_model_channel_channel_5_delay_1_time := 0;
         _ret := 1;
@@ -1375,48 +1383,9 @@ procedure during_Chart_model_channel_channel_5_try begin
   _ret := Chart_model_channel_channel_5_try_done
 end
 
-procedure during_Chart_model_channel_channel_5_delay_2 begin
-  Chart_model_channel_channel_5_delay_2_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_5_delay_2_time >= y -> (
-    seq_num_2 := 5;
-    EL := push(EL,"SUCCESS");
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
-      else
-        skip
-      endif
-    );
-    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
-    _ret == 0 -> (
-      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
-      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
-        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
-      else
-        skip
-      endif
-    );
-    EL := pop(EL);
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" -> (
-      Chart_model_channel_channel_5_delay_2_time := -1;
-      Chart_model_channel_channel_5_st := "";
-      @entry_Chart_model_channel_channel_5_try;
-      Chart_model_channel_channel_5_delay_2_done := 1
-    )
-  );
-  _ret := Chart_model_channel_channel_5_delay_2_done
-end
-
 procedure during_Chart_model_channel_channel_5_delay_1 begin
   Chart_model_channel_channel_5_delay_1_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_channel_5_delay_1_time >= y -> (
+  Chart_model_channel_channel_5_delay_1_time >= d5 -> (
     seq_num_1 := 5;
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
@@ -1451,6 +1420,43 @@ procedure during_Chart_model_channel_channel_5_delay_1 begin
   _ret := Chart_model_channel_channel_5_delay_1_done
 end
 
+procedure during_Chart_model_channel_channel_5_delay_2 begin
+  Chart_model_channel_channel_5_delay_2_done := 0;
+  Chart_model_channel_channel_5_delay_2_time >= d5 -> (
+    seq_num_2 := 5;
+    EL := push(EL,"SUCCESS");
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready
+      else
+        skip
+      endif
+    );
+    @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response;
+    _ret == 0 -> (
+      if Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack
+      elif Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" then
+        @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting
+      else
+        skip
+      endif
+    );
+    EL := pop(EL);
+    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" -> (
+      Chart_model_channel_channel_5_delay_2_time := -1;
+      Chart_model_channel_channel_5_st := "";
+      @entry_Chart_model_channel_channel_5_try;
+      Chart_model_channel_channel_5_delay_2_done := 1
+    )
+  );
+  _ret := Chart_model_channel_channel_5_delay_2_done
+end
+
 procedure entry_Chart_model_channel_channel_5_next begin
   Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next"
 end
@@ -1458,12 +1464,14 @@ end
 procedure during_Chart_model_channel_channel_5_next begin
   Chart_model_channel_channel_5_next_done := 0;
   x := uniform(0,1);
-  if x > 0.6 then
+  if x > 0.4 then
     y := 1
   else
     y := 0
   endif;
   y == 1 -> (
+    y := uniform(0,1);
+    d5 := y;
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" -> (
       Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_2";
       Chart_model_channel_channel_5_delay_2_time := 0;
@@ -1496,12 +1504,14 @@ procedure during_Chart_model_channel_Heartbeat_try begin
     Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" -> (
       J764_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d_hb := y;
         Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_delay";
         Chart_model_channel_Heartbeat_delay_time := 0;
         _ret := 1;
@@ -1521,8 +1531,7 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_delay begin
   Chart_model_channel_Heartbeat_delay_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_Heartbeat_delay_time >= y -> (
+  Chart_model_channel_Heartbeat_delay_time >= d_hb -> (
     EL := push(EL,"HEARTBEAT2");
     @during_Chart_model_RTPS_Reader;
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
@@ -1592,12 +1601,14 @@ procedure during_Chart_model_channel_Acknack_1_try begin
     Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" -> (
       J723_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d_ack1 := y;
         Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_delay";
         Chart_model_channel_Acknack_1_delay_time := 0;
         _ret := 1;
@@ -1617,8 +1628,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_delay begin
   Chart_model_channel_Acknack_1_delay_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_Acknack_1_delay_time >= y -> (
+  Chart_model_channel_Acknack_1_delay_time >= d_ack1 -> (
     ack_id := ReaderId_1;
     EL := push(EL,"ACKNACK2");
     @during_Chart_model_RTPS_Writer;
@@ -1678,12 +1688,14 @@ procedure during_Chart_model_channel_Acknack_2_try begin
     Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" -> (
       J807_done := 0;
       x := uniform(0,1);
-      if x > 0.6 then
+      if x > 0.4 then
         y := 1
       else
         y := 0
       endif;
       y == 1 -> (
+        y := uniform(0,1);
+        d_ack2 := y;
         Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_delay";
         Chart_model_channel_Acknack_2_delay_time := 0;
         _ret := 1;
@@ -1703,8 +1715,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_delay begin
   Chart_model_channel_Acknack_2_delay_done := 0;
-  y := uniform(0,1);
-  Chart_model_channel_Acknack_2_delay_time >= y -> (
+  Chart_model_channel_Acknack_2_delay_time >= d_ack2 -> (
     ack_id := ReaderId_2;
     EL := push(EL,"ACKNACK2");
     @during_Chart_model_RTPS_Writer;
@@ -1889,9 +1900,9 @@ begin
   complete := 0;
   SET := 0;
   NO_SET := 1;
-  nackResponseDelay := 3;
-  heartbeatResponseDelay := 5;
-  heartbeatPeriod := 5;
+  nackResponseDelay := 2;
+  heartbeatResponseDelay := 3;
+  heartbeatPeriod := 3;
   data := 0;
   data1 := 0;
   acked_num := [0,0];
@@ -1900,6 +1911,14 @@ begin
   livelinessFlag := 1;
   ReaderId_1 := 1;
   ReaderId_2 := 2;
+  d1 := 0;
+  d2 := 0;
+  d3 := 0;
+  d4 := 0;
+  d5 := 0;
+  d_ack1 := 0;
+  d_ack2 := 0;
+  d_hb := 0;
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := -1;
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := -1;
   Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
@@ -2040,10 +2059,10 @@ begin
       _ret == 0 -> (
         if Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" then
           @during_Chart_model_channel_channel_2_try
-        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
-          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1" then
           @during_Chart_model_channel_channel_2_delay_1
+        elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" then
+          @during_Chart_model_channel_channel_2_delay_2
         elif Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" then
           @during_Chart_model_channel_channel_2_next
         else
@@ -2054,10 +2073,10 @@ begin
       _ret == 0 -> (
         if Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" then
           @during_Chart_model_channel_channel_3_try
-        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
-          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1" then
           @during_Chart_model_channel_channel_3_delay_1
+        elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" then
+          @during_Chart_model_channel_channel_3_delay_2
         elif Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" then
           @during_Chart_model_channel_channel_3_next
         else
@@ -2068,10 +2087,10 @@ begin
       _ret == 0 -> (
         if Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" then
           @during_Chart_model_channel_channel_4_try
-        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
-          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1" then
           @during_Chart_model_channel_channel_4_delay_1
+        elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" then
+          @during_Chart_model_channel_channel_4_delay_2
         elif Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" then
           @during_Chart_model_channel_channel_4_next
         else
@@ -2082,10 +2101,10 @@ begin
       _ret == 0 -> (
         if Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" then
           @during_Chart_model_channel_channel_5_try
-        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
-          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1" then
           @during_Chart_model_channel_channel_5_delay_1
+        elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" then
+          @during_Chart_model_channel_channel_5_delay_2
         elif Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" then
           @during_Chart_model_channel_channel_5_next
         else
@@ -2164,13 +2183,14 @@ begin
   read_DDS_Writer_WHC?WHC;
   read_DDS_Writer_RHC?RHC;
   read_DDS_Writer_RHC2?RHC2;
-  y := 0;
   flag := 0;
   cachechanges := [100,200,300,400,500];
   DDS_Writer_add_time := -1;
   i := 1;
   first_SN := 1;
   last_SN := 0;
+  y := unidrnd(10);
+  d := y;
   @entry_DDS_Writer_add;
   write_DDS_Writer_WHC!WHC;
   write_DDS_Writer_RHC!RHC;
@@ -2182,12 +2202,13 @@ begin
     read_DDS_Writer_RHC?RHC;
     read_DDS_Writer_RHC2?RHC2;
     if DDS_Writer_st == "DDS_Writer_add" then
-      y := unidrnd(10);
-      DDS_Writer_add_time >= y && i <= 5 -> (
+      DDS_Writer_add_time >= d && i <= 5 -> (
         WHC[i-1] := cachechanges[i-1];
         first_SN := 1;
         last_SN := i;
         i := i+1;
+        y := unidrnd(10);
+        d := y;
         DDS_Writer_st == "DDS_Writer_add" -> (
           DDS_Writer_add_time := -1;
           DDS_Writer_st := "";
