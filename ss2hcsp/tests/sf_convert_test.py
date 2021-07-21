@@ -2,6 +2,8 @@
 
 import unittest
 import random
+from pstats import Stats
+import cProfile
 
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
@@ -14,7 +16,7 @@ from ss2hcsp.hcsp.pprint import pprint
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
              print_chart=False, print_before_simp=False, print_after_simp=False,
-             print_final=False, print_res=False, output_to_file=None):
+             print_final=False, print_res=False, profile=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -28,19 +30,29 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     output_to_file : str - (optional) name of file to output HCSP.
 
     """
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
+
     diagram = SL_Diagram(location=filename)
-    procs_list = sf_convert.convert_diagram(
+    proc_map = sf_convert.convert_diagram(
         diagram, print_chart=print_chart, print_before_simp=print_before_simp,
         print_after_simp=print_after_simp, print_final=print_final)
+
+    if profile:
+        p = Stats(pr)
+        p.strip_dirs()
+        p.sort_stats('cumtime')
+        p.print_stats()
 
     # Optional: output converted HCSP to file
     if output_to_file is not None:
         modules = []
         module_insts = []
-        for i, (procs, hp) in enumerate(procs_list):
-            procs_lst = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
-            modules.append(module.HCSPModule("P" + str(i), code=hp, procedures=procs_lst))
-            module_insts.append(module.HCSPModuleInst("P" + str(i), "P" + str(i), []))
+        for name, (procs, hp) in proc_map.items():
+            procs_lst = [hcsp.Procedure(proc_name, hp) for proc_name, hp in procs.items()]
+            modules.append(module.HCSPModule(name, code=hp, procedures=procs_lst))
+            module_insts.append(module.HCSPModuleInst(name, name, []))
         system = module.HCSPSystem(module_insts)
         declarations = module.HCSPDeclarations(modules + [system])
 
@@ -48,7 +60,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
             f.write(declarations.export())
 
     # Test result using simulator
-    run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter,
+    run_simulator_test(self, proc_map, num_cycle, res, io_filter=io_filter,
                        print_res=print_res)
 
 
@@ -204,7 +216,7 @@ class SFConvertTest(unittest.TestCase):
     def testSFNew(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 10,
-            [], print_final=True, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+            [], output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
 
 if __name__ == "__main__":

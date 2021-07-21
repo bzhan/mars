@@ -475,7 +475,7 @@ class HCSPAnalysis:
         # Before procedure calls, any variable may be used
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'var':
-                for var in self.all_vars:
+                for var in self.all_vars - self.ignore_end:
                     self.infos[loc].live_before.add(var)
 
         # Use reverse dictionary order as approximation for good traversal order
@@ -484,7 +484,7 @@ class HCSPAnalysis:
         # Propagate from reach before to reach after of predecessor
         while True:
             found = False
-            for process_loc in self.infos.keys():
+            for process_loc in process_order:
                 info = self.infos[process_loc]
                 for var in info.live_before:
                     for prev_loc in info.rev_edges:

@@ -28,21 +28,33 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
 
     """
     # Process the input HCSP processes, converting them into SimInfo objects
-    for i in range(len(infos)):
-        if isinstance(infos[i], str):
-            # Single HCSP program
-            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
-        else:
-            # HCSP program with procedure specifications
-            procs, hp = infos[i]
+    sim_infos = []
+    if isinstance(infos, list):
+        for i in range(len(infos)):
+            if isinstance(infos[i], str):
+                # Single HCSP program
+                sim_infos.append(simulator.SimInfo('P' + str(i), infos[i]))
+            else:
+                # HCSP program with procedure specifications
+                procs, hp = infos[i]
+                procedures = dict()
+                for name, proc_hp in procs.items():
+                    # Specified as a pair of name and HCSP program
+                    procedures[name] = Procedure(name, proc_hp)
+                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures))
+
+    elif isinstance(infos, dict):
+        for name, (procs, hp) in infos.items():
             procedures = dict()
-            for name, proc_hp in procs.items():
-                # Specified as a pair of name and HCSP program
-                procedures[name] = Procedure(name, proc_hp)
-            infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
+            for proc_name, proc_hp in procs.items():
+                procedures[proc_name] = Procedure(proc_name, proc_hp)
+            sim_infos.append(simulator.SimInfo(name, hp, procedures=procedures))
+
+    else:
+        raise TypeError
 
     # Perform the simulation
-    res = simulator.exec_parallel(infos, num_io_events=num_events)
+    res = simulator.exec_parallel(sim_infos, num_io_events=num_events)
 
     if io_filter is None:
         io_filter = lambda s: True

@@ -89,7 +89,11 @@ class SFConvert:
             if isinstance(state, Junction) and not state.default_tran:
                 self.junction_map[ssid] = dict()
             elif isinstance(state, Junction) and state.default_tran and not state.out_trans:
-                self.junction_map[ssid] = {"J"+ssid:("J"+ssid,hcsp.Skip())}
+                self.junction_map[ssid] = {"J"+ssid: ("J"+ssid,hcsp.Skip())}
+
+        # Set of done variables. These are considered inactive at the end of
+        # procedures (to help with live variable analysis)
+        self.done_vars = set()
 
         # Find all states which has a transition guarded by temporal event.
         self.temporal_guards = dict()
@@ -485,6 +489,7 @@ class SFConvert:
 
             # Signal for whether one of the transitions is carried out
             done = state.whole_name + "_done"
+            self.done_vars.add(done)
 
             # Whether the state is still active
             still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
@@ -655,6 +660,7 @@ class SFConvert:
                 self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, None)
                 procs = []
                 done = "J" + state.ssid + "_done"
+                self.done_vars.add(done)
                 procs.append(hcsp.Assign(done, expr.AConst(0)))
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
@@ -678,9 +684,10 @@ class SFConvert:
     def convert_graphical_function_junc(self, junc):
         """Conversion for junctions in graphical functions.
 
-        These junctions are much simpler, since the function returns when
-        reaching dead-end (rather than backtracking), and there are no transition
-        actions.
+        These junctions are much simpler, compared to junctions for
+        transitioning between states, since the function returns when
+        reaching dead-end (rather than backtracking), and there are no
+        transition actions.
 
         """
         if not junc.out_trans:
@@ -688,12 +695,14 @@ class SFConvert:
         
         procs = []
         done = "J" + junc.ssid + "_done"
+        self.done_vars.add(done)
         procs.append(hcsp.Assign(done, expr.AConst(0)))
         for i, tran in enumerate(junc.out_trans):
             pre_act, cond, cond_act, tran_act = self.convert_label(tran.label)
             assert tran_act == hcsp.Skip(), \
                 "convert_graphical_function_junc: no transition action in graphical functions."
-            act = hcsp.seq([cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
+            act = hcsp.seq([cond_act, hcsp.Var("J" + tran.dst),
+                            hcsp.Assign(done, expr.AConst(1))])
             if i == 0:
                 procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
             else:
@@ -713,7 +722,8 @@ class SFConvert:
         dst = proc.default_tran.dst
         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
             "convert_graphical_function: no condition on default transitions"
-        assert tran_act == hcsp.Skip(), "convert_graphical_function: no transition action in graphical functions"
+        assert tran_act == hcsp.Skip(), \
+            "convert_graphical_function: no transition action in graphical functions"
         res[proc.name] = hcsp.seq([cond_act, hcsp.Var("J" + proc.default_tran.dst)])
         return res
 
@@ -896,57 +906,67 @@ def convert_diagram(diagram,
         for chart in charts:
             print(chart)
 
-    procs_list = []
+    proc_map = dict()
+    converter_map = dict()
     for chart in charts:
         converter = SFConvert(chart, dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
-        procs_list.append((procs, hp))
+        proc_map[chart.name] = (procs, hp)
+        converter_map[chart.name] = converter
 
     for dsm in dsms:
-        procs_list.append((dict(), convert_data_store_memory(dsm, charts)))
+        dsm_name = "DSM_" + dsm.dataStoreName
+        proc_map[dsm_name] = (dict(), convert_data_store_memory(dsm, charts))
 
-    for c in continuous:
-        procs_list.append((dict(), get_hcsp.translate_continuous(c)))
+    for i, c in enumerate(continuous):
+        proc_map["Continuous" + str(i+1)] = (dict(), get_hcsp.translate_continuous(c))
 
     # Optional: print HCSP program before simplification
     if print_before_simp:
-        for procs, hp in procs_list:
-            print(pprint(hp))
+        for name, (procs, hp) in proc_map.items():
+            print(name + " ::=\n" + pprint(hp))
             for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+                print('\nprocedure ' + name + " ::=\n" + pprint(proc))
+            print()
 
     # Reduce procedures
-    for i, (procs, hp) in enumerate(procs_list):
+    for name, (procs, hp) in proc_map.items():
         hp = hcsp.reduce_procedures(hp, procs)
-        procs_list[i] = (procs, hp)
+        proc_map[name] = (procs, hp)
 
     # Reduce skip
-    for i, (procs, hp) in enumerate(procs_list):
+    for name, (procs, hp) in proc_map.items():
         hp = optimize.simplify(hp)
-        for name in procs:
-            procs[name] = optimize.simplify(procs[name])
-        procs_list[i] = (procs, hp)
+        for proc_name in procs:
+            procs[proc_name] = optimize.simplify(procs[proc_name])
+        proc_map[name] = (procs, hp)
 
     # Optional: print HCSP program after simplification
     if print_after_simp:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+        for name, (procs, hp) in proc_map.items():
+            print(name + " ::=\n" + pprint(hp))
+            for proc_name, proc in procs.items():
+                print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
+            print()
 
     # Optimize through static analysis
-    for i, (procs, hp) in enumerate(procs_list):
-        hp = optimize.full_optimize(hp, ignore_end={'_ret'})
-        for name in procs:
-            procs[name] = optimize.full_optimize(procs[name])
-        procs_list[i] = (procs, hp)
+    for name, (procs, hp) in proc_map.items():
+        if name in converter_map:
+            done_vars = converter_map[name].done_vars
+        else:
+            done_vars = set()
+        hp = optimize.full_optimize(hp, ignore_end={'_ret'}.union(done_vars))
+        for proc_name in procs:
+            procs[proc_name] = optimize.full_optimize(procs[proc_name], ignore_end=done_vars)
+        proc_map[name] = (procs, hp)
 
     # Optional: print final HCSP program
     if print_final:
-        for procs, hp in procs_list:
-            print(pprint(hp))
-            for name, proc in procs.items():
-                print('\n' + name + " ::=\n" + pprint(proc))
+        for name, (procs, hp) in proc_map.items():
+            print(name + " ::=\n" + pprint(hp))
+            for proc_name, proc in procs.items():
+                print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
+            print()
 
-    return procs_list
+    return proc_map
