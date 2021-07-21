@@ -476,8 +476,6 @@ class SL_Diagram:
                 sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
          
-            # if  block_type == "Clock":
-            #     self.add_block(Clock(name=block_name,max_step=max_step,start_time=start_time))
             if block_type == "Mux":
                 block_name = block.getAttribute("Name")
                 inputs = get_attribute_value(block, "Inputs")
