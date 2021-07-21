@@ -1,7 +1,7 @@
 %type: module
 
 module Chart():
-output RHC;
+output RHC2;
 procedure during_Chart_model_RTPS_Writer begin
   _ret := 0
 end
@@ -363,23 +363,23 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
     count := hb_count;
     J33_done := 0;
     count == 3 -> (
-      buffer_heartbeat[0] := NO_SET;
+      buffer_heartbeat[wid-1][0] := NO_SET;
       count1 := 0;
       @J34;
       J33_done := 1
     );
     J33_done == 0 -> (
-      buffer_heartbeat[0] := SET;
+      buffer_heartbeat[wid-1][0] := SET;
       count1 := count+1;
       @J34
     );
     set_final_Flag_count1 := count1;
     hb_count := set_final_Flag_count1;
     flag := liveliness;
-    buffer_heartbeat[1] := flag;
+    buffer_heartbeat[wid-1][1] := flag;
     wid := WriterId;
-    buffer_heartbeat[2] := first_SN;
-    buffer_heartbeat[3] := last_SN;
+    buffer_heartbeat[wid-1][2] := first_SN;
+    buffer_heartbeat[wid-1][3] := last_SN;
     EL := push(EL,"HEARTBEAT");
     @during_Chart_model_channel_Heartbeat;
     _ret == 0 -> (
@@ -466,8 +466,8 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
   EL != [] && top(EL) == "HEARTBEAT2" -> (
     wid := 1;
     rid := 1;
-    firstSN := buffer_heartbeat[2];
-    lastSN := buffer_heartbeat[3];
+    firstSN := buffer_heartbeat[1-1][2];
+    lastSN := buffer_heartbeat[1-1][3];
     get_heartbeatSN_lastSN := lastSN;
     missing_num := get_heartbeatSN_lastSN;
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" -> (
@@ -619,8 +619,8 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
   EL != [] && top(EL) == "HEARTBEAT2" -> (
     wid := 1;
     rid := 2;
-    firstSN := buffer_heartbeat[2];
-    lastSN := buffer_heartbeat[3];
+    firstSN := buffer_heartbeat[1-1][2];
+    lastSN := buffer_heartbeat[1-1][3];
     get_heartbeatSN_lastSN := lastSN;
     missing_num2 := get_heartbeatSN_lastSN;
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" -> (
@@ -795,9 +795,10 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_1 begin
   Chart_model_channel_channel_1_delay_1_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_1_delay_1_time >= y -> (
     seq_num_1 := 1;
+    log("Send 1 to reader 1");
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1;
     @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive;
@@ -833,9 +834,10 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_2 begin
   Chart_model_channel_channel_1_delay_2_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_1_delay_2_time >= y -> (
     seq_num_2 := 1;
+    log("Send 1 to reader 2");
     EL := push(EL,"SUCCESS");
     @during_Chart_model_RTPS_Reader_RTPS_Reader_2;
     @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive;
@@ -940,7 +942,7 @@ end
 
 procedure during_Chart_model_channel_channel_2_delay_2 begin
   Chart_model_channel_channel_2_delay_2_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_2_delay_2_time >= y -> (
     seq_num_2 := 2;
     EL := push(EL,"SUCCESS");
@@ -978,7 +980,7 @@ end
 
 procedure during_Chart_model_channel_channel_2_delay_1 begin
   Chart_model_channel_channel_2_delay_1_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_2_delay_1_time >= y -> (
     seq_num_1 := 2;
     EL := push(EL,"SUCCESS");
@@ -1085,7 +1087,7 @@ end
 
 procedure during_Chart_model_channel_channel_3_delay_2 begin
   Chart_model_channel_channel_3_delay_2_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_3_delay_2_time >= y -> (
     seq_num_2 := 3;
     EL := push(EL,"SUCCESS");
@@ -1123,7 +1125,7 @@ end
 
 procedure during_Chart_model_channel_channel_3_delay_1 begin
   Chart_model_channel_channel_3_delay_1_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_3_delay_1_time >= y -> (
     seq_num_1 := 3;
     EL := push(EL,"SUCCESS");
@@ -1230,7 +1232,7 @@ end
 
 procedure during_Chart_model_channel_channel_4_delay_2 begin
   Chart_model_channel_channel_4_delay_2_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_4_delay_2_time >= y -> (
     seq_num_2 := 4;
     EL := push(EL,"SUCCESS");
@@ -1268,7 +1270,7 @@ end
 
 procedure during_Chart_model_channel_channel_4_delay_1 begin
   Chart_model_channel_channel_4_delay_1_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_4_delay_1_time >= y -> (
     seq_num_1 := 4;
     EL := push(EL,"SUCCESS");
@@ -1375,7 +1377,7 @@ end
 
 procedure during_Chart_model_channel_channel_5_delay_2 begin
   Chart_model_channel_channel_5_delay_2_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_5_delay_2_time >= y -> (
     seq_num_2 := 5;
     EL := push(EL,"SUCCESS");
@@ -1413,7 +1415,7 @@ end
 
 procedure during_Chart_model_channel_channel_5_delay_1 begin
   Chart_model_channel_channel_5_delay_1_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_channel_5_delay_1_time >= y -> (
     seq_num_1 := 5;
     EL := push(EL,"SUCCESS");
@@ -1519,7 +1521,7 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_delay begin
   Chart_model_channel_Heartbeat_delay_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_Heartbeat_delay_time >= y -> (
     EL := push(EL,"HEARTBEAT2");
     @during_Chart_model_RTPS_Reader;
@@ -1615,7 +1617,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_delay begin
   Chart_model_channel_Acknack_1_delay_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_Acknack_1_delay_time >= y -> (
     ack_id := ReaderId_1;
     EL := push(EL,"ACKNACK2");
@@ -1701,7 +1703,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_delay begin
   Chart_model_channel_Acknack_2_delay_done := 0;
-  y := unidrnd(3);
+  y := uniform(0,1);
   Chart_model_channel_Acknack_2_delay_time >= y -> (
     ack_id := ReaderId_2;
     EL := push(EL,"ACKNACK2");
@@ -1876,7 +1878,7 @@ begin
   sn2 := 0;
   sn1 := 0;
   lastSN := 0;
-  buffer_heartbeat := [0,0,0,0];
+  buffer_heartbeat := [[0,0,0,0]];
   unsent := [1,1,1,1,1];
   buffer_acknack := [[0,0,0,0],[0,0,0,0]];
   ack_id := 0;
@@ -1887,9 +1889,9 @@ begin
   complete := 0;
   SET := 0;
   NO_SET := 1;
-  nackResponseDelay := 5;
-  heartbeatResponseDelay := 10;
-  heartbeatPeriod := 10;
+  nackResponseDelay := 3;
+  heartbeatResponseDelay := 5;
+  heartbeatPeriod := 5;
   data := 0;
   data1 := 0;
   acked_num := [0,0];
