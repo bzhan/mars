@@ -129,6 +129,7 @@ class SL_Diagram:
             else:
                 lists.append(acts)
             return lists
+
         def get_transitions(blocks):
             """Obtain the list of transitions.
             
@@ -325,12 +326,18 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    for tran in out_trans_dict.values():
+
+                    dictMerged2 = dict(out_trans_dict)
+                    dictMerged2.update(all_out_trans)
+
+                    for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
                         if src is None and dst == ssid:  # it is a default transition
                             default_tran = tran
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
+                        else:
+                            all_out_trans[tran.ssid] = tran
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))   

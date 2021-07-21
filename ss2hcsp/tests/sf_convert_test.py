@@ -197,9 +197,9 @@ class SFConvertTest(unittest.TestCase):
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
 
     def testJunInState(self):
-        run_test(self, "./Examples/Stateflow/tests/jun_in_state.xml", 11,
+        run_test(self, "./Examples/Stateflow/tests/jun_in_state.xml", 1,
             ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
-             'log t1', 'log t2', 'log enC', 'log enC2'], print_res=True)
+             'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'])
 
     def testSFNew(self):
         random.seed(0)  # for repeatability
