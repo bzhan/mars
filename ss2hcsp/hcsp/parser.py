@@ -14,12 +14,7 @@ grammar = r"""
         | lname "." CNAME -> field_expr
         | lname "." CNAME "[" expr "]" -> field_array_idx
 
-    ?array_lname: CNAME "(" atom_expr ")" -> array_idx_expr1
-        | CNAME "(" atom_expr "," atom_expr ")" -> array_idx_expr1_2
-        | CNAME "(" atom_expr "," atom_expr "," atom_expr ")" -> array_idx_expr1_3
-
     ?atom_expr: lname
-        | array_lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "[]" -> empty_list
@@ -164,6 +159,7 @@ class HPTransformer(Transformer):
             return expr.AConst(list(arg.value for arg in args))
         else:
             return expr.ListExpr(*args)
+
     def literal_dict(self, *args):
         # args should contain 2*n elements, which are key-value pairs
         assert len(args) >= 2 and len(args) % 2 == 0
@@ -175,35 +171,11 @@ class HPTransformer(Transformer):
     def array_idx_expr(self, a, i):
         return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
     
-    def array_idx_expr1(self, a, i):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
-                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
-                 "del_proc"]:
-            return expr.FunExpr(a, [i])
-        else:
-            return expr.ArrayIdxExpr1(expr.AVar(str(a)), i)
-
-    def array_idx_expr1_2(self, a, i,j):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
-                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
-                 "del_proc"]:
-            return expr.FunExpr(a, [i,j])
-        else:
-            return expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.AVar(str(a)), i), j)
-
-    def array_idx_expr1_3(self, a, i,j,k):
-        if a in ["min", "max", "abs", "gcd", "delay", "sqrt", "div","push", "pop", "top", "get", "bottom", "len",
-                 "get_max", "pop_max","get_min", "pop_min","bernoulli", "uniform","unidrnd","zeros","protected_curve",
-                 "del_proc"]:
-            return expr.FunExpr(a, [i,j,k])
-        else:
-            return expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.ArrayIdxExpr1(expr.AVar(str(a)), i), j),k)
-
     def array_idx_expr2(self, a, i, j):
         return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j)
 
-    def array_idx_expr3(self, a, i, j,k):
-        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j),k)
+    def array_idx_expr3(self, a, i, j, k):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j), k)
 
     def field_array_idx(self, e, field, i):
         return expr.ArrayIdxExpr(expr.FieldNameExpr(e, field), i)

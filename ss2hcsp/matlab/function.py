@@ -661,16 +661,15 @@ class Function:
     def __init__(self, name, params, cmd, return_var):
         assert isinstance(cmd, Command)
         self.name = name
-        self.params = tuple(params) if str(params) !="()" else None
+        self.params = tuple(params)
         self.cmd = cmd
-        self.type="MATLAB_FUNCTION"
+        self.type = "MATLAB_FUNCTION"
         if return_var is None or isinstance(return_var, str):
             self.return_var = return_var
         else:
             self.return_var = tuple(return_var)
 
     def __str__(self):
-
         if self.return_var is None:
             str_return_var = ""
         elif isinstance(self.return_var, str):
@@ -701,15 +700,10 @@ class Function:
         the function with the given values.
  
         """
-        params=None
         if vals is None:
             vals = tuple()
-        if self.params is None:
-            params=tuple()
-        else:
-            params=self.params
-        # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
-        inst = dict(zip(params, vals))
+        assert len(self.params) == len(vals), "Function instantiation: wrong number of inputs"
+        inst = dict(zip(self.params, vals))
         return self.cmd.subst(inst)
 
 
