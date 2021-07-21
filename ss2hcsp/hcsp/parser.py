@@ -484,8 +484,6 @@ class HPTransformer(Transformer):
 
     def decls(self, *args):
         # A list of declarations.
-        for arg in args:
-            print('arg:', type(arg))
         return module.HCSPDeclarations(args)
 
 
