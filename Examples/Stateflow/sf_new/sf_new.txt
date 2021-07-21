@@ -1,7 +1,6 @@
 %type: module
 
 module Chart():
-output complete;
 procedure during_Chart_model_RTPS_Writer begin
   _ret := 0
 end
