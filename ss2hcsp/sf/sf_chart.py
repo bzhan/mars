@@ -909,8 +909,8 @@ class SF_Chart(Subsystem):
 
         # The dictionary of functions in stateflow,
         # in form of {path (tuple): function (hcsp)}
-        self.fun_dict = state.get_fun_dict()
-        self.mesg_hp=list()
+        self.fun_dict = dict()
+        self.mesg_hp = list()
         self.has_event = False  # if the acts in the sf_chart have any broadcast event
 
         self.data = data

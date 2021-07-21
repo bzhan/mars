@@ -216,9 +216,9 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             else:
                 assert procedures is not None and cmd.func_name in procedures, \
                     "convert_cmd: procedure %s not found" % cmd.func_name
-                if isinstance(procedures[cmd.func_name],function.Function):
+                if isinstance(procedures[cmd.func_name], function.Function):
                     return convert(procedures[cmd.func_name].instantiate(cmd.args))
-                elif isinstance(procedures[cmd.func_name],GraphicalFunction):
+                elif isinstance(procedures[cmd.func_name], GraphicalFunction):
                     proc=procedures[cmd.func_name]
                     expr_list=list()
                     if len(cmd.args) > 0:

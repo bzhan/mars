@@ -326,28 +326,6 @@ class SF_State:
                 descendants.update(child_descendants)
         return descendants
 
-    def get_fun_dict(self):
-        """Returns a dictionary of functions."""
-        fun_dict = dict()
-        if self.funs:
-            for fun in self.funs:
-                if isinstance(fun,Function):
-                    assert (self.name, fun.name) not in fun_dict
-                    name = str(fun.name)
-                    if "(" in name:
-                        name = name[:name.index("(")]
-                    fun_dict[(fun.return_var,fun.exprs,self.name, name)] = fun.parse()
-
-        for child in self.children:
-            if isinstance(child, (AND_State, OR_State)):
-                child_fun_dict = child.get_fun_dict()
-                for path, hcsp in child_fun_dict.items():
-                    path1 = path[2:]
-                    new_path = (path[0],path[1],self.name,) + path1
-                    assert new_path not in fun_dict
-                    fun_dict[new_path] = hcsp
-        return fun_dict
-
     def get_vars(self):
         """Returns set of variables in the actions of the current state.
         
@@ -552,23 +530,3 @@ class GraphicalFunction:
         # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
         inst = dict(zip(params, vals))
         return self.cmd.subst(inst)
-
-class Function:
-    def __init__(self, name, params, return_var, script,chart_state,fun_type):
-        self.name = name
-        self.exprs = params
-        self.return_var = return_var
-        self.script = script
-        self.chart_state=chart_state
-        self.fun_type=fun_type
-    def __str__(self):
-        res = "Function(%s,%s,%s\n" % (self.name, self.exprs, self.return_var)
-        res += "%s" %(self.script)
-        return res
-
-    def parse(self):
-        if self.fun_type == "GRAPHICAL_FUNCTION" and self.chart_state is not None:
-            return self.chart_state
-        elif self.fun_type == "MATLAB_FUNCTION":
-            return self.script
-

@@ -32,7 +32,7 @@ from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.Discrete.discrete_PID_controller import DiscretePID
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction,Function
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
