@@ -370,6 +370,9 @@ class HCSPAnalysis:
             if info.sub_hp.type == 'assign':
                 for write_vars in get_write_vars(info.sub_hp.var_name):
                     info.reach_after.add((write_vars, loc))
+            elif info.sub_hp.type == 'input_channel':
+                for write_vars in get_write_vars(info.sub_hp.var_name):
+                    info.reach_after.add((write_vars, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -421,6 +424,9 @@ class HCSPAnalysis:
                     unique_assign = None
                     for prev_loc in reach_defs:
                         def_hp = self.infos[prev_loc].sub_hp
+                        if def_hp.type == 'input_channel':
+                            unique_assign = None
+                            break
                         assert def_hp.type == 'assign'
                         if not isinstance(def_hp.var_name, expr.AVar):
                             unique_assign = None
