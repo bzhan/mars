@@ -92,35 +92,28 @@ class SFConvertTest(unittest.TestCase):
              'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
 
     def testDirectedEvent(self):
-        run_test(self, "./Examples/Stateflow/tests/directed_event.xml", 1,
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent1.xml", 1,
             ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'])
 
     def testDirectedEvent2(self):
-        run_test(self, "./Examples/Stateflow/tests/directed_event2_2018a.xml", 1,
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent2.xml", 1,
             ['log en_A1', 'log en_B1_A1', 'log en_C1_A1', 'log ex_C1_A1', 'log en_C2_A2',
              'log ex_B1_A1', 'log en_B2_A2', 'log ex_A1', 'log en_A2', 'log ex_A2',
              'log en_A1', 'log ex_B2_A2', 'log en_B1_A1', 'log ex_C2_A2', 'log en_C1_A1',
              'delay 0.1'])
         
-    def testDirectedEventSend(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1,
-            ['log en_A1', 'log en_B1', 'log cond_act_B', 'log ex_B1',
-             'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'])
+    def testDirectedEvent3(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent3.xml", 1,
+            ['log en_A1', 'log en_B1', 'log ex_B1',
+             'log en_B2', 'log ex_A1', 'log en_A2', 'delay 0.1'])
 
-    def testDirectedEventSend2(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1,
+    def testDirectedEvent4(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent4.xml", 1,
             ['log en_A1', 'log en_B2', 'log en_B21',
              'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'])
-        
-    def testCopyofDirectedEvent(self):
-        run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,
-            ['log en_A1', 'log en_B1', 'log en_C1',
-             'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
-             'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
-             'delay 0.1'])
         
     def testInnerTrans(self):
         run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 2,
