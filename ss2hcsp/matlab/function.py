@@ -52,95 +52,15 @@ class Var(Expr):
 
 class ListExpr(Expr):
     """List expressions."""
-   
     def __init__(self, *args):
         super(ListExpr, self).__init__()
-        # assert all(isinstance(arg, (Var,FunctionCall)) for arg in args)
         self.args = args
-        self.count=0
+
     def __repr__(self):
         return "ListExpr(%s)" % (','.join(repr(arg) for arg in self.args))
 
     def __str__(self):
         return "[%s]" % (','.join(str(arg) for arg in self.args))
-
-    def __iter__(self):
-        return self
-
-    def __len__(self):
-      
-       return len(self.args)
-    def __getitem__(self,key):
-            return self.args[key]
-
-    def __next__(self):
-        # 获取下一个数
-        if self.count < len(self.args):
-            result = self.args[self.count]
-            self.count += 1
-            return result
-        else:
-            raise StopIteration
-
-    def __eq__(self, other):
-        return isinstance(other, ListExpr) and self.args == other.args
-
-    def __hash__(self):
-        return hash(("ListExpr", self.args))
-
-    def priority(self):
-        return 100
-
-    def get_vars(self):
-        return set().union(*(arg.get_vars() for arg in self.args))
-
-    def subst(self, inst):
-        return ListExpr(expr.subst(inst) for expr in self.args)
-
-class Arr_num(Expr):
-    def __init__(self, *args):
-        super(Arr_num, self).__init__()
-        self.args = tuple(args)
-    def __repr__(self):
-        return "Arr_num(%s)" % (' '.join(repr(arg) for arg in self.args))
-
-    def __str__(self):
-        return "%s" % (' '.join(str(arg) for arg in self.args))
-
-class ListExpr2(Expr):
-    """List expressions."""
-   
-    def __init__(self, *args):
-        super(ListExpr2, self).__init__()
-        args_list=list()
-        for arg in args:
-            args_list.append(ListExpr(*arg.args))
-        self.args = [arg for arg in args_list]
-        self.count=0
-
-    def __repr__(self):
-        return "ListExpr2(%s)" % (','.join(repr(arg) for arg in self.args))
-
-    def __str__(self):
-        return "[%s]" % (','.join(str(arg) for arg in self.args))
-
-    def __iter__(self):
-        return self
-
-    def __len__(self):
-      
-       return len(self.args)
-    def __getitem__(self,key):
-            return self.args[key]
-
-    def __next__(self):
-        # 获取下一个数
-        if self.count < len(self.args):
-            result = self.args[self.count]
-            self.count += 1
-            return result
-        else:
-            raise StopIteration
 
     def __eq__(self, other):
         return isinstance(other, ListExpr) and self.args == other.args
@@ -678,16 +598,15 @@ class Function:
     def __init__(self, name, params, cmd, return_var):
         assert isinstance(cmd, Command)
         self.name = name
-        self.params = tuple(params) if str(params) !="()" else None
+        self.params = tuple(params)
         self.cmd = cmd
-        self.type="MATLAB_FUNCTION"
+        self.type = "MATLAB_FUNCTION"
         if return_var is None or isinstance(return_var, str):
             self.return_var = return_var
         else:
             self.return_var = tuple(return_var)
 
     def __str__(self):
-
         if self.return_var is None:
             str_return_var = ""
         elif isinstance(self.return_var, str):
@@ -718,15 +637,10 @@ class Function:
         the function with the given values.
  
         """
-        params=None
         if vals is None:
             vals = tuple()
-        if self.params is None:
-            params=tuple()
-        else:
-            params=self.params
-        # assert len(params) == len(vals), "Function instantiation: wrong number of inputs"
-        inst = dict(zip(params, vals))
+        assert len(self.params) == len(vals), "Function instantiation: wrong number of inputs"
+        inst = dict(zip(self.params, vals))
         return self.cmd.subst(inst)
 
 

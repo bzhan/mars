@@ -1,7 +1,7 @@
 """Hybrid programs"""
 
 from collections import OrderedDict
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr,LogicExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
 from ss2hcsp.matlab import function
 import re
 
@@ -95,12 +95,29 @@ class HCSP:
         else:
             return 100
 
+    def size(self):
+        """Returns size of HCSP program."""
+        if isinstance(self, (Var, Skip, Wait, Assign, Assert, Test, Log,
+                             InputChannel, OutputChannel)):
+            return 1
+        elif isinstance(self, (Sequence, Parallel)):
+            return 1 + sum([hp.size() for hp in self.hps])
+        elif isinstance(self, (Loop, Condition, Recursion)):
+            return 1 + self.hp.size()
+        elif isinstance(self, ODE):
+            return 1
+        elif isinstance(self, (ODE_Comm, SelectComm)):
+            return 1 + sum([1 + out_hp.size() for comm_hp, out_hp in self.io_comms])
+        elif isinstance(self, ITE):
+            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + self.else_hp.size()
+        else:
+            raise NotImplementedError
+
     def contain_hp(self, name):
         """Returns whether the given HCSP program contains Var(name)."""
         if isinstance(self, Var):
             return self.name == name
-        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log,
-                               InputChannel, OutputChannel, Function)):
+        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
             return False
         elif isinstance(self, (Sequence, Parallel)):
             for sub_hp in self.hps:
@@ -118,7 +135,7 @@ class HCSP:
         elif isinstance(self, ITE):
             if self.else_hp.contain_hp(name):
                 return True
-            for sub_hp in [_hp for _cond, _hp in self.if_hps]:
+            for sub_hp in [hp for cond, hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
                     return True
         else:
@@ -551,68 +568,6 @@ class ParaOutputChannel(OutputChannel):
 def is_comm_channel(hp):
     return hp.type == "input_channel" or hp.type == "output_channel"
 
-
-class Function(HCSP):
-    def __init__(self, return_vars,fun_name,exprs):
-        super(Function, self).__init__()
-        self.type = "function"
-        self.return_vars = return_vars  # Channel
-         # AExpr or None
-        self.args = exprs
-       
-        self.func_name = fun_name
-
-    def __eq__(self, other):
-        return self.type == other.type and self.return_var == other.return_var and self.func_name == other.func_name and self.args == other.args
-
-    def __repr__(self):
-        if self.return_vars == "":
-            return "Fun(%s,%s)" % (self.func_name, ",".join(str(arg) for arg in self.args))
-        elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "Assign([%s],Fun(%s,%s))" % (",".join(str(return_var) for return_var in self.return_vars),self.func_name, ",".join(repr(arg) for arg in self.args))
-        else:
-            if self.func_name == "uniform" and len(self.args) == 0:
-                return "Assign(%s,Fun(%s,(0,1)))" % (self.return_vars,self.func_name)
-            else:
-                return "Assign(%s,Fun(%s,%s))" % (self.return_vars,self.func_name,",".join(repr(arg) for arg in self.args))
-
-
-    def __str__(self):
-        if self.return_vars == "":
-            return "%s(%s)" % (self.func_name, ",".join(repr(arg) for arg in self.args))
-        elif isinstance(self.return_vars,list) and len(self.return_vars) >1:
-            return "[%s] := %s(%s)" % (",".join(str(return_var) for return_var in self.return_vars),self.func_name, ",".join(str(arg) for arg in self.args)) 
-        else:
-            if self.func_name == "uniform" and len(self.args) == 0:
-                return "%s := %s(0,1)" % (self.return_vars,self.func_name)
-            else:
-                return "%s := %s(%s)" % (self.return_vars,self.func_name, ",".join(str(arg) for arg in self.args))
-
-    def get_vars(self):
-        if self.return_vars == "":
-            var_set =set()
-        else:
-            var_set=set().union(self.return_vars.get_vars())
-        for expr in self.args:
-            if isinstance(expr,tuple):
-                for expr1 in expr:
-                    var_set.update(expr1.get_vars())
-            else:
-                var_set.update(expr.get_vars())
-        return var_set
-
-    def sc_str(self):
-        if self.return_vars == "":
-            if self.func_name == "uniform" and len(self.args) == 0:
-                return "%s(0,1)" %(self.func_name)
-            else:
-                return "%s(%s)" %(self.func_name,",".join(str(arg) for arg in self.args))
-
-        else:
-            if self.func_name == "uniform" and len(self.args) == 0:
-                return "%s := %s(0,1)" %(self.return_vars,self.func_name)
-            else:
-                return  "%s := %s(%s)" %(self.return_vars,self.func_name,",".join(str(arg) for arg in self.args))
 
 class Sequence(HCSP):
     def __init__(self, *hps):
@@ -1190,14 +1145,12 @@ def HCSP_subst(hp, inst):
         print(hp)
         raise NotImplementedError
 
-def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
+def reduce_procedures(hp, procs, strict_protect=None):
     """Reduce number of procedures in the process by inlining.
 
     hp : HCSP - input process.
     procs : Dict[str, HCSP] - mapping from procedure name to procedure body.
     strict_protect : Set[str] - this set of procedures will never be inlined.
-    prefer_protect : Set[str] - when there are several options, prefer to not
-        inline these procedures.
 
     The algorithm for finding which procedures to inline is partly heuristic,
     with settings specified by the various flags. It performs the following steps:
@@ -1208,18 +1161,13 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
        those that are strictly protected).
 
     3. When step 2 can not find any procedure to inline, remove one of the
-       procedures from consideration. When making the choice, procedures in
-       prefer_protect has higher priority, then procedures that occur in the
-       largest number of other procedures has higher priority.
+       procedures from consideration.
 
     This function directly modifies procs, and returns the new HCSP process.
 
     """
     if strict_protect is None:
         strict_protect = set()
-
-    if prefer_protect is None:
-        prefer_protect = set()
 
     # First, construct the dependency relation. We use the empty string
     # to represent the toplevel process.
@@ -1228,12 +1176,27 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
     for name, proc in procs.items():
         dep_relation[name] = proc.get_contain_hps()
 
+    # Construct reverse dependency relation, for heuristic selection of
+    # inlined functions
+    rev_dep_relation = dict()
+    rev_dep_relation[""] = 0
+    for name in procs:
+        rev_dep_relation[name] = 0
+    for name, contains in dep_relation.items():
+        for contain in contains:
+            rev_dep_relation[contain] += 1
+
     # Set of procedures to be inlined, in order of removal
     inline_order = []
 
     # Set of procedures that are kept, initially the toplevel process
     # and the strictly protected processes.
     fixed = {""}.union(strict_protect)
+
+    # Also protect procedures that are too large and invoked too many times
+    for name, proc in procs.items():
+        if rev_dep_relation[name] >= 2 and proc.size() > 2:
+            fixed.add(name)
 
     # Get the order of inlining
     while True:
@@ -1253,8 +1216,12 @@ def reduce_procedures(hp, procs, strict_protect=None, prefer_protect=None):
         if found:
             continue
 
-        break
-
+        # No procedure is found, move one procedure to fixed
+        for name in dep_relation:
+            if name not in fixed and name not in inline_order:
+                fixed.add(name)
+                break
+        
     # Next, recursively perform substitutions
     for inline_name in inline_order:
         for name, dep in dep_relation.items():

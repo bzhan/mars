@@ -2,6 +2,8 @@
 
 import unittest
 import random
+from pstats import Stats
+import cProfile
 
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
@@ -13,8 +15,8 @@ from ss2hcsp.hcsp.pprint import pprint
 
 
 def run_test(self, filename, num_cycle, res, *, io_filter=None,
-             print_chart=False, print_before_simp=False, print_after_simp=False,
-             print_final=False, output_to_file=None):
+             print_chart=False, print_before_simp=False, print_final=False,
+             print_res=False, profile=False, output_to_file=None):
     """Test function for Stateflow diagrams.
 
     filename : str - name of the XML file.
@@ -23,24 +25,32 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     io_filter : str -> bool - (optional) filter for IO events to display.
     print_chart : bool - print parsed chart.
     print_before_simp : bool - print HCSP program before simplification.
-    print_after_simp : bool - print HCSP program after simplification.
     print_final : bool - print HCSP program after optimization.
     output_to_file : str - (optional) name of file to output HCSP.
 
     """
+    if profile:
+        pr = cProfile.Profile()
+        pr.enable()
+
     diagram = SL_Diagram(location=filename)
-    procs_list = sf_convert.convert_diagram(
-        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
-        print_after_simp=print_after_simp, print_final=print_final)
+    proc_map = sf_convert.convert_diagram(
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp, print_final=print_final)
+
+    if profile:
+        p = Stats(pr)
+        p.strip_dirs()
+        p.sort_stats('cumtime')
+        p.print_stats()
 
     # Optional: output converted HCSP to file
     if output_to_file is not None:
         modules = []
         module_insts = []
-        for i, (procs, hp) in enumerate(procs_list):
-            procs_lst = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
-            modules.append(module.HCSPModule("P" + str(i), code=hp, procedures=procs_lst))
-            module_insts.append(module.HCSPModuleInst("P" + str(i), "P" + str(i), []))
+        for name, (procs, hp) in proc_map.items():
+            procs_lst = [hcsp.Procedure(proc_name, hp) for proc_name, hp in procs.items()]
+            modules.append(module.HCSPModule(name, code=hp, procedures=procs_lst))
+            module_insts.append(module.HCSPModuleInst(name, name, []))
         system = module.HCSPSystem(module_insts)
         declarations = module.HCSPDeclarations(modules + [system])
 
@@ -48,7 +58,8 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
             f.write(declarations.export())
 
     # Test result using simulator
-    run_simulator_test(self, procs_list, num_cycle, res, io_filter=io_filter)
+    run_simulator_test(self, proc_map, num_cycle, res, io_filter=io_filter,
+                       print_res=print_res)
 
 
 class SFConvertTest(unittest.TestCase):
@@ -70,23 +81,10 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log exA', 'log enB', 'delay 0.1', 'log conBJun', 'log conJunC',
              'log exB', 'log tranBJun', 'log tranJunC', 'delay 0.1'])
 
-    def testFakeEarlyReturn(self):
-        run_test(self, "./Examples/Stateflow/tests/fake_early_return.xml", 1,
-            ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
-             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
-
     def testJunctionLoop(self):
         run_test(self, "./Examples/Stateflow/tests/junction_loop.xml", 1,
             ['log t1', 'log t2', 'log t1', 'log t2', 'log t1', 'log t2', 'log t1',
              'log t4', 'delay 0.1'])
-
-    def testEarlyExit(self):
-        run_test(self, "./Examples/Stateflow/tests/early_exit.xml", 1,
-            ['log en_A1', 'log ex_A1', 'log en_B', 'delay 0.1'])
-
-    def testEarlyExitSameLevel(self):
-        run_test(self, "./Examples/Stateflow/tests/early_exit_same_level.xml", 1,
-            ['log en_A', 'log ex_A', 'log en_C', 'delay 0.1'])
 
     def testHistoryJunction(self):
         run_test(self, "./Examples/Stateflow/tests/history_junction.xml", 5,
@@ -171,13 +169,6 @@ class SFConvertTest(unittest.TestCase):
            'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1',
            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
 
-    def testDsmExample(self):
-        io_filter = lambda s: not (s.startswith("read") or s.startswith("write"))
-        run_test(self, "./Examples/Stateflow/tests/DSM_example.xml", 20,
-            ['log en_A', 'log en_A1', 'log du_A', 'log du_A1', 'delay 0.1',
-             'log du_A', 'log du_A1', 'delay 0.1',
-             'log du_A', 'log du_A1', 'delay 0.1'], io_filter=io_filter)
-
     def testAfterRandom(self):
         random.seed(0)  # for repeatability
         run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
@@ -190,15 +181,102 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
              'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
-             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1', 
+             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1',
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
              'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
              'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
 
+    def testJunInState(self):
+        run_test(self, "./Examples/Stateflow/tests/jun_in_state.xml", 1,
+            ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
+             'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'])
+
+    def testEarlyReturn1(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn1.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn2(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn2.xml", 1,
+            ['log en_A', 'log en_A1', 'log E', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn3(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn3.xml", 1,
+            ['log en_A 1', 'log ex_A 2', 'log en_C 2', 'delay 0.1'])
+
+    def testEarlyReturn4(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn4.xml", 1,
+            ['log ca', 'log ta', 'log en_A2', 'delay 0.1'])
+
+    def testEarlyReturn5(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn5.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn6(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn6.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log loop', 'log ex_A', 'log en_A',
+             'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn7(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn7.xml", 2,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log ex_A2',
+             'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn8(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn8.xml", 1,
+            ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
+             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
+
+    def testDSM1(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM1.xml", 20,
+            ['log 2', 'delay 0.1', 'log 4', 'delay 0.1', 'log 5', 'delay 0.1',
+             'log 7', 'delay 0.1', 'log 8', 'delay 0.1', 'log 10', 'delay 0.1'], io_filter=io_filter)
+
+    def testDSM2(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM2.xml", 20,
+            ['log 1', 'delay 0.1', 'log 3', 'delay 0.1', 'log 4', 'delay 0.1',
+             'log 6', 'delay 0.1', 'log 7', 'delay 0.1', 'log 9', 'delay 0.1'], io_filter=io_filter)
+
+    def testDSM3(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM3.xml", 20,
+            ['log 3 2', 'delay 0.1', 'log 3 5', 'delay 0.1', 'log 8 5', 'delay 0.1',
+             'log 8 13', 'delay 0.1', 'log 21 13', 'delay 0.1', 'log 21 34', 'delay 0.1'], io_filter=io_filter)
+
+    def testDSM4(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM4.xml", 19,
+            ['log A1', 'log C1', 'log B2', 'log D4', 'delay 0.1',
+             'log A4', 'log C4', 'delay 0.1', 'log B5', 'log D7', 'delay 0.1'], io_filter=io_filter)
+
+    def testDSM5(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM5.xml", 34,
+            ['log 4 2', 'delay 0.1', 'log 4 4', 'delay 0.1', 'log 5 4', 'delay 0.1',
+             'log 5 6', 'delay 0.1', 'log 6 6', 'delay 0.1', 'log 6 8', 'delay 0.1'], io_filter=io_filter)
+
+    def testDSM6(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM6.xml", 20,
+            ['log en_A 0 0', 'log en_A1 3 0', 'log en_B 4 4', 'log du_A1 4 0', 'delay 0.1',
+             'log en_A 4 -1', 'log du_A1 3 -1', 'delay 0.1',
+             'log en_B 4 -1', 'log du_A1 4 0', 'delay 0.1'], io_filter=io_filter)
+
     def testSFNew(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 10,
-            [], print_final=True, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+        pat = [
+            'IO read_Chart_WHC [0,0,0,0,0]', 'IO read_Chart_RHC [0,0,0,0,0]',
+            'IO read_Chart_RHC2 [0,0,0,0,0]', 'IO write_Chart_WHC [0,0,0,0,0]',
+            'IO write_Chart_RHC [0,0,0,0,0]', 'IO write_Chart_RHC2 [0,0,0,0,0]',
+            'IO read_DDS_Writer_WHC [0,0,0,0,0]', 'IO read_DDS_Writer_RHC [0,0,0,0,0]',
+            'IO read_DDS_Writer_RHC2 [0,0,0,0,0]', 'IO write_DDS_Writer_WHC [0,0,0,0,0]',
+            'IO write_DDS_Writer_RHC [0,0,0,0,0]', 'IO write_DDS_Writer_RHC2 [0,0,0,0,0]',
+            'IO ch_x0_0 1', 'IO ch_x1_0 1', 'IO ch_x2_0 1', 'IO ch_x3_0 0'
+        ]
+        res = pat * 2 + ['delay 0.1'] + pat + ['delay 0.1']
+        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 50,
+            res, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
     def testMessage1(self):
         run_test(self, "./Examples/Stateflow/tests/Message_eg_2018a.xml", 2,

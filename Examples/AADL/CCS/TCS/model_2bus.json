@@ -235,7 +235,7 @@
         },
         "period": "10ms",
         "impl": "Simulink",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_l\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"laser\"][\"laser_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"laser\"][\"laser_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
     },
     "wheel": {
         "category": "device",
@@ -252,7 +252,7 @@
         },
         "period": "10ms",
         "impl": "Simulink",
-        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := uniform(-0.5, 0.5); x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
+        "computation": "(inputs[\"PHY_vehicle_imp\"][\"veh_v_w\"]?data; t := 0; <t_dot = 1 & t < 0.01> |> [] (outputs[\"wheel\"][\"wheel_valid\"]!1.0 --> (error := 0; x := data + error; outputs[\"wheel\"][\"wheel_v\"]!(data+error))); <t_dot = 1 & t < 0.01>)**"
     },
     "user_panel": {
         "category": "device",

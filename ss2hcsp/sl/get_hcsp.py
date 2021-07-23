@@ -465,6 +465,11 @@ def new_translate_discrete(diagram):
 
 
 def new_translate_continuous(diagram):
+    """Translate continuous diagram.
+
+    diagram : SL_Diagram
+
+    """
     # Assume that all the continuous blocks are integrator blocks or triggered subsystems
     # assert all(block.type in ["integrator", "triggered_subsystem"] for block in diagram)
     # tt is the LOCAL evolution time of continuous process
@@ -584,20 +589,7 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
 
     # Compute the stateflow processes
     for chart in sf_charts:
-        chart.sf_charts=sf_charts
-        # chart.add_state_fun_after()
-        chart.add_names()
-        chart.find_root_for_states()
-        chart.find_root_and_loc_for_trans()
-        chart.parse_acts_on_states_and_trans()
-        
-        sf_processes = chart.get_process() if chart.has_event else chart.get_pure_process()
-        for name, sf_process in sf_processes.hps:
-            assert not isinstance(sf_process, hp.Parallel)
-            process_name = name.replace(" ", "_")
-            # if chart.is_triggered_chart == False:
-            processes.add(process_name, sf_process)
-            main_processes.append(hp.Var(process_name))
+        chart.sf_charts = sf_charts
 
     # Computer the buffer processes
     for buffer in buffers:

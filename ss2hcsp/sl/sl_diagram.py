@@ -32,7 +32,7 @@ from ss2hcsp.sl.Discrete.unit_delay import UnitDelay
 from ss2hcsp.sl.Discrete.DiscretePulseGenerator import DiscretePulseGenerator
 from ss2hcsp.sl.Discrete.discrete_PID_controller import DiscretePID
 from ss2hcsp.sl.MathOperations.min_max import MinMax
-from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction,Function
+from ss2hcsp.sf.sf_state import AND_State, OR_State, Junction, GraphicalFunction
 from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_transition import Transition
 from ss2hcsp.sf.sf_message import SF_Message,SF_Data
@@ -109,6 +109,9 @@ class SL_Diagram:
 
         # XML data structure
         self.model = None
+
+        # Name of the diagram, set by parse_xml
+        self.name = None
         
         # Parsed model of the XML file
         if location:
@@ -129,6 +132,7 @@ class SL_Diagram:
             else:
                 lists.append(acts)
             return lists
+
         def get_transitions(blocks):
             """Obtain the list of transitions.
             
@@ -143,12 +147,6 @@ class SL_Diagram:
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
                     tran_label = get_attribute_value(block, "labelString")
-                    # if tran_label:
-                    #     try:
-                    #         tran_label = transition_parser.parse(html.unescape(tran_label))
-                    #     except lark.exceptions.UnexpectedToken as e:
-                    #         print("When parsing transition label %s" % tran_label)
-                    #         raise e
                     order = int(get_attribute_value(block, "executionOrder"))
 
                     # Each transition must have exactly one source and destination
@@ -167,7 +165,6 @@ class SL_Diagram:
                                                       src=src_ssid, dst=dst_ssid)
             return tran_dict
 
-        #  历史节点修改
         all_out_trans = dict()
 
         def get_children(block):
@@ -236,7 +233,7 @@ class SL_Diagram:
                                 print("When parsing function signature", fun_name)
                                 raise e
 
-                            chart_state1 = OR_State(ssid=ssid, name=fun_name,original_name=fun_name)
+                            chart_state1 = OR_State(ssid=ssid, name=fun_name)
                             for state in  sub_junctions:
                                 state.father = chart_state1
                                 chart_state1.children.append(state)
@@ -294,10 +291,10 @@ class SL_Diagram:
                             assert default_tran is None and out_trans == [], \
                                 "Parse XML: AND_STATE should not have default transition or outgoing transitions."
                             order = int(get_attribute_value(child, "executionOrder"))
-                            _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name,original_name=name, en=en, du=du, ex=ex,
-                                            order=order)
+                            _state = AND_State(ssid=ssid, inner_trans=inner_trans, name=name, en=en, du=du, ex=ex,
+                                               order=order)
                         elif state_type == "OR_STATE":
-                            _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,original_name=name,
+                            _state = OR_State(ssid=ssid, out_trans=out_trans, inner_trans=inner_trans, name=name,
                                             en=en, du=du, ex=ex, default_tran=default_tran)
                         else:
                             print(state_type)
@@ -325,12 +322,18 @@ class SL_Diagram:
                     # Get default_tran and out_trans
                     default_tran = None
                     out_trans = list()
-                    for tran in out_trans_dict.values():
+
+                    dictMerged2 = dict(out_trans_dict)
+                    dictMerged2.update(all_out_trans)
+
+                    for tran in dictMerged2.values():
                         src, dst = tran.src, tran.dst
                         if src is None and dst == ssid:  # it is a default transition
                             default_tran = tran
                         elif src == ssid:  # the src of tran is this state
                             out_trans.append(tran)
+                        else:
+                            all_out_trans[tran.ssid] = tran
                     out_trans.sort(key=operator.attrgetter("order"))
                     # Create a junction object and put it into _junstions
                     _junctions.append(Junction(ssid=ssid, out_trans=out_trans,junc_type=junc_type, default_tran=default_tran))   
@@ -406,7 +409,7 @@ class SL_Diagram:
             assert chart_name not in self.chart_parameters
             self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"message_dict":message_dict,"event_dict":event_dict}
 
-    def parse_xml(self, model_name="", default_SampleTimes=()):
+    def parse_xml(self, default_SampleTimes=()):
         # Extract BlockParameterDefaults
         if not default_SampleTimes:
             default_SampleTimes = dict()
@@ -420,10 +423,13 @@ class SL_Diagram:
 
         self.parse_stateflow_xml()
 
+        # Extract name of the model
         models = self.model.getElementsByTagName("Model")
         assert len(models) <= 1
+        self.name = ""
         if models:
-            model_name = models[0].getAttribute("Name")
+            self.name = models[0].getAttribute("Name")
+
         system = self.model.getElementsByTagName("System")[0]
         max_step = 0.2
         # start_time = 0.0
@@ -462,8 +468,6 @@ class SL_Diagram:
                 sample_time = default_SampleTimes[block_type]
             sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
          
-            # if  block_type == "Clock":
-            #     self.add_block(Clock(name=block_name,max_step=max_step,start_time=start_time))
             if block_type == "Mux":
                 block_name = block.getAttribute("Name")
                 inputs = get_attribute_value(block, "Inputs")
@@ -700,17 +704,8 @@ class SL_Diagram:
                     trigger_dest=list()
                     lines = [child for child in system.childNodes if child.nodeName == "Line"]
                     for line in lines:
-                        # line_name = get_attribute_value(block=line, attribute="Name")
-                        # if not line_name:
-                        #     line_name = "?"
-                        # ch_name = "?"
                         src_block = get_attribute_value(block=line, attribute="SrcBlock")
                         if src_block == block_name:
-
-                        # if src_block in port_name_dict:  # an input port
-                        #     ch_name = model_name + "_" + src_block
-                        #     src_block = port_name_dict[src_block]
-                        # src_port = int(get_attribute_value(block=line, attribute="SrcPort")) - 1
                             branches = [branch for branch in line.getElementsByTagName(name="Branch")
                                         if not branch.getElementsByTagName(name="Branch")]
                             if not branches:
@@ -719,14 +714,6 @@ class SL_Diagram:
                             for branch in branches:
                                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                                 trigger_dest.append(dest_block)
-                            #     assert ch_name == "?"
-                            #     ch_name = model_name + "_" + dest_block
-                            #     dest_block = port_name_dict[dest_block]
-                            # dest_port = get_attribute_value(block=branch, attribute="DstPort")
-                            # dest_port = -1 if dest_port == "trigger" else int(dest_port) - 1
-                            # if dest_block in self.blocks_dict:
-                            #     self.add_line(src=src_block, dest=dest_block, src_port=src_port, dest_port=dest_port,
-                            #                   name=line_name, ch_name=ch_name)
 
                     assert len(triggers) <= 1
                     is_triggered_chart=False
@@ -741,61 +728,14 @@ class SL_Diagram:
                             sf_block_type = get_attribute_value(b, "SFBlockType")
                         
                             if sf_block_type == "Chart":
-                                # stateflow1 = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                #              num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
-                                #              input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
-                                #              is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts)
                                 sf_charts[block_name1] = b
 
                     if triggers:
                         is_triggered_chart=True
                         num_dest=1
-                        ###
-                        
                         for child in subsystem.childNodes :
                             if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
                                 trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
-                        # event_list=chart_paras["event_list"]
-                        # if trigger_type == "":
-                        #     for event in event_list:
-                        #         if event.scope == "INPUT_EVENT" and event.trigger != None:
-                        #             if event.trigger == "RISING_EDGE_EVENT":
-                        #                 trigger_type ="rising"
-                        #             elif event.trigger == "FALLING_EDGE_EVENT":
-                        #                 trigger_type="falling"
-
-                        ###  
-                    #######
-                    # state_funs=AND_State(ssid=-1,name="and_state")
-                    # state_funs.children=chart_paras["state"].children
-                    # for fun in chart_paras["state"].funs:
-                    #     if fun.type == "GRAPHICAL_FUNCTION":
-                    #         fun_state = fun.chart_state1
-
-                    #         state_funs.children.insert(0,fun_state)
-                    # state_funs.funs=chart_paras["state"].funs
-                    # stateflow1 = SF_Chart(name="fun_name", state=state_funs, data=chart_paras["data"],
-                    #                      num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
-                    #                      input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
-                    #                      is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
-                                    
-                    # stateflow1.add_names()
-                    # stateflow1.find_root_for_states()
-                    # stateflow1.find_root_and_loc_for_trans()
-                    # stateflow1.parse_acts_on_states_and_trans()
-                    # for fun in chart_paras["state"].funs:
-                    #     if fun.type == "GRAPHICAL_FUNCTION":
-                    #         hp=hcsp.Sequence(hp_parser.parse("done:=0"),*fun.chart_state1.activate(), stateflow1.execute_trans_from_state(fun.chart_state1)[0])
-                    #         fun.script=hp
-
-
-
-######
-
-                    # for s in chart_paras["state"].children:
-                    #     for fun in state_fun.funs:
-                    #         if fun.type == "GRAPHICAL_FUNCTION" and  s.original_name == fun.chart_state1.original_name:
-                    #             chart_paras["state"].children.remove(s)
 
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"],message_list=chart_paras["message_dict"],
@@ -851,8 +791,7 @@ class SL_Diagram:
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
-                inner_model_name = subsystem.diagram.parse_xml(model_name, default_SampleTimes)
-                assert inner_model_name == model_name
+                subsystem.diagram.parse_xml(default_SampleTimes)
                 self.add_block(subsystem)
 
         # Add lines
@@ -864,7 +803,7 @@ class SL_Diagram:
             ch_name = "?"
             src_block = get_attribute_value(block=line, attribute="SrcBlock")
             if src_block in port_name_dict:  # an input port
-                ch_name = model_name + "_" + src_block
+                ch_name = self.name + "_" + src_block
                 src_block = port_name_dict[src_block]
             elif src_block not in self.blocks_dict:
                 continue
@@ -878,7 +817,7 @@ class SL_Diagram:
                 dest_block = get_attribute_value(block=branch, attribute="DstBlock")
                 if dest_block in port_name_dict:  # an output port
                     # assert ch_name == "?"
-                    ch_name = model_name + "_" + dest_block
+                    ch_name = self.name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
                 dest_port = -1 if dest_port in ["trigger", "enable"] else int(dest_port) - 1
@@ -891,8 +830,6 @@ class SL_Diagram:
         for block in self.blocks:
             if block.type == "signalBuilder":
                 block.rename_src_lines()
-
-        return model_name
 
     def add_block(self, block):
         """Add given block to the diagram."""

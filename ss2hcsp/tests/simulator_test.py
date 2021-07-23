@@ -10,7 +10,7 @@ from ss2hcsp.hcsp import parser
 
 
 def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_series=False,
-             print_state=False, warning=None):
+             print_state=False, print_res=False, warning=None):
     """Test function for HCSP processes.
 
     infos : List[str, Tuple[Dict[str, HCSP], str] -
@@ -28,21 +28,33 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
 
     """
     # Process the input HCSP processes, converting them into SimInfo objects
-    for i in range(len(infos)):
-        if isinstance(infos[i], str):
-            # Single HCSP program
-            infos[i] = simulator.SimInfo('P' + str(i), infos[i])
-        else:
-            # HCSP program with procedure specifications
-            procs, hp = infos[i]
+    sim_infos = []
+    if isinstance(infos, list):
+        for i in range(len(infos)):
+            if isinstance(infos[i], str):
+                # Single HCSP program
+                sim_infos.append(simulator.SimInfo('P' + str(i), infos[i]))
+            else:
+                # HCSP program with procedure specifications
+                procs, hp = infos[i]
+                procedures = dict()
+                for name, proc_hp in procs.items():
+                    # Specified as a pair of name and HCSP program
+                    procedures[name] = Procedure(name, proc_hp)
+                sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures))
+
+    elif isinstance(infos, dict):
+        for name, (procs, hp) in infos.items():
             procedures = dict()
-            for name, proc_hp in procs.items():
-                # Specified as a pair of name and HCSP program
-                procedures[name] = Procedure(name, proc_hp)
-            infos[i] = simulator.SimInfo('P' + str(i), hp, procedures=procedures)
+            for proc_name, proc_hp in procs.items():
+                procedures[proc_name] = Procedure(proc_name, proc_hp)
+            sim_infos.append(simulator.SimInfo(name, hp, procedures=procedures))
+
+    else:
+        raise TypeError
 
     # Perform the simulation
-    res = simulator.exec_parallel(infos, num_io_events=num_events)
+    res = simulator.exec_parallel(sim_infos, num_io_events=num_events)
 
     if io_filter is None:
         io_filter = lambda s: True
@@ -51,7 +63,10 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
     res_trace = [event['str'] for event in res['trace']
                  if event['str'] not in ('start', 'step') and
                     (event['type'] != 'comm' or io_filter(event['ch_name']))]
-    # print(res_trace)
+    # Optional: print trace
+    if print_res:
+        print(res_trace)
+
     self.assertEqual(res_trace, trace)
 
     # Optional: print time series
@@ -98,21 +113,21 @@ class SimulatorTest(unittest.TestCase):
             expr = parser.bexpr_parser.parse(expr)
             self.assertEqual(simulator.eval_expr(expr, state), res)
 
-    def testStringOfPos(self):
-        test_data = [
-            ("x := 1; x := x + 1", (1,), "p1"),
-            ("x := 1; wait(1)", (1, 0), "p1,0"),
-            ("rec X.(x := 1; wait(1); @X)", (), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
-        ]
+    # def testStringOfPos(self):
+    #     test_data = [
+    #         ("x := 1; x := x + 1", (1,), "p1"),
+    #         ("x := 1; wait(1)", (1, 0), "p1,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2), "p0,2"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), "p"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), "p0,0"),
+    #         ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 1, 0), "p0,1,0"),
+    #     ]
 
-        for hp, pos, expected_pos in test_data:
-            hp = parser.hp_parser.parse(hp)
-            pos = simulator.remove_rec(hp, pos)
-            self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
+    #     for hp, pos, expected_pos in test_data:
+    #         hp = parser.hp_parser.parse(hp)
+    #         pos = simulator.remove_rec(hp, pos)
+    #         self.assertEqual(simulator.string_of_pos(hp, pos), expected_pos)
 
     def testExecStep(self):
         test_data = [
@@ -596,6 +611,12 @@ class SimulatorTest(unittest.TestCase):
             "(x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread))**",
             "ch[0]!; out?x; ch[1]!; out?x"
         ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
+
+    def testExecParallel49(self):
+        run_test(self, [
+            "a := [[0,1],[2,3]]; b := [0,1,2]; a[0][1] := 4; a[1][0] := 5; b[1] := a[1][1]; ch!a; ch!b",
+            "ch?x; ch?y"
+        ], 3, ['IO ch [[0,4],[5,3]]', 'IO ch [0,3,2]', 'deadlock'])
 
     def testProcedure1(self):
         run_test(self, [

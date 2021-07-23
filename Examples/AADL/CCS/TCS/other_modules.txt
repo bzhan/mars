@@ -251,16 +251,20 @@ output des_a, veh_v, obs_pos, veh_pos, cmd;
 procedure en_emerg_imp_state begin
   skip
 end
+
 procedure du_emerg_imp_state begin
   skip
 end
+
 procedure ex_emerg_imp_state begin
   skip
 end
+
 procedure entry_emerg_imp_state begin
   emerg_imp_st := "emerg_imp_state";
   @en_emerg_imp_state
 end
+
 procedure during_emerg_imp_state begin
   emerg_imp_state_done := 0;
   true -> (
@@ -274,29 +278,37 @@ procedure during_emerg_imp_state begin
   emerg_imp_st == "emerg_imp_state" && emerg_imp_state_done == 0 -> @du_emerg_imp_state;
   _ret := emerg_imp_state_done
 end
+
 procedure exit_emerg_imp_state begin
   @ex_emerg_imp_state;
   emerg_imp_st := ""
 end
+
 procedure en_emerg_imp begin
   skip
 end
+
 procedure du_emerg_imp begin
   skip
 end
+
 procedure ex_emerg_imp begin
   skip
 end
+
 procedure entry_emerg_imp begin
   @en_emerg_imp
 end
+
 procedure during_emerg_imp begin
   @du_emerg_imp;
   _ret := 0
 end
+
 procedure exit_emerg_imp begin
   @ex_emerg_imp
 end
+
 procedure J14_1 begin
   J14_done := 0;
   distance := obs_pos-next_s;
@@ -324,6 +336,7 @@ procedure J14_1 begin
   );
   _ret := J14_done
 end
+
 procedure J20_1 begin
   J20_done := 0;
   distance := obs_pos-next_s;
@@ -353,6 +366,7 @@ procedure J20_1 begin
   );
   _ret := J20_done
 end
+
 procedure init_emerg_imp begin
   EL := [];
   v_lim := 0;
@@ -365,6 +379,7 @@ procedure init_emerg_imp begin
   @entry_emerg_imp;
   @entry_emerg_imp_state
 end
+
 procedure exec_emerg_imp begin
   @during_emerg_imp;
   _ret == 0 -> (
@@ -375,6 +390,7 @@ procedure exec_emerg_imp begin
     endif
   )
 end
+
 begin
   @init_emerg_imp;
   state := "wait";
@@ -523,16 +539,20 @@ output des_v;
 procedure en_pan_ctr_th_imp_update begin
   skip
 end
+
 procedure du_pan_ctr_th_imp_update begin
   skip
 end
+
 procedure ex_pan_ctr_th_imp_update begin
   skip
 end
+
 procedure entry_pan_ctr_th_imp_update begin
   pan_ctr_th_imp_st := "pan_ctr_th_imp_update";
   @en_pan_ctr_th_imp_update
 end
+
 procedure during_pan_ctr_th_imp_update begin
   pan_ctr_th_imp_update_done := 0;
   EL != [] && top(EL) == "inc" -> (
@@ -558,29 +578,37 @@ procedure during_pan_ctr_th_imp_update begin
   pan_ctr_th_imp_st == "pan_ctr_th_imp_update" && pan_ctr_th_imp_update_done == 0 -> @du_pan_ctr_th_imp_update;
   _ret := pan_ctr_th_imp_update_done
 end
+
 procedure exit_pan_ctr_th_imp_update begin
   @ex_pan_ctr_th_imp_update;
   pan_ctr_th_imp_st := ""
 end
+
 procedure en_pan_ctr_th_imp begin
   skip
 end
+
 procedure du_pan_ctr_th_imp begin
   skip
 end
+
 procedure ex_pan_ctr_th_imp begin
   skip
 end
+
 procedure entry_pan_ctr_th_imp begin
   @en_pan_ctr_th_imp
 end
+
 procedure during_pan_ctr_th_imp begin
   @du_pan_ctr_th_imp;
   _ret := 0
 end
+
 procedure exit_pan_ctr_th_imp begin
   @ex_pan_ctr_th_imp
 end
+
 procedure init_pan_ctr_th_imp begin
   EL := [];
   des_v := 0;
@@ -588,6 +616,7 @@ procedure init_pan_ctr_th_imp begin
   des_v := 0;
   @entry_pan_ctr_th_imp_update
 end
+
 procedure exec_pan_ctr_th_imp begin
   @during_pan_ctr_th_imp;
   _ret == 0 -> (
@@ -598,6 +627,7 @@ procedure exec_pan_ctr_th_imp begin
     endif
   )
 end
+
 begin
   @init_pan_ctr_th_imp;
   state := "wait";
