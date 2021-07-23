@@ -63,14 +63,30 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
 
 class SFConvertTest(unittest.TestCase):
+    def testStates1(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States1.xml", 3,
+            ['log enA', 'log enA1', 'log duA', 'log exA1', 'log enA2', 'delay 0.1',
+             'log duA', 'log duA2', 'delay 0.1', 'log duA', 'log duA2', 'delay 0.1'])
+
+    def testStates2(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States2.xml", 3,
+            ['log enA', 'log enA1', 'log exA1', 'log exA', 'log enB', 'log enB1', 'delay 0.1',
+             'log duB', 'log duB1', 'delay 0.1', 'log duB', 'log duB1', 'delay 0.1'])
+
+    def testStates3(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States3.xml", 2,
+            ['log enA', 'log enA1', 'log enA2', 'log exA2', 'log exA1',
+             'log exA', 'log enB', 'log enB1', 'log enB2', 'delay 0.1',
+             'log duB', 'log duB1', 'log duB2', 'delay 0.1'])
+
+    def testStates4(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States4.xml", 3,
+            ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
+             'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
+
     def testJunctionPriority(self):
         run_test(self, "./Examples/Stateflow/tests/junction_priority.xml", 1,
             ['log enA', 'log enD', 'delay 0.1'])
-
-    def testNestedState(self):
-        run_test(self, "./Examples/Stateflow/tests/nested_state.xml", 3,
-            ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
-             'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
 
     def testAggregatedJunctions(self):
         run_test(self, "./Examples/Stateflow/tests/aggregated_junctions.xml", 2,
@@ -159,21 +175,23 @@ class SFConvertTest(unittest.TestCase):
              'log 1,4', 'delay 0.1', 'log 1,5', 'delay 0.1',
              'log 100,200,300,400,500', 'delay 0.1'])
 
-    def testGraphicalFunction(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function.xml", 1,
+    def testGraphicalFunction1(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction1.xml", 1,
             ['log en_A', 'log en_B', 'delay 0.1'])
         
     def testGraphicalFunction2(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1,
-            ['log en_A', 'log set_mesg', 'log set_mesg', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction2.xml", 1,
+            ['log en_A', 'log set', 'log set', 'log set', 'log en_B',
+             'log 100 200 300 0 0', 'delay 0.1'])
 
     def testGraphicalFunction3(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function3_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction3.xml", 1,
+            ['log en_A', 'log en_B', 'log 4', 'log 9', 'delay 0.1'])
 
     def testGraphicalFunction4(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function4_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction4.xml", 1,
+            ['log en_A', 'log ack', 'log ack', 'log ack', 'log ack', 'log ack',
+             'log en_B', 'delay 0.1'])
 
     def testCommunityCharts(self):
         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
