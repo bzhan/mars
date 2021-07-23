@@ -292,7 +292,7 @@ class LogicExpr(BExpr):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
-        return OpExpr(self.op_name, *(expr.subst(inst) for expr in self.exprs))
+        return LogicExpr(self.op_name, *(expr.subst(inst) for expr in self.exprs))
 
 
 class RelExpr(BExpr):

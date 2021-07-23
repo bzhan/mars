@@ -63,18 +63,30 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
 
 class SFConvertTest(unittest.TestCase):
-    def testJunctionPriority(self):
-        run_test(self, "./Examples/Stateflow/tests/junction_priority.xml", 1,
-            ['log enA', 'log enD', 'delay 0.1'])
+    def testStates1(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States1.xml", 3,
+            ['log enA', 'log enA1', 'log duA', 'log exA1', 'log enA2', 'delay 0.1',
+             'log duA', 'log duA2', 'delay 0.1', 'log duA', 'log duA2', 'delay 0.1'])
 
-    def testNestedState(self):
-        run_test(self, "./Examples/Stateflow/tests/nested_state.xml", 3,
+    def testStates2(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States2.xml", 3,
+            ['log enA', 'log enA1', 'log exA1', 'log exA', 'log enB', 'log enB1', 'delay 0.1',
+             'log duB', 'log duB1', 'delay 0.1', 'log duB', 'log duB1', 'delay 0.1'])
+
+    def testStates3(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States3.xml", 2,
+            ['log enA', 'log enA1', 'log enA2', 'log exA2', 'log exA1',
+             'log exA', 'log enB', 'log enB1', 'log enB2', 'delay 0.1',
+             'log duB', 'log duB1', 'log duB2', 'delay 0.1'])
+
+    def testStates4(self):
+        run_test(self, "./Examples/Stateflow/tests/States/States4.xml", 3,
             ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
              'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
 
-    def testNoEventTrig(self):
-        run_test(self, "./Examples/Stateflow/tests/no_event_trig.xml", 1,
-            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
+    def testJunctionPriority(self):
+        run_test(self, "./Examples/Stateflow/tests/junction_priority.xml", 1,
+            ['log enA', 'log enD', 'delay 0.1'])
 
     def testAggregatedJunctions(self):
         run_test(self, "./Examples/Stateflow/tests/aggregated_junctions.xml", 2,
@@ -91,37 +103,66 @@ class SFConvertTest(unittest.TestCase):
             ['log b', 'log c1', 'delay 0.1', 'log c2', 'delay 0.1', 'log B',
              'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
 
-    def testDirectedEvent(self):
-        run_test(self, "./Examples/Stateflow/tests/directed_event.xml", 1,
+    def testEvent1(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event1.xml", 1,
+            ['log b', 'log a', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent2(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event2.xml", 1,
+            ['log b', 'log a', 'log en_A2', 'log c', 'log en_C2', 'log tb',
+             'log en_B2', 'delay 0.1'])
+
+    def testEvent3(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event3.xml", 1,
+            ['log b', 'log a1', 'log a2', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent4(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event4.xml", 1,
+            ['log b', 'log a1', 'log c', 'log en_C2', 'log a2', 'log en_A2',
+             'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent5(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event5.xml", 1,
+            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent6(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event6.xml", 1,
+            ['log a 5', 'log a 4', 'log a 3', 'log a 2', 'log a 1', 'log a 0',
+             'log en_A2 0', 'delay 0.1'])
+
+    def testDirectedEvent1(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent1.xml", 1,
             ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
              'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
              'delay 0.1'])
 
     def testDirectedEvent2(self):
-        run_test(self, "./Examples/Stateflow/tests/directed_event2_2018a.xml", 1,
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent2.xml", 1,
             ['log en_A1', 'log en_B1_A1', 'log en_C1_A1', 'log ex_C1_A1', 'log en_C2_A2',
              'log ex_B1_A1', 'log en_B2_A2', 'log ex_A1', 'log en_A2', 'log ex_A2',
              'log en_A1', 'log ex_B2_A2', 'log en_B1_A1', 'log ex_C2_A2', 'log en_C1_A1',
              'delay 0.1'])
         
-    def testDirectedEventSend(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send_2018a.xml", 1,
-            ['log en_A1', 'log en_B1', 'log cond_act_B', 'log ex_B1',
-             'log en_B2', 'log ex_A1', 'log en_A2','delay 0.1'])
+    def testDirectedEvent3(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent3.xml", 1,
+            ['log en_A1', 'log en_B1', 'log ex_B1',
+             'log en_B2', 'log ex_A1', 'log en_A2', 'delay 0.1'])
 
-    def testDirectedEventSend2(self):
-        run_test(self, "./Examples/Stateflow/tests/direct_event_send2_2018a.xml", 1,
+    def testDirectedEvent4(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent4.xml", 1,
             ['log en_A1', 'log en_B2', 'log en_B21',
              'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'])
-        
-    def testCopyofDirectedEvent(self):
-        run_test(self, "./Examples/Stateflow/tests/Copy_of_directed_event_2018a.xml", 1,
-            ['log en_A1', 'log en_B1', 'log en_C1',
-             'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
-             'log ex_A2', 'log en_A1', 'log ex_B2', 'log en_B1', 'log ex_C2', 'log en_C1',
-             'delay 0.1'])
-        
+
+    def testDirectedEvent5(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent5.xml", 1,
+            ['log en_A1', 'log en_B2', 'log en_B21',
+             'log ex_B21', 'log en_B22', 'log ex_A1', 'log en_A2', 'delay 0.1'])
+
+    def testDirectedEvent6(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent6.xml", 1,
+            ['log a', 'log c', 'delay 0.1'])
+
     def testInnerTrans(self):
         run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 2,
             ['log enS', 'log condDefault', 'log tranDefault', 'log enA',
@@ -134,21 +175,23 @@ class SFConvertTest(unittest.TestCase):
              'log 1,4', 'delay 0.1', 'log 1,5', 'delay 0.1',
              'log 100,200,300,400,500', 'delay 0.1'])
 
-    def testGraphicalFunction(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function.xml", 1,
+    def testGraphicalFunction1(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction1.xml", 1,
             ['log en_A', 'log en_B', 'delay 0.1'])
         
     def testGraphicalFunction2(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function2_2018a.xml", 1,
-            ['log en_A', 'log set_mesg', 'log set_mesg', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction2.xml", 1,
+            ['log en_A', 'log set', 'log set', 'log set', 'log en_B',
+             'log 100 200 300 0 0', 'delay 0.1'])
 
     def testGraphicalFunction3(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function3_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction3.xml", 1,
+            ['log en_A', 'log en_B', 'log 4', 'log 9', 'delay 0.1'])
 
     def testGraphicalFunction4(self):
-        run_test(self, "./Examples/Stateflow/tests/graphical_function4_2018a.xml", 1,
-            ['log en_A', 'log en_B', 'delay 0.1'])
+        run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction4.xml", 1,
+            ['log en_A', 'log ack', 'log ack', 'log ack', 'log ack', 'log ack',
+             'log en_B', 'delay 0.1'])
 
     def testCommunityCharts(self):
         run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
@@ -218,13 +261,35 @@ class SFConvertTest(unittest.TestCase):
 
     def testEarlyReturn7(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn7.xml", 2,
-            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log ex_A2',
-             'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'delay 0.1',
+             'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
 
     def testEarlyReturn8(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn8.xml", 1,
             ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
              'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
+
+    def testEarlyReturn9(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn9.xml", 1,
+            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn10(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn10.xml", 1,
+            ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn11(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn11.xml", 2,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log en_A2a', 'delay 0.1',
+             'log ex_A2a', 'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn12(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn12.xml", 1,
+            ['log enB', 'log enC', 'delay 0.1'])
+
+    def testEarlyReturn13(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn13.xml", 1,
+            ['log F', 'log exA1', 'log exA1', 'log exA1', 'log exA1', 'log exA1',
+             'log exA1_done', 'log enA3', 'delay 0.1'])
 
     def testDSM1(self):
         io_filter = lambda s: False

@@ -158,7 +158,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
     acked_num[id-1] := an;
     request_num[id-1] := rn;
     ackFlag := 1;
-    Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" -> Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en"
+    Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" -> (
+      Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "";
+      "" == "" && Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" -> Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en"
+    )
   )
 end
 
@@ -1429,6 +1432,20 @@ begin
   d_ack1 := 0;
   d_ack2 := 0;
   d_hb := 0;
+  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "";
+  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
+  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "";
+  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
+  Chart_model_channel_channel_1_st := "";
+  Chart_model_channel_channel_2_st := "";
+  Chart_model_channel_channel_3_st := "";
+  Chart_model_RTPS_Writer_Writer_send_st := "";
+  Chart_model_channel_channel_4_st := "";
+  Chart_model_channel_channel_5_st := "";
+  Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "";
+  Chart_model_channel_Heartbeat_st := "";
+  Chart_model_channel_Acknack_1_st := "";
+  Chart_model_channel_Acknack_2_st := "";
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := -1;
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := -1;
   Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;

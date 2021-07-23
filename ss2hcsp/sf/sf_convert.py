@@ -60,6 +60,13 @@ class SFConvert:
         for fun in chart.diagram.funs:
             self.procedures[fun.name] = fun
 
+        # List of all states that are parents of OR-states
+        self.or_fathers = set()
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, OR_State):
+                self.or_fathers.add(state.father.ssid)
+        self.or_fathers = sorted(list(self.or_fathers))
+
         def get_state(state, name):
             if len(name)==0:
                 return state
@@ -359,12 +366,12 @@ class SFConvert:
             entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
         entry_procs.append(self.get_rec_entry_proc(dst))
 
+        still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)), expr.AConst(""))
         if isinstance(ancestor, OR_State):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                       expr.AConst(ancestor.whole_name))
-            procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
-        else:
-            procs.extend(entry_procs)
+            still_there = expr.LogicExpr("&&", still_there,
+                expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                             expr.AConst(ancestor.whole_name)))
+        procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
 
         return hcsp.seq(procs)
 
@@ -398,12 +405,12 @@ class SFConvert:
                             if label.event.event.name == 'sec':
                                 conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
                             else:
-                                
                                 raise NotImplementedError
                         elif isinstance(label.event.event,ImplicitEvent):
-                            # raise NotImplementedError
                             if label.event.event.name == 'tick':
-                                    conds.append(expr.RelExpr(">=",expr.AVar(self.entry_tick_name(state)),e))
+                                conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
+                            else:
+                                raise NotImplementedError
                     else:
                         raise NotImplementedError
                 elif str(label.event) in self.messages.keys():
@@ -422,14 +429,18 @@ class SFConvert:
                            ]  
                 else:
                     raise NotImplementedError('convert_label: unsupported event type')
+
             if label.cond is not None:
                 act, hp_cond = self.convert_expr(label.cond)
                 pre_acts.append(act)
                 conds.append(hp_cond)
+
             if label.cond_act is not None:
                 cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
+
             if label.tran_act is not None:
                 tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
+
         return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, tran_act,hcsp.seq(remove_mesg)
 
     def get_rec_entry_proc(self, state):
@@ -441,12 +452,12 @@ class SFConvert:
         """
         procs = []
         if state.children:
-            if isinstance(state.children[0], AND_State):
+            if any(isinstance(child, AND_State) for child in state.children):
                 for child in state.children:
                     procs.append(hcsp.Var(self.entry_proc_name(child)))
                     procs.append(self.get_rec_entry_proc(child))
 
-            elif isinstance(state.children[0], OR_State):
+            elif any(isinstance(child, OR_State) for child in state.children):
                 # First, obtain what happens in default transition:
                 default_tran = None
                 for child in state.children:
@@ -545,11 +556,14 @@ class SFConvert:
                     
 
                     ancestor = get_common_ancestor(src, dst)
-                    still_there_tran = None
+                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
+                                                    expr.AConst(""))
                     if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                                        expr.AConst(ancestor.whole_name))
-                    pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(tran.label, state=state, still_there_cond=still_there_cond,
+                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
+                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                         expr.AConst(ancestor.whole_name)))
+                    pre_act, cond, cond_act, tran_act , remove_mesg= self.convert_label(
+                        tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
@@ -580,11 +594,13 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst)
-                    still_there_tran = None
+                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
+                                                    expr.AConst(""))
                     if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                                        expr.AConst(ancestor.whole_name))
-                    pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(
+                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
+                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                         expr.AConst(ancestor.whole_name)))
+                    pre_act, cond, cond_act, tran_act,remove_mesg = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
 
@@ -807,7 +823,10 @@ class SFConvert:
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
-       
+        # Initialize state
+        for or_father in self.or_fathers:
+            procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
+
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.has_history_junc:

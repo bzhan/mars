@@ -277,7 +277,9 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     return hcsp.seq([*expr_list,hcsp.Var(cmd.func_name)])
 
         elif isinstance(cmd, function.Sequence):
-            if isinstance(cmd.cmd1, function.RaiseEvent) and still_there is not None:
+            if (isinstance(cmd.cmd1, function.RaiseEvent) or
+                isinstance(cmd.cmd1, function.FunctionCall) and cmd.cmd1.func_name == "send") \
+               and still_there is not None:
                 return hcsp.Sequence(convert(cmd.cmd1), hcsp.Condition(still_there, convert(cmd.cmd2)))
             else:
                 return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))

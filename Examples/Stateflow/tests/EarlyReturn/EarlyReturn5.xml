@@ -95,7 +95,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">38ccfd5a-dda2-49d1-af6d-98e83f56cf5b</P>
       </Object>
-      <P Name="BDUuid" Class="char">45d64db8-b168-49a4-91dc-7e3c531dc709</P>
+      <P Name="BDUuid" Class="char">cabdcc13-64a6-4814-9b93-2b14ca46cc8d</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
