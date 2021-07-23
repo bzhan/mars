@@ -12,7 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
+def convert_expr(e, *, procedures=None, arrays=None,array_value=None,messages=None):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -39,6 +39,11 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
                 return expr.AConst(e)
             else:
                 return expr.AConst(e.value)
+        elif isinstance(e,function.DirectName):
+            sname=e.exprs[0]
+            if str(sname) in messages.keys():
+                pre_acts.append(hcsp.Assign(expr.AVar(str(e)),messages[str(sname)].data))
+            return expr.AVar(str(e))    
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
                 return expr.PlusExpr(['-'], [rec(e.exprs[0])])
@@ -104,7 +109,7 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None):
     res = rec(e)
     return hcsp.seq(pre_acts), res
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None,array_value=None):
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None,array_value=None,events=None,messages=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -129,7 +134,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays,array_value=array_value)
+        return convert_expr(e, procedures=procedures, arrays=arrays,array_value=array_value,messages=messages)
 
     def conv_exprs(es):
         # Convert a list of expressions
@@ -140,7 +145,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             res.append(hp_e)
         return hcsp.seq(pre_acts), res
 
-    def convert_lname(lname):
+    def convert_lname(lname,val):
         if isinstance(lname, function.Var):
             return expr.AVar(lname.name)
         elif isinstance(lname, function.FunExpr):
@@ -162,7 +167,15 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 _, hp_e3 = conv_expr(lname.exprs[2])
                 return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(lname.fun_name),subtract_one(hp_e1)),subtract_one(hp_e2)),subtract_one(hp_e3))
         elif isinstance(lname, function.ListExpr):
-            return [convert_lname(arg) for arg in lname.args]
+            return [convert_lname(arg,val) for arg in lname.args]
+        elif isinstance(lname,function.DirectName):
+            sname=lname.exprs[0]
+            if str(sname) in messages.keys():
+                message=messages[str(sname)]
+                message.data=conv_expr(val)[1]
+                messages[str(sname)]=message
+            return lname
+
         else:
             raise NotImplementedError
 
@@ -195,7 +208,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 #                     vars_set=hp_expr.get_vars()
 # =======
             # name_set=set()
-            assign_name=convert_lname(cmd.lname)
+            assign_name=convert_lname(cmd.lname,cmd.expr)
             # if isinstance(assign_name,list):
             #     for i in range(0,len(assign_name)):
             #         name_set=name_set.union(assign_name[i].get_vars())
@@ -240,13 +253,18 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                     if isinstance(direct_name,function.DirectName):
                         exprs=direct_name.exprs
                         event_name=get_directed_event(exprs,event)
-                    elif isinstance(direct_name,function.Var):
-                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))           
+                    elif isinstance(direct_name,function.Var) :
+                        event_name=function.DirectedEvent(str(direct_name),function.BroadcastEvent(str(event)))
+
                 elif len(args) == 1:
                     if isinstance(args[0],function.DirectName):
                         exprs=args[0].exprs
                         event,state_name=exprs[-1],exprs[:len(exprs)-1]
                         event_name=get_directed_event(state_name,event)
+                    elif isinstance(args[0],function.Var) and args[0] in events:
+                        event_name=args[0]
+                    elif isinstance(args[0],function.Var) and args[0] not in events:
+                        event_name=function.Message(str(args[0]))
                 return raise_event(event_name)
             else:
                 assert procedures is not None and cmd.func_name in procedures, \

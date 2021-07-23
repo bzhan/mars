@@ -648,6 +648,23 @@ class RaiseEvent(Command):
     def subst(self, inst):
         return self
 
+class Message(Command):
+    """Command for raising an event."""
+    def __init__(self, message):
+        assert isinstance(message, str)
+        self.message = message
+
+    def __str__(self):
+        return str(self.message)
+
+    def __repr__(self):
+        return "RaiseEvent(%s)" % repr(self.message)
+
+    def __eq__(self, other):
+        return self.message == other.message
+
+    def subst(self, inst):
+        return self
 
 class Function:
     """Function declarations in Matlab.

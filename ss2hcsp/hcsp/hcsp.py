@@ -273,6 +273,8 @@ class Assign(HCSP):
             var_name = AVar(str(var_name))
         if isinstance(var_name, AExpr):
             self.var_name = var_name
+        elif isinstance(var_name,function.DirectName):
+            self.var_name=var_name
         else:
             var_name = tuple(var_name)
             assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
@@ -292,6 +294,8 @@ class Assign(HCSP):
     def __str__(self):
         if isinstance(self.var_name, AExpr):
             var_str = str(self.var_name)
+        elif isinstance(self.var_name,function.DirectName):
+            var_str=str(self.var_name)
         else:
             var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
         return "%s := %s" % (var_str, self.expr)

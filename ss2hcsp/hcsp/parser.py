@@ -23,6 +23,7 @@ grammar = r"""
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
         | "[]" -> empty_list
+        | "()" ->empty_queue
         | "[" expr ("," expr)* "]" -> literal_list
         | "{" CNAME ":" expr ("," CNAME ":" expr)* "}" -> literal_dict
         | "min" "(" expr "," expr ")" -> min_expr
@@ -159,6 +160,8 @@ class HPTransformer(Transformer):
     def empty_list(self):
         return expr.AConst(list())
 
+    def empty_queue(self):
+        return expr.AConst(tuple())
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
             return expr.AConst(list(arg.value for arg in args))

@@ -363,9 +363,9 @@ class SL_Diagram:
             chart_st = eval(chart_st) if chart_st else -1
 
             chart_data = dict()
-            local_message_list=list()
-            input_message_list=list()
-            event_list=list()
+            message_dict=dict()
+            # input_message_list=list()
+            event_dict=dict()
             if (len(chart.getElementsByTagName(name="event"))>=1):
                 num=1
                 for e in chart.getElementsByTagName(name="event"):
@@ -374,7 +374,7 @@ class SL_Diagram:
                     port=num
                     event_trigger=get_attribute_value(e, "trigger") if (len(get_attribute_value(e, "trigger"))>=1) else None
                     event=SF_Event(name=event_name,scope=event_scope,trigger=event_trigger,port=port)
-                    event_list.append(event)
+                    event_dict[event_name]=event
                     num+=1
 
             for data in chart.getElementsByTagName(name="data"):
@@ -398,14 +398,13 @@ class SL_Diagram:
                     if is_mesg == "1":
                         data_value=0
                         message=SF_Message(name=var_name,data=data_value,scope=scope)
-                        if scope == "LOCAL_DATA":         
-                            local_message_list.append(message)
-                        elif scope =="OUTPUT_DATA":
-                            input_message_list.append(message)
+                         
+                        message_dict[var_name]=message
+                        
                 else:
                     chart_data[var_name] = sf_data
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"local_message":local_message_list,"input_message":input_message_list,"event_list":event_list}
+            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"message_dict":message_dict,"event_dict":event_dict}
 
     def parse_xml(self, model_name="", default_SampleTimes=()):
         # Extract BlockParameterDefaults
@@ -799,8 +798,8 @@ class SL_Diagram:
                     #             chart_paras["state"].children.remove(s)
 
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],local_message_queue=chart_paras["local_message"],
-                                         input_message_queue=chart_paras["input_message"],event_list=chart_paras["event_list"],
+                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],message_list=chart_paras["message_dict"],
+                                         event_list=chart_paras["event_dict"],
                                          is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
@@ -810,22 +809,14 @@ class SL_Diagram:
                                 port_id = get_attribute_value(child, "Port")
                                 port_id = int(port_id) - 1 if port_id else 0
                                 assert port_id not in stateflow.port_to_in_var
-                                event_name_list=[]
-                                for event in chart_paras["event_list"]:
-                                    event_name_list.append(event.name)
-                                if in_var not in event_name_list:
-                                    stateflow.port_to_in_var[port_id] = in_var
+                                stateflow.port_to_in_var[port_id] = in_var
                             elif child.getAttribute("BlockType") == "Outport":
                                 out_var = child.getAttribute("Name")
                                 if out_var.find("()") == -1:
                                     port_id = get_attribute_value(child, "Port")
                                     port_id = int(port_id) - 1 if port_id else 0
                                     assert port_id not in stateflow.port_to_out_var
-                                    event_name_list=[]
-                                    for event in chart_paras["event_list"]:
-                                        event_name_list.append(event.name)
-                                    if out_var not in event_name_list:
-                                        stateflow.port_to_out_var[port_id] = out_var
+                                    stateflow.port_to_out_var[port_id] = out_var
 
                     self.add_block(stateflow)
                     continue

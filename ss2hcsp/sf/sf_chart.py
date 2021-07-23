@@ -890,7 +890,7 @@ def parse_act_into_hp(acts, root, location):  # parse a list of actions of Simul
 
 
 class SF_Chart(Subsystem):
-    def __init__(self, name, state, data, num_src, num_dest, st=0.1,input_message_queue=None,local_message_queue=None,event_list=None, is_triggered_chart=False,trigger_dest=None,trigger_type="",sf_charts=None,max_step=0.2):
+    def __init__(self, name, state, data, num_src, num_dest, st=0.1,message_list=None,event_list=None, is_triggered_chart=False,trigger_dest=None,trigger_type="",sf_charts=None,max_step=0.2):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
@@ -925,12 +925,12 @@ class SF_Chart(Subsystem):
 
         self.dest_state_root_num=-1
         self.dest_state_name=""
-        if input_message_queue is None:
-            input_message_queue = []
-        self.input_message_queue=input_message_queue
-        if local_message_queue is None:
-            local_message_queue = []
-        self.local_message_queue=local_message_queue
+        if message_list is None:
+            message_list = []
+        self.input_message_queue=message_list
+        if message_list is None:
+            message_list = []
+        self.local_message_queue=message_list
         if  event_list is None:
             event_list = []
         self.event_list=event_list

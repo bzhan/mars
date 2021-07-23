@@ -87,7 +87,7 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str))
+        assert isinstance(value, (int, float, list, str,tuple))
         if isinstance(value, list):
             self.value = list(value)
         else:

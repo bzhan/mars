@@ -18,6 +18,7 @@ from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
 import numpy as np
+from ss2hcsp.matlab import function
 
 
 class SimulatorException(Exception):
@@ -94,6 +95,28 @@ def eval_expr(expr, state):
         elif expr.fun_name == "div":
             a, b = args
             return int(a) // int(b)
+        elif expr.fun_name == "put":
+            a, b = args
+            assert isinstance(a, tuple)
+            if isinstance(b, tuple):
+
+                return tuple(list(a) + list(b))
+            else:
+                return tuple(list(a)+[b])
+        elif expr.fun_name == "exist":
+            a, b= args
+            assert isinstance(a, tuple)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
+            if b in a:
+                return 1
+        elif expr.fun_name == "get":
+            a, b= args
+            i=a.index(b)
+            assert isinstance(a, tuple)
+            if len(a) == 0:
+                raise SimulatorException('When evaluating %s: argument is empty' % expr)
+            return a[:i]+a[i+1:]
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
@@ -902,8 +925,11 @@ class SimInfo:
         used to avoid aliasing.
 
         """
+        # print(self.state)
         if isinstance(lname, AVar):
             self.state[lname.name] = copy.deepcopy(val)
+        elif isinstance(lname,function.DirectName):
+            self.state[str(lname)] = copy.deepcopy(val)
         elif isinstance(lname, ArrayIdxExpr):
             v = eval_expr(lname.expr1, self.state)
             idx = eval_expr(lname.expr2, self.state)
@@ -942,7 +968,7 @@ class SimInfo:
             
         elif cur_hp.type == "assign":
             # Perform assignment
-            if isinstance(cur_hp.var_name, AExpr):
+            if isinstance(cur_hp.var_name, (AExpr,function.DirectName)):
                 self.exec_assign(cur_hp.var_name, eval_expr(cur_hp.expr, self.state), cur_hp)
             else:
                 # Multiple assignment
@@ -1355,7 +1381,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=1000, num_show=None,
+def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
