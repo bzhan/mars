@@ -1,5 +1,73 @@
 ## Examples of events and directed events
 
+### Event1
+
+* Simple example of events. Event raised in B can be catched by A (the entire diagram is executed again).
+* Expected result:
+  - b
+  - a
+  - en_A2
+  - tb
+  - en_B2
+
+### Event2
+
+* This example demonstrates that a single event can cause multiple transitions from different charts.
+* Expected result:
+  - b
+  - a
+  - en_A2
+  - c
+  - en_C2
+  - tb
+  - en_B2
+
+### Event3
+
+* This example demonstrates that a single event can cause multiple transitions in junctions.
+* Expected result:
+  - b
+  - a1
+  - a2
+  - en_A2
+  - tb
+  - en_B2
+
+### Event4
+
+* This example shows a nested event. When event E is handled in A, event F is raised. After event F returns, event E still remains so the second transition after the junction can be carried out.
+* Expected result:
+  - b
+  - a1
+  - c
+  - en_C2
+  - a2
+  - en_A2
+  - tb
+  - en_B2
+
+### Event5
+
+* This example shows that transitions without event marking will accept any event. Chart A will perform two transitions in one iteration, the first on its own and the second in response to event E.
+* Expected result:
+  - en_A2
+  - b
+  - en_A3
+  - tb
+  - en_B2
+
+### Event6
+
+* This example tests handling of deep recursions.
+* Expected result:
+  - a 5
+  - a 4
+  - a 3
+  - a 2
+  - a 1
+  - a 0
+  - en_A2 0
+
 ### DirectedEvent1
 
 * Standard example of directed events. Each of A, B and C take events E_one and E_two, so directed events are used to distinguish between them.
