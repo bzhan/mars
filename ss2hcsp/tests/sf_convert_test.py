@@ -81,23 +81,10 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log exA', 'log enB', 'delay 0.1', 'log conBJun', 'log conJunC',
              'log exB', 'log tranBJun', 'log tranJunC', 'delay 0.1'])
 
-    def testFakeEarlyReturn(self):
-        run_test(self, "./Examples/Stateflow/tests/fake_early_return.xml", 1,
-            ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
-             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
-
     def testJunctionLoop(self):
         run_test(self, "./Examples/Stateflow/tests/junction_loop.xml", 1,
             ['log t1', 'log t2', 'log t1', 'log t2', 'log t1', 'log t2', 'log t1',
              'log t4', 'delay 0.1'])
-
-    def testEarlyExit(self):
-        run_test(self, "./Examples/Stateflow/tests/early_exit.xml", 1,
-            ['log en_A1', 'log ex_A1', 'log en_B', 'delay 0.1'])
-
-    def testEarlyExitSameLevel(self):
-        run_test(self, "./Examples/Stateflow/tests/early_exit_same_level.xml", 1,
-            ['log en_A', 'log ex_A', 'log en_C', 'delay 0.1'])
 
     def testHistoryJunction(self):
         run_test(self, "./Examples/Stateflow/tests/history_junction.xml", 5,
@@ -203,6 +190,41 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/jun_in_state.xml", 1,
             ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
              'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'])
+
+    def testEarlyReturn1(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn1.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn2(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn2.xml", 1,
+            ['log en_A', 'log en_A1', 'log E', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn3(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn3.xml", 1,
+            ['log en_A 1', 'log ex_A 2', 'log en_C 2', 'delay 0.1'])
+
+    def testEarlyReturn4(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn4.xml", 1,
+            ['log ca', 'log ta', 'log en_A2', 'delay 0.1'])
+
+    def testEarlyReturn5(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn5.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn6(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn6.xml", 1,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log loop', 'log ex_A', 'log en_A',
+             'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn7(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn7.xml", 2,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log ex_A2',
+             'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn8(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn8.xml", 1,
+            ['log a', 'log c', 'log du_A1', 'log b', 'log a', 'log c', 'log ex_A1',
+             'log en_A2', 'log en_C2', 'log tb', 'log en_B2', 'log en_C3', 'delay 0.1'])
 
     def testDSM1(self):
         io_filter = lambda s: False

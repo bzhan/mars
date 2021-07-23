@@ -8,7 +8,7 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import optimize
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.matlab import convert,parser
+from ss2hcsp.matlab import convert, parser
 from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
     AbsoluteTimeEvent, ImplicitEvent
 
@@ -327,11 +327,19 @@ class SFConvert:
 
         if tran_act is not None:
             procs.append(tran_act)
-            
+
         # Enter states from ancestor to state1
+        entry_procs = []
         for state in reversed(self.get_chain_to_ancestor(dst, ancestor)):
-            procs.append(hcsp.Var(self.entry_proc_name(state)))
-        procs.append(self.get_rec_entry_proc(dst))
+            entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
+        entry_procs.append(self.get_rec_entry_proc(dst))
+
+        if isinstance(ancestor, OR_State):
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                       expr.AConst(ancestor.whole_name))
+            procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
+        else:
+            procs.extend(entry_procs)
 
         return hcsp.seq(procs)
 
@@ -489,16 +497,17 @@ class SFConvert:
             still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
                                             expr.AConst(state.whole_name))
 
-            # Whether the state has exited (so the parent state has no active states)
-            still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                            expr.AConst(""))
-
             # First, check each of the outgoing transitions
             procs.append(hcsp.Assign(done, expr.AConst(0)))
             if state.out_trans:
                 for i, tran in enumerate(state.out_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
+                    ancestor = get_common_ancestor(src, dst)
+                    still_there_tran = None
+                    if isinstance(ancestor, OR_State):
+                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                                        expr.AConst(ancestor.whole_name))
                     pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
@@ -531,6 +540,11 @@ class SFConvert:
                 for i, tran in enumerate(state.inner_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
+                    ancestor = get_common_ancestor(src, dst)
+                    still_there_tran = None
+                    if isinstance(ancestor, OR_State):
+                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                                        expr.AConst(ancestor.whole_name))
                     pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
@@ -637,7 +651,7 @@ class SFConvert:
         if isinstance(state, OR_State):
             # If reached an OR-state, carry out the transition from src to
             # the current state, with the accumulated transition actions in
-            # the middle. Then return 1 for successfully reaching a state.        
+            # the middle. Then return 1 for successfully reaching a state.
             return hcsp.seq([self.get_transition_proc(init_src, state, init_tran_act),
                              self.return_val(expr.AConst(1))])
 
