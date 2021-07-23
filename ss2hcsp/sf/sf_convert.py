@@ -55,6 +55,13 @@ class SFConvert:
         for fun in chart.diagram.funs:
             self.procedures[fun.name] = fun
 
+        # List of all states that are parents of OR-states
+        self.or_fathers = set()
+        for ssid, state in self.chart.all_states.items():
+            if isinstance(state, OR_State):
+                self.or_fathers.add(state.father.ssid)
+        self.or_fathers = sorted(list(self.or_fathers))
+
         def get_state(state, name):
             if len(name)==0:
                 return state
@@ -334,12 +341,12 @@ class SFConvert:
             entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
         entry_procs.append(self.get_rec_entry_proc(dst))
 
+        still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)), expr.AConst(""))
         if isinstance(ancestor, OR_State):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                       expr.AConst(ancestor.whole_name))
-            procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
-        else:
-            procs.extend(entry_procs)
+            still_there = expr.LogicExpr("&&", still_there,
+                expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                             expr.AConst(ancestor.whole_name)))
+        procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
 
         return hcsp.seq(procs)
 
@@ -504,10 +511,12 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst)
-                    still_there_tran = None
+                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
+                                                    expr.AConst(""))
                     if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                                        expr.AConst(ancestor.whole_name))
+                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
+                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                         expr.AConst(ancestor.whole_name)))
                     pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
@@ -541,10 +550,12 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst)
-                    still_there_tran = None
+                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
+                                                    expr.AConst(""))
                     if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                                        expr.AConst(ancestor.whole_name))
+                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
+                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
+                                         expr.AConst(ancestor.whole_name)))
                     pre_act, cond, cond_act, tran_act = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
@@ -757,6 +768,10 @@ class SFConvert:
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
+
+        # Initialize state
+        for or_father in self.or_fathers:
+            procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
 
         # Initialize history junction
         for ssid, state in self.chart.all_states.items():

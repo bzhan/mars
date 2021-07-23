@@ -218,8 +218,8 @@ class SFConvertTest(unittest.TestCase):
 
     def testEarlyReturn7(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn7.xml", 2,
-            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log ex_A2',
-             'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'delay 0.1',
+             'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
 
     def testEarlyReturn8(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn8.xml", 1,
