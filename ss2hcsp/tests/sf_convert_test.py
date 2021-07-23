@@ -91,7 +91,34 @@ class SFConvertTest(unittest.TestCase):
             ['log b', 'log c1', 'delay 0.1', 'log c2', 'delay 0.1', 'log B',
              'delay 0.1', 'log c2', 'delay 0.1', 'log B', 'delay 0.1'])
 
-    def testDirectedEvent(self):
+    def testEvent1(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event1.xml", 1,
+            ['log b', 'log a', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent2(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event2.xml", 1,
+            ['log b', 'log a', 'log en_A2', 'log c', 'log en_C2', 'log tb',
+             'log en_B2', 'delay 0.1'])
+
+    def testEvent3(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event3.xml", 1,
+            ['log b', 'log a1', 'log a2', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent4(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event4.xml", 1,
+            ['log b', 'log a1', 'log c', 'log en_C2', 'log a2', 'log en_A2',
+             'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent5(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event5.xml", 1,
+            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
+
+    def testEvent6(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/Event6.xml", 1,
+            ['log a 5', 'log a 4', 'log a 3', 'log a 2', 'log a 1', 'log a 0',
+             'log en_A2 0', 'delay 0.1'])
+
+    def testDirectedEvent1(self):
         run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent1.xml", 1,
             ['log en_A1', 'log en_B1', 'log en_C1',
              'log ex_C1', 'log en_C2', 'log ex_B1', 'log en_B2', 'log ex_A1', 'log en_A2',
