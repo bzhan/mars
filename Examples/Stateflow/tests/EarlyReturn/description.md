@@ -89,3 +89,25 @@
   - tb
   - en_B2
   - en_C3
+
+### EarlyReturn9
+
+* Early return for junctions: broadcast event on the second transition.
+* Expected result:
+  - en_A
+  - en_A1
+  - pre
+  - ex_A1
+  - ex_A
+  - en_B
+
+### EarlyReturn10
+
+* Early return for junctions: broadcast event on the first transition.
+* Expected result:
+  - en_A
+  - en_A1
+  - pre
+  - ex_A1
+  - ex_A
+  - en_B

@@ -380,24 +380,28 @@ class SFConvert:
                             if label.event.event.name == 'sec':
                                 conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
                             else:
-                                
                                 raise NotImplementedError
                         elif isinstance(label.event.event,ImplicitEvent):
-                            # raise NotImplementedError
                             if label.event.event.name == 'tick':
-                                    conds.append(expr.RelExpr(">=",expr.AVar(self.entry_tick_name(state)),e))
+                                conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
+                            else:
+                                raise NotImplementedError
                     else:
                         raise NotImplementedError
                 else:
                     raise NotImplementedError('convert_label: unsupported event type')
+
             if label.cond is not None:
                 act, hp_cond = self.convert_expr(label.cond)
                 pre_acts.append(act)
                 conds.append(hp_cond)
+
             if label.cond_act is not None:
                 cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
+
             if label.tran_act is not None:
                 tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
+
         return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, tran_act
 
     def get_rec_entry_proc(self, state):
@@ -409,12 +413,12 @@ class SFConvert:
         """
         procs = []
         if state.children:
-            if isinstance(state.children[0], AND_State):
+            if any(isinstance(child, AND_State) for child in state.children):
                 for child in state.children:
                     procs.append(hcsp.Var(self.entry_proc_name(child)))
                     procs.append(self.get_rec_entry_proc(child))
 
-            elif isinstance(state.children[0], OR_State):
+            elif any(isinstance(child, OR_State) for child in state.children):
                 # First, obtain what happens in default transition:
                 default_tran = None
                 for child in state.children:
@@ -440,18 +444,7 @@ class SFConvert:
                     procs.append(hcsp.ITE(conds, default_tran))
                 else:
                     procs.append(default_tran)
-            elif isinstance(state.children[0],Junction):
-                default_tran = None
-                for child in state.children:
-                    if isinstance(child, Junction) and child.default_tran:
-                        pre_act, cond, cond_act, tran_act = self.convert_label(child.default_tran.label)
-                        assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
-                            "get_rec_entry_proc: no condition on default transitions"
-                        default_tran = hcsp.seq([
-                            cond_act, tran_act, hcsp.Var("J"+child.ssid)
-                            ])
-                        break
-                procs.append(default_tran)
+
             else:
                 raise TypeError
         return hcsp.seq(procs)
