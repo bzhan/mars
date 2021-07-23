@@ -351,11 +351,11 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1'])
     def testMessage3(self):
         run_test(self, "./Examples/Stateflow/tests/msgex1_msg.xml",100,
-           ['log en_A', 'IO ch_x0_0 "M"', 'log en_A0', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'log en_A1', 'delay 0.1', 'log en_A2', 'delay 0.1'],print_before_simp=True)
-
+           ['log en_A', 'IO ch_x0_0 "M"', 'log en_A0', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1','delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'log en_A1', 'delay 0.1', 'log en_A2'])
 
 if __name__ == "__main__":
     unittest.main()
