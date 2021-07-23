@@ -72,10 +72,6 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log enA1', 'log enB', 'log enB1', 'delay 0.1',
              'log enA', 'log enA1', 'delay 0.1', 'log enB', 'log enB1', 'delay 0.1'])
 
-    def testNoEventTrig(self):
-        run_test(self, "./Examples/Stateflow/tests/no_event_trig.xml", 1,
-            ['log en_A2', 'log b', 'log en_A3', 'log tb', 'log en_B2', 'delay 0.1'])
-
     def testAggregatedJunctions(self):
         run_test(self, "./Examples/Stateflow/tests/aggregated_junctions.xml", 2,
             ['log enA', 'log exA', 'log enB', 'delay 0.1', 'log conBJun', 'log conJunC',
@@ -262,6 +258,20 @@ class SFConvertTest(unittest.TestCase):
     def testEarlyReturn10(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn10.xml", 1,
             ['log en_A', 'log en_A1', 'log pre', 'log ex_A1', 'log ex_A', 'log en_B', 'delay 0.1'])
+
+    def testEarlyReturn11(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn11.xml", 2,
+            ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'log en_A2a', 'delay 0.1',
+             'log ex_A2a', 'log ex_A2', 'log loop', 'log ex_A', 'log en_A', 'log en_A1', 'delay 0.1'])
+
+    def testEarlyReturn12(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn12.xml", 1,
+            ['log enB', 'log enC', 'delay 0.1'])
+
+    def testEarlyReturn13(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn13.xml", 1,
+            ['log F', 'log exA1', 'log exA1', 'log exA1', 'log exA1', 'log exA1',
+             'log exA1_done', 'log enA3', 'delay 0.1'])
 
     def testDSM1(self):
         io_filter = lambda s: False

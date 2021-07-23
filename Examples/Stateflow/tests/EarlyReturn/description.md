@@ -111,3 +111,39 @@
   - ex_A1
   - ex_A
   - en_B
+
+### EarlyReturn11
+
+* This is a variant of EarlyReturn7, where A2 and A3 are changed to nested states.
+* Expected result:
+  - en_A
+  - en_A1
+  - ex_A1
+  - en_A2
+  - en_A2a
+  - ex_A2a
+  - ex_A2
+  - loop
+  - ex_A
+  - en_A
+  - en_A1
+
+### EarlyReturn12
+
+* This example tests early return from en action, as well as the order between execution of en action and setting of state activity variable. When A is entered, the state activity variable is set first, then the entry action raises event E. Since A is now already active, this induces transition to B, and causes early return from the entry action, so the remaining output of enA_done is not executed. This all happens during the initialization phase. The first iteration will then cause a transition to C.
+* Expected result:
+  - enB
+  - enC
+
+### EarlyReturn13
+
+* This example tests early return from ex action, as well as the order between execution of ex action and setting of state activity variable. When A1 is exited, the ex action is executed before setting of state activity variable. This means the event E raised in the ex action will cause a transition from A1 to A3, inducing a recursive execution of the ex action. This happens until x is reduced to zero.
+* Expected result:
+  - F
+  - exA1
+  - exA1
+  - exA1
+  - exA1
+  - exA1
+  - exA1_done
+  - enA3
