@@ -1,4 +1,4 @@
-for i = 1:4
+for i = 1:6
     model = "DirectedEvent"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)

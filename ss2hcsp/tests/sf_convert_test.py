@@ -114,7 +114,16 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent4.xml", 1,
             ['log en_A1', 'log en_B2', 'log en_B21',
              'log ex_B21', 'log ex_B2', 'log en_B4', 'log ex_A1', 'log en_A2', 'delay 0.1'])
-        
+
+    def testDirectedEvent5(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent5.xml", 1,
+            ['log en_A1', 'log en_B2', 'log en_B21',
+             'log ex_B21', 'log en_B22', 'log ex_A1', 'log en_A2', 'delay 0.1'])
+
+    def testDirectedEvent6(self):
+        run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent6.xml", 1,
+            ['log a', 'log c', 'delay 0.1'])
+
     def testInnerTrans(self):
         run_test(self, "./Examples/Stateflow/tests/inner_trans.xml", 2,
             ['log enS', 'log condDefault', 'log tranDefault', 'log enA',

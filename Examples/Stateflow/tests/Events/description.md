@@ -63,3 +63,22 @@
   - en_B4
   - ex_A1
   - en_A2
+
+### DirectedEvent5
+
+* A variant of DirectedEvent4, with more specific target.
+* Expected result:
+  - en_A1
+  - en_B2
+  - en_B21
+  - ex_B21
+  - en_B22
+  - ex_A1
+  - en_A2
+
+### DirectedEvent6
+
+* A combination of directed event with early return.
+* Expected result:
+  - a
+  - c

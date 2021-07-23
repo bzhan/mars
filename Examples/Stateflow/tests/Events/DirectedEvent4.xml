@@ -79,9 +79,9 @@
         </Object>
         <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAAAAAAAAPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD///8AAAd+AAADSQAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAA</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
-        <P Name="WindowUuid" Class="char">f96980eb-365b-46c3-ba3f-a9fa7ba0254a</P>
+        <P Name="WindowUuid" Class="char">1adf9161-6a9a-47ff-9166-31ea5e8021f8</P>
       </Object>
-      <P Name="BDUuid" Class="char">5609782f-02da-4e6e-8220-81659c395bdd</P>
+      <P Name="BDUuid" Class="char">ff3151a3-9f19-4cad-bb7a-48167ef5d0be</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -1040,7 +1040,6 @@
         <P Name="ContentPreviewEnabled">on</P>
         <System>
           <P Name="Location">[8, 8, 1301, 745]</P>
-          <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1110,7 +1109,6 @@
           <P Name="zoomFactor">1.699</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">35</P>
-          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">33</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="updateMethod">DISCRETE</P>
@@ -1129,7 +1127,6 @@
               <P Name="subviewer">35</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">SET_STATE</P>
-              <eml/>
               <Children>
                 <state SSID="7">
                   <P Name="labelString">A</P>
@@ -1139,7 +1136,6 @@
                   <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
                   <P Name="executionOrder">1</P>
-                  <eml/>
                   <Children>
                     <state SSID="15">
                       <P Name="labelString">A1
@@ -1151,7 +1147,6 @@ ex: f(&quot;ex_A1&quot;)
                       <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <state SSID="4">
                       <P Name="labelString">A2
@@ -1163,7 +1158,6 @@ ex: f(&quot;ex_A2&quot;)
                       <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <transition SSID="10">
                       <P Name="labelString"/>
@@ -1239,7 +1233,6 @@ ex: f(&quot;ex_A2&quot;)
                   <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
                   <P Name="executionOrder">2</P>
-                  <eml/>
                   <Children>
                     <state SSID="12">
                       <P Name="labelString">B1</P>
@@ -1248,7 +1241,6 @@ ex: f(&quot;ex_A2&quot;)
                       <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                       <Children>
                         <state SSID="17">
                           <P Name="labelString">B2
@@ -1259,7 +1251,6 @@ ex: f(&quot;ex_B2&quot;)</P>
                           <P Name="subviewer">35</P>
                           <P Name="type">OR_STATE</P>
                           <P Name="decomposition">CLUSTER_STATE</P>
-                          <eml/>
                           <Children>
                             <state SSID="23">
                               <P Name="labelString">B21
@@ -1270,7 +1261,6 @@ ex: f(&quot;ex_B21&quot;)</P>
                               <P Name="subviewer">35</P>
                               <P Name="type">OR_STATE</P>
                               <P Name="decomposition">CLUSTER_STATE</P>
-                              <eml/>
                             </state>
                             <state SSID="25">
                               <P Name="labelString">B22
@@ -1281,7 +1271,6 @@ ex: f(&quot;ex_B22&quot;)</P>
                               <P Name="subviewer">35</P>
                               <P Name="type">OR_STATE</P>
                               <P Name="decomposition">CLUSTER_STATE</P>
-                              <eml/>
                             </state>
                             <transition SSID="24">
                               <P Name="labelString"/>
@@ -1336,7 +1325,6 @@ ex: f(&quot;ex_B2&quot;)</P>
                           <P Name="subviewer">35</P>
                           <P Name="type">OR_STATE</P>
                           <P Name="decomposition">CLUSTER_STATE</P>
-                          <eml/>
                         </state>
                         <transition SSID="30">
                           <P Name="labelString"/>
@@ -1412,7 +1400,6 @@ ex: f(&quot;ex_B4&quot;)
                       <P Name="subviewer">35</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <transition SSID="14">
                       <P Name="labelString"/>
