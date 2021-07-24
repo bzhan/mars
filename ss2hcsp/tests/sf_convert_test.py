@@ -382,6 +382,10 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn19.xml", 1,
             ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'])
 
+    def testEarlyReturn20(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn20.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'])
+
     def testDSM1(self):
         io_filter = lambda s: False
         run_test(self, "./Examples/Stateflow/tests/DataStore/DSM1.xml", 20,

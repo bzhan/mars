@@ -217,3 +217,14 @@
   - ca2
   - exS
   - enT
+
+### EarlyReturn20
+
+* Similar to EarlyReturn 19, but except inner transition in S is changed to outer transition in the child states of S.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - ca2
+  - exS
+  - enT

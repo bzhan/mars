@@ -410,73 +410,66 @@ class SFConvert:
 
         return hcsp.seq(procs)
 
-    def convert_label(self, label, *, state=None, still_there_cond=None, still_there_tran=None):
-        """Convert transition label to a triple of condition, condition action,
-        and transition action.
+    def convert_label(self, label, *, state=None, still_there=None):
+        """Convert transition label to a triple of pre-action, condition,
+        and condition action. The transition action is not converted (access the
+        raw action using label.tran_act).
 
         label : TransitionLabel - transition label to be converted.
         state : SF_State - current state, used only for determining temporal events
             in outgoing and inner transitions.
-        still_there_cond : BExpr - when to continue execution of condition action.
-        still_there_tran : BExpr - when to continue execution of transition action.
+        still_there : BExpr - when to continue execution of condition action.
 
         """
-        pre_acts, conds, cond_act, tran_act ,remove_mesg= [], [], hcsp.Skip(), hcsp.Skip(),[]
-        if label is not None:
-            if isinstance(label, str):
-                label = parser.transition_parser.parse(label)
-
-            if label.event is not None:
-                if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
-                    # Conversion of event condition E
-                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
-                                           expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
-                elif isinstance(label.event, TemporalEvent):
-                    act, e = self.convert_expr(label.event.expr)
-                    pre_acts.append(act)
-                    assert state is not None, "convert_label: temporal events only for edges from a state."
-                    if label.event.temp_op == 'after':
-                        if isinstance(label.event.event, AbsoluteTimeEvent):
-                            if label.event.event.name == 'sec':
-                                conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
-                            else:
-                                raise NotImplementedError
-                        elif isinstance(label.event.event,ImplicitEvent):
-                            if label.event.event.name == 'tick':
-                                conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
-                            else:
-                                raise NotImplementedError
-                    else:
-                        raise NotImplementedError
-                elif str(label.event) in self.messages.keys():
-                    message=self.messages[str(label.event)]
-                    if message.scope == "INPUT_DATA":
-                        conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
-                                           expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                        remove_mesg=[
-                            hcsp.Assign("IQU", expr.FunExpr("remove", [expr.AVar("IQU"),expr.AConst(label.event.name)]))
-                           ]   
-                    elif message.scope == "LOCAL_DATA":
-                        conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
-                                           expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                        remove_mesg=[
-                            hcsp.Assign("LQU", expr.FunExpr("remove", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
-                           ]  
-                else:
-                    raise NotImplementedError('convert_label: unsupported event type')
-
-            if label.cond is not None:
-                act, hp_cond = self.convert_expr(label.cond)
+        pre_acts, conds, cond_act, remove_mesg = [], [], hcsp.Skip(), []
+        if label.event is not None:
+            if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
+                # Conversion of event condition E
+                conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
+                                        expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+            elif isinstance(label.event, TemporalEvent):
+                act, e = self.convert_expr(label.event.expr)
                 pre_acts.append(act)
-                conds.append(hp_cond)
+                assert state is not None, "convert_label: temporal events only for edges from a state."
+                if label.event.temp_op == 'after':
+                    if isinstance(label.event.event, AbsoluteTimeEvent):
+                        if label.event.event.name == 'sec':
+                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
+                        else:
+                            raise NotImplementedError
+                    elif isinstance(label.event.event,ImplicitEvent):
+                        if label.event.event.name == 'tick':
+                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
+                        else:
+                            raise NotImplementedError
+                else:
+                    raise NotImplementedError
+            elif str(label.event) in self.messages.keys():
+                message = self.messages[str(label.event)]
+                if message.scope == "INPUT_DATA":
+                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
+                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
+                    remove_mesg = [
+                        hcsp.Assign("IQU", expr.FunExpr("remove", [expr.AVar("IQU"),expr.AConst(label.event.name)]))
+                    ]   
+                elif message.scope == "LOCAL_DATA":
+                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
+                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
+                    remove_mesg = [
+                        hcsp.Assign("LQU", expr.FunExpr("remove", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
+                    ]  
+            else:
+                raise NotImplementedError('convert_label: unsupported event type')
 
-            if label.cond_act is not None:
-                cond_act = self.convert_cmd(label.cond_act, still_there=still_there_cond)
+        if label.cond is not None:
+            act, hp_cond = self.convert_expr(label.cond)
+            pre_acts.append(act)
+            conds.append(hp_cond)
 
-            if label.tran_act is not None:
-                tran_act = self.convert_cmd(label.tran_act, still_there=still_there_tran)
+        if label.cond_act is not None:
+            cond_act = self.convert_cmd(label.cond_act, still_there=still_there)
 
-        return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, tran_act,hcsp.seq(remove_mesg)
+        return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, hcsp.seq(remove_mesg)
 
     def get_rec_entry_proc(self, state):
         """Return the process for recursively entering into state.
@@ -496,7 +489,9 @@ class SFConvert:
                 default_tran = None
                 for child in state.children:
                     if isinstance(child, OR_State) and child.default_tran:
-                        pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(child.default_tran.label)
+                        pre_act, cond, cond_act, remove_mesg = \
+                            self.convert_label(child.default_tran.label)
+                        tran_act = self.convert_cmd(child.default_tran.label.tran_act)
                         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
                             "get_rec_entry_proc: no condition on default transitions"
                         default_tran = hcsp.seq([
@@ -577,9 +572,9 @@ class SFConvert:
 
                     ancestor = get_common_ancestor(src, dst, out_trans=True)
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
-                    pre_act, cond, cond_act, tran_act , remove_mesg = self.convert_label(
-                        tran.label, state=state, still_there_cond=still_there_cond,
-                        still_there_tran=still_there_tran)
+                    pre_act, cond, cond_act, remove_mesg = self.convert_label(
+                        tran.label, state=state, still_there=still_there_cond)
+                    tran_act = self.convert_cmd(tran.label.tran_act, still_there=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
@@ -611,9 +606,9 @@ class SFConvert:
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst, out_trans=False)
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
-                    pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(
-                        tran.label, state=state, still_there_cond=still_there_cond,
-                        still_there_tran=still_there_tran)
+                    pre_act, cond, cond_act, remove_mesg = self.convert_label(
+                        tran.label, state=state, still_there=still_there_cond)
+                    tran_act = self.convert_cmd(tran.label.tran_act, still_there=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. For every
@@ -744,8 +739,9 @@ class SFConvert:
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
 
-                    pre_act, cond, cond_act, tran_act, remove_mesg = \
-                        self.convert_label(tran.label, still_there_cond=still_there_cond)
+                    pre_act, cond, cond_act, remove_mesg = \
+                        self.convert_label(tran.label, still_there=still_there_cond)
+                    tran_act = self.convert_cmd(tran.label.tran_act)
                     # if isinstance(cond,expr.BConst):
                     #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
                     act = self.get_traverse_state_proc(
@@ -782,10 +778,11 @@ class SFConvert:
         self.local_vars.add(done)
         procs.append(hcsp.Assign(done, expr.AConst(0)))
         for i, tran in enumerate(junc.out_trans):
-            pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(tran.label)
+            pre_act, cond, cond_act, remove_mesg = self.convert_label(tran.label)
+
             # if isinstance(cond,expr.BConst):
             #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
-            assert tran_act == hcsp.Skip(), \
+            assert tran.label.tran_act is None, \
                 "convert_graphical_function_junc: no transition action in graphical functions."
             act = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
             if i == 0:
@@ -803,11 +800,12 @@ class SFConvert:
             res["J" + junc.ssid] = self.convert_graphical_function_junc(junc)
 
         # Now process default transition
-        pre_act, cond, cond_act, tran_act,remove_mesg = self.convert_label(proc.default_tran.label)
+        pre_act, cond, cond_act, remove_mesg = self.convert_label(proc.default_tran.label)
         dst = proc.default_tran.dst
         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
             "convert_graphical_function: no condition on default transitions"
-        assert tran_act == hcsp.Skip(), "convert_graphical_function: no transition action in graphical functions"
+        assert proc.default_tran.label.tran_act is None, \
+            "convert_graphical_function: no transition action in graphical functions"
         res[proc.name] = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + proc.default_tran.dst)])
         return res
 
