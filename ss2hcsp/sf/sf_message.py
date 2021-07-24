@@ -10,7 +10,14 @@ class SF_Message:
         self.data=data
         self.scope=scope
     def __str__(self):
-            return "{ name:%s ; data:%s ; scope:%s}" % (self.name, self.data,self.scope)
+            return "{ 'name':'%s' , 'data':%s , 'scope':'%s'}" % (self.name, self.data,self.scope)
+
+    def keys(self):
+        return ('name','data','scope')
+
+    def __getitem__(self,item):
+        return getattr(self,item)
+
 
 class SF_Data:
     """Represents Stateflow data object."""

@@ -98,26 +98,38 @@ def eval_expr(expr, state):
             return int(a) // int(b)
         elif expr.fun_name == "put":
             a, b = args
+            
             assert isinstance(a, tuple)
             if isinstance(b, tuple):
 
                 return tuple(list(a) + list(b))
             else:
+                # if isinstance(b,dict):
+                #     state[b['name']+'.'+'data']=b['data']
                 return tuple(list(a)+[b])
         elif expr.fun_name == "exist":
             a, b= args
             assert isinstance(a, tuple)
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            if b in a:
-                return 1
-        elif expr.fun_name == "get":
+            for i in range(0,len(a)):
+                if b == a[i]['name'] :
+                    state[a[i]['name']+'.'+'data']=a[i]['data']
+                    return i
+            return -1
+        elif expr.fun_name == "remove":
+
             a, b= args
-            i=a.index(b)
+            index=0
+            for i in range(0,len(a)):
+                if b == a[i]['name'] :
+                    index=i
+                    break
+            state[str(a[index]['name'])+'.'+'data']=a[index]['data']
             assert isinstance(a, tuple)
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[:i]+a[i+1:]
+            return a[:index]+a[index+1:]
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
@@ -913,7 +925,6 @@ class SimInfo:
         used to avoid aliasing.
 
         """
-        # print(self.state)
         if isinstance(lname, AVar):
             self.state[lname.name] = copy.deepcopy(val)
         elif isinstance(lname,function.DirectName):

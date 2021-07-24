@@ -39,8 +39,8 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
                 return expr.AConst(e.value)
         elif isinstance(e,function.DirectName):
             sname=e.exprs[0]
-            if str(sname) in messages.keys():
-                pre_acts.append(hcsp.Assign(expr.AVar(str(e)),messages[str(sname)].data))
+            # if str(sname) in messages.keys():
+            #     pre_acts.append(hcsp.Assign(expr.AVar(str(e)),messages[str(sname)].data))
             return expr.AVar(str(e))    
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
@@ -172,7 +172,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             sname=lname.exprs[0]
             if str(sname) in messages.keys():
                 message=messages[str(sname)]
-                message.data=conv_expr(val)[1]
+                message.data=int(str(val))
                 messages[str(sname)]=message
             return lname
 
