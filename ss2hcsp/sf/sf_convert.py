@@ -242,17 +242,38 @@ class SFConvert:
         """Procedure for exiting from state."""
         return "exit_" + state.whole_name
 
+    def get_still_there_cond(self, state):
+        """Returns the condition that signals the state is active. This is used
+        as the early return check for condition actions, as well as entry and
+        exit actions of a state.
+        
+        """
+        if not isinstance(state, OR_State):
+            return expr.BConst(True)
+        else:
+            return expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                expr.AConst(state.whole_name))
+    
+    def get_ancestor_empty_cond(self, ancestor):
+        """Returns the condition that the ancestor is active and none of its
+        sub-state is active. This is used as the early return check for
+        transition actions.
+        
+        """
+        if any(isinstance(child, OR_State) for child in ancestor.children):
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)), expr.AConst(""))
+        else:
+            still_there = expr.BConst(True)
+
+        return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
+
     def get_en_proc(self, state):
         if not state.en:
             return hcsp.Skip()
 
         # For entry procedure, the early return logic is that the state that
         # is entered should remain active.
-        still_there = None
-        if isinstance(state, OR_State):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                    expr.AConst(state.whole_name))
-        proc = self.convert_cmd(state.en, still_there=still_there)
+        proc = self.convert_cmd(state.en, still_there=self.get_still_there_cond(state))
         return proc 
 
     def get_du_proc(self, state):
@@ -276,11 +297,7 @@ class SFConvert:
 
         # For exit procedure, the early return logic is that the state that
         # is exited should remain active.
-        still_there = None
-        if isinstance(state, OR_State):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                    expr.AConst(state.whole_name))
-        proc = self.convert_cmd(state.ex, still_there=still_there)
+        proc = self.convert_cmd(state.ex, still_there=self.get_still_there_cond(state))
         return proc
 
     def get_entry_proc(self, state):
@@ -374,9 +391,7 @@ class SFConvert:
             exit_procs.append(hcsp.Var(self.exit_proc_name(state)))
 
         # Whether the source state is still active
-        still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(src.father)),
-                                        expr.AConst(src.whole_name))
-        procs.append(hcsp.Condition(still_there, hcsp.seq(exit_procs)))
+        procs.append(hcsp.Condition(self.get_still_there_cond(src), hcsp.seq(exit_procs)))
 
         if tran_act is not None:
             procs.append(tran_act)
@@ -387,16 +402,7 @@ class SFConvert:
             entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
         entry_procs.append(self.get_rec_entry_proc(dst))
 
-        if any(isinstance(child, OR_State) for child in ancestor.children):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)), expr.AConst(""))
-        else:
-            still_there = expr.BConst(True)
-
-        if isinstance(ancestor, OR_State):
-            still_there = expr.LogicExpr("&&", still_there,
-                expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                             expr.AConst(ancestor.whole_name)))
-        procs.append(hcsp.Condition(still_there, hcsp.seq(entry_procs)))
+        procs.append(hcsp.Condition(self.get_ancestor_empty_cond(ancestor), hcsp.seq(entry_procs)))
 
         return hcsp.seq(procs)
 
@@ -556,8 +562,7 @@ class SFConvert:
             self.local_vars.add(done)
 
             # Whether the state is still active
-            still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                            expr.AConst(state.whole_name))
+            still_there_cond = self.get_still_there_cond(state)
 
             # First, check each of the outgoing transitions
             procs.append(hcsp.Assign(done, expr.AConst(0)))
@@ -567,17 +572,11 @@ class SFConvert:
                     dst = self.chart.all_states[tran.dst]
 
                     ancestor = get_common_ancestor(src, dst, out_trans=True)
-                    if any(isinstance(child, OR_State) for child in ancestor.children):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)), expr.AConst(""))
-                    else:
-                        still_there_tran = expr.BConst(True)
-                    if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
-                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                         expr.AConst(ancestor.whole_name)))
-                    pre_act, cond, cond_act, tran_act , remove_mesg= self.convert_label(
+                    still_there_tran = self.get_ancestor_empty_cond(ancestor)
+                    pre_act, cond, cond_act, tran_act , remove_mesg = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
+
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
                     # from the second transition, check whether still in the state.
@@ -607,15 +606,8 @@ class SFConvert:
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst, out_trans=False)
-                    if any(isinstance(child, OR_State) for child in ancestor.children):
-                        still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)), expr.AConst(""))
-                    else:
-                        still_there_tran = expr.BConst(True)
-                    if isinstance(ancestor, OR_State):
-                        still_there_tran = expr.LogicExpr("&&", still_there_tran,
-                            expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
-                                         expr.AConst(ancestor.whole_name)))
-                    pre_act, cond, cond_act, tran_act,remove_mesg = self.convert_label(
+                    still_there_tran = self.get_ancestor_empty_cond(ancestor)
+                    pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(
                         tran.label, state=state, still_there_cond=still_there_cond,
                         still_there_tran=still_there_tran)
 
@@ -663,11 +655,6 @@ class SFConvert:
         
         # Perform ex action
         procs.append(hcsp.Var(self.ex_proc_name(state)))
-
-        still_there = None
-        if isinstance(state, OR_State):
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                    expr.AConst(state.whole_name))
         
         exit_procs = []
         # Set counter for implicit or absolute time events
@@ -680,10 +667,7 @@ class SFConvert:
         if isinstance(state, OR_State):
             exit_procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst("")))
 
-        if still_there is None:
-            procs.extend(exit_procs)
-        else:
-            procs.append(hcsp.Condition(still_there, hcsp.seq(exit_procs)))
+        procs.append(hcsp.Condition(self.get_still_there_cond(state), hcsp.seq(exit_procs)))
         return hcsp.seq(procs)
 
     def get_rec_during_proc(self, state):
@@ -751,8 +735,7 @@ class SFConvert:
 
                 # Early return logic for condition action: check whether
                 # the initial source is still active.
-                still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(init_src.father)),
-                                                expr.AConst(init_src.whole_name))
+                still_there_cond = self.get_still_there_cond(init_src)
 
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
