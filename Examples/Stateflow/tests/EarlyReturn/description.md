@@ -147,3 +147,19 @@
   - exA1
   - exA1_done
   - enA3
+
+### EarlyReturn14
+
+* This is a tricky variant of EarlyReturn6, where the transition action is replaced by condition action. After handling broadcast of event E, the system leaves and reenters state A1, so the remainder of the condition action (and the transition action) will be executed. This shows that the early return logic does not care about whether the source is continually present, but only whether it is present when the event handler returns.
+* Expected result:
+  - en_A
+  - en_A1
+  - loop
+  - ex_A1
+  - ex_A
+  - en_A
+  - en_A1
+  - ca
+  - ex_A1
+  - ta
+  - en_A2
