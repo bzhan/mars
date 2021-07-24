@@ -20,6 +20,7 @@ class SFConvert:
     
     chart : SF_Chart
     chart_parameters - additional parameters.
+    translate_io : bool - whether input/output should be translated.
 
     """
     def __init__(self, chart=None, *, dsms=None, chart_parameters=None, translate_io=True):
@@ -29,18 +30,19 @@ class SFConvert:
         self.chart_parameters = chart_parameters
         self.translate_io = translate_io
 
+        # Data store memory
         self.dsms = dsms
 
         # List of data variables
         self.data = dict()
         if 'data' in self.chart_parameters:
             self.data = self.chart_parameters['data']
-        self.events=dict()
+        self.events = dict()
         if 'event_dict' in self.chart_parameters:
-            self.events=self.chart_parameters['event_dict']
-        self.messages=dict()
+            self.events = self.chart_parameters['event_dict']
+        self.messages = dict()
         if 'message_dict' in self.chart_parameters:
-            self.messages=self.chart_parameters['message_dict']
+            self.messages = self.chart_parameters['message_dict']
 
         # Sample time
         self.sample_time = 0.1
@@ -71,7 +73,7 @@ class SFConvert:
         self.or_fathers = sorted(list(self.or_fathers))
 
         def get_state(state, name):
-            if len(name)==0:
+            if len(name) == 0:
                 return state
             n=name[0]
             for child in state.children:
@@ -89,14 +91,15 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
-
+            return convert.convert_expr(
+                e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
-            return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),messages=self.messages)
-
+            return convert.convert_cmd(
+                cmd, raise_event=self.raise_event, procedures=self.procedures,
+                still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),
+                messages=self.messages)
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, tran_act) to the
@@ -146,10 +149,12 @@ class SFConvert:
 
     def raise_event(self, event):
         if isinstance(event, BroadcastEvent):
+            # Raise broadcast event
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
                 hcsp.Var(self.exec_name()),
-                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+            ])
 
         elif isinstance(event, DirectedEvent):
             # First, find the innermost state name and event
@@ -163,21 +168,22 @@ class SFConvert:
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(ev.name)])),
                 self.get_rec_during_proc(dest_state),
-                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+            ])
         
-        elif isinstance(event,Message):
+        elif isinstance(event, Message):
+            # Raise messages
             if str(event) in self.messages.keys():
-                message=self.messages[str(event)]
+                message = self.messages[str(event)]
                 if message.scope == "OUTPUT_DATA":
                     for port_id, out_var in self.chart.port_to_out_var.items():
                         if str(out_var) == message.name:
                             lines = self.chart.src_lines[port_id]
                             for line in lines:
                                 ch_name = "ch_" + line.name + "_" + str(line.branch)
-                                return hcsp.seq([(hcsp.OutputChannel(ch_name , expr.AConst(dict(message))))])  
+                                return hcsp.OutputChannel(ch_name , expr.AConst(dict(message)))
                 elif message.scope == "LOCAL_DATA": 
-                    return hcsp.seq([
-                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AVar("LQU"), expr.AConst(dict(message))]))])
+                    return hcsp.Assign("LQU", expr.FunExpr("put", [expr.AVar("LQU"), expr.AConst(dict(message))]))
 
         else:
             raise TypeError("raise_event: event must be broadcast or directed.")
@@ -419,10 +425,12 @@ class SFConvert:
         pre_acts, conds, cond_act, remove_mesg = [], [], hcsp.Skip(), []
         if label.event is not None:
             if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
-                # Conversion of event condition E
+                # Conversion for event condition E
                 conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
                                        expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+            
             elif isinstance(label.event, TemporalEvent):
+                # Conversion for temporal events
                 act, e = self.convert_expr(label.event.expr)
                 pre_acts.append(act)
                 assert state is not None, "convert_label: temporal events only for edges from a state."
@@ -448,7 +456,9 @@ class SFConvert:
                         conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_tick_name(state)), e))
                     else:
                         raise NotImplementedError
+
             elif str(label.event) in self.messages.keys():
+                # Conversion for messages
                 message = self.messages[str(label.event)]
                 if message.scope == "INPUT_DATA":
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
@@ -458,10 +468,10 @@ class SFConvert:
                     ]   
                 elif message.scope == "LOCAL_DATA":
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
-                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
+                                           expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
                     remove_mesg = [
                         hcsp.Assign("LQU", expr.FunExpr("remove", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
-                    ]  
+                    ]
             else:
                 raise NotImplementedError('convert_label: unsupported event type')
 
@@ -821,15 +831,13 @@ class SFConvert:
 
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
-        procs.append(hcsp.Assign("IQU",expr.AConst(())))
-        procs.append(hcsp.Assign("LQU",expr.AConst(())))
-        for name,info in self.messages.items():
-            if info.scope in ("LOCAL_DATA","OUTPUT_DATA"):
-                procs.append(hcsp.Assign(expr.AVar(name),expr.AConst(dict(info))))
-        # # Read data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        procs.append(hcsp.Assign("IQU", expr.AConst(())))
+        procs.append(hcsp.Assign("LQU", expr.AConst(())))
+
+        # Initialize messages
+        for name, info in self.messages.items():
+            if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
+                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst(dict(info))))
 
         # Read from DSM                
         for info in self.dsms:
@@ -840,6 +848,7 @@ class SFConvert:
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
+
         # Initialize state
         for or_father in self.or_fathers:
             procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
@@ -858,28 +867,26 @@ class SFConvert:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
-        # Recursive entry into diagram
+        # Read messages
         for port_id, out_var in self.chart.port_to_in_var.items():
             if str(out_var) in self.messages.keys():
-                mes=self.messages[str(out_var)]
+                mes = self.messages[str(out_var)]
                 if mes.scope == "INPUT_DATA":
                     line = self.chart.dest_lines[port_id]
                     ch_name = "ch_" + line.name + "_" + str(line.branch)
                     procs.append(hcsp.InputChannel(ch_name , expr.AVar(out_var)))
-                    procs.append( hcsp.seq([hcsp.Assign("IQU", expr.FunExpr("put", [expr.AVar("IQU"), expr.AVar(out_var)]))
-                    ])) 
+                    procs.append(hcsp.Assign("IQU", expr.FunExpr("put", [expr.AVar("IQU"), expr.AVar(out_var)])))
 
+        # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
+
         # Write data store variable
         for info in self.dsms:
             procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
-        # self.get_input_data(procs)
         procs.extend(self.get_input_data())
-        
         procs.extend(self.get_output_data())
-        # self.get_output_data(procs)
 
         return hcsp.seq(procs)
 
@@ -902,9 +909,6 @@ class SFConvert:
 
         procs.extend(self.get_output_data())
         procs.extend(self.get_input_data())
-
-        # self.get_output_data(procs)
-        # self.get_input_data(procs)
         
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
