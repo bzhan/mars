@@ -49,7 +49,7 @@ class SF_Chart(Subsystem):
         self.data = data
         self.all_vars = sorted(data.keys())
 
-        self.st = 2
+        self.st = st
 
         self.port_to_in_var = dict()
         self.port_to_out_var = dict()

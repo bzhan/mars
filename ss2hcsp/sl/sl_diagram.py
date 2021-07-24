@@ -341,7 +341,6 @@ class SL_Diagram:
 
         # Create charts
         charts = self.model.getElementsByTagName(name="chart")
-        chart_st=None
         for chart in charts:
 
             all_out_trans=dict()
@@ -362,7 +361,7 @@ class SL_Diagram:
             if chart_state.children and isinstance(chart_state.children[0], AND_State):
                 chart_state.children.sort(key=operator.attrgetter("order"))
             assert chart_state.check_children()
-
+           
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
             chart_st = eval(chart_st) if chart_st else -1
 

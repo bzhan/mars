@@ -41,7 +41,8 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
             sname=e.exprs[0]
             # if str(sname) in messages.keys():
             #     pre_acts.append(hcsp.Assign(expr.AVar(str(e)),messages[str(sname)].data))
-            return expr.AVar(str(e))    
+            # return expr.AVar(str(e))
+            return expr.AVar(str(expr.FieldNameExpr(expr.AVar(sname),str(e.exprs[1]))) )   
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
                 return expr.PlusExpr(['-'], [rec(e.exprs[0])])
@@ -174,7 +175,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 message=messages[str(sname)]
                 message.data=int(str(val))
                 messages[str(sname)]=message
-            return lname
+            return expr.FieldNameExpr(expr.AVar(sname),str(lname.exprs[1]))
+            # return expr.AVar(str(lname))
 
         else:
             raise NotImplementedError

@@ -406,7 +406,7 @@ class HCSPAnalysis:
         """
         repls = dict()
         for loc, info in self.infos.items():
-            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):    
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
                     reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
@@ -438,7 +438,6 @@ class HCSPAnalysis:
                             unique_assign = None
                             break
                         unique_assign = def_hp.expr
-                    
                     # If there is a unique assigned value which is a constant,
                     # add to replacement list.
                     if not unique_assign:

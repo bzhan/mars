@@ -848,10 +848,11 @@ class SFConvert:
 
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
-        
-
         procs.append(hcsp.Assign("IQU",expr.AConst(())))
         procs.append(hcsp.Assign("LQU",expr.AConst(())))
+        for name,info in self.messages.items():
+            if info.scope in ("LOCAL_DATA","OUTPUT_DATA"):
+                procs.append(hcsp.Assign(expr.AVar(name),expr.AConst(dict(info))))
         # # Read data store variable
         # for vname, info in self.data.items():
         #     if info.scope == "DATA_STORE_MEMORY_DATA":
@@ -1024,7 +1025,13 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     proc_map = dict()
     converter_map = dict()
+    sample_time=-1
     for chart in charts:
+        chart_parameters=diagram.chart_parameters[chart.name]
+        if 'st' in chart_parameters and chart_parameters['st']  !=-1:
+            sample_time=chart_parameters['st']
+    for chart in charts:
+        diagram.chart_parameters[chart.name]['st']=sample_time
         converter = SFConvert(chart, dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()

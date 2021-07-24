@@ -378,7 +378,7 @@ class FieldNameExpr(AExpr):
     """
     def __init__(self, expr, field):
         super(FieldNameExpr, self).__init__()
-        assert isinstance(expr, AExpr) and isinstance(field, str)
+        assert isinstance(expr, (str,AExpr)) and isinstance(field, str)
         self.expr = expr
         self.field = field
 

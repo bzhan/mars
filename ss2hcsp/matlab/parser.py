@@ -324,7 +324,7 @@ class MatlabTransformer(Transformer):
                 raise TypeError
         return function.TransitionLabel(event, cond, cond_act, tran_act)
     def direct_name(self,*expr):
-        return function.DirectName(expr)
+        return function.DirectName([str(e) for e in expr])
 
     def entry_op(self,cmd):
 
