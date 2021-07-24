@@ -40,7 +40,7 @@ class SFConvert:
         if 'message_dict' in self.chart_parameters:
             self.messages=self.chart_parameters['message_dict']
         # Sample time
-        self.sample_time = 0.1
+        self.sample_time = 1
         if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
             self.sample_time = self.chart_parameters['st']
 
@@ -178,10 +178,10 @@ class SFConvert:
                             lines = self.chart.src_lines[port_id]
                             for line in lines:
                                 ch_name = "ch_" + line.name + "_" + str(line.branch)
-                                return hcsp.seq([(hcsp.OutputChannel(ch_name , expr.AConst(message.name)))])  
+                                return hcsp.seq([(hcsp.OutputChannel(ch_name , expr.AConst(dict(message))))])  
                 elif message.scope == "LOCAL_DATA": 
                     return hcsp.seq([
-                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AVar("LQU"), expr.AConst(str(message.name))]))])
+                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AVar("LQU"), expr.AConst(dict(message))]))])
 
         else:
             raise TypeError("raise_event: event must be broadcast or directed.")
@@ -417,15 +417,15 @@ class SFConvert:
                     message=self.messages[str(label.event)]
                     if message.scope == "INPUT_DATA":
                         conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
-                                           expr.RelExpr("==", expr.FunExpr("exist", [expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(1))))
+                                           expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
                         remove_mesg=[
-                            hcsp.Assign("IQU", expr.FunExpr("get", [expr.AVar("IQU"),expr.AConst(label.event.name)]))
+                            hcsp.Assign("IQU", expr.FunExpr("remove", [expr.AVar("IQU"),expr.AConst(label.event.name)]))
                            ]   
                     elif message.scope == "LOCAL_DATA":
                         conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
-                                           expr.RelExpr("==", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(1))))
+                                           expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
                         remove_mesg=[
-                            hcsp.Assign("LQU", expr.FunExpr("get", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
+                            hcsp.Assign("LQU", expr.FunExpr("remove", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
                            ]  
                 else:
                     raise NotImplementedError('convert_label: unsupported event type')
@@ -849,7 +849,7 @@ class SFConvert:
                     line = self.chart.dest_lines[port_id]
                     ch_name = "ch_" + line.name + "_" + str(line.branch)
                     procs.append(hcsp.InputChannel(ch_name , expr.AVar(out_var)))
-                    procs.append( hcsp.seq([hcsp.Condition(hcsp.RelExpr("==",expr.AVar(out_var),expr.AConst(mes.name)),hcsp.Assign("IQU", expr.FunExpr("put", [expr.AVar("IQU"), expr.AConst(str(out_var))])))
+                    procs.append( hcsp.seq([hcsp.Assign("IQU", expr.FunExpr("put", [expr.AVar("IQU"), expr.AVar(out_var)]))
                     ])) 
 
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))

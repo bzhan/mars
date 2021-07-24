@@ -63,6 +63,7 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
     res_trace = [event['str'] for event in res['trace']
                  if event['str'] not in ('start', 'step') and
                     (event['type'] != 'comm' or io_filter(event['ch_name']))]
+    print (res_trace)
     if print_res:
         print(res_trace)
 

@@ -1,5 +1,5 @@
-for i = 1:8
-    model = "States"+i;
+for i = 1:3
+    model = "Messages"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)
     save_system(model, model+"_2018a.slx", "ExportToVersion", "R2018a")

@@ -58,3 +58,56 @@
   - enA1
   - enB
   - enB1
+
+### States5
+
+* A simple example of history junctions.
+* Expected result (10 iterations)
+  - enA1
+  - enA2
+  - enB1
+  - enB2
+  - enA2
+  - enA1
+  - enB1
+  - enB2
+  - enA1
+  - enA2
+  - enB1
+
+### States6
+
+* An example of hierarchical AND states.
+* Expected result
+  - enA
+  - enA1
+  - enA2
+  - enB
+  - enB1
+  - enB2
+
+### States7
+
+* An example showing entry and exit behavior for self-loops.
+* Expected result (2 iterations)
+  - enA
+  - enA1
+  - exA1
+  - exA
+  - enA
+  - enA1
+  - exA1
+  - exA
+  - enA
+  - enA1
+
+### States8
+
+* A practical example of the use of a self loop, for copying arrays.
+* Expected result (6 iterations)
+  - loop
+  - loop
+  - loop
+  - loop
+  - loop
+  - 100,200,300,400,500
