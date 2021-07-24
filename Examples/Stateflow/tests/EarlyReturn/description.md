@@ -166,12 +166,14 @@
 
 ### EarlyReturn15
 
-* This example demonstrates early return for actions on AND states. While there can be no transition leading out of an AND state, the parent of an AND state can be exited during the handling of an event. In this example, state S exits during the entry of A1, so the remainder of entry action of A1, as well as the entry of A2, is abandoned.
+* This example demonstrates early return for transition action, where the ancestor of source and destination of the transition is an AND state.
 * Expected result:
   - enS
-  - enA1_start
+  - enA1
+  - enA1a
+  - enA2
+  - ca
   - enB
-  - enC
 
 ### EarlyReturn16
 
@@ -194,3 +196,35 @@
   - outA2
   - ex_A2
   - en_A3
+
+### EarlyReturn18
+
+* This example tests early return of condition actions for inner transitions.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - exS
+  - enT
+
+### EarlyReturn19
+
+* Similar to EarlyReturn18, but testing event broadcast on transition action.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - ca2
+  - exS
+  - enT
+
+### EarlyReturn20
+
+* Similar to EarlyReturn 19, but except inner transition in S is changed to outer transition in the child states of S.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - ca2
+  - exS
+  - enT

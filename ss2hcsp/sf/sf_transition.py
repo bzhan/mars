@@ -1,8 +1,11 @@
 """Transition in Stateflow diagrams"""
 
+from ss2hcsp.matlab.function import TransitionLabel
+
 
 class Transition:
     def __init__(self, ssid, label, order=0, src="", dst=""):
+        assert isinstance(label, TransitionLabel)
         self.ssid = ssid
         self.label = label
         self.order = order

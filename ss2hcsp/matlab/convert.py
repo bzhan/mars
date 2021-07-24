@@ -191,6 +191,9 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
     def convert(cmd):
         if isinstance(cmd, list):
             return convert(function.seq(cmd))
+        
+        if cmd is None:
+            return hcsp.Skip()
 
         if isinstance(cmd, function.Skip):
             return hcsp.Skip()

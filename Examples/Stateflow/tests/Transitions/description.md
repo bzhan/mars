@@ -79,3 +79,25 @@
   - exB
   - innerTran
   - enA
+
+### Transitions7
+
+* This example demonstrates the ordering between outer and inner transitions. If one of the outer transitions can be carried out, then no inner transitions are tried.
+* Expected result:
+  - enS
+  - enT
+
+### Transitions8
+
+* This example demonstrates ordering between the inner transitions.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - duS
+  - ca1
+  - duS
+  - ca2
+  - duS
+  - ca2
+  - enT

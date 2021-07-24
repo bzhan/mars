@@ -147,6 +147,14 @@ class SL_Diagram:
                     # Obtain transition ID, label, execution order
                     tran_ssid = block.getAttribute("SSID")
                     tran_label = get_attribute_value(block, "labelString")
+                    if tran_label is None:
+                        tran_label = function.TransitionLabel(None, None, None, None)
+                    else:
+                        try:
+                            tran_label = transition_parser.parse(tran_label)
+                        except lark.exceptions.UnexpectedToken as e:
+                            print("When parsing transition label", tran_label)
+                            raise e
                     order = int(get_attribute_value(block, "executionOrder"))
 
                     # Each transition must have exactly one source and destination
