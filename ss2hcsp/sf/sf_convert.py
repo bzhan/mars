@@ -303,8 +303,7 @@ class SFConvert:
         return hcsp.seq(procs)
 
     def get_input_data(self):
-        
-            
+        """Obtain a list of processes for chart input."""
         procs = []
         if self.translate_io:
             for port_id, in_var in self.chart.port_to_in_var.items():
@@ -315,8 +314,7 @@ class SFConvert:
         return procs
 
     def get_output_data(self):
-        
-            
+        """Obtain a list of processes for chart output."""
         procs = []
         if self.translate_io:
             for port_id, out_var in self.chart.port_to_out_var.items():
@@ -327,7 +325,7 @@ class SFConvert:
                         procs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
         return procs
 
-    def get_transition_proc(self, src, dst, tran_act=None):
+    def get_transition_proc(self, src, dst, tran_act=None, *, out_trans=True):
         """Get procedure for transitioning between two states.
 
         The so-called "super transitions" has the following semantics:
@@ -349,7 +347,7 @@ class SFConvert:
             and entering destination.
 
         """
-        ancestor = get_common_ancestor(src, dst)
+        ancestor = get_common_ancestor(src, dst, out_trans=out_trans)
         procs = []
 
         # Exit states from src to ancestor (not including ancestor)
@@ -366,7 +364,11 @@ class SFConvert:
             entry_procs.append(hcsp.Var(self.entry_proc_name(state)))
         entry_procs.append(self.get_rec_entry_proc(dst))
 
-        still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)), expr.AConst(""))
+        if dst == ancestor:
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst)), expr.AConst(""))
+        else:
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)), expr.AConst(""))
+
         if isinstance(ancestor, OR_State):
             still_there = expr.LogicExpr("&&", still_there,
                 expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor.father)),
@@ -553,9 +555,8 @@ class SFConvert:
                 for i, tran in enumerate(state.out_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    
 
-                    ancestor = get_common_ancestor(src, dst)
+                    ancestor = get_common_ancestor(src, dst, out_trans=True)
                     still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
                                                     expr.AConst(""))
                     if isinstance(ancestor, OR_State):
@@ -571,7 +572,7 @@ class SFConvert:
                     act = hcsp.Sequence(
                         remove_mesg, cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
-                            self.get_traverse_state_proc(dst, src, tran_act),
+                            self.get_traverse_state_proc(dst, src, tran_act, out_trans=True),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
@@ -593,7 +594,7 @@ class SFConvert:
                 for i, tran in enumerate(state.inner_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    ancestor = get_common_ancestor(src, dst)
+                    ancestor = get_common_ancestor(src, dst, out_trans=False)
                     still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
                                                     expr.AConst(""))
                     if isinstance(ancestor, OR_State):
@@ -610,7 +611,7 @@ class SFConvert:
                     act = hcsp.Sequence(
                         remove_mesg, cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
-                            self.get_traverse_state_proc(dst, src, tran_act),
+                            self.get_traverse_state_proc(dst, src, tran_act, out_trans=False),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
@@ -689,7 +690,7 @@ class SFConvert:
                 raise TypeError
         return hcsp.seq(procs)
 
-    def get_traverse_state_proc(self, state, init_src, init_tran_act):
+    def get_traverse_state_proc(self, state, init_src, init_tran_act, *, out_trans=False):
         """Obtain the procedure for traversing a state or junction, given
         the source state and existing transition actions.
 
@@ -707,8 +708,9 @@ class SFConvert:
             # If reached an OR-state, carry out the transition from src to
             # the current state, with the accumulated transition actions in
             # the middle. Then return 1 for successfully reaching a state.
-            return hcsp.seq([self.get_transition_proc(init_src, state, init_tran_act),
-                             self.return_val(expr.AConst(1))])
+            return hcsp.seq([
+                self.get_transition_proc(init_src, state, init_tran_act, out_trans=out_trans),
+                self.return_val(expr.AConst(1))])
 
         elif isinstance(state, Junction):
             # If reached a junction, try each of the outgoing edges from the
@@ -717,10 +719,10 @@ class SFConvert:
                 # Transition unsuccessful.
                 return self.return_val(expr.AConst(0))
 
-            if (init_src.ssid, init_tran_act) not in self.junction_map[state.ssid]:
+            if (init_src.ssid, init_tran_act, out_trans) not in self.junction_map[state.ssid]:
                 # Put in placeholder and reserve name
                 cur_name = "J" + state.ssid + "_" + str(len(self.junction_map[state.ssid]) + 1)
-                self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, None)
+                self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)] = (cur_name, None)
                 procs = []
                 done = "J" + state.ssid + "_done"
                 self.local_vars.add(done)
@@ -731,7 +733,8 @@ class SFConvert:
                     pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(tran.label)
                     # if isinstance(cond,expr.BConst):
                     #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
-                    act = self.get_traverse_state_proc(dst, init_src, hcsp.seq([init_tran_act, tran_act]))
+                    act = self.get_traverse_state_proc(
+                        dst, init_src, hcsp.seq([init_tran_act, tran_act]), out_trans=out_trans)
                     act = hcsp.seq([remove_mesg, cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)])),
@@ -741,8 +744,8 @@ class SFConvert:
                             act)]))
                 procs.append(self.return_val(expr.AVar(done)))
                 proc = hcsp.seq(procs)
-                self.junction_map[state.ssid][(init_src.ssid, init_tran_act)] = (cur_name, proc)
-            return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, init_tran_act)][0])
+                self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)] = (cur_name, proc)
+            return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)][0])
 
         else:
             raise TypeError("get_junction_proc")
@@ -1001,23 +1004,23 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             print(name + " ::=\n" + pprint(hp))
             for name, proc in procs.items():
                 print('\nprocedure ' + name + " ::=\n" + pprint(proc))
-            # print()
+            print()
 
-    # # Reduce procedures
-    # for name, (procs, hp) in proc_map.items():
-    #     if name in converter_map:
-    #         local_vars = converter_map[name].local_vars
-    #     else:
-    #         local_vars = set()
-    #     proc_map[name] = optimize.full_optimize_module(
-    #         procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
+    # Reduce procedures
+    for name, (procs, hp) in proc_map.items():
+        if name in converter_map:
+            local_vars = converter_map[name].local_vars
+        else:
+            local_vars = set()
+        proc_map[name] = optimize.full_optimize_module(
+            procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
 
-    # # Optional: print final HCSP program
-    # if print_final:
-    #     for name, (procs, hp) in proc_map.items():
-    #         print(name + " ::=\n" + pprint(hp))
-    #         for proc_name, proc in procs.items():
-    #             print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
-    #         # print()
+    # Optional: print final HCSP program
+    if print_final:
+        for name, (procs, hp) in proc_map.items():
+            print(name + " ::=\n" + pprint(hp))
+            for proc_name, proc in procs.items():
+                print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
+            print()
 
     return proc_map
