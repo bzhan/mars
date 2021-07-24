@@ -248,11 +248,15 @@ class SFConvert:
         exit actions of a state.
         
         """
-        if not isinstance(state, OR_State):
-            return expr.BConst(True)
-        else:
-            return expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
-                                expr.AConst(state.whole_name))
+        # Find the first state in the hierarchy that is an OR-state. If
+        # not found, then always true.
+        while not isinstance(state, OR_State):
+            if state.father is None:
+                return expr.BConst(True)
+            state = state.father
+
+        return expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                            expr.AConst(state.whole_name))
     
     def get_ancestor_empty_cond(self, ancestor):
         """Returns the condition that the ancestor is active and none of its

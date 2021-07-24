@@ -363,7 +363,7 @@ class SFConvertTest(unittest.TestCase):
 
     def testEarlyReturn15(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn15.xml", 1,
-            ['log enS', 'log enA1_start', 'log enB', 'log enC', 'delay 0.1'])
+            ['log enS', 'log enA1', 'log enA1a', 'log enA2', 'log ca', 'log enB', 'delay 0.1'])
 
     def testEarlyReturn16(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn16.xml", 1,
