@@ -166,6 +166,25 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log enA1', 'log duA', 'log c1', 'log c2', 'log exA1', 'log exA',
              'log t1', 'log t2', 'log enC', 'log enC2', 'delay 0.1'])
 
+    def testJunctions5(self):
+        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions5.xml", 1,
+            ['log enA', 'log enA1', 'log duA', 'log ca', 'log exA1', 'log enA2', 'delay 0.1'])
+
+    def testJunctions6(self):
+        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions6.xml", 1,
+            ['log enA', 'log ca', 'log ca', 'log exA', 'log ta2', 'log ta4',
+             'log enC', 'delay 0.1'])
+
+    def testJunctions7(self):
+        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions7.xml", 1,
+            ['log enA', 'log exA', 'log xle2', 'log yeq2', 'log zge2', 'log enC', 'delay 0.1'])
+
+    def testJunctions8(self):
+        run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions8.xml", 3,
+            ['log enA', 'log ca1', 'log exA', 'log enC', 'delay 0.1',
+             'log exC', 'log enA', 'delay 0.1',
+             'log duA', 'log ca2', 'log exA', 'log enC', 'delay 0.1'])
+
     def testEvent1(self):
         run_test(self, "./Examples/Stateflow/tests/Events/Event1.xml", 1,
             ['log b', 'log a', 'log en_A2', 'log tb', 'log en_B2', 'delay 0.1'])
@@ -361,7 +380,7 @@ class SFConvertTest(unittest.TestCase):
 
     def testEarlyReturn19(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn19.xml", 1,
-            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'], print_res=True)
+            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'])
 
     def testDSM1(self):
         io_filter = lambda s: False
