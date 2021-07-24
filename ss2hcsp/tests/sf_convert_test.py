@@ -282,22 +282,58 @@ class SFConvertTest(unittest.TestCase):
            'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1',
            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
 
-    def testAfterRandom(self):
+    def testTemporal1(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal1.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
+
+    def testTemporal2(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal2.xml", 10,
             ['log en_A', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_B', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_A', 'log Picked 1', 'delay 1',
              'log en_B', 'log Picked 3', 'delay 1'])
 
-    def testAfterTick(self):
-        run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
+    def testTemporal3(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal3.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
+
+    def testTemporal4(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal4.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
+
+    def testTemporal5(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal5.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
-             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
-             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1',
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
-             'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+
+    def testTemporal6(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal6.xml", 5,
+            ['log en_A', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A',
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1'])
+    
+    def testTemporal7(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal7.xml", 5,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B',
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B', 'delay 0.1'])
+
+    def testTemporal8(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal8.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
 
     def testEarlyReturn1(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn1.xml", 1,

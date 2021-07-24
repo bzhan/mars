@@ -421,24 +421,33 @@ class SFConvert:
             if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
                 # Conversion of event condition E
                 conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
-                                        expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+                                       expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
             elif isinstance(label.event, TemporalEvent):
                 act, e = self.convert_expr(label.event.expr)
                 pre_acts.append(act)
                 assert state is not None, "convert_label: temporal events only for edges from a state."
+
+                # First, find the comparison operator
                 if label.event.temp_op == 'after':
-                    if isinstance(label.event.event, AbsoluteTimeEvent):
-                        if label.event.event.name == 'sec':
-                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
-                        else:
-                            raise NotImplementedError
-                    elif isinstance(label.event.event,ImplicitEvent):
-                        if label.event.event.name == 'tick':
-                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
-                        else:
-                            raise NotImplementedError
+                    op_str = '>='
+                elif label.event.temp_op == 'before':
+                    op_str = '<'
+                elif label.event.temp_op == 'at':
+                    op_str = '=='
                 else:
                     raise NotImplementedError
+
+                # Next, find units
+                if isinstance(label.event.event, AbsoluteTimeEvent):
+                    if label.event.event.name == 'sec':
+                        conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_time_name(state)), e))
+                    else:
+                        raise NotImplementedError
+                elif isinstance(label.event.event, ImplicitEvent):
+                    if label.event.event.name == 'tick':
+                        conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_tick_name(state)), e))
+                    else:
+                        raise NotImplementedError
             elif str(label.event) in self.messages.keys():
                 message = self.messages[str(label.event)]
                 if message.scope == "INPUT_DATA":
