@@ -1,5 +1,43 @@
 ## Examples for data store memory
 
+### Communication1
+
+* Basic example of communication. Chart2 receives two values a and b from Chart1, which becomes a_in and b_in in Chart2.
+* Expected result (6 iterations):
+  - en_A
+  - en_A1
+  - en_B
+  - 2 1
+  - en_A
+  - 2 2
+  - en_B
+  - 3 2
+  - en_A
+  - 3 3
+  - en_B
+  - 4 3
+  - en_A
+  - 4 4
+
+### Communication2
+
+* This example shows inputs from Simulink blocks.
+* Expected result (6 iterations):
+  - en_A
+  - en_A1
+  - en_B
+  - 1 2 2 1
+  - en_A
+  - 1 2 2 2
+  - en_B
+  - 1 2 3 2
+  - en_A
+  - 1 2 3 3
+  - en_B
+  - 1 2 4 3
+  - en_A
+  - 1 2 4 4
+
 ### DSM1
 
 * Single data store and single chart. Default transition sets value of data store.

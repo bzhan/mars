@@ -263,25 +263,6 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log ack', 'log ack', 'log ack', 'log ack', 'log ack',
              'log en_B', 'delay 0.1'])
 
-    def testCommunityCharts(self):
-        run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
-           ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1',
-            'log en_B1_1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2',
-            'IO ch_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actAdd',
-            'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1',
-            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 3', 'delay 0.1'])
-        
-    def testCommunityCharts1(self):
-        run_test(self, "./Examples/Stateflow/tests/community_charts1.xml",31,
-          ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0',
-           'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1', 'log en_B1_1',
-           'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd',
-           'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2', 'IO ch_x1_0 1', 'delay 0.1',
-           'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 2',
-           'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2',
-           'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1',
-           'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
-
     def testTemporal1(self):
         run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal1.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
@@ -424,40 +405,56 @@ class SFConvertTest(unittest.TestCase):
 
     def testDSM1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM1.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM1.xml", 20,
             ['log 2', 'delay 0.1', 'log 4', 'delay 0.1', 'log 5', 'delay 0.1',
              'log 7', 'delay 0.1', 'log 8', 'delay 0.1', 'log 10', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM2.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM2.xml", 20,
             ['log 1', 'delay 0.1', 'log 3', 'delay 0.1', 'log 4', 'delay 0.1',
              'log 6', 'delay 0.1', 'log 7', 'delay 0.1', 'log 9', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM3.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM3.xml", 20,
             ['log 3 2', 'delay 0.1', 'log 3 5', 'delay 0.1', 'log 8 5', 'delay 0.1',
              'log 8 13', 'delay 0.1', 'log 21 13', 'delay 0.1', 'log 21 34', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM4.xml", 19,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM4.xml", 19,
             ['log A1', 'log C1', 'log B2', 'log D4', 'delay 0.1',
              'log A4', 'log C4', 'delay 0.1', 'log B5', 'log D7', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM5.xml", 34,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM5.xml", 34,
             ['log 4 2', 'delay 0.1', 'log 4 4', 'delay 0.1', 'log 5 4', 'delay 0.1',
              'log 5 6', 'delay 0.1', 'log 6 6', 'delay 0.1', 'log 6 8', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM6(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM6.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM6.xml", 20,
             ['log en_A 0 0', 'log en_A1 3 0', 'log en_B 4 4', 'log du_A1 4 0', 'delay 0.1',
              'log en_A 4 -1', 'log du_A1 3 -1', 'delay 0.1',
              'log en_B 4 -1', 'log du_A1 4 0', 'delay 0.1'], io_filter=io_filter)
+
+    def testCommunication1(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication1.xml", 20,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 1 1', 'delay 0.1',
+             'log en_A', 'log 2 1', 'delay 0.1', 'log en_B', 'log 2 2', 'delay 0.1',
+             'log en_A', 'log 3 2', 'delay 0.1', 'log en_B', 'log 3 3', 'delay 0.1',
+             'log en_A', 'log 4 3', 'delay 0.1'], io_filter=io_filter)
+        
+    def testCommunication2(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication2.xml", 34,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 1 2 1 1', 'delay 0.1',
+             'log en_A', 'log 1 2 2 1', 'delay 0.1', 'log en_B', 'log 1 2 2 2', 'delay 0.1',
+             'log en_A', 'log 1 2 3 2', 'delay 0.1', 'log en_B', 'log 1 2 3 3', 'delay 0.1',
+             'log en_A', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter)
 
     def testSFNew(self):
         random.seed(0)  # for repeatability
