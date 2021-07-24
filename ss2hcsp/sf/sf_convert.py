@@ -389,7 +389,7 @@ class SFConvert:
         if dst == ancestor:
             still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst)), expr.AConst(""))
         else:
-            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)), expr.AConst(""))
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)), expr.AConst(""))
 
         if isinstance(ancestor, OR_State):
             still_there = expr.LogicExpr("&&", still_there,
@@ -579,7 +579,7 @@ class SFConvert:
                     dst = self.chart.all_states[tran.dst]
 
                     ancestor = get_common_ancestor(src, dst, out_trans=True)
-                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(dst.father)),
+                    still_there_tran = expr.RelExpr("==", expr.AVar(self.active_state_name(ancestor)),
                                                     expr.AConst(""))
                     if isinstance(ancestor, OR_State):
                         still_there_tran = expr.LogicExpr("&&", still_there_tran,
