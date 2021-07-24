@@ -673,16 +673,26 @@ class SFConvert:
         # Perform ex action
         procs.append(hcsp.Var(self.ex_proc_name(state)))
 
+        still_there = None
+        if isinstance(state, OR_State):
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                    expr.AConst(state.whole_name))
+        
+        exit_procs = []
         # Set counter for implicit or absolute time events
         if state.ssid in self.implicit_events:
-            procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(-1)))
+            exit_procs.append(hcsp.Assign(self.entry_tick_name(state), expr.AConst(-1)))
         if state.ssid in self.absolute_time_events:
-            procs.append(hcsp.Assign(self.entry_time_name(state), expr.AConst(-1)))
+            exit_procs.append(hcsp.Assign(self.entry_time_name(state), expr.AConst(-1)))
 
         # Set the activation variable
         if isinstance(state, OR_State):
-            procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst("")))
-            
+            exit_procs.append(hcsp.Assign(self.active_state_name(state.father), expr.AConst("")))
+
+        if still_there is None:
+            procs.extend(exit_procs)
+        else:
+            procs.append(hcsp.Condition(still_there, hcsp.seq(exit_procs)))
         return hcsp.seq(procs)
 
     def get_rec_during_proc(self, state):
