@@ -194,3 +194,24 @@
   - outA2
   - ex_A2
   - en_A3
+
+### EarlyReturn18
+
+* This example tests early return of condition actions for inner transitions.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - exS
+  - enT
+
+### EarlyReturn19
+
+* Similar to EarlyReturn18, but testing event broadcast on transition action.
+* Expected result:
+  - enS
+  - duS
+  - ca1
+  - ca2
+  - exS
+  - enT

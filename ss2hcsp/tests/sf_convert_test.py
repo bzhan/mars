@@ -137,6 +137,16 @@ class SFConvertTest(unittest.TestCase):
             ['log enS', 'log enA', 'log duS', 'log exA', 'log enB', 'delay 0.1',
              'log duS', 'log innerCond', 'log exB', 'log innerTran', 'log enA', 'delay 0.1'])
 
+    def testTransitions7(self):
+        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions7.xml", 1,
+            ['log enS', 'log enT', 'delay 0.1'])
+
+    def testTransitions8(self):
+        run_test(self, "./Examples/Stateflow/tests/Transitions/Transitions8.xml", 5,
+            ['log enS', 'log duS', 'log ca1', 'delay 0.1', 'log duS', 'log ca1', 'delay 0.1',
+             'log duS', 'log ca2', 'delay 0.1', 'log duS', 'log ca2', 'delay 0.1',
+             'log enT', 'delay 0.1'])
+
     def testJunctions1(self):
         run_test(self, "./Examples/Stateflow/tests/Junctions/Junctions1.xml", 1,
             ['log enA', 'log enD', 'delay 0.1'])
@@ -344,6 +354,14 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn17.xml", 2,
             ['log en_A', 'log en_A1', 'log ex_A1', 'log en_A2', 'delay 0.1',
              'log outA2', 'log ex_A2', 'log en_A3', 'delay 0.1'])
+
+    def testEarlyReturn18(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn18.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log exS', 'log enT', 'delay 0.1'])
+
+    def testEarlyReturn19(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn19.xml", 1,
+            ['log enS', 'log duS', 'log ca1', 'log ca2', 'log exS', 'log enT', 'delay 0.1'], print_res=True)
 
     def testDSM1(self):
         io_filter = lambda s: False

@@ -1,4 +1,4 @@
-for i = 1:6
+for i = 1:8
     model = "Transitions"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)
