@@ -37,12 +37,9 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,has_message=F
                 return expr.AConst(e)
             else:
                 return expr.AConst(e.value)
-        elif isinstance(e,function.DirectName):
-            sname=e.exprs[0]
-            # if str(sname) in messages.keys():
-            #     pre_acts.append(hcsp.Assign(expr.AVar(str(e)),messages[str(sname)].data))
-            # return expr.AVar(str(e))
-            return expr.AVar(str(expr.FieldNameExpr(expr.AVar(sname),str(e.exprs[1]))) )   
+        elif isinstance(e, function.DirectName):
+            sname = e.exprs[0]
+            return expr.AVar(str(expr.FieldNameExpr(expr.AVar(sname), str(e.exprs[1]))))
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
                 return expr.PlusExpr(['-'], [rec(e.exprs[0])])
