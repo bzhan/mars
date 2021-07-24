@@ -477,12 +477,14 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages2(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages2.xml", 3,
-            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'log en_D', 'delay 0.1'])
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C',
+             'delay 0.1', 'log en_D', 'delay 0.1'])
 
     def testMessages3(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages3.xml", 7,
-           ['log en_A', 'IO ch_x0_0 {name:M,data:0,scope:OUTPUT_DATA}', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
-            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'])
+           ['log en_A', 'IO ch_x0_0 {name:M,data:0,scope:OUTPUT_DATA}', 'log en_A0',
+            'delay 1', 'delay 1', 'delay 1','log en_A1', 'delay 1', 'log en_A2',
+             'delay 1', 'delay 1'])
     
     def testMessage4(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages4.xml", 3,
@@ -490,8 +492,22 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages5(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages3_2018a.xml",7,
-           ['log en_A','IO ch_x0_0 {name:M,data:2,scope:OUTPUT_DATA}', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
-            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'])
+           ['log en_A','IO ch_x0_0 {name:M,data:2,scope:OUTPUT_DATA}', 'log en_A0',
+            'delay 1', 'delay 1', 'delay 1','log en_A1', 'delay 1', 'log en_A2',
+             'delay 1', 'delay 1'])
+
+    def testMessage6(self):
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages5.xml",3,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'])
+
+    def testMessage7(self):
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages6.xml",4,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1',
+             'log en_D', 'delay 0.1', 'log en_E', 'delay 0.1'])
+
+    def testMessage8(self):
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages7.xml",3,
+            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'delay 0.1'])
 
 
 

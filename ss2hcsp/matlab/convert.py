@@ -12,7 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None, messages=None):
+def convert_expr(e, *, procedures=None, arrays=None, messages=None,has_message=False):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -98,7 +98,32 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
             else:
                 return expr.LogicExpr(e.op_name, rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, function.RelExpr):
-            return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
+
+            if isinstance(e.expr1,function.DirectName) or isinstance(e.expr2,function.DirectName):
+                if has_message :
+                    if isinstance(e.expr1,function.DirectName):
+
+                        sname=e.expr1.exprs[0]
+                        if str(sname) in messages.keys():
+                            mes=messages[str(sname)]
+
+                            if mes.scope == "LOCAL_DATA":
+                                return expr.RelExpr("==", expr.FunExpr("isequals", [expr.AConst(1),expr.AConst("LQU"),expr.AVar("LQU"),expr.FieldNameExpr(expr.AVar(e.expr1.exprs[0]),str(e.expr1.exprs[1])), rec(e.expr2)]),expr.AConst(1))
+                            elif mes.scope == "INPUT_DATA":
+                                return expr.RelExpr("==", expr.FunExpr("isequals", [expr.AConst(1),expr.AConst("IQU"),expr.AVar("IQU"),expr.FieldNameExpr(expr.AVar(e.expr1.exprs[0]),str(e.expr1.exprs[1])), rec(e.expr2)]),expr.AConst(1))
+                    elif isinstance(e.expr2,function.DirectName):
+                        sname=e.expr2.exprs[0]
+                        if str(sname) in messages.keys():
+                            mes=messages[str(sname)]
+
+                            if mes.scope == "LOCAL_DATA":
+                                return expr.RelExpr("==", expr.FunExpr("isequals", [expr.AConst("LQU"),expr.AVar("LQU"),expr.FieldNameExpr(expr.AVar(e.expr2.exprs[0]),str(e.expr2.exprs[1])), rec(e.expr1)]),expr.AConst(1))
+                            elif mes.scope == "INPUT_DATA":
+                                return expr.RelExpr("==", expr.FunExpr("isequals", [expr.AConst("IQU"),expr.AVar("IQU"),expr.FieldNameExpr(expr.AVar(e.expr2.exprs[0]),str(e.expr2.exprs[1])), rec(e.expr1)]),expr.AConst(1))
+                else:
+                    return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
+            else:
+                return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
         else:
             raise NotImplementedError("Unrecognized matlab expression: %s" % str(e))
 

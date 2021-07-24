@@ -13,7 +13,7 @@ from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val,FieldNameExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
@@ -82,6 +82,8 @@ def eval_expr(expr, state):
                 res /= eval_expr(e, state)
         return res
 
+    elif isinstance(expr,FieldNameExpr):
+        return FieldNameExpr(expr.expr,expr.field)
     elif isinstance(expr, FunExpr):
         # Special functions
         args = [eval_expr(e, state) for e in expr.exprs]
@@ -97,39 +99,78 @@ def eval_expr(expr, state):
             a, b = args
             return int(a) // int(b)
         elif expr.fun_name == "put":
-            a, b = args
+            n,a, b = args
             
             assert isinstance(a, tuple)
             if isinstance(b, tuple):
 
                 return tuple(list(a) + list(b))
             else:
-                # if isinstance(b,dict):
-                #     state[b['name']+'.'+'data']=b['data']
+                if isinstance(b,dict) and n == "LQU":
+                    state[b['name']+'.'+'data']=b['data']
                 return tuple(list(a)+[b])
         elif expr.fun_name == "exist":
-            a, b= args
+            n,a, b= args
+            index=-1
             assert isinstance(a, tuple)
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             for i in range(0,len(a)):
                 if b == a[i]['name'] :
                     state[a[i]['name']+'.'+'data']=a[i]['data']
-                    return i
-            return -1
-        elif expr.fun_name == "remove":
-
-            a, b= args
-            index=0
-            for i in range(0,len(a)):
-                if b == a[i]['name'] :
                     index=i
                     break
-            state[str(a[index]['name'])+'.'+'data']=a[index]['data']
-            assert isinstance(a, tuple)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[:index]+a[index+1:]
+            if index>-1:
+                a=a[:index]+a[index+1:]
+                state[str(n)]=a
+            return index
+            
+        # elif expr.fun_name == "remove":
+
+        #     a, b= args
+        #     index=0
+        #     for i in range(0,len(a)):
+        #         if b == a[i]['name'] :
+        #             index=i
+        #             break
+        #     state[str(a[index]['name'])+'.'+'data']=a[index]['data']
+        #     assert isinstance(a, tuple)
+        #     if len(a) == 0:
+        #         raise SimulatorException('When evaluating %s: argument is empty' % expr)
+        #     return a[:index]+a[index+1:]
+        elif expr.fun_name == "isequals":
+            
+            has_mes,n,a,b,c =args
+            index_list=list()
+            flag=0
+            if isinstance(b,FieldNameExpr):
+                if has_mes == 1 and  state[str(b)] != c:
+                    name=str(b.expr)
+                    for i in range(0,len(a)):
+                        if name == a[i]['name'] and a[i]['data'] == c:
+                            state[a[i]['name']+'.'+'data']=a[i]['data']
+                            flag=1
+                            index_list.append(i)
+                            break
+                        elif name == a[i]['name'] and a[i]['data'] != c:
+                            index_list.append(i)
+                            flag=0
+                    for j in index_list:
+                        a=a[:j]+a[j+1:]
+                    state[str(n)]=a
+                    if flag==1:
+                        return 1
+                    else:
+                        return 0
+                elif has_mes == 0 and state[str(b)] != c:
+                    return 0
+                elif state[str(b)] == c:
+                    return 1
+            
+            # state[str(n)]=a
+            # return -1
+
+
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
