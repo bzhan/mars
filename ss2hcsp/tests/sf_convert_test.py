@@ -327,6 +327,11 @@ class SFConvertTest(unittest.TestCase):
             ['log F', 'log exA1', 'log exA1', 'log exA1', 'log exA1', 'log exA1',
              'log exA1_done', 'log enA3', 'delay 0.1'])
 
+    def testEarlyReturn14(self):
+        run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn14.xml", 1,
+            ['log en_A', 'log en_A1', 'log loop', 'log ex_A1', 'log ex_A', 'log en_A',
+             'log en_A1', 'log ca', 'log ex_A1', 'log ta', 'log en_A2', 'delay 0.1'])
+
     def testDSM1(self):
         io_filter = lambda s: False
         run_test(self, "./Examples/Stateflow/tests/DataStore/DSM1.xml", 20,

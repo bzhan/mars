@@ -351,9 +351,15 @@ class SFConvert:
         procs = []
 
         # Exit states from src to ancestor (not including ancestor)
-        procs.append(self.get_rec_exit_proc(src))
+        exit_procs = []
+        exit_procs.append(self.get_rec_exit_proc(src))
         for state in self.get_chain_to_ancestor(src, ancestor):
-            procs.append(hcsp.Var(self.exit_proc_name(state)))
+            exit_procs.append(hcsp.Var(self.exit_proc_name(state)))
+
+        # Whether the source state is still active
+        still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(src.father)),
+                                        expr.AConst(src.whole_name))
+        procs.append(hcsp.Condition(still_there, hcsp.seq(exit_procs)))
 
         if tran_act is not None:
             procs.append(tran_act)
@@ -727,10 +733,17 @@ class SFConvert:
                 done = "J" + state.ssid + "_done"
                 self.local_vars.add(done)
                 procs.append(hcsp.Assign(done, expr.AConst(0)))
+
+                # Early return logic for condition action: check whether
+                # the initial source is still active.
+                still_there_cond = expr.RelExpr("==", expr.AVar(self.active_state_name(init_src.father)),
+                                                expr.AConst(init_src.whole_name))
+
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
 
-                    pre_act, cond, cond_act, tran_act, remove_mesg = self.convert_label(tran.label)
+                    pre_act, cond, cond_act, tran_act, remove_mesg = \
+                        self.convert_label(tran.label, still_there_cond=still_there_cond)
                     # if isinstance(cond,expr.BConst):
                     #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
                     act = self.get_traverse_state_proc(
