@@ -353,6 +353,9 @@ class Skip(Command):
     def __eq__(self, other):
         return isinstance(other, Skip)
 
+    def __hash__(self):
+        return hash("SKIP")
+
     def priority(self):
         return 100
 
@@ -383,6 +386,9 @@ class Assign(Command):
     def __eq__(self, other):
         return isinstance(other, Assign) and self.lname == other.lname and \
             self.expr == other.expr
+
+    def __hash__(self):
+        return hash(("ASSIGN", self.lname, self.expr))
 
     def priority(self):
         return 100
@@ -421,6 +427,9 @@ class FunctionCall(Command):
         return isinstance(other, FunctionCall) and self.func_name == other.func_name and \
             self.args == other.args
 
+    def __hash__(self):
+        return hash(("FUNCTION_CALL", self.func_name, self.args))
+
     def subst(self, inst):
         return FunctionCall(self.func_name, *(arg.subst(inst) for arg in self.args))
 
@@ -442,6 +451,9 @@ class Sequence(Command):
     def __eq__(self, other):
         return isinstance(other, Sequence) and self.cmd1 == other.cmd1 and self.cmd2 == other.cmd2
 
+    def __hash__(self):
+        return hash(("SEQUENCE", self.cmd1, self.cmd2))
+
     def subst(self, inst):
         return Sequence(self.cmd1.subst(inst), self.cmd2.subst(inst))
 
@@ -451,13 +463,28 @@ class Sequence(Command):
     def contain_hp(self, name):
         return False
 
-def seq(args):
+def flatten(args):
+    """Expand any Sequence in list of commands."""
+    res = []
+    for arg in args:
+        if isinstance(arg, Sequence):
+            res.extend(flatten([arg.cmd1]))
+            res.extend(flatten([arg.cmd2]))
+        else:
+            res.append(arg)
+    return res
+
+def rec_seq(args):
     if len(args) == 0:
         return Skip()
     elif len(args) == 1:
         return args[0]
     else:
-        return Sequence(args[0], seq(args[1:]))
+        return Sequence(args[0], rec_seq(args[1:]))
+
+def seq(args):
+    args = [arg for arg in flatten(args) if arg != Skip()]
+    return rec_seq(args)
 
 
 class IfElse(Command):
@@ -484,6 +511,9 @@ class IfElse(Command):
     def __eq__(self, other):
         return isinstance(other, IfElse) and self.cond == other.cond and self.cmd1 == other.cmd1 and \
             self.cmd2 == other.cmd2
+
+    def __hash__(self):
+        return hash(("IFELSE", self.cond, self.cmd1, self.cmd2))
 
     def subst(self, inst):
         return IfElse(self.cond.subst(inst), self.cmd1.subst(inst), self.cmd2.subst(inst))
@@ -513,6 +543,9 @@ class BroadcastEvent(Event):
     def __eq__(self, other):
         return isinstance(other, BroadcastEvent) and self.name == other.name
 
+    def __hash__(self):
+        return hash(("BROADCAST_EVENT", self.name))
+
 class DirectedEvent(Event):
     """Sending event to particular state."""
     def __init__(self, state_name, event):
@@ -530,6 +563,9 @@ class DirectedEvent(Event):
         return isinstance(other, DirectedEvent) and self.state_name == other.state_name and \
             self.event == other.event
 
+    def __hash__(self):
+        return hash(("DIRECTED_EVENT", self.state_name, self.event))
+
 class ImplicitEvent(Event):
     """Implicit events in Matlab."""
     def __init__(self, name):
@@ -545,6 +581,9 @@ class ImplicitEvent(Event):
     def __eq__(self, other):
         return isinstance(other, ImplicitEvent) and self.name == other.name
 
+    def __hash__(self):
+        return hash(("IMPLICIT_EVENT", self.name))
+
 class AbsoluteTimeEvent(Event):
     """Absolute time events in Matlab."""
     def __init__(self, name):
@@ -559,6 +598,9 @@ class AbsoluteTimeEvent(Event):
 
     def __eq__(self, other):
         return isinstance(other, AbsoluteTimeEvent) and self.name == other.name
+
+    def __hash__(self):
+        return hash(("ABSOLUTE_TIME_EVENT", self.name))
 
 class TemporalEvent(Event):
     """Temporal logic events in Matlab."""
@@ -580,6 +622,9 @@ class TemporalEvent(Event):
         return isinstance(other, TemporalEvent) and self.temp_op == other.temp_op and \
             self.expr == other.expr and self.event == other.event
 
+    def __hash__(self):
+        return hash(("TEMPORAL_EVENT", self.temp_op, self.expr, self.event))
+
 
 class RaiseEvent(Command):
     """Command for raising an event."""
@@ -596,8 +641,12 @@ class RaiseEvent(Command):
     def __eq__(self, other):
         return isinstance(other, RaiseEvent) and self.event == other.event
 
+    def __hash__(self):
+        return hash(("RAISE_EVENT", self.event))
+
     def subst(self, inst):
         return self
+
 
 class Message(Command):
     """Command for raising an event."""
@@ -613,6 +662,9 @@ class Message(Command):
 
     def __eq__(self, other):
         return self.message == other.message
+
+    def __hash__(self):
+        return hash(("MESSAGE", self.message))
 
     def subst(self, inst):
         return self
@@ -688,8 +740,12 @@ class TransitionLabel:
     def __init__(self, event, cond, cond_act, tran_act):
         assert event is None or isinstance(event, Event)
         assert cond is None or isinstance(cond, BExpr)
-        assert cond_act is None or isinstance(cond_act, Command)
-        assert tran_act is None or isinstance(tran_act, Command)
+        if cond_act is None:
+            cond_act = Skip()
+        if tran_act is None:
+            tran_act = Skip()
+        assert isinstance(cond_act, Command)
+        assert isinstance(tran_act, Command)
 
         self.event = event
         self.cond = cond

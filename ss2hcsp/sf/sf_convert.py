@@ -8,9 +8,11 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import optimize
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.matlab import convert, parser
+from ss2hcsp.matlab import convert
+from ss2hcsp.matlab import parser
+from ss2hcsp.matlab import function
 from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
-    AbsoluteTimeEvent, ImplicitEvent,Message
+    AbsoluteTimeEvent, ImplicitEvent, Message
 
 
 class SFConvert:
@@ -97,14 +99,14 @@ class SFConvert:
 
         self.convert_cmd = convert_cmd
 
-        # Dictionary mapping junction ID and (init_src, init_tran_act) to the
+        # Dictionary mapping junction ID and (init_src, tran_act) to the
         # pair (name, proc).
         self.junction_map = dict()
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, Junction) and not state.default_tran:
                 self.junction_map[ssid] = dict()
             elif isinstance(state, Junction) and state.default_tran and not state.out_trans:
-                self.junction_map[ssid] = {"J"+ssid: ("J"+ssid,hcsp.Skip())}
+                self.junction_map[ssid] = {"J"+ssid: ("J"+ssid, hcsp.Skip())}
 
         # Set of local variables. These are considered inactive at the end of
         # procedures (to help with code optimization).
@@ -115,20 +117,13 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
-                    if tran.label is not None:
-                        if isinstance(tran.label,str):
-                            tran.label=parser.transition_parser.parse(tran.label)
-                    if tran.label is not None and tran.label.event is not None and \
-                        isinstance(tran.label.event, TemporalEvent):
+                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
                         self.temporal_guards[tran.src].append(tran.label.event)
             if isinstance(state, (AND_State, OR_State)) and state.inner_trans:
                 for tran in state.inner_trans:
-                    if tran.label is not None and isinstance(tran.label,str):
-                        tran.label=parser.transition_parser.parse(tran.label)
-                    if tran.label is not None and tran.label.event is not None and \
-                        isinstance(tran.label.event, TemporalEvent):
+                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
                         self.temporal_guards[tran.src].append(tran.label.event)
@@ -397,8 +392,8 @@ class SFConvert:
         # Whether the source state is still active
         procs.append(hcsp.Condition(self.get_still_there_cond(src), hcsp.seq(exit_procs)))
 
-        if tran_act is not None:
-            procs.append(tran_act)
+        # Perform transition action
+        procs.append(self.convert_cmd(tran_act, still_there=self.get_ancestor_empty_cond(ancestor)))
 
         # Enter states from ancestor to state1
         entry_procs = []
@@ -466,9 +461,7 @@ class SFConvert:
             pre_acts.append(act)
             conds.append(hp_cond)
 
-        if label.cond_act is not None:
-            cond_act = self.convert_cmd(label.cond_act, still_there=still_there)
-
+        cond_act = self.convert_cmd(label.cond_act, still_there=still_there)
         return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, hcsp.seq(remove_mesg)
 
     def get_rec_entry_proc(self, state):
@@ -574,7 +567,6 @@ class SFConvert:
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
                     pre_act, cond, cond_act, remove_mesg = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
-                    tran_act = self.convert_cmd(tran.label.tran_act, still_there=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
@@ -582,7 +574,7 @@ class SFConvert:
                     act = hcsp.Sequence(
                         remove_mesg, cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
-                            self.get_traverse_state_proc(dst, src, tran_act, out_trans=True),
+                            self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=True),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
@@ -608,7 +600,6 @@ class SFConvert:
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
                     pre_act, cond, cond_act, remove_mesg = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
-                    tran_act = self.convert_cmd(tran.label.tran_act, still_there=still_there_tran)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. For every
@@ -617,7 +608,7 @@ class SFConvert:
                     act = hcsp.Sequence(
                         remove_mesg, cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
-                            self.get_traverse_state_proc(dst, src, tran_act, out_trans=False),
+                            self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=False),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
 
                     procs.append(hcsp.seq([pre_act, hcsp.Condition(
@@ -694,13 +685,14 @@ class SFConvert:
                 pass  # Junction only
         return hcsp.seq(procs)
 
-    def get_traverse_state_proc(self, state, init_src, init_tran_act, *, out_trans=False):
+    def get_traverse_state_proc(self, state, init_src, tran_act, *, out_trans=False):
         """Obtain the procedure for traversing a state or junction, given
         the source state and existing transition actions.
 
         state : [OR_State, Junction] - current state or junction.
         init_src : str - name of the initial source state.
-        init_tran_act : HCSP - already accumulated transition actions.
+        tran_act : function.Command - already accumulated transition actions.
+            Note this is NOT yet converted to HCSP.
 
         This function returns the code of the procedure, and memoize results
         for junctions in the dictionary junction_map.
@@ -713,7 +705,7 @@ class SFConvert:
             # the current state, with the accumulated transition actions in
             # the middle. Then return 1 for successfully reaching a state.
             return hcsp.seq([
-                self.get_transition_proc(init_src, state, init_tran_act, out_trans=out_trans),
+                self.get_transition_proc(init_src, state, tran_act, out_trans=out_trans),
                 self.return_val(expr.AConst(1))])
 
         elif isinstance(state, Junction):
@@ -723,10 +715,10 @@ class SFConvert:
                 # Transition unsuccessful.
                 return self.return_val(expr.AConst(0))
 
-            if (init_src.ssid, init_tran_act, out_trans) not in self.junction_map[state.ssid]:
+            if (init_src.ssid, tran_act, out_trans) not in self.junction_map[state.ssid]:
                 # Put in placeholder and reserve name
                 cur_name = "J" + state.ssid + "_" + str(len(self.junction_map[state.ssid]) + 1)
-                self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)] = (cur_name, None)
+                self.junction_map[state.ssid][(init_src.ssid, tran_act, out_trans)] = (cur_name, None)
                 procs = []
                 done = "J" + state.ssid + "_done"
                 self.local_vars.add(done)
@@ -741,11 +733,10 @@ class SFConvert:
 
                     pre_act, cond, cond_act, remove_mesg = \
                         self.convert_label(tran.label, still_there=still_there_cond)
-                    tran_act = self.convert_cmd(tran.label.tran_act)
                     # if isinstance(cond,expr.BConst):
                     #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
                     act = self.get_traverse_state_proc(
-                        dst, init_src, hcsp.seq([init_tran_act, tran_act]), out_trans=out_trans)
+                        dst, init_src, function.seq([tran_act, tran.label.tran_act]), out_trans=out_trans)
                     act = hcsp.seq([remove_mesg, cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)])),
@@ -755,8 +746,8 @@ class SFConvert:
                             act)]))
                 procs.append(self.return_val(expr.AVar(done)))
                 proc = hcsp.seq(procs)
-                self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)] = (cur_name, proc)
-            return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, init_tran_act, out_trans)][0])
+                self.junction_map[state.ssid][(init_src.ssid, tran_act, out_trans)] = (cur_name, proc)
+            return hcsp.Var(self.junction_map[state.ssid][(init_src.ssid, tran_act, out_trans)][0])
 
         else:
             raise TypeError("get_junction_proc")
@@ -782,7 +773,7 @@ class SFConvert:
 
             # if isinstance(cond,expr.BConst):
             #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
-            assert tran.label.tran_act is None, \
+            assert tran.label.tran_act == function.Skip(), \
                 "convert_graphical_function_junc: no transition action in graphical functions."
             act = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
             if i == 0:
@@ -804,7 +795,7 @@ class SFConvert:
         dst = proc.default_tran.dst
         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
             "convert_graphical_function: no condition on default transitions"
-        assert proc.default_tran.label.tran_act is None, \
+        assert proc.default_tran.label.tran_act == function.Skip(), \
             "convert_graphical_function: no transition action in graphical functions"
         res[proc.name] = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + proc.default_tran.dst)])
         return res
