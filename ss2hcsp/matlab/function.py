@@ -339,6 +339,27 @@ class Command:
         raise NotImplementedError
 
 
+class Skip(Command):
+    """Skip command."""
+    def __init__(self):
+        super(Skip, self).__init__()
+
+    def __str__(self):
+        return "skip"
+
+    def __repr__(self):
+        return "Skip()"
+
+    def __eq__(self, other):
+        return isinstance(other, Skip)
+
+    def priority(self):
+        return 100
+
+    def subst(self, inst):
+        return self
+
+
 class Assign(Command):
     """Assignment command.
 
@@ -352,6 +373,7 @@ class Assign(Command):
         assert isinstance(lname, (Var, FunExpr, ListExpr,DirectName))
         self.lname = lname
         self.expr = expr
+
     def __str__(self):
         return "%s := %s" % (self.lname, self.expr)
 
@@ -428,6 +450,15 @@ class Sequence(Command):
 
     def contain_hp(self, name):
         return False
+
+def seq(args):
+    if len(args) == 0:
+        return Skip()
+    elif len(args) == 1:
+        return args[0]
+    else:
+        return Sequence(args[0], seq(args[1:]))
+
 
 class IfElse(Command):
     """If-Else commands."""

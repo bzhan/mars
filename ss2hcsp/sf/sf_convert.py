@@ -86,13 +86,13 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,array_value=self.data,messages=self.messages)
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
 
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
             return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there, arrays=self.data.keys(),array_value=self.data,events=self.events.keys(),messages=self.messages)
+                                       still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),messages=self.messages)
 
         self.convert_cmd = convert_cmd
 
@@ -244,7 +244,15 @@ class SFConvert:
     def get_en_proc(self, state):
         if not state.en:
             return hcsp.Skip()
-        return self.convert_cmd(state.en)
+
+        # For entry procedure, the early return logic is that the state that
+        # is entered should remain active.
+        still_there = None
+        if isinstance(state, OR_State):
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                    expr.AConst(state.whole_name))
+        proc = self.convert_cmd(state.en, still_there=still_there)
+        return proc 
 
     def get_du_proc(self, state):
         if not state.du:
@@ -264,7 +272,15 @@ class SFConvert:
     def get_ex_proc(self, state):
         if not state.ex:
             return hcsp.Skip()
-        return self.convert_cmd(state.ex)
+
+        # For exit procedure, the early return logic is that the state that
+        # is exited should remain active.
+        still_there = None
+        if isinstance(state, OR_State):
+            still_there = expr.RelExpr("==", expr.AVar(self.active_state_name(state.father)),
+                                    expr.AConst(state.whole_name))
+        proc = self.convert_cmd(state.ex, still_there=still_there)
+        return proc
 
     def get_entry_proc(self, state):
         """Entry procedure for the given state.

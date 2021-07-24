@@ -12,8 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None,array_value=None,messages=None):
-
+def convert_expr(e, *, procedures=None, arrays=None, messages=None):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -109,8 +108,7 @@ def convert_expr(e, *, procedures=None, arrays=None,array_value=None,messages=No
     return hcsp.seq(pre_acts), res
 
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None,array_value=None,events=None,messages=None):
-
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None, events=None,messages=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -135,7 +133,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays,array_value=array_value,messages=messages)
+        return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages)
 
 
     def conv_exprs(es):
@@ -189,44 +187,17 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
         return function.DirectedEvent(st_name,get_directed_event(state_name[1:],event))
 
     def convert(cmd):
-        if isinstance(cmd,list):
-            lists=list()
-            for c in cmd:
-                lists.append(convert(c))
-            return hcsp.seq(lists)
-        if isinstance(cmd, function.Assign):
+        if isinstance(cmd, list):
+            return convert(function.seq(cmd))
+
+        if isinstance(cmd, function.Skip):
+            return hcsp.Skip()
+
+        elif isinstance(cmd, function.Assign):
             pre_act, hp_expr = conv_expr(cmd.expr)
-# <<<<<<< HEAD
-#             name_set=set()
-#             vars_set=set()
-#             assign_name=convert_lname(cmd.lname)
-#             if isinstance(assign_name,list):
-#                 for i in range(0,len(assign_name)):
-#                     name_set=name_set.union(assign_name[i].get_vars())
-#                 vars_set=hp_expr.get_vars()
-#             else:
-#                 name_set=name_set.union(assign_name.get_vars())
-#                 if hp_expr is not None:
-#                     vars_set=hp_expr.get_vars()
-# =======
-            # name_set=set()
             assign_name=convert_lname(cmd.lname,cmd.expr)
-            # if isinstance(assign_name,list):
-            #     for i in range(0,len(assign_name)):
-            #         name_set=name_set.union(assign_name[i].get_vars())
-            #     vars_set=hp_expr.get_vars()
-            # else:
-            #     name_set=name_set.union(assign_name.get_vars())
-            #     vars_set=hp_expr.get_vars()
-# >>>>>>> adef5ed30bdf662c1ddf5756ac1dc0d4943be7ef
             cmd_list=list()
             cmd_list.append(pre_act)
-            # if arrays is not None:
-            #     for var in vars_set:
-            #         if var in arrays:
-            #             data=array_value[var]
-            #             if data.scope == "DATA_STORE_MEMORY_DATA":
-            #                 cmd_list.append(hcsp.InputChannel('read_' + str(var), expr.AVar(var)))
             if isinstance(assign_name,list):
                 if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
                     for index in range(0,len(assign_name)):
@@ -278,8 +249,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
         elif isinstance(cmd, function.Sequence):
             if (isinstance(cmd.cmd1, function.RaiseEvent) or
-                isinstance(cmd.cmd1, function.FunctionCall) and cmd.cmd1.func_name == "send") \
-               and still_there is not None:
+                isinstance(cmd.cmd1, function.FunctionCall) and cmd.cmd1.func_name == "send") and \
+                still_there is not None:
                 return hcsp.Sequence(convert(cmd.cmd1), hcsp.Condition(still_there, convert(cmd.cmd2)))
             else:
                 return hcsp.Sequence(convert(cmd.cmd1), convert(cmd.cmd2))
@@ -293,6 +264,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return raise_event(cmd.event)
 
         else:
+            print(cmd, type(cmd))
             raise NotImplementedError
 
     return convert(cmd)
