@@ -39,8 +39,9 @@ class SFConvert:
         self.messages=dict()
         if 'message_dict' in self.chart_parameters:
             self.messages=self.chart_parameters['message_dict']
+
         # Sample time
-        self.sample_time = 1
+        self.sample_time = 0.1
         if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
             self.sample_time = self.chart_parameters['st']
 
