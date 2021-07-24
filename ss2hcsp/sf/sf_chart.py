@@ -6,15 +6,12 @@ from ss2hcsp.hcsp.expr import AVar,AConst, BExpr, conj,disj,LogicExpr,RelExpr,Fu
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.hcsp.hcsp import Condition , Assign
 from ss2hcsp.matlab import function
-from ss2hcsp.hcsp.parser import aexpr_parser
-import re
 
 
-def get_common_ancestor(state0, state1, tran_type="out_trans"):
-    assert tran_type in ["out_trans", "inner_trans"]
+def get_common_ancestor(state0, state1, out_trans=True):
     if state0 == state1:
         assert state0.father == state1.father
-        if tran_type == "out_trans":
+        if out_trans:
             return state0.father
         else:  # inner_trans
             return state0
