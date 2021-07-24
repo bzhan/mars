@@ -344,18 +344,23 @@ class SFConvertTest(unittest.TestCase):
             res, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
     def testMessage1(self):
-        run_test(self, "./Examples/Stateflow/tests/Message_eg_2018a.xml", 2,
+        run_test(self, "./Examples/Stateflow/tests/Message/Message_eg_2018a.xml", 2,
             ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1'])
     def testMessage2(self):
-        run_test(self, "./Examples/Stateflow/tests/Message_eg2_2018a.xml", 2,
+        run_test(self, "./Examples/Stateflow/tests/Message/Message_eg2_2018a.xml", 2,
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1'])
     def testMessage3(self):
-        run_test(self, "./Examples/Stateflow/tests/msgex1_msg.xml",100,
-           ['log en_A', 'IO ch_x0_0 "M"', 'log en_A0', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1','delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'log en_A1', 'delay 0.1', 'log en_A2'])
+        run_test(self, "./Examples/Stateflow/tests/Message/msgex1_msg.xml",100,
+           ['log en_A', 'IO ch_x0_0 "M"', 'log en_A0', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'log en_A1', 'delay 0.1', 'log en_A2'])
+    def testMessage4(self):
+        run_test(self, "./Examples/Stateflow/tests/Message/Message_eg3_2018a.xml", 3,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'log en_D', 'delay 0.1'])
 
 if __name__ == "__main__":
     unittest.main()
