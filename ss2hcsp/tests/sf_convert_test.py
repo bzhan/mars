@@ -562,6 +562,13 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1',
              'log en_D', 'delay 0.1', 'delay 0.1'])
 
+    def testMessages8(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages8_2018a.xml",8,
+            ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'],io_filter=io_filter,print_res=True)
+
+
 
 if __name__ == "__main__":
     unittest.main()

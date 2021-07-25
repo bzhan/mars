@@ -1,7 +1,7 @@
 """Optimization of HCSP code."""
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr
+from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr,RelExpr,FunExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 
@@ -13,9 +13,12 @@ def is_atomic(hp):
 
 def simplify_expr(expr):
     if not expr.get_vars():
-        b = simulator.eval_expr(expr, dict())
-        assert isinstance(b, bool)
-        return true_expr if b else false_expr
+        if isinstance(expr,RelExpr)  and isinstance(expr.expr1,FunExpr) and expr.expr1.fun_name == "remove_InputMessage":
+            return expr
+        else:
+            b = simulator.eval_expr(expr, dict())
+            assert isinstance(b, bool)
+            return true_expr if b else false_expr
     else:
         return expr
 
@@ -35,7 +38,9 @@ def simplify(hp):
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
+        if  isinstance(simp_cond,RelExpr)  and isinstance(simp_cond.expr1,FunExpr) and simp_cond.expr1.fun_name == "remove_InputMessage":
+            return  hcsp.Condition(simp_cond, simp_sub_hp)
+        elif simp_sub_hp.type == 'skip'  or simp_cond == false_expr:
             return hcsp.Skip()
         elif simp_cond == true_expr:
             return simp_sub_hp
@@ -408,7 +413,7 @@ class HCSPAnalysis:
         """
         repls = dict()
         for loc, info in self.infos.items():
-            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):    
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):   
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
                     reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
@@ -447,7 +452,6 @@ class HCSPAnalysis:
                     if loc not in repls:
                         repls[loc] = dict()
                     repls[loc][var] = unique_assign
-
         return repls
 
     def compute_live_variable(self):

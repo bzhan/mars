@@ -909,6 +909,14 @@ class SFConvert:
 
         procs.extend(self.get_output_data())
         procs.extend(self.get_input_data())
+        
+        inputMesdicts=dict()
+        for name,info in self.messages.items():
+            if info.scope == "INPUT_DATA":
+                inputMesdicts[name]=info
+        if len(inputMesdicts)>0:
+            procs.append(hcsp.Condition( expr.RelExpr("==",expr.FunExpr("remove_InputMessage", [expr.AConst(inputMesdicts)]),expr.AConst(1)),hcsp.Skip()))
+
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
