@@ -245,6 +245,30 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent6.xml", 1,
             ['log a', 'log c', 'delay 0.1'])
 
+    def testFunction1(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function1.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction2(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function2.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction3(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function3.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction4(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function4.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction5(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function5.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction6(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function6.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
     def testGraphicalFunction1(self):
         run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction1.xml", 1,
             ['log en_A', 'log en_B', 'delay 0.1'])
