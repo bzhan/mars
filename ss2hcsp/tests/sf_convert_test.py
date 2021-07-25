@@ -562,6 +562,30 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1',
              'log en_D', 'delay 0.1', 'delay 0.1'])
 
+    def testContinuous1(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 4,
+            [])
+
+    def testContinuous2(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous2.xml", 4,
+            [])
+
+    def testContinuous3(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous3.xml", 4,
+            [])
+
+    def testContinuous4(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous4.xml", 4,
+            [])
+
+    def testContinuous5(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous5.xml", 4,
+            [])
+
+    def testContinuous6(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 4,
+            [])
+
 
 if __name__ == "__main__":
     unittest.main()
