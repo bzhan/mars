@@ -91,8 +91,8 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
 
-        def convert_expr(e,has_message=False):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages,has_message=has_message)
+        def convert_expr(e):
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
 
         self.convert_expr = convert_expr
 
@@ -425,7 +425,6 @@ class SFConvert:
 
         """
         pre_acts, conds, cond_act = [], [], hcsp.Skip()
-        has_message=False
         if label.event is not None:
             if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
                 # Conversion for event condition E
@@ -463,7 +462,6 @@ class SFConvert:
             elif str(label.event) in self.messages.keys():
                 # Conversion for messages
                 message = self.messages[str(label.event)]
-                has_message=True
                 if message.scope == "INPUT_DATA":
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
                                         expr.RelExpr(">", expr.FunExpr("exist", [expr.AConst("IQU"),expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
@@ -476,7 +474,7 @@ class SFConvert:
                 raise NotImplementedError('convert_label: unsupported event type')
 
         if label.cond is not None:
-            act, hp_cond = self.convert_expr(label.cond,has_message=has_message)
+            act, hp_cond = self.convert_expr(label.cond)
             pre_acts.append(act)
             conds.append(hp_cond)
 
@@ -911,7 +909,6 @@ class SFConvert:
 
         procs.extend(self.get_output_data())
         procs.extend(self.get_input_data())
-        
         # Wait the given sample time
         procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
