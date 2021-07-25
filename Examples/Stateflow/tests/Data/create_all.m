@@ -1,5 +1,5 @@
 for i = 1:6
-    model = "Function"+i;
+    model = "Communication"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)
     save_system(model, model+"_2018a.slx", "ExportToVersion", "R2018a")
@@ -7,7 +7,7 @@ for i = 1:6
 end
 
 for i = 1:6
-    model = "GraphicalFunction"+i;
+    model = "DSM"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)
     save_system(model, model+"_2018a.slx", "ExportToVersion", "R2018a")
