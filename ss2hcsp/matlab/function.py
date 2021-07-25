@@ -491,18 +491,19 @@ class IfElse(Command):
     """If-Else commands."""
     def __init__(self, cond, cmd1, cmd2):
         super(IfElse, self).__init__()
-        assert isinstance(cond, BExpr) and isinstance(cmd1, Command) and isinstance(cmd2, Command)
+        assert isinstance(cond, BExpr) and isinstance(cmd1, Command) 
         self.cond = cond
         self.cmd1 = cmd1
         self.cmd2 = cmd2
 
     def __str__(self):
         if_str = str(self.cmd1)
-        else_str = str(self.cmd2)
+        else_str = str(self.cmd2) if self.cmd2 is not None else ""
         res = "if %s " % self.cond
         res += ''.join(' ' + line for line in if_str.split('\n'))
-        res += ' else'
-        res += ''.join(' ' + line for line in else_str.split('\n'))
+        if  self.cmd2 is not None:
+            res += ' else'
+            res += ''.join(' ' + line for line in else_str.split('\n'))
         return res
 
     def __repr__(self):
@@ -516,7 +517,8 @@ class IfElse(Command):
         return hash(("IFELSE", self.cond, self.cmd1, self.cmd2))
 
     def subst(self, inst):
-        return IfElse(self.cond.subst(inst), self.cmd1.subst(inst), self.cmd2.subst(inst))
+        return IfElse(self.cond.subst(inst), self.cmd1.subst(inst), self.cmd2.subst(inst)) if self.cmd2 is not None \
+                else IfElse(self.cond.subst(inst), self.cmd1.subst(inst), None)
 
 
 class Event:
@@ -708,6 +710,12 @@ class Function:
         return isinstance(other, Function) and self.name == other.name and self.params == other.params and \
             self.cmd == other.cmd and self.return_var == other.return_var
 
+    
+    def get_Sequence(self,lists):
+        if len(lists) == 1:
+            return lists[0]
+        else:
+           return Sequence(lists[0],Sequence(self.get_Sequence(lists[1:])))
     def instantiate(self, vals=None):
         """Instantiate a procedure with given values for parameters.
 
@@ -724,7 +732,12 @@ class Function:
             vals = tuple()
         assert len(self.params) == len(vals), "Function instantiation: wrong number of inputs"
         inst = dict(zip(self.params, vals))
-        return self.cmd.subst(inst)
+       
+        paramsList=list()
+        for i in range(0,len(self.params)):
+            paramsList.append(Assign(Var(self.params[i]),vals[i]))
+        # return self.cmd.subst(inst),list()
+        return self.cmd,paramsList
 
 
 class TransitionLabel:

@@ -83,8 +83,13 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
                     elif isinstance(proc.return_var,tuple):
                         return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
                 else:
-                    pre_acts.append(convert_cmd(proc.instantiate(), procedures=procedures, arrays=arrays))
-                    return expr.AVar(proc.return_var)
+                  
+                    cmd,params=proc.instantiate(e.exprs)
+                    pre_acts.append(hcsp.seq([convert_cmd(params, procedures=procedures, arrays=arrays),convert_cmd(cmd, procedures=procedures, arrays=arrays)]))
+                    if isinstance(proc.return_var,str):
+                        return expr.AVar(proc.return_var)
+                    elif isinstance(proc.return_var,tuple):
+                        return expr.ListExpr(*( expr.AVar(arg) for arg in proc.return_var))
             else:
                 return expr.FunExpr(e.fun_name, [rec(ex) for ex in e.exprs])
         elif isinstance(e, function.BConst):
@@ -238,7 +243,8 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                 assert procedures is not None and cmd.func_name in procedures, \
                     "convert_cmd: procedure %s not found" % cmd.func_name
                 if isinstance(procedures[cmd.func_name], function.Function):
-                    return convert(procedures[cmd.func_name].instantiate(cmd.args))
+                    cmd1,params=procedures[cmd.func_name].instantiate(cmd.args)
+                    return hcsp.seq([convert(params),convert(cmd1)])
                 elif isinstance(procedures[cmd.func_name], GraphicalFunction):
                     proc=procedures[cmd.func_name]
                     expr_list=list()

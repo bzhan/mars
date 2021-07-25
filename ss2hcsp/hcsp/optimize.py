@@ -514,7 +514,6 @@ class HCSPAnalysis:
             if info.sub_hp.type == 'assign':
                 if all(name not in info.live_after for name in get_write_vars(info.sub_hp.var_name)):
                     dead_code.append(loc)
-        
         return dead_code
 
 
