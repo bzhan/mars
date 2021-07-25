@@ -82,8 +82,6 @@ def eval_expr(expr, state):
                 res /= eval_expr(e, state)
         return res
 
-    elif isinstance(expr,FieldNameExpr):
-        return FieldNameExpr(expr.expr,expr.field)
     elif isinstance(expr, FunExpr):
         # Special functions
         args = [eval_expr(e, state) for e in expr.exprs]
@@ -124,6 +122,27 @@ def eval_expr(expr, state):
                 a=a[:index]+a[index+1:]
                 state[str(n)]=a
             return index
+            
+        elif expr.fun_name == "remove_InputMessage":
+
+            for n,info in args[0].items():
+                if str(n)+".data" in state.keys(): 
+                    state.pop(str(n)+".data")
+            return 1
+          
+        # elif expr.fun_name == "isequals":
+            
+        #     n,b,c =args
+        #     if isinstance(b,FieldNameExpr):        
+        #         if state[str(b)] != c:
+        #             if n =="IQU":
+        #                 state.pop(str(b))
+        #             return 0
+        #         elif state[str(b)] == c:
+        #             if n =="IQU":
+        #                 state.pop(str(b))
+        #             return 1
+            
           
         elif expr.fun_name == "push":
             a, b = args
