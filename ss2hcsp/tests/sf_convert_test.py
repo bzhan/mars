@@ -564,7 +564,7 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages8(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages8_2018a.xml", 8,
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages8.xml", 8,
             ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
              'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
 

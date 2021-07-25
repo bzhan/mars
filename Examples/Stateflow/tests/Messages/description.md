@@ -59,3 +59,13 @@
   - en_B
   - en_C
   - en_D
+
+### Messages8
+
+* An example of sending two messages.
+* Expected result (5 iterations)
+  - en_A
+  - en_A0
+  - en_A1
+  - en_A2
+  - en_A3
