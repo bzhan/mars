@@ -107,7 +107,9 @@ def replace_read_vars(hp, inst):
 
 def get_write_vars(lname):
     """Given lname of an assignment, return the set of variables written."""
-    if isinstance(lname, expr.AVar):
+    if lname is None:
+        return {}
+    elif isinstance(lname, expr.AVar):
         return {lname.name}
     elif isinstance(lname, expr.ArrayIdxExpr):
         return get_write_vars(lname.expr1)

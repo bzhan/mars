@@ -38,6 +38,90 @@
   - en_A
   - 1 2 4 4
 
+### Communication3
+
+* This example shows that with communication, the sending chart always runs first (regardless of the alphabetical ordering of names).
+* Expected result (6 iterations):
+  - en_A
+  - en_A1
+  - en_B
+  - 2 1
+  - en_A
+  - 2 2
+  - en_B
+  - 3 2
+  - en_A
+  - 3 3
+  - en_B
+  - 4 3
+  - en_A
+  - 4 4
+
+### Communication4
+
+* This example shows chaining of input/outputs.
+* Expected result (6 iterations):
+  - en_A
+  - en_A1
+  - en_B
+  - 2 2
+  - en_A
+  - 2 4
+  - en_B
+  - 3 4
+  - en_A
+  - 3 6
+  - en_B
+  - 4 6
+  - en_A
+  - 4 8
+
+### Communication5
+
+* This example shows combination of input/output with data store memory. The order of execution follows send-then-receive order, not alphabetical order.
+* Expected result (6 iterations):
+  - en_A
+  - en_C
+  - en_A1
+  - en_B
+  - 2 2 2
+  - en_A
+  - 2 4 4
+  - en_B
+  - 3 4 10
+  - en_A
+  - 3 6 20
+  - en_B
+  - 4 6 42
+  - en_A
+  - 4 8 84
+
+### Communication6
+
+* Another example showing combination of input/output with data store memory. In this case, Chart2 is isolated from Chart1 and Chart3. The order of execution is Chart1 -> Chart3 -> Chart2.
+* Expected result (6 iterations):
+  - en_A
+  - en_A1
+  - en_C
+  - en_B
+  - 2 1
+  - 1
+  - en_A
+  - 2 2
+  - 1
+  - en_B
+  - 3 2
+  - 2
+  - en_A
+  - 3 3
+  - 2
+  - en_B
+  - 4 3
+  - 3
+  - en_A
+  - 4 4
+  - 3
+
 ### DSM1
 
 * Single data store and single chart. Default transition sets value of data store.

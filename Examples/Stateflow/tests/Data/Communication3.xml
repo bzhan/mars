@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="Communication1">
+  <Model Name="Communication3">
     <P Name="Version">10.1</P>
     <P Name="SavedCharacterEncoding">GBK</P>
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.25</P>
+      <P Name="ComputedModelVersion">1.26</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -62,9 +62,9 @@
             <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1864.0, 701.0]</P>
-            <P Name="ZoomFactor" Class="double">1.626623609168504</P>
-            <P Name="Offset" Class="double">[-156.78863007524455, -58.734473089159891]</P>
-            <P Name="SceneRectInView" Class="double">[-156.78863007524455, -58.734473089159891, 763.9546479359733, 287.30268680424746]</P>
+            <P Name="ZoomFactor" Class="double">1.6922070242817888</P>
+            <P Name="Offset" Class="double">[-237.4509624884696, -70.568470844881389]</P>
+            <P Name="SceneRectInView" Class="double">[-237.4509624884696, -70.568470844881389, 734.3467133958286, 276.16794318158571]</P>
           </Object>
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">0</P>
@@ -103,7 +103,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">4f3b025f-44ad-4a49-bd2c-ec4f97350f70</P>
       </Object>
-      <P Name="BDUuid" Class="char">db0674d0-b531-4190-bf33-6a5ebffa785d</P>
+      <P Name="BDUuid" Class="char">b4690cba-d74c-4aa6-b4fe-d2b410c7d78b</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -113,9 +113,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sun Jul 25 06:17:02 2021</P>
-      <P Name="RTWModifiedTimeStamp">549094621</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:25&gt;</P>
+      <P Name="LastModifiedDate">Sun Jul 25 06:31:37 2021</P>
+      <P Name="RTWModifiedTimeStamp">549095431</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:26&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -176,10 +176,10 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="9" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">Communication1</P>
+        <P Name="model_" Class="char">Communication3</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">Communication1</Cell>
+          <Cell Class="char">Communication3</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
           <Cell Class="double">[]</Cell>
@@ -1086,14 +1086,94 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[-7, -7, 1288, 688]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
-      <P Name="ZoomFactor">163</P>
+      <P Name="ZoomFactor">169</P>
       <P Name="ReportName">simulink-default.rpt</P>
       <P Name="SIDHighWatermark">7</P>
       <P Name="SimulinkSubDomain">Simulink</P>
-      <Block BlockType="SubSystem" Name="Chart1" SID="1">
+      <Block BlockType="SubSystem" Name="Chart1" SID="2">
+        <P Name="Ports">[2]</P>
+        <P Name="Position">[-55, 46, 5, 99]</P>
+        <P Name="ZOrder">3</P>
+        <P Name="ErrorFcn">Stateflow.Translate.translate</P>
+        <P Name="PermitHierarchicalResolution">ExplicitOnly</P>
+        <P Name="TreatAsAtomicUnit">on</P>
+        <P Name="RequestExecContextInheritance">off</P>
+        <P Name="SFBlockType">Chart</P>
+        <P Name="ContentPreviewEnabled">on</P>
+        <System>
+          <P Name="Location">[-7, -7, 1288, 688]</P>
+          <P Name="SetExecutionDomain">off</P>
+          <P Name="ExecutionDomainType">Deduce</P>
+          <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
+          <P Name="SIDHighWatermark">102</P>
+          <P Name="SimulinkSubDomain">Simulink</P>
+          <Block BlockType="Inport" Name="a_in" SID="2::97">
+            <P Name="Position">[20, 101, 40, 119]</P>
+            <P Name="ZOrder">77</P>
+          </Block>
+          <Block BlockType="Inport" Name="b_in" SID="2::98">
+            <P Name="Position">[20, 136, 40, 154]</P>
+            <P Name="ZOrder">78</P>
+            <P Name="Port">2</P>
+          </Block>
+          <Block BlockType="Demux" Name=" Demux " SID="2::101">
+            <P Name="Ports">[1, 1]</P>
+            <P Name="Position">[270, 100, 320, 140]</P>
+            <P Name="ZOrder">80</P>
+            <P Name="Outputs">1</P>
+          </Block>
+          <Block BlockType="S-Function" Name=" SFunction " SID="2::100">
+            <P Name="Tag">Stateflow S-Function 1</P>
+            <P Name="Ports">[2, 1]</P>
+            <P Name="Position">[180, 100, 230, 160]</P>
+            <P Name="ZOrder">79</P>
+            <P Name="FunctionName">sf_sfun</P>
+            <P Name="PortCounts">[2 1]</P>
+            <P Name="SFunctionDeploymentMode">off</P>
+            <P Name="EnableBusSupport">on</P>
+            <P Name="SFcnIsStateOwnerBlock">off</P>
+          </Block>
+          <Block BlockType="Terminator" Name=" Terminator " SID="2::102">
+            <P Name="Position">[460, 111, 480, 129]</P>
+            <P Name="ZOrder">81</P>
+          </Block>
+          <Line>
+            <P Name="ZOrder">41</P>
+            <P Name="SrcBlock">a_in</P>
+            <P Name="SrcPort">1</P>
+            <P Name="Points">[120, 0]</P>
+            <P Name="DstBlock"> SFunction </P>
+            <P Name="DstPort">1</P>
+          </Line>
+          <Line>
+            <P Name="ZOrder">42</P>
+            <P Name="SrcBlock">b_in</P>
+            <P Name="SrcPort">1</P>
+            <P Name="DstBlock"> SFunction </P>
+            <P Name="DstPort">2</P>
+          </Line>
+          <Line>
+            <P Name="ZOrder">43</P>
+            <P Name="SrcBlock"> Demux </P>
+            <P Name="SrcPort">1</P>
+            <P Name="DstBlock"> Terminator </P>
+            <P Name="DstPort">1</P>
+          </Line>
+          <Line>
+            <P Name="ZOrder">44</P>
+            <P Name="SrcBlock"> SFunction </P>
+            <P Name="SrcPort">1</P>
+            <P Name="Points">[0, -10]</P>
+            <P Name="DstBlock"> Demux </P>
+            <P Name="DstPort">1</P>
+          </Line>
+        </System>
+      </Block>
+      <Block BlockType="SubSystem" Name="Chart2" SID="1">
         <P Name="Ports">[0, 2]</P>
         <P Name="Position">[80, 46, 140, 99]</P>
         <P Name="ZOrder">2</P>
@@ -1195,97 +1275,20 @@
           </Line>
         </System>
       </Block>
-      <Block BlockType="SubSystem" Name="Chart2" SID="2">
-        <P Name="Ports">[2]</P>
-        <P Name="Position">[265, 46, 325, 99]</P>
-        <P Name="ZOrder">3</P>
-        <P Name="ErrorFcn">Stateflow.Translate.translate</P>
-        <P Name="PermitHierarchicalResolution">ExplicitOnly</P>
-        <P Name="TreatAsAtomicUnit">on</P>
-        <P Name="RequestExecContextInheritance">off</P>
-        <P Name="SFBlockType">Chart</P>
-        <P Name="ContentPreviewEnabled">on</P>
-        <System>
-          <P Name="Location">[-7, -7, 1288, 688]</P>
-          <P Name="SetExecutionDomain">off</P>
-          <P Name="ExecutionDomainType">Deduce</P>
-          <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
-          <P Name="SIDHighWatermark">102</P>
-          <P Name="SimulinkSubDomain">Simulink</P>
-          <Block BlockType="Inport" Name="a_in" SID="2::97">
-            <P Name="Position">[20, 101, 40, 119]</P>
-            <P Name="ZOrder">77</P>
-          </Block>
-          <Block BlockType="Inport" Name="b_in" SID="2::98">
-            <P Name="Position">[20, 136, 40, 154]</P>
-            <P Name="ZOrder">78</P>
-            <P Name="Port">2</P>
-          </Block>
-          <Block BlockType="Demux" Name=" Demux " SID="2::101">
-            <P Name="Ports">[1, 1]</P>
-            <P Name="Position">[270, 100, 320, 140]</P>
-            <P Name="ZOrder">80</P>
-            <P Name="Outputs">1</P>
-          </Block>
-          <Block BlockType="S-Function" Name=" SFunction " SID="2::100">
-            <P Name="Tag">Stateflow S-Function 1</P>
-            <P Name="Ports">[2, 1]</P>
-            <P Name="Position">[180, 100, 230, 160]</P>
-            <P Name="ZOrder">79</P>
-            <P Name="FunctionName">sf_sfun</P>
-            <P Name="PortCounts">[2 1]</P>
-            <P Name="SFunctionDeploymentMode">off</P>
-            <P Name="EnableBusSupport">on</P>
-            <P Name="SFcnIsStateOwnerBlock">off</P>
-          </Block>
-          <Block BlockType="Terminator" Name=" Terminator " SID="2::102">
-            <P Name="Position">[460, 111, 480, 129]</P>
-            <P Name="ZOrder">81</P>
-          </Block>
-          <Line>
-            <P Name="ZOrder">41</P>
-            <P Name="SrcBlock">a_in</P>
-            <P Name="SrcPort">1</P>
-            <P Name="Points">[120, 0]</P>
-            <P Name="DstBlock"> SFunction </P>
-            <P Name="DstPort">1</P>
-          </Line>
-          <Line>
-            <P Name="ZOrder">42</P>
-            <P Name="SrcBlock">b_in</P>
-            <P Name="SrcPort">1</P>
-            <P Name="DstBlock"> SFunction </P>
-            <P Name="DstPort">2</P>
-          </Line>
-          <Line>
-            <P Name="ZOrder">43</P>
-            <P Name="SrcBlock"> Demux </P>
-            <P Name="SrcPort">1</P>
-            <P Name="DstBlock"> Terminator </P>
-            <P Name="DstPort">1</P>
-          </Line>
-          <Line>
-            <P Name="ZOrder">44</P>
-            <P Name="SrcBlock"> SFunction </P>
-            <P Name="SrcPort">1</P>
-            <P Name="Points">[0, -10]</P>
-            <P Name="DstBlock"> Demux </P>
-            <P Name="DstPort">1</P>
-          </Line>
-        </System>
-      </Block>
       <Line>
         <P Name="ZOrder">14</P>
-        <P Name="SrcBlock">Chart1</P>
+        <P Name="SrcBlock">Chart2</P>
         <P Name="SrcPort">2</P>
-        <P Name="DstBlock">Chart2</P>
+        <P Name="Points">[39, 0; 0, -83; -283, 0; 0, 83]</P>
+        <P Name="DstBlock">Chart1</P>
         <P Name="DstPort">2</P>
       </Line>
       <Line>
         <P Name="ZOrder">4</P>
-        <P Name="SrcBlock">Chart1</P>
+        <P Name="SrcBlock">Chart2</P>
         <P Name="SrcPort">1</P>
-        <P Name="DstBlock">Chart2</P>
+        <P Name="Points">[19, 0; 0, -38; -243, 0; 0, 38]</P>
+        <P Name="DstBlock">Chart1</P>
         <P Name="DstPort">1</P>
       </Line>
     </System>
@@ -1298,12 +1301,13 @@
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
         <chart id="23">
-          <P Name="name">Chart2</P>
+          <P Name="name">Chart1</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
           <P Name="viewLimits">[5.356 1057.763 -104.752 291.03]</P>
           <P Name="zoomFactor">1.129</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">23</P>
+          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">21</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="updateMethod">DISCRETE</P>
@@ -1445,12 +1449,13 @@ du: f()
           </Children>
         </chart>
         <chart id="32">
-          <P Name="name">Chart1</P>
+          <P Name="name">Chart2</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
           <P Name="viewLimits">[-44.914 1197.442 0 467.216]</P>
           <P Name="zoomFactor">1.333</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">32</P>
+          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">17</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="updateMethod">DISCRETE</P>
@@ -1629,12 +1634,12 @@ f(&quot;en_B&quot;)</P>
     </machine>
     <instance id="31">
       <P Name="machine">22</P>
-      <P Name="name">Chart2</P>
+      <P Name="name">Chart1</P>
       <P Name="chart">23</P>
     </instance>
     <instance id="42">
       <P Name="machine">22</P>
-      <P Name="name">Chart1</P>
+      <P Name="name">Chart2</P>
       <P Name="chart">32</P>
     </instance>
   </Stateflow>
