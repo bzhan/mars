@@ -877,15 +877,15 @@ class SFConvert:
                     ])) 
 
 
-        # Recursive entry into diagram
+         # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
 
         # Write data store variable
         for info in self.dsms:
             procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
-
         procs.extend(self.get_input_data())
+
         procs.extend(self.get_output_data())
 
         return hcsp.seq(procs)
@@ -896,10 +896,13 @@ class SFConvert:
     def get_iteration(self):
         procs = []
 
+        
         # Read data store variable
         for info in self.dsms:
             procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
-
+   
+        # procs.extend(self.get_input_data())
+        
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
@@ -1037,21 +1040,21 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
                 print('\nprocedure ' + name + " ::=\n" + pprint(proc))
             print()
 
-    # Reduce procedures
-    for name, (procs, hp) in proc_map.items():
-        if name in converter_map:
-            local_vars = converter_map[name].local_vars
-        else:
-            local_vars = set()
-        proc_map[name] = optimize.full_optimize_module(
-            procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
+    # # Reduce procedures
+    # for name, (procs, hp) in proc_map.items():
+    #     if name in converter_map:
+    #         local_vars = converter_map[name].local_vars
+    #     else:
+    #         local_vars = set()
+    #     proc_map[name] = optimize.full_optimize_module(
+    #         procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
 
-    # Optional: print final HCSP program
-    if print_final:
-        for name, (procs, hp) in proc_map.items():
-            print(name + " ::=\n" + pprint(hp))
-            for proc_name, proc in procs.items():
-                print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
-            print()
+    # # Optional: print final HCSP program
+    # if print_final:
+    #     for name, (procs, hp) in proc_map.items():
+    #         print(name + " ::=\n" + pprint(hp))
+    #         for proc_name, proc in procs.items():
+    #             print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
+    #         print()
 
     return proc_map

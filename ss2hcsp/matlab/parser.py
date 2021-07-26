@@ -11,9 +11,12 @@ grammar = r"""
     // Expressions
     ?arr_num: expr ((",")? expr)* -> arr_num
 
+    ?string: /'.*?(?<!\\)'/ -> string_expr
+
     ?atom_expr: CNAME -> var_expr
         | NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
+        | string
         | CNAME "(" ")" -> fun_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "[" "]" -> list_expr
