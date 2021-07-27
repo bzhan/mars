@@ -430,6 +430,8 @@ def get_ode_delay(hp, state):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
         elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
+        elif isinstance(e, NegExpr):
+            return occur_var(e.expr, var_name)
         else:
             print('occur_var:', e)
             raise NotImplementedError

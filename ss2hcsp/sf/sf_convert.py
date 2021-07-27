@@ -90,10 +90,9 @@ class SFConvert:
 
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
-
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
-
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,
+                                        messages=self.messages)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
@@ -145,6 +144,26 @@ class SFConvert:
         self.implicit_events = sorted(list(self.implicit_events))
         self.absolute_time_events = sorted(list(self.absolute_time_events))
 
+        # Process the derivative assignments. ode_map is a mapping from
+        # states to differential equations. Each differential equation
+        # x_dot = e is represented by a pair (x, e).
+        self.ode_map = dict()
+        for ssid, state in self.chart.all_states.items():
+            state.new_du = []
+            if isinstance(state, (AND_State, OR_State)) and state.du:
+                for action in state.du:
+                    if isinstance(action, function.Assign) and isinstance(action.lname, function.Var):
+                        var_name = action.lname.name
+                        if var_name.endswith("_dot"):
+                            if ssid not in self.ode_map:
+                                self.ode_map[ssid] = list()
+                            self.ode_map[ssid].append((var_name[:len(var_name)-4], action.expr))
+                        else:
+                            state.new_du.append(action)
+                    else:
+                        state.new_du.append(action)
+            state.du = state.new_du
+
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
 
@@ -159,13 +178,13 @@ class SFConvert:
 
         elif isinstance(event, DirectedEvent):
             # First, find the innermost state name and event
-            state_name_path=list()
+            state_name_path = list()
             st_name, ev = event.state_name, event.event
             state_name_path.append(st_name)
             while isinstance(ev, DirectedEvent):
                 st_name, ev = ev.state_name, ev.event
                 state_name_path.append(st_name)
-            dest_state=self.get_state_by_path(state_name_path)
+            dest_state = self.get_state_by_path(state_name_path)
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(ev.name)])),
                 self.get_rec_during_proc(dest_state),
@@ -275,18 +294,11 @@ class SFConvert:
         return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
-        if not state.en:
-            return hcsp.Skip()
-
         # For entry procedure, the early return logic is that the state that
         # is entered should remain active.
-        proc = self.convert_cmd(state.en, still_there=self.get_still_there_cond(state))
-        return proc 
+        return self.convert_cmd(state.en, still_there=self.get_still_there_cond(state))
 
     def get_du_proc(self, state):
-        if not state.du:
-            return hcsp.Skip()
-
         procs = []
         if state.ssid in self.implicit_events:
             tick_name = self.entry_tick_name(state)
@@ -299,13 +311,9 @@ class SFConvert:
         return hcsp.Sequence(self.convert_cmd(state.du), *procs)
 
     def get_ex_proc(self, state):
-        if not state.ex:
-            return hcsp.Skip()
-
         # For exit procedure, the early return logic is that the state that
         # is exited should remain active.
-        proc = self.convert_cmd(state.ex, still_there=self.get_still_there_cond(state))
-        return proc
+        return self.convert_cmd(state.ex, still_there=self.get_still_there_cond(state))
 
     def get_entry_proc(self, state):
         """Entry procedure for the given state.
@@ -687,19 +695,18 @@ class SFConvert:
         to_sub_cond = expr.RelExpr("==", expr.AVar("_ret"), expr.AConst(0))
         
         # Next, recursively execute child states
-        if state.children:
-            if any(isinstance(child, AND_State) for child in state.children):
-                for child in state.children:
-                    procs.append(self.get_rec_during_proc(child))
-            elif any(isinstance(child, OR_State) for child in state.children):
-                ite = []
-                for child in state.children:
-                    if isinstance(child, OR_State):
-                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
-                                    self.get_rec_during_proc(child)))
-                procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
-            else:
-                pass  # Junction only
+        if any(isinstance(child, AND_State) for child in state.children):
+            for child in state.children:
+                procs.append(self.get_rec_during_proc(child))
+        elif any(isinstance(child, OR_State) for child in state.children):
+            ite = []
+            for child in state.children:
+                if isinstance(child, OR_State):
+                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
+                                self.get_rec_during_proc(child)))
+            procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
+        else:
+            pass  # Junction only
         return hcsp.seq(procs)
 
     def get_traverse_state_proc(self, state, init_src, tran_act, *, out_trans=False):
@@ -893,10 +900,48 @@ class SFConvert:
     def get_exec_proc(self):
         return self.get_rec_during_proc(self.chart.diagram)
 
+    def get_ode(self, state, cur_states, cur_eqs):
+        """Obtain the HCSP command for ODE between iterations.
+        
+        state - current state to process.
+        cur_eqs - list of (x, expr) for already existing equations.
+        
+        """
+        if state.ssid in self.ode_map:
+            new_eqs = cur_eqs + self.ode_map[state.ssid]
+        else:
+            new_eqs = cur_eqs
+        if any(isinstance(child, OR_State) for child in state.children):
+            ite = []
+            for child in state.children:
+                if isinstance(child, OR_State):
+                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
+                                self.get_ode(child, cur_states+[child], new_eqs)))
+            return hcsp.ITE(ite)
+        elif any(isinstance(child, AND_State) for child in state.children):
+            raise NotImplementedError
+        else:
+            # Junctions only, produce the ODE. First obtain the list of boundary
+            # conditions
+            all_conds = []
+            for cur_st in cur_states:
+                if cur_st.out_trans:
+                    for tran in cur_st.out_trans:
+                        pre_act, cond, _ = self.convert_label(tran.label)
+                        if pre_act != hcsp.Skip():
+                            raise NotImplementedError
+                        all_conds.append(cond)
+            eqs = []
+            for var, eq in new_eqs:
+                pre_act, e = self.convert_expr(eq)
+                if pre_act != hcsp.Skip():
+                    raise NotImplementedError
+                eqs.append((var, e))
+            return hcsp.ODE(eqs, expr.neg_expr(expr.disj(*all_conds)))
+
     def get_iteration(self):
         procs = []
 
-        
         # Read data store variable
         for info in self.dsms:
             procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
@@ -921,7 +966,10 @@ class SFConvert:
             procs.append(hcsp.Condition( expr.RelExpr("==",expr.FunExpr("remove_InputMessage", [expr.AConst(inputMesdicts)]),expr.AConst(1)),hcsp.Skip()))
 
         # Wait the given sample time
-        procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
+        if self.ode_map:
+            procs.append(self.get_ode(self.chart.diagram, cur_states=[], cur_eqs=[]))
+        else:
+            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         # Update counter for absolute time events
         for ssid in self.absolute_time_events:

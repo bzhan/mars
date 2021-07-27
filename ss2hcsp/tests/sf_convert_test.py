@@ -569,28 +569,38 @@ class SFConvertTest(unittest.TestCase):
              'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
 
     def testContinuous1(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 2,
+            ['log enA 0.000 0.000', 'delay 0.5',
+             'log conAB1 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB1 1.000 0.500',
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
 
     def testContinuous2(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous2.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous2.xml", 3,
+            ['log enA 0.000 1.000', 'delay 0.524', 'delay 0.0',
+             'log conAB1 0.500 0.866', 'log exA 0.500 0.866', 'log tranAB1 0.500 0.866',
+             'log enB 0.500 0.866', 'log enB1 0.000 0.866', 'delay 1.0'])
 
     def testContinuous3(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous3.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous3.xml", 2,
+            ['log enA 0.000 0.000', 'delay 1.414',
+             'log conAB1 1.414 1.000', 'log exA 1.414 1.000', 'log tranAB1 1.414 1.000',
+             'log enB 1.414 1.000', 'log enB1 0.000 1.000', 'delay 1.0'])
 
     def testContinuous4(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous4.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous4.xml", 2,
+            ['log enA 0.000 0.000', 'delay 1.0',
+             'log conAB 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB 1.000 0.500',
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
 
     def testContinuous5(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous5.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous5.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 1.0',
+             'log exA', 'log enB', 'delay 1.0'])
 
     def testContinuous6(self):
-        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 4,
-            [])
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
+             'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
 
 
 if __name__ == "__main__":

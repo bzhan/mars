@@ -121,11 +121,12 @@ class SL_Diagram:
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
 
-        def get_acts(acts): 
-            lists=list()
-            if isinstance(acts,function.Sequence):
-                for act in [acts.cmd1,acts.cmd2]:
-                    if isinstance(act,function.Sequence):
+        def get_acts(acts):
+            """Convert action into a sequence of actions."""
+            lists = list()
+            if isinstance(acts, function.Sequence):
+                for act in [acts.cmd1, acts.cmd2]:
+                    if isinstance(act, function.Sequence):
                         lists.extend(get_acts(act))
                     else:
                         lists.append(act)
@@ -258,13 +259,13 @@ class SL_Diagram:
                         # First line is the name of the state, the remaining lines
                         # specify en, du, and ex actions.
                         labels = get_attribute_value(child, "labelString")
-                        label=state_op_parser.parse(labels)
+                        label = state_op_parser.parse(labels)
                         name = str(label.name)
-                        # # Get en, du and ex actions
-                        en, du, ex = list(), list(), list()
-                        en.append(get_acts(label.en_op.op) if label.en_op is not None else [])
-                        du.append(get_acts(label.du_op.op) if label.du_op is not None else [])
-                        ex.append(get_acts(label.ex_op.op) if label.ex_op is not None else [])
+                        
+                        # Get en, du and ex actions
+                        en = get_acts(label.en_op.op) if label.en_op is not None else []
+                        du = get_acts(label.du_op.op) if label.du_op is not None else []
+                        ex = get_acts(label.ex_op.op) if label.ex_op is not None else []
                         
                         # Get default_tran and out_trans
                         default_tran = None

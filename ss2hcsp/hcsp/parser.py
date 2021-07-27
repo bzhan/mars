@@ -293,7 +293,7 @@ class HPTransformer(Transformer):
         return hcsp.Test(bexpr, msgs)
 
     def log_cmd(self, *args):
-        return hcsp.Log(*args)
+        return hcsp.Log(args[0], exprs=args[1:])
 
     def seq_cmd(self, *args):
         if len(args) == 1:
