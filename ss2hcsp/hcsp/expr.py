@@ -524,12 +524,12 @@ def disj(*args):
         if arg != false_expr and arg not in new_args:
             new_args.append(arg)
     return list_disj(*new_args)
+
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':
         return [e.expr1] + split_disj(e.expr2)
     else:
         return [e]
-
 
 def imp(b1, b2):
     if b1 == false_expr or b2 == true_expr:
@@ -537,7 +537,7 @@ def imp(b1, b2):
     if b1 == true_expr:
         return b2
     return LogicExpr("-->", b1, b2)
-
+    
 
 class RelExpr(BExpr):
     neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
@@ -571,6 +571,31 @@ class RelExpr(BExpr):
 
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
+
+def neg_expr(e):
+    """Returns the negation of an expression, using deMorgan's law to move
+    negation inside.
+
+    """
+    if e == true_expr:
+        return false_expr
+    elif e == false_expr:
+        return true_expr
+    elif isinstance(e, LogicExpr):
+        if e.op == '&&':
+            return LogicExpr('||', neg_expr(e.expr1), neg_expr(e.expr2))
+        elif e.op == '||':
+            return LogicExpr('&&', neg_expr(e.expr1), neg_expr(e.expr2))
+        elif e.op == '-->':
+            return LogicExpr('&&', e.expr1, neg_expr(e.expr2))
+        elif e.op == '<-->':
+            return LogicExpr('<-->', e.expr1, neg_expr(e.expr2))
+        else:
+            raise NotImplementedError
+    elif isinstance(e, RelExpr):
+        return e.neg()
+    else:
+        raise NotImplementedError
 
 
 class Conditional_Inst:

@@ -9,7 +9,7 @@ from ss2hcsp.hcsp import simulator
 def is_atomic(hp):
     """Whether hp is an atomic program"""
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
-                       'input_channel', 'output_channel')
+                       'input_channel', 'output_channel', 'ode')
 
 def simplify_expr(expr):
     if not expr.get_vars():
@@ -47,7 +47,7 @@ def simplify(hp):
         else:
             return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
-        return hcsp.ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
+        return hcsp.ODE(hp.eqs, simplify(hp.constraint), out_hp=simplify(hp.out_hp))
     elif hp.type == 'ode_comm':
         return hcsp.ODE_Comm(hp.eqs, hp.constraint,
                              [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
@@ -78,6 +78,8 @@ def get_read_vars(hp):
         return hp.cond.get_vars()
     elif hp.type == 'ite':
         return set().union(*(if_cond.get_vars() for if_cond, _ in hp.if_hps))
+    elif hp.type == 'ode':
+        return hp.constraint.get_vars().union(*(eq.get_vars() for _, eq in hp.eqs))
     else:
         raise NotImplementedError
 
@@ -107,6 +109,8 @@ def replace_read_vars(hp, inst):
             return hp
         else:
             return hcsp.OutputChannel(hp.ch_name, hp.expr.subst(inst))
+    elif hp.type == 'ode':
+        return hcsp.ODE([(var, eq.subst(inst)) for var, eq in hp.eqs], hp.constraint.subst(inst))
     else:
         raise NotImplementedError
 
@@ -380,6 +384,9 @@ class HCSPAnalysis:
             elif info.sub_hp.type == 'input_channel':
                 for write_vars in get_write_vars(info.sub_hp.var_name):
                     info.reach_after.add((write_vars, loc))
+            elif info.sub_hp.type == 'ode':
+                for var, eq in info.sub_hp.eqs:
+                    info.reach_after.add((var, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -431,7 +438,7 @@ class HCSPAnalysis:
                     unique_assign = None
                     for prev_loc in reach_defs:
                         def_hp = self.infos[prev_loc].sub_hp
-                        if def_hp.type == 'input_channel':
+                        if def_hp.type in ('input_channel', 'ode'):
                             unique_assign = None
                             break
                         assert def_hp.type == 'assign'

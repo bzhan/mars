@@ -373,7 +373,7 @@ class Assign(Command):
     def __init__(self, lname, expr):
         super(Assign, self).__init__()
         assert isinstance(expr, Expr)
-        assert isinstance(lname, (Var, FunExpr, ListExpr,DirectName))
+        assert isinstance(lname, (Var, FunExpr, ListExpr, DirectName))
         self.lname = lname
         self.expr = expr
 

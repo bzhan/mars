@@ -360,6 +360,7 @@ class Assert(HCSP):
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
+
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -434,7 +435,7 @@ class Log(HCSP):
         return hash(("Log", self.pattern, self.exprs))
 
     def get_vars(self):
-        var_set = set()
+        var_set = self.pattern.get_vars()
         for expr in self.exprs:
             var_set.update(expr.get_vars())
         return var_set

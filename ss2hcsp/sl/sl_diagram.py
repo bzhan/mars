@@ -121,11 +121,12 @@ class SL_Diagram:
     def parse_stateflow_xml(self):
         """Parse stateflow charts from XML."""
 
-        def get_acts(acts): 
-            lists=list()
-            if isinstance(acts,function.Sequence):
-                for act in [acts.cmd1,acts.cmd2]:
-                    if isinstance(act,function.Sequence):
+        def get_acts(acts):
+            """Convert action into a sequence of actions."""
+            lists = list()
+            if isinstance(acts, function.Sequence):
+                for act in [acts.cmd1, acts.cmd2]:
+                    if isinstance(act, function.Sequence):
                         lists.extend(get_acts(act))
                     else:
                         lists.append(act)
@@ -258,13 +259,13 @@ class SL_Diagram:
                         # First line is the name of the state, the remaining lines
                         # specify en, du, and ex actions.
                         labels = get_attribute_value(child, "labelString")
-                        label=state_op_parser.parse(labels)
+                        label = state_op_parser.parse(labels)
                         name = str(label.name)
-                        # # Get en, du and ex actions
-                        en, du, ex = list(), list(), list()
-                        en.append(get_acts(label.en_op.op) if label.en_op is not None else [])
-                        du.append(get_acts(label.du_op.op) if label.du_op is not None else [])
-                        ex.append(get_acts(label.ex_op.op) if label.ex_op is not None else [])
+                        
+                        # Get en, du and ex actions
+                        en = get_acts(label.en_op.op) if label.en_op is not None else []
+                        du = get_acts(label.du_op.op) if label.du_op is not None else []
+                        ex = get_acts(label.ex_op.op) if label.ex_op is not None else []
                         
                         # Get default_tran and out_trans
                         default_tran = None
@@ -375,7 +376,6 @@ class SL_Diagram:
 
             chart_data = dict()
             message_dict=dict()
-            # input_message_list=list()
             event_dict=dict()
             if (len(chart.getElementsByTagName(name="event"))>=1):
                 num=1
@@ -404,7 +404,7 @@ class SL_Diagram:
                 if len(data.getElementsByTagName(name="message")) >= 1:
                     for node in data.getElementsByTagName(name="message"):
                         mesgNode=node
-                        break;
+                        break
                     is_mesg=get_attribute_value(mesgNode, "isMessage")
                     if is_mesg == "1":
                         data_value=0
@@ -415,7 +415,7 @@ class SL_Diagram:
                 else:
                     chart_data[var_name] = sf_data
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st,"message_dict":message_dict,"event_dict":event_dict}
+            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st, "message_dict":message_dict,"event_dict":event_dict}
 
     def parse_xml(self, default_SampleTimes=()):
         # Extract BlockParameterDefaults
@@ -695,12 +695,12 @@ class SL_Diagram:
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
-                    ZOrder=get_attribute_value(block,"ZOrder")
+                    # ZOrder=get_attribute_value(block,"ZOrder")
 
                     # assert block_name in self.chart_parameters
-                    block_name=block_name.strip()
+                    block_name = block_name.strip()
                     if " " in block_name:
-                        block_name=block_name.replace(" ","_")
+                        block_name = block_name.replace(" ","_")
                     chart_paras = self.chart_parameters[block_name]
                     ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
                     if len(ports) == 0:
@@ -708,48 +708,8 @@ class SL_Diagram:
                     elif len(ports) == 1:
                         ports.append(0)
                     num_dest, num_src = ports[:2]
-                    triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
-                            child.getAttribute("BlockType") == "TriggerPort"]
-                    trigger_dest=list()
-                    lines = [child for child in system.childNodes if child.nodeName == "Line"]
-                    for line in lines:
-                        src_block = get_attribute_value(block=line, attribute="SrcBlock")
-                        if src_block == block_name:
-                            branches = [branch for branch in line.getElementsByTagName(name="Branch")
-                                        if not branch.getElementsByTagName(name="Branch")]
-                            if not branches:
-                                branches = [line]
-                            # if branches:
-                            for branch in branches:
-                                dest_block = get_attribute_value(block=branch, attribute="DstBlock")
-                                trigger_dest.append(dest_block)
-
-                    assert len(triggers) <= 1
-                    is_triggered_chart=False
-                    trigger_type=""
-                    sf_charts=dict()
-                    for b in blocks:
-                        block_type1 = b.getAttribute("BlockType")
-                        # Delete spaces in block_name
-                        block_name1 = b.getAttribute("Name")
-                        if block_type1 == "SubSystem":
-                        # Check if it is a stateflow chart
-                            sf_block_type = get_attribute_value(b, "SFBlockType")
-                        
-                            if sf_block_type == "Chart":
-                                sf_charts[block_name1] = b
-
-                    if triggers:
-                        is_triggered_chart=True
-                        num_dest=1
-                        for child in subsystem.childNodes :
-                            if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
-                                trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
-
-                    stateflow = SF_Chart(name=block_name,ZOrder=ZOrder, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest, st=chart_paras["st"],message_list=chart_paras["message_dict"],
-                                         event_list=chart_paras["event_dict"],
-                                         is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)
+                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
+                                         num_src=num_src, num_dest=num_dest)
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
                         if child.nodeName == "Block":
