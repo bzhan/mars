@@ -14,6 +14,15 @@ class OptimizeTest(unittest.TestCase):
 
             ("a[0] := 0; a[1] := 0",
              "a[0] := 0; a[1] := 0"),
+
+            ("x := 0; x := x + 1",
+             "x := 0 + 1"),
+
+            ("x := 0; x := x + 1; y := x + 1",
+             "x := 0 + 1; y := x + 1"),
+
+            ("s := 0; log(s+\"\\n\"); s := 1",
+             "log(0+\"\\n\"); s := 1"),
         ]
 
         for s, res in test_data:
