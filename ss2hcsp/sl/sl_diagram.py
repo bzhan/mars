@@ -695,6 +695,7 @@ class SL_Diagram:
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
+                    ZOrder=get_attribute_value(block,"ZOrder")
 
                     # assert block_name in self.chart_parameters
                     block_name=block_name.strip()
@@ -745,7 +746,7 @@ class SL_Diagram:
                             if child.nodeName == "Block" and child.getAttribute("BlockType") == "TriggerPort" :
                                 trigger_type=get_attribute_value(block=child, attribute="TriggerType") if get_attribute_value(block=child, attribute="TriggerType") else "rising"
 
-                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
+                    stateflow = SF_Chart(name=block_name,ZOrder=ZOrder, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest, st=chart_paras["st"],message_list=chart_paras["message_dict"],
                                          event_list=chart_paras["event_dict"],
                                          is_triggered_chart=is_triggered_chart,trigger_dest=trigger_dest,trigger_type=trigger_type,sf_charts=sf_charts,max_step=max_step)

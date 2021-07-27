@@ -29,10 +29,11 @@ def get_common_ancestor(state0, state1, out_trans=True):
 
 
 class SF_Chart(Subsystem):
-    def __init__(self, name, state, data, num_src, num_dest, st=0.1,message_list=None,event_list=None, is_triggered_chart=False,trigger_dest=None,trigger_type="",sf_charts=None,max_step=0.2):
+    def __init__(self, name,ZOrder, state, data, num_src, num_dest, st=0.1,message_list=None,event_list=None, is_triggered_chart=False,trigger_dest=None,trigger_type="",sf_charts=None,max_step=0.2):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
+        self.ZOrder=ZOrder
         self.num_src = 10
         self.num_dest = num_dest
         self.src_lines = [[] for _ in range(self.num_src)]  # [[]] * self.num_src

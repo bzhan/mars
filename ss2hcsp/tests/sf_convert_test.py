@@ -466,23 +466,22 @@ class SFConvertTest(unittest.TestCase):
 
     def testCommunication1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication1.xml", 34,
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication1.xml", 22,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
              'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
              'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
-             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter)
+             'log en_A', 'log 4 4', 'delay 0.1'],io_filter=io_filter)
         
     def testCommunication2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication2.xml", 34,
-            ['log en_A', 'log en_A1', 'log en_B', 'log 1 2 1 1', 'delay 0.1',
-             'log en_A', 'log 1 2 2 1', 'delay 0.1', 'log en_B', 'log 1 2 2 2', 'delay 0.1',
-             'log en_A', 'log 1 2 3 2', 'delay 0.1', 'log en_B', 'log 1 2 3 3', 'delay 0.1',
-             'log en_A', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter)
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication2.xml", 31,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 1 2 2 1', 'delay 0.1', 'log en_A', 'log 1 2 2 2',
+             'delay 0.1', 'log en_B', 'log 1 2 3 2', 'delay 0.1', 'log en_A', 'log 1 2 3 3', 'delay 0.1',
+             'log en_B', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter)
 
     def testCommunication3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication3.xml", 34,
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication3.xml", 22,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
              'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
              'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
@@ -490,7 +489,7 @@ class SFConvertTest(unittest.TestCase):
 
     def testCommunication4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication4.xml", 34,
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication4.xml", 38,
             ['log en_A', 'log en_A1', 'log en_B', 'log 2 2', 'delay 0.1',
              'log en_A', 'log 2 4', 'delay 0.1', 'log en_B', 'log 3 4', 'delay 0.1',
              'log en_A', 'log 3 6', 'delay 0.1', 'log en_B', 'log 4 6', 'delay 0.1',
@@ -498,11 +497,12 @@ class SFConvertTest(unittest.TestCase):
 
     def testCommunication5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Data/Communication5.xml", 34,
-            ['log en_A', 'log en_C', 'log en_A1', 'log en_B', 'log 2 2 2', 'delay 0.1',
-             'log en_A', 'log 2 4 4', 'log en_B', 'log 3 4 10', 'delay 0.1',
-             'log en_A', 'log 3 6 20', 'log en_B', 'log 4 6 42', 'delay 0.1',
-             'log en_A', 'log 4 8 84', 'delay 0.1'], io_filter=io_filter)
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication5.xml",80,
+           ['log en_A', 'log en_C', 'log en_A1', 'log en_B', 'log 2 2 2', 'delay 0.1',
+            'log en_A', 'log 2 4 4', 'delay 0.1', 'log en_B', 'log 3 4 10', 'delay 0.1',
+            'log en_A', 'log 3 6 20', 'delay 0.1', 'log en_B', 'log 4 6 42', 'delay 0.1',
+            'log en_A', 'log 4 8 84', 'delay 0.1'], io_filter=io_filter)
+
 
     def testCommunication6(self):
         io_filter = lambda s: False
