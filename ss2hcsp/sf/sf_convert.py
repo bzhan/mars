@@ -2,7 +2,6 @@
 
 from ss2hcsp.sl import get_hcsp
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.sf.sf_chart import get_common_ancestor
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import expr
@@ -11,8 +10,26 @@ from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import parser
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
-    AbsoluteTimeEvent, ImplicitEvent, Message
+
+
+def get_common_ancestor(state0, state1, out_trans=True):
+    if state0 == state1:
+        assert state0.father == state1.father
+        if out_trans:
+            return state0.father
+        else:  # inner_trans
+            return state0
+
+    state_to_root = []
+    cursor = state0
+    while cursor:
+        state_to_root.append(cursor)
+        cursor = cursor.father
+
+    cursor = state1
+    while cursor not in state_to_root:
+        cursor = cursor.father
+    return cursor
 
 
 class SFConvert:
@@ -31,7 +48,9 @@ class SFConvert:
         self.translate_io = translate_io
 
         # Data store memory
-        self.dsms = dsms
+        self.dsms = []
+        if dsms:
+            self.dsms = dsms
 
         # List of data variables
         self.data = dict()
@@ -120,16 +139,18 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
-                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
+                    ev = tran.label.event
+                    if ev is not None and isinstance(ev, function.TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
-                        self.temporal_guards[tran.src].append(tran.label.event)
+                        self.temporal_guards[tran.src].append(ev)
             if isinstance(state, (AND_State, OR_State)) and state.inner_trans:
                 for tran in state.inner_trans:
-                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
+                    ev = tran.label.event
+                    if ev is not None and isinstance(ev, function.TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
-                        self.temporal_guards[tran.src].append(tran.label.event)
+                        self.temporal_guards[tran.src].append(ev)
 
         # Detect whether a state has implicit or absolute time event.
         self.implicit_events = set()
@@ -137,9 +158,9 @@ class SFConvert:
         for ssid in self.chart.all_states:
             if ssid in self.temporal_guards:
                 for temp_event in self.temporal_guards[ssid]:
-                    if isinstance(temp_event.event, ImplicitEvent):
+                    if isinstance(temp_event.event, function.ImplicitEvent):
                         self.implicit_events.add(ssid)
-                    elif isinstance(temp_event.event, AbsoluteTimeEvent):
+                    elif isinstance(temp_event.event, function.AbsoluteTimeEvent):
                         self.absolute_time_events.add(ssid)
         self.implicit_events = sorted(list(self.implicit_events))
         self.absolute_time_events = sorted(list(self.absolute_time_events))
@@ -168,7 +189,7 @@ class SFConvert:
         return hcsp.Assign("_ret", val)
 
     def raise_event(self, event):
-        if isinstance(event, BroadcastEvent):
+        if isinstance(event, function.BroadcastEvent):
             # Raise broadcast event
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
@@ -176,12 +197,12 @@ class SFConvert:
                 hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
             ])
 
-        elif isinstance(event, DirectedEvent):
+        elif isinstance(event, function.DirectedEvent):
             # First, find the innermost state name and event
             state_name_path = list()
             st_name, ev = event.state_name, event.event
             state_name_path.append(st_name)
-            while isinstance(ev, DirectedEvent):
+            while isinstance(ev, function.DirectedEvent):
                 st_name, ev = ev.state_name, ev.event
                 state_name_path.append(st_name)
             dest_state = self.get_state_by_path(state_name_path)
@@ -191,7 +212,7 @@ class SFConvert:
                 hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
             ])
         
-        elif isinstance(event, Message):
+        elif isinstance(event, function.Message):
             # Raise messages
             if str(event) in self.messages.keys():
                 message = self.messages[str(event)]
@@ -434,12 +455,13 @@ class SFConvert:
         """
         pre_acts, conds, cond_act = [], [], hcsp.Skip()
         if label.event is not None:
-            if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
+            if isinstance(label.event, function.BroadcastEvent) and \
+                str(label.event) not in self.messages.keys():
                 # Conversion for event condition E
                 conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
                                        expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
             
-            elif isinstance(label.event, TemporalEvent):
+            elif isinstance(label.event, function.TemporalEvent):
                 # Conversion for temporal events
                 act, e = self.convert_expr(label.event.expr)
                 pre_acts.append(act)
@@ -456,12 +478,12 @@ class SFConvert:
                     raise NotImplementedError
 
                 # Next, find units
-                if isinstance(label.event.event, AbsoluteTimeEvent):
+                if isinstance(label.event.event, function.AbsoluteTimeEvent):
                     if label.event.event.name == 'sec':
                         conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_time_name(state)), e))
                     else:
                         raise NotImplementedError
-                elif isinstance(label.event.event, ImplicitEvent):
+                elif isinstance(label.event.event, function.ImplicitEvent):
                     if label.event.event.name == 'tick':
                         conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_tick_name(state)), e))
                     else:
@@ -844,7 +866,7 @@ class SFConvert:
             if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
                 procs.append(hcsp.Assign(expr.AVar(name), expr.AConst(dict(info))))
 
-        # Read from DSM                
+        # Read from DSM
         for info in self.dsms:
             procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
 
@@ -1060,13 +1082,13 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     proc_map = dict()
     converter_map = dict()
-    sample_time=-1
+    sample_time = -1
     for chart in charts:
-        chart_parameters=diagram.chart_parameters[chart.name]
-        if 'st' in chart_parameters and chart_parameters['st']  !=-1:
-            sample_time=chart_parameters['st']
+        chart_parameters = diagram.chart_parameters[chart.name]
+        if 'st' in chart_parameters and chart_parameters['st'] != -1:
+            sample_time = chart_parameters['st']
     for chart in charts:
-        diagram.chart_parameters[chart.name]['st']=sample_time
+        diagram.chart_parameters[chart.name]['st'] = sample_time
         converter = SFConvert(chart, dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
