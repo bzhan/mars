@@ -43,13 +43,18 @@ class SFConvert:
     translate_io : bool - whether input/output should be translated.
 
     """
-    def __init__(self, chart=None, *, chart_parameters=None, has_signal=False, translate_io=True):
+    def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
+                 shared_chans=None, translate_io=True):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
         self.chart_parameters = chart_parameters
         self.translate_io = translate_io
         self.has_signal = has_signal
+
+        self.shared_chans = []
+        if shared_chans:
+            self.shared_chans = shared_chans
 
         # List of data variables
         self.data = dict()
@@ -378,7 +383,9 @@ class SFConvert:
             for port_id, in_var in self.chart.port_to_in_var.items():
                 if str(in_var) not in self.messages.keys():
                     line = self.chart.dest_lines[port_id]
-                    ch_name = "ch_" + line.name + "_" + str(line.branch) + "_in"
+                    ch_name = "ch_" + line.name + "_" + str(line.branch)
+                    if ch_name in self.shared_chans:
+                        ch_name += "_in"
                     procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
         return procs
 
@@ -390,7 +397,9 @@ class SFConvert:
                 if str(out_var) not in self.messages.keys():
                     lines = self.chart.src_lines[port_id]
                     for line in lines:
-                        ch_name = "ch_" + line.name + "_" + str(line.branch) + "_out"
+                        ch_name = "ch_" + line.name + "_" + str(line.branch)
+                        if ch_name in self.shared_chans:
+                            ch_name += "_out"
                         procs.append(hcsp.OutputChannel(ch_name, expr.AVar(out_var)))
         return procs
 
@@ -1078,12 +1087,14 @@ def get_execute_order(charts):
 
     # Edges between charts. Both keys are values are names
     edges = dict()
+    shared_chans = []
     for chart in charts:
         edges[chart.name] = set()
     for chan in ch_name_in:
-        assert chan in ch_name_out
-        chart_in, chart_out = ch_name_in[chan], ch_name_out[chan]
-        edges[chart_out].add(chart_in)
+        if chan in ch_name_out:
+            shared_chans.append(chan)
+            chart_in, chart_out = ch_name_in[chan], ch_name_out[chan]
+            edges[chart_out].add(chart_in)
     
     # Finally, compute the ordering of charts
     chart_order = []
@@ -1110,7 +1121,7 @@ def get_execute_order(charts):
         if len(chart_order) == len(edges):
             break
 
-    return ch_name_in.keys(), chart_order
+    return shared_chans, chart_order
 
 def get_control_proc(chart_order):
     procs = []
@@ -1162,25 +1173,26 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
         if 'st' in chart_parameters and chart_parameters['st'] != -1:
             sample_time = chart_parameters['st']
 
+    # Process controlling order between charts
+    shared_chans, exec_order = get_execute_order(charts)
+    if len(charts) > 1:
+        proc_map["order_ctrl"] = (dict(), get_control_proc(exec_order))
+
     # Processes for charts
     has_signal = (len(charts) > 1)
     for chart in charts:
         diagram.chart_parameters[chart.name]['st'] = sample_time
         converter = SFConvert(
-            chart, chart_parameters=diagram.chart_parameters[chart.name], has_signal=has_signal)
+            chart, chart_parameters=diagram.chart_parameters[chart.name],
+            has_signal=has_signal, shared_chans=shared_chans)
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
         proc_map[chart.name] = (procs, hp)
         converter_map[chart.name] = converter
 
-    # Process controlling order between charts
-    channels, exec_order = get_execute_order(charts)
-    if len(charts) > 1:
-        proc_map["order_ctrl"] = (dict(), get_control_proc(exec_order))
-
     # Communicating data (DSM, channel, messages)
     comm_data = []
-    for channel in channels:
+    for channel in shared_chans:
         comm_data.append((channel, None))
     for dsm in dsms:
         _, init_value = convert.convert_expr(dsm.value)
