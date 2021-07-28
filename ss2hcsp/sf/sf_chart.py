@@ -9,7 +9,6 @@ from ss2hcsp.matlab import function
 
 
 class SF_Chart(Subsystem):
-
     def __init__(self, name, state, data, num_src, num_dest):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
