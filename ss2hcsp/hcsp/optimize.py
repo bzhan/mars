@@ -60,6 +60,18 @@ def simplify(hp):
     else:
         raise NotImplementedError
 
+def get_read_vars_lname(lname):
+    if lname is None:
+        return set()
+    elif isinstance(lname, expr.AVar):
+        return set()
+    elif isinstance(lname, expr.ArrayIdxExpr):
+        return lname.expr2.get_vars().union(get_read_vars_lname(lname.expr1))
+    elif isinstance(lname, expr.FieldNameExpr):
+        return get_read_vars_lname(lname.expr)
+    else:
+        raise NotImplementedError
+
 def get_read_vars(hp):
     """Obtain set of variables read by the program."""
     if hp.type in ('skip', 'var'):
@@ -67,11 +79,11 @@ def get_read_vars(hp):
     elif hp.type == 'wait':
         return hp.delay.get_vars()
     elif hp.type == 'assign':
-        return hp.expr.get_vars()
+        return get_read_vars_lname(hp.var_name).union(hp.expr.get_vars())
     elif hp.type in ('assert', 'test', 'log'):
         return hp.get_vars()
     elif hp.type == 'input_channel':
-        return set()
+        return get_read_vars_lname(hp.var_name)
     elif hp.type == 'output_channel':
         return hp.get_vars()
     elif hp.type == 'condition':
