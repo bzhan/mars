@@ -9,12 +9,10 @@ from ss2hcsp.matlab import function
 
 
 class SF_Chart(Subsystem):
-
     def __init__(self, name, state, data, num_src, num_dest):
         super(SF_Chart, self).__init__(name, num_src, num_dest)
 
         self.type = "stateflow"
-        self.ZOrder=ZOrder
         self.num_src = 10
         self.num_dest = num_dest
         self.src_lines = [[] for _ in range(self.num_src)]  # [[]] * self.num_src

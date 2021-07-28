@@ -695,8 +695,6 @@ class SL_Diagram:
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
-                    # ZOrder=get_attribute_value(block,"ZOrder")
-
                     # assert block_name in self.chart_parameters
                     block_name = block_name.strip()
                     if " " in block_name:
