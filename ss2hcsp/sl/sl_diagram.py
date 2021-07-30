@@ -10,7 +10,7 @@ from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
     transition_parser, func_sig_parser,state_op_parser
 from ss2hcsp.matlab import convert
-
+from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
@@ -549,6 +549,10 @@ class SL_Diagram:
                     if relop == "~=":
                         relop = "!="
                     self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
+                if block_type == "Digital clock":
+                    period = get_attribute_value(block, "period")
+
+                    self.add_block(Clock(name=block_name,period=period))
             elif block_type == "Abs":
                 self.add_block(Abs(name=block_name, st=sample_time))
             elif block_type == "Sqrt":
@@ -1070,6 +1074,10 @@ class SL_Diagram:
         for name in [block.name for block in dataStoreReads]:
             del blocks_dict[name]
 
+        clocks=[block for block in blocks_dict.values() if block.type == "clock"]
+        for name in [block.name for block in clocks]:
+            del blocks_dict[name]
+
         muxs = [block for block in blocks_dict.values() if block.type == "mux"]
         for name in [block.name for block in muxs]:
             del blocks_dict[name]
@@ -1127,7 +1135,7 @@ class SL_Diagram:
         #             del scc_dict[block_name]
         #     discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads
+        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads,clocks
 
     def add_buffers(self):
         buffers = []

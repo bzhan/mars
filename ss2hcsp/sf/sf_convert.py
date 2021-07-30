@@ -1156,7 +1156,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     # Initial stages
     diagram.parse_xml()
     diagram.add_line_name()
-    _, continuous, charts, _, _, _, dsms, dsrs = diagram.seperate_diagram()
+    _, continuous, charts, _, _, _, dsms, dsrs,clocks = diagram.seperate_diagram()
 
     # Optional: print chart
     if print_chart:
@@ -1205,6 +1205,9 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     # Processes for continuous
     for i, c in enumerate(continuous):
         proc_map["Continuous" + str(i+1)] = (dict(), get_hcsp.translate_continuous(c))
+
+    for i, c in enumerate(clocks):
+        proc_map["Clock" + str(i+1)] = (dict(), c.get_hcsp())
 
     # Optional: print HCSP program before simplification
     if print_before_simp:
