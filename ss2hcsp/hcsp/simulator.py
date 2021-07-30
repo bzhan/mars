@@ -578,17 +578,11 @@ class Callstack:
     def getinfo(self):
         self.renewinnerpos()
         callstack_info={
-            'pos':[],
             'innerpos':[],
             'procedure':[],
         }
         index =len(self.callstack) - 1
         while index >= 0:
-            pos = self.callstack[index].pos
-            if pos is None:
-                callstack_info['pos'].append('end')
-            else:
-                callstack_info['pos'].append('p' + ','.join(str(p) for p in pos))
             innerpos=self.callstack[index].innerpos
             if innerpos is None:
                 callstack_info['innerpos'].append('end')
@@ -599,7 +593,18 @@ class Callstack:
                 callstack_info['procedure'].append(self.callstack[index].thisproc)
             else:
                 callstack_info['procedure'].append(self.callstack[index].thisproc.name)
+            
             index = index - 1
+        isempty = True
+        for proc in callstack_info['procedure']:
+            if proc is None:
+                isempty = True
+            else:
+                isempty =False
+                break
+        if isempty == True:
+            callstack_info['procedure'] = None
+
         return callstack_info
 
 
@@ -699,83 +704,53 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
     if procs is None:
         procs = dict()
 
-    def helper(hp, callstack):
-        assert callstack.top_pos() is not None, "step_pos: already reached the end."
+    def helper(hp, pos):
+        assert pos is not None, "step_pos: already reached the end."
         if hp.type == 'sequence':
-            assert len(callstack.top_pos()) > 0 and callstack.top_pos()[0] < len(hp.hps)
-            callstack_temp=Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hps[callstack.top_pos()[0]], callstack_temp)
-            if sub_step.top_pos() is None:
-                if callstack.top_pos()[0] == len(hp.hps) - 1:
-                    callstack.renew(None, rec_vars)
-                    return callstack
+            assert len(pos) > 0 and pos[0] < len(hp.hps)
+            sub_step = helper(hp.hps[pos[0]], pos[1:])
+            if sub_step is None:
+                if pos[0] == len(hp.hps) - 1:
+                    return None
                 else:
-                    if isinstance(callstack.top_procedure(),list):
-                        pos=(callstack.top_pos()[0]+1,) + start_pos(hp.hps[callstack.top_pos()[0]+1])
-                        callstack.renew(pos, rec_vars)
-                    else:
-                        callstack.pop()
-                        pos=(callstack.top_pos()[0]+1,) + start_pos(hp.hps[callstack.top_pos()[0]+1])                       
-                        callstack.renew(pos, rec_vars)
-                    return callstack
+                    return (pos[0]+1,) + start_pos(hp.hps[pos[0]+1])
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         elif hp.type == 'select_comm':
-            assert len(callstack.top_pos()) > 0
-            _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None) #only use for convey pos in recursion, the containing of globalhp just avoid a bug
-            sub_step = helper(out_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            assert len(pos) > 0
+            _, out_hp = hp.io_comms[pos[0]]
+            sub_step = helper(out_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         elif hp.type == 'loop':
-            sub_step = helper(hp.hp, callstack)
-            if sub_step.top_pos() is None:
+            sub_step = helper(hp.hp, pos)
+            if sub_step is None:
                 if hp.constraint != true_expr and not eval_expr(hp.constraint, state):
-                    callstack.renew(None, rec_vars)
-                    return callstack
+                    return None
                 else:
-                    pos=start_pos(hp.hp)
-                    callstack.renew(pos, rec_vars)
-                    return callstack
+                    return start_pos(hp.hp)
             else:
-                pos=sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return sub_step
         elif hp.type == 'condition':
-            if len(callstack.top_pos()) == 0:
-                callstack.renew(None, rec_vars)
-                return callstack
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if len(pos) == 0:
+                return None
+            sub_step = helper(hp.hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'delay':
-            assert len(callstack.top_pos()) == 1
-            callstack.renew(None, rec_vars)
-            return callstack
+            assert len(pos) == 1
+            return None
         elif hp.type == 'recursion':
             rec_vars[hp.entry] = hp
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            sub_step = helper(hp.hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'var':
             if hp.name in rec_vars:
                 rec_hp = rec_vars[hp.name]
@@ -783,53 +758,41 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                 rec_hp = procs[hp.name].hp
             else:
                 raise SimulatorException("Unrecognized process variable: " + hp.name)
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(rec_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+
+            sub_step = helper(rec_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'ode_comm':
-            if len(callstack.top_pos()) == 0:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if len(pos) == 0:
+                return None
 
-            _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(out_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            _, out_hp = hp.io_comms[pos[0]]
+            sub_step = helper(out_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack    
+                return (pos[0],) + sub_step
         elif hp.type == 'ite':
-            assert len(callstack.top_pos()) > 0
-            if callstack.top_pos()[0] < len(hp.if_hps):
-                _, sub_hp = hp.if_hps[callstack.top_pos()[0]]
-                callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-                sub_step = helper(sub_hp, callstack_temp)
+            assert len(pos) > 0
+            if pos[0] < len(hp.if_hps):
+                _, sub_hp = hp.if_hps[pos[0]]
+                sub_step = helper(sub_hp, pos[1:])
             else:
-                assert callstack.top_pos()[0] == len(hp.if_hps)
-                callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-                sub_step = helper(hp.else_hp, callstack_temp)
+                assert pos[0] == len(hp.if_hps)
+                sub_step = helper(hp.else_hp, pos[1:])
         
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         else:
-            callstack.renew(None, rec_vars)
-            return callstack
+            return None
 
-    return helper(hp, callstack)
+    pos = helper(hp,callstack.top_pos())
+    callstack.renew(pos,rec_vars)
+    return callstack
 
 def parse_pos(hp, pos):
     """Convert pos in string form to internal representation."""
