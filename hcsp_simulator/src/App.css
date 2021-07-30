@@ -47,6 +47,12 @@
   font-weight: bold;
   font-style: oblique;
 }
+.procedure {
+  margin-top: 10px;
+  margin-bottom: 30px;
+  font-family: 'Consolas', Courier, monospace;
+  overflow:visible;
+}
 
 .program-text {
   margin-top: 10px;
@@ -62,6 +68,10 @@
 .program-text-next-hl { 
   background-color: springgreen;
   
+}
+.procedure pre {
+  margin: 0px;
+  overflow: visible;
 }
 
 .program-text pre {
