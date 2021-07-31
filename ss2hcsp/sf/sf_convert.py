@@ -1184,11 +1184,15 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     converter_map = dict()
 
     # Obtain sample time
+
     sample_time = -1
-    for chart in charts: 
-        chart_parameters = diagram.chart_parameters[chart.name]
-        if 'st' in chart_parameters and chart_parameters['st'] != -1:
-            sample_time = chart_parameters['st']
+    if 'st' in diagram.chart_parameters and diagram.chart_parameters['st'] != -1:
+        sample_time = diagram.chart_parameters['st']
+    else:
+        for chart in charts: 
+            chart_parameters = diagram.chart_parameters[chart.name]
+            if 'st' in chart_parameters and chart_parameters['st'] != -1 and sample_time == -1:
+                sample_time = chart_parameters['st']
 
     # Process controlling order between charts
     shared_chans, exec_order = get_execute_order(charts)

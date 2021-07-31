@@ -551,6 +551,7 @@ class SL_Diagram:
                     self.add_block(Reference(name=block_name, relop=relop, st=sample_time))
                 if block_type == "Digital clock":
                     period = get_attribute_value(block, "period")
+                    self.chart_parameters['st']=float(period)/2
 
                     self.add_block(Clock(name=block_name,period=period))
             elif block_type == "Abs":
