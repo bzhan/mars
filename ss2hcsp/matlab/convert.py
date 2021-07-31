@@ -234,9 +234,9 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
                         exprs=args[0].exprs
                         event,state_name=exprs[-1],exprs[:len(exprs)-1]
                         event_name=get_directed_event(state_name,event)
-                    elif isinstance(args[0],function.Var) and args[0] in events:
-                        event_name=args[0]
-                    elif isinstance(args[0],function.Var) and args[0] not in events:
+                    elif isinstance(args[0],function.Var) and str(args[0]) in events:
+                        event_name=function.BroadcastEvent(str(args[0]))
+                    elif isinstance(args[0],function.Var) and str(args[0]) not in events:
                         event_name=function.Message(str(args[0]))
                 return raise_event(event_name)
             else:

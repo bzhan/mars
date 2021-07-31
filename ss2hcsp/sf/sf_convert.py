@@ -193,6 +193,7 @@ class SFConvert:
         return hcsp.Assign("_ret", val)
 
     def raise_event(self, event):
+        
         if isinstance(event, function.BroadcastEvent):
             # Raise broadcast event
             return hcsp.seq([
@@ -466,8 +467,14 @@ class SFConvert:
             if isinstance(label.event, function.BroadcastEvent) and \
                 str(label.event) not in self.messages.keys():
                 # Conversion for event condition E
-                conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
-                                       expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+                for n,e in self.events.items():
+                    if e.name == str(label.event.name):
+                        if e.scope == "INPUT_EVENT" and e.trigger == "EITHER_EDGE_EVENT":
+                            conds.append(expr.RelExpr("!=",expr.AVar("osag"),expr.AVar("last")))
+
+                        else:
+                            conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
+                                               expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
             
             elif isinstance(label.event, function.TemporalEvent):
                 # Conversion for temporal events
@@ -872,6 +879,10 @@ class SFConvert:
         procs.append(hcsp.Assign("EL", expr.AConst([])))
         procs.append(hcsp.Assign("IQU", expr.AConst(())))
         procs.append(hcsp.Assign("LQU", expr.AConst(())))
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
+                procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
 
         # Input data
         procs.extend(self.get_input_data())
@@ -985,7 +996,10 @@ class SFConvert:
         # Start signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("start_" + self.chart.name))
-
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
+                
         procs.extend(self.get_input_data())
 
         # Input from data store
@@ -1009,6 +1023,9 @@ class SFConvert:
         if len(inputMesdicts) > 0:
             procs.append(hcsp.Condition(expr.RelExpr("==", expr.FunExpr("remove_InputMessage", [expr.AConst(inputMesdicts)]),expr.AConst(1)),hcsp.Skip()))
         
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
         # End signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
