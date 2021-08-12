@@ -313,8 +313,9 @@ class Process extends React.Component {
                 {/* State of the program */}
                 < pre className="program-state" >
                     <span>&nbsp;</span>
-                    {Object.keys(this.props.state).map((key, index) => {
-                        var val = this.props.state[key];
+                    {this.props.statenum === undefined ? null:(
+                    Object.keys(this.props.statemap[this.props.statenum]).map((key, index) => {
+                        var val = this.props.statemap[this.props.statenum][key];
                         var str_val = this.displayValue(val);
                         return (<>
                             {index > 0 ? <><br /><span>&nbsp;</span></> : null}
@@ -323,7 +324,7 @@ class Process extends React.Component {
                                 <span style={{ color: 'black' }}> {str_val} </span>
                             </span>
                         </>)
-                    })}
+                    }))}
                     <span>&nbsp;&nbsp;</span>
                     <a href="#" onClick={this.toggleShowGraph}>
                         {this.state.show_graph ? "Hide graph" : "Show graph"}
@@ -371,15 +372,15 @@ class Process extends React.Component {
         var series = {};
         const is_discrete = (ts[ts.length - 1].time === 0)
         for (let i = 0; i < ts.length; i++) {
-            for (let k in ts[i].state) {
-                if (typeof (ts[i].state[k]) === 'number') {
+            for (let k in this.props.statemap[ts[i].statenum]) {
+                if (typeof (this.props.statemap[ts[i].statenum][k]) === 'number') {
                     if (!(k in series)) {
                         series[k] = [];
                     }
                     if (is_discrete) {
-                        series[k].push({ x: ts[i].event, y: ts[i].state[k] });
+                        series[k].push({ x: ts[i].event, y: this.props.statemap[ts[i].statenum][k] });
                     } else {
-                        series[k].push({ x: ts[i].time, y: ts[i].state[k] });
+                        series[k].push({ x: ts[i].time, y: this.props.statemap[ts[i].statenum][k] });
                     }
                 }
             }
@@ -478,6 +479,9 @@ class App extends React.Component {
             // Each entry contains the position and state of the program
             // at each step.
             history: [],
+            
+            // State hash map
+            statemap: undefined,
 
             // Time series information
             time_series: [],
@@ -616,6 +620,7 @@ class App extends React.Component {
                 error: undefined,
                 history: response.data.trace,
                 history_pos: 0,
+                statemap: response.data.statemap,
                 time_series: response.data.time_series,
                 sim_warning: response.data.warning,
                 querying: false
@@ -781,21 +786,21 @@ class App extends React.Component {
                         else if (this.state.history.length === 0) {
                             // No data is available
                             return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                name={hcsp_name} curpos_callstack={undefined} state={[]}
+                                name={hcsp_name} curpos_callstack={undefined} statenum={undefined} statemap={this.state.statemap}
                                 time_series={undefined} event_time={undefined} hpos={undefined}
                                 oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
-                            var callstack, state;
+                            var callstack, statenum;
                             if (typeof (event.infos[hcsp_name]) === 'number') {
                                 var prev_id = event.infos[hcsp_name];
                                 var prev_info = this.state.history[prev_id].infos[hcsp_name];
                                 callstack = prev_info.callstack;
-                                state = prev_info.state;
+                                statenum = prev_info.statenum;
                             } else {
                                 callstack = event.infos[hcsp_name].callstack;
-                                state = event.infos[hcsp_name].state;
+                                statenum = event.infos[hcsp_name].statenum;
                             }
                             var event_time;
                             if (event.type !== 'delay') {
@@ -809,7 +814,7 @@ class App extends React.Component {
                                 if (pos === 'end') {
                                     // End of data set
                                     return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={undefined} state={state}
+                                        name={hcsp_name} curpos_callstack={undefined} statenum={statenum} statemap={this.state.statemap}
                                         time_series={time_series} event_time={event_time} hpos={hpos}
                                         oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                                 }
@@ -874,19 +879,19 @@ class App extends React.Component {
                                         }
                                     }
                                     return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={curpos_callstack} state={state}
+                                        name={hcsp_name} curpos_callstack={curpos_callstack} statenum={statenum} statemap={this.state.statemap}
                                         time_series={time_series} event_time={event_time} hpos={hpos}
                                         oripos_callstack={oripos_callstack} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                                 }else{   
                                 return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={curpos_callstack} state={state}
+                                        name={hcsp_name} curpos_callstack={curpos_callstack} statenum={statenum} statemap={this.state.statemap}
                                         time_series={time_series} event_time={event_time} hpos={hpos}
                                         oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                                 }
                             }
                             else{
                                 return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={undefined} state={state}
+                                        name={hcsp_name} curpos_callstack={undefined} statenum={statenum} statemap={this.state.statemap}
                                         time_series={time_series} event_time={event_time} hpos={hpos}
                                         oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
                             }     

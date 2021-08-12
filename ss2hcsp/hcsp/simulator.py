@@ -5,7 +5,9 @@ The state is given by a dictionary from variable names to numbers.
 
 """
 
+
 import copy
+import ast
 import itertools
 import math
 import random
@@ -20,6 +22,7 @@ from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
 import numpy as np
 from ss2hcsp.matlab import function
+
 
 
 class SimulatorException(Exception):
@@ -811,36 +814,6 @@ def parse_pos(hp, pos):
 
     return pos
 
-# def remove_rec(hp, pos, rec_vars=None, procs=None):
-#     """Given a position in a program possibly with recursion and
-#     procedure calls, return the simplest expression for the same position
-#     in the program (removing recursion). This simpler position is used
-#     for display in user interface.
-
-#     """
-#     if pos is None:
-#         return None
-
-#     rec_list = []
-#     for i in range(len(pos)+1):
-#         sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
-#         if sub_hp.type == 'recursion':
-#             rec_list.append(i)
-
-#     if len(rec_list) >= 2:
-#         pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
-#     return pos
-
-# def string_of_pos(hp, pos, rec_vars=None, procs=None):
-#     """Convert pos in internal representation to string form."""
-#     if pos is None:
-#         return 'end'
-#     else:
-#         return 'p' + ','.join(str(p) for p in pos) 
-
-# def disp_of_pos(hp, pos, rec_vars=None, procs=None):
-#     return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
-
 def disp_of_callstack(callstack):
     return callstack.getinfo()
 
@@ -1348,6 +1321,11 @@ def extract_event(infos):
     else:
         return "deadlock"
 
+class State_dict:
+    def __init__(self):
+        self.rank = 0
+        self.dict = dict()
+
 def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
@@ -1364,13 +1342,15 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
     time_series - records evolution of variables in each program by time.
         This is a dictionary indexed by names of programs.
 
+    statemap - record of all state. 
     """
     # Overall returned result
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
         'time_series': {},  # Evolution of variables, indexed by program
-        'events': []  # Concise list of event strings
+        'events': [],  # Concise list of event strings
+        'statemap': State_dict()  # dict of all state
     }
 
     def log_event(ori_pos, **xargs):
@@ -1405,7 +1385,14 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         cur_info = dict()
         for info in infos:
             info_callstack = disp_of_callstack(info.callstack)
-            cur_info[info.name] = {'callstack': info_callstack, 'state': copy.deepcopy(info.state)}
+            fst_state = str(info.state)
+            if fst_state in res['statemap'].dict.keys():
+                state_num = res['statemap'].dict.get(fst_state)
+            else:
+                state_num = copy.deepcopy(res['statemap'].rank)
+                res['statemap'].dict[fst_state] = state_num
+                res['statemap'].rank = res['statemap'].rank + 1
+            cur_info[info.name] = {'callstack': info_callstack, 'statenum': state_num}
         new_event['infos'] = cur_info
 
         # Finally add to trace
@@ -1416,21 +1403,29 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
-
+        new_state = dict()
         new_entry = {
             "time": time,
             "event": len(res['trace']),
-            "state": dict()
+            "statenum": 0
         }
         for k, v in state.items():
             if info.outputs is not None and any(k in output for output in info.outputs):
                 if isinstance(v, (int, float)):
-                    new_entry['state'][k] = v
+                    new_state[k] = v
                 elif isinstance(v, list):
                     for i, val in enumerate(v):
-                        new_entry['state'][k+'['+str(i)+']'] = val
+                        new_state[k+'['+str(i)+']'] = val
                 else:
                     pass
+        fst_state = str(new_state)
+        if fst_state in res['statemap'].dict.keys():
+            state_num = res['statemap'].dict.get(fst_state)
+        else:
+            state_num = copy.deepcopy(res['statemap'].rank)
+            res['statemap'].dict[fst_state] = state_num
+            res['statemap'].rank = res['statemap'].rank + 1
+        new_entry['statenum']=state_num
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
@@ -1555,6 +1550,13 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         if has_overflow:
             log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
+
+    # Finally, exchange key and value, and change state back into dict in res['statemap']
+    statemap = dict()
+    for key, value in res['statemap'].dict.items():
+            state = ast.literal_eval(key)
+            statemap[value] = state
+    res['statemap'] = statemap
     return res
 
 def graph(res, proc_name, tkplot=False, separate=True, variables=None):
