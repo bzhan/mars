@@ -183,12 +183,12 @@ class Process extends React.Component {
                                                     }
                                                 }
                                                 if (this.props.oripos_callstack !== undefined) {
-                                                    var tag = 0;//tag=0,not in procedure
+                                                    tag = 0;//tag=0,not in procedure
                                                     if(this.props.oripos_callstack.procedure === null || this.props.oripos_callstack.procedure === undefined){
                                                         tag = 0
                                                     }
                                                     else{
-                                                        for(var ind = 0; ind < this.props.oripos_callstack.procedure.length; ind++){
+                                                        for(ind = 0; ind < this.props.oripos_callstack.procedure.length; ind++){
                                                             if (info.name === this.props.oripos_callstack.procedure[ind]){
                                                                 tag=1;
                                                                 break;
@@ -199,7 +199,6 @@ class Process extends React.Component {
                                                         if (this.props.oripos_callstack['innerpos'][ind] !== undefined) {
 
                                                             const pos = this.props.oripos_callstack['innerpos'][ind];
-                                                            var bg_start, bg_end;
                                                             if (line_no === pos.start_x) {
                                                                 bg_start = pos.start_y;
                                                             } else if (line_no > pos.start_x) {
@@ -275,7 +274,6 @@ class Process extends React.Component {
                                         if (this.props.oripos_callstack !== undefined) {
                                             const pos = this.props.oripos_callstack['innerpos'][this.props.oripos_callstack['innerpos'].length-1];
                                             if (pos !== undefined) { 
-                                                var bg_start, bg_end;
                                                 if (line_no === pos.start_x) {
                                                     bg_start = pos.start_y;
                                                 } else if (line_no > pos.start_x) {
@@ -459,6 +457,34 @@ class Events extends React.Component {
                         )
                     }
                 })}
+            </div>
+        )
+    }
+}
+
+class Callstack extends React.Component {
+    render(){
+        return(
+            <div className="callstack-list">
+                {this.props.event === undefined ? null:(
+                    Object.entries(this.props.event.infos).map((event, index) => {
+                        var processname = event[0]
+                        var callstack = event[1].callstack.innerpos
+                        var posstring = ''
+                        for (var i=0;i<callstack.length;i++)
+                        {
+                            if(i===callstack.length-1)
+                                posstring = posstring + callstack[i]
+                            else
+                                posstring = posstring + callstack[i]+';'
+                        }   
+                        return(  
+                                <pre>
+                                {processname + ':' + posstring}
+                                </pre>
+                            )
+                    })
+                )}
             </div>
         )
     }
@@ -855,9 +881,9 @@ class App extends React.Component {
                                     oripos_callstack['procedure']=[];
                                     for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
                                         if(this.state.history[hpos].ori_pos[hcsp_name].procedure === null){
-                                            var proc = null
+                                            proc = null
                                         }else{
-                                            var proc = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
+                                            proc = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
                                         }
                                         if (proc === null){
                                             oripos_callstack['innerpos'][i] = info.mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];
@@ -904,6 +930,11 @@ class App extends React.Component {
             <Container id="right" className="right">
                 <Events events={this.state.history} current_index={this.state.history_pos}
                     onClick={this.eventOnClick} show_event_only={this.state.show_event_only} />
+            </Container>
+        );
+        const callstack=(
+            <Container id="callstack" className="callstack">
+                <Callstack event={this.state.history[this.state.history_pos]} />
             </Container>
         );
         return (
@@ -972,6 +1003,7 @@ class App extends React.Component {
                 <hr />
                 {left}
                 {right}
+                {callstack}
             </div>
         );
     }

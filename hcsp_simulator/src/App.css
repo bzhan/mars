@@ -90,6 +90,17 @@
   overflow: visible;
 }
 
+.callstack-list {
+  margin-top: 10px;
+  overflow: visible;
+}
+
+.callstack-list pre {
+  margin: 0px;
+  cursor: pointer;
+  overflow: visible;
+}
+
 .event-list-hl {
   background-color: yellow;
 }
@@ -111,6 +122,7 @@
 
 .right {
   display: inline-block;
+  max-height: 60%;
   max-width: 30%;
   vertical-align: top;
   position: fixed;
@@ -120,7 +132,18 @@
   overflow-y: scroll;
   overflow-x: scroll;
 }
-
+.callstack {
+  display: inline-block;
+  max-height: 30%;
+  max-width: 30%;
+  vertical-align: top;
+  position: fixed;
+  top: 620px;
+  bottom: 0px;
+  left: 70%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
 .error-message {
   margin-left: 10px;
   color: red;
