@@ -604,10 +604,10 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/stopWatch.xml", 9,
             ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000',
              'log en_RunW 0.000 0.000', 'IO ch_clock 0', 'log cond_TIC 0.000 0.000',
-             'log edu_Running 1.000 0.000', 'delay 0.01', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
-             'log edu_Running 2.000 0.000', 'delay 0.01', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
-             'log edu_Running 3.000 0.000', 'delay 0.01', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
-             'log edu_Running 4.000 0.000', 'delay 0.01'])
+             'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
+             'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
+             'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
+             'log edu_Running 4.000 0.000', 'delay 0.1'])
 
 
 if __name__ == "__main__":
