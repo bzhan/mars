@@ -35,7 +35,8 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
-        diagram, print_chart=print_chart, print_before_simp=print_before_simp, print_final=print_final)
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
+        print_final=print_final, debug_name=filename.split('/')[-1].split('.')[0])
 
     if profile:
         p = Stats(pr)
@@ -600,7 +601,7 @@ class SFConvertTest(unittest.TestCase):
             io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
     def testStopWatch(self):
-        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml",9,
+        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml", 9,
             ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000', 'log en_RunW 0.000 0.000',
              'IO ch_clock 0', 'log cond_TIC 0.000 0.000', 'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1',
              'log cond_TIC 1.000 0.000', 'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',

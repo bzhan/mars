@@ -1161,7 +1161,8 @@ def get_data_proc(comm_data):
     procs.append(hcsp.Loop(hcsp.SelectComm(*select_ios)))
     return hcsp.seq(procs)
 
-def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False):
+def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False,
+                    debug_name=None):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
@@ -1234,6 +1235,14 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
                 print('\nprocedure ' + name + " ::=\n" + pprint(proc))
             print()
 
+    # Record program size before optimization
+    if debug_name:
+        before_size = 0
+        for _, (procs, hp) in proc_map.items():
+            before_size += hp.size()
+            for _, proc in procs.items():
+                before_size += proc.size()
+
     # Reduce procedures
     for name, (procs, hp) in proc_map.items():
         if name in converter_map:
@@ -1250,5 +1259,14 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             for proc_name, proc in procs.items():
                 print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
             print()
+
+    # Record and print size after optimization
+    if debug_name:
+        after_size = 0
+        for _, (procs, hp) in proc_map.items():
+            after_size += hp.size()
+            for _, proc in procs.items():
+                after_size += proc.size()
+        print(debug_name, before_size, after_size)
 
     return proc_map
