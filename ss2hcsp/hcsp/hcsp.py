@@ -576,8 +576,8 @@ def is_comm_channel(hp):
 
 class Sequence(HCSP):
     def __init__(self, *hps):
-        super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
+        super(Sequence, self).__init__()
         self.type = "sequence"
         # assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 1
@@ -635,6 +635,32 @@ def seq(hps):
         return hps[0]
     else:
         return Sequence(*hps)
+
+
+class IChoice(HCSP):
+    """Represents internal choice of the form P ++ Q."""
+    def __init__(self, hp1, hp2):
+        super(IChoice, self).__init__()
+        self.type = "ichoice"
+        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        self.hp1 = hp1
+        self.hp2 = hp2
+
+    def __eq__(self, other):
+        return self.hp1 == other.hp1 and self.hp2 == other.hp2
+
+    def __str__(self):
+        return "%s ++ %s" % (str(self.hp1), str(self.hp2))
+
+    def __repr__(self):
+        return "IChoice(%s,%s)" % (repr(self.hp1), repr(self.hp2))
+
+    def __hash__(self):
+        return hash(("ICHOICE", self.hp1, self.hp2))
+
+    def get_vars(self):
+        return hp1.get_vars().union(hp2.get_vars())
+
 
 class ODE(HCSP):
     """Represents an ODE program of the form

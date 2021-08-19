@@ -95,7 +95,9 @@ grammar = r"""
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
-    ?seq_cmd: cond_cmd (";" cond_cmd)*  // Priority: 70
+    ?ichoice_cmd: cond_cmd | cond_cmd "++" cond_cmd   // Priority: 80
+
+    ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
@@ -353,6 +355,9 @@ class HPTransformer(Transformer):
 
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
+
+    def ichoice_cmd(self, cmd1, cmd2):
+        return hcsp.IChoice(cmd1, cmd2)
 
     def select_cmd(self, *args):
         assert len(args) % 2 == 0 and len(args) >= 4

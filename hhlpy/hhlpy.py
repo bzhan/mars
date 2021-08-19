@@ -24,5 +24,12 @@ def compute_wp(hp, post):
         pre = post.subst({var: hp.expr})
         return pre, []
 
+    elif isinstance(hp, hcsp.IChoice):
+        # Internal choice: conjunction of the two preconditions
+        pre1, vcs1 = compute_wp(hp.hp1, post)
+        pre2, vcs2 = compute_wp(hp.hp2, post)
+        pre = expr.conj(pre1, pre2)
+        return pre, vcs1 + vcs2
+
     else:
         raise NotImplementedError

@@ -495,6 +495,11 @@ def list_conj(*args):
     return LogicExpr("&&", args[0], list_conj(*args[1:]))
 
 def conj(*args):
+    """Form the conjunction of the list of arguments.
+    
+    Example: conj("x > 1", "x < 3") forms "x > 1 && x < 3"
+
+    """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if false_expr in args:
         return false_expr
@@ -518,6 +523,11 @@ def list_disj(*args):
     return LogicExpr("||", args[0], list_disj(*args[1:]))
 
 def disj(*args):
+    """Form the disjunction of the list of arguments.
+    
+    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
+
+    """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if true_expr in args:
         return true_expr

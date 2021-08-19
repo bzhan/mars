@@ -130,6 +130,7 @@ class ExprTest(unittest.TestCase):
             ("a[1][2]?pt.x[1]", "InputC(a[1][2],pt.x[1])"),
             ("@X", "Var(X)"),
             ("x := (a-b)%m", "Assign(x,(a-b)%m)"),
+            ("x := x+1 ++ y := y+1", "IChoice(Assign(x,x+1),Assign(y,y+1))"),
         ]
 
         for s, res in test_data:
