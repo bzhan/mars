@@ -6,6 +6,31 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 
 
+def compute_diff(e, eqs_dict):
+    """Compute differential of an arithmetic or boolean expression."""
+    def rec(e):
+        if isinstance(e, expr.RelExpr):
+            if e.op == '<' or e.op == '<=':
+                return expr.RelExpr("<=", rec(e.expr1), rec(e.expr2))
+            elif e.op == '>' or e.op == '>=':
+                return expr.RelExpr(">=", rec(e.expr1), rec(e.expr2))
+            elif e.op == '==' or e.op == '!=':
+                return expr.RelExpr("==", rec(e.expr1), rec(e.expr2))
+            else:
+                raise NotImplementedError
+        elif isinstance(e, expr.AConst):
+            return expr.AConst(0)
+        elif isinstance(e, expr.AVar):
+            if e.name in eqs_dict:
+                return eqs_dict[e.name]
+            else:
+                return expr.AConst(0)
+        else:
+            raise NotImplementedError
+    
+    return rec(e)
+
+
 def compute_wp(hp, post):
     """Compute weakest preconditions for a given hybrid program.
     
@@ -54,6 +79,24 @@ def compute_wp(hp, post):
         # Verification condition is inv --> pre
         vc = expr.imp(inv, pre)
         return inv, vcs + [vc]
+
+    elif isinstance(hp, hcsp.ODE):
+        # ODE, by default use the differential invariant rule.
+        # Currently ignore the constraint, and assume out_hp is Skip.
+        if hp.out_hp != hcsp.Skip():
+            raise NotImplementedError
+        
+        # Assume the postcondition is the differential invariant.
+        inv = post
+
+        # Construct dictionary corresponding to eqs.
+        eqs_dict = dict()
+        for name, e in hp.eqs:
+            eqs_dict[name] = e
+
+        # Compute the differential of inv.
+        inv_diff = compute_diff(inv, eqs_dict=eqs_dict)
+        return inv, [inv_diff]
 
     else:
         raise NotImplementedError
