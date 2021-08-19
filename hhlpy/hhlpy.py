@@ -31,5 +31,14 @@ def compute_wp(hp, post):
         pre = expr.conj(pre1, pre2)
         return pre, vcs1 + vcs2
 
+    elif isinstance(hp, hcsp.Sequence):
+        # Sequence of several commands, apply compute_wp from bottom to top
+        cur_pre = post
+        all_vcs = []
+        for sub_hp in reversed(hp.hps):
+            cur_pre, cur_vcs = compute_wp(sub_hp, cur_pre)
+            all_vcs.extend(cur_vcs)
+        return cur_pre, all_vcs
+
     else:
         raise NotImplementedError
