@@ -4,6 +4,7 @@ Python implementation of Hybrid Hoare Logic.
 
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
+from hhlpy.z3wrapper import z3_prove
 
 
 def compute_diff(e, eqs_dict):
@@ -100,3 +101,11 @@ def compute_wp(hp, post):
 
     else:
         raise NotImplementedError
+
+def compute_vcs(pre, hp, post):
+    wp, vcs = compute_wp(hp, post)
+    return vcs + [expr.imp(pre, wp)]
+
+def verify(pre, hp, post):
+    vcs = compute_vcs(pre, hp, post)
+    return all(z3_prove(vc) for vc in vcs)
