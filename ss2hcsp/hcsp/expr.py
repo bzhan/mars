@@ -43,7 +43,8 @@ def str_of_val(val):
         return str(val)
 
 
-class AExpr:  # Arithmetic expression
+class AExpr:
+    """Arithmetic expression."""
     def __init__(self):
         pass
 
@@ -403,6 +404,7 @@ class FieldNameExpr(AExpr):
 
     
 class BExpr:
+    """Boolean expression."""
     def __init__(self):
         pass
 

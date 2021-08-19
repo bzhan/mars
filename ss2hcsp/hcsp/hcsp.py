@@ -278,6 +278,10 @@ class Wait(HCSP):
 class Assign(HCSP):
     """Assignment command.
 
+    var_name : AExpr - variable to be assigned, one of AVar (e.g. x),
+        ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : AExpr - value to be assigned.
+
     Left side is an expression that can serve as a lname. This includes
     variables, array indices, and field names.
 
