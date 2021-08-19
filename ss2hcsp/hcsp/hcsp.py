@@ -790,7 +790,12 @@ class ODE_Comm(HCSP):
 
 
 class Loop(HCSP):
-    """Represents an infinite loop of a program."""
+    """Represents an infinite loop of a program.
+    
+    hp : HCSP - body of the loop.
+    constraint : BExpr - loop condition, default to true.
+
+    """
     def __init__(self, hp, constraint=true_expr):
         super(Loop, self).__init__()
         self.type = 'loop'

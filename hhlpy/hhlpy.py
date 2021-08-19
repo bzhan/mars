@@ -40,5 +40,20 @@ def compute_wp(hp, post):
             all_vcs.extend(cur_vcs)
         return cur_pre, all_vcs
 
+    elif isinstance(hp, hcsp.Loop):
+        # Loop, currently use postcondition as invariant.
+        if hp.constraint != expr.true_expr:
+            raise NotImplementedError
+        
+        # Set invariant to be the postcondition
+        inv = post
+
+        # Compute wp for loop body with respect to invariant
+        pre, vcs = compute_wp(hp.hp, inv)
+
+        # Verification condition is inv --> pre
+        vc = expr.imp(inv, pre)
+        return inv, vcs + [vc]
+
     else:
         raise NotImplementedError
