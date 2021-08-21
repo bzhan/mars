@@ -13,8 +13,8 @@ import math
 import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, \
+    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val,FieldNameExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
@@ -57,33 +57,24 @@ def eval_expr(expr, state):
         # Constant case
         return expr.value
 
-    elif isinstance(expr, PlusExpr):
-        # Sum of expressions
-        if isinstance(eval_expr(expr.exprs[0], state), str):
-            res = ""
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    raise SimulatorException("Type error when evaluating %s" % expr)
+    elif isinstance(expr, OpExpr):
+        if len(expr.exprs) == 1:
+            return -eval_expr(expr.exprs[0], state)
         else:
-            res = 0
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    res -= eval_expr(e, state)
-        return res
-
-    elif isinstance(expr, TimesExpr):
-        # Product of expressions
-        res = 1
-        for s, e in zip(expr.signs, expr.exprs):
-            if s == '*':
-                res *= eval_expr(e, state)
+            e1, e2 = eval_expr(expr.exprs[0], state), eval_expr(expr.exprs[1], state)
+            if expr.op == '+':
+                return e1 + e2
+            elif expr.op == '-':
+                return e1 - e2
+            elif expr.op == '*':
+                return e1 * e2
+            elif expr.op == '/':
+                return e1 / e2
+            elif expr.op == '%':
+                multiple = 1000
+                return (round(e1 * multiple) % round(e2 * multiple)) / multiple
             else:
-                res /= eval_expr(e, state)
-        return res
+                raise TypeError
 
     elif isinstance(expr, FunExpr):
         # Special functions
@@ -132,21 +123,6 @@ def eval_expr(expr, state):
                 if str(n)+".data" in state.keys(): 
                     state.pop(str(n)+".data")
             return 1
-          
-        # elif expr.fun_name == "isequals":
-            
-        #     n,b,c =args
-        #     if isinstance(b,FieldNameExpr):        
-        #         if state[str(b)] != c:
-        #             if n =="IQU":
-        #                 state.pop(str(b))
-        #             return 0
-        #         elif state[str(b)] == c:
-        #             if n =="IQU":
-        #                 state.pop(str(b))
-        #             return 1
-            
-          
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
@@ -236,7 +212,7 @@ def eval_expr(expr, state):
         elif expr.fun_name == "unidrnd":
             assert len(args) == 1
             if args[0] <= 0:
-                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+                raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
             return random.randint(1, args[0])
         elif expr.fun_name == "zeros":
             if len(args) == 3:
@@ -259,11 +235,6 @@ def eval_expr(expr, state):
                 return 0
         else:
             raise SimulatorException("When evaluating %s: unrecognized function" % expr)
-
-    elif isinstance(expr, ModExpr):
-        multiple = 1000
-        return (round(eval_expr(expr.expr1, state) * multiple) %
-                round(eval_expr(expr.expr2, state) * multiple)) / multiple
 
     elif isinstance(expr, ListExpr):
         return list(eval_expr(arg, state) for arg in expr.args)
@@ -290,22 +261,18 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        # a = eval_expr(expr.expr1, state)
-        # b = eval_expr(expr.expr2, state)
         if expr.op == "&&":
-            return eval_expr(expr.expr1, state) and eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
         elif expr.op == "||":
-            return eval_expr(expr.expr1, state) or eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
         elif expr.op == "-->":
-            return (not eval_expr(expr.expr1, state)) or eval_expr(expr.expr2, state)
+            return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
         elif expr.op == "<-->":
-            return eval_expr(expr.expr1, state) == eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
+        elif expr.op == "~":
+            return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
-
-    elif isinstance(expr, NegExpr):
-        a = eval_expr(expr.expr, state)
-        return (not a)
 
     elif isinstance(expr, RelExpr):
         a = eval_expr(expr.expr1, state)
@@ -401,8 +368,10 @@ def get_ode_delay(hp, state):
 
     def is_zero(t):
         """Whether the given expression simplifies to 0."""
-        if isinstance(t, TimesExpr):
-            return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
+        if isinstance(t, OpExpr) and t.op == '*':
+            return is_zero(t.exprs[0]) or is_zero(t.exprs[1])
+        elif isinstance(t, OpExpr) and t.op == '/':
+            return is_zero(t.exprs[0])
         elif isinstance(t, AConst):
             return t.value == 0
         elif isinstance(t, AVar):
@@ -429,12 +398,8 @@ def get_ode_delay(hp, state):
             return e.name == var_name
         elif isinstance(e, AConst):
             return False
-        elif isinstance(e, PlusExpr):
+        elif isinstance(e, (OpExpr, LogicExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
-        elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
-            return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
-        elif isinstance(e, NegExpr):
-            return occur_var(e.expr, var_name)
         else:
             print('occur_var:', e)
             raise NotImplementedError
@@ -444,13 +409,13 @@ def get_ode_delay(hp, state):
 
     def test_cond(e):
         if isinstance(e, LogicExpr) and e.op == '||':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
         if isinstance(e, LogicExpr) and e.op == '&&':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)
 
         # Condition never changes

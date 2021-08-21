@@ -36,7 +36,7 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
         diagram, print_chart=print_chart, print_before_simp=print_before_simp,
-        print_final=print_final, debug_name=filename.split('/')[-1].split('.')[0])
+        print_final=print_final)
 
     if profile:
         p = Stats(pr)

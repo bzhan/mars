@@ -1,7 +1,19 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, PlusExpr, true_expr, RelExpr, ModExpr, AConst
+from ss2hcsp.hcsp.expr import AVar, OpExpr, true_expr, RelExpr, AConst
 from ss2hcsp.hcsp import hcsp as hp
 
+
+def convert_add(spec, in_vars):
+    if spec[0] == '+':
+        expr = in_vars[0]
+    else:
+        expr = OpExpr("-", in_vars[0])
+    for op, in_var in zip(spec[1:], in_vars[1:]):
+        if op == '+':
+            expr = OpExpr("+", expr, in_var)
+        else:
+            expr = OpExpr("-", expr, in_var)
+    return expr
 
 class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
@@ -31,13 +43,13 @@ class Add(SL_Block):
 
     def get_output_hp(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]
-        expr = PlusExpr(self.dest_spec, in_vars)
+        expr = convert_add(self.dest_spec, in_vars)
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]
-        expr = PlusExpr(self.dest_spec, in_vars)
+        expr = convert_add(self.dest_spec, in_vars)
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

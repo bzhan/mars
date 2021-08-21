@@ -332,7 +332,7 @@ class SFConvert:
                     expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
                     hcsp.Assign(
                         expr.AVar(tick_name),
-                        expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+                        expr.OpExpr("+", expr.AVar(tick_name), expr.AConst(1)))))
 
         return hcsp.Sequence(self.convert_cmd(state.du), *procs)
 
@@ -1043,7 +1043,7 @@ class SFConvert:
                 expr.RelExpr("!=", expr.AVar(time_name), expr.AConst(-1)),
                 hcsp.Assign(
                     expr.AVar(time_name),
-                    expr.PlusExpr(["+", "+"], [expr.AVar(time_name), expr.AConst(self.sample_time)]))))
+                    expr.OpExpr('+', expr.AVar(time_name), expr.AConst(self.sample_time)))))
 
         return hcsp.seq(procs)
 

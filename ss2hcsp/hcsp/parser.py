@@ -27,19 +27,20 @@ grammar = r"""
         | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
-    ?times_expr: times_expr "*" atom_expr -> times_expr
-        | times_expr "/" atom_expr -> divide_expr
-        | times_expr "%" atom_expr -> mod_expr
-        | atom_expr
+    ?uminus: "-" uminus -> uminus | atom_expr              // Unary minus: priority 80
 
-    ?plus_expr: plus_expr "+" times_expr -> plus_expr
+    ?times_expr: times_expr "*" uminus -> times_expr       // priority 70
+        | times_expr "/" uminus -> divide_expr
+        | times_expr "%" uminus -> mod_expr
+        | uminus
+
+    ?plus_expr: plus_expr "+" times_expr -> plus_expr      // priority 65
         | plus_expr "-" times_expr -> minus_expr
-        | "-" times_expr -> uminus_expr
         | times_expr
 
     ?expr: plus_expr
 
-    ?atom_cond: expr "==" expr -> eq_cond
+    ?atom_cond: expr "==" expr -> eq_cond                  // priority 50
         | expr "!=" expr -> ineq_cond
         | expr "<=" expr -> less_eq_cond
         | expr "<" expr -> less_cond
@@ -159,6 +160,7 @@ class HPTransformer(Transformer):
 
     def empty_queue(self):
         return expr.AConst(tuple())
+
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
             return expr.AConst(list(arg.value for arg in args))
@@ -189,19 +191,19 @@ class HPTransformer(Transformer):
         return expr.FieldNameExpr(e, field)
 
     def plus_expr(self, e1, e2):
-        return expr.PlusExpr(["+", "+"], [e1, e2])
+        return expr.OpExpr("+", e1, e2)
 
     def minus_expr(self, e1, e2):
-        return expr.PlusExpr(["+", "-"], [e1, e2])
+        return expr.OpExpr("-", e1, e2)
 
-    def uminus_expr(self, e):
-        return expr.PlusExpr(["-"], [e])
+    def uminus(self, e):
+        return expr.OpExpr("-", e)
 
     def times_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "*"], [e1, e2])
+        return expr.OpExpr("*", e1, e2)
 
     def divide_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "/"], [e1, e2])
+        return expr.OpExpr("/", e1, e2)
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])
@@ -210,7 +212,7 @@ class HPTransformer(Transformer):
         return expr.FunExpr("max", [e1, e2])
 
     def mod_expr(self, e1, e2):
-        return expr.ModExpr(e1, e2)
+        return expr.OpExpr("%", e1, e2)
 
     def gcd_expr(self, *exprs):
         return expr.FunExpr(fun_name="gcd", exprs=exprs)
