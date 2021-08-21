@@ -6,7 +6,7 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy import compute_diff, compute_wp, compute_vcs, verify
 
 
-def runWpTest(self, *, post, hp, expected_pre, expected_vcs=None):
+def runWpTest(self, *, post, hp, expected_pre, expected_vcs=None, print_res=False):
     if expected_vcs is None:
         expected_vcs = []
 
@@ -16,6 +16,10 @@ def runWpTest(self, *, post, hp, expected_pre, expected_vcs=None):
     expected_vcs = [bexpr_parser.parse(vc) for vc in expected_vcs]
 
     pre, vcs = compute_wp(hp, post)
+    if print_res:
+        print("pre", pre)
+        for vc in vcs:
+            print("vc", vc)
     self.assertEqual(pre, expected_pre)
     self.assertEqual(vcs, expected_vcs)
 
@@ -67,6 +71,12 @@ class HHLPyTest(unittest.TestCase):
         runWpTest(self, post="x >= 0", hp="<x_dot=2 & x < 10>",
                   expected_pre="x >= 0", expected_vcs=["2 >= 0"])
 
+    def testComputeWp8(self):
+        # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
+        runWpTest(self, post="x * x + y * y == 1", hp="<x_dot=y, y_dot=-x & x > 0>",
+                  expected_pre="x * x + y * y == 1",
+                  expected_vcs=["x * y + y * x + (y * -x + -x * y) == 0"])
+
     def testComputeVC(self):
         # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
         pre = bexpr_parser.parse("x >= 0")
@@ -92,6 +102,10 @@ class HHLPyTest(unittest.TestCase):
     def testVerify4(self):
         # Basic benchmark, problem 4
         runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10>", post="x >= 1")
+
+    def testVerify5(self):
+        runVerify(self, pre="x * x + y * y == 1", hp="<x_dot=y, y_dot=-x & x > 0>",
+                  post="x * x + y * y == 1")
 
 
 if __name__ == "__main__":

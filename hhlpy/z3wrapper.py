@@ -16,13 +16,17 @@ def convert(e):
             raise NotImplementedError
     elif isinstance(e, expr.LogicExpr):
         if e.op == '-->':
-            return z3.Implies(convert(e.expr1), convert(e.expr2))
+            return z3.Implies(convert(e.exprs[0]), convert(e.exprs[1]))
         elif e.op == '&&':
-            return z3.And(convert(e.expr1), convert(e.expr2))
+            return z3.And(convert(e.exprs[0]), convert(e.exprs[1]))
         elif e.op == '||':
-            return z3.Or(convert(e.expr1), convert(e.expr2))
+            return z3.Or(convert(e.exprs[0]), convert(e.exprs[1]))
         elif e.op == '<-->':
-            return convert(e.expr1) == convert(e.expr2)
+            return convert(e.exprs[0]) == convert(e.exprs[1])
+        elif e.op == '~':
+            return z3.Not(convert(e.exprs[0]))
+        else:
+            raise TypeError
     elif isinstance(e, expr.RelExpr):
         if e.op == '<':
             return convert(e.expr1) < convert(e.expr2)
@@ -36,9 +40,17 @@ def convert(e):
             return convert(e.expr1) == convert(e.expr2)
         elif e.op == '!=':
             return z3.Not(convert(e.expr1) == convert(e.expr2))
-    elif isinstance(e, expr.PlusExpr):
-        if e.signs == ['+', '+']:
+    elif isinstance(e, expr.OpExpr):
+        if len(e.exprs) == 1:
+            return -convert(e.exprs[0])
+        elif e.op == '+':
             return convert(e.exprs[0]) + convert(e.exprs[1])
+        elif e.op == '-':
+            return convert(e.exprs[0]) - convert(e.exprs[1])
+        elif e.op == '*':
+            return convert(e.exprs[0]) * convert(e.exprs[1])
+        elif e.op == '/':
+            return convert(e.exprs[0]) / convert(e.exprs[1])
         else:
             raise NotImplementedError
     else:

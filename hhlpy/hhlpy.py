@@ -26,8 +26,19 @@ def compute_diff(e, eqs_dict):
                 return eqs_dict[e.name]
             else:
                 return expr.AConst(0)
-        else:
-            raise NotImplementedError
+        elif isinstance(e, expr.OpExpr):
+            if len(e.exprs) == 1:
+                return expr.OpExpr("-", rec(e.exprs[0]))
+            elif e.op == '+':
+                return expr.OpExpr("+", rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '-':
+                return expr.OpExpr("-", rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == '*':
+                # d(u*v) = u*dv + du*v
+                du, dv = rec(e.exprs[0]), rec(e.exprs[1])
+                return expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), expr.OpExpr("*", du, e.exprs[1]))
+            else:
+                raise NotImplementedError
     
     return rec(e)
 
