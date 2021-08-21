@@ -1136,7 +1136,8 @@ class SL_Diagram:
         #             del scc_dict[block_name]
         #     discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads,clocks
+        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, \
+            discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, clocks
 
     def add_buffers(self):
         buffers = []
