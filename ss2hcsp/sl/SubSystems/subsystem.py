@@ -81,9 +81,15 @@ class Triggered_Subsystem(Subsystem):
     def get_init_hps(self):
         # Initialize the triggered signal
         pre_sig, cur_sig = self.get_pre_cur_trig_signals()
-        init_hps = [hp.Assign(var_name=self.triggered, expr=AConst(1)),  # name_triggered := true
-                    hp.Assign(var_name=pre_sig.name, expr=AConst(0)),  # pre_sig := 0
-                    hp.Assign(var_name=cur_sig.name, expr=AConst(0))]  # cur_sig := 0
+        init_hps = list()
+        init_hps.append(hp.Assign(var_name=self.triggered, expr=AConst(1)))  # name_triggered := true
+        if not self.is_continuous:
+            init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
+            init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
+        # Initialize the output variables
+        for lines in self.src_lines:
+            out_var = lines[0].name
+            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(0)))
         # Initialize the variables of the inner blocks
         for block in self.diagram.blocks_dict.values():
             if block.type == "constant":
