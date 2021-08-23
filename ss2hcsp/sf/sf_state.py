@@ -63,11 +63,11 @@ class SF_State:
 
         # Events
         if self.en:
-            result += "  en: [" + str(self.en) + "]\n"
+            result += "  en: " + str(self.en) + "\n"
         if self.du:
-            result += "  du: [" + str(self.du) + "]\n"
+            result += "  du: " + str(self.du) + "\n"
         if self.ex:
-            result += "  ex: [" + str(self.ex) + "]\n"
+            result += "  ex: " + str(self.ex) + "\n"
 
         # Display output transitions
         if isinstance(self, OR_State) and self.out_trans:

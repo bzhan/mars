@@ -11,9 +11,12 @@ grammar = r"""
     // Expressions
     ?arr_num: expr ((",")? expr)* -> arr_num
 
+    ?string: /'.*?(?<!\\)'/ -> string_expr
+
     ?atom_expr: CNAME -> var_expr
         | NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
+        | string
         | CNAME "(" ")" -> fun_expr
         | CNAME "(" expr ("," expr)* ")" -> fun_expr
         | "[" "]" -> list_expr
@@ -73,7 +76,7 @@ grammar = r"""
     ?func_cmd: CNAME "(" expr ("," expr)* ")" (";")? -> func_cmd_has_param
         | CNAME "(" ")" (";")?                       -> func_cmd_no_param
 
-    ?ite_cmd: "if" cond cmd "else" cmd ("end")? -> ite_cmd
+    ?ite_cmd: "if" cond cmd ("end")?("else" cmd ("end")?)? -> ite_cmd
 
     ?event: CNAME -> event
         | CNAME "." event -> directed_event
@@ -237,7 +240,15 @@ class MatlabTransformer(Transformer):
     def func_cmd_no_param(self, name):
         return function.FunctionCall(str(name))
 
-    def ite_cmd(self, cond, cmd1, cmd2):
+    def ite_cmd(self,*args):
+        cond, cmd1, cmd2=None,None,None
+        if len(args) == 3:
+            cond=args[0]
+            cmd1=args[1]
+            cmd2=args[2]
+        elif len(args) == 2:
+            cond=args[0]
+            cmd1=args[1]
         return function.IfElse(cond, cmd1, cmd2)
 
     def seq_cmd(self, cmd1, cmd2):

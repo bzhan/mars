@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, TimesExpr, true_expr, RelExpr, ModExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, true_expr, RelExpr, OpExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -31,12 +31,12 @@ class Gain(SL_Block):
     def get_output_hp(self):
         in_var = self.dest_lines[0].name
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var,
-                                                    expr=TimesExpr("**", [AVar(in_var), AConst(self.factor)])))
+                                                    expr=OpExpr("*", AVar(in_var), AConst(self.factor))))
 
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
-        expr = TimesExpr("**", [in_var, AConst(self.factor)])
+        expr = OpExpr("*", in_var, AConst(self.factor))
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

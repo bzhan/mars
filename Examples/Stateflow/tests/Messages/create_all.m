@@ -1,4 +1,4 @@
-for i = 1:3
+for i = 1:8
     model = "Messages"+i;
     load_system(model)
     save_system(model, model+".xml", "ExportToXML", true)

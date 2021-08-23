@@ -278,6 +278,10 @@ class Wait(HCSP):
 class Assign(HCSP):
     """Assignment command.
 
+    var_name : AExpr - variable to be assigned, one of AVar (e.g. x),
+        ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : AExpr - value to be assigned.
+
     Left side is an expression that can serve as a lname. This includes
     variables, array indices, and field names.
 
@@ -360,6 +364,7 @@ class Assert(HCSP):
 
     def __hash__(self):
         return hash(("Assert", self.bexpr, self.msgs))
+
     def get_vars(self):
         var_set = self.bexpr.get_vars()
         for msg in self.msgs:
@@ -434,7 +439,7 @@ class Log(HCSP):
         return hash(("Log", self.pattern, self.exprs))
 
     def get_vars(self):
-        var_set = set()
+        var_set = self.pattern.get_vars()
         for expr in self.exprs:
             var_set.update(expr.get_vars())
         return var_set
@@ -571,8 +576,8 @@ def is_comm_channel(hp):
 
 class Sequence(HCSP):
     def __init__(self, *hps):
-        super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
+        super(Sequence, self).__init__()
         self.type = "sequence"
         # assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 1
@@ -630,6 +635,32 @@ def seq(hps):
         return hps[0]
     else:
         return Sequence(*hps)
+
+
+class IChoice(HCSP):
+    """Represents internal choice of the form P ++ Q."""
+    def __init__(self, hp1, hp2):
+        super(IChoice, self).__init__()
+        self.type = "ichoice"
+        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        self.hp1 = hp1
+        self.hp2 = hp2
+
+    def __eq__(self, other):
+        return self.hp1 == other.hp1 and self.hp2 == other.hp2
+
+    def __str__(self):
+        return "%s ++ %s" % (str(self.hp1), str(self.hp2))
+
+    def __repr__(self):
+        return "IChoice(%s,%s)" % (repr(self.hp1), repr(self.hp2))
+
+    def __hash__(self):
+        return hash(("ICHOICE", self.hp1, self.hp2))
+
+    def get_vars(self):
+        return hp1.get_vars().union(hp2.get_vars())
+
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -759,7 +790,12 @@ class ODE_Comm(HCSP):
 
 
 class Loop(HCSP):
-    """Represents an infinite loop of a program."""
+    """Represents an infinite loop of a program.
+    
+    hp : HCSP - body of the loop.
+    constraint : BExpr - loop condition, default to true.
+
+    """
     def __init__(self, hp, constraint=true_expr):
         super(Loop, self).__init__()
         self.type = 'loop'

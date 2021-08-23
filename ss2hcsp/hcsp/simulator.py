@@ -5,21 +5,24 @@ The state is given by a dictionary from variable names to numbers.
 
 """
 
+
 import copy
+import ast
 import itertools
 import math
 import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, \
+    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
+    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val,FieldNameExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.hcsp import graph_plot
 import numpy as np
 from ss2hcsp.matlab import function
+
 
 
 class SimulatorException(Exception):
@@ -54,33 +57,24 @@ def eval_expr(expr, state):
         # Constant case
         return expr.value
 
-    elif isinstance(expr, PlusExpr):
-        # Sum of expressions
-        if isinstance(eval_expr(expr.exprs[0], state), str):
-            res = ""
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    raise SimulatorException("Type error when evaluating %s" % expr)
+    elif isinstance(expr, OpExpr):
+        if len(expr.exprs) == 1:
+            return -eval_expr(expr.exprs[0], state)
         else:
-            res = 0
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    res -= eval_expr(e, state)
-        return res
-
-    elif isinstance(expr, TimesExpr):
-        # Product of expressions
-        res = 1
-        for s, e in zip(expr.signs, expr.exprs):
-            if s == '*':
-                res *= eval_expr(e, state)
+            e1, e2 = eval_expr(expr.exprs[0], state), eval_expr(expr.exprs[1], state)
+            if expr.op == '+':
+                return e1 + e2
+            elif expr.op == '-':
+                return e1 - e2
+            elif expr.op == '*':
+                return e1 * e2
+            elif expr.op == '/':
+                return e1 / e2
+            elif expr.op == '%':
+                multiple = 1000
+                return (round(e1 * multiple) % round(e2 * multiple)) / multiple
             else:
-                res /= eval_expr(e, state)
-        return res
+                raise TypeError
 
     elif isinstance(expr, FunExpr):
         # Special functions
@@ -97,39 +91,38 @@ def eval_expr(expr, state):
             a, b = args
             return int(a) // int(b)
         elif expr.fun_name == "put":
-            a, b = args
+            n,a, b = args
             
             assert isinstance(a, tuple)
             if isinstance(b, tuple):
 
                 return tuple(list(a) + list(b))
             else:
-                # if isinstance(b,dict):
-                #     state[b['name']+'.'+'data']=b['data']
+                if isinstance(b,dict) and n == "LQU":
+                    state[b['name']+'.'+'data']=b['data']
                 return tuple(list(a)+[b])
         elif expr.fun_name == "exist":
-            a, b= args
+            n,a, b= args
+            index=-1
             assert isinstance(a, tuple)
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             for i in range(0,len(a)):
                 if b == a[i]['name'] :
                     state[a[i]['name']+'.'+'data']=a[i]['data']
-                    return i
-            return -1
-        elif expr.fun_name == "remove":
-
-            a, b= args
-            index=0
-            for i in range(0,len(a)):
-                if b == a[i]['name'] :
                     index=i
                     break
-            state[str(a[index]['name'])+'.'+'data']=a[index]['data']
-            assert isinstance(a, tuple)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            return a[:index]+a[index+1:]
+            if index>-1:
+                a=a[:index]+a[index+1:]
+                state[str(n)]=a
+            return index
+            
+        elif expr.fun_name == "remove_InputMessage":
+
+            for n,info in args[0].items():
+                if str(n)+".data" in state.keys(): 
+                    state.pop(str(n)+".data")
+            return 1
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
@@ -219,7 +212,7 @@ def eval_expr(expr, state):
         elif expr.fun_name == "unidrnd":
             assert len(args) == 1
             if args[0] <= 0:
-                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+                raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
             return random.randint(1, args[0])
         elif expr.fun_name == "zeros":
             if len(args) == 3:
@@ -242,11 +235,6 @@ def eval_expr(expr, state):
                 return 0
         else:
             raise SimulatorException("When evaluating %s: unrecognized function" % expr)
-
-    elif isinstance(expr, ModExpr):
-        multiple = 1000
-        return (round(eval_expr(expr.expr1, state) * multiple) %
-                round(eval_expr(expr.expr2, state) * multiple)) / multiple
 
     elif isinstance(expr, ListExpr):
         return list(eval_expr(arg, state) for arg in expr.args)
@@ -273,22 +261,18 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        # a = eval_expr(expr.expr1, state)
-        # b = eval_expr(expr.expr2, state)
         if expr.op == "&&":
-            return eval_expr(expr.expr1, state) and eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
         elif expr.op == "||":
-            return eval_expr(expr.expr1, state) or eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
         elif expr.op == "-->":
-            return (not eval_expr(expr.expr1, state)) or eval_expr(expr.expr2, state)
+            return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
         elif expr.op == "<-->":
-            return eval_expr(expr.expr1, state) == eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
+        elif expr.op == "~":
+            return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
-
-    elif isinstance(expr, NegExpr):
-        a = eval_expr(expr.expr, state)
-        return (not a)
 
     elif isinstance(expr, RelExpr):
         a = eval_expr(expr.expr1, state)
@@ -384,8 +368,10 @@ def get_ode_delay(hp, state):
 
     def is_zero(t):
         """Whether the given expression simplifies to 0."""
-        if isinstance(t, TimesExpr):
-            return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
+        if isinstance(t, OpExpr) and t.op == '*':
+            return is_zero(t.exprs[0]) or is_zero(t.exprs[1])
+        elif isinstance(t, OpExpr) and t.op == '/':
+            return is_zero(t.exprs[0])
         elif isinstance(t, AConst):
             return t.value == 0
         elif isinstance(t, AVar):
@@ -412,9 +398,7 @@ def get_ode_delay(hp, state):
             return e.name == var_name
         elif isinstance(e, AConst):
             return False
-        elif isinstance(e, PlusExpr):
-            return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
-        elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
+        elif isinstance(e, (OpExpr, LogicExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
         else:
             print('occur_var:', e)
@@ -425,13 +409,13 @@ def get_ode_delay(hp, state):
 
     def test_cond(e):
         if isinstance(e, LogicExpr) and e.op == '||':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
         if isinstance(e, LogicExpr) and e.op == '&&':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)
 
         # Condition never changes
@@ -562,17 +546,11 @@ class Callstack:
     def getinfo(self):
         self.renewinnerpos()
         callstack_info={
-            'pos':[],
             'innerpos':[],
             'procedure':[],
         }
         index =len(self.callstack) - 1
         while index >= 0:
-            pos = self.callstack[index].pos
-            if pos is None:
-                callstack_info['pos'].append('end')
-            else:
-                callstack_info['pos'].append('p' + ','.join(str(p) for p in pos))
             innerpos=self.callstack[index].innerpos
             if innerpos is None:
                 callstack_info['innerpos'].append('end')
@@ -583,7 +561,18 @@ class Callstack:
                 callstack_info['procedure'].append(self.callstack[index].thisproc)
             else:
                 callstack_info['procedure'].append(self.callstack[index].thisproc.name)
+            
             index = index - 1
+        isempty = True
+        for proc in callstack_info['procedure']:
+            if proc is None:
+                isempty = True
+            else:
+                isempty =False
+                break
+        if isempty == True:
+            callstack_info['procedure'] = None
+
         return callstack_info
 
 
@@ -683,83 +672,53 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
     if procs is None:
         procs = dict()
 
-    def helper(hp, callstack):
-        assert callstack.top_pos() is not None, "step_pos: already reached the end."
+    def helper(hp, pos):
+        assert pos is not None, "step_pos: already reached the end."
         if hp.type == 'sequence':
-            assert len(callstack.top_pos()) > 0 and callstack.top_pos()[0] < len(hp.hps)
-            callstack_temp=Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hps[callstack.top_pos()[0]], callstack_temp)
-            if sub_step.top_pos() is None:
-                if callstack.top_pos()[0] == len(hp.hps) - 1:
-                    callstack.renew(None, rec_vars)
-                    return callstack
+            assert len(pos) > 0 and pos[0] < len(hp.hps)
+            sub_step = helper(hp.hps[pos[0]], pos[1:])
+            if sub_step is None:
+                if pos[0] == len(hp.hps) - 1:
+                    return None
                 else:
-                    if isinstance(callstack.top_procedure(),list):
-                        pos=(callstack.top_pos()[0]+1,) + start_pos(hp.hps[callstack.top_pos()[0]+1])
-                        callstack.renew(pos, rec_vars)
-                    else:
-                        callstack.pop()
-                        pos=(callstack.top_pos()[0]+1,) + start_pos(hp.hps[callstack.top_pos()[0]+1])                       
-                        callstack.renew(pos, rec_vars)
-                    return callstack
+                    return (pos[0]+1,) + start_pos(hp.hps[pos[0]+1])
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         elif hp.type == 'select_comm':
-            assert len(callstack.top_pos()) > 0
-            _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None) #only use for convey pos in recursion, the containing of globalhp just avoid a bug
-            sub_step = helper(out_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            assert len(pos) > 0
+            _, out_hp = hp.io_comms[pos[0]]
+            sub_step = helper(out_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         elif hp.type == 'loop':
-            sub_step = helper(hp.hp, callstack)
-            if sub_step.top_pos() is None:
+            sub_step = helper(hp.hp, pos)
+            if sub_step is None:
                 if hp.constraint != true_expr and not eval_expr(hp.constraint, state):
-                    callstack.renew(None, rec_vars)
-                    return callstack
+                    return None
                 else:
-                    pos=start_pos(hp.hp)
-                    callstack.renew(pos, rec_vars)
-                    return callstack
+                    return start_pos(hp.hp)
             else:
-                pos=sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return sub_step
         elif hp.type == 'condition':
-            if len(callstack.top_pos()) == 0:
-                callstack.renew(None, rec_vars)
-                return callstack
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if len(pos) == 0:
+                return None
+            sub_step = helper(hp.hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'delay':
-            assert len(callstack.top_pos()) == 1
-            callstack.renew(None, rec_vars)
-            return callstack
+            assert len(pos) == 1
+            return None
         elif hp.type == 'recursion':
             rec_vars[hp.entry] = hp
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(hp.hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            sub_step = helper(hp.hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'var':
             if hp.name in rec_vars:
                 rec_hp = rec_vars[hp.name]
@@ -767,53 +726,41 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                 rec_hp = procs[hp.name].hp
             else:
                 raise SimulatorException("Unrecognized process variable: " + hp.name)
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(rec_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+
+            sub_step = helper(rec_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(0,) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (0,) + sub_step
         elif hp.type == 'ode_comm':
-            if len(callstack.top_pos()) == 0:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if len(pos) == 0:
+                return None
 
-            _, out_hp = hp.io_comms[callstack.top_pos()[0]]
-            callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-            sub_step = helper(out_hp, callstack_temp)
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            _, out_hp = hp.io_comms[pos[0]]
+            sub_step = helper(out_hp, pos[1:])
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack    
+                return (pos[0],) + sub_step
         elif hp.type == 'ite':
-            assert len(callstack.top_pos()) > 0
-            if callstack.top_pos()[0] < len(hp.if_hps):
-                _, sub_hp = hp.if_hps[callstack.top_pos()[0]]
-                callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-                sub_step = helper(sub_hp, callstack_temp)
+            assert len(pos) > 0
+            if pos[0] < len(hp.if_hps):
+                _, sub_hp = hp.if_hps[pos[0]]
+                sub_step = helper(sub_hp, pos[1:])
             else:
-                assert callstack.top_pos()[0] == len(hp.if_hps)
-                callstack_temp = Callstack(callstack.top_pos()[1:], callstack.globalhp, [], [], None)
-                sub_step = helper(hp.else_hp, callstack_temp)
+                assert pos[0] == len(hp.if_hps)
+                sub_step = helper(hp.else_hp, pos[1:])
         
-            if sub_step.top_pos() is None:
-                callstack.renew(None, rec_vars)
-                return callstack
+            if sub_step is None:
+                return None
             else:
-                pos=(callstack.top_pos()[0],) + sub_step.top_pos()
-                callstack.renew(pos, rec_vars)
-                return callstack
+                return (pos[0],) + sub_step
         else:
-            callstack.renew(None, rec_vars)
-            return callstack
+            return None
 
-    return helper(hp, callstack)
+    pos = helper(hp,callstack.top_pos())
+    callstack.renew(pos,rec_vars)
+    return callstack
 
 def parse_pos(hp, pos):
     """Convert pos in string form to internal representation."""
@@ -831,36 +778,6 @@ def parse_pos(hp, pos):
         pos = tuple(int(p) for p in pos)
 
     return pos
-
-# def remove_rec(hp, pos, rec_vars=None, procs=None):
-#     """Given a position in a program possibly with recursion and
-#     procedure calls, return the simplest expression for the same position
-#     in the program (removing recursion). This simpler position is used
-#     for display in user interface.
-
-#     """
-#     if pos is None:
-#         return None
-
-#     rec_list = []
-#     for i in range(len(pos)+1):
-#         sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
-#         if sub_hp.type == 'recursion':
-#             rec_list.append(i)
-
-#     if len(rec_list) >= 2:
-#         pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
-#     return pos
-
-# def string_of_pos(hp, pos, rec_vars=None, procs=None):
-#     """Convert pos in internal representation to string form."""
-#     if pos is None:
-#         return 'end'
-#     else:
-#         return 'p' + ','.join(str(p) for p in pos) 
-
-# def disp_of_pos(hp, pos, rec_vars=None, procs=None):
-#     return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
 
 def disp_of_callstack(callstack):
     return callstack.getinfo()
@@ -1369,6 +1286,11 @@ def extract_event(infos):
     else:
         return "deadlock"
 
+class State_dict:
+    def __init__(self):
+        self.rank = 0
+        self.dict = dict()
+
 def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
@@ -1385,13 +1307,15 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
     time_series - records evolution of variables in each program by time.
         This is a dictionary indexed by names of programs.
 
+    statemap - record of all state. 
     """
     # Overall returned result
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
         'time_series': {},  # Evolution of variables, indexed by program
-        'events': []  # Concise list of event strings
+        'events': [],  # Concise list of event strings
+        'statemap': State_dict()  # dict of all state
     }
 
     def log_event(ori_pos, **xargs):
@@ -1426,7 +1350,14 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         cur_info = dict()
         for info in infos:
             info_callstack = disp_of_callstack(info.callstack)
-            cur_info[info.name] = {'callstack': info_callstack, 'state': copy.deepcopy(info.state)}
+            fst_state = str(info.state)
+            if fst_state in res['statemap'].dict.keys():
+                state_num = res['statemap'].dict.get(fst_state)
+            else:
+                state_num = copy.deepcopy(res['statemap'].rank)
+                res['statemap'].dict[fst_state] = state_num
+                res['statemap'].rank = res['statemap'].rank + 1
+            cur_info[info.name] = {'callstack': info_callstack, 'statenum': state_num}
         new_event['infos'] = cur_info
 
         # Finally add to trace
@@ -1437,21 +1368,29 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
-
+        new_state = dict()
         new_entry = {
             "time": time,
             "event": len(res['trace']),
-            "state": dict()
+            "statenum": 0
         }
         for k, v in state.items():
             if info.outputs is not None and any(k in output for output in info.outputs):
                 if isinstance(v, (int, float)):
-                    new_entry['state'][k] = v
+                    new_state[k] = v
                 elif isinstance(v, list):
                     for i, val in enumerate(v):
-                        new_entry['state'][k+'['+str(i)+']'] = val
+                        new_state[k+'['+str(i)+']'] = val
                 else:
                     pass
+        fst_state = str(new_state)
+        if fst_state in res['statemap'].dict.keys():
+            state_num = res['statemap'].dict.get(fst_state)
+        else:
+            state_num = copy.deepcopy(res['statemap'].rank)
+            res['statemap'].dict[fst_state] = state_num
+            res['statemap'].rank = res['statemap'].rank + 1
+        new_entry['statenum']=state_num
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
@@ -1576,6 +1515,13 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         if has_overflow:
             log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
+
+    # Finally, exchange key and value, and change state back into dict in res['statemap']
+    statemap = dict()
+    for key, value in res['statemap'].dict.items():
+            state = ast.literal_eval(key)
+            statemap[value] = state
+    res['statemap'] = statemap
     return res
 
 def graph(res, proc_name, tkplot=False, separate=True, variables=None):

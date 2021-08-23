@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, ModExpr, conj
+from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -63,7 +63,7 @@ class Triggered_Subsystem(Subsystem):
 
     def get_output_hp(self):
         if_triggered = RelExpr("==", AVar(self.triggered), AConst(1))  # Triggered at the last step
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         trig_cond = self.get_discrete_triggered_condition()
         pre_sig, cur_sig = self.get_pre_cur_trig_signals()
 

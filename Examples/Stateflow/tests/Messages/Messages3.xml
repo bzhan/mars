@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.30</P>
+      <P Name="ComputedModelVersion">1.31</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -60,21 +60,21 @@
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
-            <P Name="LoadSaveID" Class="char">2</P>
-            <P Name="Extents" Class="double">[1862.0, 765.0]</P>
-            <P Name="ZoomFactor" Class="double">0.68524443348878417</P>
-            <P Name="Offset" Class="double">[-539.23960820507182, -94.8005609351253]</P>
-            <P Name="SceneRectInView" Class="double">[-539.23960820507182, -94.8005609351253, 1811.5190327243295, 744.25996779490447]</P>
-          </Object>
-          <Object ObjectID="6">
-            <P Name="IsActive" Class="logical">0</P>
-            <P Name="IsTabbed" Class="logical">0</P>
-            <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
             <P Name="Extents" Class="double">[1862.0, 765.0]</P>
             <P Name="ZoomFactor" Class="double">0.7765482430596</P>
             <P Name="Offset" Class="double">[-69.374000000000024, 79.91500000000002]</P>
             <P Name="SceneRectInView" Class="double">[-69.374000000000024, 79.91500000000002, 1598.527, 656.7525]</P>
+          </Object>
+          <Object ObjectID="6">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">2</P>
+            <P Name="Extents" Class="double">[1862.0, 765.0]</P>
+            <P Name="ZoomFactor" Class="double">0.685244433488784</P>
+            <P Name="Offset" Class="double">[-539.23960820507182, -94.8005609351253]</P>
+            <P Name="SceneRectInView" Class="double">[-539.23960820507182, -94.8005609351253, 1811.5190327243295, 744.25996779490447]</P>
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
@@ -103,7 +103,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">2c9a0f1f-be6f-4308-81a4-e147e4b61122</P>
       </Object>
-      <P Name="BDUuid" Class="char">2c15a90e-2565-4a59-b1d4-e3c732bd9b4a</P>
+      <P Name="BDUuid" Class="char">9c2659b7-7a62-43da-81cd-ebf0e8ecc1a6</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -113,9 +113,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Jul 24 00:22:46 2021</P>
-      <P Name="RTWModifiedTimeStamp">548986941</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:30&gt;</P>
+      <P Name="LastModifiedDate">Sat Jul 24 00:27:22 2021</P>
+      <P Name="RTWModifiedTimeStamp">548987227</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:31&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1343,6 +1343,8 @@
           <P Name="viewObj">14</P>
           <P Name="ssIdHighWaterMark">7</P>
           <P Name="decomposition">CLUSTER_CHART</P>
+          <P Name="updateMethod">DISCRETE</P>
+          <P Name="sampleTime">1</P>
           <P Name="chartFileNumber">1</P>
           <P Name="saturateOnIntegerOverflow">1</P>
           <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>

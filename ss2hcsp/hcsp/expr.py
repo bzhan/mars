@@ -43,9 +43,14 @@ def str_of_val(val):
         return str(val)
 
 
-class AExpr:  # Arithmetic expression
+class AExpr:
+    """Arithmetic expression."""
     def __init__(self):
         pass
+
+    def priority(self):
+        """Returns priority during printing."""
+        raise NotImplementedError
 
     def get_vars(self):
         """Returns set of variables in the expression."""
@@ -74,6 +79,9 @@ class AVar(AExpr):
     def __hash__(self):
         return hash(("AVar", self.name))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return {self.name}
 
@@ -87,11 +95,8 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str,tuple,dict))
-        if isinstance(value, list):
-            self.value = list(value)
-        else:
-            self.value = value
+        assert isinstance(value, (int, float, list, str, tuple, dict))
+        self.value = value
 
     def __repr__(self):
         return "AConst(%s)" % str_of_val(self.value)
@@ -105,6 +110,9 @@ class AConst(AExpr):
     def __hash__(self):
         return hash(("AConst", str(self.value)))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return set()
 
@@ -112,82 +120,55 @@ class AConst(AExpr):
         return self
 
 
-class PlusExpr(AExpr):
-    def __init__(self, signs, exprs):
-        super(PlusExpr, self).__init__()
-        assert all(sign in ('+', '-') for sign in signs)
+class OpExpr(AExpr):
+    def __init__(self, op, *exprs):
+        super(OpExpr, self).__init__()
+        assert op in ('+', '-', '*', '/', '%')
         assert all(isinstance(expr, AExpr) for expr in exprs)
-        self.signs = signs
-        self.exprs = exprs
+        assert len(exprs) > 0 and len(exprs) <= 2, \
+            "OpExpr: wrong number of arguments for %s" % op
+        if len(exprs) == 1:
+            assert op == '-', 'OpExpr: wrong number of arguments for %s' % op
+        self.op = op
+        self.exprs = tuple(exprs)
 
     def __repr__(self):
-        val = ", ".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
-        return "Plus(%s)" % val
-
+        return "OpExpr(%s,%s)" % (repr(self.op), repr(self.exprs))
+    
     def __str__(self):
-        res = str(self.exprs[0])
-        if self.signs[0] == "-":
-            if str(self.exprs[0]).startswith("-") or isinstance(self.exprs[0], PlusExpr):
-                res = "-(" + res + ")"
-            else:
-                res = "-" + res
-        for sign, expr in zip(self.signs[1:], self.exprs[1:]):
-            if str(expr).startswith("-") or (sign == "-" and isinstance(expr, PlusExpr)):
-                res += sign + "(" + str(expr) + ")"
-            else:
-                res += sign + str(expr)
-        return res
+        if len(self.exprs) == 1:
+            assert self.op == '-'
+            s = str(self.exprs[0])
+            if self.exprs[0].priority() < self.priority():
+                s = '(' + s + ')'
+            return '-' + s
+        else:
+            s1, s2 = str(self.exprs[0]), str(self.exprs[1])
+            if self.exprs[0].priority() < self.priority():
+                s1 = '(' + s1 + ')'
+            if self.exprs[1].priority() <= self.priority():
+                s2 = '(' + s2 + ')'
+            return s1 + ' ' + self.op + ' ' + s2
 
     def __eq__(self, other):
-        return isinstance(other, PlusExpr) and "".join(self.signs) == "".join(other.signs) and \
-               list(self.exprs) == list(other.exprs)
+        return isinstance(other, OpExpr) and self.op == other.op and self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("Plus", tuple(self.signs), tuple(self.exprs)))
+        return hash(("OpExpr", self.op, self.exprs))
+
+    def priority(self):
+        if len(self.exprs) == 1:
+            return 80
+        elif self.op == '+' or self.op == '-':
+            return 65
+        else:
+            return 70
 
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
-        return PlusExpr(self.signs, [expr.subst(inst) for expr in self.exprs])
-
-
-class TimesExpr(AExpr):
-    def __init__(self, signs, exprs):
-        super(TimesExpr, self).__init__()
-        self.signs = signs
-        self.exprs = exprs
-
-    def __repr__(self):
-        val = ", ".join(sign + repr(expr) for sign, expr in zip(self.signs, self.exprs))
-        return "Times(%s)" % val
-
-    def __str__(self):
-        res = str(self.exprs[0])
-        if isinstance(self.exprs[0], PlusExpr) or (self.signs[0] == "/" and isinstance(self.exprs[0], TimesExpr)):
-            res = "(" + res + ")"
-        if self.signs[0] == "/":
-            res = "1/" + res
-        for sign, expr in zip(self.signs[1:], self.exprs[1:]):
-            if isinstance(expr, PlusExpr) or (sign == "/" and isinstance(expr, TimesExpr)) \
-                    or (sign == "*" and str(expr).startswith("-")):
-                res += sign + "(" + str(expr) + ")"
-            else:
-                res += sign + str(expr)
-        return res
-
-    def __eq__(self, other):
-        return isinstance(other, TimesExpr) and "".join(self.signs) == "".join(other.signs) and \
-               list(self.exprs) == list(other.exprs)
-
-    def __hash__(self):
-        return hash(("Times", tuple(self.signs), tuple(self.exprs)))
-
-    def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.exprs))
-
-    def subst(self, inst):
-        return TimesExpr(self.signs, [expr.subst(inst) for expr in self.exprs])
+        return OpExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
 
 
 class FunExpr(AExpr):
@@ -215,42 +196,14 @@ class FunExpr(AExpr):
     def __hash__(self):
         return hash(("Fun", self.fun_name, self.exprs))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
-
-
-class ModExpr(AExpr):
-    def __init__(self, expr1, expr2):
-        super(ModExpr, self).__init__()
-        assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
-        self.expr1 = expr1
-        self.expr2 = expr2
-
-    def __repr__(self):
-        return "Mod(%s, %s)" % (repr(self.expr1), str(repr(self.expr2)))
-
-    def __str__(self):
-        s1, s2 = str(self.expr1), str(self.expr2)
-        if isinstance(self.expr1, PlusExpr):
-            s1 = '(' + s1 + ')'
-        if isinstance(self.expr2, PlusExpr):
-            s2 = '(' + s2 + ')'
-        return "%s%%%s" % (s1, s2)
-
-    def __eq__(self, other):
-        return isinstance(other, ModExpr) and self.expr1 == other.expr1 and self.expr2 == other.expr2
-
-    def __hash__(self):
-        return hash(("Mod", self.expr1, self.expr2))
-
-    def get_vars(self):
-        return self.expr1.get_vars().union(self.expr2.get_vars())
-
-    def subst(self, inst):
-        return ModExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
 
 class ListExpr(AExpr):
@@ -273,24 +226,9 @@ class ListExpr(AExpr):
 
     def __hash__(self):
         return hash(("List", self.args))
-    
-    def __iter__(self):
-        return self
 
-    def __len__(self):
-      
-       return len(self.args)
-    def __getitem__(self,key):
-            return self.args[key]
-
-    def __next__(self):
-        if self.count < len(self.args):
-            result = self.args[self.count]
-            self.count += 1
-            return result
-        else:
-            raise StopIteration
-  
+    def priority(self):
+        return 100
 
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))
@@ -321,6 +259,9 @@ class DictExpr(AExpr):
 
     def __hash__(self):
         return hash(("Dict", tuple((k, v) for k, v in self.dict.items())))
+
+    def priority(self):
+        return 100
 
     def get_vars(self):
         return set().union(*(v.get_vars() for k, v in self.dict.items()))
@@ -364,6 +305,9 @@ class ArrayIdxExpr(AExpr):
     def __hash__(self):
         return hash(("ArrayIdx", self.expr1, self.expr2))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
@@ -395,6 +339,9 @@ class FieldNameExpr(AExpr):
     def __hash__(self):
         return hash(("FieldName", self.expr, self.field))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return self.expr.get_vars()
 
@@ -403,8 +350,12 @@ class FieldNameExpr(AExpr):
 
     
 class BExpr:
+    """Boolean expression."""
     def __init__(self):
         pass
+
+    def priority(self):
+        raise NotImplementedError
 
     def get_vars(self):
         raise NotImplementedError
@@ -431,6 +382,9 @@ class BConst(BExpr):  # Boolean expression
     def __hash__(self):
         return hash(("BConst", self.value))
 
+    def priority(self):
+        return 100
+
     def get_vars(self):
         return set()
 
@@ -443,46 +397,58 @@ false_expr = BConst(False)
 
 
 class LogicExpr(BExpr):
-    def __init__(self, op, expr1, expr2):
+    def __init__(self, op, *exprs):
         super(LogicExpr, self).__init__()
-        assert op in ["&&", "||", "-->", "<-->"]
-        # assert isinstance(expr1, BExpr) and isinstance(expr2, BExpr)
+        assert op in ["&&", "||", "-->", "<-->", "~"]
+        assert all(isinstance(expr, BExpr) for expr in exprs)
+        assert len(exprs) > 0 and len(exprs) <= 2, \
+            "LogicExpr: wrong number of arguments for %s" % op
+        if len(exprs) == 1:
+            assert op == '~', "LogicExpr: wrong number of arguments for %s" % op
         self.op = op
-        self.expr1 = expr1
-        self.expr2 = expr2
+        self.exprs = tuple(exprs)
 
     def __repr__(self):
-        return "Logic(%s, %s, %s)" % (self.op, repr(self.expr1), repr(self.expr2))
+        return "Logic(%s,%s)" % (repr(self.op), repr(self.exprs))
 
     def __str__(self):
-        expr1 = str(self.expr1)
-        expr2 = str(self.expr2)
-        if self.op in ["-->", "<-->"] and isinstance(self.expr2, LogicExpr) and self.expr2.op in ["-->", "<-->"]:
-            expr2 = "(" + expr2 + ")"
-        elif self.op == "&&":
-            if isinstance(self.expr1, LogicExpr) and self.expr1.op != self.op:
-                expr1 = "(" + expr1 + ")"
-            if isinstance(self.expr2, LogicExpr) and self.expr2.op != self.op:
-                expr2 = "(" + expr2 + ")"
-        elif self.op == "||":
-            if isinstance(self.expr1, LogicExpr) and self.expr1.op in ["-->", "<-->"]:
-                expr1 = "(" + expr1 + ")"
-            if isinstance(self.expr2, LogicExpr) and self.expr2.op in ["-->", "<-->"]:
-                expr2 = "(" + expr2 + ")"
-        return expr1 + " " + self.op + " " + expr2
+        if len(self.exprs) == 1:
+            assert self.op == '~'
+            s = str(self.exprs[0])
+            if self.exprs[0].priority() < self.priority():
+                s = '(' + s + ')'
+            return '-' + s
+        else:
+            s1, s2 = str(self.exprs[0]), str(self.exprs[1])
+            if self.exprs[0].priority() < self.priority():
+                s1 = '(' + s1 + ')'
+            if self.exprs[1].priority() <= self.priority():
+                s2 = '(' + s2 + ')'
+            return s1 + ' ' + self.op + ' ' + s2
 
     def __eq__(self, other):
-        return isinstance(other, LogicExpr) and self.op == other.op and \
-            self.expr1 == other.expr1 and self.expr2 == other.expr2
+        return isinstance(other, LogicExpr) and self.op == other.op and self.exprs == other.exprs
 
     def __hash__(self):
-        return hash(("Logic", self.op, self.expr1, self.expr2))
+        return hash(("Logic", self.op, self.exprs))
+
+    def priority(self):
+        if self.op == '<-->':
+            return 25
+        elif self.op == '-->':
+            return 20
+        elif self.op == '&&':
+            return 35
+        elif self.op == '||':
+            return 30
+        else:
+            raise NotImplementedError
 
     def get_vars(self):
-        return self.expr1.get_vars().union(self.expr2.get_vars())
+        return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def subst(self, inst):
-        return LogicExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
+        return LogicExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
 
 
 def list_conj(*args):
@@ -493,6 +459,11 @@ def list_conj(*args):
     return LogicExpr("&&", args[0], list_conj(*args[1:]))
 
 def conj(*args):
+    """Form the conjunction of the list of arguments.
+    
+    Example: conj("x > 1", "x < 3") forms "x > 1 && x < 3"
+
+    """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if false_expr in args:
         return false_expr
@@ -504,7 +475,7 @@ def conj(*args):
 
 def split_conj(e):
     if isinstance(e, LogicExpr) and e.op == '&&':
-        return split_conj(e.expr1) + split_conj(e.expr2)
+        return split_conj(e.exprs[0]) + split_conj(e.exprs[1])
     else:
         return [e]
 
@@ -516,6 +487,11 @@ def list_disj(*args):
     return LogicExpr("||", args[0], list_disj(*args[1:]))
 
 def disj(*args):
+    """Form the disjunction of the list of arguments.
+    
+    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
+
+    """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
     if true_expr in args:
         return true_expr
@@ -524,12 +500,12 @@ def disj(*args):
         if arg != false_expr and arg not in new_args:
             new_args.append(arg)
     return list_disj(*new_args)
+
 def split_disj(e):
     if isinstance(e, LogicExpr) and e.op == '||':
-        return [e.expr1] + split_disj(e.expr2)
+        return [e.exprs[0]] + split_disj(e.exprs[1])
     else:
         return [e]
-
 
 def imp(b1, b2):
     if b1 == false_expr or b2 == true_expr:
@@ -537,7 +513,7 @@ def imp(b1, b2):
     if b1 == true_expr:
         return b2
     return LogicExpr("-->", b1, b2)
-
+    
 
 class RelExpr(BExpr):
     neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
@@ -566,11 +542,42 @@ class RelExpr(BExpr):
     def neg(self):
         return RelExpr(RelExpr.neg_table[self.op], self.expr1, self.expr2)
 
+    def priority(self):
+        return 50
+
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
+
+
+def neg_expr(e):
+    """Returns the negation of an expression, using deMorgan's law to move
+    negation inside.
+
+    """
+    if e == true_expr:
+        return false_expr
+    elif e == false_expr:
+        return true_expr
+    elif isinstance(e, LogicExpr):
+        if e.op == '&&':
+            return LogicExpr('||', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '||':
+            return LogicExpr('&&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '-->':
+            return LogicExpr('&&', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '<-->':
+            return LogicExpr('<-->', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '~':
+            return e.exprs[0]
+        else:
+            raise NotImplementedError
+    elif isinstance(e, RelExpr):
+        return e.neg()
+    else:
+        raise NotImplementedError
 
 
 class Conditional_Inst:
@@ -655,32 +662,3 @@ class Conditional_Inst:
             mu_ex_cons = set(cond for cond, _ in cond_inst)
             if mu_ex_cons not in self.mu_ex_conds:
                 self.mu_ex_conds.append(mu_ex_cons)
-
-
-# add by lqq
-# Modified by xux
-class NegExpr(BExpr):
-    def __init__(self, expr):
-        super(NegExpr, self).__init__()
-        assert isinstance(expr, BExpr)
-        self.op = '~'
-        self.expr = expr
-
-    def __repr__(self):
-        return "Not(%s)" % repr(self.expr)
-
-    def __str__(self):
-        return "~(" + str(self.expr) + ")"
-
-    def __eq__(self, other):
-        return isinstance(other, NegExpr) and self.op == other.op and self.expr == other.expr
-
-    def __hash__(self):
-        return hash(("Not", self.op, self.expr))
-
-    def get_vars(self):
-        return self.expr.get_vars()
-
-    def subst(self, inst):
-        # return NegExpr(self.op, self.expr.subst(inst))
-        return NegExpr(self.expr.subst(inst))  # Probably?

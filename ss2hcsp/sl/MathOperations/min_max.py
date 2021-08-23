@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, FunExpr, true_expr, RelExpr, ModExpr, AConst
+from ss2hcsp.hcsp.expr import AVar, FunExpr, true_expr, RelExpr, OpExpr, AConst
 from ss2hcsp.hcsp import hcsp as hp
 
 
@@ -31,7 +31,7 @@ class MinMax(SL_Block):
         in_vars = [AVar(line.name) for line in self.dest_lines]
         expr = FunExpr(self.fun_name, in_vars)
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
     def get_var_map(self):

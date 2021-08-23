@@ -27,19 +27,20 @@ grammar = r"""
         | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
-    ?times_expr: times_expr "*" atom_expr -> times_expr
-        | times_expr "/" atom_expr -> divide_expr
-        | times_expr "%" atom_expr -> mod_expr
-        | atom_expr
+    ?uminus: "-" uminus -> uminus | atom_expr              // Unary minus: priority 80
 
-    ?plus_expr: plus_expr "+" times_expr -> plus_expr
+    ?times_expr: times_expr "*" uminus -> times_expr       // priority 70
+        | times_expr "/" uminus -> divide_expr
+        | times_expr "%" uminus -> mod_expr
+        | uminus
+
+    ?plus_expr: plus_expr "+" times_expr -> plus_expr      // priority 65
         | plus_expr "-" times_expr -> minus_expr
-        | "-" times_expr -> uminus_expr
         | times_expr
 
     ?expr: plus_expr
 
-    ?atom_cond: expr "==" expr -> eq_cond
+    ?atom_cond: expr "==" expr -> eq_cond                  // priority 50
         | expr "!=" expr -> ineq_cond
         | expr "<=" expr -> less_eq_cond
         | expr "<" expr -> less_cond
@@ -95,7 +96,9 @@ grammar = r"""
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
-    ?seq_cmd: cond_cmd (";" cond_cmd)*  // Priority: 70
+    ?ichoice_cmd: cond_cmd | cond_cmd "++" cond_cmd   // Priority: 80
+
+    ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
@@ -157,6 +160,7 @@ class HPTransformer(Transformer):
 
     def empty_queue(self):
         return expr.AConst(tuple())
+
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
             return expr.AConst(list(arg.value for arg in args))
@@ -187,32 +191,19 @@ class HPTransformer(Transformer):
         return expr.FieldNameExpr(e, field)
 
     def plus_expr(self, e1, e2):
-        signs, exprs = [], []
-        if isinstance(e1, expr.PlusExpr):
-            signs.extend(e1.signs)
-            exprs.extend(e1.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e1)
-        if isinstance(e2, expr.PlusExpr):
-            signs.extend(e2.signs)
-            exprs.extend(e2.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e2)
-        return expr.PlusExpr(signs, exprs)
+        return expr.OpExpr("+", e1, e2)
 
     def minus_expr(self, e1, e2):
-        return expr.PlusExpr(["+", "-"], [e1, e2])
+        return expr.OpExpr("-", e1, e2)
 
-    def uminus_expr(self, e):
-        return expr.PlusExpr(["-"], [e])
+    def uminus(self, e):
+        return expr.OpExpr("-", e)
 
     def times_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "*"], [e1, e2])
+        return expr.OpExpr("*", e1, e2)
 
     def divide_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "/"], [e1, e2])
+        return expr.OpExpr("/", e1, e2)
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])
@@ -221,7 +212,7 @@ class HPTransformer(Transformer):
         return expr.FunExpr("max", [e1, e2])
 
     def mod_expr(self, e1, e2):
-        return expr.ModExpr(e1, e2)
+        return expr.OpExpr("%", e1, e2)
 
     def gcd_expr(self, *exprs):
         return expr.FunExpr(fun_name="gcd", exprs=exprs)
@@ -293,7 +284,7 @@ class HPTransformer(Transformer):
         return hcsp.Test(bexpr, msgs)
 
     def log_cmd(self, *args):
-        return hcsp.Log(*args)
+        return hcsp.Log(args[0], exprs=args[1:])
 
     def seq_cmd(self, *args):
         if len(args) == 1:
@@ -353,6 +344,9 @@ class HPTransformer(Transformer):
 
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
+
+    def ichoice_cmd(self, cmd1, cmd2):
+        return hcsp.IChoice(cmd1, cmd2)
 
     def select_cmd(self, *args):
         assert len(args) % 2 == 0 and len(args) >= 4

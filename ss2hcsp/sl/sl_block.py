@@ -41,7 +41,7 @@ class SL_Block:
 
     def add_src(self, port_id, sl_line):
         """Add a source line."""
-        assert port_id < self.num_src
+        # assert port_id < self.num_src
         assert isinstance(sl_line, SL_Line)
         # First check if there is a branch that is currently None
         for branch in range(len(self.src_lines[port_id])):

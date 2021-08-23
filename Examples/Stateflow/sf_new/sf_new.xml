@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.136</P>
+      <P Name="ComputedModelVersion">1.140</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -67,30 +67,30 @@
             <P Name="IsTabbed" Class="logical">1</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1864.0, 701.0]</P>
-            <P Name="ZoomFactor" Class="double">0.94648121225475834</P>
-            <P Name="Offset" Class="double">[99.911794157199438, 950.73193994823134]</P>
-            <P Name="SceneRectInView" Class="double">[99.911794157199438, 950.73193994823134, 1312.9332633093893, 493.75870041839158]</P>
+            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
+            <P Name="ZoomFactor" Class="double">0.78386486585746351</P>
+            <P Name="Offset" Class="double">[10.627210195666294, 658.29732705591209]</P>
+            <P Name="SceneRectInView" Class="double">[10.627210195666294, 658.29732705591209, 1585.3072650568711, 714.40885335180883]</P>
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
             <P Name="IsTabbed" Class="logical">0</P>
             <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
             <P Name="LoadSaveID" Class="char">0</P>
-            <P Name="Extents" Class="double">[1864.0, 701.0]</P>
+            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.25</P>
-            <P Name="Offset" Class="double">[-1.7053025658242404e-13, 68.26666666666668]</P>
-            <P Name="SceneRectInView" Class="double">[-1.7053025658242404e-13, 68.26666666666668, 994.13333333333333, 373.86666666666667]</P>
+            <P Name="Offset" Class="double">[-1.7053025658242404e-13, 31.200000000000017]</P>
+            <P Name="SceneRectInView" Class="double">[-1.7053025658242404e-13, 31.200000000000017, 994.13333333333333, 448.0]</P>
           </Object>
           <Object ObjectID="8">
             <P Name="IsActive" Class="logical">0</P>
             <P Name="IsTabbed" Class="logical">0</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">11</P>
-            <P Name="Extents" Class="double">[1864.0, 701.0]</P>
+            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.4998125234345705</P>
-            <P Name="Offset" Class="double">[105.57999999999998, 105.507]</P>
-            <P Name="SceneRectInView" Class="double">[105.57999999999998, 105.507, 828.54800000000012, 311.59450000000004]</P>
+            <P Name="Offset" Class="double">[105.57999999999998, 74.61425]</P>
+            <P Name="SceneRectInView" Class="double">[105.57999999999998, 74.61425, 828.54800000000012, 373.38000000000005]</P>
           </Object>
         </Array>
         <Object PropName="DockComponentsInfo" ObjectID="9" ClassName="Simulink.DockComponentInfo">
@@ -105,7 +105,7 @@
           <P Name="Height" Class="int32">320</P>
           <P Name="Minimized" Class="char">Unset</P>
         </Object>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAAAAAAAAPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD///8AAAeAAAADCQAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAA</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAAAAAAAAPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD///8AAAeAAAADlAAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAA</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">e0d468de-da11-4466-9bbb-8cb8da2571ae</P>
       </Object>
@@ -119,9 +119,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Wed Jul 21 21:24:48 2021</P>
-      <P Name="RTWModifiedTimeStamp">548802924</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:136&gt;</P>
+      <P Name="LastModifiedDate">Thu Jul 29 00:05:28 2021</P>
+      <P Name="RTWModifiedTimeStamp">549417918</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:140&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1512,7 +1512,7 @@ Read2</P>
         <chart id="849">
           <P Name="name">DDS_Writer</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[105.58 934.128 105.507 417.102]</P>
+          <P Name="viewLimits">[105.58 934.128 74.614 447.994]</P>
           <P Name="zoomFactor">0.889</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
@@ -1520,6 +1520,8 @@ Read2</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">849</P>
+          <P Name="visible">1</P>
+          <subviewS/>
           <P Name="ssIdHighWaterMark">27</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">1</P>
@@ -1540,7 +1542,7 @@ Read2</P>
               <eml>
                 <P Name="isEML">1</P>
                 <P Name="script">function y=random
-  y=unidrnd(10);
+  y=rand();
 </P>
                 <P Name="editorLayout" Class="double">Matrix(4,1)
 [10.0, 5.0, 700.0, 500.0]</P>
@@ -1760,8 +1762,8 @@ first_SN=1;last_SN=i;i = i + 1;d=random()}</P>
         <chart id="863">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[99.912 1412.845 950.732 1444.491]</P>
-          <P Name="zoomFactor">1.409</P>
+          <P Name="viewLimits">[10.627 1595.934 658.297 1372.706]</P>
+          <P Name="zoomFactor">1.701</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
@@ -6864,7 +6866,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
               </Children>
             </state>
             <state SSID="179">
-              <P Name="labelString">y=channel</P>
+              <P Name="labelString">chan_r=channel</P>
               <P Name="position">[322.3081 614.0227 264.4072 106.9131]</P>
               <P Name="fontSize">12</P>
               <P Name="superState">SUBCHART</P>
@@ -6873,12 +6875,12 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
               <P Name="decomposition">CLUSTER_STATE</P>
               <eml>
                 <P Name="isEML">1</P>
-                <P Name="script">function y=channel()
+                <P Name="script">function chan_r=channel()
   x=rand();
   if x&gt;0.4
-      y=1;
+      chan_r=1;
   else
-      y=0; 
+      chan_r=0; 
   end 
   
  
@@ -6887,7 +6889,7 @@ send(ACKNACK2,model.RTPS_Writer)}</P>
 [10.0, 5.0, 700.0, 500.0]</P>
               </eml>
               <Children>
-                <data SSID="180" name="y">
+                <data SSID="180" name="chan_r">
                   <P Name="scope">FUNCTION_OUTPUT_DATA</P>
                   <props>
                     <array>
@@ -7844,7 +7846,7 @@ lastSN=buffer_heartbeat(wid,4)}</P>
             <data SSID="676" name="nackResponseDelay">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
-                <P Name="initialValue">2</P>
+                <P Name="initialValue">1</P>
                 <type>
                   <P Name="method">SF_DOUBLE_TYPE</P>
                   <P Name="primitive">SF_DOUBLE_TYPE</P>
@@ -7861,7 +7863,7 @@ lastSN=buffer_heartbeat(wid,4)}</P>
             <data SSID="677" name="heartbeatResponseDelay">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
-                <P Name="initialValue">3</P>
+                <P Name="initialValue">1.5</P>
                 <type>
                   <P Name="method">SF_DOUBLE_TYPE</P>
                   <P Name="primitive">SF_DOUBLE_TYPE</P>
@@ -7878,7 +7880,7 @@ lastSN=buffer_heartbeat(wid,4)}</P>
             <data SSID="678" name="heartbeatPeriod">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
-                <P Name="initialValue">3</P>
+                <P Name="initialValue">1.5</P>
                 <type>
                   <P Name="method">SF_DOUBLE_TYPE</P>
                   <P Name="primitive">SF_DOUBLE_TYPE</P>

@@ -286,7 +286,7 @@ def translate_discrete(diagram):
             # Get each process wrt. Sample Time
             for st in st_to_hps.keys():
                 # The condition of time is in form of t%st == 0
-                cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(st)), AConst(0))
+                cond_time = RelExpr("==", OpExpr("%", AVar("t"), AConst(st)), AConst(0))
                 # The process is in form of in_chs?;hcsp;out_chs!
                 assert st_to_hps[st]
                 st_processes = st_to_in_chs[st] + st_to_hps[st] + st_to_out_chs[st]
@@ -334,7 +334,7 @@ def translate_discrete(diagram):
             if line.name.startswith("delay_"):
                 line.name = line.name[6:]
         head_process = head_processes[0] if len(head_processes) == 1 else hp.Sequence(*head_processes)
-        cond_time = RelExpr("==", ModExpr(AVar("t"), AConst(head_block.st)), AConst(0))
+        cond_time = RelExpr("==", OpExpr("%", AVar("t"), AConst(head_block.st)), AConst(0))
         main_processes.append(hp.Condition(cond_time, head_process))
 
         # Delete the head block from the loop
@@ -377,7 +377,7 @@ def translate_discrete(diagram):
     # Get diagram sample time and the wait process
     diagram_st = get_gcd([block.st for block in block_dict.values()]) if len(block_dict) >0 else 1
     wait_st = hp.Sequence(hp.Wait(AConst(diagram_st)),
-                          hp.Assign("t", PlusExpr("++", [AVar("t"), AConst(diagram_st)])))
+                          hp.Assign("t", OpExpr("+", AVar("t"), AConst(diagram_st))))
 
     # Get main processes
     main_processes = []
@@ -527,7 +527,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram):
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
-             discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, model_name="P"):
+             discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, clocks, model_name="P"):
     """Obtain HCSP from a list of disjoint diagrams.
     
     The arguments are:

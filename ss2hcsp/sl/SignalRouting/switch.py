@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, ModExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, OpExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 
@@ -33,7 +33,7 @@ class Switch(SL_Block):
         in_vars = [AVar(line.name) for line in self.dest_lines]
         cond = RelExpr(self.relation, in_vars[1], AConst(self.threshold))
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=time_cond, hp=hp.ITE(if_hps=[(cond, hp.Assign(var_name=out_var, expr=in_vars[0]))],
                                                       else_hp=hp.Assign(var_name=out_var, expr=in_vars[2])))
 

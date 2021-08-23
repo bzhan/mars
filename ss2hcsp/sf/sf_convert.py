@@ -2,17 +2,36 @@
 
 from ss2hcsp.sl import get_hcsp
 from ss2hcsp.hcsp.pprint import pprint
-from ss2hcsp.sf.sf_chart import get_common_ancestor
+from ss2hcsp.sf.sf_chart import SF_Chart
 from ss2hcsp.sf.sf_state import OR_State, AND_State, Junction, GraphicalFunction
 from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp.parser import bexpr_parser
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import optimize
 from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.matlab import convert
 from ss2hcsp.matlab import parser
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.function import BroadcastEvent, DirectedEvent, TemporalEvent, \
-    AbsoluteTimeEvent, ImplicitEvent, Message
+
+
+def get_common_ancestor(state0, state1, out_trans=True):
+    if state0 == state1:
+        assert state0.father == state1.father
+        if out_trans:
+            return state0.father
+        else:  # inner_trans
+            return state0
+
+    state_to_root = []
+    cursor = state0
+    while cursor:
+        state_to_root.append(cursor)
+        cursor = cursor.father
+
+    cursor = state1
+    while cursor not in state_to_root:
+        cursor = cursor.father
+    return cursor
 
 
 class SFConvert:
@@ -20,27 +39,33 @@ class SFConvert:
     
     chart : SF_Chart
     chart_parameters - additional parameters.
+    has_signal : bool - whether to put start/end signals.
+    translate_io : bool - whether input/output should be translated.
 
     """
-    def __init__(self, chart=None, *, dsms=None, chart_parameters=None, translate_io=True):
+    def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
+                 shared_chans=None, translate_io=True):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
         self.chart_parameters = chart_parameters
         self.translate_io = translate_io
+        self.has_signal = has_signal
 
-        self.dsms = dsms
+        self.shared_chans = []
+        if shared_chans:
+            self.shared_chans = shared_chans
 
         # List of data variables
         self.data = dict()
         if 'data' in self.chart_parameters:
             self.data = self.chart_parameters['data']
-        self.events=dict()
+        self.events = dict()
         if 'event_dict' in self.chart_parameters:
-            self.events=self.chart_parameters['event_dict']
-        self.messages=dict()
+            self.events = self.chart_parameters['event_dict']
+        self.messages = dict()
         if 'message_dict' in self.chart_parameters:
-            self.messages=self.chart_parameters['message_dict']
+            self.messages = self.chart_parameters['message_dict']
 
         # Sample time
         self.sample_time = 0.1
@@ -71,7 +96,7 @@ class SFConvert:
         self.or_fathers = sorted(list(self.or_fathers))
 
         def get_state(state, name):
-            if len(name)==0:
+            if len(name) == 0:
                 return state
             n=name[0]
             for child in state.children:
@@ -89,14 +114,15 @@ class SFConvert:
         # Functions for converting expressions and commands. Simply wrap
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
-            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures, messages=self.messages)
-
+            return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,
+                                        messages=self.messages)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
-            return convert.convert_cmd(cmd, raise_event=self.raise_event, procedures=self.procedures,
-                                       still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),messages=self.messages)
-
+            return convert.convert_cmd(
+                cmd, raise_event=self.raise_event, procedures=self.procedures,
+                still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),
+                messages=self.messages)
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, tran_act) to the
@@ -117,16 +143,18 @@ class SFConvert:
         for ssid, state in self.chart.all_states.items():
             if isinstance(state, OR_State) and state.out_trans:
                 for tran in state.out_trans:
-                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
+                    ev = tran.label.event
+                    if ev is not None and isinstance(ev, function.TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
-                        self.temporal_guards[tran.src].append(tran.label.event)
+                        self.temporal_guards[tran.src].append(ev)
             if isinstance(state, (AND_State, OR_State)) and state.inner_trans:
                 for tran in state.inner_trans:
-                    if tran.label.event is not None and isinstance(tran.label.event, TemporalEvent):
+                    ev = tran.label.event
+                    if ev is not None and isinstance(ev, function.TemporalEvent):
                         if tran.src not in self.temporal_guards:
                             self.temporal_guards[tran.src] = []
-                        self.temporal_guards[tran.src].append(tran.label.event)
+                        self.temporal_guards[tran.src].append(ev)
 
         # Detect whether a state has implicit or absolute time event.
         self.implicit_events = set()
@@ -134,50 +162,75 @@ class SFConvert:
         for ssid in self.chart.all_states:
             if ssid in self.temporal_guards:
                 for temp_event in self.temporal_guards[ssid]:
-                    if isinstance(temp_event.event, ImplicitEvent):
+                    if isinstance(temp_event.event, function.ImplicitEvent):
                         self.implicit_events.add(ssid)
-                    elif isinstance(temp_event.event, AbsoluteTimeEvent):
+                    elif isinstance(temp_event.event, function.AbsoluteTimeEvent):
                         self.absolute_time_events.add(ssid)
         self.implicit_events = sorted(list(self.implicit_events))
         self.absolute_time_events = sorted(list(self.absolute_time_events))
+
+        # Process the derivative assignments. ode_map is a mapping from
+        # states to differential equations. Each differential equation
+        # x_dot = e is represented by a pair (x, e).
+        self.ode_map = dict()
+        for ssid, state in self.chart.all_states.items():
+            state.new_du = []
+            if isinstance(state, (AND_State, OR_State)) and state.du:
+                for action in state.du:
+                    if isinstance(action, function.Assign) and isinstance(action.lname, function.Var):
+                        var_name = action.lname.name
+                        if var_name.endswith("_dot"):
+                            if ssid not in self.ode_map:
+                                self.ode_map[ssid] = list()
+                            self.ode_map[ssid].append((var_name[:len(var_name)-4], action.expr))
+                        else:
+                            state.new_du.append(action)
+                    else:
+                        state.new_du.append(action)
+            state.du = state.new_du
 
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
 
     def raise_event(self, event):
-        if isinstance(event, BroadcastEvent):
+        
+        if isinstance(event, function.BroadcastEvent):
+            # Raise broadcast event
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
                 hcsp.Var(self.exec_name()),
-                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+            ])
 
-        elif isinstance(event, DirectedEvent):
+        elif isinstance(event, function.DirectedEvent):
             # First, find the innermost state name and event
-            state_name_path=list()
+            state_name_path = list()
             st_name, ev = event.state_name, event.event
             state_name_path.append(st_name)
-            while isinstance(ev, DirectedEvent):
+            while isinstance(ev, function.DirectedEvent):
                 st_name, ev = ev.state_name, ev.event
                 state_name_path.append(st_name)
-            dest_state=self.get_state_by_path(state_name_path)
+            dest_state = self.get_state_by_path(state_name_path)
             return hcsp.seq([
                 hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(ev.name)])),
                 self.get_rec_during_proc(dest_state),
-                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))])
+                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+            ])
         
-        elif isinstance(event,Message):
+        elif isinstance(event, function.Message):
+            # Raise messages
             if str(event) in self.messages.keys():
-                message=self.messages[str(event)]
+                message = self.messages[str(event)]
                 if message.scope == "OUTPUT_DATA":
                     for port_id, out_var in self.chart.port_to_out_var.items():
                         if str(out_var) == message.name:
                             lines = self.chart.src_lines[port_id]
                             for line in lines:
-                                ch_name = "ch_" + line.name + "_" + str(line.branch)
-                                return hcsp.seq([(hcsp.OutputChannel(ch_name , expr.AConst(dict(message))))])  
+                                ch_name = "ch_" + line.name + "_" + str(line.branch) + "_out"
+                                return hcsp.OutputChannel(ch_name , expr.AConst(dict(message)))
                 elif message.scope == "LOCAL_DATA": 
                     return hcsp.seq([
-                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AVar("LQU"), expr.AConst(dict(message))]))])
+                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AConst("LQU"),expr.AVar("LQU"), expr.AConst(dict(message))]))])
 
         else:
             raise TypeError("raise_event: event must be broadcast or directed.")
@@ -267,18 +320,11 @@ class SFConvert:
         return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
-        if not state.en:
-            return hcsp.Skip()
-
         # For entry procedure, the early return logic is that the state that
         # is entered should remain active.
-        proc = self.convert_cmd(state.en, still_there=self.get_still_there_cond(state))
-        return proc 
+        return self.convert_cmd(state.en, still_there=self.get_still_there_cond(state))
 
     def get_du_proc(self, state):
-        if not state.du:
-            return hcsp.Skip()
-
         procs = []
         if state.ssid in self.implicit_events:
             tick_name = self.entry_tick_name(state)
@@ -286,18 +332,14 @@ class SFConvert:
                     expr.RelExpr("!=", expr.AVar(tick_name), expr.AConst(-1)),
                     hcsp.Assign(
                         expr.AVar(tick_name),
-                        expr.PlusExpr(["+", "+"], [expr.AVar(tick_name), expr.AConst(1)]))))
+                        expr.OpExpr("+", expr.AVar(tick_name), expr.AConst(1)))))
 
         return hcsp.Sequence(self.convert_cmd(state.du), *procs)
 
     def get_ex_proc(self, state):
-        if not state.ex:
-            return hcsp.Skip()
-
         # For exit procedure, the early return logic is that the state that
         # is exited should remain active.
-        proc = self.convert_cmd(state.ex, still_there=self.get_still_there_cond(state))
-        return proc
+        return self.convert_cmd(state.ex, still_there=self.get_still_there_cond(state))
 
     def get_entry_proc(self, state):
         """Entry procedure for the given state.
@@ -343,7 +385,9 @@ class SFConvert:
                 if str(in_var) not in self.messages.keys():
                     line = self.chart.dest_lines[port_id]
                     ch_name = "ch_" + line.name + "_" + str(line.branch)
-                    procs.append(hcsp.InputChannel(ch_name , expr.AVar(in_var)))
+                    if ch_name in self.shared_chans:
+                        ch_name += "_in"
+                    procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
         return procs
 
     def get_output_data(self):
@@ -355,7 +399,9 @@ class SFConvert:
                     lines = self.chart.src_lines[port_id]
                     for line in lines:
                         ch_name = "ch_" + line.name + "_" + str(line.branch)
-                        procs.append(hcsp.OutputChannel(ch_name , expr.AVar(out_var)))
+                        if ch_name in self.shared_chans:
+                            ch_name += "_out"
+                        procs.append(hcsp.OutputChannel(ch_name, expr.AVar(out_var)))
         return procs
 
     def get_transition_proc(self, src, dst, tran_act=None, *, out_trans=True):
@@ -416,43 +462,59 @@ class SFConvert:
         still_there : BExpr - when to continue execution of condition action.
 
         """
-        pre_acts, conds, cond_act, remove_mesg = [], [], hcsp.Skip(), []
+        pre_acts, conds, cond_act = [], [], hcsp.Skip()
         if label.event is not None:
-            if isinstance(label.event, BroadcastEvent) and str(label.event) not in self.messages.keys():
-                # Conversion of event condition E
-                conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
-                                        expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
-            elif isinstance(label.event, TemporalEvent):
+            if isinstance(label.event, function.BroadcastEvent) and \
+                str(label.event) not in self.messages.keys():
+                # Conversion for event condition E
+                for n,e in self.events.items():
+                    if e.name == str(label.event.name):
+                        if e.scope == "INPUT_EVENT" and e.trigger == "EITHER_EDGE_EVENT":
+                            conds.append(expr.RelExpr("!=",expr.AVar("osag"),expr.AVar("last")))
+
+                        else:
+                            conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
+                                               expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
+            
+            elif isinstance(label.event, function.TemporalEvent):
+                # Conversion for temporal events
                 act, e = self.convert_expr(label.event.expr)
                 pre_acts.append(act)
                 assert state is not None, "convert_label: temporal events only for edges from a state."
+
+                # First, find the comparison operator
                 if label.event.temp_op == 'after':
-                    if isinstance(label.event.event, AbsoluteTimeEvent):
-                        if label.event.event.name == 'sec':
-                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_time_name(state)), e))
-                        else:
-                            raise NotImplementedError
-                    elif isinstance(label.event.event,ImplicitEvent):
-                        if label.event.event.name == 'tick':
-                            conds.append(expr.RelExpr(">=", expr.AVar(self.entry_tick_name(state)), e))
-                        else:
-                            raise NotImplementedError
+                    op_str = '>='
+                elif label.event.temp_op == 'before':
+                    op_str = '<'
+                elif label.event.temp_op == 'at':
+                    op_str = '=='
                 else:
                     raise NotImplementedError
+
+                # Next, find units
+                if isinstance(label.event.event, function.AbsoluteTimeEvent):
+                    if label.event.event.name == 'sec':
+                        conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_time_name(state)), e))
+                    else:
+                        raise NotImplementedError
+                elif isinstance(label.event.event, function.ImplicitEvent):
+                    if label.event.event.name == 'tick':
+                        conds.append(expr.RelExpr(op_str, expr.AVar(self.entry_tick_name(state)), e))
+                    else:
+                        raise NotImplementedError
+
             elif str(label.event) in self.messages.keys():
+                # Conversion for messages
                 message = self.messages[str(label.event)]
                 if message.scope == "INPUT_DATA":
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
-                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                    remove_mesg = [
-                        hcsp.Assign("IQU", expr.FunExpr("remove", [expr.AVar("IQU"),expr.AConst(label.event.name)]))
-                    ]   
+                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AConst("IQU"),expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
+                   
                 elif message.scope == "LOCAL_DATA":
                     conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
-                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                    remove_mesg = [
-                        hcsp.Assign("LQU", expr.FunExpr("remove", [expr.AVar("LQU"),expr.AConst(label.event.name)]))
-                    ]  
+                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AConst("LQU"),expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
+                  
             else:
                 raise NotImplementedError('convert_label: unsupported event type')
 
@@ -462,7 +524,7 @@ class SFConvert:
             conds.append(hp_cond)
 
         cond_act = self.convert_cmd(label.cond_act, still_there=still_there)
-        return hcsp.seq(pre_acts), expr.conj(*conds), cond_act, hcsp.seq(remove_mesg)
+        return hcsp.seq(pre_acts), expr.conj(*conds), cond_act
 
     def get_rec_entry_proc(self, state):
         """Return the process for recursively entering into state.
@@ -482,13 +544,13 @@ class SFConvert:
                 default_tran = None
                 for child in state.children:
                     if isinstance(child, OR_State) and child.default_tran:
-                        pre_act, cond, cond_act, remove_mesg = \
+                        pre_act, cond, cond_act = \
                             self.convert_label(child.default_tran.label)
                         tran_act = self.convert_cmd(child.default_tran.label.tran_act)
                         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
                             "get_rec_entry_proc: no condition on default transitions"
                         default_tran = hcsp.seq([
-                            remove_mesg, cond_act, tran_act, hcsp.Var(self.entry_proc_name(child)),
+                            cond_act, tran_act, hcsp.Var(self.entry_proc_name(child)),
                             self.get_rec_entry_proc(child)])
                         break
                 
@@ -565,14 +627,14 @@ class SFConvert:
 
                     ancestor = get_common_ancestor(src, dst, out_trans=True)
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
-                    pre_act, cond, cond_act, remove_mesg = self.convert_label(
+                    pre_act, cond, cond_act = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
 
                     # Perform the condition action. If still in the current state
                     # afterwards, traverse the destination of the transition. Starting
                     # from the second transition, check whether still in the state.
                     act = hcsp.Sequence(
-                        remove_mesg, cond_act,
+                         cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
                             self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=True),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
@@ -598,7 +660,7 @@ class SFConvert:
                     dst = self.chart.all_states[tran.dst]
                     ancestor = get_common_ancestor(src, dst, out_trans=False)
                     still_there_tran = self.get_ancestor_empty_cond(ancestor)
-                    pre_act, cond, cond_act, remove_mesg = self.convert_label(
+                    pre_act, cond, cond_act = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
 
                     # Perform the condition action. If still in the current state
@@ -606,7 +668,7 @@ class SFConvert:
                     # transition, check whether one of the existing transitions has aleady
                     # been carried out.
                     act = hcsp.Sequence(
-                        remove_mesg, cond_act,
+                        cond_act,
                         hcsp.Condition(still_there_cond, hcsp.seq([
                             self.get_traverse_state_proc(dst, src, tran.label.tran_act, out_trans=False),
                             hcsp.Assign(done, expr.AVar("_ret"))])))
@@ -670,19 +732,18 @@ class SFConvert:
         to_sub_cond = expr.RelExpr("==", expr.AVar("_ret"), expr.AConst(0))
         
         # Next, recursively execute child states
-        if state.children:
-            if any(isinstance(child, AND_State) for child in state.children):
-                for child in state.children:
-                    procs.append(self.get_rec_during_proc(child))
-            elif any(isinstance(child, OR_State) for child in state.children):
-                ite = []
-                for child in state.children:
-                    if isinstance(child, OR_State):
-                        ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
-                                    self.get_rec_during_proc(child)))
-                procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
-            else:
-                pass  # Junction only
+        if any(isinstance(child, AND_State) for child in state.children):
+            for child in state.children:
+                procs.append(self.get_rec_during_proc(child))
+        elif any(isinstance(child, OR_State) for child in state.children):
+            ite = []
+            for child in state.children:
+                if isinstance(child, OR_State):
+                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
+                                self.get_rec_during_proc(child)))
+            procs.append(hcsp.Condition(to_sub_cond, hcsp.ITE(ite)))
+        else:
+            pass  # Junction only
         return hcsp.seq(procs)
 
     def get_traverse_state_proc(self, state, init_src, tran_act, *, out_trans=False):
@@ -731,13 +792,13 @@ class SFConvert:
                 for i, tran in enumerate(state.out_trans):
                     dst = self.chart.all_states[tran.dst]
 
-                    pre_act, cond, cond_act, remove_mesg = \
+                    pre_act, cond, cond_act = \
                         self.convert_label(tran.label, still_there=still_there_cond)
                     # if isinstance(cond,expr.BConst):
                     #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
                     act = self.get_traverse_state_proc(
                         dst, init_src, function.seq([tran_act, tran.label.tran_act]), out_trans=out_trans)
-                    act = hcsp.seq([remove_mesg, cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
+                    act = hcsp.seq([ cond_act, act, hcsp.Assign(done, expr.AVar("_ret"))])
                     if i == 0:
                         procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)])),
                     else:
@@ -769,13 +830,13 @@ class SFConvert:
         self.local_vars.add(done)
         procs.append(hcsp.Assign(done, expr.AConst(0)))
         for i, tran in enumerate(junc.out_trans):
-            pre_act, cond, cond_act, remove_mesg = self.convert_label(tran.label)
+            pre_act, cond, cond_act= self.convert_label(tran.label)
 
             # if isinstance(cond,expr.BConst):
             #     cond=expr.RelExpr("==",expr.AVar(str(cond)),expr.AConst(1))
             assert tran.label.tran_act == function.Skip(), \
                 "convert_graphical_function_junc: no transition action in graphical functions."
-            act = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
+            act = hcsp.seq([ cond_act, hcsp.Var("J" + tran.dst),hcsp.Assign(done, expr.AConst(1))])
             if i == 0:
                 procs.append(hcsp.seq([pre_act, hcsp.Condition(cond, act)]))
             else:
@@ -791,13 +852,13 @@ class SFConvert:
             res["J" + junc.ssid] = self.convert_graphical_function_junc(junc)
 
         # Now process default transition
-        pre_act, cond, cond_act, remove_mesg = self.convert_label(proc.default_tran.label)
+        pre_act, cond, cond_act = self.convert_label(proc.default_tran.label)
         dst = proc.default_tran.dst
         assert pre_act == hcsp.Skip() and cond == expr.true_expr, \
             "convert_graphical_function: no condition on default transitions"
         assert proc.default_tran.label.tran_act == function.Skip(), \
             "convert_graphical_function: no transition action in graphical functions"
-        res[proc.name] = hcsp.seq([remove_mesg, cond_act, hcsp.Var("J" + proc.default_tran.dst)])
+        res[proc.name] = hcsp.seq([ cond_act, hcsp.Var("J" + proc.default_tran.dst)])
         return res
 
     def init_name(self):
@@ -810,27 +871,38 @@ class SFConvert:
         """Initialization procedure."""
         procs = []
 
+        # Start signal
+        if self.has_signal:
+            procs.append(hcsp.InputChannel("start_" + self.chart.name))
+
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.AConst([])))
-        procs.append(hcsp.Assign("IQU",expr.AConst(())))
-        procs.append(hcsp.Assign("LQU",expr.AConst(())))
-        for name,info in self.messages.items():
-            if info.scope in ("LOCAL_DATA","OUTPUT_DATA"):
-                procs.append(hcsp.Assign(expr.AVar(name),expr.AConst(dict(info))))
-        # # Read data store variable
-        # for vname, info in self.data.items():
-        #     if info.scope == "DATA_STORE_MEMORY_DATA":
-        #         procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + vname, expr.AVar(vname)))
+        procs.append(hcsp.Assign("IQU", expr.AConst(())))
+        procs.append(hcsp.Assign("LQU", expr.AConst(())))
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
+                procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
 
-        # Read from DSM                
-        for info in self.dsms:
-            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        # Input data
+        procs.extend(self.get_input_data())
+
+        # Input from DSM
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.InputChannel(vname + "_in", expr.AVar(vname)))
+        
+        # Initialize messages
+        for name, info in self.messages.items():
+            if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
+                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst(dict(info))))
 
         # Initialize variables
         for vname, info in self.data.items():
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
+
         # Initialize state
         for or_father in self.or_fathers:
             procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
@@ -849,56 +921,120 @@ class SFConvert:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
 
-        # Recursive entry into diagram
+        # Read messages
         for port_id, out_var in self.chart.port_to_in_var.items():
             if str(out_var) in self.messages.keys():
-                mes=self.messages[str(out_var)]
+                mes = self.messages[str(out_var)]
                 if mes.scope == "INPUT_DATA":
                     line = self.chart.dest_lines[port_id]
-                    ch_name = "ch_" + line.name + "_" + str(line.branch)
+                    ch_name = "ch_" + line.name + "_" + str(line.branch) + "_in"
                     procs.append(hcsp.InputChannel(ch_name , expr.AVar(out_var)))
-                    procs.append( hcsp.seq([hcsp.Assign("IQU", expr.FunExpr("put", [expr.AVar("IQU"), expr.AVar(out_var)]))
-                    ])) 
+                    procs.append(hcsp.Assign("IQU", expr.FunExpr("put", [expr.AConst("IQU"), expr.AVar("IQU"), expr.AVar(out_var)])))
 
+        # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
         procs.append(self.get_rec_entry_proc(self.chart.diagram))
-        # Write data store variable
-        for info in self.dsms:
-            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
-
-        # self.get_input_data(procs)
-        procs.extend(self.get_input_data())
         
+        # Write data store variable
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
+
         procs.extend(self.get_output_data())
-        # self.get_output_data(procs)
+
+        # End signal
+        if self.has_signal:
+            procs.append(hcsp.InputChannel("end_" + self.chart.name))
 
         return hcsp.seq(procs)
 
     def get_exec_proc(self):
         return self.get_rec_during_proc(self.chart.diagram)
 
+    def get_ode(self, state, cur_states, cur_eqs):
+        """Obtain the HCSP command for ODE between iterations.
+        
+        state - current state to process.
+        cur_eqs - list of (x, expr) for already existing equations.
+        
+        """
+        if state.ssid in self.ode_map:
+            new_eqs = cur_eqs + self.ode_map[state.ssid]
+        else:
+            new_eqs = cur_eqs
+        if any(isinstance(child, OR_State) for child in state.children):
+            ite = []
+            for child in state.children:
+                if isinstance(child, OR_State):
+                    ite.append((expr.RelExpr("==", expr.AVar(self.active_state_name(state)), expr.AConst(child.whole_name)),
+                                self.get_ode(child, cur_states+[child], new_eqs)))
+            return hcsp.ITE(ite)
+        elif any(isinstance(child, AND_State) for child in state.children):
+            raise NotImplementedError
+        else:
+            # Junctions only, produce the ODE. First obtain the list of boundary
+            # conditions
+            all_conds = []
+            for cur_st in cur_states:
+                if cur_st.out_trans:
+                    for tran in cur_st.out_trans:
+                        pre_act, cond, _ = self.convert_label(tran.label)
+                        if pre_act != hcsp.Skip():
+                            raise NotImplementedError
+                        all_conds.append(cond)
+            eqs = []
+            for var, eq in new_eqs:
+                pre_act, e = self.convert_expr(eq)
+                if pre_act != hcsp.Skip():
+                    raise NotImplementedError
+                eqs.append((var, e))
+            return hcsp.ODE(eqs, expr.neg_expr(expr.disj(*all_conds)))
+
     def get_iteration(self):
         procs = []
 
-        # Read data store variable
-        for info in self.dsms:
-            procs.append(hcsp.InputChannel("read_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
+        # Start signal
+        if self.has_signal:
+            procs.append(hcsp.InputChannel("start_" + self.chart.name))
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
+                
+        procs.extend(self.get_input_data())
 
+        # Input from data store
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.InputChannel(vname + "_in", expr.AVar(vname)))
+        
         # Call during procedure of the diagram
         procs.append(hcsp.Var(self.exec_name()))
 
-        # Write data store variable
-        for info in self.dsms:
-            procs.append(hcsp.OutputChannel("write_" + self.chart.name + "_" + info.dataStoreName, expr.AVar(info.dataStoreName)))
-
+        # Write to data store
+        for vname, info in self.data.items():
+            if info.scope == "DATA_STORE_MEMORY_DATA":
+                procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
         procs.extend(self.get_output_data())
-        procs.extend(self.get_input_data())
-
-        # self.get_output_data(procs)
-        # self.get_input_data(procs)
         
+        inputMesdicts = dict()
+        for name, info in self.messages.items():
+            if info.scope == "INPUT_DATA":
+                inputMesdicts[name] = info
+        if len(inputMesdicts) > 0:
+            procs.append(hcsp.Condition(expr.RelExpr("==", expr.FunExpr("remove_InputMessage", [expr.AConst(inputMesdicts)]),expr.AConst(1)),hcsp.Skip()))
+        
+        for n,e in  self.events.items():
+            if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
+                procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
+        # End signal
+        if self.has_signal:
+            procs.append(hcsp.InputChannel("end_" + self.chart.name))
+
         # Wait the given sample time
-        procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
+        if self.ode_map:
+            procs.append(self.get_ode(self.chart.diagram, cur_states=[], cur_eqs=[]))
+        else:
+            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         # Update counter for absolute time events
         for ssid in self.absolute_time_events:
@@ -907,7 +1043,7 @@ class SFConvert:
                 expr.RelExpr("!=", expr.AVar(time_name), expr.AConst(-1)),
                 hcsp.Assign(
                     expr.AVar(time_name),
-                    expr.PlusExpr(["+", "+"], [expr.AVar(time_name), expr.AConst(self.sample_time)]))))
+                    expr.OpExpr('+', expr.AVar(time_name), expr.AConst(self.sample_time)))))
 
         return hcsp.seq(procs)
 
@@ -943,32 +1079,90 @@ class SFConvert:
 
     def get_toplevel_process(self):
         """Returns the top-level process for chart."""
-        return hcsp.Sequence(
+        return hcsp.Sequence( 
             hcsp.Var(self.init_name()),
             hcsp.Loop(self.get_iteration()))
 
 
-def convert_data_store_memory(dsm, charts):
-    """Conversion function for data store memory.
+def get_execute_order(charts):
+    """Returns execution order of charts."""
+    # Mapping from channel name to input chart
+    ch_name_in = dict()
+    # Mapping from channel name to output chart
+    ch_name_out = dict()
     
-    If data store memory is present, it is responsible for synchronizing
-    the order of execution of different Stateflow charts. It performs
-    read-write for each chart in alphabetical order, ensuring that
-    initialization and execution of charts proceed in the same order.
-    """
-    _, init_value = convert.convert_expr(dsm.value)
-    dsm_name = dsm.dataStoreName
-    chart_names = sorted(list(chart.name for chart in charts))
-    cmds = []
-    for name in chart_names:
-        cmds.append(hcsp.OutputChannel("read_" + name + "_" + dsm_name, expr.AVar(dsm_name)))
-        cmds.append(hcsp.InputChannel("write_" + name + "_" + dsm_name, expr.AVar(dsm_name)))
-    return hcsp.Sequence(
-        hcsp.Assign(expr.AVar(dsm.dataStoreName), init_value),
-        hcsp.Loop(hcsp.seq(cmds))
-    )
+    for chart in charts:
+        for port_id, in_var in chart.port_to_in_var.items():
+            line = chart.dest_lines[port_id]
+            ch_name = "ch_" + line.name + "_" + str(line.branch)
+            ch_name_in[ch_name] = chart.name
+        for port_id, out_var in chart.port_to_out_var.items():
+            lines = chart.src_lines[port_id]
+            for line in lines:
+                ch_name = "ch_" + line.name + "_" + str(line.branch)
+                ch_name_out[ch_name] = chart.name
 
-def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False):
+    # Edges between charts. Both keys are values are names
+    edges = dict()
+    shared_chans = []
+    for chart in charts:
+        edges[chart.name] = set()
+    for chan in ch_name_in:
+        if chan in ch_name_out:
+            shared_chans.append(chan)
+            chart_in, chart_out = ch_name_in[chan], ch_name_out[chan]
+            edges[chart_out].add(chart_in)
+    
+    # Finally, compute the ordering of charts
+    chart_order = []
+    def rec(chart_name):
+        if chart_name not in chart_order:
+            chart_order.append(chart_name)
+            for dest in sorted(edges[chart_name]):
+                rec(dest)
+
+    while True:
+        # In each iteration, let the starting chart be the one that has
+        # the least number of incoming edges, sorted alphabetically
+        least_chart, least_degree = None, None
+        for chart_name in sorted(edges):
+            if chart_name not in chart_order:
+                degree = 0
+                for chart_out in edges:
+                    if chart_name in edges[chart_out]:
+                        degree += 1
+                if least_degree is None or degree < least_degree:
+                    least_chart = chart_name
+                    least_degree = degree
+        rec(least_chart)
+        if len(chart_order) == len(edges):
+            break
+
+    return shared_chans, chart_order
+
+def get_control_proc(chart_order):
+    procs = []
+    for ch_name in chart_order:
+        procs.append(hcsp.OutputChannel("start_" + ch_name))
+        procs.append(hcsp.OutputChannel("end_" + ch_name))
+    return hcsp.Loop(hcsp.seq(procs))
+
+def get_data_proc(comm_data):
+    procs = []
+    for ch_name, init_value in comm_data:
+        if init_value:
+            procs.append(hcsp.Assign(expr.AVar(ch_name), init_value))
+
+    select_ios = []
+    for ch_name, init_value in comm_data:
+        select_ios.extend([
+            (hcsp.OutputChannel(ch_name + "_in", expr.AVar(ch_name)), hcsp.Skip()),
+            (hcsp.InputChannel(ch_name + "_out", expr.AVar(ch_name)), hcsp.Skip())])
+    procs.append(hcsp.Loop(hcsp.SelectComm(*select_ios)))
+    return hcsp.seq(procs)
+
+def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False,
+                    debug_name=None):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
@@ -980,7 +1174,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     # Initial stages
     diagram.parse_xml()
     diagram.add_line_name()
-    _, continuous, charts, _, _, _, dsms, dsrs = diagram.seperate_diagram()
+    _, continuous, charts, _, _, _, dsms, dsrs,clocks = diagram.seperate_diagram()
 
     # Optional: print chart
     if print_chart:
@@ -989,25 +1183,53 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     proc_map = dict()
     converter_map = dict()
-    sample_time=-1
+
+    # Obtain sample time
+
+    sample_time = -1
+    if 'st' in diagram.chart_parameters and diagram.chart_parameters['st'] != -1:
+        sample_time = diagram.chart_parameters['st']
+    else:
+        for chart in charts: 
+            chart_parameters = diagram.chart_parameters[chart.name]
+            if 'st' in chart_parameters and chart_parameters['st'] != -1 and sample_time == -1:
+                sample_time = chart_parameters['st']
+
+    # Process controlling order between charts
+    shared_chans, exec_order = get_execute_order(charts)
+    if len(charts) > 1:
+        proc_map["order_ctrl"] = (dict(), get_control_proc(exec_order))
+
+    # Processes for charts
+    has_signal = (len(charts) > 1)
     for chart in charts:
-        chart_parameters=diagram.chart_parameters[chart.name]
-        if 'st' in chart_parameters and chart_parameters['st']  !=-1:
-            sample_time=chart_parameters['st']
-    for chart in charts:
-        diagram.chart_parameters[chart.name]['st']=sample_time
-        converter = SFConvert(chart, dsms=dsms, chart_parameters=diagram.chart_parameters[chart.name])
+        diagram.chart_parameters[chart.name]['st'] = sample_time
+        converter = SFConvert(
+            chart, chart_parameters=diagram.chart_parameters[chart.name],
+            has_signal=has_signal, shared_chans=shared_chans)
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
         proc_map[chart.name] = (procs, hp)
         converter_map[chart.name] = converter
 
+    # Communicating data (DSM, channel, messages)
+    comm_data = []
+    for channel in shared_chans:
+        comm_data.append((channel, None))
     for dsm in dsms:
-        dsm_name = "DSM_" + dsm.dataStoreName
-        proc_map[dsm_name] = (dict(), convert_data_store_memory(dsm, charts))
+        _, init_value = convert.convert_expr(dsm.value)
+        comm_data.append((dsm.dataStoreName, init_value))
+    
+    # Process controlling data between charts
+    if len(comm_data) > 0:
+        proc_map["data_ctrl"] = (dict(), get_data_proc(comm_data))
 
+    # Processes for continuous
     for i, c in enumerate(continuous):
         proc_map["Continuous" + str(i+1)] = (dict(), get_hcsp.translate_continuous(c))
+
+    for i, c in enumerate(clocks):
+        proc_map["Clock" + str(i+1)] = (dict(), c.get_hcsp())
 
     # Optional: print HCSP program before simplification
     if print_before_simp:
@@ -1016,6 +1238,14 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             for name, proc in procs.items():
                 print('\nprocedure ' + name + " ::=\n" + pprint(proc))
             print()
+
+    # Record program size before optimization
+    if debug_name:
+        before_size = 0
+        for _, (procs, hp) in proc_map.items():
+            before_size += hp.size()
+            for _, proc in procs.items():
+                before_size += proc.size()
 
     # Reduce procedures
     for name, (procs, hp) in proc_map.items():
@@ -1033,5 +1263,14 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             for proc_name, proc in procs.items():
                 print('\nprocedure ' + proc_name + " ::=\n" + pprint(proc))
             print()
+
+    # Record and print size after optimization
+    if debug_name:
+        after_size = 0
+        for _, (procs, hp) in proc_map.items():
+            after_size += hp.size()
+            for _, proc in procs.items():
+                after_size += proc.size()
+        print(debug_name, before_size, after_size)
 
     return proc_map

@@ -1,7 +1,7 @@
 """Unit delay block"""
 
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, ModExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, OpExpr
 from ss2hcsp.hcsp.parser import hp_parser
 from ss2hcsp.hcsp import hcsp as hp
 
@@ -35,12 +35,12 @@ class UnitDelay(SL_Block):
 
     def get_output_hp(self):
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=AVar(self.name+"_state")))
 
     def get_update_hp(self):
         in_var = self.dest_lines[0].name
-        cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=cond, hp=hp.Assign(var_name=self.name+"_state", expr=AVar(in_var)))
 
     # def get_var_map(self):

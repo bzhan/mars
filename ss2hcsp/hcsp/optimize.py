@@ -1,7 +1,7 @@
 """Optimization of HCSP code."""
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr
+from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr,RelExpr,FunExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 
@@ -9,13 +9,16 @@ from ss2hcsp.hcsp import simulator
 def is_atomic(hp):
     """Whether hp is an atomic program"""
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
-                       'input_channel', 'output_channel')
+                       'input_channel', 'output_channel', 'ode')
 
 def simplify_expr(expr):
     if not expr.get_vars():
-        b = simulator.eval_expr(expr, dict())
-        assert isinstance(b, bool)
-        return true_expr if b else false_expr
+        if isinstance(expr,RelExpr)  and isinstance(expr.expr1,FunExpr) and expr.expr1.fun_name == "remove_InputMessage":
+            return expr
+        else:
+            b = simulator.eval_expr(expr, dict())
+            assert isinstance(b, bool)
+            return true_expr if b else false_expr
     else:
         return expr
 
@@ -35,14 +38,16 @@ def simplify(hp):
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
+        if  isinstance(simp_cond,RelExpr)  and isinstance(simp_cond.expr1,FunExpr) and simp_cond.expr1.fun_name == "remove_InputMessage":
+            return  hcsp.Condition(simp_cond, simp_sub_hp)
+        elif simp_sub_hp.type == 'skip'  or simp_cond == false_expr:
             return hcsp.Skip()
         elif simp_cond == true_expr:
             return simp_sub_hp
         else:
             return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
-        return hcsp.ODE(hp.eqs, hp.constraint, out_hp=simplify(hp.out_hp))
+        return hcsp.ODE(hp.eqs, simplify(hp.constraint), out_hp=simplify(hp.out_hp))
     elif hp.type == 'ode_comm':
         return hcsp.ODE_Comm(hp.eqs, hp.constraint,
                              [(io, simplify(comm_hp)) for io, comm_hp in hp.io_comms])
@@ -55,6 +60,18 @@ def simplify(hp):
     else:
         raise NotImplementedError
 
+def get_read_vars_lname(lname):
+    if lname is None:
+        return set()
+    elif isinstance(lname, expr.AVar):
+        return set()
+    elif isinstance(lname, expr.ArrayIdxExpr):
+        return lname.expr2.get_vars().union(get_read_vars_lname(lname.expr1))
+    elif isinstance(lname, expr.FieldNameExpr):
+        return get_read_vars_lname(lname.expr)
+    else:
+        raise NotImplementedError
+
 def get_read_vars(hp):
     """Obtain set of variables read by the program."""
     if hp.type in ('skip', 'var'):
@@ -62,17 +79,19 @@ def get_read_vars(hp):
     elif hp.type == 'wait':
         return hp.delay.get_vars()
     elif hp.type == 'assign':
-        return hp.expr.get_vars()
+        return get_read_vars_lname(hp.var_name).union(hp.expr.get_vars())
     elif hp.type in ('assert', 'test', 'log'):
         return hp.get_vars()
     elif hp.type == 'input_channel':
-        return set()
+        return get_read_vars_lname(hp.var_name)
     elif hp.type == 'output_channel':
         return hp.get_vars()
     elif hp.type == 'condition':
         return hp.cond.get_vars()
     elif hp.type == 'ite':
         return set().union(*(if_cond.get_vars() for if_cond, _ in hp.if_hps))
+    elif hp.type == 'ode':
+        return hp.constraint.get_vars().union(*(eq.get_vars() for _, eq in hp.eqs))
     else:
         raise NotImplementedError
 
@@ -102,12 +121,16 @@ def replace_read_vars(hp, inst):
             return hp
         else:
             return hcsp.OutputChannel(hp.ch_name, hp.expr.subst(inst))
+    elif hp.type == 'ode':
+        return hcsp.ODE([(var, eq.subst(inst)) for var, eq in hp.eqs], hp.constraint.subst(inst))
     else:
         raise NotImplementedError
 
 def get_write_vars(lname):
     """Given lname of an assignment, return the set of variables written."""
-    if isinstance(lname, expr.AVar):
+    if lname is None:
+        return {}
+    elif isinstance(lname, expr.AVar):
         return {lname.name}
     elif isinstance(lname, expr.ArrayIdxExpr):
         return get_write_vars(lname.expr1)
@@ -373,6 +396,9 @@ class HCSPAnalysis:
             elif info.sub_hp.type == 'input_channel':
                 for write_vars in get_write_vars(info.sub_hp.var_name):
                     info.reach_after.add((write_vars, loc))
+            elif info.sub_hp.type == 'ode':
+                for var, eq in info.sub_hp.eqs:
+                    info.reach_after.add((var, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -406,7 +432,7 @@ class HCSPAnalysis:
         """
         repls = dict()
         for loc, info in self.infos.items():
-            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):    
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):   
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
                     reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
@@ -424,7 +450,7 @@ class HCSPAnalysis:
                     unique_assign = None
                     for prev_loc in reach_defs:
                         def_hp = self.infos[prev_loc].sub_hp
-                        if def_hp.type == 'input_channel':
+                        if def_hp.type in ('input_channel', 'ode'):
                             unique_assign = None
                             break
                         assert def_hp.type == 'assign'
@@ -445,7 +471,6 @@ class HCSPAnalysis:
                     if loc not in repls:
                         repls[loc] = dict()
                     repls[loc][var] = unique_assign
-
         return repls
 
     def compute_live_variable(self):
@@ -508,7 +533,6 @@ class HCSPAnalysis:
             if info.sub_hp.type == 'assign':
                 if all(name not in info.live_after for name in get_write_vars(info.sub_hp.var_name)):
                     dead_code.append(loc)
-        
         return dead_code
 
 

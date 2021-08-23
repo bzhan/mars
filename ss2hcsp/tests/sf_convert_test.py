@@ -35,7 +35,8 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
-        diagram, print_chart=print_chart, print_before_simp=print_before_simp, print_final=print_final)
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
+        print_final=print_final)
 
     if profile:
         p = Stats(pr)
@@ -245,6 +246,30 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/Events/DirectedEvent6.xml", 1,
             ['log a', 'log c', 'delay 0.1'])
 
+    def testFunction1(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function1.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction2(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function2.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction3(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function3.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction4(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function4.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction5(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function5.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
+    def testFunction6(self):
+        run_test(self, "./Examples/Stateflow/tests/Functions/Function6.xml", 1,
+            ['log en_A', 'log en_B', 'delay 0.1'])
+
     def testGraphicalFunction1(self):
         run_test(self, "./Examples/Stateflow/tests/Functions/GraphicalFunction1.xml", 1,
             ['log en_A', 'log en_B', 'delay 0.1'])
@@ -263,41 +288,58 @@ class SFConvertTest(unittest.TestCase):
             ['log en_A', 'log ack', 'log ack', 'log ack', 'log ack', 'log ack',
              'log en_B', 'delay 0.1'])
 
-    def testCommunityCharts(self):
-        run_test(self, "./Examples/Stateflow/tests/community_charts.xml",20,
-           ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x0_0 0', 'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1',
-            'log en_B1_1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2',
-            'IO ch_x1_0 1', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actAdd',
-            'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x0_0 1',
-            'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x0_0 2', 'IO ch_x1_0 3', 'delay 0.1'])
-        
-    def testCommunityCharts1(self):
-        run_test(self, "./Examples/Stateflow/tests/community_charts1.xml",31,
-          ['log en_add', 'log en_A1', 'log en_A1_1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 0',
-           'IO ch_x1_0 0', 'log con_actB', 'log en_B', 'log con_act_chart1', 'log en_B1', 'log en_B1_1',
-           'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 1', 'delay 0.1', 'log con_actAdd',
-           'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2', 'IO ch_x1_0 1', 'delay 0.1',
-           'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1', 'IO ch_x1_0 2',
-           'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 2',
-           'IO ch_x1_0 2', 'delay 0.1', 'log con_actB', 'log en_B', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1', 'IO ch_x0_0 1',
-           'IO ch_x1_0 3', 'delay 0.1', 'log con_actAdd', 'log en_add', 'log du_b1', 'IO ch_x2_0 1', 'IO ch_x3_0 1'])
+    def testTemporal1(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal1.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
 
-    def testAfterRandom(self):
+    def testTemporal2(self):
         random.seed(0)  # for repeatability
-        run_test(self, "./Examples/Stateflow/tests/after_random.xml", 10,
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal2.xml", 10,
             ['log en_A', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_B', 'log Picked 4', 'delay 1', 'delay 1', 'delay 1', 'delay 1',
              'log en_A', 'log Picked 1', 'delay 1',
              'log en_B', 'log Picked 3', 'delay 1'])
 
-    def testAfterTick(self):
-        run_test(self, "./Examples/Stateflow/tests/after_tick_eg_2018a.xml", 20,
+    def testTemporal3(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal3.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
+
+    def testTemporal4(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal4.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1'])
+
+    def testTemporal5(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal5.xml", 10,
             ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
-             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A',
-             'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log en_B', 'delay 0.1',
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 
-             'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 
-             'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1'])
+
+    def testTemporal6(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal6.xml", 5,
+            ['log en_A', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A',
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_A', 'delay 0.1'])
+    
+    def testTemporal7(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal7.xml", 5,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B',
+             'delay 0.1', 'log en_A', 'delay 0.1', 'log en_B', 'delay 0.1'])
+
+    def testTemporal8(self):
+        run_test(self, "./Examples/Stateflow/tests/Temporal/Temporal8.xml", 10,
+            ['log en_A', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1',
+             'log en_B', 'delay 0.1', 'log du_B', 'delay 0.1', 'log du_B', 'delay 0.1',
+             'log en_A', 'delay 0.1', 'log du_A', 'delay 0.1', 'log du_A', 'delay 0.1'])
 
     def testEarlyReturn1(self):
         run_test(self, "./Examples/Stateflow/tests/EarlyReturn/EarlyReturn1.xml", 1,
@@ -388,55 +430,91 @@ class SFConvertTest(unittest.TestCase):
 
     def testDSM1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM1.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM1.xml", 20,
             ['log 2', 'delay 0.1', 'log 4', 'delay 0.1', 'log 5', 'delay 0.1',
              'log 7', 'delay 0.1', 'log 8', 'delay 0.1', 'log 10', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM2.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM2.xml", 20,
             ['log 1', 'delay 0.1', 'log 3', 'delay 0.1', 'log 4', 'delay 0.1',
              'log 6', 'delay 0.1', 'log 7', 'delay 0.1', 'log 9', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM3.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM3.xml", 20,
             ['log 3 2', 'delay 0.1', 'log 3 5', 'delay 0.1', 'log 8 5', 'delay 0.1',
              'log 8 13', 'delay 0.1', 'log 21 13', 'delay 0.1', 'log 21 34', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM4.xml", 19,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM4.xml", 35,
             ['log A1', 'log C1', 'log B2', 'log D4', 'delay 0.1',
              'log A4', 'log C4', 'delay 0.1', 'log B5', 'log D7', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM5.xml", 34,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM5.xml", 34,
             ['log 4 2', 'delay 0.1', 'log 4 4', 'delay 0.1', 'log 5 4', 'delay 0.1',
              'log 5 6', 'delay 0.1', 'log 6 6', 'delay 0.1', 'log 6 8', 'delay 0.1'], io_filter=io_filter)
 
     def testDSM6(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/DataStore/DSM6.xml", 20,
+        run_test(self, "./Examples/Stateflow/tests/Data/DSM6.xml", 36,
             ['log en_A 0 0', 'log en_A1 3 0', 'log en_B 4 4', 'log du_A1 4 0', 'delay 0.1',
              'log en_A 4 -1', 'log du_A1 3 -1', 'delay 0.1',
              'log en_B 4 -1', 'log du_A1 4 0', 'delay 0.1'], io_filter=io_filter)
 
-    def testSFNew(self):
-        random.seed(0)  # for repeatability
-        pat = [
-            'IO read_Chart_WHC [0,0,0,0,0]', 'IO read_Chart_RHC [0,0,0,0,0]',
-            'IO read_Chart_RHC2 [0,0,0,0,0]', 'IO write_Chart_WHC [0,0,0,0,0]',
-            'IO write_Chart_RHC [0,0,0,0,0]', 'IO write_Chart_RHC2 [0,0,0,0,0]',
-            'IO read_DDS_Writer_WHC [0,0,0,0,0]', 'IO read_DDS_Writer_RHC [0,0,0,0,0]',
-            'IO read_DDS_Writer_RHC2 [0,0,0,0,0]', 'IO write_DDS_Writer_WHC [0,0,0,0,0]',
-            'IO write_DDS_Writer_RHC [0,0,0,0,0]', 'IO write_DDS_Writer_RHC2 [0,0,0,0,0]',
-            'IO ch_x0_0 1', 'IO ch_x1_0 1', 'IO ch_x2_0 1', 'IO ch_x3_0 0'
-        ]
-        res = pat * 2 + ['delay 0.1'] + pat + ['delay 0.1']
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 50,
-            res, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+    def testCommunication1(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication1.xml", 62,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
+             'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
+             'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
+             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter)
+        
+    def testCommunication2(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication2.xml", 65,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 1 2 2 1', 'delay 0.1',
+             'log en_A', 'log 1 2 2 2', 'delay 0.1',
+             'log en_B', 'log 1 2 3 2', 'delay 0.1',
+             'log en_A', 'log 1 2 3 3', 'delay 0.1',
+             'log en_B', 'log 1 2 4 3', 'delay 0.1'], io_filter=io_filter)
+
+    def testCommunication3(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication3.xml", 62,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 2 1', 'delay 0.1',
+             'log en_A', 'log 2 2', 'delay 0.1', 'log en_B', 'log 3 2', 'delay 0.1',
+             'log en_A', 'log 3 3', 'delay 0.1', 'log en_B', 'log 4 3', 'delay 0.1',
+             'log en_A', 'log 4 4', 'delay 0.1'], io_filter=io_filter)
+
+    def testCommunication4(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication4.xml", 105,
+            ['log en_A', 'log en_A1', 'log en_B', 'log 2 2', 'delay 0.1',
+             'log en_A', 'log 2 4', 'delay 0.1', 'log en_B', 'log 3 4', 'delay 0.1',
+             'log en_A', 'log 3 6', 'delay 0.1', 'log en_B', 'log 4 6', 'delay 0.1',
+             'log en_A', 'log 4 8', 'delay 0.1'], io_filter=io_filter)
+
+    def testCommunication5(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication5.xml", 147,
+           ['log en_A', 'log en_C', 'log en_A1', 'log en_B', 'log 2 2 2', 'delay 0.1',
+            'log en_A', 'log 2 4 4', 'delay 0.1', 'log en_B', 'log 3 4 10', 'delay 0.1',
+            'log en_A', 'log 3 6 20', 'delay 0.1', 'log en_B', 'log 4 6 42', 'delay 0.1',
+            'log en_A', 'log 4 8 84', 'delay 0.1'], io_filter=io_filter)
+
+    def testCommunication6(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Data/Communication6.xml", 120,
+            ['log en_A', 'log en_A1', 'log en_C', 'log en_B', 'log 2 1', 'log 1', 'delay 0.1',
+             'log en_A', 'log 2 2', 'log 1', 'delay 0.1',
+             'log en_B', 'log 3 2', 'log 2', 'delay 0.1',
+             'log en_A', 'log 3 3', 'log 2', 'delay 0.1',
+             'log en_B', 'log 4 3', 'log 3', 'delay 0.1',
+             'log en_A', 'log 4 4', 'log 3', 'delay 0.1'], io_filter=io_filter)
 
     def testMessages1(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages1.xml", 2,
@@ -444,22 +522,92 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages2(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages2.xml", 3,
-            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'log en_D', 'delay 0.1'])
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C',
+             'delay 0.1', 'log en_D', 'delay 0.1'])
 
     def testMessages3(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages3.xml", 7,
-           ['log en_A', 'IO ch_x0_0 {name:M,data:0,scope:OUTPUT_DATA}', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
-            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'])
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages3.xml", 40,
+           ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
+            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'], io_filter=io_filter)
     
-    def testMessage4(self):
+    def testMessages4(self):
         run_test(self, "./Examples/Stateflow/tests/Messages/Messages4.xml", 3,
-            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'log en_D', 'delay 0.1'])
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'])
 
     def testMessages5(self):
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages3_2018a.xml",7,
-           ['log en_A','IO ch_x0_0 {name:M,data:2,scope:OUTPUT_DATA}', 'log en_A0', 'delay 1', 'delay 1', 'delay 1',
-            'log en_A1', 'delay 1', 'log en_A2', 'delay 1', 'delay 1'])
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages5.xml", 4,
+            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'log en_C', 'delay 0.1', 'delay 0.1'])
 
+    def testMessages6(self):
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages6.xml", 5,
+            ['log en_A', 'log en_B', 'delay 0.1', 'delay 0.1', 'log en_C', 'delay 0.1',
+             'log en_D', 'delay 0.1', 'log en_E', 'delay 0.1'])
+
+    def testMessages7(self):
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages7.xml", 4,
+            ['log en_A', 'log en_B', 'delay 0.1', 'log en_C', 'delay 0.1',
+             'log en_D', 'delay 0.1', 'delay 0.1'])
+
+    def testMessages8(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages8.xml", 40,
+            ['log en_A', 'log en_A0', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
+
+    def testContinuous1(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 2,
+            ['log enA 0.000 0.000', 'delay 0.5',
+             'log conAB1 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB1 1.000 0.500',
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
+
+    def testContinuous2(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous2.xml", 3,
+            ['log enA 0.000 1.000', 'delay 0.524', 'delay 0.0',
+             'log conAB1 0.500 0.866', 'log exA 0.500 0.866', 'log tranAB1 0.500 0.866',
+             'log enB 0.500 0.866', 'log enB1 0.000 0.866', 'delay 1.0'])
+
+    def testContinuous3(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous3.xml", 2,
+            ['log enA 0.000 0.000', 'delay 1.414',
+             'log conAB1 1.414 1.000', 'log exA 1.414 1.000', 'log tranAB1 1.414 1.000',
+             'log enB 1.414 1.000', 'log enB1 0.000 1.000', 'delay 1.0'])
+
+    def testContinuous4(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous4.xml", 2,
+            ['log enA 0.000 0.000', 'delay 1.0',
+             'log conAB 1.000 0.500', 'log exA 1.000 0.500', 'log tranAB 1.000 0.500',
+             'log enB 1.000 0.500', 'log enB1 0.000 0.500', 'delay 1.0'])
+
+    def testContinuous5(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous5.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 1.0',
+             'log exA', 'log enB', 'delay 1.0'])
+
+    def testContinuous6(self):
+        run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 3,
+            ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
+             'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
+
+    def testSFNew(self):
+        random.seed(0)  # for repeatability
+        io_filter = lambda s: s == 'WHC_out'
+        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 95,
+            ['IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1'],
+            io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+
+    def testStopWatch(self):
+        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml", 9,
+            ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000',
+             'log en_RunW 0.000 0.000', 'IO ch_clock 0', 'log cond_TIC 0.000 0.000',
+             'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
+             'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
+             'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
+             'log edu_Running 4.000 0.000', 'delay 0.1'])
 
 
 if __name__ == "__main__":

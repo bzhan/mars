@@ -1,6 +1,17 @@
 %type: module
 
+module order_ctrl():
+begin
+  (
+    start_DDS_Writer!;
+    end_DDS_Writer!;
+    start_Chart!;
+    end_Chart!
+  )**
+end
+endmodule
 module Chart():
+output RHC2;
 procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
   Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
   cansend == 1 && repair_num[id-1] <= request_num[id-1] -> (
@@ -323,6 +334,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   @empty;
   empty_flag := flag;
   Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod && acked_all_flag == 0 && empty_flag == 1 -> (
+    wid := WriterId;
     count := hb_count;
     J33_done := 0;
     count == 3 -> (
@@ -336,6 +348,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
     );
     set_final_Flag_count1 := count1;
     hb_count := set_final_Flag_count1;
+    wid := WriterId;
     flag := liveliness;
     buffer_heartbeat[wid-1][1] := flag;
     wid := WriterId;
@@ -688,11 +701,11 @@ procedure during_Chart_model_channel_channel_1_try begin
       J360_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d1 := y;
         Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" -> (
@@ -789,11 +802,11 @@ procedure during_Chart_model_channel_channel_1_next begin
   Chart_model_channel_channel_1_next_done := 0;
   x := uniform(0,1);
   if x > 0.4 then
-    y := 1
+    chan_r := 1
   else
-    y := 0
+    chan_r := 0
   endif;
-  y == 1 -> (
+  chan_r == 1 -> (
     y := uniform(0,1);
     d1 := y;
     Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" -> (
@@ -824,11 +837,11 @@ procedure during_Chart_model_channel_channel_2_try begin
       J517_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d2 := y;
         Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" -> (
@@ -925,11 +938,11 @@ procedure during_Chart_model_channel_channel_2_next begin
   Chart_model_channel_channel_2_next_done := 0;
   x := uniform(0,1);
   if x > 0.4 then
-    y := 1
+    chan_r := 1
   else
-    y := 0
+    chan_r := 0
   endif;
-  y == 1 -> (
+  chan_r == 1 -> (
     y := uniform(0,1);
     d2 := y;
     Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" -> (
@@ -960,11 +973,11 @@ procedure during_Chart_model_channel_channel_3_try begin
       J535_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d3 := y;
         Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" -> (
@@ -1061,11 +1074,11 @@ procedure during_Chart_model_channel_channel_3_next begin
   Chart_model_channel_channel_3_next_done := 0;
   x := uniform(0,1);
   if x > 0.4 then
-    y := 1
+    chan_r := 1
   else
-    y := 0
+    chan_r := 0
   endif;
-  y == 1 -> (
+  chan_r == 1 -> (
     y := uniform(0,1);
     d3 := y;
     Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" -> (
@@ -1096,11 +1109,11 @@ procedure during_Chart_model_channel_channel_4_try begin
       J553_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d4 := y;
         Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" -> (
@@ -1197,11 +1210,11 @@ procedure during_Chart_model_channel_channel_4_next begin
   Chart_model_channel_channel_4_next_done := 0;
   x := uniform(0,1);
   if x > 0.4 then
-    y := 1
+    chan_r := 1
   else
-    y := 0
+    chan_r := 0
   endif;
-  y == 1 -> (
+  chan_r == 1 -> (
     y := uniform(0,1);
     d4 := y;
     Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" -> (
@@ -1232,11 +1245,11 @@ procedure during_Chart_model_channel_channel_5_try begin
       J571_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d5 := y;
         Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" -> (
@@ -1333,11 +1346,11 @@ procedure during_Chart_model_channel_channel_5_next begin
   Chart_model_channel_channel_5_next_done := 0;
   x := uniform(0,1);
   if x > 0.4 then
-    y := 1
+    chan_r := 1
   else
-    y := 0
+    chan_r := 0
   endif;
-  y == 1 -> (
+  chan_r == 1 -> (
     y := uniform(0,1);
     d5 := y;
     Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" -> (
@@ -1368,11 +1381,11 @@ procedure during_Chart_model_channel_Heartbeat_try begin
       J764_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d_hb := y;
         Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" -> (
@@ -1452,11 +1465,11 @@ procedure during_Chart_model_channel_Acknack_1_try begin
       J723_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d_ack1 := y;
         Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" -> (
@@ -1530,11 +1543,11 @@ procedure during_Chart_model_channel_Acknack_2_try begin
       J807_done := 0;
       x := uniform(0,1);
       if x > 0.4 then
-        y := 1
+        chan_r := 1
       else
-        y := 0
+        chan_r := 0
       endif;
-      y == 1 -> (
+      chan_r == 1 -> (
         y := uniform(0,1);
         d_ack2 := y;
         Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" -> (
@@ -1679,12 +1692,17 @@ procedure check_received begin
 end
 
 begin
+  start_Chart?;
   EL := [];
   IQU := ();
   LQU := ();
-  read_Chart_WHC?WHC;
-  read_Chart_RHC?RHC;
-  read_Chart_RHC2?RHC2;
+  ch_x0_0?cansend;
+  ch_x1_0?liveliness;
+  ch_x2_0_in?first_SN;
+  ch_x3_0_in?last_SN;
+  RHC_in?RHC;
+  WHC_in?WHC;
+  RHC2_in?RHC2;
   hFlag := 0;
   index2 := 0;
   received_num2 := 0;
@@ -1708,9 +1726,9 @@ begin
   complete := 0;
   SET := 0;
   NO_SET := 1;
-  nackResponseDelay := 2;
-  heartbeatResponseDelay := 3;
-  heartbeatPeriod := 3;
+  nackResponseDelay := 1;
+  heartbeatResponseDelay := 1.5;
+  heartbeatPeriod := 1.5;
   data := 0;
   data1 := 0;
   acked_num := [0,0];
@@ -1774,17 +1792,19 @@ begin
   Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
   Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
   Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
-  write_Chart_WHC!WHC;
-  write_Chart_RHC!RHC;
-  write_Chart_RHC2!RHC2;
-  ch_x0_0?cansend;
-  ch_x1_0?liveliness;
-  ch_x2_0?first_SN;
-  ch_x3_0?last_SN;
+  RHC_out!RHC;
+  WHC_out!WHC;
+  RHC2_out!RHC2;
+  end_Chart?;
   (
-    read_Chart_WHC?WHC;
-    read_Chart_RHC?RHC;
-    read_Chart_RHC2?RHC2;
+    start_Chart?;
+    ch_x0_0?cansend;
+    ch_x1_0?liveliness;
+    ch_x2_0_in?first_SN;
+    ch_x3_0_in?last_SN;
+    RHC_in?RHC;
+    WHC_in?WHC;
+    RHC2_in?RHC2;
     _ret := 0;
     if Chart_st == "Chart_model" then
       _ret := 0;
@@ -1945,13 +1965,10 @@ begin
     else
       skip
     endif;
-    write_Chart_WHC!WHC;
-    write_Chart_RHC!RHC;
-    write_Chart_RHC2!RHC2;
-    ch_x0_0?cansend;
-    ch_x1_0?liveliness;
-    ch_x2_0?first_SN;
-    ch_x3_0?last_SN;
+    RHC_out!RHC;
+    WHC_out!WHC;
+    RHC2_out!RHC2;
+    end_Chart?;
     wait(0.1);
     Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time != -1 -> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time+0.1;
     Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time != -1 -> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time+0.1;
@@ -1975,30 +1992,27 @@ end
 endmodule
 module DDS_Writer():
 begin
+  start_DDS_Writer?;
   EL := [];
   IQU := ();
   LQU := ();
-  read_DDS_Writer_WHC?WHC;
-  read_DDS_Writer_RHC?RHC;
-  read_DDS_Writer_RHC2?RHC2;
+  WHC_in?WHC;
   flag := 0;
   cachechanges := [100,200,300,400,500];
   i := 1;
   first_SN := 1;
   last_SN := 0;
-  y := unidrnd(10);
+  y := uniform(0,1);
   d := y;
   DDS_Writer_st := "DDS_Writer_add";
   DDS_Writer_add_time := 0;
-  write_DDS_Writer_WHC!WHC;
-  write_DDS_Writer_RHC!RHC;
-  write_DDS_Writer_RHC2!RHC2;
-  ch_x2_0!1;
-  ch_x3_0!0;
+  WHC_out!WHC;
+  ch_x2_0_out!1;
+  ch_x3_0_out!0;
+  end_DDS_Writer?;
   (
-    read_DDS_Writer_WHC?WHC;
-    read_DDS_Writer_RHC?RHC;
-    read_DDS_Writer_RHC2?RHC2;
+    start_DDS_Writer?;
+    WHC_in?WHC;
     _ret := 0;
     if DDS_Writer_st == "DDS_Writer_add" then
       DDS_Writer_add_done := 0;
@@ -2007,7 +2021,7 @@ begin
         first_SN := 1;
         last_SN := i;
         i := i+1;
-        y := unidrnd(10);
+        y := uniform(0,1);
         d := y;
         DDS_Writer_st == "DDS_Writer_add" -> (
           DDS_Writer_st == "DDS_Writer_add" -> (
@@ -2027,46 +2041,41 @@ begin
     else
       skip
     endif;
-    write_DDS_Writer_WHC!WHC;
-    write_DDS_Writer_RHC!RHC;
-    write_DDS_Writer_RHC2!RHC2;
-    ch_x2_0!1;
-    ch_x3_0!last_SN;
+    WHC_out!WHC;
+    ch_x2_0_out!1;
+    ch_x3_0_out!last_SN;
+    end_DDS_Writer?;
     wait(0.1);
     DDS_Writer_add_time != -1 -> DDS_Writer_add_time := DDS_Writer_add_time+0.1
   )**
 end
 endmodule
-module DSM_WHC():
+module data_ctrl():
 begin
   WHC := [0,0,0,0,0];
-  (
-    read_Chart_WHC!WHC;
-    write_Chart_WHC?WHC;
-    read_DDS_Writer_WHC!WHC;
-    write_DDS_Writer_WHC?WHC
-  )**
-end
-endmodule
-module DSM_RHC():
-begin
   RHC := [0,0,0,0,0];
-  (
-    read_Chart_RHC!RHC;
-    write_Chart_RHC?RHC;
-    read_DDS_Writer_RHC!RHC;
-    write_DDS_Writer_RHC?RHC
-  )**
-end
-endmodule
-module DSM_RHC2():
-begin
   RHC2 := [0,0,0,0,0];
   (
-    read_Chart_RHC2!RHC2;
-    write_Chart_RHC2?RHC2;
-    read_DDS_Writer_RHC2!RHC2;
-    write_DDS_Writer_RHC2?RHC2
+    ch_x2_0_in!ch_x2_0 -->
+      skip $
+    ch_x2_0_out?ch_x2_0 -->
+      skip $
+    ch_x3_0_in!ch_x3_0 -->
+      skip $
+    ch_x3_0_out?ch_x3_0 -->
+      skip $
+    WHC_in!WHC -->
+      skip $
+    WHC_out?WHC -->
+      skip $
+    RHC_in!RHC -->
+      skip $
+    RHC_out?RHC -->
+      skip $
+    RHC2_in!RHC2 -->
+      skip $
+    RHC2_out?RHC2 -->
+      skip
   )**
 end
 endmodule
@@ -2093,11 +2102,10 @@ begin
 end
 endmodule
 system
+order_ctrl = order_ctrl() ||
 Chart = Chart() ||
 DDS_Writer = DDS_Writer() ||
-DSM_WHC = DSM_WHC() ||
-DSM_RHC = DSM_RHC() ||
-DSM_RHC2 = DSM_RHC2() ||
+data_ctrl = data_ctrl() ||
 Continuous1 = Continuous1() ||
 Continuous2 = Continuous2()
 endsystem
