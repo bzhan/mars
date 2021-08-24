@@ -42,6 +42,12 @@ class ExprTest(unittest.TestCase):
         test_data = [
             "a < 1",
             "a == 1 && true",
+            "a == 1 && b == 2 && c == 3",
+            "(a == 1 && b == 2) && c == 3",
+            "a == 1 && b == 2 || c == 3",
+            "a == 1 || b == 2 && c == 3",
+            "(a == 1 || b == 2) && c == 3",
+            "(a == 1 || b == 2 || c == 3) && d == 4",
         ]
 
         for s in test_data:

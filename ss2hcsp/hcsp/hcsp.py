@@ -697,6 +697,12 @@ class ODE(HCSP):
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
 
+    def __repr__(self):
+        if self.out_hp == Skip():
+            return "ODE(%s, %s)" % (repr(self.eqs), repr(self.constraint))
+        else:
+            return "ODE(%s, %s, out_hp=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.out_hp))
+
     def __hash__(self):
         return hash(("ODE", self.eqs, self.constraint, self.out_hp))
 

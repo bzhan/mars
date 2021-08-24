@@ -420,9 +420,9 @@ class LogicExpr(BExpr):
             return '-' + s
         else:
             s1, s2 = str(self.exprs[0]), str(self.exprs[1])
-            if self.exprs[0].priority() < self.priority():
+            if self.exprs[0].priority() <= self.priority():
                 s1 = '(' + s1 + ')'
-            if self.exprs[1].priority() <= self.priority():
+            if self.exprs[1].priority() < self.priority():
                 s2 = '(' + s2 + ')'
             return s1 + ' ' + self.op + ' ' + s2
 
