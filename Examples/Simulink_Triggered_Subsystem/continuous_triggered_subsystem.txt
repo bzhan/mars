@@ -1,28 +1,36 @@
+%type: module
+
 module P():
+output a, y;
 procedure C begin
-  c := b+1
+  a := y + 1
 end
+
 begin
   t := 0;
   tt := 0;
   y := -1;
   C_triggered := 1;
-  pre_y := 0;
-  y := 0;
+  a := 0;
   (
-    t%1 == 0 -> z := a+1;
-    t%1 == 0 -> x := z*1;
+    t % 1 == 0 -> z := a + 1;
+    t % 1 == 0 -> x := z * 1;
+    C_triggered > 0 -> C_triggered := C_triggered - 1;
     (
       <tt_dot = 1, y_dot = x &
-        y < 0 &&
+        C_triggered == 1 || (x <= 0 || (y > 0 || y < 0)) &&
         tt < 1
       >;
-      if y >= 0 then
-        @C
-      else
-        skip
-      endif
+      C_triggered != 1 && (x > 0 && y == 0) -> (
+        @C;
+        if tt < 1 then
+          C_triggered := 1
+        else
+          C_triggered := 2
+        endif
+      )
     ){tt < 1}**;
+    t := t + tt;
     tt := 0
   )**
 end

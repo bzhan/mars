@@ -87,11 +87,12 @@ def get_gcd(sample_times):
         return result_gcd / scale
 
 
-def get_attribute_value(block, attribute):
+def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
         if node.getAttribute("Name") == attribute:
             if node.childNodes:
-                return node.childNodes[0].data
+                if not name or name == node.childNodes[0].data:
+                    return node.childNodes[0].data
     return None
 
 
@@ -112,6 +113,9 @@ class SL_Diagram:
 
         # Name of the diagram, set by parse_xml
         self.name = None
+
+        # Variables that needs to display
+        self.outputs = list()
         
         # Parsed model of the XML file
         if location:
@@ -634,6 +638,11 @@ class SL_Diagram:
                 
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
                 self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
+            elif block_type == "Scope":
+                for child in system.childNodes:
+                    if child.nodeName == "Line":
+                        if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
+                            self.outputs.append(get_attribute_value(block=child, attribute="Name"))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -1053,7 +1062,7 @@ class SL_Diagram:
     def new_seperate_diagram(self):
         discrete_diagram = [block for block in self.blocks if not block.is_continuous]
         continuous_diagram = [block for block in self.blocks if block.is_continuous]
-        return discrete_diagram, continuous_diagram
+        return discrete_diagram, continuous_diagram, self.outputs
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""

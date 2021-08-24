@@ -121,13 +121,20 @@ class Triggered_Subsystem(Subsystem):
         return trig_cond
 
     def get_continuous_triggered_condition(self):
-        trig_sig = AVar(self.dest_lines[-1].name)
+        trig_line = self.dest_lines[-1]
+        trig_sig = AVar(trig_line.name)
+        assert trig_line.src_block.type == "integrator"
+        trig_sig_dot = AVar(trig_line.src_block.dest_lines[0].name)
+
         if self.trigger_type == "rising":
-            return RelExpr(">=", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr(">", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         elif self.trigger_type == "falling":
-            return RelExpr("<=", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr("<", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         elif self.trigger_type == "either":
-            return RelExpr("==", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr("!=", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         else:
             raise RuntimeError("Not implemented yet")
 
