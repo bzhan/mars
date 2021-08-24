@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="discrete_triggerred_subsystem">
+  <Model Name="discrete_triggered_subsystem">
     <P Name="Version">9.1</P>
     <P Name="SavedCharacterEncoding">GB2312</P>
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.11</P>
+      <P Name="ComputedModelVersion">1.12</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -59,7 +59,7 @@
           <P Name="LoadSaveID" Class="char">0</P>
           <P Name="Extents" Class="double">[1242.0, 533.0]</P>
           <P Name="ZoomFactor" Class="double">1.0</P>
-          <P Name="Offset" Class="double">[0.0, -48.267081677913666]</P>
+          <P Name="Offset" Class="double">[-50.875, -25.0]</P>
         </Object>
         <Object PropName="DockComponentsInfo" ObjectID="6" ClassName="Simulink.DockComponentInfo">
           <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
@@ -83,9 +83,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">BEAR</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Mon Jun 14 18:31:05 2021</P>
-      <P Name="RTWModifiedTimeStamp">545593052</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:11&gt;</P>
+      <P Name="LastModifiedDate">Wed Jul 21 18:19:27 2021</P>
+      <P Name="RTWModifiedTimeStamp">548792365</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:12&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -142,13 +142,13 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="7" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">discrete_triggerred_subsystem</P>
+        <P Name="model_" Class="char">discrete_triggered_subsystem</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">discrete_triggerred_subsystem</Cell>
+          <Cell Class="char">discrete_triggered_subsystem</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
-          <Cell>[]</Cell>
+          <Cell Class="double">[]</Cell>
         </Array>
       </Object>
     </SimulationSettings>
@@ -1112,7 +1112,7 @@
             <P Name="IconDisplay">Port number</P>
             <Port>
               <P Name="PortNumber">1</P>
-              <P Name="Name">b</P>
+              <P Name="Name">y</P>
               <P Name="PropagatedSignals">y</P>
             </Port>
           </Block>
@@ -1130,7 +1130,7 @@
             <P Name="SaturateOnIntegerOverflow">off</P>
             <Port>
               <P Name="PortNumber">1</P>
-              <P Name="Name">c</P>
+              <P Name="Name">a</P>
             </Port>
           </Block>
           <Block BlockType="Outport" Name="Out1" SID="8">
@@ -1139,7 +1139,7 @@
             <P Name="IconDisplay">Port number</P>
           </Block>
           <Line>
-            <P Name="Name">c</P>
+            <P Name="Name">a</P>
             <P Name="ZOrder">6</P>
             <P Name="Labels">[1, 1]</P>
             <P Name="SrcBlock">E</P>
@@ -1148,7 +1148,7 @@
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="Name">b</P>
+            <P Name="Name">y</P>
             <P Name="ZOrder">7</P>
             <P Name="Labels">[1, 1]</P>
             <P Name="SrcBlock">In1</P>
@@ -1204,7 +1204,6 @@
         <P Name="Points">[46, 0]</P>
         <Branch>
           <P Name="ZOrder">17</P>
-          <P Name="Points">[34, 0]</P>
           <P Name="DstBlock">Scope</P>
           <P Name="DstPort">3</P>
         </Branch>

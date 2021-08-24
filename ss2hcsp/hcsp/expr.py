@@ -540,6 +540,8 @@ class RelExpr(BExpr):
         return hash(("Rel", self.op, self.expr1, self.expr2))
 
     def neg(self):
+        if self.op == "==":
+            return disj(RelExpr(">", self.expr1, self.expr2), RelExpr("<", self.expr1, self.expr2))
         return RelExpr(RelExpr.neg_table[self.op], self.expr1, self.expr2)
 
     def priority(self):

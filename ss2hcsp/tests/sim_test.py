@@ -19,11 +19,14 @@ from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
 
 
-def printTofile(path, content):
+def printTofile(path, content, module=False):
     f = open(path, "w")
+    if module:
+        print("%type: module\n", file=f)
     print(content, file=f)
     f.close()
-
+# 18336580958
+# 18304233358
 
 class SimTest(unittest.TestCase):
     def testVanDerPol_continuous(self):
@@ -426,9 +429,9 @@ class SimTest(unittest.TestCase):
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.inherit_to_continuous()
-        discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
-        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=result_hp.export())
+        discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
+        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
+        printTofile(path=directory+xml_file[:-4]+".txt", content=result_hp.export(), module=True)
 
     def testContinuousTriggeredSubsystem(self):
         directory = "./Examples/Simulink_Triggered_Subsystem/"
@@ -437,9 +440,9 @@ class SimTest(unittest.TestCase):
         _ = diagram.parse_xml()
         diagram.comp_inher_st()
         diagram.inherit_to_continuous()
-        discrete_diagram, continuous_diagram = diagram.new_seperate_diagram()
-        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=result_hp.export())
+        discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
+        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
+        printTofile(path=directory+xml_file[:-4]+".txt", content=result_hp.export(), module=True)
 
 
 if __name__ == "__main__":

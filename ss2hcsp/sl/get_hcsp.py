@@ -490,12 +490,12 @@ def new_translate_continuous(diagram):
             init_hps.extend(block.get_init_hps())
             trig_cond = block.get_continuous_triggered_condition()
             trig_procs.append((trig_cond, hp.Var(block.name)))
-            constraints.append(trig_cond.neg())
+            constraints.append(neg_expr(trig_cond))
             procedures.extend(block.get_procedures())
     return init_hps, equations, constraints, trig_procs, procedures
 
 
-def new_get_hcsp(discrete_diagram, continuous_diagram):
+def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
     dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = new_translate_discrete(discrete_diagram)
     con_init_hps, equations, constraints, trig_procs, con_procedures = new_translate_continuous(continuous_diagram)
 
@@ -511,18 +511,37 @@ def new_get_hcsp(discrete_diagram, continuous_diagram):
     time_constraint = RelExpr("<", AVar("tt"), AConst(sample_time))
     constraints.append(time_constraint)
     continuous_hp = hp.ODE(eqs=equations, constraint=conj(*constraints))
+    names_triggered = None
     if trig_procs:
-        trig_proc = hp.ITE(if_hps=trig_procs)
-        continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc),
-                                constraint=time_constraint)
+        names_triggered = list()
+        for _, sys_name in trig_procs:
+            name_triggered = sys_name.name + "_triggered"
+            names_triggered.append(hp.Condition(cond=RelExpr(">", AVar(name_triggered), AConst(0)),
+                                                hp=hp.Assign(var_name=name_triggered,
+                                                             expr=OpExpr("-", AVar(name_triggered), AConst(1))
+                                                             )
+                                                )
+                                   )
+        names_triggered = hp.Sequence(*names_triggered) if len(names_triggered) >= 2 else names_triggered[0]
+        trig_proc = list()
+        for cond, sys_name in trig_procs:
+            set_triggered = hp.ITE(if_hps=[(RelExpr("<", AVar("tt"), AConst(sample_time)),
+                                            hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(1)))],
+                                   else_hp=hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(2))
+                                   )
+            trig_proc.append(hp.Condition(cond=cond, hp=hp.Sequence(sys_name, set_triggered)))
+        trig_proc = hp.Sequence(*trig_proc) if len(trig_proc) >= 2 else trig_proc[0]
+        continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc), constraint=time_constraint)
+    update_t = hp.Assign(var_name="t", expr=OpExpr("+", AVar("t"), AVar("tt")))
     reset_tt = hp.Assign(var_name="tt", expr=AConst(0))
-    continuous_hp = hp.Sequence(continuous_hp, reset_tt)
+    continuous_hp = hp.Sequence(names_triggered, continuous_hp, update_t, reset_tt)\
+        if names_triggered else hp.Sequence(continuous_hp, reset_tt)
 
     # main process
     main_hp = hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))
     # Get procedures
     procedures = dis_procedures + con_procedures
-    result = HCSPModule(name="P", code=main_hp, procedures=procedures)
+    result = HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
     return result
 
 

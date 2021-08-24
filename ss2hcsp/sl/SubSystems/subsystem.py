@@ -81,9 +81,15 @@ class Triggered_Subsystem(Subsystem):
     def get_init_hps(self):
         # Initialize the triggered signal
         pre_sig, cur_sig = self.get_pre_cur_trig_signals()
-        init_hps = [hp.Assign(var_name=self.triggered, expr=AConst(1)),  # name_triggered := true
-                    hp.Assign(var_name=pre_sig.name, expr=AConst(0)),  # pre_sig := 0
-                    hp.Assign(var_name=cur_sig.name, expr=AConst(0))]  # cur_sig := 0
+        init_hps = list()
+        init_hps.append(hp.Assign(var_name=self.triggered, expr=AConst(1)))  # name_triggered := true
+        if not self.is_continuous:
+            init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
+            init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
+        # Initialize the output variables
+        for lines in self.src_lines:
+            out_var = lines[0].name
+            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(0)))
         # Initialize the variables of the inner blocks
         for block in self.diagram.blocks_dict.values():
             if block.type == "constant":
@@ -115,13 +121,20 @@ class Triggered_Subsystem(Subsystem):
         return trig_cond
 
     def get_continuous_triggered_condition(self):
-        trig_sig = AVar(self.dest_lines[-1].name)
+        trig_line = self.dest_lines[-1]
+        trig_sig = AVar(trig_line.name)
+        assert trig_line.src_block.type == "integrator"
+        trig_sig_dot = AVar(trig_line.src_block.dest_lines[0].name)
+
         if self.trigger_type == "rising":
-            return RelExpr(">=", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr(">", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         elif self.trigger_type == "falling":
-            return RelExpr("<=", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr("<", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         elif self.trigger_type == "either":
-            return RelExpr("==", trig_sig, AConst(0))
+            return conj(RelExpr("!=", AVar(self.triggered), AConst(1)),
+                        RelExpr("!=", trig_sig_dot, AConst(0)), RelExpr("==", trig_sig, AConst(0)))
         else:
             raise RuntimeError("Not implemented yet")
 
