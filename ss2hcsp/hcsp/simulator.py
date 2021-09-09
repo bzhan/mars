@@ -1259,10 +1259,6 @@ def extract_event(infos):
     else:
         return "deadlock"
 
-class State_dict:
-    def __init__(self):
-        self.rank = 0
-        self.dict = dict()
 
 def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
@@ -1288,7 +1284,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         'trace': [],  # List of events
         'time_series': {},  # Evolution of variables, indexed by program
         'events': [],  # Concise list of event strings
-        'statemap': State_dict()  # dict of all state
+        'statemap': dict()  # dict of all state
     }
 
     def log_event(ori_pos, **xargs):
@@ -1324,12 +1320,11 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         for info in infos:
             info_callstack = disp_of_callstack(info)
             fst_state = str(info.state)
-            if fst_state in res['statemap'].dict.keys():
-                state_num = res['statemap'].dict.get(fst_state)
+            if fst_state in res['statemap']:
+                state_num = res['statemap'].get(fst_state)
             else:
-                state_num = copy.deepcopy(res['statemap'].rank)
-                res['statemap'].dict[fst_state] = state_num
-                res['statemap'].rank = res['statemap'].rank + 1
+                state_num = len(res['statemap'])
+                res['statemap'][fst_state] = state_num
             cur_info[info.name] = {'callstack': info_callstack, 'statenum': state_num}
         new_event['infos'] = cur_info
 
@@ -1357,12 +1352,11 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                 else:
                     pass
         fst_state = str(new_state)
-        if fst_state in res['statemap'].dict.keys():
-            state_num = res['statemap'].dict.get(fst_state)
+        if fst_state in res['statemap']:
+            state_num = res['statemap'].get(fst_state)
         else:
-            state_num = copy.deepcopy(res['statemap'].rank)
-            res['statemap'].dict[fst_state] = state_num
-            res['statemap'].rank = res['statemap'].rank + 1
+            state_num = len(res['statemap'])
+            res['statemap'][fst_state] = state_num
         new_entry['statenum'] = state_num
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
@@ -1491,7 +1485,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
 
     # Finally, exchange key and value, and change state back into dict in res['statemap']
     statemap = dict()
-    for key, value in res['statemap'].dict.items():
+    for key, value in res['statemap'].items():
         state = ast.literal_eval(key)
         statemap[value] = state
     res['statemap'] = statemap
