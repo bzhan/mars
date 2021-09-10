@@ -1,8 +1,0 @@
-%type: module
-import continuous_triggered_subsystem_new
-
-system
-
-P0 = P()
-
-endsystem

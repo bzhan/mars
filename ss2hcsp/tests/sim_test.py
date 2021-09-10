@@ -472,14 +472,16 @@ class SimTest(unittest.TestCase):
 
     def testTriggered2(self):
         # Discrete triggered subsystem
-        # NOTE: the result is different from simulation in Matlab.
+        # NOTE: the result here agrees with simulation in Matlab only if the
+        # simulation time is set to 3 seconds. For longer simulation time,
+        # the result from Matlab is different (and inconsistent with itself).
         run_test(self, "./Examples/Simulink/Triggered2.xml", 70, {
             0: {'z': -1, 'a': 0, 'y': -1},
             1: {'z': 0, 'a': 1, 'y': 0},
+            1.5: {'z': 0, 'a': 1, 'y': 1},
             2: {'z': 2, 'a': 1, 'y': 2},
-            3: {'z': 4, 'a': 1, 'y': 4},
-            4: {'z': 6, 'a': 1, 'y': 6},
-            5: {'z': 8, 'a': 1, 'y': 8}
+            2.5: {'z': 2, 'a': 1, 'y': 3},
+            3: {'z': 4, 'a': 1, 'y': 4}
         })
 
 
