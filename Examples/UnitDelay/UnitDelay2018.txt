@@ -1,3 +1,0 @@
-UnitDelay ::= @PD0 || @PC0
-PD0 ::= t := 0; delay_x0 := 0; (t%1 == 0 -> (ch_x1_0?x1; x0 := delay_x0; delay_x0 := x1; ch_x0_0!x0); wait(1); t := t+1)**
-PC0 ::= x1 := 1; ch_x1_0!x1; ch_x0_0?x0; (<x1_dot = x0 & true> |> [] (ch_x0_0?x0 --> skip, ch_x1_0!x1 --> skip))**

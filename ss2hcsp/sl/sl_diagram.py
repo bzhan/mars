@@ -1,14 +1,13 @@
 """Simulink diagrams."""
 
 import lark
-import html
 
 from ss2hcsp.sl.sl_line import SL_Line
 
-from ss2hcsp.matlab import function,convert
+from ss2hcsp.matlab import function, convert
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
-    transition_parser, func_sig_parser,state_op_parser
+from ss2hcsp.matlab.parser import expr_parser, function_parser, \
+    transition_parser, func_sig_parser, state_op_parser
 from ss2hcsp.matlab import convert
 from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.port import Port
@@ -44,9 +43,6 @@ from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
-# from ss2hcsp.matlab import parser
-from ss2hcsp.hcsp import hcsp 
-import re
 import operator
 
 from ss2hcsp.hcsp.parser import aexpr_parser
@@ -443,27 +439,6 @@ class SL_Diagram:
             self.name = models[0].getAttribute("Name")
 
         system = self.model.getElementsByTagName("System")[0]
-        max_step = 0.2
-        # start_time = 0.0
-        if len(self.model.getElementsByTagName("ConfigurationSet")) > 0:
-            configurationSet = self.model.getElementsByTagName("ConfigurationSet")[0]
-            array = [child for child in configurationSet.childNodes if child.nodeName == "Array"]
-            for node in array:
-                if node.nodeName == "Array":
-                    objs = [child for child in node.childNodes if child.nodeName == "Object"]
-                    for obj in objs:
-                        if obj.nodeName == "Object":
-                            arr = [child for child in obj.childNodes if child.nodeName == "Array"]
-                            for a in arr:
-                                if a.nodeName == "Array":
-                                    obj_childs = [child for child in a.childNodes if child.nodeName == "Object"]
-                                    # start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
-                                    stop_time = float(get_attribute_value(obj_childs[0], "StopTime"))
-                                    max_step = float(get_attribute_value(obj_childs[0], "MaxStep"))\
-                                        if get_attribute_value(obj_childs[0], "MaxStep") != "auto" else stop_time/50
-                                break
-                        break
-                break
 
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
@@ -548,7 +523,6 @@ class SL_Diagram:
                     continue
 
                 relop = get_attribute_value(block, "relop")
-                # assert relop
                 if relop:
                     if relop == "~=":
                         relop = "!="
@@ -642,7 +616,9 @@ class SL_Diagram:
                 for child in system.childNodes:
                     if child.nodeName == "Line":
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
-                            self.outputs.append(get_attribute_value(block=child, attribute="Name"))
+                            name = get_attribute_value(block=child, attribute="Name")
+                            assert name is not None
+                            self.outputs.append(name)
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -860,7 +836,7 @@ class SL_Diagram:
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
             # incoming line (if no name is given already).
-            for i, line in enumerate(block.dest_lines):
+            for line in block.dest_lines:
                 if line:
                     src, src_port = line.src, line.src_port
                     line_group = self.blocks_dict[src].src_lines[src_port]
@@ -871,8 +847,8 @@ class SL_Diagram:
 
             # Give name to each group of outgoing lines (if no
             # name is given already).
-            for i, lines in enumerate(block.src_lines):
-                if len(lines) != 0 and lines[0].name == "?":
+            for lines in block.src_lines:
+                if line and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1
