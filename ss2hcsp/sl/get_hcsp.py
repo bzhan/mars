@@ -505,7 +505,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
 
     # Discrete process
     discrete_hps = output_hps + update_hps
-    discrete_hp = hp.Sequence(*discrete_hps)
+    discrete_hp = hp.seq(discrete_hps)
 
     # Continuous process
     time_constraint = RelExpr("<", AVar("tt"), AConst(sample_time))

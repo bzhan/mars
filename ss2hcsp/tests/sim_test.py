@@ -4,29 +4,55 @@ import unittest
 
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
-from ss2hcsp.sl.Continuous.constant import Constant
-from ss2hcsp.sl.MathOperations.product import Product
-from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
-from ss2hcsp.sl.MathOperations.add import Add
 from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Enabled_Subsystem
+from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
+from ss2hcsp.hcsp.simulator import SimInfo, exec_parallel
 
 
 def printTofile(path, content, module=False):
-    f = open(path, "w")
-    if module:
-        print("%type: module\n", file=f)
-    print(content, file=f)
-    f.close()
-# 18336580958
-# 18304233358
+    with open(path, "w") as f:
+        if module:
+            f.write("%type: module\n")
+        f.write(content)
+
+def print_module(path, m):
+    with open(path, "w") as f:
+        f.write("%type: module\n\n")
+        f.write(m.export() + '\n')
+        f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
+
+def run_test(self, location, num_steps, expected_series):
+    diagram = SL_Diagram(location=location)
+    diagram.parse_xml()
+    diagram.comp_inher_st()
+    diagram.inherit_to_continuous()
+    discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
+    result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
+    proc_dict = dict()
+    for proc in result_hp.procedures:
+        proc_dict[proc.name] = proc
+    info = SimInfo(result_hp.name, result_hp.code, procedures=proc_dict, outputs=result_hp.outputs)
+    res = exec_parallel([info], num_steps=num_steps)
+    series = dict()
+    for pt in res['time_series']['P']:
+        if pt['time'] in expected_series:
+            series[pt['time']] = pt['state']
+    for time in expected_series:
+        self.assertTrue(time in series and len(expected_series[time]) == len(series[time]))
+        for var in expected_series[time]:
+            self.assertTrue(var in series[time])
+            self.assertAlmostEqual(
+                series[time][var], expected_series[time][var],
+                msg="Disagreement at time %s, variable %s" % (time, var))
+
 
 class SimTest(unittest.TestCase):
     def testVanDerPol_continuous(self):
@@ -433,16 +459,15 @@ class SimTest(unittest.TestCase):
         result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
         printTofile(path=directory+xml_file[:-4]+".txt", content=result_hp.export(), module=True)
 
-    def testContinuousTriggeredSubsystem(self):
-        directory = "./Examples/Simulink_Triggered_Subsystem/"
-        xml_file = "continuous_triggered_subsystem.xml"
-        diagram = SL_Diagram(location=directory + xml_file)
-        _ = diagram.parse_xml()
-        diagram.comp_inher_st()
-        diagram.inherit_to_continuous()
-        discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
-        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
-        printTofile(path=directory+xml_file[:-4]+".txt", content=result_hp.export(), module=True)
+    def testTriggered1(self):
+        run_test(self, "./Examples/Simulink/Triggered1.xml", 70, {
+            0: {'a': 0, 'y': -1},
+            1: {'a': 1, 'y': 0},
+            2: {'a': 1, 'y': 2},
+            3: {'a': 1, 'y': 4},
+            4: {'a': 1, 'y': 6},
+            5: {'a': 1, 'y': 8}
+        })
 
 
 if __name__ == "__main__":
