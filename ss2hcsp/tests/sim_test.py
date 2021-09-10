@@ -29,19 +29,36 @@ def print_module(path, m):
         f.write(m.export() + '\n')
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
-def run_test(self, location, num_steps, expected_series, *, print_time_series=False):
+def run_test(self, location, num_steps, expected_series, *,
+             print_diagrams=False, print_hcsp=False, print_time_series=False):
+    # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
     discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
+
+    # Optional: print diagram
+    if print_diagrams:
+        print("Discrete diagram:")
+        print(discrete_diagram)
+        print("Continuous diagram:")
+        print(continuous_diagram)
+        print("Outputs:")
+        print(outputs)
+
+    # Convert to HCSP
     result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
+
+    # Optional: print HCSP
+    if print_hcsp:
+        print(result_hp.export())
+
+    # Perform simulation
     proc_dict = dict()
     for proc in result_hp.procedures:
         proc_dict[proc.name] = proc
     info = SimInfo(result_hp.name, result_hp.code, procedures=proc_dict, outputs=result_hp.outputs)
-
-    # Perform simulation
     res = exec_parallel([info], num_steps=num_steps)
 
     # Optional: print time series
@@ -448,16 +465,10 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
     #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
-    # def testEnabledSubsystem(self):
-    #     directory = "./Examples/Simulink_Triggerred_Subsystem/"
-    #     xml_file = "discrete_triggerred_subsystem.xml"
-    #     diagram = SL_Diagram(location=directory + xml_file)
-    #     _ = diagram.parse_xml()
-    #     diagram.add_line_name()
-    #     for block in diagram.blocks:
-    #         if isinstance(block, Enabled_Subsystem):
-    #             block.add_enabled_condition_to_innerBlocks()
-    #     print(diagram)
+    def testEnabled1(self):
+        run_test(self, "./Examples/Simulink/Enabled1.xml", 70, {
+
+        }, print_diagrams=True, print_time_series=True)
 
     def testTriggered1(self):
         # Continuous triggered subsystem
