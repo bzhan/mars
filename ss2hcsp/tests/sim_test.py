@@ -29,7 +29,7 @@ def print_module(path, m):
         f.write(m.export() + '\n')
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
-def run_test(self, location, num_steps, expected_series):
+def run_test(self, location, num_steps, expected_series, *, print_time_series=False):
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
     diagram.comp_inher_st()
@@ -40,7 +40,18 @@ def run_test(self, location, num_steps, expected_series):
     for proc in result_hp.procedures:
         proc_dict[proc.name] = proc
     info = SimInfo(result_hp.name, result_hp.code, procedures=proc_dict, outputs=result_hp.outputs)
+
+    # Perform simulation
     res = exec_parallel([info], num_steps=num_steps)
+
+    # Optional: print time series
+    if print_time_series:
+        series = res['time_series']['P']
+        for i, pt in enumerate(series):
+            if i != len(series)-1 and pt['time'] == series[i+1]['time']:
+                continue
+            print("%.1f: %s" % (pt['time'], pt['state']))
+
     series = dict()
     for pt in res['time_series']['P']:
         if pt['time'] in expected_series:
@@ -448,18 +459,8 @@ class SimTest(unittest.TestCase):
     #             block.add_enabled_condition_to_innerBlocks()
     #     print(diagram)
 
-    def testDiscreteTriggeredSubsystem(self):
-        directory = "./Examples/Simulink_Triggered_Subsystem/"
-        xml_file = "discrete_triggered_subsystem.xml"
-        diagram = SL_Diagram(location=directory + xml_file)
-        _ = diagram.parse_xml()
-        diagram.comp_inher_st()
-        diagram.inherit_to_continuous()
-        discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
-        result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
-        printTofile(path=directory+xml_file[:-4]+".txt", content=result_hp.export(), module=True)
-
     def testTriggered1(self):
+        # Continuous triggered subsystem
         run_test(self, "./Examples/Simulink/Triggered1.xml", 70, {
             0: {'a': 0, 'y': -1},
             1: {'a': 1, 'y': 0},
@@ -467,6 +468,18 @@ class SimTest(unittest.TestCase):
             3: {'a': 1, 'y': 4},
             4: {'a': 1, 'y': 6},
             5: {'a': 1, 'y': 8}
+        })
+
+    def testTriggered2(self):
+        # Discrete triggered subsystem
+        # NOTE: the result is different from simulation in Matlab.
+        run_test(self, "./Examples/Simulink/Triggered2.xml", 70, {
+            0: {'z': -1, 'a': 0, 'y': -1},
+            1: {'z': 0, 'a': 1, 'y': 0},
+            2: {'z': 2, 'a': 1, 'y': 2},
+            3: {'z': 4, 'a': 1, 'y': 4},
+            4: {'z': 6, 'a': 1, 'y': 6},
+            5: {'z': 8, 'a': 1, 'y': 8}
         })
 
 
