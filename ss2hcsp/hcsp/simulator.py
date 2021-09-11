@@ -279,28 +279,19 @@ def eval_expr(expr, state):
             raise NotImplementedError
 
     elif isinstance(expr, RelExpr):
-        # Comparisons. For comparison between floating point numbers,
-        # use a margin of 1e-7.
-        a = eval_expr(expr.expr1, state)
-        b = eval_expr(expr.expr2, state)
+        a, b = eval_expr(expr.expr1, state), eval_expr(expr.expr2, state)
         if expr.op == "<":
-            return b - a > 1e-7
+            return a < b
         elif expr.op == ">":
-            return a - b > 1e-7
+            return a > b
         elif expr.op == "==":
-            if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                return abs(a - b) < 1e-7
-            else:
-                return a == b
+            return a == b
         elif expr.op == "!=":
-            if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                return abs(a - b) > 1e-7
-            else:
-                return a != b
+            return a != b
         elif expr.op == ">=":
-            return a - b > -1e-7
+            return a >= b
         elif expr.op == "<=":
-            return b - a > -1e-7
+            return a <= b
         else:
             raise NotImplementedError
 

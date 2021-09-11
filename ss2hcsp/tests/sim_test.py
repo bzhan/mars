@@ -139,9 +139,19 @@ class SimTest(unittest.TestCase):
         })
 
     def testThreeTank(self):
-        run_test(self, "./Examples/Simulink/ThreeTank.xml", 500, {
-
-        }, print_diagrams=True, print_hcsp=True, print_time_series=True)
+        run_test(self, "./Examples/Simulink/ThreeTank.xml", 310, {
+            0: {'x': 0, 'y': 0, 'z': 0},
+            10: {'x': 0.672, 'y': 0.028, 'z': 0.004},
+            20: {'x': 1.316, 'y': 0.076, 'z': 0.014},
+            30: {'x': 1.941, 'y': 0.135, 'z': 0.027},
+            40: {'x': 2.552, 'y': 0.202, 'z': 0.043},
+            50: {'x': 3.150, 'y': 0.277, 'z': 0.062},
+            60: {'x': 3.736, 'y': 0.356, 'z': 0.083},
+            70: {'x': 4.313, 'y': 0.441, 'z': 0.106},
+            80: {'x': 4.880, 'y': 0.530, 'z': 0.132},
+            90: {'x': 5.439, 'y': 0.623, 'z': 0.159},
+            100: {'x': 5.989, 'y': 0.720, 'z': 0.188}
+        }, print_hcsp=True)
 
     def testIsolette(self):
         location = "./Examples/isolette/babybox.xml"

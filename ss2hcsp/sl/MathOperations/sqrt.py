@@ -44,6 +44,12 @@ class Sqrt(SL_Block):
         cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
+    def get_var_subst(self):
+        in_var = self.dest_lines[0].name
+        expr = convert_sqrt(in_var)
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
+
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
         if self.operator == "signedSqrt":

@@ -488,7 +488,7 @@ def new_translate_continuous(diagram):
     var_subst = dict()
 
     for block in diagram:
-        if block.type in ('add', 'product'):
+        if block.type in ('add', 'product', 'bias', 'gain', 'constant', 'square', 'sqrt'):
             var_subst.update(block.get_var_subst())
         elif block.type == "integrator":
             in_var = block.dest_lines[0].name
@@ -503,6 +503,8 @@ def new_translate_continuous(diagram):
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(neg_expr(trig_cond))
             procedures.extend(block.get_procedures())
+        else:
+            raise NotImplementedError('Unrecognized continuous block: %s' % block.type)
 
     for i in range(len(equations)):
         var, e = equations[i]
@@ -521,11 +523,17 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
     init_hps = [hp.Assign(var_name="t", expr=AConst(0))] + dis_init_hps + con_init_hps
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
-    # Discrete process
+    ### Discrete process ###
+
     discrete_hps = output_hps + update_hps
     discrete_hp = hp.seq(discrete_hps)
 
     ### Continuous process ###
+
+    # If sample_time = 0, the entire diagram is continuous. Arbitrarily
+    # choose 1 as sample time
+    if sample_time == 0:
+        sample_time = 1
 
     # Add tt < sample_time to the constraint
     time_constraint = RelExpr("<", AVar("tt"), AConst(sample_time))

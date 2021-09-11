@@ -78,6 +78,9 @@ def get_gcd(sample_times):
     appropriate power of 10 before taking gcd.
 
     """
+    if len(sample_times) == 0:
+        return 0  # continuous
+
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
     assert all(isinstance(st, (int, float)) for st in sample_times)
 
