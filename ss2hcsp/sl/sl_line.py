@@ -19,7 +19,8 @@ class SL_Line:
         self.dest_block = None
 
     def __str__(self):
-        return "{" + self.src + "->" + self.dest + "}"
+        return self.name
 
     def __repr__(self):
-        return str(self)
+        return "SL_Line(%s, %s, %s, %s, %s, %s)" % \
+            (self.src, self.dest, self.src_port, self.dest_port, self.name, self.ch_name)

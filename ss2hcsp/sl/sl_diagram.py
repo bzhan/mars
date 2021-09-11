@@ -823,9 +823,8 @@ class SL_Diagram:
         dest_block.add_dest(line.dest_port, line)
 
     def __str__(self):
-        result = "Blocks:\n"
-        for _, block in self.blocks_dict.items():
-            result += str(block) + "\n"
+        result = ""
+        result += "\n".join(str(block) for block in self.blocks_dict.values())
         # if self.charts:
         #     result += "Charts:\n" + charts
         return result

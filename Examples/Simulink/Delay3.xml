@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.4</P>
+      <P Name="ComputedModelVersion">1.5</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -81,7 +81,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">9c14f8bb-c03a-49fd-9ea2-80f0b450888e</P>
       </Object>
-      <P Name="BDUuid" Class="char">13dfc9f4-2894-4431-9cad-9869857d767f</P>
+      <P Name="BDUuid" Class="char">fa15b1d9-4c62-4ffc-a266-b9cd94b1fabc</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -91,9 +91,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Sep 10 20:30:39 2021</P>
-      <P Name="RTWModifiedTimeStamp">553206511</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:4&gt;</P>
+      <P Name="LastModifiedDate">Sat Sep 11 18:00:50 2021</P>
+      <P Name="RTWModifiedTimeStamp">553284049</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:5&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -997,6 +997,7 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[0, 23, 1280, 732]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1022,7 +1023,7 @@
         <P Name="NumInputPorts">2</P>
         <P Name="Floating">off</P>
       </Block>
-      <Block BlockType="UnitDelay" Name="Unit Delay" SID="2">
+      <Block BlockType="UnitDelay" Name="delay1" SID="2">
         <P Name="Position">[560, 193, 595, 227]</P>
         <P Name="ZOrder">2</P>
         <P Name="HasFrameUpgradeWarning">on</P>
@@ -1046,14 +1047,14 @@
         </Branch>
         <Branch>
           <P Name="ZOrder">7</P>
-          <P Name="DstBlock">Unit Delay</P>
+          <P Name="DstBlock">delay1</P>
           <P Name="DstPort">1</P>
         </Branch>
       </Line>
       <Line>
         <P Name="Name">x</P>
         <P Name="ZOrder">2</P>
-        <P Name="SrcBlock">Unit Delay</P>
+        <P Name="SrcBlock">delay1</P>
         <P Name="SrcPort">1</P>
         <P Name="Points">[9, 0]</P>
         <Branch>

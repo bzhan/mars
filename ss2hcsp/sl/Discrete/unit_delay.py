@@ -20,18 +20,17 @@ class UnitDelay(SL_Block):
 
         assert isinstance(init_value, (int, float))
         self.init_value = init_value
-        # assert isinstance(delay, (int, float))
-        # self.delay = delay
-        # self.st = delay
         assert st > 0
         self.st = st
 
     def __str__(self):
-        return "%s: UnitDelay[init = %s, in = %s, out = %s, delay = %s]" % \
-               (self.name, str(self.init_value), str(self.dest_lines), str(self.src_lines), str(self.st))
+        out_var = self.src_lines[0][0].name
+        in_var = self.dest_lines[0].name
+        return "%s: %s = %s -> pre(%s)  (st = %s)" % (self.name, out_var, self.init_value, in_var, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "UnitDelay(%s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.init_value, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
         out_var = self.src_lines[0][0].name
@@ -42,28 +41,3 @@ class UnitDelay(SL_Block):
         in_var = self.dest_lines[0].name
         cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=cond, hp=hp.Assign(var_name=self.name+"_state", expr=AVar(in_var)))
-
-    # def get_var_map(self):
-    #     in_var = AVar(self.dest_lines[0].name)
-    #     cond0 = RelExpr("<", AVar("t"), AConst(self.st))
-    #     expr0 = AConst(self.init_value)
-    #     cond1 = cond0.neg()
-    #     expr1 = FunExpr("delay", [in_var, AConst(self.st)])
-    #     out_var = self.src_lines[0][0].name
-    #     return {out_var: [(cond0, expr0), (cond1, expr1)]}
-
-    # def get_hcsp(self):
-    #     assert len(self.dest_lines) == 1
-    #     in_var = self.dest_lines[0].name
-    #     in_branch = str(self.dest_lines[0].branch)
-    #     assert len(self.src_lines) == 1 and len(self.src_lines[0]) == 1
-    #     out_var = self.src_lines[0][0].name
-    #     out_branch = str(self.src_lines[0][0].branch)
-    #     return hcsp.Sequence(
-    #         hcsp.Assign(in_var, AConst(self.init_value)),
-    #         hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var)),
-    #         hcsp.Loop(hcsp.Sequence(
-    #             hcsp.InputChannel('ch_' + in_var + '_' + in_branch, in_var),
-    #             hcsp.Wait(AConst(self.st)),
-    #             hcsp.OutputChannel('ch_' + out_var + '_' + out_branch, AVar(in_var))
-    #     )))

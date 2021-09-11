@@ -20,10 +20,11 @@ class Constant(SL_Block):
         self.st = 0
 
     def __str__(self):
-        return "%s: Constant[value = %s, out = %s]" % (self.name, str(self.value), str(self.src_lines))
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s" % (self.name, out_var, self.value)
 
     def __repr__(self):
-        return str(self)
+        return "Constant(%s, %s, out = %s)" % (self.name, self.value, str(self.src_lines))
 
     def get_var_map(self):
         out_var = self.src_lines[0][0].name

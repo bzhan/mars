@@ -35,7 +35,6 @@ def run_test(self, location, num_steps, expected_series, *,
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
-    print(diagram)
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
     discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
@@ -43,11 +42,11 @@ def run_test(self, location, num_steps, expected_series, *,
     # Optional: print diagram
     if print_diagrams:
         print("Discrete diagram:")
-        for diag in discrete_diagram:
-            print(type(diag))
-            print(diag)
+        for block in discrete_diagram:
+            print(block)
         print("Continuous diagram:")
-        print(continuous_diagram)
+        for block in continuous_diagram:
+            print(block)
         print("Outputs:")
         print(outputs)
 
@@ -364,7 +363,7 @@ class SimTest(unittest.TestCase):
     def testVanderPol(self):
         run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 100, {
 
-        }, print_hcsp=True, print_time_series=True)
+        }, print_diagrams=True, print_hcsp=True, print_time_series=True)
 
     def testIsolette(self):
         location = "./Examples/isolette/babybox.xml"
@@ -484,7 +483,7 @@ class SimTest(unittest.TestCase):
             3: {'a': 1, 'y': 4},
             4: {'a': 1, 'y': 6},
             5: {'a': 1, 'y': 8}
-        }, print_module_path="./Examples/Simulink/Triggered1.txt")
+        })
 
     def testTriggered2(self):
         # Discrete triggered subsystem

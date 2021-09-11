@@ -3,6 +3,14 @@ from ss2hcsp.hcsp.expr import AVar, AConst, true_expr, OpExpr, RelExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
+def convert_bias(bias, in_var):
+    """Compute the assignment corresponding to bias block."""
+    if bias >= 0:
+        return OpExpr("+", AVar(in_var), AConst(bias))
+    else:
+        return OpExpr("-", AVar(in_var), AConst(-bias))
+
+
 class Bias(SL_Block):
     def __init__(self, name, bias=0, st=-1):
         super(Bias, self).__init__()
@@ -21,21 +29,24 @@ class Bias(SL_Block):
         self.st = st
 
     def __str__(self):
-        return "%s: Bias[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+        in_var = self.dest_lines[0].name
+        expr = convert_bias(self.bias, in_var)
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, expr, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "Bias(%s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.bias, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
         in_var = self.dest_lines[0].name
+        expr = convert_bias(self.bias, in_var)
         out_var = self.src_lines[0][0].name
         cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var,
-                                                    expr=OpExpr("+", AVar(in_var), AConst(self.bias))))
+        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)
-        expr = OpExpr("+", in_var, AConst(self.bias))
+        expr = convert_bias(self.bias, in_var)
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

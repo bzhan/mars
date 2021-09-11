@@ -43,19 +43,31 @@ class Triggered_Subsystem(Subsystem):
     def __init__(self, name, num_src, num_dest, trigger_type):
         super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
         self.type = "triggered_subsystem"
+
+        # Trigger type
+        assert trigger_type in ("rising", "falling", "either"), \
+            "Unknown trigger type: %s" % trigger_type
         self.trigger_type = trigger_type
+
+        # Sample time for triggered subsystem is always -1
         self.st = -1
+
         # A flag variable denoting if the subsystem was triggered at the last step
         self.triggered = self.name + "_triggered"
 
     def __str__(self):
-        return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.trigger_type, str(self.diagram))
+        trig_var = self.dest_lines[-1].name
+        res = "%s: on_%s(%s):\n" % (self.name, self.trigger_type, trig_var)
+        res += "\n".join("  " + line for line in str(self.diagram).split('\n'))
+        return res
 
     def __repr__(self):
-        return str(self)
+        return "Triggered_Subsystem(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_src, self.num_dest, self.trigger_type,
+             str(self.dest_lines), str(self.src_lines))
 
     def get_pre_cur_trig_signals(self):
+        """Obtain variables for current and previous trigger value."""
         trig_var = self.dest_lines[-1].name
         cur_sig = AVar(trig_var)
         pre_sig = AVar("pre_" + trig_var)
@@ -102,25 +114,34 @@ class Triggered_Subsystem(Subsystem):
         return init_hps
 
     def get_discrete_triggered_condition(self):
+        """Obtain the discrete trigger condition."""
         pre_sig, cur_sig = self.get_pre_cur_trig_signals()
-        # rising: (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
-        op0, op1, op2, op3 = "<", ">=", "==", ">"
-        if self.trigger_type == "falling":  # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
+
+        # Compare pre_sig and cur_sig with zero. Different comparisons for
+        # different trigger conditions.
+        if self.trigger_type == "rising":
+            # (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
+            op0, op1, op2, op3 = "<", ">=", "==", ">"
+        elif self.trigger_type == "falling":
+            # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
             op0, op1, op2, op3 = ">", "<=", "==", "<"
-        elif self.trigger_type == "either":  # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
+        elif self.trigger_type == "either":
+            # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
             op0, op1, op2, op3 = "<", ">=", ">=", "<"
-        elif self.trigger_type == "function-call":
-            raise RuntimeError("Not implemented yet")
-        trig_cond = LogicExpr("||",
-                              LogicExpr("&&",
-                                        RelExpr(op0, pre_sig, AConst(0)),
-                                        RelExpr(op1, cur_sig, AConst(0))),
-                              LogicExpr("&&",
-                                        RelExpr(op2, pre_sig, AConst(0)),
-                                        RelExpr(op3, cur_sig, AConst(0))))
-        return trig_cond
+        else:
+            raise NotImplementedError("Unknown trigger type: %s" % self.trigger_type)
+
+        return LogicExpr(
+            "||", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
+                  LogicExpr("&&", RelExpr(op2, pre_sig, AConst(0)), RelExpr(op3, cur_sig, AConst(0))))
 
     def get_continuous_triggered_condition(self):
+        """Obtain the continuous trigger condition.
+        
+        Currently, we assume that the trigger line is the output of an
+        integrator.
+
+        """
         trig_line = self.dest_lines[-1]
         trig_sig = AVar(trig_line.name)
         assert trig_line.src_block.type == "integrator"

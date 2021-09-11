@@ -4,6 +4,8 @@ from ss2hcsp.hcsp import hcsp as hp
 
 
 def convert_add(spec, in_vars):
+    """Compute the assignment corresponding to an add block."""
+    in_vars = [AVar(var) for var in in_vars]
     if spec[0] == '+':
         expr = in_vars[0]
     else:
@@ -14,6 +16,7 @@ def convert_add(spec, in_vars):
         else:
             expr = OpExpr("-", expr, in_var)
     return expr
+
 
 class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
@@ -35,21 +38,24 @@ class Add(SL_Block):
         self.st = st
 
     def __str__(self):
-        return "%s: Add[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
-
-    def __repr__(self):
-        return str(self)
-
-    def get_output_hp(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
+        in_vars = [line.name for line in self.dest_lines]
         expr = convert_add(self.dest_spec, in_vars)
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, str(expr), str(self.st))
+
+    def __repr__(self):
+        return "Add(%s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.dest_spec, self.st, self.dest_lines, self.src_lines)
+
+    def get_output_hp(self):
+        in_vars = [line.name for line in self.dest_lines]
+        expr = convert_add(self.dest_spec, in_vars)
+        out_var = self.src_lines[0][0].name
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
+        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
     def get_var_map(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
+        in_vars = [line.name for line in self.dest_lines]
         expr = convert_add(self.dest_spec, in_vars)
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}
