@@ -2,7 +2,8 @@
 
 import math
 import itertools
-from ss2hcsp.matlab import function
+
+from ss2hcsp.util.topsort import topological_sort, TopologicalSortException
 
 
 def opt_round(x):
@@ -580,6 +581,26 @@ def neg_expr(e):
         return e.neg()
     else:
         raise NotImplementedError
+
+def subst_all(e, inst):
+    """Perform all substitutions given in inst. Detect cycles.
+    
+    First compute a topological sort of dependency in inst, which will
+    provide the order of substitution.
+
+    """
+    # Set of all variables to be substituted
+    all_vars = set(inst.keys())
+
+    # Mapping variable to its dependencies
+    dep_order = dict()
+    for var in all_vars:
+        dep_order[var] = list(inst[var].get_vars().intersection(all_vars))
+
+    topo_order = topological_sort(dep_order)
+    for var in reversed(topo_order):
+        e = e.subst({var: inst[var]})
+    return e
 
 
 class Conditional_Inst:

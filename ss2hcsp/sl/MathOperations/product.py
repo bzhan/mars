@@ -55,6 +55,12 @@ class Product(SL_Block):
         time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
         return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
 
+    def get_var_subst(self):
+        in_vars = [line.name for line in self.dest_lines]
+        expr = convert_product(self.dest_spec, in_vars)
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
+
     def get_var_map(self):
         in_vars = [line.name for line in self.dest_lines]
         expr = convert_product(self.dest_spec, in_vars)

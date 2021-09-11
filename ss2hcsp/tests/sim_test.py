@@ -87,7 +87,7 @@ def run_test(self, location, num_steps, expected_series, *,
             self.assertTrue(var in series[time])
             self.assertAlmostEqual(
                 series[time][var], expected_series[time][var],
-                msg="Disagreement at time %s, variable %s" % (time, var))
+                msg="Disagreement at time %s, variable %s" % (time, var), places=3)
 
 
 class SimTest(unittest.TestCase):
@@ -361,9 +361,18 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
 
     def testVanderPol(self):
-        run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 100, {
-
-        }, print_diagrams=True, print_hcsp=True, print_time_series=True)
+        run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 50, {
+            0: {'z': 1},
+            1: {'z': 1.382},
+            2: {'z': 0.493},
+            3: {'z': -0.898},
+            4: {'z': -1.541},
+            5: {'z': -0.816},
+            6: {'z': 0.516},
+            7: {'z': 1.323},
+            8: {'z': 0.929},
+            9: {'z': -0.347}
+        })
 
     def testIsolette(self):
         location = "./Examples/isolette/babybox.xml"
