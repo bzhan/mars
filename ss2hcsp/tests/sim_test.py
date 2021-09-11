@@ -362,30 +362,9 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
 
     def testVanderPol(self):
-        location = "./Examples/Van_der_Pol/Van_der_Pol.xml"
-        diagram = SL_Diagram(location=location)
-        model_name = diagram.parse_xml()
-        diagram.add_line_name()
-        diagram.comp_inher_st()
-        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
-        # print(real_hp)
+        run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 100, {
 
-        expected_hp = hcsp.HCSPProcess()
-        expected_hp.add(model_name, hcsp.Parallel(hcsp.Var("PD0"), hcsp.Var("PC0")))
-        dis_init = hp_parser.parse("t := 0")
-        dis_hp = hp_parser.parse(r"""t%6 == 0 -> (ch_z_0?z; ch_z_1?z; a := z*z); t%6 == 0 -> b := a+(-1); 
-        t%4 == 0 -> (c := b*(-0.1); ch_c_0!c); wait(2); t := t+2""")
-        discrete_hp = hcsp.Sequence(dis_init, hcsp.Loop(dis_hp))
-        expected_hp.add("PD0", discrete_hp)
-
-        con_init = hp_parser.parse("z := 1; y := 1; c := 1")
-        con_hp = hp_parser.parse(r"""<z_dot = y, y_dot = y*c-z & true> |> 
-        [] (ch_c_0?c --> skip, ch_z_0!z --> skip, ch_z_1!z --> skip)""")
-        continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
-        expected_hp.add("PC0", continuous_hp)
-        # print(expected_hp)
-
-        # self.assertEqual(real_hp, expected_hp)
+        }, print_hcsp=True, print_time_series=True)
 
     def testIsolette(self):
         location = "./Examples/isolette/babybox.xml"
