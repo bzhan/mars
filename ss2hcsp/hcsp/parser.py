@@ -38,7 +38,10 @@ grammar = r"""
         | plus_expr "-" times_expr -> minus_expr
         | times_expr
 
-    ?expr: plus_expr
+    ?if_expr: "(" cond "?" if_expr ":" if_expr ")"        // priority 40
+        | plus_expr
+
+    ?expr: if_expr
 
     ?atom_cond: expr "==" expr -> eq_cond                  // priority 50
         | expr "!=" expr -> ineq_cond
@@ -189,6 +192,9 @@ class HPTransformer(Transformer):
 
     def field_expr(self, e, field):
         return expr.FieldNameExpr(e, field)
+
+    def if_expr(self, cond, e1, e2):
+        return expr.IfExpr(cond, e1, e2)
 
     def plus_expr(self, e1, e2):
         return expr.OpExpr("+", e1, e2)

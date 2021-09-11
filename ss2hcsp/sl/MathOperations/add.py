@@ -21,10 +21,10 @@ def convert_add(spec, in_vars):
 class Add(SL_Block):
     """Add (or subtract) a list of dest lines."""
     def __init__(self, name, dest_spec, st=-1):
-        super(Add, self).__init__()
         """dest_spec is a list of either '+' or '-'."""
-        self.name = name
+        super(Add, self).__init__()
         self.type = "add"
+        self.name = name
         self.is_continuous = (st == 0)
         self.num_src = 1
         self.num_dest = len(dest_spec)
