@@ -74,7 +74,7 @@ class Process extends React.Component {
         super(props);
         this.state = {
             // Whether to show program text
-            show_process: false,
+            show_process: true,
             
             // Whether to show graph
             show_graph: false,   
@@ -113,12 +113,11 @@ class Process extends React.Component {
         }))
     }
 
-    render() {
-        if (this.props.curpos_callstack === undefined)
-            this.state.show_process = false
-        else
-            this.state.show_process = true
+    returnProcessName = (e) => {
+        this.props.parent.getProcessname(this.props.name)
+    }
 
+    render() {
         return (
             <div>
                 {/* Program text, with highlight on current location */}
@@ -126,110 +125,64 @@ class Process extends React.Component {
                     <a href="#" style={{ fontSize: 14 }} onClick={this.toggleShowText}>
                         {this.state.show_process ? "Hide Process" : "Show Process"}
                     </a>
+                    {"       "}
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.returnProcessName}>
+                        {"Show callstack"}
+                    </a>
                 </div>
                 <div className="procedure">
                 {
-                    this.state.show_process ? (
-                        this.props.procedures.map((info, index) => {
-                            return(
-                                <div className="procedure">Procedure{index}:{info.name}
-                                {
-                                    info.lines.map((str, line_no) => {            
-                                        if (this.props.curpos_callstack !== undefined) {
-                                            var tag = 0;//tag=0,not in procedure
-                                            if (this.props.curpos_callstack.procedure === null || this.props.curpos_callstack.procedure === undefined){
-                                                tag = 0
-                                            }
-                                            else {
-                                                for (var ind = 0; ind < this.props.curpos_callstack.procedure.length; ind++){
-                                                    if (info.name === this.props.curpos_callstack.procedure[ind]){
-                                                        tag = 1;
-                                                        break;
-                                                    }
+                    this.state.show_process ? (this.props.procedures.map((info, index) => {
+                        return(
+                            <div className="procedure">Procedure{index}:{info.name}
+                            {
+                                info.lines.map((str, line_no) => {
+                                    if (this.props.callstack !== undefined) {
+                                        var tag = 0;//tag=0,not in procedure
+                                        if (this.props.callstack.procedure === null || this.props.callstack.procedure === undefined)
+                                            tag = 0
+                                        else 
+                                            for (var ind = 0; ind < this.props.callstack.procedure.length; ind++)
+                                                if (info.name === this.props.callstack.procedure[ind]){
+                                                    tag = 1;
+                                                    break;
                                                 }
-                                            }
-                                            if (tag !== 0) {   
-                                                if (this.props.curpos_callstack['innerpos'][ind] !== undefined) {
-                                                    const pos = this.props.curpos_callstack['innerpos'][ind];
-                                                    var bg_start, bg_end;
-                                                    if (line_no === pos.start_x) {
-                                                        bg_start = pos.start_y;
-                                                    } else if (line_no > pos.start_x) {
-                                                        bg_start = 0;
-                                                    } else {
-                                                        bg_start = str.length;
-                                                    }
-                                                    if (line_no === pos.end_x) {
-                                                        bg_end = pos.end_y;
-                                                    } else if (line_no < pos.end_x) {
-                                                        bg_end = str.length;
-                                                    } else {
-                                                        bg_end = 0;
-                                                    }
-                                                    if (bg_start < bg_end) {
-                                                        return (
-                                                            <pre key={line_no}>
-                                                                <span>{str.slice(0, bg_start)}</span>
-                                                                <span className={"program-text-hl"}>
-                                                                    {str.slice(bg_start, bg_end)}
-                                                                </span>
-                                                                <span>{str.slice(bg_end, str.length)}</span>
-                                                            </pre>)
-                                                    }
+                                        if (tag !== 0) {   
+                                            if (this.props.callstack['innerpos'][ind] !== undefined) {
+                                                const pos = this.props.callstack['innerpos'][ind];
+                                                var bg_start, bg_end;
+                                                if (line_no === pos.start_x) {
+                                                    bg_start = pos.start_y;
+                                                } else if (line_no > pos.start_x) {
+                                                    bg_start = 0;
+                                                } else {
+                                                    bg_start = str.length;
+                                                }
+                                                if (line_no === pos.end_x) {
+                                                    bg_end = pos.end_y;
+                                                } else if (line_no < pos.end_x) {
+                                                    bg_end = str.length;
+                                                } else {
+                                                    bg_end = 0;
+                                                }
+                                                if (bg_start < bg_end) {
+                                                    return (
+                                                        <pre key={line_no}>
+                                                            <span>{str.slice(0, bg_start)}</span>
+                                                            <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
+                                                                {str.slice(bg_start, bg_end)}
+                                                            </span>
+                                                            <span>{str.slice(bg_end, str.length)}</span>
+                                                        </pre>)
                                                 }
                                             }
                                         }
-                                        if (this.props.oripos_callstack !== undefined) {
-                                            tag = 0;//tag=0,not in procedure
-                                            if(this.props.oripos_callstack.procedure === null || this.props.oripos_callstack.procedure === undefined){
-                                                tag = 0
-                                            }
-                                            else{
-                                                for(ind = 0; ind < this.props.oripos_callstack.procedure.length; ind++){
-                                                    if (info.name === this.props.oripos_callstack.procedure[ind]){
-                                                        tag=1;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            if (tag !== 0) {   
-                                                if (this.props.oripos_callstack['innerpos'][ind] !== undefined) {
-
-                                                    const pos = this.props.oripos_callstack['innerpos'][ind];
-                                                    if (line_no === pos.start_x) {
-                                                        bg_start = pos.start_y;
-                                                    } else if (line_no > pos.start_x) {
-                                                        bg_start = 0;
-                                                    } else {
-                                                        bg_start = str.length;
-                                                    }
-                                                    if (line_no === pos.end_x) {
-                                                        bg_end = pos.end_y;
-                                                    } else if (line_no < pos.end_x) {
-                                                        bg_end = str.length;
-                                                    } else {
-                                                        bg_end = 0;
-                                                    }
-                                                    if (bg_start < bg_end) {
-                                                        return (
-                                                            <pre key={line_no}>
-                                                                <span>{str.slice(0, bg_start)}</span>
-                                                                <span className={"program-text-next-hl"}>
-                                                                    {str.slice(bg_start, bg_end)}
-                                                                </span>
-                                                                <span>{str.slice(bg_end, str.length)}</span>
-                                                            </pre>)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        return <pre key={line_no}>{str}</pre>
-                                    })
-                                }
-                                </div>  
-                            )
-                        })
-                    ) : null
+                                    }
+                                    return <pre key={line_no}>{str}</pre>
+                                })
+                            }
+                        </div>)
+                    })) : null
                 }
                 </div>
                 <div className="program-text">
@@ -238,8 +191,8 @@ class Process extends React.Component {
                             <div>
                                 {
                                     this.props.lines.map((str, line_no) => {
-                                        if (this.props.curpos_callstack !== undefined) {
-                                            const pos = this.props.curpos_callstack['innerpos'][this.props.curpos_callstack['innerpos'].length-1];
+                                        if (this.props.callstack !== undefined) {
+                                            const pos = this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1];
                                             if (pos !== undefined) { 
                                                 var bg_start, bg_end;
                                                 if (line_no === pos.start_x) {
@@ -260,36 +213,7 @@ class Process extends React.Component {
                                                     return (
                                                         <pre key={line_no}>
                                                             <span>{str.slice(0, bg_start)}</span>
-                                                            <span className={"program-text-hl"}>
-                                                                {str.slice(bg_start, bg_end)}
-                                                        </span>
-                                                            <span>{str.slice(bg_end, str.length)}</span>
-                                                        </pre>)
-                                                }
-                                            }   
-                                        }
-                                        if (this.props.oripos_callstack !== undefined) {
-                                            const pos = this.props.oripos_callstack['innerpos'][this.props.oripos_callstack['innerpos'].length-1];
-                                            if (pos !== undefined) { 
-                                                if (line_no === pos.start_x) {
-                                                    bg_start = pos.start_y;
-                                                } else if (line_no > pos.start_x) {
-                                                    bg_start = 0;
-                                                } else {
-                                                    bg_start = str.length;
-                                                }
-                                                if (line_no === pos.end_x) {
-                                                    bg_end = pos.end_y;
-                                                } else if (line_no < pos.end_x) {
-                                                    bg_end = str.length;
-                                                } else {
-                                                    bg_end = 0;
-                                                }
-                                                if (bg_start < bg_end) {
-                                                    return (
-                                                        <pre key={line_no}>
-                                                            <span>{str.slice(0, bg_start)}</span>
-                                                            <span className={"program-text-next-hl"}>
+                                                            <span className={this.props.npos ? "program-text-next-hl" : "program-text-hl"}>
                                                                 {str.slice(bg_start, bg_end)}
                                                         </span>
                                                             <span>{str.slice(bg_end, str.length)}</span>
@@ -461,21 +385,24 @@ class Callstack extends React.Component {
             <div className="callstack-list">
                 {this.props.event === undefined ? null:(
                     Object.entries(this.props.event.infos).map((event, index) => {
-                        var processname = event[0]
-                        var callstack = event[1].callstack.innerpos
-                        var posstring = ''
-                        for (var i = 0; i < callstack.length; i++)
+                        var name = event[0]
+                        if (name == this.props.processname)
                         {
-                            if (i === callstack.length - 1)
-                                posstring = posstring + callstack[i]
-                            else
-                                posstring = posstring + callstack[i] + ';'
-                        }   
-                        return (
-                            <pre>
-                            {processname + ':' + posstring}
-                            </pre>
-                        )
+                            var callstack = event[1].callstack.innerpos
+                            var posstring = ''
+                            for (var i = 0; i < callstack.length; i++)
+                            {
+                                if (i === callstack.length - 1)
+                                    posstring = posstring + callstack[i]
+                                else
+                                    posstring = posstring + callstack[i] + ';'
+                            }   
+                            return (
+                                <pre>
+                                {name + ':' + posstring}
+                                </pre>
+                            )
+                        }
                     })
                 )}
             </div>
@@ -533,11 +460,19 @@ class App extends React.Component {
             show_event_only: false,
 
             // Warnings from checks of channel mismatches.
-            warnings: [],            
+            warnings: [],   
+            
+            // Tell callstack part current process
+            cur_process: undefined,
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
         this.picclicked=false;
+    }
+    getProcessname = (msg) =>{
+        this.setState({
+            cur_process:  msg
+        })
     }
 
     handleChange = (e) => {
@@ -802,9 +737,9 @@ class App extends React.Component {
                         else if (this.state.history.length === 0) {
                             // No data is available
                             return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                name={hcsp_name} curpos_callstack={undefined} statenum={undefined} statemap={this.state.statemap}
-                                time_series={undefined} event_time={undefined} hpos={undefined}
-                                oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
+                                    name={hcsp_name} callstack={undefined} statenum={statenum} statemap={this.state.statemap}
+                                    time_series={time_series} event_time={event_time} hpos={undefined} npos={undefined}
+                                    warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>  
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
@@ -830,88 +765,74 @@ class App extends React.Component {
                                 if (pos === 'end') {
                                     // End of data set
                                     return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={undefined} statenum={statenum} statemap={this.state.statemap}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
+                                            name={hcsp_name} callstack={undefined} statenum={statenum} statemap={this.state.statemap}
+                                            time_series={time_series} event_time={event_time} hpos={hpos} npos={undefined}
+                                            warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>  
                                 }
                             }    
-                            var curpos_callstack=_.cloneDeep(callstack);
-                            var oripos_callstack=_.cloneDeep(callstack);
+                            var callstack_temp = _.cloneDeep(callstack);
+                            var npos = false;
                             if (hpos < this.state.history.length) {
-                                curpos_callstack['innerpos']=[];
-                                curpos_callstack['procedure']=[];
-                                for (i = 0; i < this.state.history[hpos].infos[hcsp_name].callstack.innerpos.length; i++){
-                                    if(this.state.history[hpos].infos[hcsp_name].callstack.procedure === null){
-                                        var proc = null
-                                    }else{
-                                        var proc = this.state.history[hpos].infos[hcsp_name].callstack.procedure[i];
+                                callstack_temp['innerpos'] = [];
+                                callstack_temp['procedure'] = [];
+                                if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos)
+                                    var callstack_length = this.state.history[hpos].ori_pos[hcsp_name].innerpos.length
+                                else
+                                    var callstack_length = this.state.history[hpos].infos[hcsp_name].callstack.innerpos.length      
+                                for (i = 0 ; i < callstack_length ; i++){
+                                    if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos)
+                                    {
+                                        if(this.state.history[hpos].ori_pos[hcsp_name].procedure === null)
+                                            var proc =null
+                                        else
+                                            var proc = this.state.history[hpos].ori_pos[hcsp_name].procedure[i]    
+                                    }   
+                                    else
+                                    {
+                                        if(this.state.history[hpos].infos[hcsp_name].callstack.procedure === null)
+                                            var proc = null
+                                        else
+                                            var proc = this.state.history[hpos].infos[hcsp_name].callstack.procedure[i];
                                     }
                                     if (proc === null){
-                                        curpos_callstack['innerpos'][i] = info.mapping[this.state.history[hpos].infos[hcsp_name].callstack.innerpos[i]];
+                                        if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos)
+                                        {    
+                                            npos = true;
+                                            callstack_temp['innerpos'][i] = info.mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];
+                                        }
+                                        else
+                                            callstack_temp['innerpos'][i] = info.mapping[this.state.history[hpos].infos[hcsp_name].callstack.innerpos[i]];
                                     }
                                     else{
-                                        for (var ind=0 ; index < info.procedures.length ; ind++){    
+                                        for (var ind=0; index < info.procedures.length; ind++){    
                                             if(info.procedures[ind].name === proc)
                                                         break;
                                         }
-                                        curpos_callstack['innerpos'][i] = info.procedures[ind].mapping[this.state.history[hpos].infos[hcsp_name].callstack.innerpos[i]];       
+                                        if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos)
+                                        {
+                                            npos = true;
+                                            callstack_temp['innerpos'][i] = info.procedures[ind].mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];    
+                                        }
+                                        else
+                                            callstack_temp['innerpos'][i] = info.procedures[ind].mapping[this.state.history[hpos].infos[hcsp_name].callstack.innerpos[i]];       
                                     }
                                 }
                                 if (this.state.history[hpos].infos[hcsp_name].callstack.procedure === null){
-                                    curpos_callstack['procedure'] = null
+                                    callstack_temp['procedure'] = null
                                 }
                                 else{
                                     for (i = 0; i < this.state.history[hpos].infos[hcsp_name].callstack.innerpos.length; i++){
-                                        curpos_callstack['procedure'][i] = this.state.history[hpos].infos[hcsp_name].callstack.procedure[i];
+                                        if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos)
+                                            callstack_temp['procedure'][i] = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
+                                        else
+                                            callstack_temp['procedure'][i] = this.state.history[hpos].infos[hcsp_name].callstack.procedure[i];
                                     }
-                                }   
-                                if ('ori_pos' in this.state.history[hpos] && hcsp_name in this.state.history[hpos].ori_pos){
-                                    
-                                    oripos_callstack['innerpos']=[];
-                                    oripos_callstack['procedure']=[];
-                                    for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
-                                        if(this.state.history[hpos].ori_pos[hcsp_name].procedure === null){
-                                            proc = null
-                                        }else{
-                                            proc = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
-                                        }
-                                        if (proc === null){
-                                            oripos_callstack['innerpos'][i] = info.mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];
-                                        }
-                                        else{
-                                            for (var ind=0 ; index < info.procedures.length ; ind++){    
-                                                if(info.procedures[ind].name === proc)
-                                                        break;
-                                            }
-                                            oripos_callstack['innerpos'][i] = info.procedures[ind].mapping[this.state.history[hpos].ori_pos[hcsp_name].innerpos[i]];       
-                                        }
-                                    }
-                                    if (this.state.history[hpos].ori_pos[hcsp_name].procedure === null){
-                                        oripos_callstack['procedure'] = null
-                                    }
-                                    else{
-                                        for (i = 0; i < this.state.history[hpos].ori_pos[hcsp_name].innerpos.length; i++){
-                                            oripos_callstack['procedure'][i] = this.state.history[hpos].ori_pos[hcsp_name].procedure[i];
-                                        }
-                                    }
-                                    return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={curpos_callstack} statenum={statenum} statemap={this.state.statemap}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        oripos_callstack={oripos_callstack} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
-                                }else{   
-                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={curpos_callstack} statenum={statenum} statemap={this.state.statemap}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
-                                }
+                                }     
                             }
-                            else{
-                                return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
-                                        name={hcsp_name} curpos_callstack={undefined} statenum={statenum} statemap={this.state.statemap}
-                                        time_series={time_series} event_time={event_time} hpos={hpos}
-                                        oripos_callstack={undefined} warning_at={this.state.sim_warning}  onClick={this.picOnClick}/>
-                            }     
-                            
+                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                                    name={hcsp_name} callstack={callstack_temp} statenum={statenum} statemap={this.state.statemap}
+                                    time_series={time_series} event_time={event_time} hpos={hpos} npos={npos}
+                                    warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>    
                         }
                     })}
                 </Container>
@@ -924,7 +845,7 @@ class App extends React.Component {
         );
         const callstack=(
             <Container id="callstack" className="callstack">
-                <Callstack event={this.state.history[this.state.history_pos]} />
+                <Callstack event={this.state.history[this.state.history_pos]} processname={this.state.cur_process} />
             </Container>
         );
         return (

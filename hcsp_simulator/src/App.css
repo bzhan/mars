@@ -80,7 +80,7 @@
 }
 
 .event-list {
-  margin-top: 10px;
+  margin-top: 0px;
   overflow: visible;
 }
 
@@ -91,13 +91,12 @@
 }
 
 .callstack-list {
-  margin-top: 10px;
+  margin-top: 0px;
   overflow: visible;
 }
 
 .callstack-list pre {
-  margin: 0px;
-  cursor: pointer;
+  margin-top: 15%;
   overflow: visible;
 }
 
@@ -134,7 +133,7 @@
 }
 .callstack {
   display: inline-block;
-  max-height: 30%;
+  max-height: 40%;
   max-width: 30%;
   vertical-align: top;
   position: fixed;

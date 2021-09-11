@@ -542,6 +542,7 @@ class Callstack:
         self.renewinnerpos(hp, procs)
         callstack_info = {
             'innerpos': [],
+            'procedure':[]
         }
         index = len(self.callstack) - 1
         while index >= 0:
@@ -550,8 +551,11 @@ class Callstack:
                 callstack_info['innerpos'].append('end')
             else:
                 callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))            
+            if self.callstack[index].proc_name is None:
+                callstack_info['procedure'].append(self.callstack[index].proc_name)
+            else:
+                callstack_info['procedure'].append(self.callstack[index].proc_name)
             index = index - 1
-
         return callstack_info
 
 
