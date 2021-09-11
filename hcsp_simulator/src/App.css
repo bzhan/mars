@@ -96,7 +96,7 @@
 }
 
 .callstack-list pre {
-  margin-top: 15%;
+  margin-top: 0px;
   overflow: visible;
 }
 
@@ -108,37 +108,53 @@
   margin: 0px 0px 0px 20px;
   align-self: center;
 }
-
+.navbar{
+  position: absolute;
+  top: 0%;
+  bottom: 90%;
+  width: 100%;
+  object-fit: cover;
+}
+.toolbar{
+  position: absolute;
+  top: 10%;
+  bottom: 87%;
+  width: 100%;
+  object-fit: cover;
+}
+.headline{
+  position: absolute;
+  top: 13%;
+  bottom: 15%;
+  width: 100%;
+}
 .left {
   display: inline-block;
   max-width: 70%;
-  position: fixed;
-  top: 127px;
+  position: absolute;
+  top: 15%;
   bottom: 0px;
   overflow-y: scroll;
   overflow-x: scroll;
 }
-
 .right {
   display: inline-block;
-  max-height: 60%;
   max-width: 30%;
   vertical-align: top;
-  position: fixed;
-  top: 127px;
-  bottom: 0px;
+  position: absolute;
+  top: 15%;
+  bottom: 20%;
   left: 70%;
   overflow-y: scroll;
   overflow-x: scroll;
 }
 .callstack {
   display: inline-block;
-  max-height: 40%;
   max-width: 30%;
   vertical-align: top;
-  position: fixed;
-  top: 620px;
-  bottom: 0px;
+  position: absolute;
+  top: 80%;
+  bottom: 0%;
   left: 70%;
   overflow-y: scroll;
   overflow-x: scroll;

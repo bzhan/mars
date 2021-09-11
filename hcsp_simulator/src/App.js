@@ -850,7 +850,7 @@ class App extends React.Component {
         );
         return (
             <div>
-                <Navbar bg="light" variant="light">
+                <Navbar bg="light" variant="light" id="navbar">
                     <Navbar.Brand href="#">HCSP Simulator</Navbar.Brand>
                     <Nav className="mr-auto">
                         <Button variant={"primary"} onClick={this.handleFileSelect}>Read HCSP File</Button>
@@ -864,7 +864,7 @@ class App extends React.Component {
                     </Nav>
                 </Navbar>
 
-                <div>
+                <div className="toolbar">
                     <ButtonToolbar>
                         <Button variant="success" title={"run"} onClick={this.run}
                             disabled={this.state.querying || !this.state.file_loaded || this.state.error !== undefined}>
@@ -911,7 +911,7 @@ class App extends React.Component {
                     </ButtonToolbar>
                 </div>
 
-                <hr />
+                <hr className="headline"/>
                 {left}
                 {right}
                 {callstack}
