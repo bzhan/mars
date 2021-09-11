@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, RelExpr, AConst, FunExpr
+from ss2hcsp.hcsp.expr import AVar, RelExpr, AConst, FunExpr, OpExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 class Sqrt(SL_Block):

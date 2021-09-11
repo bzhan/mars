@@ -19,7 +19,6 @@ class SL_Line:
         self.dest_block = None
 
     def __str__(self):
-        # return self.name
         return "{" + self.src + "->" + self.dest + "}"
 
     def __repr__(self):
