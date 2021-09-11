@@ -617,7 +617,7 @@ class SL_Diagram:
                     if child.nodeName == "Line":
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
-                            assert name is not None
+                            # assert name is not None
                             self.outputs.append(name)
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
@@ -848,7 +848,7 @@ class SL_Diagram:
             # Give name to each group of outgoing lines (if no
             # name is given already).
             for lines in block.src_lines:
-                if line and lines[0].name == "?":
+                if lines and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1

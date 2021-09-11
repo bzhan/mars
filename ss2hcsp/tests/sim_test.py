@@ -30,10 +30,12 @@ def print_module(path, m):
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
 def run_test(self, location, num_steps, expected_series, *,
-             print_diagrams=False, print_hcsp=False, print_time_series=False):
+             print_diagrams=False, print_hcsp=False, print_time_series=False,
+             print_module_path=None):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
+    print(diagram)
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
     discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
@@ -55,6 +57,11 @@ def run_test(self, location, num_steps, expected_series, *,
     # Optional: print HCSP
     if print_hcsp:
         print(result_hp.export())
+
+    # Optional: export HCSP to file
+    if print_module_path:
+        assert isinstance(print_module_path, str)
+        print_module(print_module_path, result_hp)
 
     # Perform simulation
     proc_dict = dict()
@@ -498,7 +505,7 @@ class SimTest(unittest.TestCase):
             3: {'a': 1, 'y': 4},
             4: {'a': 1, 'y': 6},
             5: {'a': 1, 'y': 8}
-        })
+        }, print_module_path="./Examples/Simulink/Triggered1.txt")
 
     def testTriggered2(self):
         # Discrete triggered subsystem

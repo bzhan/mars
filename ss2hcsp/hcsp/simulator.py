@@ -474,16 +474,24 @@ def get_ode_delay(hp, state):
 
 class Frame:
     """Represents a frame on the call stack."""
-    def __init__(self, pos=None, rec_vars=None):
+    def __init__(self, pos, rec_vars, proc_name):
+        # Location within the program or procedure
         self.pos = pos
-        self.rec_vars = rec_vars 
-        self.innerpos = pos  # inner position, use for display
-        
-    
+
+        # List recursive variables
+        self.rec_vars = rec_vars
+
+        # Name of the process to be called. Can be None for the main process
+        self.proc_name = proc_name
+
+        # Inner position, use for display
+        self.innerpos = pos
+
+
 class Callstack:
     """Represents current call stack during simulation."""
     def __init__(self, pos, rec_vars):
-        self.callstack = [Frame(pos, rec_vars)]    
+        self.callstack = [Frame(pos, rec_vars, None)]
 
     def renewinnerpos(self, hp, procs):
         if self.callstack[-1].pos is None:
@@ -512,9 +520,9 @@ class Callstack:
                 self.callstack[-1].innerpos = pos[:rec_list[0]] + pos[rec_list[-1]:]
                 self.callstack[-1].innerpos = self.callstack[-1].innerpos[(len(pos)-length):]
  
-    def push(self, pos, rec_vars):
+    def push(self, pos, rec_vars, proc_name):
         # when percedure shift occur,push
-        self.callstack.append(Frame(pos, rec_vars))
+        self.callstack.append(Frame(pos, rec_vars, proc_name))
     
     def renew(self, pos, rec_vars):
         # renew pos in same percedure or main part
@@ -939,7 +947,7 @@ class SimInfo:
             if cur_hp.name in self.procedures:
                 proc = self.procedures[cur_hp.name]
                 pos = self.callstack.top_pos() + (0,) + start_pos(proc.hp)
-                self.callstack.push(pos, rec_vars)
+                self.callstack.push(pos, rec_vars, cur_hp.name)
                 self.reason = None
                 return
 
