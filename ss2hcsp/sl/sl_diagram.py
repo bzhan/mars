@@ -504,10 +504,10 @@ class SL_Diagram:
                 else:
                     value = 0
                 dataStoreName = get_attribute_value(block, "DataStoreName")
-                self.add_block(DataStoreMemory(name=name, value=value, dataStoreName=dataStoreName))
+                self.add_block(DataStoreMemory(name=block_name, value=value, dataStoreName=dataStoreName))
             elif block_type == "DataStoreRead":
                 dataStoreName = get_attribute_value(block,"DataStoreName")
-                self.add_block(DataStoreRead(name=name, dataStoreName=dataStoreName))
+                self.add_block(DataStoreRead(name=block_name, dataStoreName=dataStoreName))
             elif block_type == "Constant":
                 value = get_attribute_value(block, "Value")
                 value = parse_value(value, default=1)
