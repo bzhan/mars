@@ -105,6 +105,16 @@ class SimTest(unittest.TestCase):
             9.984: {'m': 1241.697, 'v': -1.532, 'Fc': 2016.002}
         })
 
+    def testMarsLander(self):
+        run_test(self, "./Examples/Simulink/MarsLander.xml", 1600, {
+            0.000: {'m': 759.5, 'v': -1.5, 'Fc': 2834.449},
+            2.020: {'m': 757.118, 'v': -1.500, 'Fc': 2825.807},
+            3.968: {'m': 754.828, 'v': -1.499, 'Fc': 2816.761},
+            6.016: {'m': 752.428, 'v': -1.499, 'Fc': 2807.788},
+            8.036: {'m': 750.068, 'v': -1.499, 'Fc': 2799.413},
+            9.984: {'m': 747.800, 'v': -1.499, 'Fc': 2790.511}
+        })
+
     # def testIsollete(self):
     #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
     #     diagram = SL_Diagram(location=location)

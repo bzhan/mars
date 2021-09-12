@@ -1054,7 +1054,7 @@ class SL_Diagram:
 
         # Add new blocks from subsystems to block_dict
         for block in blocks_in_subsystems:
-            assert block.name not in self.blocks_dict
+            assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
 
     def new_seperate_diagram(self):

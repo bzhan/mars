@@ -26,7 +26,7 @@ class SL_Block:
 
         # Lines originating from the block, maintained as a list
         # of lists of SL_Line objects.
-        self.src_lines = [[]] * num_src
+        self.src_lines = [[] for _ in range(num_src)]
 
         # Lines ending at the block, maintained as a list of
         # SL_Line objects
