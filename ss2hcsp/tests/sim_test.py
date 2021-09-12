@@ -115,17 +115,6 @@ class SimTest(unittest.TestCase):
             9.984: {'m': 747.800, 'v': -1.499, 'Fc': 2790.511}
         })
 
-    # def testIsollete(self):
-    #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
-    #     diagram = SL_Diagram(location=location)
-    #     diagram.parse_xml()
-    #     get_hp.delete_subsystems(diagram.blocks_dict)
-    #     diagram.add_line_name()
-    #     diagram.comp_inher_st()
-    #     dis_subdiag_with_chs, con_subdiag_with_chs = get_hp.seperate_diagram(diagram.blocks_dict)
-    #     real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-    #     # print(real_hp)
-
     def testVanderPol(self):
         # This test case contains blocks with different sample times
         run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 50, {
@@ -157,53 +146,14 @@ class SimTest(unittest.TestCase):
         })
 
     def testIsolette(self):
-        location = "./Examples/isolette/babybox.xml"
-        diagram = SL_Diagram(location)
-        model_name = diagram.parse_xml()
-        diagram.add_line_name()
-        diagram.comp_inher_st()
-        diagram.inherit_to_continuous()
-        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
-        # print(real_hp)
-
-        expected_hp = hcsp.HCSPProcess()
-        # expected_hp.add(model_name, hcsp.Var("PC0"))
-        con_init = hp_parser.parse("q := 97; c := 100; x0 := 1")
-        con_hp = hp_parser.parse("<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] "
-                                 "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip); "
-                                 "<q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] "
-                                 "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip)")
-        continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
-        expected_hp.add(model_name, continuous_hp)
-        # print(expected_hp)
-
-        # self.assertEqual(real_hp, expected_hp)
-
-    def testLander(self):
-        directory = "./CaseStudies/lander/"
-        xml_file = "lander_2018a.xml"
-        diagram = SL_Diagram(location=directory+xml_file)
-        model_name = diagram.parse_xml()
-        diagram.delete_subsystems()
-        diagram.comp_inher_st()
-        diagram.add_buffers()
-        diagram.add_line_name()
-        # print(diagram)
-        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
-
-        # expected_hp = hcsp.HCSPProcess()
-        # expected_hp.add(model_name, hcsp.Var("PC0"))
-        # con_init = hp_parser.parse("q := 97; c := 100; x0 := 1")
-        # con_hp = hp_parser.parse("<q_dot = -1, c_dot = (-q+c)*(-0.026) & x0 <= 0> |> [] "
-        #                          "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip); "
-        #                          "<q_dot = 1, c_dot = (-q+c)*(-0.026) & x0 > 0> |> [] "
-        #                          "(babybox_heatCommand?x0 --> skip, babybox_boxTemp!c --> skip)")
-        # continuous_hp = hcsp.Sequence(con_init, hcsp.Loop(con_hp))
-        # expected_hp.add(model_name, continuous_hp)
-        # print(expected_hp)
-
-        # self.assertEqual(real_hp, expected_hp)
+        run_test(self, "./Examples/Simulink/Isolette.xml", 1200, {
+            0.0: {'q': 75, 'c': 75},
+            40.0: {'q': 115.0, 'c': 90.133},
+            80.0: {'q': 103.054, 'c': 107.166},
+            120.0: {'q': 98.645, 'c': 96.473},
+            160.0: {'q': 89.899, 'c': 100.370},
+            200.0: {'q': 92.852, 'c': 99.874}
+        })
 
     def testSignalBuilder(self):
         directory = "./Examples/signalBuilder/"
