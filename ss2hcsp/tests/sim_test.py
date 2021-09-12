@@ -93,26 +93,9 @@ def run_test(self, location, num_steps, expected_series, *,
 
 class SimTest(unittest.TestCase):
     def testHCS(self):
-        directory = "./ss2hcsp/case_studies/"
-        xml_file = "hcs_new.xml"
-        diagram = SL_Diagram(location=directory+xml_file)
-        diagram.parse_xml()
-        diagram.delete_subsystems()
-        diagram.comp_inher_st()
-        diagram.add_line_name()
-        diagram.inherit_to_continuous()
-        # diagram.delete_ports()
-        # print(diagram)
-        real_hp = get_hcsp(*diagram.seperate_diagram(), "HCS")
-        # print(real_hp)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
+        run_test(self, "./ss2hcsp/case_studies/hcs_new.xml", 100, {
 
-        # print("D_Processes: ", dis_subdiag_with_chs)
-        # print("C_Processes: ", con_subdiag_with_chs)
-        # print(get_hp.translate_discrete(dis_subdiag_with_chs[0]))
-        # print(diagram)
-        # real_hp = get_hp.get_processes(dis_subdiag_with_chs, con_subdiag_with_chs)
-        # print(real_hp)
+        }, print_diagrams=True, print_hcsp=True, print_time_series=True)
 
     # def testIsollete(self):
     #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
@@ -272,7 +255,7 @@ class SimTest(unittest.TestCase):
     def testEnabled1(self):
         run_test(self, "./Examples/Simulink/Enabled1.xml", 70, {
 
-        }, print_diagrams=True, print_time_series=True)
+        })
 
     def testTriggered1(self):
         # Continuous triggered subsystem

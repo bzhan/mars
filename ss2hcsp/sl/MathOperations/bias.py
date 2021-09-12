@@ -13,20 +13,10 @@ def convert_bias(bias, in_var):
 
 class Bias(SL_Block):
     def __init__(self, name, bias=0, st=-1):
-        super(Bias, self).__init__()
-        self.name = name
-        self.type = "bias"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
+        super(Bias, self).__init__("bias", name, 1, 1, st)
 
         assert isinstance(bias, (int, float))
         self.bias = bias
-
-        assert isinstance(st, (int, float))
-        self.st = st
 
     def __str__(self):
         in_var = self.dest_lines[0].name

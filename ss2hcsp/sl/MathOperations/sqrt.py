@@ -14,18 +14,10 @@ def convert_sqrt(in_var):
 class Sqrt(SL_Block):
     """Compute the square root"""
     def __init__(self, name, operator, st=-1):
-        super(Sqrt, self).__init__()
-        self.type = "sqrt"
-        self.name = name
+        super(Sqrt, self).__init__("sqrt", name, 1, 1, st)
+
         assert operator == 'signedSqrt'
         self.operator = operator
-        assert isinstance(st, (int, float))
-        self.st = st
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
 
     def __str__(self):
         in_var = self.dest_lines[0].name

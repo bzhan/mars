@@ -1,32 +1,41 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, LogicExpr, RelExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, LogicExpr, RelExpr, IfExpr, OpExpr
+from ss2hcsp.hcsp import hcsp as hp
 
 
 class Saturation(SL_Block):
     """Compute the saturation value of the dest_line wrt. the upper and lower limits."""
     def __init__(self, name, up_lim, low_lim, st=-1):
-        super(Saturation, self).__init__()
-        self.name = name
-        self.type = "saturation"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
-
-        assert isinstance(st, (int, float))
-        self.st = st
+        super(Saturation, self).__init__("saturation", name, 1, 1, st)
 
         assert isinstance(up_lim, (int, float)) and isinstance(low_lim, (int, float))
         self.up_lim = up_lim
         self.low_lim = low_lim
 
+    def get_expr(self):
+        in_var = AVar(self.dest_lines[0].name)
+        return IfExpr(RelExpr("<=", in_var, AConst(self.low_lim)), AConst(self.low_lim),
+                      IfExpr(RelExpr(">=", in_var, AConst(self.up_lim)), AConst(self.up_lim), in_var))
+
     def __str__(self):
-        return "%s: Saturation[in = %s, out = %s, up_lim = %s, low_lim = %s, st = %s]" % \
-               (self.name, self.dest_lines, self.src_lines, self.up_lim, self.low_lim, self.st)
+        out_var = self.src_lines[0][0].name
+        expr = self.get_expr()
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, expr, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "Saturation(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.up_lim, self.low_lim, self.st, str(self.dest_lines), str(self.src_lines))
+
+    def get_output_hp(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
+        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
+
+    def get_var_subst(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
 
     def get_var_map(self):
         in_var = AVar(self.dest_lines[0].name)

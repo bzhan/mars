@@ -5,27 +5,18 @@ import ss2hcsp.hcsp.hcsp as hp
 
 class Subsystem(SL_Block):
     """Subsystem is block in which there is a diagram"""
-    def __init__(self, name, num_src, num_dest):
-        super(Subsystem, self).__init__()
-        self.name = name
-        self.type = "subsystem"
-        self.is_continuous = False
-        self.num_src = num_src
-        self.num_dest = num_dest
-        self.src_lines = [[] for _ in range(self.num_src)]
-        self.dest_lines = [None] * self.num_dest
+    def __init__(self, type, name, num_src, num_dest, st):
+        super(Subsystem, self).__init__(type, name, num_src, num_dest, st)
         self.diagram = None
 
     def __str__(self):
-        str_diagram = str(self.diagram)
-        res = "%s: Subsystem[in = %s, out = %s, diagram =\n" % (self.name, self.dest_lines, self.src_lines)
-        for line in str_diagram.split('\n'):
-            res += "  " + line + "\n"
-        res += "]"
+        res = "%s: subsystem\n" % (self.name)
+        res += "\n".join("  " + line for line in str(self.diagram).split('\n'))
         return res
 
     def __repr__(self):
-        return str(self)
+        return "Subsystem(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_src, self.num_dest, self.st, str(self.dest_lines), str(self.src_lines))
 
     def add_enabled_condition_to_innerBlocks(self, init_en_cond=true_expr):
         en_line = self.dest_lines[-1]
@@ -41,16 +32,12 @@ class Subsystem(SL_Block):
 
 class Triggered_Subsystem(Subsystem):
     def __init__(self, name, num_src, num_dest, trigger_type):
-        super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
-        self.type = "triggered_subsystem"
+        super(Triggered_Subsystem, self).__init__("triggered_subsystem", name, num_src, num_dest, st=-1)
 
         # Trigger type
         assert trigger_type in ("rising", "falling", "either"), \
             "Unknown trigger type: %s" % trigger_type
         self.trigger_type = trigger_type
-
-        # Sample time for triggered subsystem is always -1
-        self.st = -1
 
         # A flag variable denoting if the subsystem was triggered at the last step
         self.triggered = self.name + "_triggered"
@@ -212,9 +199,7 @@ class Triggered_Subsystem(Subsystem):
 
 class Enabled_Subsystem(Subsystem):
     def __init__(self, name, num_src, num_dest):
-        super(Enabled_Subsystem, self).__init__(name, num_src, num_dest)
-        self.type = "enabled_subsystem"
-        self.st = -1
+        super(Enabled_Subsystem, self).__init__("enabled_subsystem", name, num_src, num_dest, st=-1)
 
     def __str__(self):
         return "%s: Enabled_Subsystem[in = %s, out = %s, diagram = %s]" % \

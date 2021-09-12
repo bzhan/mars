@@ -6,33 +6,34 @@ from ss2hcsp.hcsp import hcsp as hp
 class MinMax(SL_Block):
     """Min or max of dest lines."""
     def __init__(self, name, num_dest, fun_name="min", st=-1):
-        super(MinMax, self).__init__()
-        self.name = name
-        self.type = "min_max"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = num_dest
-        self.src_lines = [[]]
-        self.dest_lines = [None] * self.num_dest
+        super(MinMax, self).__init__("min_max", name, 1, num_dest, st)
 
         assert fun_name in ["min", "max"]
         self.fun_name = fun_name
-        assert isinstance(st, (int, float))
-        self.st = st
+
+    def get_expr(self):
+        in_vars = [AVar(line.name) for line in self.dest_lines]
+        return FunExpr(self.fun_name, in_vars)
 
     def __str__(self):
-        return "%s: %s[in = %s, out = %s, st = %s]" % \
-               (self.name, self.fun_name, str(self.dest_lines), str(self.src_lines), str(self.st))
+        out_var = self.src_lines[0][0].name
+        expr = self.get_expr()
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, expr, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "MinMax(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_dest, self.fun_name, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
-        expr = FunExpr(self.fun_name, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
+        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
+        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
+
+    def get_var_subst(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
 
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]

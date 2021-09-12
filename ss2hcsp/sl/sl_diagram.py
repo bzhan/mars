@@ -84,7 +84,7 @@ def get_gcd(sample_times):
         return 0  # continuous
 
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
-    assert all(isinstance(st, (int, float)) for st in sample_times)
+    assert all(isinstance(st, (int, Decimal)) for st in sample_times)
 
     if len(sample_times) == 1:
         return sample_times[0]
@@ -100,7 +100,7 @@ def get_gcd(sample_times):
     for st in sample_times:
         if isinstance(st, int):
             scaling_positions.append(0)
-        else:  # isinstance(st, float)
+        else:  # isinstance(st, Decimal)
             scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
     scale = pow(10, max(scaling_positions))
     scaling_sample_times = [int(st * scale) for st in sample_times]
@@ -776,7 +776,7 @@ class SL_Diagram:
                 else:  # it is a normal subsystem
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Subsystem(name=block_name, num_src=num_src, num_dest=num_dest)
+                    subsystem = Subsystem("subsystem", block_name, num_src, num_dest, st=sample_time)
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block

@@ -22,21 +22,12 @@ class Product(SL_Block):
     """Multiply (or divide) a list of dest lines."""
     def __init__(self, name, dest_spec, st=-1):
         """dest_spec is a list of either '*' or '/'."""
-        super(Product, self).__init__()
-        self.name = name
-        self.type = "product"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = len(dest_spec)
-        self.src_lines = [[]]
-        self.dest_lines = [None] * self.num_dest
+        super(Product, self).__init__("product", name, 1, len(dest_spec), st)
 
+        # dest_spec is a list of either '*' or '/'
         assert all(s == '*' or s == '/' for s in dest_spec)
         assert len(dest_spec) >= 2
         self.dest_spec = dest_spec  # string
-
-        assert isinstance(st, (int, float))
-        self.st = st
 
     def __str__(self):
         in_vars = [line.name for line in self.dest_lines]

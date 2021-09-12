@@ -9,19 +9,12 @@ from ss2hcsp.hcsp import hcsp as hp
 class UnitDelay(SL_Block):
     """Block for unit delay."""
     def __init__(self, name, init_value=0, st=-1):
-        super(UnitDelay, self).__init__()
-        self.name = name
-        self.type = "unit_delay"
-        self.is_continuous = False
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
+        super(UnitDelay, self).__init__("unit_delay", name, 1, 1, st)
+
+        assert st > 0, "st must be positive for unit delay blocks"
 
         assert isinstance(init_value, (int, float))
         self.init_value = init_value
-        assert st > 0
-        self.st = st
 
     def __str__(self):
         out_var = self.src_lines[0][0].name

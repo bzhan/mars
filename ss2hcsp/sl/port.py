@@ -9,26 +9,18 @@ class Port(SL_Block):
         'out_port' means the block has a dest line leaving the diagram.
 
         """
-        super(Port, self).__init__()
-        self.name = name  # of the form in_0 or out_1
-        if port_name:  # the real name
+        assert port_type in ['in_port', 'out_port']
+        if port_type == 'in_port':
+            num_src, num_dest = 1, 0
+        else:
+            num_src, num_dest = 0, 1
+        super(Port, self).__init__(port_type, name, num_src, num_dest, st=-1)
+
+        # The real name
+        if port_name:
             self.port_name = port_name
         else:
             self.port_name = self.name
-        assert port_type in ['in_port', 'out_port']
-        self.type = port_type
-        self.st = -1
-
-        if self.type == 'in_port':
-            self.num_src = 1
-            self.src_lines = [[]]
-            self.num_dest = 0
-            self.dest_lines = []
-        else:
-            self.num_src = 0
-            self.src_lines = []
-            self.num_dest = 1
-            self.dest_lines = [None]
 
     def __str__(self):
         if self.type == 'in_port':

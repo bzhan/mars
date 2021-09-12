@@ -11,20 +11,10 @@ def convert_gain(factor, in_var):
 class Gain(SL_Block):
     """Multiply dest line by a factor."""
     def __init__(self, name, factor=1, st=-1):
-        super(Gain, self).__init__()
-        self.name = name
-        self.type = "gain"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
+        super(Gain, self).__init__("gain", name, 1, 1, st)
 
         assert isinstance(factor, (int, float))
         self.factor = factor
-
-        assert isinstance(st, (int, float))
-        self.st = st
 
     def __str__(self):
         in_vars = self.dest_lines[0].name

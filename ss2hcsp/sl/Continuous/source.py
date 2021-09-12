@@ -7,19 +7,8 @@ from ss2hcsp.hcsp.expr import AVar, AConst, FunExpr
 class Sine(SL_Block):
     """Sine wave"""
     def __init__(self, name, amplitude, bias, frequency, phase, st):
-        super(Sine, self).__init__()
-        self.type = "sine"
-        self.name = name
-        self.is_continuous = True
-        self.num_src = 1
-        self.num_dest = 0
-        self.src_lines = [[]]
-        self.dest_lines = []
-        
-        assert isinstance(st, (int, float))
-        self.st = st
+        super(Sine, self).__init__("sine", name, 1, 0, st)
 
-        # Block-specific parameters
         self.amplitude = amplitude
         self.bias = bias
         self.frequency = frequency

@@ -11,18 +11,10 @@ def convert_square(in_var):
 class Square(SL_Block):
     """Compute the square"""
     def __init__(self, name, operator, st=-1):
-        super(Square, self).__init__()
-        self.type = "square"
-        self.name = name
+        super(Square, self).__init__("square", name, 1, 1, st)
+
         assert operator == 'square'
         self.operator = operator
-        assert isinstance(st, (int, float))
-        self.st = st
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
 
     def __str__(self):
         in_var = self.dest_lines[0].name
