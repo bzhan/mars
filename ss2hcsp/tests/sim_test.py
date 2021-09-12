@@ -82,7 +82,8 @@ def run_test(self, location, num_steps, expected_series, *,
         if pt['time'] in expected_series:
             series[pt['time']] = pt['state']
     for time in expected_series:
-        self.assertTrue(time in series and len(expected_series[time]) == len(series[time]))
+        self.assertTrue(time in series, "Time %s not found in result" % time)
+        self.assertTrue(len(expected_series[time]) == len(series[time]))
         for var in expected_series[time]:
             self.assertTrue(var in series[time])
             self.assertAlmostEqual(
@@ -129,17 +130,17 @@ class SimTest(unittest.TestCase):
             0: {'z': 1},
             1: {'z': 1.382},
             2: {'z': 0.493},
-            3: {'z': -0.898},
-            4: {'z': -1.541},
-            5: {'z': -0.816},
-            6: {'z': 0.516},
-            7: {'z': 1.323},
-            8: {'z': 0.929},
-            9: {'z': -0.347}
+            3: {'z': -0.849},
+            4: {'z': -1.410},
+            5: {'z': -0.675},
+            6: {'z': 0.681},
+            7: {'z': 1.411},
+            8: {'z': 0.844},
+            9: {'z': -0.532}
         })
 
     def testThreeTank(self):
-        run_test(self, "./Examples/Simulink/ThreeTank.xml", 310, {
+        run_test(self, "./Examples/Simulink/ThreeTank.xml", 420, {
             0: {'x': 0, 'y': 0, 'z': 0},
             10: {'x': 0.672, 'y': 0.028, 'z': 0.004},
             20: {'x': 1.316, 'y': 0.076, 'z': 0.014},
@@ -151,7 +152,7 @@ class SimTest(unittest.TestCase):
             80: {'x': 4.880, 'y': 0.530, 'z': 0.132},
             90: {'x': 5.439, 'y': 0.623, 'z': 0.159},
             100: {'x': 5.989, 'y': 0.720, 'z': 0.188}
-        }, print_hcsp=True)
+        })
 
     def testIsolette(self):
         location = "./Examples/isolette/babybox.xml"
@@ -226,6 +227,17 @@ class SimTest(unittest.TestCase):
     #     real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
     #     # print(real_hp)
     #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
+
+    def testSource1(self):
+        # Value should be y = sin(t)
+        run_test(self, "./Examples/Simulink/Source1.xml", 30, {
+            0: {'y': 0},
+            1: {'y': 0.841},
+            2: {'y': 0.909},
+            3: {'y': 0.141},
+            4: {'y': -0.757},
+            5: {'y': -0.959}
+        })
 
     def testDelay1(self):
         run_test(self, "./Examples/Simulink/Delay1.xml", 60, {

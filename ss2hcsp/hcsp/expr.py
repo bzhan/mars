@@ -3,7 +3,7 @@
 import math
 import itertools
 
-from ss2hcsp.util.topsort import topological_sort, TopologicalSortException
+from ss2hcsp.util.topsort import topological_sort
 
 
 def opt_round(x):

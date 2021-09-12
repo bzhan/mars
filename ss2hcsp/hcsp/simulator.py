@@ -91,6 +91,8 @@ def eval_expr(expr, state):
         elif expr.fun_name == "div":
             a, b = args
             return int(a) // int(b)
+        elif expr.fun_name == "sin":
+            return math.sin(args[0])
         elif expr.fun_name == "put":
             n, a, b = args
             assert isinstance(a, tuple)

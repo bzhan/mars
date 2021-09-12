@@ -1,3 +1,5 @@
+"""Addition block"""
+
 from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp.expr import AVar, OpExpr, true_expr, RelExpr, AConst
 from ss2hcsp.hcsp import hcsp as hp

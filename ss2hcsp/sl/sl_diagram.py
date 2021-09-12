@@ -14,6 +14,7 @@ from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
+from ss2hcsp.sl.Continuous.source import Sine
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -25,6 +26,7 @@ from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
+from ss2hcsp.sl.SignalRouting.scope import Scope
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
@@ -585,11 +587,15 @@ class SL_Diagram:
                 factor = get_attribute_value(block, "Gain")
                 factor = eval(factor) if factor else 1
                 self.add_block(Gain(name=block_name, factor=factor, st=sample_time))
+            elif block_type == "Sin":
+                amplitude = parse_value(get_attribute_value(block, "Amplitude"), default=1)
+                bias = parse_value(get_attribute_value(block, "Bias"), default=0)
+                frequency = parse_value(get_attribute_value(block, "Frequency"), default=1)
+                phase = parse_value(get_attribute_value(block, "Phase"), default=0)
+                self.add_block(Sine(name=block_name, amplitude=amplitude, bias=bias, frequency=frequency, phase=phase, st=sample_time))
             elif block_type == "Saturate":
-                upper_limit = get_attribute_value(block, "UpperLimit")
-                upper_limit = eval(upper_limit) if upper_limit else 0.5
-                lower_limit = get_attribute_value(block, "LowerLimit")
-                lower_limit = eval(lower_limit) if lower_limit else -0.5
+                upper_limit = parse_value(get_attribute_value(block, "UpperLimit"), default=0.5)
+                lower_limit = parse_value(get_attribute_value(block, "LowerLimit"), default=-0.5)
                 self.add_block(Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit, st=sample_time))
             elif block_type == "UnitDelay":
                 init_value = get_attribute_value(block, "InitialCondition")
@@ -631,21 +637,24 @@ class SL_Diagram:
                     port_number = "1"
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "in_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="in_port"))
+                self.add_block(Port(name=port_name_dict[block_name], port_name=block_name, port_type="in_port"))
             elif block_type == "Outport":
                 port_number = get_attribute_value(block=block, attribute="Port")
                 if not port_number:
                     port_number = "1"
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
+                self.add_block(Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
             elif block_type == "Scope":
+                num_dest = 0
                 for child in system.childNodes:
                     if child.nodeName == "Line":
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
                             # assert name is not None
                             self.outputs.append(name)
+                            num_dest += 1
+                self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 

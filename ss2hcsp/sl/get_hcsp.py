@@ -488,7 +488,7 @@ def new_translate_continuous(diagram):
     var_subst = dict()
 
     for block in diagram:
-        if block.type in ('add', 'product', 'bias', 'gain', 'constant', 'square', 'sqrt'):
+        if block.type in ('add', 'product', 'bias', 'gain', 'constant', 'square', 'sqrt', 'sine'):
             var_subst.update(block.get_var_subst())
         elif block.type == "integrator":
             in_var = block.dest_lines[0].name
@@ -503,6 +503,8 @@ def new_translate_continuous(diagram):
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(neg_expr(trig_cond))
             procedures.extend(block.get_procedures())
+        elif block.type in ('scope'):  # ignore
+            pass
         else:
             raise NotImplementedError('Unrecognized continuous block: %s' % block.type)
 
@@ -510,13 +512,13 @@ def new_translate_continuous(diagram):
         var, e = equations[i]
         equations[i] = (var, subst_all(e, var_subst))
 
-    return init_hps, equations, constraints, trig_procs, procedures
+    return init_hps, equations, var_subst, constraints, trig_procs, procedures
 
 
 def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
     dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
         new_translate_discrete(discrete_diagram)
-    con_init_hps, equations, constraints, trig_procs, con_procedures = \
+    con_init_hps, equations, var_subst, constraints, trig_procs, con_procedures = \
         new_translate_continuous(continuous_diagram)
 
     # Initialization
@@ -524,9 +526,9 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     ### Discrete process ###
-
     discrete_hps = output_hps + update_hps
     discrete_hp = hp.seq(discrete_hps)
+    discrete_hp = hp.subst_comm_all(discrete_hp, var_subst)
 
     ### Continuous process ###
 
@@ -570,7 +572,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
     if names_triggered:
         continuous_hp = hp.Sequence(names_triggered, continuous_hp, update_t, reset_tt)
     else:
-        continuous_hp = hp.Sequence(continuous_hp, reset_tt)
+        continuous_hp = hp.Sequence(continuous_hp, update_t, reset_tt)
 
     # Main process
     main_hp = hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))
