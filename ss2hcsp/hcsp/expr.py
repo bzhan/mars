@@ -1,6 +1,7 @@
 """Expressions"""
 
 import math
+from decimal import Decimal
 import itertools
 
 from ss2hcsp.util.topsort import topological_sort
@@ -96,7 +97,9 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str, tuple, dict))
+        assert isinstance(value, (int, float, Decimal, list, str, tuple, dict))
+        if isinstance(value, Decimal):
+            value = float(value)
         self.value = value
 
     def __repr__(self):

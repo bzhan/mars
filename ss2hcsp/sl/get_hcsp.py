@@ -391,7 +391,7 @@ def translate_discrete(diagram):
 def new_translate_discrete(diagram):
     # assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
-    sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, float))])
+    sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
 
     # # Get the (in- or out-)ports of the form {port_name: variable_name}
@@ -460,7 +460,7 @@ def new_translate_discrete(diagram):
     # Get the UPDATE of Unit_Delay blocks
     update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
 
-    return init_hps, procedures, output_hps, update_hps, sample_time  # , in_ports, out_ports
+    return init_hps, procedures, output_hps, update_hps, sample_time
 
 
 def new_translate_continuous(diagram):

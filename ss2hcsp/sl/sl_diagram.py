@@ -102,13 +102,13 @@ def get_gcd(sample_times):
             scaling_positions.append(0)
         else:  # isinstance(st, Decimal)
             scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
-    scale = pow(10, max(scaling_positions))
+    scale = 10 ** max(scaling_positions)
     scaling_sample_times = [int(st * scale) for st in sample_times]
     result_gcd = reduce(gcd, scaling_sample_times)
     if result_gcd % scale == 0:
         return result_gcd // int(scale)
     else:
-        return result_gcd / scale
+        return Decimal(result_gcd) / scale
 
 
 def get_attribute_value(block, attribute, name=None):
@@ -123,9 +123,6 @@ def get_attribute_value(block, attribute, name=None):
 class SL_Diagram:
     """Represents a Simulink diagram."""
     def __init__(self, location=""):
-        # List of blocks, in order of insertion.
-        self.blocks = list()
-
         # Dictionary of blocks indexed by name
         self.blocks_dict = dict()
 
@@ -598,9 +595,7 @@ class SL_Diagram:
                 lower_limit = parse_value(get_attribute_value(block, "LowerLimit"), default=-0.5)
                 self.add_block(Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit, st=sample_time))
             elif block_type == "UnitDelay":
-                init_value = get_attribute_value(block, "InitialCondition")
-                init_value = eval(init_value) if init_value else 0
-                assert sample_time > 0
+                init_value = parse_value(get_attribute_value(block, "InitialCondition"), default=0)
                 self.add_block(UnitDelay(name=block_name, init_value=init_value, st=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block, "Function")
@@ -814,14 +809,13 @@ class SL_Diagram:
 
         # The line name should keep consistent with the corresponding signals
         # if its src_block is a Signal Builder.
-        for block in self.blocks:
+        for block in self.blocks_dict.values():
             if block.type == "signalBuilder":
                 block.rename_src_lines()
 
     def add_block(self, block):
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
-        self.blocks.append(block)
         self.blocks_dict[block.name] = block
 
     def add_line(self, src, dest, src_port, dest_port, *, name="?", ch_name="?"):
@@ -980,10 +974,12 @@ class SL_Diagram:
                     if sub_block.type not in ["in_port", "out_port"]:
                         blocks_in_subsystems.append(sub_block)
                 # Sort the input ports in the subsystem by name
-                input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
+                input_ports = [sub_block for sub_block in subsystem.blocks_dict.values()
+                               if sub_block.type == "in_port"]
                 input_ports.sort(key=operator.attrgetter('name'))
                 # Sort the output ports in the subsystem by name
-                output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
+                output_ports = [sub_block for sub_block in subsystem.blocks_dict.values()
+                                if sub_block.type == "out_port"]
                 output_ports.sort(key=operator.attrgetter('name'))
 
                 # For each input line, find what is the source of this line
@@ -1062,8 +1058,8 @@ class SL_Diagram:
             self.blocks_dict[block.name] = block
 
     def new_seperate_diagram(self):
-        discrete_diagram = [block for block in self.blocks if not block.is_continuous]
-        continuous_diagram = [block for block in self.blocks if block.is_continuous]
+        discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
+        continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
         return discrete_diagram, continuous_diagram, self.outputs
 
     def seperate_diagram(self):

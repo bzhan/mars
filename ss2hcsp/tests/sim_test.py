@@ -35,6 +35,8 @@ def run_test(self, location, num_steps, expected_series, *,
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
+    diagram.delete_subsystems()
+    diagram.add_line_name()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
     discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
@@ -79,8 +81,9 @@ def run_test(self, location, num_steps, expected_series, *,
 
     series = dict()
     for pt in res['time_series']['P']:
-        if pt['time'] in expected_series:
-            series[pt['time']] = pt['state']
+        for time in expected_series:
+            if abs(pt['time'] - time) < 1e-10:
+                series[time] = pt['state']
     for time in expected_series:
         self.assertTrue(time in series, "Time %s not found in result" % time)
         self.assertTrue(len(expected_series[time]) == len(series[time]))
@@ -92,10 +95,15 @@ def run_test(self, location, num_steps, expected_series, *,
 
 
 class SimTest(unittest.TestCase):
-    def testHCS(self):
-        run_test(self, "./ss2hcsp/case_studies/hcs_new.xml", 100, {
-
-        }, print_diagrams=True, print_hcsp=True, print_time_series=True)
+    def testLunarLander(self):
+        run_test(self, "./Examples/Simulink/LunarLander.xml", 3000, {
+            0: {'m': 1250, 'v': -2, 'Fc': 2437.055},
+            2.020: {'m': 1248.185, 'v': -1.644, 'Fc': 2122.533},
+            3.968: {'m': 1246.569, 'v': -1.564, 'Fc': 2044.469},
+            6.016: {'m': 1244.903, 'v': -1.543, 'Fc': 2025.467},
+            8.036: {'m': 1243.269, 'v': -1.536, 'Fc': 2019.523},
+            9.984: {'m': 1241.697, 'v': -1.532, 'Fc': 2016.002}
+        }, print_hcsp=True)
 
     # def testIsollete(self):
     #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"

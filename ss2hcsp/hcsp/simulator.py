@@ -287,7 +287,10 @@ def eval_expr(expr, state):
         elif expr.op == ">":
             return a > b
         elif expr.op == "==":
-            return a == b
+            if isinstance(a, float) or isinstance(b, float):
+                return abs(a - b) < 1e-10
+            else:
+                return a == b
         elif expr.op == "!=":
             return a != b
         elif expr.op == ">=":
