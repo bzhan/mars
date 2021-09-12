@@ -3,21 +3,6 @@ from ss2hcsp.hcsp.expr import AVar, true_expr, OpExpr, RelExpr, AConst
 from ss2hcsp.hcsp import hcsp as hp
 
 
-def convert_product(spec, in_vars):
-    """Compute the assignment corresponding to a product block."""
-    in_vars = [AVar(var) for var in in_vars]
-    if spec[0] == '*':
-        expr = in_vars[0]
-    else:
-        expr = OpExpr("/", AConst(1), in_vars[0])
-    for op, in_var in zip(spec[1:], in_vars[1:]):
-        if op == '*':
-            expr = OpExpr("*", expr, in_var)
-        else:
-            expr = OpExpr("/", expr, in_var)
-    return expr
-
-
 class Product(SL_Block):
     """Multiply (or divide) a list of dest lines."""
     def __init__(self, name, dest_spec, st=-1):
@@ -29,9 +14,22 @@ class Product(SL_Block):
         assert len(dest_spec) >= 2
         self.dest_spec = dest_spec  # string
 
+    def get_expr(self):
+        """Compute the assignment corresponding to a product block."""
+        in_vars = [AVar(line.name) for line in self.dest_lines]
+        if self.dest_spec[0] == '*':
+            expr = in_vars[0]
+        else:
+            expr = OpExpr("/", AConst(1), in_vars[0])
+        for op, in_var in zip(self.dest_spec[1:], in_vars[1:]):
+            if op == '*':
+                expr = OpExpr("*", expr, in_var)
+            else:
+                expr = OpExpr("/", expr, in_var)
+        return expr
+
     def __str__(self):
-        in_vars = [line.name for line in self.dest_lines]
-        expr = convert_product(self.dest_spec, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return "%s: %s = %s  (st = %s)" % (self.name, out_var, str(expr), str(self.st))
 
@@ -40,20 +38,16 @@ class Product(SL_Block):
             (self.name, self.dest_spec, self.st, self.dest_lines, self.src_lines)
 
     def get_output_hp(self):
-        in_vars = [line.name for line in self.dest_lines]
-        expr = convert_product(self.dest_spec, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=time_cond, hp=hp.Assign(var_name=out_var, expr=expr))
+        return hp.Assign(out_var, expr)
 
     def get_var_subst(self):
-        in_vars = [line.name for line in self.dest_lines]
-        expr = convert_product(self.dest_spec, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
 
     def get_var_map(self):
-        in_vars = [line.name for line in self.dest_lines]
-        expr = convert_product(self.dest_spec, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

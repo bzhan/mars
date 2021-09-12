@@ -31,8 +31,7 @@ class Switch(SL_Block):
     def get_output_hp(self):
         expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond, hp.Assign(out_var, expr))
+        return hp.Assign(out_var, expr)
 
     def get_var_subst(self):
         expr = self.get_expr()

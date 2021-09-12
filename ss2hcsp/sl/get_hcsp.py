@@ -432,6 +432,7 @@ def new_translate_discrete(diagram):
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
             procedures.extend(block.get_procedures())
+
     # Delete Constant blocks
     block_names = [name for name, block in block_dict.items() if block.type == "constant"]
     for name in block_names:
@@ -456,9 +457,27 @@ def new_translate_discrete(diagram):
             del block_dict[name]
 
     # Get the OUTPUT of each block in sorted_blocks
-    output_hps = [block.get_output_hp() for block in sorted_blocks]
-    # Get the UPDATE of Unit_Delay blocks
-    update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
+    output_hps = []
+    update_hps = []
+    for block in sorted_blocks:
+        if block.st == sample_time:
+            output_hps.append(block.get_output_hp())
+        else:
+            assert block.st % sample_time == 0
+            period = block.st // sample_time
+            output_hps.append(hp.Condition(
+                RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                block.get_output_hp()))
+
+        if block.type == "unit_delay":
+            if block.st == sample_time:
+                update_hps.append(block.get_update_hp())
+            else:
+                assert block.st % sample_time == 0
+                period = block.st // sample_time
+                update_hps.append(hp.Condition(
+                    RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                    block.get_update_hp()))
 
     return init_hps, procedures, output_hps, update_hps, sample_time
 
@@ -522,7 +541,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
         new_translate_continuous(continuous_diagram)
 
     # Initialization
-    init_hps = [hp.Assign(var_name="t", expr=AConst(0))] + dis_init_hps + con_init_hps
+    init_hps = [hp.Assign("t", AConst(0)), hp.Assign("tick", AConst(0))] + dis_init_hps + con_init_hps
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     ### Discrete process ###
@@ -564,15 +583,18 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
         continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc), constraint=time_constraint)
 
     # Update t := t + tt
-    update_t = hp.Assign(var_name="t", expr=OpExpr("+", AVar("t"), AVar("tt")))
+    update_t = hp.Assign("t", OpExpr("+", AVar("t"), AVar("tt")))
+
+    # Update tick := tick + 1
+    update_tick = hp.Assign("tick", OpExpr("+", AVar("tick"), AConst(1)))
 
     # Reset tt := 0
     reset_tt = hp.Assign(var_name="tt", expr=AConst(0))
 
     if names_triggered:
-        continuous_hp = hp.Sequence(names_triggered, continuous_hp, update_t, reset_tt)
+        continuous_hp = hp.Sequence(names_triggered, continuous_hp, update_t, update_tick, reset_tt)
     else:
-        continuous_hp = hp.Sequence(continuous_hp, update_t, reset_tt)
+        continuous_hp = hp.Sequence(continuous_hp, update_t, update_tick, reset_tt)
 
     # Main process
     main_hp = hp.Sequence(init_hp, hp.Loop(hp.Sequence(discrete_hp, continuous_hp)))

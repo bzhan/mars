@@ -27,10 +27,8 @@ class UnitDelay(SL_Block):
 
     def get_output_hp(self):
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=AVar(self.name+"_state")))
+        return hp.Assign(out_var, AVar(self.name+"_state"))
 
     def get_update_hp(self):
         in_var = self.dest_lines[0].name
-        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Assign(var_name=self.name+"_state", expr=AVar(in_var)))
+        return hp.Assign(self.name+"_state", AVar(in_var))

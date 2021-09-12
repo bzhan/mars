@@ -3,11 +3,6 @@ from ss2hcsp.hcsp.expr import AVar, AConst, true_expr, RelExpr, OpExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
-def convert_gain(factor, in_var):
-    """Compute the assignment corresponding to gain block."""
-    return OpExpr("*", AVar(in_var), AConst(factor))
-
-
 class Gain(SL_Block):
     """Multiply dest line by a factor."""
     def __init__(self, name, factor=1, st=-1):
@@ -16,9 +11,13 @@ class Gain(SL_Block):
         assert isinstance(factor, (int, float))
         self.factor = factor
 
+    def get_expr(self):
+        """Compute the assignment corresponding to gain block."""
+        in_var = AVar(self.dest_lines[0].name)
+        return OpExpr("*", in_var, AConst(self.factor))
+
     def __str__(self):
-        in_vars = self.dest_lines[0].name
-        expr = convert_gain(self.factor, in_vars)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return "%s: %s = %s  (st = %s)" % (self.name, out_var, str(expr), str(self.st))
 
@@ -27,20 +26,16 @@ class Gain(SL_Block):
             (self.name, self.factor, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
-        in_var = self.dest_lines[0].name
-        expr = convert_gain(self.factor, in_var)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var, expr=expr))
+        return hp.Assign(out_var, expr)
 
     def get_var_subst(self):
-        in_var = self.dest_lines[0].name
-        expr = convert_gain(self.factor, in_var)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: expr}
 
     def get_var_map(self):
-        in_var = self.dest_lines[0].name
-        expr = convert_gain(self.factor, in_var)
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

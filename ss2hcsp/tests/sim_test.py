@@ -96,14 +96,14 @@ def run_test(self, location, num_steps, expected_series, *,
 
 class SimTest(unittest.TestCase):
     def testLunarLander(self):
-        run_test(self, "./Examples/Simulink/LunarLander.xml", 3000, {
+        run_test(self, "./Examples/Simulink/LunarLander.xml", 1600, {
             0: {'m': 1250, 'v': -2, 'Fc': 2437.055},
             2.020: {'m': 1248.185, 'v': -1.644, 'Fc': 2122.533},
             3.968: {'m': 1246.569, 'v': -1.564, 'Fc': 2044.469},
             6.016: {'m': 1244.903, 'v': -1.543, 'Fc': 2025.467},
             8.036: {'m': 1243.269, 'v': -1.536, 'Fc': 2019.523},
             9.984: {'m': 1241.697, 'v': -1.532, 'Fc': 2016.002}
-        }, print_hcsp=True)
+        })
 
     # def testIsollete(self):
     #     location = "./ss2hcsp/server/portParser/simulinkModel/simulink_isollete.xml"
@@ -117,6 +117,7 @@ class SimTest(unittest.TestCase):
     #     # print(real_hp)
 
     def testVanderPol(self):
+        # This test case contains blocks with different sample times
         run_test(self, "./Examples/Simulink/Van_der_Pol.xml", 50, {
             0: {'z': 1},
             1: {'z': 1.382},
@@ -131,7 +132,7 @@ class SimTest(unittest.TestCase):
         })
 
     def testThreeTank(self):
-        run_test(self, "./Examples/Simulink/ThreeTank.xml", 420, {
+        run_test(self, "./Examples/Simulink/ThreeTank.xml", 600, {
             0: {'x': 0, 'y': 0, 'z': 0},
             10: {'x': 0.672, 'y': 0.028, 'z': 0.004},
             20: {'x': 1.316, 'y': 0.076, 'z': 0.014},

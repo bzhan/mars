@@ -180,9 +180,8 @@ class Triggered_Subsystem(Subsystem):
         output_hps = [block.get_output_hp() for block in sorted_blocks]
         # Get the UPDATE of Unit_Delay blocks
         update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
-        assert all(isinstance(process, hp.Condition) for process in output_hps + update_hps)
 
-        result_hps = [process.hp for process in output_hps + update_hps]
+        result_hps = output_hps + update_hps
         result_hp = hp.Sequence(*result_hps) if len(result_hps) > 1 else result_hps[0]
         procedures = [hp.Procedure(name=self.name, hp=result_hp)]
 
