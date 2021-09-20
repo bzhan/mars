@@ -541,6 +541,9 @@ class Callstack:
     def top_pos(self):
         return self.callstack[-1].pos
 
+    def top_procname(self):
+        return self.callstack[-1].proc_name
+
     def getinfo(self, hp, procs):
         self.renewinnerpos(hp, procs)
         callstack_info = {
@@ -744,6 +747,8 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             return None
 
     pos = helper(hp, callstack.top_pos())
+    if callstack.top_procname() is not None:
+        callstack.pop()
     callstack.renew(pos, rec_vars)
     return callstack
 
@@ -945,7 +950,7 @@ class SimInfo:
             for i in range(len(self.callstack.top_pos())):
                 hp = get_pos(self.hp, self.callstack.top_pos()[:i], rec_vars, self.procedures)
                 if hp.type == 'recursion' and hp.entry == cur_hp.name:
-                    pos=self.callstack.top_pos() + (0,) + start_pos(hp)
+                    pos = self.callstack.top_pos() + (0,) + start_pos(hp)
                     self.callstack.renew(pos, rec_vars)
                     self.reason = None
                     return
