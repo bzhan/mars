@@ -43,7 +43,7 @@ def compute_diff(e, eqs_dict):
     return rec(e)
 
 
-def compute_wp(hp, post):
+def compute_wp(hp, post, inv=None):
     """Compute weakest preconditions for a given hybrid program.
     
     hp : HCSP - input hybrid program.
@@ -63,8 +63,8 @@ def compute_wp(hp, post):
 
     elif isinstance(hp, hcsp.IChoice):
         # Internal choice: conjunction of the two preconditions
-        pre1, vcs1 = compute_wp(hp.hp1, post)
-        pre2, vcs2 = compute_wp(hp.hp2, post)
+        pre1, vcs1 = compute_wp(hp.hp1, post, inv)
+        pre2, vcs2 = compute_wp(hp.hp2, post, inv)
         pre = expr.conj(pre1, pre2)
         return pre, vcs1 + vcs2
 
@@ -73,17 +73,20 @@ def compute_wp(hp, post):
         cur_pre = post
         all_vcs = []
         for sub_hp in reversed(hp.hps):
-            cur_pre, cur_vcs = compute_wp(sub_hp, cur_pre)
+            cur_pre, cur_vcs = compute_wp(sub_hp, cur_pre, inv)
             all_vcs.extend(cur_vcs)
         return cur_pre, all_vcs
 
     elif isinstance(hp, hcsp.Loop):
-        # Loop, currently use postcondition as invariant.
+        # Loop, currently use the invariant that users offered.
         if hp.constraint != expr.true_expr:
             raise NotImplementedError
         
-        # Set invariant to be the postcondition
-        inv = post
+        if not isinstance(inv, expr.BExpr):
+            raise NotImplementedError('Invalid Invariant')
+        
+        # # Set invariant to be the postcondition
+        # inv = post
 
         # Compute wp for loop body with respect to invariant
         pre, vcs = compute_wp(hp.hp, inv)
@@ -113,10 +116,10 @@ def compute_wp(hp, post):
     else:
         raise NotImplementedError
 
-def compute_vcs(pre, hp, post):
-    wp, vcs = compute_wp(hp, post)
+def compute_vcs(pre, hp, post, inv=None):
+    wp, vcs = compute_wp(hp, post, inv)
     return vcs + [expr.imp(pre, wp)]
 
-def verify(pre, hp, post):
-    vcs = compute_vcs(pre, hp, post)
+def verify(pre, hp, post, inv=None):
+    vcs = compute_vcs(pre, hp, post, inv)
     return all(z3_prove(vc) for vc in vcs)
