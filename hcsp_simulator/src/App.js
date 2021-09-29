@@ -78,6 +78,9 @@ class Process extends React.Component {
             
             // Whether to show graph
             show_graph: false,   
+
+            // current lines
+            cur_lines: Array()
         }
     }
     
@@ -113,26 +116,28 @@ class Process extends React.Component {
         }))
     }
 
-    returnProcessName = (e) => {
+    returnProcessInfo = (e) => {
         this.props.parent.getProcessname(this.props.name)
+        this.props.parent.getProcesscallstack(this.props.callstack)
     }
 
     render() {
         return (
             <div>
+                
                 {/* Program text, with highlight on current location */}
                 <div>Process: {this.props.name}{'  '}
                     <a href="#" style={{ fontSize: 14 }} onClick={this.toggleShowText}>
                         {this.state.show_process ? "Hide Process" : "Show Process"}
                     </a>
                     {"       "}
-                    <a href="#" style={{ fontSize: 14 }} onClick={this.returnProcessName}>
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.returnProcessInfo}>
                         {"Show callstack"}
                     </a>
                 </div>
                 <div className="procedure">
                 {
-                    this.state.show_process ? (this.props.procedures.map((info, index) => {
+                    this.state.show_process ? (this.props.procedures.map((info, index) => {                       
                         return(
                             <div className="procedure">Procedure{index}:{info.name}
                             {
@@ -188,9 +193,8 @@ class Process extends React.Component {
                 <div className="program-text">
                     {
                         this.state.show_process ? (
-                            <div>
-                                {
-                                    this.props.lines.map((str, line_no) => {
+                            <div>{   
+                                this.props.lines.map((str, line_no) => {
                                         if (this.props.callstack !== undefined) {
                                             const pos = this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1];
                                             if (pos !== undefined) { 
@@ -209,7 +213,7 @@ class Process extends React.Component {
                                                 } else {
                                                     bg_end = 0;
                                                 }
-                                                if (bg_start < bg_end) {
+                                                if (bg_start < bg_end) {                                                  
                                                     return (
                                                         <pre key={line_no}>
                                                             <span>{str.slice(0, bg_start)}</span>
@@ -287,15 +291,15 @@ class Process extends React.Component {
         var series = {};
         const is_discrete = (ts[ts.length - 1].time === 0)
         for (let i = 0; i < ts.length; i++) {
-            for (let k in this.props.statemap[ts[i].statenum]) {
-                if (typeof (this.props.statemap[ts[i].statenum][k]) === 'number') {
+            for (let k in ts[i].state) {
+                if (typeof (ts[i].state[k]) === 'number') {
                     if (!(k in series)) {
                         series[k] = [];
                     }
                     if (is_discrete) {
-                        series[k].push({ x: ts[i].event, y: this.props.statemap[ts[i].statenum][k] });
+                        series[k].push({ x: ts[i].event, y: ts[i].state[k] });
                     } else {
-                        series[k].push({ x: ts[i].time, y: this.props.statemap[ts[i].statenum][k] });
+                        series[k].push({ x: ts[i].time, y: ts[i].state[k] });
                     }
                 }
             }
@@ -383,28 +387,39 @@ class Callstack extends React.Component {
     render() {
         return (
             <div className="callstack-list">
-                {this.props.event === undefined ? null:(
-                    Object.entries(this.props.event.infos).map((event, index) => {
-                        var name = event[0]
-                        if (name == this.props.processname)
-                        {
-                            var callstack = event[1].callstack.innerpos
-                            var posstring = ''
-                            for (var i = 0; i < callstack.length; i++)
-                            {
-                                if (i === callstack.length - 1)
-                                    posstring = posstring + callstack[i]
-                                else
-                                    posstring = posstring + callstack[i] + ';'
-                            }   
-                            return (
-                                <pre>
-                                {name + ':' + posstring}
-                                </pre>
+                <div>Callstacks:{this.props.hcsp_info ?(<pre>process:{this.props.hcsp_info.name}</pre>):null}
+                {this.props.hcsp_info ?(
+                    this.props.hcsp_info.procedures.map((info, index) => {    
+                        if (this.props.callstack !== undefined) {
+                            var tag = 0;//tag=0,not in procedure
+                            if (this.props.callstack.procedure === null || this.props.callstack.procedure === undefined)
+                                tag = 0
+                            else 
+                                for (var ind = 0; ind < this.props.callstack.procedure.length; ind++)
+                                    if (info.name === this.props.callstack.procedure[ind]){
+                                        tag = 1;
+                                        break;
+                                    }
+                        }
+                        if(tag === 1){        
+                            return(  
+                            <pre>
+                                procedure{index}:line{this.props.callstack['innerpos'][ind].start_x}:{info.lines[this.props.callstack['innerpos'][ind].start_x]}
+                            </pre>
                             )
                         }
                     })
-                )}
+                ):null}
+                </div>
+                <div>
+                    {this.props.hcsp_info ? (
+                        this.props.callstack ?(
+                            <pre>
+                                Main:      line{this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x}:{this.props.hcsp_info.lines[this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x]}
+                            </pre>
+                        ):null
+                ):null}
+                </div>
             </div>
         )
     }
@@ -464,17 +479,30 @@ class App extends React.Component {
             
             // Tell callstack part current process
             cur_process: undefined,
+
+            // Tell callstack part current callstack
+            cur_callstack: undefined
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
         this.picclicked=false;
     }
     getProcessname = (msg) =>{
+        for (var i=0;i<this.state.hcsp_info.length;i++){
+            if (this.state.hcsp_info[i].name === msg){
+                this.setState({
+                    cur_process:  i
+                })
+                break;
+            }
+        }
+
+    }
+    getProcesscallstack = (msg) =>{
         this.setState({
-            cur_process:  msg
+            cur_callstack: msg
         })
     }
-
     handleChange = (e) => {
         const name = e.target.name;
 
@@ -538,7 +566,7 @@ class App extends React.Component {
     componentDidUpdate() {
         if(document.getElementsByClassName('event-list-hl')[0] && this.picclicked===true)
             document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
-            this.picclicked=false;
+        this.picclicked=false;
     }
 
     handleFileSelect = (e) => {
@@ -663,19 +691,20 @@ class App extends React.Component {
         }))
     }
 
+    jumptocurstep = () => {
+        if(document.getElementsByClassName('program-text-next-hl')[0])
+            document.getElementsByClassName('program-text-next-hl')[0].scrollIntoView();
+    }
     picOnClick = (e, i) => {
         var index = 0;
-        while (this.state.history[index]['time']<i){
+        while (index<i){
             //console.log(this.state.history[index].time)
             index++;
-            if (this.state.history[index] === undefined)
-                break;
         }
         if (index > this.state.num_show)
             index = this.state.num_show;
         this.setState({
-            history_pos: index,
-            
+            history_pos: index,    
         })
         this.picclicked=true;
     }
@@ -845,7 +874,7 @@ class App extends React.Component {
         );
         const callstack=(
             <Container id="callstack" className="callstack">
-                <Callstack event={this.state.history[this.state.history_pos]} processname={this.state.cur_process} />
+                <Callstack hcsp_info ={this.state.hcsp_info[this.state.cur_process]} callstack={this.state.cur_callstack}/>
             </Container>
         );
         return (
@@ -900,6 +929,11 @@ class App extends React.Component {
                             {this.eventLine()}
                         </span>
 
+                        <a href="#" style={{ marginLeft: '10px', marginRight: '10px', marginTop: 'auto', marginBottom: 'auto' }}
+                            onClick={this.jumptocurstep}>
+                            {'Cur step'}
+                        </a>
+
                         <a href="#" style={{ marginLeft: 'auto', marginRight: '10px', marginTop: 'auto', marginBottom: 'auto' }}
                             onClick={this.toggleShowEvent}>
                             {this.state.show_event_only ? 'Show all steps' : 'Show events only'}
@@ -908,6 +942,7 @@ class App extends React.Component {
                             onClick={this.showDetails}>
                             {'Show details'}
                         </a>
+
                     </ButtonToolbar>
                 </div>
 
