@@ -139,7 +139,7 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
             new_line(indent)
             add_str(")")
             end_pos(pos)
-
+        
         elif hp.type == 'recursion':
             new_line(indent)
             start_pos(pos)

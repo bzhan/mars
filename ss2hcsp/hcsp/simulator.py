@@ -555,8 +555,10 @@ class Callstack:
             innerpos = self.callstack[index].innerpos
             if innerpos is None:
                 callstack_info['innerpos'].append('end')
+            elif get_pos(hp, self.callstack[-1].pos, self.callstack[-1].rec_vars, procs).type != 'wait':
+                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))   
             else:
-                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))            
+                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos[:-1]))         
             if self.callstack[index].proc_name is None:
                 callstack_info['procedure'].append(self.callstack[index].proc_name)
             else:
