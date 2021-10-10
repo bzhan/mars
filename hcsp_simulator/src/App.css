@@ -89,14 +89,23 @@
   cursor: pointer;
   overflow: visible;
 }
+.processes-list {
+  margin-top: 0px;
+  overflow: visible;
+}
 
-.callstack-list {
+.processes-list pre {
   margin: 0px;
+  cursor: pointer;
+  overflow: visible;
+}
+.callstack-list {
+  margin-top: 0px;
   overflow: visible;
 }
 
 .callstack-list pre {
-  margin: 0px;
+  margin-top: 0px;
   overflow: visible;
 }
 
@@ -137,12 +146,23 @@
   overflow-y: scroll;
   overflow-x: scroll;
 }
-.right {
+.event {
   display: inline-block;
   max-width: 30%;
   vertical-align: top;
   position: absolute;
   top: 15%;
+  bottom: 50%;
+  left: 70%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
+.processes {
+  display: inline-block;
+  max-width: 30%;
+  vertical-align: top;
+  position: absolute;
+  top: 50%;
   bottom: 20%;
   left: 70%;
   overflow-y: scroll;

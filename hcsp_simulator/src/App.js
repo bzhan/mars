@@ -2,6 +2,7 @@ import './App.css';
 
 import React from "react";
 
+
 import { Nav, Navbar, ButtonToolbar, Button, Container } from "react-bootstrap"
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlayCircle, faSync, faCaretRight, faForward, faBackward, faCaretLeft } from '@fortawesome/free-solid-svg-icons'
@@ -82,8 +83,12 @@ class Process extends React.Component {
             // current lines
             cur_lines: Array()
         }
+        if(props.onRef){//如果父组件传来该方法 则调用方法将子组件this指针传过去
+            props.onRef(this,this.props.index)
+        }  
     }
     
+   
     // Convert the value of a variable to string for display.
     displayValue(val) {
         if (typeof (val) == 'number') {
@@ -108,6 +113,9 @@ class Process extends React.Component {
         this.setState((state) => ({
             show_process: !state.show_process,
         }))
+        this.props.parent.state.process_controllers[this.props.index].setState((state) => ({
+            show_process: !state.show_process,
+        }))
     }
 
     toggleShowGraph = (e) => {
@@ -116,9 +124,12 @@ class Process extends React.Component {
         }))
     }
 
+    returninfo(){
+        this.props.parent.getProcessname(this.props.name)   
+    }
     returnProcessInfo = (e) => {
-        this.props.parent.getProcessname(this.props.name)
-        this.props.parent.getProcesscallstack(this.props.callstack)
+        this.returninfo()
+        this.props.parent.forceUpdate()
     }
 
     render() {
@@ -126,7 +137,7 @@ class Process extends React.Component {
             <div>
                 
                 {/* Program text, with highlight on current location */}
-                <div>Process: {this.props.name}{'  '}
+                <div class={this.props.name}>Process: {this.props.name}{'  '}
                     <a href="#" style={{ fontSize: 14 }} onClick={this.toggleShowText}>
                         {this.state.show_process ? "Hide Process" : "Show Process"}
                     </a>
@@ -275,14 +286,14 @@ class Process extends React.Component {
             y > this.chart.chartArea.top)
         {    
             const ptx = x - this.chart.chartArea.left;
-            this.props.onClick(e, ptx/(this.chart.chartArea.right-this.chart.chartArea.left)*this.chart.scales["x-axis-0"].end);
+            this.props.onClick(e, ptx/(this.chart.chartArea.right-this.chart.chartArea.left)*this.chart.scales["x-axis-0"].end,this.props.name);
         }
         else
         {
             this.chart.handleEvent(e)
         }
     }
-
+    
     componentDidUpdate() {
         const ts = this.props.time_series;
         if (!this.state.show_graph || ts === undefined || ts.length === 0) {
@@ -322,7 +333,7 @@ class Process extends React.Component {
 
         this.canvas = document.getElementById('chart' + String(this.props.index));
 
-        const lineAtIndex = is_discrete ? this.props.hpos : this.props.event_time;
+        const lineAtIndex = is_discrete ? this.props.hpos : (this.props.event_time.length>1?this.props.event_time[1]:this.props.event_time);
         if (typeof this.props.warning_at == 'undefined') { }
         else
             var warningAtIndex = this.props.warning_at[0];
@@ -382,12 +393,66 @@ class Events extends React.Component {
         )
     }
 }
+class Processes extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            // Whether to show program text
+            show_process: true,
+
+        }
+        if(props.onRef){//如果父组件传来该方法 则调用方法将子组件this指针传过去
+            props.onRef(this,this.props.index)
+        }  
+    }
+
+    gettarget(){
+        this.target = this.props.parent.state.process_texts[this.props.index]
+    }
+
+    name_on_click = (e) => {
+        if(document.getElementsByClassName(this.props.name)[0])
+            document.getElementsByClassName(this.props.name)[0].scrollIntoView();
+    }
+
+    show_on_click = (e) => {
+        this.gettarget()
+        this.target.toggleShowText()
+    }
+
+    show_callstack_on_click = (e) =>{
+        this.gettarget()
+        this.target.returninfo()
+        this.props.parent.forceUpdate()
+    }
+
+    render(){
+        return(
+            <div className="processes-list">
+                <div>
+                    <a href="#" style={{fontSize: 14,text_decoration: "underline", color: "black"}} onClick={this.name_on_click}>
+                        {this.props.name}
+                    </a>
+                    {":"}
+                    <span>&nbsp;&nbsp;</span>
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.show_on_click}>
+                            {this.state.show_process ? "Hide Process" : "Show Process"}
+                    </a>
+                    <span>&nbsp;&nbsp;</span>
+                    <a href="#" style={{ fontSize: 14 }} onClick={this.show_callstack_on_click}>
+                        {"Show callstack"}
+                    </a>
+                </div>
+            </div>
+        )
+    }
+}
 
 class Callstack extends React.Component {
     render() {
         return (
             <div className="callstack-list">
-                <div>Callstacks:{this.props.hcsp_info ?(<pre>process:{this.props.hcsp_info.name}</pre>):null}
+                <div>Callstacks:
                 {this.props.hcsp_info ?(
                     this.props.hcsp_info.procedures.map((info, index) => {    
                         if (this.props.callstack !== undefined) {
@@ -403,9 +468,11 @@ class Callstack extends React.Component {
                         }
                         if(tag === 1){        
                             return(  
-                            <pre>
-                                procedure{index}:line{this.props.callstack['innerpos'][ind].start_x}:{info.lines[this.props.callstack['innerpos'][ind].start_x]}
-                            </pre>
+                                this.props.callstack['innerpos'][ind] ? (
+                                <pre>   
+                                    {info.name}:line{this.props.callstack['innerpos'][ind].start_x}:{info.lines[this.props.callstack['innerpos'][ind].start_x]}
+                                </pre>
+                                ):null
                             )
                         }
                     })
@@ -414,9 +481,11 @@ class Callstack extends React.Component {
                 <div>
                     {this.props.hcsp_info ? (
                         this.props.callstack ?(
+                            this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1] ?(
                             <pre>
-                                Main:      line{this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x}:{this.props.hcsp_info.lines[this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x]}
+                                {this.props.hcsp_info.name}:line{this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x}:{this.props.hcsp_info.lines[this.props.callstack['innerpos'][this.props.callstack['innerpos'].length-1].start_x]}
                             </pre>
+                            ):null
                         ):null
                 ):null}
                 </div>
@@ -424,6 +493,7 @@ class Callstack extends React.Component {
         )
     }
 }
+
 
 class App extends React.Component {
     constructor(props) {
@@ -481,28 +551,39 @@ class App extends React.Component {
             cur_process: undefined,
 
             // Tell callstack part current callstack
-            cur_callstack: undefined
+            cur_callstack: undefined,
+            
+            // this pivots of all process-text
+            process_texts: [],
+
+            // this pivots of all process-controller
+            process_controllers: [], 
         };
         this.reader = new FileReader();
         this.fileSelector = undefined;
         this.picclicked=false;
     }
+
     getProcessname = (msg) =>{
         for (var i=0;i<this.state.hcsp_info.length;i++){
             if (this.state.hcsp_info[i].name === msg){
-                this.setState({
-                    cur_process:  i
-                })
+                if (this.state.cur_process != i){
+                    this.state.cur_process = i
+                }
                 break;
             }
         }
+    }
 
+    
+    onRef_texts = (ref,index) => {
+        this.state.process_texts[index] = ref
     }
-    getProcesscallstack = (msg) =>{
-        this.setState({
-            cur_callstack: msg
-        })
+
+    onRef_controllers = (ref,index) => {
+        this.state.process_controllers[index] = ref
     }
+
     handleChange = (e) => {
         const name = e.target.name;
 
@@ -559,16 +640,6 @@ class App extends React.Component {
         return fileSelector;
     };
 
-    componentDidMount() {
-        this.fileSelector = this.buildFileSelector();
-        
-    }
-    componentDidUpdate() {
-        if(document.getElementsByClassName('event-list-hl')[0] && this.picclicked===true)
-            document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
-        this.picclicked=false;
-    }
-
     handleFileSelect = (e) => {
         e.preventDefault();
         this.fileSelector.value = "";
@@ -611,35 +682,38 @@ class App extends React.Component {
                     history_pos: response.data.trace.length - 1,
                     warnings: [str_time, response.data.warning[1]]
                 })
-                document.getElementById('right').scrollTop = (this.state.history_pos) * 21;
+                document.getElementById('event').scrollTop = (this.state.history_pos) * 21;
             } else {
-                document.getElementById('right').scrollTop = 0;
+                document.getElementById('event').scrollTop = 0;
             }
         }
     };
 
     nextEvent = (e) => {
         if (!this.state.show_event_only) {
-            document.getElementById('right').scrollTop += 21;
+            document.getElementById('event').scrollTop += 21;
         }
         this.setState((state) => ({
             history_pos: state.history_pos + 1,
         }))
+        
     };
 
     prevEvent = (e) => {
         if (!this.state.show_event_only) {
-            document.getElementById('right').scrollTop -= 21;
+            document.getElementById('event').scrollTop -= 21;
         }
         this.setState((state) => ({
             history_pos: state.history_pos - 1,
         }))
+        
     };
 
     eventOnClick = (e, i) => {
         this.setState({
             history_pos: i,
         })
+        
     }
 
     nextStep = (e) => {
@@ -647,10 +721,11 @@ class App extends React.Component {
         while (hpos < this.state.history.length - 1 && this.state.history[hpos].type === 'step') {
             hpos += 1;
         }
-        document.getElementById('right').scrollTop += (hpos - this.state.history_pos) * 21;
+        document.getElementById('event').scrollTop += (hpos - this.state.history_pos) * 21;
         this.setState({
             history_pos: hpos
         })
+        
     };
 
     prevStep = (e) => {
@@ -658,10 +733,11 @@ class App extends React.Component {
         while (hpos > 0 && this.state.history[hpos].type === 'step') {
             hpos -= 1;
         }
-        document.getElementById('right').scrollTop -= (this.state.history_pos - hpos) * 21;
+        document.getElementById('event').scrollTop -= (this.state.history_pos - hpos) * 21;
         this.setState({
             history_pos: hpos
         })
+        
     };
 
     setStateAsync = (state) => {
@@ -695,17 +771,33 @@ class App extends React.Component {
         if(document.getElementsByClassName('program-text-next-hl')[0])
             document.getElementsByClassName('program-text-next-hl')[0].scrollIntoView();
     }
-    picOnClick = (e, i) => {
+    picOnClick = (e, i,hcsp_name) => {
         var index = 0;
-        while (index<i){
-            //console.log(this.state.history[index].time)
-            index++;
+        const ts = this.state.time_series[hcsp_name];
+        if (ts === undefined || ts.length === 0) {
+            var is_discrete = true 
+        }else{
+            var is_discrete = (ts[ts.length - 1].time === 0)
+        }
+        if (is_discrete) {
+            while (index<i){
+                //console.log(this.state.history[index].time)
+                index++;
+            }
+        } else {
+            while (this.state.history[index]['time']<i){
+                //console.log(this.state.history[index].time)
+                index++;
+                if (this.state.history[index] === undefined)
+                    break;
+            }
         }
         if (index > this.state.num_show)
             index = this.state.num_show;
         this.setState({
             history_pos: index,    
         })
+
         this.picclicked=true;
     }
 
@@ -765,10 +857,10 @@ class App extends React.Component {
                         }
                         else if (this.state.history.length === 0) {
                             // No data is available
-                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures} onRef={this.onRef_texts}
                                     name={hcsp_name} callstack={undefined} statenum={statenum} statemap={this.state.statemap}
-                                    time_series={time_series} event_time={event_time} hpos={undefined} npos={undefined}
-                                    warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>  
+                                    time_series={time_series} event_time={event_time} hpos={undefined} npos={undefined} 
+                                    warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/> 
                         } else {
                             const hpos = this.state.history_pos;
                             const event = this.state.history[hpos];
@@ -792,11 +884,11 @@ class App extends React.Component {
                             for (var i = 0; i < callstack['innerpos'].length; i++){
                                 var pos = callstack['innerpos'][i]
                                 if (pos === 'end') {
-                                    // End of data set
-                                    return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                                    // End of data set   
+                                    return <Process key={index} index={index} lines={info.lines} procedures={info.procedures} onRef={this.onRef_texts}
                                             name={hcsp_name} callstack={undefined} statenum={statenum} statemap={this.state.statemap}
-                                            time_series={time_series} event_time={event_time} hpos={hpos} npos={undefined}
-                                            warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>  
+                                            time_series={time_series} event_time={event_time} hpos={hpos} npos={undefined} 
+                                            warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>     
                                 }
                             }    
                             var callstack_temp = _.cloneDeep(callstack);
@@ -858,16 +950,19 @@ class App extends React.Component {
                                     }
                                 }     
                             }
-                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures}
+                            if (this.state.cur_process == index){
+                                this.state.cur_callstack = callstack_temp
+                            }
+                            return <Process key={index} index={index} lines={info.lines} procedures={info.procedures} onRef={this.onRef_texts}
                                     name={hcsp_name} callstack={callstack_temp} statenum={statenum} statemap={this.state.statemap}
-                                    time_series={time_series} event_time={event_time} hpos={hpos} npos={npos}
+                                    time_series={time_series} event_time={event_time} hpos={hpos} npos={npos} 
                                     warning_at={this.state.sim_warning} onClick={this.picOnClick} parent={this}/>    
                         }
                     })}
                 </Container>
             );
-        const right = (
-            <Container id="right" className="right">
+        const event = (
+            <Container id="event" className="event">
                 <Events events={this.state.history} current_index={this.state.history_pos}
                     onClick={this.eventOnClick} show_event_only={this.state.show_event_only} />
             </Container>
@@ -877,6 +972,24 @@ class App extends React.Component {
                 <Callstack hcsp_info ={this.state.hcsp_info[this.state.cur_process]} callstack={this.state.cur_callstack}/>
             </Container>
         );
+        const processes=(
+            <Container id="processes" className="processes">
+                {
+                    this.state.hcsp_info.map((info, index) => {
+                        const hcsp_name = info.name;
+                        if ('parallel' in info) {
+                            return <div key={index}>Process {hcsp_name} ::= {info.parallel.join(' || ')}</div>
+                        }
+                        else if (this.state.history.length === 0) {
+                            // No data is available
+                            return <Processes key={index} index={index} name={hcsp_name} parent={this} onRef={this.onRef_controllers}/> 
+                        } else {
+                            return <Processes key={index} index={index} name={hcsp_name} parent={this} onRef={this.onRef_controllers}/> 
+                        }
+                    })
+                }
+            </Container>
+        )
         return (
             <div>
                 <Navbar bg="light" variant="light" id="navbar">
@@ -948,10 +1061,19 @@ class App extends React.Component {
 
                 <hr className="headline"/>
                 {left}
-                {right}
+                {event}
                 {callstack}
+                {processes}
             </div>
         );
+    }
+    componentDidUpdate() {
+        if(document.getElementsByClassName('event-list-hl')[0] && this.picclicked===true)
+            document.getElementsByClassName('event-list-hl')[0].scrollIntoView();
+        this.picclicked=false;
+    }
+    componentDidMount() {
+        this.fileSelector = this.buildFileSelector();    
     }
 }
 
