@@ -72,15 +72,21 @@ class HHLPyTest(unittest.TestCase):
 
     def testComputeWp7(self):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
-        runWpTest(self, post="x >= 0", hp="<x_dot=2 & x < 10>",
+        runWpTest(self, post="x >= 0", hp="<x_dot=2 & x < 10>", inv="x >= 0",
                   expected_pre="x >= 0", expected_vcs=["2 >= 0"])
 
     def testComputeWp8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
-        runWpTest(self, post="x * x + y * y == 1", hp="<x_dot=y, y_dot=-x & x > 0>",
-                  expected_pre="x * x + y * y == 1",
+        runWpTest(self, post="x * x + y * y == 1", hp="<x_dot=y, y_dot=-x & x > 0>", 
+                  inv="x * x + y * y  == 1", expected_pre="x * x + y * y == 1",
                   expected_vcs=["x * y + y * x + (y * -x + -x * y) == 0"])
 
+    def testComputeWp9(self):
+        # {x >= 0} x >= -2 -> x := x+1 {x >= 1}
+        runWpTest(self, post="x >= 1", 
+                  hp="x >= -2 -> x := x+1",
+                  expected_pre="x >= -2 --> x + 1 >= 1")
+                  
     def testComputeVC(self):
         # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
         pre = bexpr_parser.parse("x >= 0")
@@ -106,13 +112,19 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify4(self):
         # Basic benchmark, problem 4
-        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10>", post="x >= 1")
+        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10>", post="x >= 1", inv="x >= 1")
 
     def testVerify5(self):
         runVerify(self, pre="x * x + y * y == 1", hp="<x_dot=y, y_dot=-x & x > 0>",
-                  post="x * x + y * y == 1")
+                  post="x * x + y * y == 1", inv="x * x + y * y == 1")
 
+    def testVerify6(self):
+        # Basic Benchmark, problem5
+        runVerify(self, pre="x >= 0", hp="x := x+1; x := {x >= 1}", post="x >= 1")
+    
+    def testVerify7(self):
+        # {x >= 0} x := x+1; y := {y >= x} {y >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; y := {y >= x}", post="y >= 1")
 
 if __name__ == "__main__":
-    print("hello")
     unittest.main()

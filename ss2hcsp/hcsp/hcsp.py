@@ -337,6 +337,66 @@ class Assign(HCSP):
     def priority(self):
         return 100
 
+class RandomAssign():
+    """Random Assignment commend.
+
+    x := {x >= 1}
+
+    var_name : AExpr - variable to be assigned, one of AVar (e.g. x), ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : BExpr - the range value to be randomly choose from.
+
+    Left side is an expression that can serve as a lname. This includes
+    variables, array indices, and field names.
+
+    """
+    def __init__(self, var_name, expr):
+        super(RandomAssign, self).__init__()
+        self.type = "randomassign"
+        assert isinstance(expr, BExpr)
+        if isinstance(var_name, str):
+            var_name = AVar(str(var_name))
+        if isinstance(var_name, AExpr):
+            self.var_name = var_name
+        elif isinstance(var_name, function.DirectName):
+            self.var_name = var_name
+        else:
+            var_name = tuple(var_name)
+            assert len(var_name) <= 2 and all (isinstance(name, (str, AExpr))for name in var_name)
+            self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
+        self.expr = expr
+
+    def __eq__(self, other):
+        return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
+
+    def __repr__(self):
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
+        else:
+            var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
+        return "RandomAssign(%s, %s)" % (var_str, str(self.expr))
+
+    def __str__(self):
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
+        elif isinstance(self.var_name,function.DirectName):
+            var_str=str(self.var_name)
+        else:
+            var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
+        return var_str + " := " + "{" + str(self.expr) + "}"
+
+    def __hash__(self):
+        return hash(("RandomAssign", self.var_name, self.expr))
+
+    def get_vars(self):
+        if isinstance(self.var_name, AExpr):
+            var_set = {str(self.var_name)}
+        else:
+            var_set = set(str(n) for n in self.var_name)
+        return var_set.union(self.expr.get_vars())
+
+    def priority(self):
+        return 100
+
 class Assert(HCSP):
     def __init__(self, bexpr, msgs):
         super(Assert, self).__init__()

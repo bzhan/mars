@@ -2,6 +2,7 @@
 Python implementation of Hybrid Hoare Logic.
 """
 
+from ss2hcsp.matlab.function import BExpr
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from hhlpy.z3wrapper import z3_prove
@@ -53,12 +54,33 @@ def compute_wp(hp, post, inv=None):
     and vcs is a list of verification conditions.
 
     """
-    if isinstance(hp, hcsp.Assign):
+    if isinstance(hp, hcsp.Skip):
+        # Skip: {P} skip {P}
+        pre, vcs = post, []
+        return pre, vcs
+
+    elif isinstance(hp, hcsp.Assign):
         # Assignment: replace var_name by expr in post
         if not isinstance(hp.var_name, expr.AVar):
             raise NotImplementedError
         var = hp.var_name.name
         pre = post.subst({var: hp.expr})
+        return pre, []
+
+    elif isinstance(hp, hcsp.RandomAssign):
+        # RandomAssign: replace var_name by var_name_new in post and in hp.expr
+        #               hp.expr(var_name_new|var_name) --> post(var_name_new|varname)
+        if not isinstance(hp.var_name, expr.AVar):
+            raise NotImplementedError
+        var = hp.var_name.name
+
+        if not isinstance(hp.expr, expr.BExpr):
+            raise NotImplementedError
+
+        # Create a new var       
+        newvar = expr.AVar(str(hp.var_name.name)+"_new")
+        # Pre is hp.expr(var_name_new|var_name) --> post(var_name_new|varname)
+        pre = expr.imp(hp.expr.subst({var: newvar}), post.subst({var: newvar}))
         return pre, []
 
     elif isinstance(hp, hcsp.IChoice):
@@ -83,10 +105,8 @@ def compute_wp(hp, post, inv=None):
             raise NotImplementedError
         
         if not isinstance(inv, expr.BExpr):
-            raise NotImplementedError('Invalid Invariant')
+            raise NotImplementedError('Invalid Invariant for Loop!')
         
-        # # Set invariant to be the postcondition
-        # inv = post
 
         # Compute wp for loop body with respect to invariant
         pre, vcs = compute_wp(hp.hp, inv)
@@ -101,9 +121,9 @@ def compute_wp(hp, post, inv=None):
         if hp.out_hp != hcsp.Skip():
             raise NotImplementedError
         
-        # Assume the postcondition is the differential invariant.
-        inv = post
-
+        if not isinstance(inv, expr.BExpr):
+            raise NotImplementedError("Invalid Invariant for ODE!")
+            
         # Construct dictionary corresponding to eqs.
         eqs_dict = dict()
         for name, e in hp.eqs:
@@ -112,7 +132,23 @@ def compute_wp(hp, post, inv=None):
         # Compute the differential of inv.
         inv_diff = compute_diff(inv, eqs_dict=eqs_dict)
         return inv, [inv_diff]
+    
+    elif isinstance(hp, hcsp.Condition):
+        # Condition
+        if not isinstance(hp.cond, expr.BExpr):
+            raise NotImplementedError
+        
+        # Compute wp of hp.hp
+        interpre, intervcs = compute_wp(hp.hp, post, inv)
 
+        # Compute wp of hp
+        pre = expr.imp(hp.cond, interpre)
+        vcs = []
+        for intervc in intervcs:
+            vc = [expr.imp(hp.cond, intervc)]
+            vcs.extend(vc)
+        return pre, vcs
+        
     else:
         raise NotImplementedError
 

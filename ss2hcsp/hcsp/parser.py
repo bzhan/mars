@@ -81,6 +81,7 @@ grammar = r"""
         | "wait" "(" expr ")" -> wait_cmd
         | atom_expr ":=" expr -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
+        | atom_expr ":=" "{" cond "}" -> random_assign_cmd
         | "assert" "(" cond ("," expr)* ")" -> assert_cmd
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
@@ -270,6 +271,9 @@ class HPTransformer(Transformer):
 
     def multi_assign_cmd(self, *args):
         return hcsp.Assign(args[:-1], args[-1])
+
+    def random_assign_cmd(self, var, cond):
+        return hcsp.RandomAssign(var, cond)
 
     def assert_cmd(self, *args):
         # First argument is the assert condition. The remaining ones
