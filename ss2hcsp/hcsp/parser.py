@@ -86,9 +86,9 @@ grammar = r"""
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
-        | "(" cmd ")**" -> repeat_cmd
-        | "(" cmd "){" cond "}**" -> repeat_cond_cmd
-        | "<" ode_seq "&" cond ">" -> ode
+        | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd
+        | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd
+        | "<" ode_seq "&" cond ">@invariant(" cond ")" -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
@@ -318,11 +318,11 @@ class HPTransformer(Transformer):
         ch_name, ch_args = args[0], args[1:]
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args))
 
-    def repeat_cmd(self, cmd):
-        return hcsp.Loop(cmd)
+    def repeat_cmd(self, cmd, inv):
+        return hcsp.Loop(cmd, invariant=inv)
 
-    def repeat_cond_cmd(self, cmd, cond):
-        return hcsp.Loop(cmd, constraint=cond)
+    def repeat_cond_cmd(self, cmd, inv, cond):
+        return hcsp.Loop(cmd, invariant=inv, constraint=cond)
 
     def ode_seq(self, *args):
         res = []
@@ -337,8 +337,8 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, eqs, constraint):
-        return hcsp.ODE(eqs, constraint)
+    def ode(self, eqs, constraint, inv):
+        return hcsp.ODE(eqs, constraint, inv)
 
     def ode_comm_const(self, constraint, io_comms):
         return hcsp.ODE_Comm([], constraint, io_comms)
@@ -411,7 +411,7 @@ class HPTransformer(Transformer):
     def module_arg_channel(self, *args):
         # First argument is channel name, remaining arguments are channel args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.Channel(str(ch_name), tuple(AConst(ch_arg) for ch_arg in ch_args))
+        return hcsp.Channel(str(ch_name), tuple(expr.AConst(ch_arg) for ch_arg in ch_args))
 
     def module_arg_expr(self, expr):
         return expr
