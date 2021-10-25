@@ -652,7 +652,7 @@ class SimulatorTest(unittest.TestCase):
              "x := 5; @pa"),
             "(cha?x --> skip $ chb?x --> skip)**"
         ], 10, ['IO cha 4', 'IO chb 3', 'IO cha 2', 'IO chb 1', 'IO cha 0', 'deadlock'])
-
+        
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
                        show_interval=None, start_event=None, print_trace=False):
         for i in range(len(infos)):

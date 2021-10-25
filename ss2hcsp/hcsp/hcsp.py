@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
 from ss2hcsp.matlab import function
+from ss2hcsp.util.topsort import topological_sort
 import re
 
 
@@ -1223,6 +1224,26 @@ class HCSPInfo:
 
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
+
+def subst_comm_all(hp, inst):
+    """Perform all substitutions given in inst. Detect cycles.
+    
+    First compute a topological sort of dependency in inst, which will
+    provide the order of substitution.
+
+    """
+    # Set of all variables to be substituted
+    all_vars = set(inst.keys())
+
+    # Mapping variable to its dependencies
+    dep_order = dict()
+    for var in all_vars:
+        dep_order[var] = list(inst[var].get_vars().intersection(all_vars))
+
+    topo_order = topological_sort(dep_order)
+    for var in reversed(topo_order):
+        hp = hp.subst_comm({var: inst[var]})
+    return hp
 
 def HCSP_subst(hp, inst):
     """Substitution of program variables for their instantiations."""

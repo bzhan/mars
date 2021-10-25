@@ -1,8 +1,10 @@
 """Expressions"""
 
 import math
+from decimal import Decimal
 import itertools
-from ss2hcsp.matlab import function
+
+from ss2hcsp.util.topsort import topological_sort
 
 
 def opt_round(x):
@@ -95,7 +97,9 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, list, str, tuple, dict))
+        assert isinstance(value, (int, float, Decimal, list, str, tuple, dict))
+        if isinstance(value, Decimal):
+            value = float(value)
         self.value = value
 
     def __repr__(self):
@@ -206,6 +210,38 @@ class FunExpr(AExpr):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
 
 
+class IfExpr(AExpr):
+    def __init__(self, cond, expr1, expr2):
+        super(IfExpr, self).__init__()
+        assert isinstance(cond, BExpr) and isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
+        self.cond = cond
+        self.expr1 = expr1
+        self.expr2 = expr2
+    
+    def __repr__(self):
+        return "IfExpr(%s,%s,%s)" % (repr(self.cond), repr(self.expr1), repr(self.expr2))
+    
+    def __str__(self):
+        s0, s1, s2 = str(self.cond), str(self.expr1), str(self.expr2)
+        return "(%s ? %s : %s)" % (s0, s1, s2)
+
+    def __eq__(self, other):
+        return isinstance(other, IfExpr) and self.cond == other.cond and \
+            self.expr1 == other.expr1 and self.expr2 == other.expr2
+
+    def __hash__(self):
+        return hash(("IfExpr", self.cond, self.expr1, self.expr2))
+
+    def priority(self):
+        return 100
+
+    def get_vars(self):
+        return set().union(*(arg.get_vars() for arg in [self.cond, self.expr1, self.expr2]))
+    
+    def subst(self, inst):
+        return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
+
+
 class ListExpr(AExpr):
     """List expressions."""
     def __init__(self, *args):
@@ -225,7 +261,7 @@ class ListExpr(AExpr):
         return isinstance(other, ListExpr) and self.args == other.args
 
     def __hash__(self):
-        return hash(("List", self.args))
+        return hash(("ListExpr", self.args))
 
     def priority(self):
         return 100
@@ -580,6 +616,26 @@ def neg_expr(e):
         return e.neg()
     else:
         raise NotImplementedError
+
+def subst_all(e, inst):
+    """Perform all substitutions given in inst. Detect cycles.
+    
+    First compute a topological sort of dependency in inst, which will
+    provide the order of substitution.
+
+    """
+    # Set of all variables to be substituted
+    all_vars = set(inst.keys())
+
+    # Mapping variable to its dependencies
+    dep_order = dict()
+    for var in all_vars:
+        dep_order[var] = list(inst[var].get_vars().intersection(all_vars))
+
+    topo_order = topological_sort(dep_order)
+    for var in reversed(topo_order):
+        e = e.subst({var: inst[var]})
+    return e
 
 
 class Conditional_Inst:

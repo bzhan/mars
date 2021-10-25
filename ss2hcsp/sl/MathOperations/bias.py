@@ -5,37 +5,39 @@ import ss2hcsp.hcsp.hcsp as hp
 
 class Bias(SL_Block):
     def __init__(self, name, bias=0, st=-1):
-        super(Bias, self).__init__()
-        self.name = name
-        self.type = "bias"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 1
-        self.src_lines = [[]]
-        self.dest_lines = [None]
+        super(Bias, self).__init__("bias", name, 1, 1, st)
 
         assert isinstance(bias, (int, float))
         self.bias = bias
 
-        assert isinstance(st, (int, float))
-        self.st = st
+    def get_expr(self):
+        """Compute the assignment corresponding to bias block."""
+        in_var = AVar(self.dest_lines[0].name)
+        if self.bias >= 0:
+            return OpExpr("+", in_var, AConst(self.bias))
+        else:
+            return OpExpr("-", in_var, AConst(-self.bias))
 
     def __str__(self):
-        return "%s: Bias[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, expr, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "Bias(%s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.bias, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
-        in_var = self.dest_lines[0].name
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=cond, hp=hp.Assign(var_name=out_var,
-                                                    expr=OpExpr("+", AVar(in_var), AConst(self.bias))))
+        return hp.Assign(out_var, expr)
+
+    def get_var_subst(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
 
     def get_var_map(self):
-        in_var = AVar(self.dest_lines[0].name)
-        expr = OpExpr("+", in_var, AConst(self.bias))
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
         return {out_var: [(true_expr, expr)]}

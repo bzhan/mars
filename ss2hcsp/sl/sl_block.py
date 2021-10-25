@@ -1,43 +1,43 @@
 """Simulink blocks."""
 
+from decimal import Decimal
+
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.hcsp.expr import true_expr
 
 
 class SL_Block:
     """Represents a block in a Simulink diagram."""
-    def __init__(self):
+    def __init__(self, type, name, num_src, num_dest, st):
         # Name of the block
-        self.name = ""
+        self.name = name
 
         # Type of the block, corresponds to class name
-        self.type = ""
+        self.type = type
 
         # Whether a block is continuous or discrete
-        self.is_continuous = False
+        self.is_continuous = (st == 0)
 
         # Number of ports for lines originating from the block
-        self.num_src = 0
+        self.num_src = num_src
 
         # Number of ports for lines ending at the block
-        self.num_dest = 0
+        self.num_dest = num_dest
 
         # Lines originating from the block, maintained as a list
         # of lists of SL_Line objects.
-        self.src_lines = [[]]
+        self.src_lines = [[] for _ in range(num_src)]
 
         # Lines ending at the block, maintained as a list of
         # SL_Line objects
-        self.dest_lines = []
+        self.dest_lines = [None] * num_dest
 
         # Sample time
-        self.st = "-1"
+        assert isinstance(st, (int, Decimal))
+        self.st = st
 
         # Enabled condition
         self.enable = true_expr
-
-    def __str__(self):
-        return self.name
 
     def add_src(self, port_id, sl_line):
         """Add a source line."""

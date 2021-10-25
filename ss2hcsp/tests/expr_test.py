@@ -32,6 +32,8 @@ class ExprTest(unittest.TestCase):
             "-x",
             "-x + y",
             "(a - b) % m",
+            "(a > 0 ? a : -a)",
+            "(a > 0 ? (b > 0 ? b : -b) : -a)"
         ]
         
         for s in test_data:

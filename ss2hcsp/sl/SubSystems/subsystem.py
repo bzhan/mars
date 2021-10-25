@@ -5,27 +5,18 @@ import ss2hcsp.hcsp.hcsp as hp
 
 class Subsystem(SL_Block):
     """Subsystem is block in which there is a diagram"""
-    def __init__(self, name, num_src, num_dest):
-        super(Subsystem, self).__init__()
-        self.name = name
-        self.type = "subsystem"
-        self.is_continuous = False
-        self.num_src = num_src
-        self.num_dest = num_dest
-        self.src_lines = [[] for _ in range(self.num_src)]
-        self.dest_lines = [None] * self.num_dest
+    def __init__(self, type, name, num_src, num_dest, st):
+        super(Subsystem, self).__init__(type, name, num_src, num_dest, st)
         self.diagram = None
 
     def __str__(self):
-        str_diagram = str(self.diagram)
-        res = "%s: Subsystem[in = %s, out = %s, diagram =\n" % (self.name, self.dest_lines, self.src_lines)
-        for line in str_diagram.split('\n'):
-            res += "  " + line + "\n"
-        res += "]"
+        res = "%s: subsystem\n" % (self.name)
+        res += "\n".join("  " + line for line in str(self.diagram).split('\n'))
         return res
 
     def __repr__(self):
-        return str(self)
+        return "Subsystem(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_src, self.num_dest, self.st, str(self.dest_lines), str(self.src_lines))
 
     def add_enabled_condition_to_innerBlocks(self, init_en_cond=true_expr):
         en_line = self.dest_lines[-1]
@@ -41,21 +32,29 @@ class Subsystem(SL_Block):
 
 class Triggered_Subsystem(Subsystem):
     def __init__(self, name, num_src, num_dest, trigger_type):
-        super(Triggered_Subsystem, self).__init__(name, num_src, num_dest)
-        self.type = "triggered_subsystem"
+        super(Triggered_Subsystem, self).__init__("triggered_subsystem", name, num_src, num_dest, st=-1)
+
+        # Trigger type
+        assert trigger_type in ("rising", "falling", "either"), \
+            "Unknown trigger type: %s" % trigger_type
         self.trigger_type = trigger_type
-        self.st = -1
+
         # A flag variable denoting if the subsystem was triggered at the last step
         self.triggered = self.name + "_triggered"
 
     def __str__(self):
-        return "%s: Triggered_Subsystem[in = %s, out = %s, tri = %s, diagram = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), self.trigger_type, str(self.diagram))
+        trig_var = self.dest_lines[-1].name
+        res = "%s: on_%s(%s):\n" % (self.name, self.trigger_type, trig_var)
+        res += "\n".join("  " + line for line in str(self.diagram).split('\n'))
+        return res
 
     def __repr__(self):
-        return str(self)
+        return "Triggered_Subsystem(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_src, self.num_dest, self.trigger_type,
+             str(self.dest_lines), str(self.src_lines))
 
     def get_pre_cur_trig_signals(self):
+        """Obtain variables for current and previous trigger value."""
         trig_var = self.dest_lines[-1].name
         cur_sig = AVar(trig_var)
         pre_sig = AVar("pre_" + trig_var)
@@ -102,25 +101,34 @@ class Triggered_Subsystem(Subsystem):
         return init_hps
 
     def get_discrete_triggered_condition(self):
+        """Obtain the discrete trigger condition."""
         pre_sig, cur_sig = self.get_pre_cur_trig_signals()
-        # rising: (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
-        op0, op1, op2, op3 = "<", ">=", "==", ">"
-        if self.trigger_type == "falling":  # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
+
+        # Compare pre_sig and cur_sig with zero. Different comparisons for
+        # different trigger conditions.
+        if self.trigger_type == "rising":
+            # (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
+            op0, op1, op2, op3 = "<", ">=", "==", ">"
+        elif self.trigger_type == "falling":
+            # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
             op0, op1, op2, op3 = ">", "<=", "==", "<"
-        elif self.trigger_type == "either":  # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
+        elif self.trigger_type == "either":
+            # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
             op0, op1, op2, op3 = "<", ">=", ">=", "<"
-        elif self.trigger_type == "function-call":
-            raise RuntimeError("Not implemented yet")
-        trig_cond = LogicExpr("||",
-                              LogicExpr("&&",
-                                        RelExpr(op0, pre_sig, AConst(0)),
-                                        RelExpr(op1, cur_sig, AConst(0))),
-                              LogicExpr("&&",
-                                        RelExpr(op2, pre_sig, AConst(0)),
-                                        RelExpr(op3, cur_sig, AConst(0))))
-        return trig_cond
+        else:
+            raise NotImplementedError("Unknown trigger type: %s" % self.trigger_type)
+
+        return LogicExpr(
+            "||", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
+                  LogicExpr("&&", RelExpr(op2, pre_sig, AConst(0)), RelExpr(op3, cur_sig, AConst(0))))
 
     def get_continuous_triggered_condition(self):
+        """Obtain the continuous trigger condition.
+        
+        Currently, we assume that the trigger line is the output of an
+        integrator.
+
+        """
         trig_line = self.dest_lines[-1]
         trig_sig = AVar(trig_line.name)
         assert trig_line.src_block.type == "integrator"
@@ -172,9 +180,8 @@ class Triggered_Subsystem(Subsystem):
         output_hps = [block.get_output_hp() for block in sorted_blocks]
         # Get the UPDATE of Unit_Delay blocks
         update_hps = [block.get_update_hp() for block in sorted_blocks if block.type == "unit_delay"]
-        assert all(isinstance(process, hp.Condition) for process in output_hps + update_hps)
 
-        result_hps = [process.hp for process in output_hps + update_hps]
+        result_hps = output_hps + update_hps
         result_hp = hp.Sequence(*result_hps) if len(result_hps) > 1 else result_hps[0]
         procedures = [hp.Procedure(name=self.name, hp=result_hp)]
 
@@ -191,9 +198,7 @@ class Triggered_Subsystem(Subsystem):
 
 class Enabled_Subsystem(Subsystem):
     def __init__(self, name, num_src, num_dest):
-        super(Enabled_Subsystem, self).__init__(name, num_src, num_dest)
-        self.type = "enabled_subsystem"
-        self.st = -1
+        super(Enabled_Subsystem, self).__init__("enabled_subsystem", name, num_src, num_dest, st=-1)
 
     def __str__(self):
         return "%s: Enabled_Subsystem[in = %s, out = %s, diagram = %s]" % \
