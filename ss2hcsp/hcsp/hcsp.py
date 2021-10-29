@@ -869,28 +869,28 @@ class Loop(HCSP):
     inv : BExpr - invariant
 
     """
-    def __init__(self, hp, invariant, constraint=true_expr):
+    def __init__(self, hp, inv, constraint=true_expr):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp
-        self.invariant = invariant
+        self.inv = inv
         self.constraint = constraint
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp == other.hp and self.constraint == other.constraint and self.invariant == other.invariant
+        return self.type == other.type and self.hp == other.hp and self.constraint == other.constraint and self.inv == other.inv
 
     def __repr__(self):
         if self.constraint == true_expr:
-            return "Loop(%s, invariant=%s)" % (repr(self.hp), str(self.invariant))
+            return "Loop(%s, invariant=%s)" % (repr(self.hp), str(self.inv))
         else:
-            return "Loop(%s, %s, invariant=%s)" % (repr(self.hp), str(self.constraint), str(self.invariant))
+            return "Loop(%s, %s, invariant=%s)" % (repr(self.hp), str(self.constraint), str(self.inv))
 
     def __str__(self):
         if self.constraint == true_expr:
             return "(%s)**@invaraint(%s)" % str(self.hp)
         else:
-            return "(%s){%s}**@invariant(%s)" % (str(self.hp), str(self.constraint), str(self.invariant))
+            return "(%s){%s}**@invariant(%s)" % (str(self.hp), str(self.constraint), str(self.inv))
 
     def __hash__(self):
         return hash(("Loop", self.hp, self.constraint))

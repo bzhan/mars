@@ -325,10 +325,10 @@ class HPTransformer(Transformer):
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args))
 
     def repeat_cmd(self, cmd, inv):
-        return hcsp.Loop(cmd, invariant=inv)
+        return hcsp.Loop(cmd, inv=inv)
 
     def repeat_cond_cmd(self, cmd, inv, cond):
-        return hcsp.Loop(cmd, invariant=inv, constraint=cond)
+        return hcsp.Loop(cmd, inv=inv, constraint=cond)
 
     def ode_seq(self, *args):
         res = []

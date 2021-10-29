@@ -13,9 +13,9 @@ def compute_diff(e, eqs_dict):
     def rec(e):
         if isinstance(e, expr.LogicExpr):
             if e.op == "&&":
-                return expr.LogicExpr("&&", rec(e.expr1), rec(e.expr2))
+                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "||":
-                 return expr.LogicExpr("&&", rec(e.expr1), rec(e.expr2))
+                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, expr.RelExpr):
             if e.op == '<' or e.op == '<=':
                 return expr.RelExpr("<=", rec(e.expr1), rec(e.expr2))
@@ -94,8 +94,8 @@ def compute_wp(hp, post):
 
     elif isinstance(hp, hcsp.IChoice):
         # Internal choice: conjunction of the two preconditions
-        pre1, vcs1 = compute_wp(hp.hp1, post, )
-        pre2, vcs2 = compute_wp(hp.hp2, post, )
+        pre1, vcs1 = compute_wp(hp.hp1, post)
+        pre2, vcs2 = compute_wp(hp.hp2, post)
         pre = expr.conj(pre1, pre2)
         return pre, vcs1 + vcs2
 
@@ -104,7 +104,7 @@ def compute_wp(hp, post):
         cur_pre = post
         all_vcs = []
         for sub_hp in reversed(hp.hps):
-            cur_pre, cur_vcs = compute_wp(sub_hp, cur_pre, )
+            cur_pre, cur_vcs = compute_wp(sub_hp, cur_pre)
             all_vcs.extend(cur_vcs)
         return cur_pre, all_vcs
 
@@ -113,16 +113,16 @@ def compute_wp(hp, post):
         if hp.constraint != expr.true_expr:
             raise NotImplementedError
         
-        if not isinstance(hp.invariant, expr.BExpr):
+        if not isinstance(hp.inv, expr.BExpr):
             raise NotImplementedError('Invalid Invariant for Loop!') 
 
         # Compute wp for loop body with respect to invariant
-        pre_loopbody, vcs = compute_wp(hp.hp, hp.invariant)
+        pre_loopbody, vcs = compute_wp(hp.hp, hp.inv)
 
         # Verification condition is invariant --> pre_loopbody and invariant --> post
-        vc1 = expr.imp(hp.invariant, pre_loopbody)
-        vc2 = expr.imp(hp.invariant, post)
-        return hp.invariant, vcs + [vc1] + [vc2]
+        vc1 = expr.imp(hp.inv, pre_loopbody)
+        vc2 = expr.imp(hp.inv, post)
+        return hp.inv, vcs + [vc1] + [vc2]
 
     elif isinstance(hp, hcsp.ODE):
         # ODE, by default use the differential invariant rule.
@@ -148,7 +148,7 @@ def compute_wp(hp, post):
             raise NotImplementedError
         
         # Compute wp of hp.hp
-        interpre, intervcs = compute_wp(hp.hp, post, )
+        interpre, intervcs = compute_wp(hp.hp, post)
 
         # Compute wp of hp
         pre = expr.imp(hp.cond, interpre)
@@ -162,9 +162,11 @@ def compute_wp(hp, post):
         raise NotImplementedError
 
 def compute_vcs(pre, hp, post):
-    wp, vcs = compute_wp(hp, post, )
+    wp, vcs = compute_wp(hp, post)
     return vcs + [expr.imp(pre, wp)]
 
 def verify(pre, hp, post):
-    vcs = compute_vcs(pre, hp, post, )
+    vcs = compute_vcs(pre, hp, post)
+    for vc in vcs:
+        print(vc)
     return all(z3_prove(vc) for vc in vcs)
