@@ -2,7 +2,6 @@
 Python implementation of Hybrid Hoare Logic.
 """
 
-from ss2hcsp.matlab.function import BExpr
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from hhlpy.z3wrapper import z3_prove
