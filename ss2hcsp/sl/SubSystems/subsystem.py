@@ -201,8 +201,12 @@ class Enabled_Subsystem(Subsystem):
         super(Enabled_Subsystem, self).__init__("enabled_subsystem", name, num_src, num_dest, st=-1)
 
     def __str__(self):
-        return "%s: Enabled_Subsystem[in = %s, out = %s, diagram = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.diagram))
+        en_line = self.dest_lines[-1]
+        en_cond = RelExpr(">", AVar(en_line.name), AConst(0))
+        res = "%s: on %s:\n" % (self.name, en_cond)
+        res += "\n".join("  " + line for line in str(self.diagram).split('\n'))
+        return res
 
     def __repr__(self):
-        return str(self)
+        return "Enabled_Subsystem(%s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.num_src, self.num_dest, str(self.dest_lines), str(self.src_lines))

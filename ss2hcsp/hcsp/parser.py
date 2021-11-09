@@ -89,9 +89,12 @@ grammar = r"""
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
-        | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd
-        | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd
-        | "<" ode_seq "&" cond ">@invariant(" cond ")" -> ode
+        | "(" cmd ")**" -> repeat_cmd
+        | "(" cmd "){" cond "}**" -> repeat_cond_cmd
+        | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd_inv
+        | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd_inv
+        | "<" ode_seq "&" cond ">" -> ode
+        | "<" ode_seq "&" cond ">@invariant(" cond ")" -> ode_inv
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
@@ -324,10 +327,16 @@ class HPTransformer(Transformer):
         ch_name, ch_args = args[0], args[1:]
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args))
 
-    def repeat_cmd(self, cmd, inv):
+    def repeat_cmd(self, cmd):
+        return hcsp.Loop(cmd)
+
+    def repeat_cond_cmd(self, cmd, cond):
+        return hcsp.Loop(cmd, constraint=cond)
+
+    def repeat_cmd_inv(self, cmd, inv):
         return hcsp.Loop(cmd, inv=inv)
 
-    def repeat_cond_cmd(self, cmd, inv, cond):
+    def repeat_cond_cmd_inv(self, cmd, inv, cond):
         return hcsp.Loop(cmd, inv=inv, constraint=cond)
 
     def ode_seq(self, *args):
@@ -343,8 +352,11 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, eqs, constraint, inv):
-        return hcsp.ODE(eqs, constraint, inv)
+    def ode(self, eqs, constraint):
+        return hcsp.ODE(eqs, constraint)
+
+    def ode_inv(self, eqs, constraint, inv):
+        return hcsp.ODE(eqs, constraint, inv=inv)
 
     def ode_comm_const(self, constraint, io_comms):
         return hcsp.ODE_Comm([], constraint, io_comms)

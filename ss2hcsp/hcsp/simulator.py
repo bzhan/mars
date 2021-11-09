@@ -572,7 +572,7 @@ def start_pos(hp):
     if hp.type == 'sequence':
         return (0,) + start_pos(hp.hps[0])
     elif hp.type == 'loop':
-        return start_pos(hp.hp)
+        return (0,) + start_pos(hp.hp)
     elif hp.type == 'wait':
         return (0,)  # Time already spent in delay
     else:
@@ -598,7 +598,11 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
             return hp
         return get_pos(hp.hps[pos[0]], pos[1:], rec_vars, procs)
     elif hp.type == 'loop':
-        return get_pos(hp.hp, pos, rec_vars, procs)
+        if len(pos) == 0:
+            return hp
+        else:
+            assert pos[0] == 0
+        return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'wait':
         # assert len(pos) == 1
         return hp
@@ -691,14 +695,17 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             else:
                 return (pos[0],) + sub_step
         elif hp.type == 'loop':
-            sub_step = helper(hp.hp, pos)
+            assert len(pos) > 0
+            # Step inside the loop
+            assert pos[0] == 0
+            sub_step = helper(hp.hp, pos[1:])
             if sub_step is None:
                 if hp.constraint != true_expr and not eval_expr(hp.constraint, state):
                     return None
                 else:
-                    return start_pos(hp.hp)
+                    return (0,) + start_pos(hp.hp)
             else:
-                return sub_step
+                return (0,) + sub_step
         elif hp.type == 'condition':
             if len(pos) == 0:
                 return None
@@ -882,7 +889,7 @@ class SimInfo:
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars, self.procedures)
         if cur_hp.type == "skip":
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
             
         elif cur_hp.type == "assign":
@@ -898,7 +905,7 @@ class SimInfo:
                     if s != AVar('_'):
                         self.exec_assign(s, val[i], cur_hp)
             
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
 
         elif cur_hp.type == "assert":

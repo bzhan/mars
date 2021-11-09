@@ -729,7 +729,7 @@ class ODE(HCSP):
     <F(s',s) = 0 & B> |> Q
 
     """
-    def __init__(self, eqs, constraint, inv, *, out_hp=Skip()):
+    def __init__(self, eqs, constraint, *, inv=None, out_hp=Skip()):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -744,13 +744,14 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
         assert isinstance(constraint, BExpr)
-        assert isinstance(inv, BExpr)
+        if inv is not None:
+            assert isinstance(inv, BExpr)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
         self.eqs = eqs  # list of tuples (string, AExpr)
         self.constraint = constraint  # BExpr
-        self.inv = inv # BExpr
+        self.inv = inv        # None or BExpr
         self.out_hp = out_hp  # None or hcsp
 
     def __eq__(self, other):
@@ -759,9 +760,8 @@ class ODE(HCSP):
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
-        str_invariant = "@invariant(" + str(self.inv) + ")"
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
-        return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_invariant + str_out_hp
+        return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
 
     def __repr__(self):
         if self.out_hp == Skip():
@@ -869,7 +869,7 @@ class Loop(HCSP):
     inv : BExpr - invariant
 
     """
-    def __init__(self, hp, inv, constraint=true_expr):
+    def __init__(self, hp, *, inv=None, constraint=true_expr):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
@@ -878,19 +878,20 @@ class Loop(HCSP):
         self.constraint = constraint
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp == other.hp and self.constraint == other.constraint and self.inv == other.inv
+        return self.type == other.type and self.hp == other.hp and \
+            self.constraint == other.constraint and self.inv == other.inv
 
     def __repr__(self):
         if self.constraint == true_expr:
-            return "Loop(%s, invariant=%s)" % (repr(self.hp), str(self.inv))
+            return "Loop(%s)" % (repr(self.hp))
         else:
-            return "Loop(%s, %s, invariant=%s)" % (repr(self.hp), str(self.constraint), str(self.inv))
+            return "Loop(%s, %s)" % (repr(self.hp), str(self.constraint))
 
     def __str__(self):
         if self.constraint == true_expr:
-            return "(%s)**@invaraint(%s)" % str(self.hp)
+            return "(%s)**" % str(self.hp)
         else:
-            return "(%s){%s}**@invariant(%s)" % (str(self.hp), str(self.constraint), str(self.inv))
+            return "(%s){%s}**" % (str(self.hp), str(self.constraint))
 
     def __hash__(self):
         return hash(("Loop", self.hp, self.constraint))

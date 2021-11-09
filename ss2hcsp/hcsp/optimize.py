@@ -34,12 +34,12 @@ def simplify(hp):
     elif hp.type == 'sequence':
         return hcsp.seq([simplify(sub_hp) for sub_hp in hp.hps])
     elif hp.type == 'loop':
-        return hcsp.Loop(simplify(hp.hp), hp.constraint)
+        return hcsp.Loop(simplify(hp.hp), constraint=hp.constraint)
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
         if  isinstance(simp_cond,RelExpr)  and isinstance(simp_cond.expr1,FunExpr) and simp_cond.expr1.fun_name == "remove_InputMessage":
-            return  hcsp.Condition(simp_cond, simp_sub_hp)
+            return hcsp.Condition(simp_cond, simp_sub_hp)
         elif simp_sub_hp.type == 'skip'  or simp_cond == false_expr:
             return hcsp.Skip()
         elif simp_cond == true_expr:
@@ -171,7 +171,7 @@ def targeted_replace(hp, repls):
             new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
-            return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
+            return hcsp.Loop(rec(hp.hp, cur_pos), constraint=hp.constraint)
         elif hp.type == 'select_comm':
             new_io_comms = []
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
@@ -217,7 +217,7 @@ def targeted_remove(hp, remove_locs):
             new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
-            return hcsp.Loop(rec(hp.hp, cur_pos), hp.constraint)
+            return hcsp.Loop(rec(hp.hp, cur_pos), constraint=hp.constraint)
         elif hp.type == 'select_comm':
             new_io_comms = []
             for i, (comm_hp, out_hp) in enumerate(hp.io_comms):
