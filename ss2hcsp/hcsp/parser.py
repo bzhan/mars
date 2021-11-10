@@ -38,7 +38,7 @@ grammar = r"""
         | plus_expr "-" times_expr -> minus_expr
         | times_expr
 
-    ?if_expr: "(" cond "?" if_expr ":" if_expr ")"        // priority 40
+    ?if_expr: "(" cond "?" if_expr ":" if_expr ")"         // priority 40
         | plus_expr
 
     ?expr: if_expr
@@ -54,13 +54,16 @@ grammar = r"""
         | "false" -> false_cond
         | "(" cond ")"
     
-    ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
+    ?conj: atom_cond "&&" conj | atom_cond       // Conjunction: priority 35
 
-    ?disj: conj "||" disj | conj   // Disjunction: priority 30
+    ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 
-    ?imp: disj "-->" imp | disj  // Implies: priority 25
+    ?imp: disj "-->" imp | disj                  // Implies: priority 25
 
-    ?cond: imp
+    ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
+        | imp
+
+    ?cond: exists_expr
 
     ?comm_cmd: CNAME "?" lname -> input_cmd
         | CNAME "[" expr "]" "?" lname -> input_cmd
@@ -199,6 +202,9 @@ class HPTransformer(Transformer):
 
     def if_expr(self, cond, e1, e2):
         return expr.IfExpr(cond, e1, e2)
+
+    def exists_expr(self, var, e):
+        return expr.ExistsExpr(str(var), e)
 
     def plus_expr(self, e1, e2):
         return expr.OpExpr("+", e1, e2)

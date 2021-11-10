@@ -316,12 +316,16 @@ class CmdVerifier:
             self.infos[pos].vcs.append(expr.imp(self.infos[pos].pre, pre))
 
     def get_all_vcs(self):
-        all_vcs = []
-        for _, info in self.infos.items():
-            all_vcs.extend(info.vcs)
+        all_vcs = dict()
+        for pos, info in self.infos.items():
+            if info.vcs:
+                all_vcs[pos] = info.vcs
         return all_vcs
 
     def verify(self):
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
-        return all(z3_prove(vc) for vc in all_vcs)
+        for _, vcs in all_vcs.items():
+            if not all(z3_prove(vc) for vc in vcs):
+                return False
+        return True
