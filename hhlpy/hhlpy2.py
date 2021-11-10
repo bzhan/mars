@@ -69,6 +69,12 @@ class CmdInfo:
         # Differential invariants for ODEs.
         self.diff_inv = None
 
+        # Ghost invariants for ODEs.
+        self.ghost_inv = None
+
+        # Computed differential equations for ghosts.
+        self.ghost_eqs = None
+
     def __str__(self):
         res = ""
         res += "pre = %s\n" % self.pre
@@ -79,6 +85,11 @@ class CmdInfo:
             res += "inv: %s\n" % self.inv
         if self.diff_inv is not None:
             res += "diff_inv: %s\n" % self.diff_inv
+        if self.ghost_inv is not None:
+            res += "ghost_inv: %s\n" % self.ghost_inv
+        if self.ghost_eqs is not None:
+            for ghost_var, eq in self.ghost_eqs.items():
+                res += "ghost_eq: %s_dot = %s\n" % (ghost_var, str(eq))
         return res
 
 
@@ -100,6 +111,13 @@ class CmdVerifier:
         self.infos[root_pos] = CmdInfo()
         self.infos[root_pos].pre = pre
         self.infos[root_pos].post = post
+
+    def __str__(self):
+        res = ""
+        for pos, info in self.infos.items():
+            res += str(pos) + ":\n"
+            res += str(info)
+        return res
     
     def print_info(self):
         res = ""
@@ -116,6 +134,11 @@ class CmdVerifier:
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
         self.infos[pos].diff_inv = diff_inv
+
+    def add_ghost_invariant(self, pos, ghost_inv):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].ghost_inv = ghost_inv
 
     def compute_wp(self, *, pos=tuple()):
         """Compute weakest-preconditions using the given information."""
@@ -211,24 +234,76 @@ class CmdVerifier:
             if cur_hp.out_hp != hcsp.Skip():
                 raise NotImplementedError
 
-            if self.infos[pos].diff_inv is None:
-                raise AssertionError("Differential invariant at position %s is not set." % str(pos))
+            if self.infos[pos].diff_inv is not None:
+                diff_inv = self.infos[pos].diff_inv
+                if not isinstance(diff_inv, expr.BExpr):
+                    raise NotImplementedError('Invalid differential invariant for ODE!') 
 
-            diff_inv = self.infos[pos].diff_inv
-            if not isinstance(diff_inv, expr.BExpr):
-                raise NotImplementedError('Invalid differential invariant for ODE!') 
+                # Construct dictionary corresponding to eqs.
+                eqs_dict = dict()
+                for name, e in cur_hp.eqs:
+                    eqs_dict[name] = e
 
-            # Construct dictionary corresponding to eqs.
-            eqs_dict = dict()
-            for name, e in cur_hp.eqs:
-                eqs_dict[name] = e
+                # Compute the differential of inv. One verification condition is
+                # the differential of inv must hold. The second condition is inv --> post.
+                differential = compute_diff(diff_inv, eqs_dict=eqs_dict)
+                pre = diff_inv
+                self.infos[pos].vcs.append(differential)
+                self.infos[pos].vcs.append(expr.imp(diff_inv, post))
 
-            # Compute the differential of inv. One verification condition is
-            # the differential of inv must hold. The second condition is inv --> post.
-            differential = compute_diff(diff_inv, eqs_dict=eqs_dict)
-            pre = diff_inv
-            self.infos[pos].vcs.append(differential)
-            self.infos[pos].vcs.append(expr.imp(diff_inv, post))
+            elif self.infos[pos].ghost_inv is not None:
+                ghost_inv = self.infos[pos].ghost_inv
+                inv = self.infos[pos].inv
+
+                if inv is None or not isinstance(inv, expr.BExpr):
+                    raise NotImplementedError('Invalid invariant for ODE (ghost mode)!')
+                if not isinstance(ghost_inv, expr.BExpr):
+                    raise NotImplementedError('Invalid ghost invariant for ODE!')
+
+                all_vars = cur_hp.get_vars()
+                ghost_vars = [v for v in ghost_inv.get_vars() if v not in all_vars]
+                if len(ghost_vars) != 1:
+                    raise AssertionError("Number of ghost variables is not 1.")
+                ghost_var = ghost_vars[0]
+
+                # The first condition is: inv implies there exists a value of ghost_var
+                # that satisfies ghost_inv.
+                vc1 = expr.imp(inv, expr.ExistsExpr(ghost_var, ghost_inv))
+
+                # Second condition: solve for the differential equation that must be
+                # satisfied by the ghost variable.
+                # First, assert the ghost invariant is in the form g(x,y) == c, where
+                # y is the ghost variable, and x are the other variables.
+                if not (isinstance(ghost_inv, expr.RelExpr) and ghost_inv.op == "==" and \
+                        isinstance(ghost_inv.expr2, expr.AConst)):
+                    raise AssertionError("Ghost invariant not in the form g(x,y) == c.")
+
+                # Obtain dg/dx * dx
+                eqs_dict = dict()
+                for name, e in cur_hp.eqs:
+                    eqs_dict[name] = e
+                dg_x = compute_diff(ghost_inv.expr1, eqs_dict=eqs_dict)
+
+                # Obtain dg/dy
+                dgdy = compute_diff(ghost_inv.expr1, eqs_dict={ghost_var: expr.AConst(1)})
+
+                # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
+                dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
+                self.infos[pos].ghost_eqs = {ghost_var: dy}
+
+                # Third condition
+                vc3 = expr.imp(ghost_inv, inv)
+
+                # Fourth condition
+                vc4 = expr.imp(inv, post)
+
+                self.infos[pos].vcs = [vc1, vc3, vc4]
+
+                # New precondition is inv
+                pre = inv
+
+            else:
+                raise AssertionError("No invariant set at position %s." % str(pos))
 
         else:
             raise NotImplementedError

@@ -6,7 +6,8 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None):
+def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None,
+              ghost_invariants=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
     hp = hp_parser.parse(hp)
@@ -28,6 +29,13 @@ def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None):
             if isinstance(diff_inv, str):
                 diff_inv = bexpr_parser.parse(diff_inv)
             verifier.add_diff_invariant(pos, diff_inv)
+
+    # Place ghost invariants
+    if ghost_invariants:
+        for pos, ghost_inv in ghost_invariants.items():
+            if isinstance(ghost_inv, str):
+                ghost_inv = bexpr_parser.parse(ghost_inv)
+            verifier.add_ghost_invariant(pos, ghost_inv)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -76,6 +84,12 @@ class HHLPyTest(unittest.TestCase):
                   hp="<x_dot=y, y_dot=-x & x > 0>",
                   post="x * x + y * y == 1",
                   diff_invariants={(): "x * x + y * y == 1"})
+
+    def testVerify9(self):
+        # Test case containing ghost variables
+        runVerify(self, pre="x > 0", hp="t := 0; <x_dot=-x, t_dot=1 & t < 1>", post="x > 0",
+                  invariants={(1,): "x > 0"},
+                  ghost_invariants={(1,): "x * y * y == 1"})
 
 
 if __name__ == "__main__":

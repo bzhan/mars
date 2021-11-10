@@ -53,6 +53,8 @@ def convert(e):
             return convert(e.exprs[0]) / convert(e.exprs[1])
         else:
             raise NotImplementedError
+    elif isinstance(e, expr.ExistsExpr):
+        return z3.Exists([z3.Real(e.var)], convert(e.expr))
     else:
         raise NotImplementedError
 

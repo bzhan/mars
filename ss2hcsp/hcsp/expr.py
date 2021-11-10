@@ -589,6 +589,33 @@ class RelExpr(BExpr):
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
+class ExistsExpr(BExpr):
+    """Exists expressions"""
+    def __init__(self, var, expr):
+        assert isinstance(var, str) and isinstance(expr, BExpr)
+        self.var = var
+        self.expr = expr
+
+    def __repr__(self):
+        return "ExistsExpr(%s, %s)" % (repr(self.var), repr(self.expr))
+
+    def __str__(self):
+        return "EX %s. %s" % (str(self.var), str(self.expr))
+
+    def __eq__(self, other):
+        # Currently does not consider alpha equivalence.
+        return isinstance(other, ExistsExpr) and self.var == other.var and self.expr == other.expr
+
+    def __hash__(self):
+        return hash(("Exists", self.var, self.expr))
+
+    def priority(self):
+        return 10
+
+    def get_vars(self):
+        # Currently also include the bound variable.
+        return self.expr.get_vars()
+
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move
