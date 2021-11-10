@@ -6,12 +6,30 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post):
+def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None):
+    # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
     hp = hp_parser.parse(hp)
     post = bexpr_parser.parse(post)
 
+    # Initialize the verifier
     verifier = CmdVerifier(pre=pre, hp=hp, post=post)
+
+    # Place input invariants
+    if invariants:
+        for pos, inv in invariants.items():
+            if isinstance(inv, str):
+                inv = bexpr_parser.parse(inv)
+            verifier.add_invariant(pos, inv)
+
+    # Place differential invariants
+    if diff_invariants:
+        for pos, diff_inv in diff_invariants.items():
+            if isinstance(diff_inv, str):
+                diff_inv = bexpr_parser.parse(diff_inv)
+            verifier.add_diff_invariant(pos, diff_inv)
+
+    # Compute wp and verify
     verifier.compute_wp()
     print('\n'.join(str(vc) for vc in verifier.get_all_vcs()))
     self.assertTrue(verifier.verify())
@@ -33,6 +51,31 @@ class HHLPyTest(unittest.TestCase):
     def testVerify4(self):
         # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1 ++ y := x+1", post="x >= 1")
+
+    def testVerify5(self):
+        # {x >= 0} (x := x+1)** {x >= 0}
+        runVerify(self, pre="x >= 0", hp="(x := x+1)**", post="x >= 0",
+                  invariants={(): "x >= 0"})
+
+    def testVerify6(self):
+        # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
+        # Invariant for loop is x >= 1.
+        runVerify(self, pre="x >= 0", hp="x := x+1; (x := x+1)**", post="x >= 1", 
+                  invariants={(1,): "x >= 1"})
+
+    def testVerify7(self):
+        # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
+        # Invariant for ODE is x >= 0.
+        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0",
+                  diff_invariants={(): "x >= 0"})
+
+    def testVerify8(self):
+        # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
+        # Invariant for ODE is x * x + y * y == 1
+        runVerify(self, pre="x * x + y * y == 1", 
+                  hp="<x_dot=y, y_dot=-x & x > 0>",
+                  post="x * x + y * y == 1",
+                  diff_invariants={(): "x * x + y * y == 1"})
 
 
 if __name__ == "__main__":

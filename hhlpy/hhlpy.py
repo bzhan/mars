@@ -137,7 +137,8 @@ def compute_wp(hp, post):
         for name, e in hp.eqs:
             eqs_dict[name] = e
 
-        # Compute the differential of .
+        # Compute the differential of inv. One verification condition is
+        # the differential of inv must hold. The second condition is inv --> post.
         inv_diff = compute_diff(hp.inv, eqs_dict=eqs_dict)
         return hp.inv, [inv_diff] + [expr.imp(hp.inv, post)]
     

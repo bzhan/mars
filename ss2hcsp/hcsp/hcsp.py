@@ -91,6 +91,8 @@ class HCSP:
             return 50
         elif self.type == "sequence":
             return 70
+        elif self.type == "ichoice":
+            return 80
         elif self.type == "condition":
             return 90
         else:
