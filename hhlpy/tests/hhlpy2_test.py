@@ -67,6 +67,7 @@ def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None,
 
 class HHLPyTest(unittest.TestCase):
     def testVerify1(self):
+        # Baisc benchmark, problem 1 
         # {x >= 0} x := x + 1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1", post="x >= 1",
                   expected_vcs={(): ["x >= 0 --> x + 1 >= 1"]})
@@ -82,6 +83,7 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={(): ["x >= 0 --> x + 1 >= 1 && x + 1 + 2 >= 3"]})
 
     def testVerify4(self):
+        # Basic benchmark, problem 2
         # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1 ++ y := x+1", post="x >= 1",
                   expected_vcs={(): ["x >= 0 --> x + 1 + 1 >= 1 && x + 1 >= 1"]})
@@ -93,6 +95,7 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={(): ["x >= 0 --> x + 1 >= 0"]})
 
     def testVerify6(self):
+        # Basic benchmark, problem 3
         # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
         # Invariant for loop is x >= 1.
         runVerify(self, pre="x >= 0", hp="x := x+1; (x := x+1)**", post="x >= 1", 
@@ -123,6 +126,64 @@ class HHLPyTest(unittest.TestCase):
                   ghost_invariants={(1,): "x * y * y == 1"},
                   expected_vcs={(1,): ["x > 0 --> (EX y. x * y * y == 1)",
                                        "x * y * y == 1 --> x > 0"]})
+
+    def testVerify10(self):
+        # Basic benchmark, problem 4
+        # {x >= 0} x := x+1; <x_dot=2 & x <= 10> {x >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x <= 10>", post="x >= 1",            
+                  diff_invariants={(1,): "x >= 1"},
+                  expected_vcs={(): ["x >= 0 --> x + 1 >= 1"],
+                                (1,): ["2 >= 0"]})
+
+    def testVerify11(self):
+        # Basic Benchmark, problem5
+        # {x >= 0} x := x+1; x := {x >= 1} {x >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; x := {x >= 1}", post="x >= 1",
+                  expected_vcs={(): ["x >= 0 --> x0 >= 1 --> x0 >= 1"]})
+
+    def testVerify12(self):
+        # {x0 >= 0} x := x+1; x := {x >= 1} {x >= 1}
+        runVerify(self, pre="x0 >= 0", hp="x := x+1; x := {x >= 1}", post="x >= 1",
+                  expected_vcs={(): ["x0 >= 0 --> x1 >= 1 --> x1 >= 1"]})
+
+    def testVerify13(self):
+        # {x >= 0} x := x+1; y := {y >= x} {y >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; y := {y >= x}", post="y >= 1",
+                  expected_vcs={(): ["x >= 0 --> y0 >= x + 1 --> y0 >= 1"]})
+
+    def testVerify14(self):
+        # {x >= 0} x := x+1; y := {y >= x}; y := {y >= x + 1} {y >= 2}
+        runVerify(self, pre="x >= 0", hp="x := x+1; y := {y >= x}; y := {y >= x+1}", post="y >= 2",
+                  expected_vcs={(): ["x >= 0 --> y1 >= x + 1 -->y0 >= x + 1 + 1 --> y0 >= 2"]})
+
+    def testVerify15(self):
+        # Basic Benchmark, problem7
+        # confusion about the inv of loop
+        # {x >= 0 && y >= 1} 
+        # x := x + 1; (x := x + 1)**@invariant(x >= 1) ++ y:= x + 1; <y_dot = 2>@invariant(y >= 1); x := y
+        # {x >= 1}
+        runVerify(self, pre="x >= 0 && y >= 1", 
+                  hp="x := x + 1; (x := x + 1)** ++ y:= x + 1; <y_dot = 2 & y <= 10>; x := y", 
+                  post="x >= 1",
+                  invariants={(1,0,): "x >= 1 && y >= 1"}, 
+                  diff_invariants={(2,): "y >= 1"},
+                  expected_vcs={(): ["x >= 0 && y >= 1 --> (x + 1 >= 1 && y >= 1) && x + 1 + 1 >= 1"],
+                                (1,0,): ["x >= 1 && y >= 1 --> x + 1 >= 1 && y >= 1", 
+                                        "x >= 1 && y >= 1 --> y >= 1"],
+                                (2,): ["2 >= 0"]}) 
+
+    def testVerify16(self):
+        # Basic benchmark, problem8
+        # {x > 0 && y > 0} 
+        # <x_dot = 5 & x < 10>@invariant(x > 0); (x := x + 3)**@invariant(x > 0) ++ y := x
+        # {x > 0 && y > 0}
+        runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** ++ y := x", 
+                  post="x > 0 && y > 0", 
+                  invariants={(1,0): "x > 0 && y > 0"}, 
+                  diff_invariants={(0,): "x > 0 && y > 0"},
+                  expected_vcs={(0,): ["5 >= 0 && 0 >= 0", 
+                                        "x > 0 && y > 0 --> (x > 0 && y > 0) && x > 0 && x > 0"],
+                                (1,0): ["x > 0 && y > 0 --> x + 3 > 0 && y > 0"]})
 
 
 if __name__ == "__main__":

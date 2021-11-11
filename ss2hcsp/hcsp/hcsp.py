@@ -731,7 +731,7 @@ class ODE(HCSP):
     <F(s',s) = 0 & B> |> Q
 
     """
-    def __init__(self, eqs, constraint, *, inv=None, out_hp=Skip()):
+    def __init__(self, eqs, constraint, *, out_hp=Skip()):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -746,19 +746,16 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
         assert isinstance(constraint, BExpr)
-        if inv is not None:
-            assert isinstance(inv, BExpr)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"
         self.eqs = eqs  # list of tuples (string, AExpr)
         self.constraint = constraint  # BExpr
-        self.inv = inv        # None or BExpr
         self.out_hp = out_hp  # None or hcsp
 
     def __eq__(self, other):
         return self.type == other.type and self.eqs == other.eqs and \
-               self.constraint == other.constraint and self.inv == other.inv and self.out_hp == other.out_hp
+               self.constraint == other.constraint and self.out_hp == other.out_hp
 
     def __str__(self):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)

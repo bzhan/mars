@@ -103,7 +103,7 @@ class CmdVerifier:
         self.infos = dict()
 
         # Set of variables that are used
-        self.vars = hp.get_vars()
+        self.vars = hp.get_vars().union(pre.get_vars()).union(post.get_vars())
 
         # Initialize info for the root object. Place pre-condition and
         # post-condition.
@@ -165,6 +165,27 @@ class CmdVerifier:
             var = cur_hp.var_name.name
             pre = post.subst({var: cur_hp.expr})
         
+        elif isinstance(cur_hp, hcsp.RandomAssign):
+            # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
+            #               pre: cur_hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
+            if not isinstance(cur_hp.var_name, expr.AVar):
+                raise NotImplementedError
+
+            var_str = cur_hp.var_name.name
+
+            # Create a new var
+            i = 0
+            newvar_str = var_str + str(i)
+            while(newvar_str in self.vars):
+                i = i + 1
+                newvar_str = var_str + str(i)
+            self.vars.add(newvar_str)
+
+            #Compute the pre: hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
+            newvar_name = expr.AVar(newvar_str)
+            pre = expr.imp(cur_hp.expr.subst({var_str: newvar_name}), post.subst({var_str: newvar_name}))
+
+
         elif isinstance(cur_hp, hcsp.IChoice):
             # IChoice: 
             #   {P1} c1 {Q}    {P2} c2 {Q}
@@ -244,8 +265,9 @@ class CmdVerifier:
                 for name, e in cur_hp.eqs:
                     eqs_dict[name] = e
 
-                # Compute the differential of inv. One verification condition is
-                # the differential of inv must hold. The second condition is inv --> post.
+                # Compute the differential of inv. 
+                # One verification condition is the differential of inv must hold. 
+                # The second condition is inv --> post.
                 differential = compute_diff(diff_inv, eqs_dict=eqs_dict)
                 pre = diff_inv
                 self.infos[pos].vcs.append(differential)
