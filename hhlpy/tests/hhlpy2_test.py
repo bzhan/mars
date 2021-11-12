@@ -121,7 +121,9 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify9(self):
         # Test case containing ghost variables
-        runVerify(self, pre="x > 0", hp="t := 0; <x_dot=-x, t_dot=1 & t < 1>", post="x > 0",
+        # Basic benchmark, problem15
+        # {x > 0} <x_dot = -x> {x > 0}
+        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1>", post="x > 0",
                   invariants={(1,): "x > 0"},
                   ghost_invariants={(1,): "x * y * y == 1"},
                   expected_vcs={(1,): ["x > 0 --> (EX y. x * y * y == 1)",
@@ -184,6 +186,53 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={(0,): ["5 >= 0 && 0 >= 0", 
                                         "x > 0 && y > 0 --> (x > 0 && y > 0) && x > 0 && x > 0"],
                                 (1,0): ["x > 0 && y > 0 --> x + 3 > 0 && y > 0"]})
+
+    def testVerify17(self):
+        # Basic benchmark, problem9
+        # {x>0 && y>0} 
+        # t := 0; <x_dot = -x, t_dot = 1 & t < 1>;(x := x+3)**@invariant(x > 0) ++ y := x 
+        # {x>0 && y>0}
+        runVerify(self, pre="x > 0 && y > 0", 
+                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>",
+                  post="x > 0 && y > 0",
+                  invariants={(2,0): "x > 0 && y > 0", 
+                              (1,): "x > 0 && y > 0"},
+                  ghost_invariants={(1,0): "x * z * z == 1"},
+                  diff_invariants={(1,1): "y > 0"},
+                  expected_vcs={(1,0): ["x > 0 --> (EX z. x * z * z == 1)",
+                                        "x * z * z == 1 --> x > 0"]})
+
+    def testVerify18(self):
+        # Basic bencmark, problem10
+        # {x > 0} <x_dot = 5>; <x_dot = 2>; <x_dot = x> {x > 0}
+        runVerify(self, pre="x > 0",
+                  hp="<x_dot = 5 & x < 1>; <x_dot = 2 & x < 2>; <x_dot = x & x < 5>",
+                  post="x > 0",
+                  diff_invariants={(0,): "x > 0", (1,): "x > 0"},
+                  ghost_invariants={(2,): "x * y * y == 1"},
+                  invariants={(2,): "x > 0"},
+                  expected_vcs={(0,): ["5 >= 0"],
+                                (1,): ["2 >= 0"],
+                                (2,): ["x > 0 --> (EX y. x * y * y == 1)",
+                                    "x * y * y == 1 --> x > 0"]})
+
+    # x=0->[{x'=1}]x>=0
+    def testVerify19(self):
+        # Basic benchmark, problem11
+        # {x = 0} <x_dot = 1 & x < 10> {x >= 0}
+        runVerify(self, pre="x == 0", hp="<x_dot = 1 & x < 10>", post="x >= 0", 
+                  diff_invariants={(): "x >= 0"}, 
+                  expected_vcs={(): ["x == 0 --> x >= 0",
+                                     "1 >= 0"]})
+
+    def testVerify20(self):
+        # Basic benchmark, problem16
+        # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
+        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
+                  invariants={(1,): "x > 0"},
+                  ghost_invariants={(1,): "x * y * y == 1"},
+                  expected_vcs={(1,): ["x > 0 --> (EX y. x * y * y == 1)",
+                                       "x * y * y == 1 --> x > 0"]})
 
 
 if __name__ == "__main__":

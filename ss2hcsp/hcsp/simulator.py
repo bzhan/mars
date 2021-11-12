@@ -660,8 +660,10 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         elif pos[0] == 1:
             return get_pos(hp.hp2, pos[1:], rec_vars, procs)
     else:
-        assert len(pos) == 0
-        return hp
+        if len(pos) == 0:
+            return hp
+        else:
+            return None
 
 def step_pos(hp, callstack, state, rec_vars=None, procs=None):
     """Execute a (non-communicating) step in the program. Returns the

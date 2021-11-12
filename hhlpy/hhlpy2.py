@@ -145,6 +145,10 @@ class CmdVerifier:
 
         # Obtain the hp at the given position
         cur_hp = get_pos(self.hp, pos)
+        if cur_hp is None:
+            newpos = pos[:-1]
+            cur_hp = get_pos(self.hp, newpos)
+
 
         # The post-condition at the given position should already be
         # available.
@@ -257,6 +261,8 @@ class CmdVerifier:
 
             if self.infos[pos].diff_inv is not None:
                 diff_inv = self.infos[pos].diff_inv
+                if self.infos[pos].inv is not None:
+                    assert diff_inv == self.infos[pos].inv
                 if not isinstance(diff_inv, expr.BExpr):
                     raise NotImplementedError('Invalid differential invariant for ODE!') 
 
@@ -322,6 +328,29 @@ class CmdVerifier:
                 self.infos[pos].vcs = [vc1, vc3, vc4]
 
                 # New precondition is inv
+                pre = inv
+
+            # Invariant is a logic expression, such as x > 0 && y > 0, we can compute wp for each sub_inv one by one.
+            # Different sub_inv may use different ODE rules
+            elif self.infos[pos].inv is not None and isinstance(self.infos[pos].inv, expr.LogicExpr):
+                inv = self.infos[pos].inv
+
+                # Currently only consider op is &&
+                if inv.op == "&&":
+                    sub_invs = expr.split_conj(inv)
+                    
+                    # Compute wp for each sub_inv
+                    for i, sub_inv in enumerate(sub_invs):
+                        # Create different CmdInfos for cur_hp with different invariants
+                        # We use pos_inv to map different CmdIndos. Note that hp.get_pos(pos=pos_inv) is None
+                        pos_inv = pos + (i,)
+                        if pos_inv not in self.infos:
+                            self.infos[pos_inv] = CmdInfo()
+                        self.infos[pos_inv].hp = cur_hp
+                        self.infos[pos_inv].post = sub_inv
+                        self.infos[pos_inv].inv = sub_inv
+                        
+                        self.compute_wp(pos=pos_inv)
                 pre = inv
 
             else:
