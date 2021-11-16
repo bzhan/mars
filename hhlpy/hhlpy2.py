@@ -66,8 +66,14 @@ class CmdInfo:
         # Invariants for loops.
         self.inv = None
 
+        # ODE program for this command
+        self.ode = None
+
         # Differential invariants for ODEs.
         self.diff_inv = None
+
+        # Differential cuts for ODES.
+        self.diff_cuts = []
 
         # Ghost invariants for ODEs.
         self.ghost_inv = None
@@ -90,6 +96,9 @@ class CmdInfo:
         if self.ghost_eqs is not None:
             for ghost_var, eq in self.ghost_eqs.items():
                 res += "ghost_eq: %s_dot = %s\n" % (ghost_var, str(eq))
+        for diff_cut in self.diff_cuts:
+            res += "diff_cut: %s\n" % diff_cut
+
         return res
 
 
@@ -135,6 +144,11 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].diff_inv = diff_inv
 
+    def add_diff_cuts(self, pos, diff_cuts):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].diff_cuts = diff_cuts
+
     def add_ghost_invariant(self, pos, ghost_inv):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
@@ -145,9 +159,12 @@ class CmdVerifier:
 
         # Obtain the hp at the given position
         cur_hp = get_pos(self.hp, pos)
+
+        # Compute cur_hp for some new created pos, such as pos created in dC and multi invariants, 
+        # they don't have corresponding hp by directly using get_pos()
         if cur_hp is None:
-            newpos = pos[:-1]
-            cur_hp = get_pos(self.hp, newpos)
+            ori_pos = pos[:-1]
+            cur_hp = get_pos(self.hp, ori_pos)
 
 
         # The post-condition at the given position should already be
@@ -254,11 +271,14 @@ class CmdVerifier:
             self.infos[pos].vcs = [vc1, vc2]
 
         elif isinstance(cur_hp, hcsp.ODE):
-            # ODE, by default use the differential invariant rule.
-            # Currently ignore the constraint, and assume out_hp is Skip.
+            # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
+            # Currently assume out_hp is Skip.
             if cur_hp.out_hp != hcsp.Skip():
                 raise NotImplementedError
-
+            if self.infos[pos].ode is None:
+                self.infos[pos].ode = hcsp.ODE(cur_hp.eqs, cur_hp.constraint)
+            
+            # Use dI rules
             if self.infos[pos].diff_inv is not None:
                 diff_inv = self.infos[pos].diff_inv
                 if self.infos[pos].inv is not None:
@@ -276,9 +296,46 @@ class CmdVerifier:
                 # The second condition is inv --> post.
                 differential = compute_diff(diff_inv, eqs_dict=eqs_dict)
                 pre = diff_inv
-                self.infos[pos].vcs.append(differential)
+                self.infos[pos].vcs.append(expr.imp(self.infos[pos].ode.constraint, differential))
                 self.infos[pos].vcs.append(expr.imp(diff_inv, post))
+            
+            # Use dC rules
+            elif self.infos[pos].diff_cuts:
+                diff_cuts = self.infos[pos].diff_cuts
 
+                # Consider every hp with new constraint, which is the conjunction of original constraint and diff_cuts
+                # Sub_constraint of the first sub_hp is the same as cur_hp.constraint
+                sub_constraint = cur_hp.constraint
+                for i in range(len(diff_cuts)):
+                    if not isinstance(diff_cuts[i], expr.BExpr):
+                        raise NotImplementedError("Invalid differential cut for ODE!")
+
+                    # Create CmdInfo for every hp with new constraint.
+                    # Note that sub_pos doesn't exist in hp. 
+                    # Question remained: whether sub_pos here will contradict with pos_inv in multi_invariants
+                    sub_pos = pos + (i,)
+                    self.infos[sub_pos] = CmdInfo()
+                    self.infos[sub_pos].diff_inv = diff_cuts[i]
+                    self.infos[sub_pos].post = diff_cuts[i]
+
+                    # Cases i == 0, sub_hp is the same with cur_hp
+                    if i == 0:
+                        self.infos[sub_pos].ode = cur_hp
+
+                    # Cases i > 0, sub_constraint is the conjunction of old constraint of and diff_cuts[i-1]
+                    else:
+                        sub_constraint = expr.LogicExpr('&&', sub_constraint, diff_cuts[i-1])
+                        eqs = cur_hp.eqs
+                        sub_ode = hcsp.ODE(eqs, sub_constraint)
+                        self.infos[sub_pos].ode = sub_ode
+
+                    self.compute_wp(pos=sub_pos)
+
+                pre = diff_cuts[0]
+
+                self.infos[pos].vcs.append(expr.imp(diff_cuts[-1], post))
+
+            # Use dG rules
             elif self.infos[pos].ghost_inv is not None:
                 ghost_inv = self.infos[pos].ghost_inv
                 inv = self.infos[pos].inv

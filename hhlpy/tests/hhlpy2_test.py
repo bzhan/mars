@@ -7,7 +7,7 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None,
+def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None, diff_cuts = None, 
               ghost_invariants=None, print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
@@ -30,6 +30,16 @@ def runVerify(self, *, pre, hp, post, invariants=None, diff_invariants=None,
             if isinstance(diff_inv, str):
                 diff_inv = bexpr_parser.parse(diff_inv)
             verifier.add_diff_invariant(pos, diff_inv)
+    
+    # Place differential cuts
+    if diff_cuts:
+        for pos, sub_diffcuts_str in diff_cuts.items():
+            sub_diffcuts = []
+            for diff_cut in sub_diffcuts_str:
+                if isinstance(diff_cut, str):
+                    diff_cut = bexpr_parser.parse(diff_cut)
+                    sub_diffcuts.append(diff_cut)
+            verifier.add_diff_cuts(pos, sub_diffcuts)
 
     # Place ghost invariants
     if ghost_invariants:
@@ -108,7 +118,7 @@ class HHLPyTest(unittest.TestCase):
         # Invariant for ODE is x >= 0.
         runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0",
                   diff_invariants={(): "x >= 0"},
-                  expected_vcs={(): ["2 >= 0"]})
+                  expected_vcs={(): ["x < 10 --> 2 >= 0"]})
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -117,7 +127,7 @@ class HHLPyTest(unittest.TestCase):
                   hp="<x_dot=y, y_dot=-x & x > 0>",
                   post="x * x + y * y == 1",
                   diff_invariants={(): "x * x + y * y == 1"},
-                  expected_vcs={(): ["x * y + y * x + (y * -x + -x * y) == 0"]})
+                  expected_vcs={(): ["x > 0 --> x * y + y * x + (y * -x + -x * y) == 0"]})
 
     def testVerify9(self):
         # Test case containing ghost variables
@@ -135,7 +145,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x <= 10>", post="x >= 1",            
                   diff_invariants={(1,): "x >= 1"},
                   expected_vcs={(): ["x >= 0 --> x + 1 >= 1"],
-                                (1,): ["2 >= 0"]})
+                                (1,): ["x <= 10 --> 2 >= 0"]})
 
     def testVerify11(self):
         # Basic Benchmark, problem5
@@ -172,7 +182,7 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={(): ["x >= 0 && y >= 1 --> (x + 1 >= 1 && y >= 1) && x + 1 + 1 >= 1"],
                                 (1,0,): ["x >= 1 && y >= 1 --> x + 1 >= 1 && y >= 1", 
                                         "x >= 1 && y >= 1 --> y >= 1"],
-                                (2,): ["2 >= 0"]}) 
+                                (2,): ["y <= 10 --> 2 >= 0"]}) 
 
     def testVerify16(self):
         # Basic benchmark, problem8
@@ -183,7 +193,7 @@ class HHLPyTest(unittest.TestCase):
                   post="x > 0 && y > 0", 
                   invariants={(1,0): "x > 0 && y > 0"}, 
                   diff_invariants={(0,): "x > 0 && y > 0"},
-                  expected_vcs={(0,): ["5 >= 0 && 0 >= 0", 
+                  expected_vcs={(0,): ["x < 10 --> 5 >= 0 && 0 >= 0", 
                                         "x > 0 && y > 0 --> (x > 0 && y > 0) && x > 0 && x > 0"],
                                 (1,0): ["x > 0 && y > 0 --> x + 3 > 0 && y > 0"]})
 
@@ -211,21 +221,55 @@ class HHLPyTest(unittest.TestCase):
                   diff_invariants={(0,): "x > 0", (1,): "x > 0"},
                   ghost_invariants={(2,): "x * y * y == 1"},
                   invariants={(2,): "x > 0"},
-                  expected_vcs={(0,): ["5 >= 0"],
-                                (1,): ["2 >= 0"],
+                  expected_vcs={(0,): ["x < 1 --> 5 >= 0"],
+                                (1,): ["x < 2 --> 2 >= 0"],
                                 (2,): ["x > 0 --> (EX y. x * y * y == 1)",
                                     "x * y * y == 1 --> x > 0"]})
 
-    # x=0->[{x'=1}]x>=0
     def testVerify19(self):
         # Basic benchmark, problem11
         # {x = 0} <x_dot = 1 & x < 10> {x >= 0}
         runVerify(self, pre="x == 0", hp="<x_dot = 1 & x < 10>", post="x >= 0", 
                   diff_invariants={(): "x >= 0"}, 
                   expected_vcs={(): ["x == 0 --> x >= 0",
-                                     "1 >= 0"]})
+                                     "x < 10 --> 1 >= 0"]})
 
     def testVerify20(self):
+        # Basic benchmark, problem12
+        # {x >= 0 && y >= 0} <x_dot = y> {x >= 0}
+        runVerify(self, pre="x >= 0 && y >= 0", hp="<x_dot = y & x < 10>", post="x >= 0",
+                  diff_cuts={(): ["y >= 0", "x >= 0"]},
+                  expected_vcs={(): ["x >= 0 && y >= 0 --> y >= 0"],
+                                (0,): ["x < 10 --> 0 >= 0"],
+                                (1,): ["x < 10 && y >= 0 --> y >= 0"]})
+
+    def testVerify21(self):
+        # Basic benchmark, problem13
+        # {x >= 0 && y >= 0 && z >= 0} <x_dot = y, y_dot = z & x < 10> {x >= 0}
+        runVerify(self, pre="x >= 0 && y >= 0 && z >= 0", 
+                  hp="<x_dot = y, y_dot = z & x < 10>", post="x >= 0",
+                  diff_cuts={():["z >= 0", "y >= 0", "x >= 0"]},
+                  expected_vcs={(): ["x >= 0 && y >= 0 && z >= 0 --> z >= 0"],
+                                (0,): ["x < 10 --> 0 >= 0"],
+                                (1,): ["x < 10 && z >= 0 --> z >= 0"],
+                                (2,): ["(x < 10 && z >= 0) && y >= 0 --> y >= 0"]})
+    def testVerify22(self):
+        # Basic benchmark, problem14
+        # {x >= 0 && y >= 0 && z >= 0 && j >= 0} 
+        # <x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>
+        # {x >= 0}
+        runVerify(self, pre="x >= 0 && y >= 0 && z >= 0 && j >= 0",
+                  hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>", post="x >= 0",
+                  diff_cuts={(): ["j >= 0", "z >= 0", "y >= 0", "x >= 0"]},
+                  expected_vcs={(): ["x >= 0 && y >= 0 && z >= 0 && j >= 0 --> j >= 0"],
+                                (0,): ["x < 10 --> j * j >= 0"],
+                                (1,): ["x < 10 && j >= 0 --> j >= 0"],
+                                (2,): ["(x < 10 && j >= 0) && z >= 0 --> z >= 0"],
+                                (3,): ["((x < 10 && j >= 0) && z >= 0) && y >= 0 --> y >= 0"]})
+
+    # Basic benchmark problem15 is verified in testVerify9
+
+    def testVerify23(self):
         # Basic benchmark, problem16
         # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
