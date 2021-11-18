@@ -278,6 +278,59 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={(1,): ["x > 0 --> (EX y. x * y * y == 1)",
                                        "x * y * y == 1 --> x > 0"]})
 
+    def testVerify24(self):
+        # Basic benchmark, problem17
+        # {x > 0 && y > 0} t := 0; <x_dot = -y * x & t < 10> {x > 0}
+        runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x & t < 10>", post="x > 0",
+                  invariants={(1,): "x > 0"},
+                  ghost_invariants={(1,): "x * z * z == 1"},
+                  expected_vcs={(): ["x > 0 && y > 0 --> x > 0"],
+                                (1,): ["x > 0 --> (EX z. x * z * z == 1)",
+                                       "x * z * z == 1 --> x > 0",]})
+
+    def testVerify25(self):
+        # Basic benchmark, problem 18
+        # {x >= 0} <x_dot = x & x < 10> {x >= 0}
+        # Question remained: choose ghost_eqs_number
+        runVerify(self, pre="x >= 0", hp="<x_dot = x & x < 10>", post="x >= 0",
+                  invariants={(): "x >= 0"},
+                  ghost_invariants={(): "y > 0 && x * y >= 0",
+                                    (0,): "y * z * z == 1"},
+                  expected_vcs={(): ["x >= 0 --> (EX y. y > 0 && x * y >= 0)",
+                                     "y > 0 && x * y >= 0 --> x >= 0"],
+                                (0,): ["y > 0 --> (EX z. y * z * z == 1)",
+                                       "y * z * z == 1 --> y > 0"]})
+
+    def testVerify26(self):
+        # Basic benchmark, problem 19
+        # {x >= 0 && y >= 0} <x_dot = y, y_dot = y * y & x < 10> {x >= 0}
+        runVerify(self, pre="x >= 0 && y >= 0",
+                  hp="<x_dot = y, y_dot = y * y & x < 10>", post="x >= 0", 
+                  diff_cuts={(): ["y >= 0", "x >= 0"]},
+                  expected_vcs={(): ["x >= 0 && y >= 0 --> y >= 0"],
+                                (0,): ["x < 10 --> y * y >= 0"],
+                                (1,): ["x < 10 && y >= 0 --> y >= 0"]})
+
+    # Basic benchmark, problem 20
+
+    def testVerify28(self):
+        # Basic benchmark, problem 21
+        # {x >= 1} <x_dot = x * x + 2 * x * x * x * x & x < 10> {x * x * x >= x * x}
+        runVerify(self, pre="x >= 1", hp="<x_dot = x * x + 2 * x * x * x * x & x < 10>",
+                  post="x * x * x >= x * x",
+                  diff_invariants={(): "x >= 1"},
+                  expected_vcs={(): ["x < 10 --> x * x + 2 * x * x * x * x >= 0",
+                                     "x >= 1 --> x * x * x >= x * x"]})
+
+    def testVerify29(self):
+        # Basic benchmark, problem 22
+        # {x * x + y * y == 1} t := 0; <x_dot = -y, y_dot = x, t_dot = 1 & t < 10> {x * x + y * y == 1}
+        runVerify(self, pre="x * x + y * y == 1", hp="t := 0; <x_dot = -y, y_dot = x, t_dot = 1 & t < 10>",
+                  post="x * x + y * y == 1",
+                  diff_invariants={(1,): "x * x + y * y == 1"},
+                  expected_vcs={(1,): ["t < 10 --> x * -y + -y * x + (y * x + x * y) == 0"]})
+
+
 
 if __name__ == "__main__":
     unittest.main()
