@@ -1,10 +1,7 @@
 """Translation from SF Chart to Isabelle."""
 
-from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sf.sf_state import AND_State, Junction, OR_State
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab import convert
 
 
 def translate_expr(e):
