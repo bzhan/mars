@@ -654,10 +654,10 @@ class Message(Command):
     """Command for raising an event."""
     def __init__(self, message):
         assert isinstance(message, str)
-        self.message = message
+        self.message = str(message)
 
     def __str__(self):
-        return str(self.message)
+        return self.message
 
     def __repr__(self):
         return "RaiseEvent(%s)" % repr(self.message)
@@ -670,6 +670,7 @@ class Message(Command):
 
     def subst(self, inst):
         return self
+
 
 class Function:
     """Function declarations in Matlab.
@@ -781,7 +782,7 @@ class TransitionLabel:
             self.cond == other.cond and self.cond_act == other.cond_act and self.tran_act == other.tran_act
 
 class DirectName:
-    """docstring for ClassName"""
+    """Directed name."""
     def __init__(self, expr):
         self.exprs = expr
 

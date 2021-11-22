@@ -93,35 +93,6 @@ def eval_expr(expr, state):
             return int(a) // int(b)
         elif expr.fun_name == "sin":
             return math.sin(args[0])
-        elif expr.fun_name == "put":
-            n, a, b = args
-            assert isinstance(a, tuple)
-            if isinstance(b, tuple):
-                return tuple(list(a) + list(b))
-            else:
-                if isinstance(b, dict) and n == "LQU":
-                    state[b['name']+'.'+'data'] = b['data']
-                return tuple(list(a)+[b])
-        elif expr.fun_name == "exist":
-            n, a, b= args
-            index = -1
-            assert isinstance(a, tuple)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            for i in range(len(a)):
-                if b == a[i]['name']:
-                    state[a[i]['name']+'.'+'data']=a[i]['data']
-                    index = i
-                    break
-            if index > -1:
-                a = a[:index] + a[index+1:]
-                state[str(n)] = a
-            return index
-        elif expr.fun_name == "remove_InputMessage":
-            for n in args[0]:
-                if str(n)+".data" in state.keys(): 
-                    state.pop(str(n)+".data")
-            return 1
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)

@@ -642,7 +642,7 @@ class Sequence(HCSP):
         """hps is a list of hybrid programs."""
         super(Sequence, self).__init__()
         self.type = "sequence"
-        # assert all(isinstance(hp, HCSP) for hp in hps)
+        assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 1
         self.hps = []
         for hp in hps:
@@ -691,6 +691,7 @@ def seq(hps):
     length 0 or 1.
 
     """
+    assert all(isinstance(hp, HCSP) for hp in hps)
     hps = [hp for hp in hps if hp != Skip()]
     if len(hps) == 0:
         return Skip()
