@@ -7,22 +7,12 @@ import random
 
 class SignalBuilder(SL_Block):
     """Block for Signal Builder."""
-    def __init__(self, name, signal_names=(), time_axises=(), data_axises=(),out_index=()):
-        super(SignalBuilder, self).__init__()
-        self.name = name
-        self.type = "signalBuilder"
-        self.is_continuous = True
-
+    def __init__(self, name, signal_names=(), time_axises=(), data_axises=(), out_index=()):
+        super(SignalBuilder, self).__init__("signalBuilder", name, len(signal_names), 0, 0)
         self.signal_names = signal_names
         self.time_axises = time_axises
         self.data_axises = data_axises
-        self.out_indexs=out_index
-        self.num_src = len(signal_names)
-        self.num_dest = 0
-        self.src_lines = [[] for _ in range(self.num_src)]  # DO NOT USE [[]]*self.num_src !!!
-        self.dest_lines = []
-
-        self.st = 0
+        self.out_indexs = out_index
 
     def __str__(self):
         return "%s: SignalBuilder[signals = %s, out = %s]" % (self.name, str(self.signal_names), str(self.src_lines))
