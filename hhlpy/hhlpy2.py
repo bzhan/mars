@@ -64,10 +64,16 @@ class CmdInfo:
         self.vcs = []
 
         # Invariants for loops.
-        self.inv = None
+        self.loop_inv = None
 
-        # HCSP program for this command
-        self.hp = None
+        # Equation dict for ODEs.
+        self.eqs_dict = dict()
+
+        # Assumptions for ODEs.
+        self.assume = None
+
+        # Invariants for ODEs.
+        self.ode_inv = None
 
         # Differential invariants for ODEs.
         self.diff_inv = None
@@ -79,7 +85,7 @@ class CmdInfo:
         self.ghost_inv = None
 
         # Computed differential equations for ghosts.
-        self.ghost_eqs = None
+        self.ghost_eqs = dict()
 
     def __str__(self):
         res = ""
@@ -114,13 +120,14 @@ class CmdVerifier:
         # Set of variables that are used
         self.vars = hp.get_vars().union(pre.get_vars()).union(post.get_vars())
 
-        # Initialize info for the root object. Place pre-condition and
-        # post-condition.
-        root_pos = tuple()
+        # Initialize info for the root object. Place pre-condition and post-condition.
+        # pos is a pair of two tuples. 
+        # pos[0] is the position of the sub_hp in hp.
+        # pos[1] is the number of subproof of the same sub_hp
+        root_pos = ((),())
         self.infos[root_pos] = CmdInfo()
         self.infos[root_pos].pre = pre
         self.infos[root_pos].post = post
-        self.infos[root_pos].hp = hp
 
     def __str__(self):
         res = ""
@@ -135,10 +142,15 @@ class CmdVerifier:
             res += "%s:\n%s" % (pos, info)
         return res
 
-    def add_invariant(self, pos, inv):
+    def add_loop_invariant(self, pos, loop_inv):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
-        self.infos[pos].inv = inv
+        self.infos[pos].loop_inv = loop_inv
+
+    def add_ode_invariant(self, pos, ode_inv):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].ode_inv = ode_inv
 
     def add_diff_invariant(self, pos, diff_inv):
         if pos not in self.infos:
@@ -155,16 +167,16 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].ghost_inv = ghost_inv
 
-    def compute_wp(self, *, pos=tuple()):
+    def add_ghost_equation(self, pos, ghost_eqs):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo
+        self.infos[pos].ghost_eqs = ghost_eqs
+
+    def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
 
         # Obtain the hp at the given position
-        cur_hp = get_pos(self.hp, pos)
-
-        # Compute cur_hp for some new created pos, such as pos created in dC and multi invariants, 
-        # they don't have corresponding hp by directly using get_pos()
-        if cur_hp is None:
-            cur_hp = self.infos[pos].hp
+        cur_hp = get_pos(self.hp, pos[0])
 
         # The post-condition at the given position should already be
         # available.
@@ -214,7 +226,8 @@ class CmdVerifier:
             # Pre-condition is the conjunction of the two pre-conditions
             # of subprograms.
 
-            pos0, pos1 = pos + (0,), pos + (1,)
+            pos0 = (pos[0]+(0,), pos[1]) 
+            pos1 = (pos[0]+(1,), pos[1])
             if pos0 not in self.infos:
                 self.infos[pos0] = CmdInfo()
             if pos1 not in self.infos:
@@ -231,7 +244,7 @@ class CmdVerifier:
             # Sequence of several commands, apply compute_wp from bottom to top
             cur_post = post
             for i in reversed(range(len(cur_hp.hps))):
-                sub_pos = pos + (i,)
+                sub_pos = (pos[0] + (i,), pos[1])
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
                 sub_info = self.infos[sub_pos]
@@ -245,15 +258,15 @@ class CmdVerifier:
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
-            if self.infos[pos].inv is None:
+            if self.infos[pos].loop_inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            inv = self.infos[pos].inv
+            inv = self.infos[pos].loop_inv
             if not isinstance(inv, expr.BExpr):
                 raise NotImplementedError('Invalid Invariant for Loop!') 
 
             # Compute wp for loop body with respect to invariant
-            sub_pos = pos + (0,)
+            sub_pos = (pos[0] + (0,), pos[1])
             if sub_pos not in self.infos:
                 self.infos[sub_pos] = CmdInfo()
             sub_info = self.infos[sub_pos]
@@ -274,146 +287,134 @@ class CmdVerifier:
             # Currently assume out_hp is Skip.
             if cur_hp.out_hp != hcsp.Skip():
                 raise NotImplementedError
-            if self.infos[pos].hp is None:
-                self.infos[pos].hp = cur_hp
-            constraint = cur_hp.constraint
             eqs = cur_hp.eqs
             
             # Use dI rules
             if self.infos[pos].diff_inv is not None:
                 diff_inv = self.infos[pos].diff_inv
-                if self.infos[pos].inv is not None:
-                    assert diff_inv == self.infos[pos].inv
+                # ode_inv can be written in when using Conjuntion Rule.
+                if self.infos[pos].ode_inv is not None:
+                    assert diff_inv == self.infos[pos].ode_inv
                 if not isinstance(diff_inv, expr.BExpr):
                     raise NotImplementedError('Invalid differential invariant for ODE!') 
 
                 # Construct dictionary corresponding to eqs.
-                eqs_dict = dict()
-                for name, e in cur_hp.eqs:
-                    eqs_dict[name] = e
+                if not self.infos[pos].eqs_dict:
+                    for name, e in cur_hp.eqs:
+                        self.infos[pos].eqs_dict[name] = e
 
                 # Compute the differential of inv. 
                 # One verification condition is the differential of inv must hold. 
                 # The second condition is inv --> post.
-                differential = compute_diff(diff_inv, eqs_dict=eqs_dict)
+                differential = compute_diff(diff_inv, eqs_dict=self.infos[pos].eqs_dict)
                 pre = diff_inv
-                self.infos[pos].vcs.append(expr.imp(self.infos[pos].hp.constraint, differential))
+                if self.infos[pos].assume:
+                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].assume, differential))
+                else:
+                    self.infos[pos].vcs.append(differential)
                 self.infos[pos].vcs.append(expr.imp(diff_inv, post))
             
             # Use dC rules
+            #  {P} c {R1}    R1--> {P} c {R2}     R1 && R2--> {P} c {Q}
+            #-----------------------------------------------------------
+            #                        {P} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
+                
+                # Record the pre of each subproof
+                pre_list =[]
 
-                # Consider every hp with new constraint, which is the conjunction of original constraint and diff_cuts
-                # Sub_constraint of the first sub_hp is the same as cur_hp.constraint
-                sub_constraint = constraint
-                for i in range(len(diff_cuts)):
-                    if not isinstance(diff_cuts[i], expr.BExpr):
+                # Compute wp for each subproof, whose assume is the conjunction of diff_cuts.
+                for i in range(len(diff_cuts) + 1):
+                    if i < len(diff_cuts) and not isinstance(diff_cuts[i], expr.BExpr):
                         raise NotImplementedError("Invalid differential cut for ODE!")
 
-                    # Create CmdInfo for every hp with new constraint.
-                    # Note that sub_pos doesn't exist in hp. 
-                    # Question remained: whether sub_pos here will contradict with pos_inv in multi_invariants
-                    sub_pos = pos + (i,)
-                    self.infos[sub_pos] = CmdInfo()
-                    self.infos[sub_pos].diff_inv = diff_cuts[i]
-                    self.infos[sub_pos].post = diff_cuts[i]
+                    # Create CmdInfo for every subproof.
+                    sub_pos = (pos[0], pos[1] + (i,))
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
 
-                    # Cases i == 0, sub_hp is the same with cur_hp
-                    if i == 0:
-                        self.infos[sub_pos].hp = cur_hp
-
-                    # Cases i > 0, sub_constraint is the conjunction of old constraint of and diff_cuts[i-1]
+                    # Post of the last subproof is the post of the whole proof.
+                    # Others' posts are diff_cuts[i].
+                    if i < len(diff_cuts):
+                        self.infos[sub_pos].post = diff_cuts[i]
                     else:
-                        sub_constraint = expr.LogicExpr('&&', sub_constraint, diff_cuts[i-1])
-                        sub_hp = hcsp.ODE(eqs, sub_constraint)
-                        self.infos[sub_pos].hp = sub_hp
+                        self.infos[sub_pos].post = post
+
+                    # If i == 0, no assume for it, else, assume is the conjunction of 
+                    # diff_cuts[:i].
+                    if i != 0:
+                        assume = expr.list_conj(*diff_cuts[:i])
+                        self.infos[sub_pos].assume = assume
 
                     self.compute_wp(pos=sub_pos)
 
-                pre = diff_cuts[0]
+                    pre_list.append(self.infos[sub_pos].pre)
 
-                self.infos[pos].vcs.append(expr.imp(diff_cuts[-1], post))
+                pre = expr.list_conj(*pre_list)
 
             # Use dG rules
             elif self.infos[pos].ghost_inv is not None:
                 ghost_inv = self.infos[pos].ghost_inv
-                inv = self.infos[pos].inv
+                ode_inv = self.infos[pos].ode_inv
 
-                if inv is None or not isinstance(inv, expr.BExpr):
+                if ode_inv is None or not isinstance(ode_inv, expr.BExpr):
                     raise NotImplementedError('Invalid invariant for ODE (ghost mode)!')
                 if not isinstance(ghost_inv, expr.BExpr):
                     raise NotImplementedError('Invalid ghost invariant for ODE!')
 
-                all_vars = cur_hp.get_vars()
-                ghost_vars = [v for v in ghost_inv.get_vars() if v not in all_vars]
+                ghost_vars = [v for v in ghost_inv.get_vars() if v not in self.vars]
                 if len(ghost_vars) != 1:
                     raise AssertionError("Number of ghost variables is not 1.")
                 ghost_var = ghost_vars[0]
+                self.vars.add(ghost_var)
+
+                if not self.infos[pos].eqs_dict:
+                    for name, e in cur_hp.eqs:
+                        self.infos[pos].eqs_dict[name] = e
 
                 # The first condition is: inv implies there exists a value of ghost_var
                 # that satisfies ghost_inv.
-                vc1 = expr.imp(inv, expr.ExistsExpr(ghost_var, ghost_inv))
+                vc1 = expr.imp(ode_inv, expr.ExistsExpr(ghost_var, ghost_inv))
 
-                # Second condition: solve for the differential equation that must be
-                # satisfied by the ghost variable.
-                # First, assert the ghost invariant is in the form g(x,y) == c, where
-                # y is the ghost variable, and x are the other variables.
+                # Second condition: 
+                # If the differential equation satisfied by the ghost variable is offered, verify its soundness.
+                # if not, solve for the differential equation automatically.
 
-                eqs_dict = dict()
-                for name, e in cur_hp.eqs:
-                    eqs_dict[name] = e
+                # Cases when the differential equation, alias ghost_eqs offered by the users.
+                if self.infos[pos].ghost_eqs:
+                    ghost_eqs = self.infos[pos].ghost_eqs
 
-                # Cases when ghost_inv is a logic Expression.
-                # Currently assume op is "&&"
-                if isinstance(ghost_inv, expr.LogicExpr) and ghost_inv.op == "&&":
-                    ghost_eqs_candidates = []
-                    ghost_subinvs = expr.split_conj(ghost_inv)
+                    assert len(ghost_eqs) == 1, 'Number of ghost variables is not 1.' 
+                    assert ghost_var in ghost_eqs, \
+                        'The ghost variable in ghost equation is different from that in ghost invariant.'
+                    
+                    # Create a new CmdInfo for the ODE with ghost_eqs
+                    sub_pos = (pos[0], pos[1] + (0,))
 
-                    # Ghost_subinv is in the form: g(x,y) op c, where op is an relation operation
-                    for ghost_subinv in ghost_subinvs:
-                        if not (isinstance(ghost_subinv, expr.RelExpr) and \
-                                isinstance(ghost_subinv.expr2, expr.AConst)):
-                            raise AssertionError("Wrong ghost invariant form in LogicExpr!")
-                        
-                        dg_x = compute_diff(ghost_subinv.expr1, eqs_dict=eqs_dict)
-                        dgdy = compute_diff(ghost_subinv.expr1, eqs_dict={ghost_var: expr.AConst(1)})
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
 
-                        # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
-                        dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
-                        ghost_eqs_candidates.append({ghost_var: dy})
+                    self.infos[sub_pos].post = ghost_inv
+                    self.infos[sub_pos].ode_inv = ghost_inv
 
-                    # Currently directly using candidate number == 1
-                    ghost_eqs_num = 1
-                    self.infos[pos].ghost_eqs = ghost_eqs_candidates[ghost_eqs_num]
-                    dghost_var = self.infos[pos].ghost_eqs[ghost_var]
+                    # The eqs_dict in sub_pos is eqs_dict in pos with ghost_eqs.
+                    if not self.infos[sub_pos].eqs_dict:
+                        self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict.copy()
+                        self.infos[sub_pos].eqs_dict[ghost_var] = ghost_eqs[ghost_var]
 
-                    # Add ghost_eqs into eqs
-                    eqs.append((ghost_var, dghost_var))
-                    # Add ghost_eqs into eqs_dict
-                    eqs_dict[ghost_var] = dghost_var
+                    self.compute_wp(pos=sub_pos)
 
-                    # Create CmdInfo for every ghost_subinv.
-                    # Note that sub_pos doesn't exist in hp. 
-                    # Question remained: whether sub_pos here will contradict with those in multi_invariants and dC
-                    for i, ghost_subinv in enumerate(ghost_subinvs):
-                        if i != ghost_eqs_num:
-                            subpos = pos + (i,)
-
-                            if subpos not in self.infos:
-                                self.infos[subpos] = CmdInfo()
-                            self.infos[subpos].hp = hcsp.ODE(eqs, constraint)
-                            self.infos[subpos].inv = ghost_subinv
-                            self.infos[subpos].post = ghost_subinv
-
-                            self.compute_wp(pos=subpos)
-
-                # Cases when ghost_inv is in the form g(x,y) == c
-                elif isinstance(ghost_inv, expr.RelExpr) and ghost_inv.op == "==" and \
-                        isinstance(ghost_inv.expr2, expr.AConst):
+                # Cases when ghost_eqs is not offered.
+                # Solve for ghost_eqs automatically.
+                # assume y is the ghost variable, and x are the other variables.
+                else:
+                    assert isinstance(ghost_inv, expr.RelExpr) and ghost_inv.op == "==" and \
+                        isinstance(ghost_inv.expr2, expr.AConst),\
+                            'Please offer the the differential equation satisfied by the ghost variable.'
 
                     # Obtain dg/dx * dx
-                    dg_x = compute_diff(ghost_inv.expr1, eqs_dict=eqs_dict)
+                    dg_x = compute_diff(ghost_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
 
                     # Obtain dg/dy
                     dgdy = compute_diff(ghost_inv.expr1, eqs_dict={ghost_var: expr.AConst(1)})
@@ -421,40 +422,43 @@ class CmdVerifier:
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
                     self.infos[pos].ghost_eqs = {ghost_var: dy}
-
+               
                 # Third condition
-                vc3 = expr.imp(ghost_inv, inv)
+                vc3 = expr.imp(ghost_inv, ode_inv)
 
                 # Fourth condition
-                vc4 = expr.imp(inv, post)
+                vc4 = expr.imp(ode_inv, post)
 
                 self.infos[pos].vcs = [vc1, vc3, vc4]
 
                 # New precondition is inv
-                pre = inv
+                pre = ode_inv
 
-            # Invariant is a logic expression, such as x > 0 && y > 0, we can compute wp for each sub_inv one by one.
+            # Using Conjuntion Rule
+            #  {I1} c {I1}     {I2} c {I2}
+            #-------------------------------
+            #    {I1 && I2} c {I1 && I2}
+            # Invariant is a conjunction expression, such as x > 0 && y > 0, we can compute wp for each sub_inv one by one.
             # Different sub_inv may use different ODE rules
-            elif self.infos[pos].inv is not None and isinstance(self.infos[pos].inv, expr.LogicExpr):
-                inv = self.infos[pos].inv
+            elif self.infos[pos].ode_inv is not None and isinstance(self.infos[pos].ode_inv, expr.LogicExpr):
+                ode_inv = self.infos[pos].ode_inv
+                eqs_dict = self.infos[pos].eqs_dict
 
-                # Currently only consider op is &&
-                if inv.op == "&&":
-                    sub_invs = expr.split_conj(inv)
+                assert ode_inv.op == "&&"
+                sub_invs = expr.split_conj(ode_inv)
+                
+                # Compute wp for each sub_inv
+                for i, sub_inv in enumerate(sub_invs):
+                    # Create different CmdInfos for each sub-invariants
+                    sub_pos = (pos[0], pos[1] + (i,))
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
+                    self.infos[sub_pos].post = sub_inv
+                    self.infos[sub_pos].eqs_dict = eqs_dict
+                    self.infos[sub_pos].ode_inv = sub_inv
                     
-                    # Compute wp for each sub_inv
-                    for i, sub_inv in enumerate(sub_invs):
-                        # Create different CmdInfos for cur_hp with different invariants
-                        # We use pos_inv to map different CmdIndos. Note that hp.get_pos(pos=pos_inv) is None
-                        pos_inv = pos + (i,)
-                        if pos_inv not in self.infos:
-                            self.infos[pos_inv] = CmdInfo()
-                        self.infos[pos_inv].hp = cur_hp
-                        self.infos[pos_inv].post = sub_inv
-                        self.infos[pos_inv].inv = sub_inv
-                        
-                        self.compute_wp(pos=pos_inv)
-                pre = inv
+                    self.compute_wp(pos=sub_pos)
+                pre = ode_inv
 
             else:
                 raise AssertionError("No invariant set at position %s." % str(pos))
