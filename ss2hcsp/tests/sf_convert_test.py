@@ -7,7 +7,6 @@ import cProfile
 
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test

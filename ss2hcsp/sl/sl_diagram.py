@@ -47,8 +47,6 @@ from functools import reduce
 from math import gcd, pow
 import operator
 
-from ss2hcsp.hcsp.parser import aexpr_parser
-
 
 def parse_sample_time(sample_time):
     """Convert sample time in string to integer or decimal."""
@@ -399,18 +397,19 @@ class SL_Diagram:
             chart_st = eval(chart_st) if chart_st else -1
 
             chart_data = dict()
-            message_dict=dict()
-            event_dict=dict()
-            if (len(chart.getElementsByTagName(name="event"))>=1):
-                num=1
-                for e in chart.getElementsByTagName(name="event"):
-                    event_name=get_attribute_value(e, "name")
-                    event_scope=get_attribute_value(e, "scope")
-                    port=num
-                    event_trigger=get_attribute_value(e, "trigger") if (len(get_attribute_value(e, "trigger"))>=1) else None
-                    event=SF_Event(name=event_name,scope=event_scope,trigger=event_trigger,port=port)
-                    event_dict[event_name]=event
-                    num+=1
+            message_dict = dict()
+            event_dict = dict()
+            if chart.getElementsByTagName(name="event"):
+                for i, e in enumerate(chart.getElementsByTagName(name="event")):
+                    event_name = get_attribute_value(e, "name")
+                    event_scope = get_attribute_value(e, "scope")
+                    port = i + 1
+                    if get_attribute_value(e, "trigger"):
+                        event_trigger = get_attribute_value(e, "trigger")
+                    else:
+                        event_trigger = None
+                    event = SF_Event(name=event_name, scope=event_scope, trigger=event_trigger, port=port)
+                    event_dict[event_name] = event
 
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
@@ -424,22 +423,24 @@ class SL_Diagram:
                 else:
                     value = 0
                 scope = get_attribute_value(data, "scope")
-                sf_data = SF_Data(name=var_name,value=value,scope=scope)
-                if len(data.getElementsByTagName(name="message")) >= 1:
-                    for node in data.getElementsByTagName(name="message"):
-                        mesgNode=node
-                        break
-                    is_mesg=get_attribute_value(mesgNode, "isMessage")
-                    if is_mesg == "1":
-                        data_value=0
-                        message=SF_Message(name=var_name,data=data_value,scope=scope)
-                         
-                        message_dict[var_name]=message
-                        
+                sf_data = SF_Data(name=var_name, value=value, scope=scope)
+
+                if data.getElementsByTagName(name="message"):
+                    mesgNode = data.getElementsByTagName(name="message")[0]
+                    if get_attribute_value(mesgNode, "isMessage") == "1":
+                        message = SF_Message(name=var_name, data=0, scope=scope)
+                        message_dict[var_name] = message
                 else:
                     chart_data[var_name] = sf_data
+
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st, "message_dict":message_dict,"event_dict":event_dict}
+            self.chart_parameters[chart_name] = {
+                "state": chart_state,
+                "data": chart_data,
+                "st": chart_st,
+                "message_dict": message_dict,
+                "event_dict": event_dict
+            }
 
     def parse_xml(self, default_SampleTimes=()):
         # Extract BlockParameterDefaults
@@ -490,7 +491,7 @@ class SL_Diagram:
             if block_type == "Mux":
                 inputs = get_attribute_value(block, "Inputs")
                 displayOption = get_attribute_value(block, "DisplayOption")
-                ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
                 self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
             elif block_type == "DataStoreMemory":
                 init_value = get_attribute_value(block=block, attribute="InitialValue")
@@ -717,7 +718,7 @@ class SL_Diagram:
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
                     chart_paras = self.chart_parameters[block_name]
-                    ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                    ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
                     if len(ports) == 0:
                         ports = [0, 0]
                     elif len(ports) == 1:

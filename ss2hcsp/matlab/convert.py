@@ -38,8 +38,10 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
             else:
                 return expr.AConst(e.value)
         elif isinstance(e, function.DirectName):
-            sname = e.exprs[0]
-            return expr.AVar(str(expr.FieldNameExpr(expr.AVar(sname), str(e.exprs[1]))))
+            sname = expr.AVar(e.exprs[0])
+            for field in e.exprs[1:]:
+                sname = expr.FieldNameExpr(sname, field)
+            return sname
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
                 return expr.OpExpr('-', rec(e.exprs[0]))
@@ -127,7 +129,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
     """
     def conv_expr(e):
         return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages)
-
 
     def conv_exprs(es):
         # Convert a list of expressions

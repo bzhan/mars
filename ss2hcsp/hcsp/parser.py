@@ -17,9 +17,9 @@ grammar = r"""
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
-        | "[]" -> empty_list
-        | "()" ->empty_queue
+        | "[" "]" -> empty_list
         | "[" expr ("," expr)* "]" -> literal_list
+        | "{" "}" -> empty_dict
         | "{" CNAME ":" expr ("," CNAME ":" expr)* "}" -> literal_dict
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
@@ -166,16 +166,16 @@ class HPTransformer(Transformer):
         return expr.AConst(str(s)[1:-1])  # remove quotes
 
     def empty_list(self):
-        return expr.AConst(list())
-
-    def empty_queue(self):
-        return expr.AConst(tuple())
+        return expr.ListExpr()
 
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
             return expr.AConst(list(arg.value for arg in args))
         else:
             return expr.ListExpr(*args)
+
+    def empty_dict(self):
+        return expr.DictExpr()
 
     def literal_dict(self, *args):
         # args should contain 2*n elements, which are key-value pairs

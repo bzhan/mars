@@ -192,8 +192,12 @@ class SFConvert:
     def return_val(self, val):
         return hcsp.Assign("_ret", val)
 
+    def get_message_queue_name(self, message_name):
+        """Returns the name of message queue associated to message."""
+        return message_name + "_queue"
+
     def raise_event(self, event):
-        
+        """Returns the command for raising the given event."""
         if isinstance(event, function.BroadcastEvent):
             # Raise broadcast event
             return hcsp.seq([
@@ -219,18 +223,11 @@ class SFConvert:
         
         elif isinstance(event, function.Message):
             # Raise messages
-            if str(event) in self.messages.keys():
-                message = self.messages[str(event)]
-                if message.scope == "OUTPUT_DATA":
-                    for port_id, out_var in self.chart.port_to_out_var.items():
-                        if str(out_var) == message.name:
-                            lines = self.chart.src_lines[port_id]
-                            for line in lines:
-                                ch_name = "ch_" + line.name + "_" + str(line.branch) + "_out"
-                                return hcsp.OutputChannel(ch_name , expr.AConst(dict(message)))
-                elif message.scope == "LOCAL_DATA": 
-                    return hcsp.seq([
-                                hcsp.Assign("LQU", expr.FunExpr("put", [expr.AConst("LQU"),expr.AVar("LQU"), expr.AConst(dict(message))]))])
+            assert event.message in self.messages, "raise_event: message name not found."
+            m_name = event.message
+            mqueue_name = self.get_message_queue_name(m_name)
+            return hcsp.Assign(
+                mqueue_name, expr.FunExpr("push", [expr.AVar(mqueue_name), expr.AVar(m_name)]))
 
         else:
             raise TypeError("raise_event: event must be broadcast or directed.")
@@ -382,7 +379,7 @@ class SFConvert:
         procs = []
         if self.translate_io:
             for port_id, in_var in self.chart.port_to_in_var.items():
-                if str(in_var) not in self.messages.keys():
+                if in_var not in self.messages:
                     line = self.chart.dest_lines[port_id]
                     ch_name = "ch_" + line.name + "_" + str(line.branch)
                     if ch_name in self.shared_chans:
@@ -395,7 +392,7 @@ class SFConvert:
         procs = []
         if self.translate_io:
             for port_id, out_var in self.chart.port_to_out_var.items():
-                if str(out_var) not in self.messages.keys():
+                if out_var not in self.messages:
                     lines = self.chart.src_lines[port_id]
                     for line in lines:
                         ch_name = "ch_" + line.name + "_" + str(line.branch)
@@ -465,15 +462,14 @@ class SFConvert:
         pre_acts, conds, cond_act = [], [], hcsp.Skip()
         if label.event is not None:
             if isinstance(label.event, function.BroadcastEvent) and \
-                str(label.event) not in self.messages.keys():
+                label.event.name not in self.messages:
                 # Conversion for event condition E
-                for n,e in self.events.items():
+                for _, e in self.events.items():
                     if e.name == str(label.event.name):
                         if e.scope == "INPUT_EVENT" and e.trigger == "EITHER_EDGE_EVENT":
                             conds.append(expr.RelExpr("!=",expr.AVar("osag"),expr.AVar("last")))
-
                         else:
-                            conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.AConst([])),
+                            conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("EL"), expr.ListExpr()),
                                                expr.RelExpr("==", expr.FunExpr("top", [expr.AVar("EL")]), expr.AConst(label.event.name))))
             
             elif isinstance(label.event, function.TemporalEvent):
@@ -504,17 +500,16 @@ class SFConvert:
                     else:
                         raise NotImplementedError
 
-            elif str(label.event) in self.messages.keys():
+            elif label.event.name in self.messages:
                 # Conversion for messages
-                message = self.messages[str(label.event)]
-                if message.scope == "INPUT_DATA":
-                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("IQU"), expr.AConst(())),
-                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AConst("IQU"),expr.AVar("IQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                   
-                elif message.scope == "LOCAL_DATA":
-                    conds.append(expr.conj(expr.RelExpr("!=", expr.AVar("LQU"), expr.AConst(())),
-                                        expr.RelExpr(">", expr.FunExpr("exist", [expr.AConst("LQU"),expr.AVar("LQU"), expr.AConst(label.event.name)]),expr.AConst(-1))))
-                  
+                mqueue_name = self.get_message_queue_name(label.event.name)
+                queue_nonempty = expr.RelExpr("!=", expr.AVar(mqueue_name), expr.ListExpr())
+                get_bottom = hcsp.seq([
+                    hcsp.Assign(expr.AVar(label.event.name), expr.FunExpr("bottom", [expr.AVar(mqueue_name)])),
+                    hcsp.Assign(expr.AVar(mqueue_name), expr.FunExpr("get", [expr.AVar(mqueue_name)]))])
+                set_empty = hcsp.Assign(expr.AVar(label.event.name), expr.DictExpr())
+                pre_acts.append(hcsp.ITE([(queue_nonempty, get_bottom)], set_empty))
+                conds.append(expr.RelExpr("!=", expr.AVar(label.event.name), expr.DictExpr()))
             else:
                 raise NotImplementedError('convert_label: unsupported event type')
 
@@ -876,10 +871,8 @@ class SFConvert:
             procs.append(hcsp.InputChannel("start_" + self.chart.name))
 
         # Initialize event stack
-        procs.append(hcsp.Assign("EL", expr.AConst([])))
-        procs.append(hcsp.Assign("IQU", expr.AConst(())))
-        procs.append(hcsp.Assign("LQU", expr.AConst(())))
-        for n,e in  self.events.items():
+        procs.append(hcsp.Assign("EL", expr.ListExpr()))
+        for _, e in self.events.items():
             if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
                 procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
@@ -895,7 +888,9 @@ class SFConvert:
         # Initialize messages
         for name, info in self.messages.items():
             if info.scope in ("LOCAL_DATA", "OUTPUT_DATA"):
-                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst(dict(info))))
+                mqueue_name = self.get_message_queue_name(name)
+                procs.append(hcsp.Assign(expr.AVar(name), expr.AConst({"data": info.data})))
+                procs.append(hcsp.Assign(expr.AVar(mqueue_name), expr.ListExpr()))
 
         # Initialize variables
         for vname, info in self.data.items():
@@ -920,16 +915,6 @@ class SFConvert:
         for ssid in self.absolute_time_events:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
             procs.append(hcsp.Assign(expr.AVar(time_name), expr.AConst(-1)))
-
-        # Read messages
-        for port_id, out_var in self.chart.port_to_in_var.items():
-            if str(out_var) in self.messages.keys():
-                mes = self.messages[str(out_var)]
-                if mes.scope == "INPUT_DATA":
-                    line = self.chart.dest_lines[port_id]
-                    ch_name = "ch_" + line.name + "_" + str(line.branch) + "_in"
-                    procs.append(hcsp.InputChannel(ch_name , expr.AVar(out_var)))
-                    procs.append(hcsp.Assign("IQU", expr.FunExpr("put", [expr.AConst("IQU"), expr.AVar("IQU"), expr.AVar(out_var)])))
 
         # Recursive entry into diagram
         procs.append(hcsp.Var(self.entry_proc_name(self.chart.diagram)))
@@ -1016,16 +1001,10 @@ class SFConvert:
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
         procs.extend(self.get_output_data())
         
-        inputMesdicts = dict()
-        for name, info in self.messages.items():
-            if info.scope == "INPUT_DATA":
-                inputMesdicts[name] = info
-        if len(inputMesdicts) > 0:
-            procs.append(hcsp.Condition(expr.RelExpr("==", expr.FunExpr("remove_InputMessage", [expr.AConst(inputMesdicts)]),expr.AConst(1)),hcsp.Skip()))
-        
-        for n,e in  self.events.items():
+        for _, e in self.events.items():
             if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
+
         # End signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
