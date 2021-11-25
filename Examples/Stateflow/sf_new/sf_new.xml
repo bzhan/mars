@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.140</P>
+      <P Name="ComputedModelVersion">1.141</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -68,9 +68,9 @@
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
             <P Name="Extents" Class="double">[1864.0, 840.0]</P>
-            <P Name="ZoomFactor" Class="double">0.78386486585746351</P>
-            <P Name="Offset" Class="double">[10.627210195666294, 658.29732705591209]</P>
-            <P Name="SceneRectInView" Class="double">[10.627210195666294, 658.29732705591209, 1585.3072650568711, 714.40885335180883]</P>
+            <P Name="ZoomFactor" Class="double">0.72019033931557164</P>
+            <P Name="Offset" Class="double">[-129.89409985178008, 545.77850825600854]</P>
+            <P Name="SceneRectInView" Class="double">[-129.89409985178008, 545.77850825600854, 1725.4697804577984, 777.57221866123962]</P>
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
@@ -79,8 +79,8 @@
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1864.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.25</P>
-            <P Name="Offset" Class="double">[-1.7053025658242404e-13, 31.200000000000017]</P>
-            <P Name="SceneRectInView" Class="double">[-1.7053025658242404e-13, 31.200000000000017, 994.13333333333333, 448.0]</P>
+            <P Name="Offset" Class="double">[-2.2737367544323206e-13, 31.200000000000017]</P>
+            <P Name="SceneRectInView" Class="double">[-2.2737367544323206e-13, 31.200000000000017, 994.13333333333333, 448.0]</P>
           </Object>
           <Object ObjectID="8">
             <P Name="IsActive" Class="logical">0</P>
@@ -119,9 +119,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Thu Jul 29 00:05:28 2021</P>
-      <P Name="RTWModifiedTimeStamp">549417918</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:140&gt;</P>
+      <P Name="LastModifiedDate">Mon Nov 22 22:47:50 2021</P>
+      <P Name="RTWModifiedTimeStamp">559522065</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:141&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1029,10 +1029,6 @@
         <P Name="DataLoggingDecimation">2</P>
         <P Name="DataLoggingNameMode">SignalName</P>
       </Block>
-      <Block BlockType="DataStoreRead">
-        <P Name="DataStoreName">A</P>
-        <P Name="SampleTime">-1</P>
-      </Block>
       <Block BlockType="Demux">
         <P Name="Outputs">4</P>
         <P Name="DisplayOption">bar</P>
@@ -1087,9 +1083,6 @@
         <P Name="PortCounts">[]</P>
         <P Name="MultiThreadCoSim">auto</P>
       </Block>
-      <Block BlockType="Scope">
-        <P Name="DefaultConfigurationName">Simulink.scopes.TimeScopeBlockCfg</P>
-      </Block>
       <Block BlockType="SubSystem">
         <P Name="ShowPortLabels">FromPortIcon</P>
         <P Name="Permissions">ReadWrite</P>
@@ -1142,7 +1135,7 @@
       <P Name="SIDHighWatermark">15</P>
       <P Name="SimulinkSubDomain">Simulink</P>
       <Block BlockType="SubSystem" Name="Chart" SID="1">
-        <P Name="Ports">[4, 1]</P>
+        <P Name="Ports">[4]</P>
         <P Name="Position">[445, 153, 655, 342]</P>
         <P Name="ZOrder">2</P>
         <P Name="ErrorFcn">Stateflow.Translate.translate</P>
@@ -1179,80 +1172,62 @@
           </Block>
           <Block BlockType="Demux" Name=" Demux " SID="1::95">
             <P Name="Ports">[1, 1]</P>
-            <P Name="Position">[270, 230, 320, 270]</P>
+            <P Name="Position">[270, 100, 320, 140]</P>
             <P Name="ZOrder">70</P>
             <P Name="Outputs">1</P>
           </Block>
           <Block BlockType="S-Function" Name=" SFunction " SID="1::94">
             <P Name="Tag">Stateflow S-Function 3</P>
-            <P Name="Ports">[4, 2]</P>
+            <P Name="Ports">[4, 1]</P>
             <P Name="Position">[180, 102, 230, 203]</P>
             <P Name="ZOrder">69</P>
             <P Name="FunctionName">sf_sfun</P>
-            <P Name="PortCounts">[4 2]</P>
+            <P Name="PortCounts">[4 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
             <P Name="EnableBusSupport">on</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
-            <Port>
-              <P Name="PortNumber">2</P>
-              <P Name="Name">complete</P>
-            </Port>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="1::96">
-            <P Name="Position">[460, 241, 480, 259]</P>
+            <P Name="Position">[460, 111, 480, 129]</P>
             <P Name="ZOrder">71</P>
           </Block>
-          <Block BlockType="Outport" Name="complete" SID="1::87">
-            <P Name="Position">[460, 101, 480, 119]</P>
-            <P Name="ZOrder">63</P>
-            <P Name="VectorParamsAs1DForOutWhenUnconnected">off</P>
-          </Block>
           <Line>
-            <P Name="ZOrder">100</P>
+            <P Name="ZOrder">113</P>
             <P Name="SrcBlock">cansend</P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">101</P>
+            <P Name="ZOrder">114</P>
             <P Name="SrcBlock">liveliness</P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">2</P>
           </Line>
           <Line>
-            <P Name="ZOrder">102</P>
+            <P Name="ZOrder">115</P>
             <P Name="SrcBlock">first_SN</P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">3</P>
           </Line>
           <Line>
-            <P Name="ZOrder">103</P>
+            <P Name="ZOrder">116</P>
             <P Name="SrcBlock">last_SN</P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">4</P>
           </Line>
           <Line>
-            <P Name="Name">complete</P>
-            <P Name="ZOrder">104</P>
-            <P Name="Labels">[0, 0]</P>
-            <P Name="SrcBlock"> SFunction </P>
-            <P Name="SrcPort">2</P>
-            <P Name="DstBlock">complete</P>
-            <P Name="DstPort">1</P>
-          </Line>
-          <Line>
-            <P Name="ZOrder">105</P>
+            <P Name="ZOrder">117</P>
             <P Name="SrcBlock"> Demux </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Terminator </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">106</P>
+            <P Name="ZOrder">118</P>
             <P Name="SrcBlock"> SFunction </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Demux </P>
@@ -1407,33 +1382,6 @@
         <P Name="OutDataTypeStr">int32</P>
         <P Name="SignalType">real</P>
       </Block>
-      <Block BlockType="DataStoreRead" Name="Data Store&#xA;Read" SID="6">
-        <P Name="Ports">[0, 1]</P>
-        <P Name="Position">[705, 190, 735, 220]</P>
-        <P Name="ZOrder">14</P>
-        <P Name="DataStoreName">RHC</P>
-      </Block>
-      <Block BlockType="DataStoreRead" Name="Data Store&#xA;Read1" SID="9">
-        <P Name="Ports">[0, 1]</P>
-        <P Name="Position">[705, 280, 735, 310]</P>
-        <P Name="ZOrder">17</P>
-        <P Name="NameLocation">top</P>
-        <P Name="DataStoreName">RHC2</P>
-      </Block>
-      <Block BlockType="DataStoreRead" Name="Data Store&#xA;Read2" SID="13">
-        <P Name="Ports">[0, 1]</P>
-        <P Name="Position">[705, 125, 735, 155]</P>
-        <P Name="ZOrder">20</P>
-        <P Name="DataStoreName">WHC</P>
-      </Block>
-      <Block BlockType="Scope" Name="Scope" SID="7">
-        <P Name="Ports">[4]</P>
-        <P Name="Position">[785, 237, 875, 353]</P>
-        <P Name="ZOrder">15</P>
-        <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true,&apos;FigureColor&apos;,[1 1 1]),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true,&apos;SampleTime&apos;,&apos;2&apos;),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;-62.5&apos;,&apos;MaxYLimReal&apos;,&apos;562.5&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;562.5&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,false,&apos;YGrid&apos;,false,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[1 1 1],&apos;AxesTickColor&apos;,[0 0 0],&apos;ColorOrder&apos;,[0 0.447058823529412 0.741176470588235;0.850980392156863 0.325490196078431 0.0980392156862745;0.929411764705882 0.694117647058824 0.125490196078431;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196],&apos;Title&apos;,&apos;WHC&apos;,&apos;LinePropertiesCache&apos;,{{struct(&apos;Color&apos;,[0 0 0],&apos;LineStyle&apos;,&apos;-&apos;,&apos;LineWidth&apos;,0.5,&apos;Marker&apos;,&apos;none&apos;,&apos;Visible&apos;,&apos;on&apos;)}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,5,&apos;LineNames&apos;,{{&apos;Data Store Read2:1&apos;,&apos;Data Store Read2:2&apos;,&apos;Data Store Read2:3&apos;,&apos;Data Store Read2:4&apos;,&apos;Data Store Read2:5&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1),struct(&apos;MinYLimReal&apos;,&apos;-62.5&apos;,&apos;MaxYLimReal&apos;,&apos;562.5&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;562.5&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,false,&apos;YGrid&apos;,false,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[1 1 1],&apos;AxesTickColor&apos;,[0 0 0],&apos;ColorOrder&apos;,[0 0.447058823529412 0.741176470588235;0.850980392156863 0.325490196078431 0.0980392156862745;0.929411764705882 0.694117647058824 0.125490196078431;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196],&apos;Title&apos;,&apos;RHC_1&apos;,&apos;LinePropertiesCache&apos;,{{struct(&apos;Color&apos;,[0 0 0],&apos;LineStyle&apos;,&apos;-&apos;,&apos;LineWidth&apos;,0.5,&apos;Marker&apos;,&apos;none&apos;,&apos;Visible&apos;,&apos;on&apos;)}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,5,&apos;LineNames&apos;,{{&apos;Data Store Read:1&apos;,&apos;Data Store Read:2&apos;,&apos;Data Store Read:3&apos;,&apos;Data Store Read:4&apos;,&apos;Data Store Read:5&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,2),struct(&apos;MinYLimReal&apos;,&apos;-62.5&apos;,&apos;MaxYLimReal&apos;,&apos;562.5&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;562.5&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,false,&apos;YGrid&apos;,false,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[1 1 1],&apos;AxesTickColor&apos;,[0 0 0],&apos;ColorOrder&apos;,[0 0.447058823529412 0.741176470588235;0.850980392156863 0.325490196078431 0.0980392156862745;0.929411764705882 0.694117647058824 0.125490196078431;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196],&apos;Title&apos;,&apos;RHC_2&apos;,&apos;LinePropertiesCache&apos;,{{struct(&apos;Color&apos;,[0 0 0],&apos;LineStyle&apos;,&apos;-&apos;,&apos;LineWidth&apos;,0.5,&apos;Marker&apos;,&apos;none&apos;,&apos;Visible&apos;,&apos;on&apos;)}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,5,&apos;LineNames&apos;,{{&apos;Data Store Read1:1&apos;,&apos;Data Store Read1:2&apos;,&apos;Data Store Read1:3&apos;,&apos;Data Store Read1:4&apos;,&apos;Data Store Read1:5&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,3),struct(&apos;MinYLimReal&apos;,&apos;-0.125&apos;,&apos;MaxYLimReal&apos;,&apos;1.125&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;1.00000&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,false,&apos;YGrid&apos;,false,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[1 1 1],&apos;AxesTickColor&apos;,[0 0 0],&apos;ColorOrder&apos;,[0 0.447058823529412 0.741176470588235;0.850980392156863 0.325490196078431 0.0980392156862745;0.929411764705882 0.694117647058824 0.125490196078431;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196],&apos;Title&apos;,&apos;Acked_complete Signal&apos;,&apos;LinePropertiesCache&apos;,{{struct(&apos;Color&apos;,[0 0 0],&apos;LineStyle&apos;,&apos;-&apos;,&apos;LineWidth&apos;,0.5,&apos;Marker&apos;,&apos;none&apos;,&apos;Visible&apos;,&apos;on&apos;)}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;Chart&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,4)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;YLabelReal&apos;,&apos;&apos;,&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863]),&apos;DisplayLayoutDimensions&apos;,[4 1],&apos;DisplayContentCache&apos;,[]),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2020a&apos;)),&apos;Version&apos;,&apos;2020a&apos;,&apos;Position&apos;,[481 89.6666666666667 616 424])</P>
-        <P Name="NumInputPorts">4</P>
-        <P Name="Floating">off</P>
-      </Block>
       <Line>
         <P Name="ZOrder">5</P>
         <P Name="SrcBlock">Constant</P>
@@ -1447,32 +1395,6 @@
         <P Name="SrcPort">1</P>
         <P Name="DstBlock">Chart</P>
         <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">19</P>
-        <P Name="SrcBlock">Data Store
-Read</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[19, 0; 0, 53; 10, 0; 0, 22]</P>
-        <P Name="DstBlock">Scope</P>
-        <P Name="DstPort">2</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">18</P>
-        <P Name="SrcBlock">Data Store
-Read1</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[18, 0; 0, 15]</P>
-        <P Name="DstBlock">Scope</P>
-        <P Name="DstPort">3</P>
-      </Line>
-      <Line>
-        <P Name="ZOrder">17</P>
-        <P Name="SrcBlock">Chart</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[25, 0; 0, 71; 84, 0; 0, 19]</P>
-        <P Name="DstBlock">Scope</P>
-        <P Name="DstPort">4</P>
       </Line>
       <Line>
         <P Name="ZOrder">12</P>
@@ -1490,25 +1412,16 @@ Read1</P>
         <P Name="DstBlock">Chart</P>
         <P Name="DstPort">4</P>
       </Line>
-      <Line>
-        <P Name="ZOrder">20</P>
-        <P Name="SrcBlock">Data Store
-Read2</P>
-        <P Name="SrcPort">1</P>
-        <P Name="Points">[29, 0; 0, 110]</P>
-        <P Name="DstBlock">Scope</P>
-        <P Name="DstPort">1</P>
-      </Line>
     </System>
   </Model>
   <Stateflow>
     <machine id="848">
       <P Name="sfVersion">80000032</P>
       <Children>
-        <target id="1260" name="sfun">
+        <target id="1259" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
-        <target id="1261" name="rtw"/>
+        <target id="1260" name="rtw"/>
         <chart id="849">
           <P Name="name">DDS_Writer</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
@@ -1520,8 +1433,6 @@ Read2</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">849</P>
-          <P Name="visible">1</P>
-          <subviewS/>
           <P Name="ssIdHighWaterMark">27</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">1</P>
@@ -1762,16 +1673,14 @@ first_SN=1;last_SN=i;i = i + 1;d=random()}</P>
         <chart id="863">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[10.627 1595.934 658.297 1372.706]</P>
-          <P Name="zoomFactor">1.701</P>
+          <P Name="viewLimits">[-129.894 1595.576 545.779 1323.351]</P>
+          <P Name="zoomFactor">1.851</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="transitionLabelColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
           <P Name="junctionColor">[0.7764705882352941 0.4980392156862745 0]</P>
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">863</P>
-          <P Name="visible">1</P>
-          <subviewS/>
           <P Name="ssIdHighWaterMark">847</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -7790,26 +7699,6 @@ lastSN=buffer_heartbeat(wid,4)}</P>
               </props>
               <P Name="dataType">Inherit: From definition in chart</P>
             </data>
-            <data SSID="648" name="complete">
-              <P Name="scope">OUTPUT_DATA</P>
-              <props>
-                <P Name="initialValue">false</P>
-                <array>
-                  <P Name="size">-1</P>
-                </array>
-                <type>
-                  <P Name="primitive">SF_BOOLEAN_TYPE</P>
-                  <P Name="isSigned">1</P>
-                  <P Name="wordLength">16</P>
-                </type>
-                <P Name="complexity">SF_COMPLEX_INHERITED</P>
-                <P Name="frame">SF_FRAME_NO</P>
-                <unit>
-                  <P Name="name">inherit</P>
-                </unit>
-              </props>
-              <P Name="dataType">boolean</P>
-            </data>
             <data SSID="672" name="SET">
               <P Name="scope">CONSTANT_DATA</P>
               <props>
@@ -8316,7 +8205,7 @@ lastSN=buffer_heartbeat(wid,4)}</P>
       <P Name="name">DDS_Writer</P>
       <P Name="chart">849</P>
     </instance>
-    <instance id="1259">
+    <instance id="1258">
       <P Name="machine">848</P>
       <P Name="name">Chart</P>
       <P Name="chart">863</P>

@@ -603,7 +603,7 @@ class SFConvert:
         valid, carry out the transition.
 
         """
-        if isinstance(state, OR_State):
+        if isinstance(state, (OR_State, AND_State)):
             procs = []
 
             # Signal for whether one of the transitions is carried out
@@ -615,13 +615,11 @@ class SFConvert:
 
             # First, check each of the outgoing transitions
             procs.append(hcsp.Assign(done, expr.AConst(0)))
-            if state.out_trans:
+            if isinstance(state, OR_State) and state.out_trans:
                 for i, tran in enumerate(state.out_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
 
-                    ancestor = get_common_ancestor(src, dst, out_trans=True)
-                    still_there_tran = self.get_ancestor_empty_cond(ancestor)
                     pre_act, cond, cond_act = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
 
@@ -653,8 +651,6 @@ class SFConvert:
                 for i, tran in enumerate(state.inner_trans):
                     src = self.chart.all_states[tran.src]
                     dst = self.chart.all_states[tran.dst]
-                    ancestor = get_common_ancestor(src, dst, out_trans=False)
-                    still_there_tran = self.get_ancestor_empty_cond(ancestor)
                     pre_act, cond, cond_act = self.convert_label(
                         tran.label, state=state, still_there=still_there_cond)
 
@@ -677,12 +673,6 @@ class SFConvert:
             # Set return value to done
             procs.append(self.return_val(expr.AVar(done)))
             return hcsp.seq(procs)
-
-        elif isinstance(state, AND_State):
-            # For AND-states, simply execute its during action.
-            return hcsp.seq([
-                hcsp.Var(self.du_proc_name(state)),
-                self.return_val(expr.AConst(0))])
 
         else:
             raise TypeError("get_during_proc: state is not AND-state or OR-state.")
@@ -754,10 +744,11 @@ class SFConvert:
         for junctions in the dictionary junction_map.
 
         """
-        assert isinstance(init_src, OR_State), "get_traverse_state_proc: source is not an OR_State"
+        assert isinstance(init_src, (OR_State, AND_State)), \
+            "get_traverse_state_proc: source is not a state"
 
-        if isinstance(state, OR_State):
-            # If reached an OR-state, carry out the transition from src to
+        if isinstance(state, (OR_State, AND_State)):
+            # If reached a state, carry out the transition from src to
             # the current state, with the accumulated transition actions in
             # the middle. Then return 1 for successfully reaching a state.
             return hcsp.seq([
@@ -1153,7 +1144,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     # Initial stages
     diagram.parse_xml()
     diagram.add_line_name()
-    _, continuous, charts, _, _, _, dsms, dsrs,clocks = diagram.seperate_diagram()
+    _, continuous, charts, _, _, _, dsms, _, clocks = diagram.seperate_diagram()
 
     # Optional: print chart
     if print_chart:
@@ -1164,7 +1155,6 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     converter_map = dict()
 
     # Obtain sample time
-
     sample_time = -1
     if 'st' in diagram.chart_parameters and diagram.chart_parameters['st'] != -1:
         sample_time = diagram.chart_parameters['st']

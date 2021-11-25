@@ -588,6 +588,11 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
              'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
 
+    def testSettaDemo(self):
+        run_test(self, "./Examples/Stateflow/tests/settaDemo.xml", 2,
+            ['log B', 'log D', 'log A', 'log D', 'delay 0.1',
+             'log B', 'log D', 'log A', 'log D', 'delay 0.1'])
+
     def testSFNew(self):
         random.seed(0)  # for repeatability
         io_filter = lambda s: s == 'WHC_out'
