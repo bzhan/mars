@@ -27,7 +27,10 @@ grammar = r"""
         | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
-    ?uminus: "-" uminus -> uminus | atom_expr              // Unary minus: priority 80
+    ?power_expr: power_expr "^" atom_expr -> power_expr    // priority 85
+        | atom_expr
+
+    ?uminus: "-" uminus -> uminus | power_expr              // Unary minus: priority 80
 
     ?times_expr: times_expr "*" uminus -> times_expr       // priority 70
         | times_expr "/" uminus -> divide_expr
@@ -220,6 +223,9 @@ class HPTransformer(Transformer):
 
     def divide_expr(self, e1, e2):
         return expr.OpExpr("/", e1, e2)
+
+    def power_expr(self, e1, e2):
+        return expr.OpExpr("^", e1, e2)
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])

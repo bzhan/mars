@@ -47,6 +47,11 @@ def compute_diff(e, eqs_dict):
                 # d(u*v) = u*dv + du*v
                 du, dv = rec(e.exprs[0]), rec(e.exprs[1])
                 return expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), expr.OpExpr("*", du, e.exprs[1]))
+            elif e.op == '^' and isinstance(e.exprs[1], expr.AConst):
+                # d(u^n) = n * u^(n-1) * du
+                du = rec(e.exprs[0])
+                mid_expr = expr.OpExpr("^", e.exprs[0], expr.OpExpr("-", e.exprs[1], expr.AConst(1)))
+                return expr.OpExpr("*", e.exprs[1], expr.OpExpr("*", mid_expr, du)) 
             else:
                 raise NotImplementedError
     
@@ -290,8 +295,16 @@ class CmdVerifier:
             eqs = cur_hp.eqs
             
             # Use dI rules
-            if self.infos[pos].diff_inv is not None:
-                diff_inv = self.infos[pos].diff_inv
+            # When diff_inv is set or by default
+            if self.infos[pos].diff_inv is not None or \
+               self.infos[pos].diff_inv is None and not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
+               
+                if self.infos[pos].diff_inv is not None:
+                    diff_inv = self.infos[pos].diff_inv
+                # By default, using post as diff_inv
+                else:
+                    diff_inv = post
+
                 # ode_inv can be written in when using Conjuntion Rule.
                 if self.infos[pos].ode_inv is not None:
                     assert diff_inv == self.infos[pos].ode_inv

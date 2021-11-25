@@ -51,6 +51,8 @@ def convert(e):
             return convert(e.exprs[0]) * convert(e.exprs[1])
         elif e.op == '/':
             return convert(e.exprs[0]) / convert(e.exprs[1])
+        elif e.op == '^':
+            return convert(e.exprs[0]) ** convert(e.exprs[1])
         else:
             raise NotImplementedError
     elif isinstance(e, expr.ExistsExpr):
