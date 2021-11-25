@@ -340,7 +340,7 @@ class Assign(HCSP):
     def priority(self):
         return 100
 
-class RandomAssign():
+class RandomAssign(HCSP):
     """Random Assignment commend.
 
     x := {x >= 1}

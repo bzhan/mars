@@ -127,7 +127,7 @@ class AConst(AExpr):
 class OpExpr(AExpr):
     def __init__(self, op, *exprs):
         super(OpExpr, self).__init__()
-        assert op in ('+', '-', '*', '/', '%')
+        assert op in ('+', '-', '*', '/', '%', '^')
         assert all(isinstance(expr, AExpr) for expr in exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "OpExpr: wrong number of arguments for %s" % op
@@ -163,10 +163,12 @@ class OpExpr(AExpr):
     def priority(self):
         if len(self.exprs) == 1:
             return 80
-        elif self.op == '+' or self.op == '-':
-            return 65
-        else:
+        elif self.op == '^':
+            return 85
+        elif self.op == '*' or self.op == '/':
             return 70
+        else:
+            return 65
 
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))

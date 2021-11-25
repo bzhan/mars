@@ -272,8 +272,6 @@ class HHLPyTest(unittest.TestCase):
         # {x >= 0 && y >= 0} <x_dot = y> {x >= 0}
         runVerify(self, pre="x >= 0 && y >= 0", hp="<x_dot = y & x < 10>", post="x >= 0",
                   diff_cuts={((), ()): ["y >= 0"]},
-                  diff_invariants={((), (0,)): "y >= 0",
-                                   ((), (1,)): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 --> y >= 0 && x >= 0"],
                                 ((), (0,)): ["0 >= 0"]})
 
@@ -284,9 +282,6 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0", 
                   hp="<x_dot = y, y_dot = z & x < 10>", post="x >= 0",
                   diff_cuts={((), ()):["z >= 0", "y >= 0"]},
-                  diff_invariants={((), (0,)): "z >= 0",
-                                   ((), (1,)): "y >= 0",
-                                   ((), (2,)): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 && z >= 0 --> z >= 0 && y >= 0 && x >= 0"],
                                 ((), (0,)): ["0 >= 0"],
                                 ((), (2,)): ["z >= 0 && y >= 0 --> y >= 0"]})
@@ -299,10 +294,6 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0 && j >= 0",
                   hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>", post="x >= 0",
                   diff_cuts={((), ()): ["j >= 0", "z >= 0", "y >= 0"]},
-                  diff_invariants={((), (0,)): "j >= 0",
-                                   ((), (1,)): "z >= 0",
-                                   ((), (2,)): "y >= 0",
-                                   ((), (3,)): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 && z >= 0 && j >= 0 --> \
                                             j >= 0 && z >= 0 && y >= 0 && x >= 0"],
                                 ((), (0,)): ["j * j >= 0"],
@@ -355,8 +346,8 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0",
                   hp="<x_dot = y, y_dot = y * y & x < 10>", post="x >= 0", 
                   diff_cuts={((), ()): ["y >= 0"]},
-                  diff_invariants={((), (0,)): "y >= 0",
-                                   ((), (1,)): "x >= 0"},
+                #   diff_invariants={((), (0,)): "y >= 0",
+                #                    ((), (1,)): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 --> y >= 0 && x >= 0"],
                                 ((), (0,)): ["y * y >= 0"]})
 
@@ -365,12 +356,12 @@ class HHLPyTest(unittest.TestCase):
     def testVerify28(self):
         # Basic benchmark, problem 21
         # dI Rule
-        # {x >= 1} <x_dot = x * x + 2 * x * x * x * x & x < 10> {x * x * x >= x * x}
-        runVerify(self, pre="x >= 1", hp="<x_dot = x * x + 2 * x * x * x * x & x < 10>",
-                  post="x * x * x >= x * x",
+        # {x >= 1} <x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> {x ^ 3 >= x ^ 2}
+        runVerify(self, pre="x >= 1", hp="<x_dot = x ^ 2 + 2 * x ^ 4 & x < 10>",
+                  post="x ^ 3 >= x ^ 2",
                   diff_invariants={((), ()): "x >= 1"},
-                  expected_vcs={((), ()): ["x * x + 2 * x * x * x * x >= 0",
-                                           "x >= 1 --> x * x * x >= x * x"]})
+                  expected_vcs={((), ()): ["x ^ 2 + 2 * x ^ 4 >= 0",
+                                           "x >= 1 --> x ^ 3 >= x ^ 2"]})
 
     def testVerify29(self):
         # Basic benchmark, problem 22
@@ -381,6 +372,20 @@ class HHLPyTest(unittest.TestCase):
                   post="x * x + y * y == 1",
                   diff_invariants={((1,), ()): "x * x + y * y == 1"},
                   expected_vcs={((1,), ()): ["x * -y + -y * x + (y * x + x * y) == 0"]})
+
+    def testVerify30(self):
+        # Basic benchmark, problem 23
+        # dC and dI rule
+        # {x^2 + y^2 == 1 && e == x} 
+        # t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>
+        # {x^2 + y^2 == 1 && e == x}
+        runVerify(self, pre="x^2 + y^2 == 1 && e == x",
+                  hp="t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>",
+                  post="x^2 + y^2 == 1 && e == x",
+                  ode_invariants={((1,), ()): "x^2 + y^2 == 1 && e == x"},
+                  diff_cuts={((1,), (0,)): ["e == x"]},
+                  expected_vcs={((1,), (0, 1)): \
+                      ["e == x --> 2 * (x ^ (2 - 1) * -y) + 2 * (y ^ (2 - 1) * e) == 0"]})
 
 
 
