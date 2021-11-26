@@ -77,6 +77,9 @@ class CmdInfo:
         # Assumptions for ODEs.
         self.assume = None
 
+        # Use differential weakening rule or not
+        self.dw = False
+
         # Invariants for ODEs.
         self.ode_inv = None
 
@@ -156,6 +159,11 @@ class CmdVerifier:
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
         self.infos[pos].ode_inv = ode_inv
+
+    def set_diff_weakening(self, pos, dw):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].dw = dw
 
     def add_diff_invariant(self, pos, diff_inv):
         if pos not in self.infos:
@@ -294,10 +302,19 @@ class CmdVerifier:
                 raise NotImplementedError
             eqs = cur_hp.eqs
             
+            # Use dW rule
+            # When dw is True.
+            if self.infos[pos].dw:
+                self.infos[pos].vcs.append(expr.imp(cur_hp.constraint, post))  
+
+                pre = expr.true_expr              
+
             # Use dI rules
             # When diff_inv is set or by default
-            if self.infos[pos].diff_inv is not None or \
-               self.infos[pos].diff_inv is None and not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
+            elif self.infos[pos].diff_inv is not None or \
+               not self.infos[pos].dw and self.infos[pos].diff_inv is None and \
+                not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
+                (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
                
                 if self.infos[pos].diff_inv is not None:
                     diff_inv = self.infos[pos].diff_inv

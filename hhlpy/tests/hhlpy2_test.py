@@ -8,7 +8,7 @@ from hhlpy.hhlpy2 import CmdVerifier
 
 
 def runVerify(self, *, pre, hp, post, loop_invariants=None, ode_invariants=None, 
-              diff_invariants=None, diff_cuts = None, ghost_equations = None,
+              diff_weakening=None, diff_invariants=None, diff_cuts = None, ghost_equations = None,
               ghost_invariants=None, print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
@@ -31,6 +31,13 @@ def runVerify(self, *, pre, hp, post, loop_invariants=None, ode_invariants=None,
             if isinstance(ode_inv, str):
                 ode_inv = bexpr_parser.parse(ode_inv)
             verifier.add_ode_invariant(pos, ode_inv)
+
+    # Set differential weakening proof rule as true
+    if diff_weakening:
+        for pos, dw in diff_weakening.items():
+            if isinstance(dw, str):
+                dw = bexpr_parser.parse(dw)
+            verifier.set_diff_weakening(pos, dw)
             
     # Place differential invariants
     if diff_invariants:
@@ -387,6 +394,54 @@ class HHLPyTest(unittest.TestCase):
                   expected_vcs={((1,), (0, 1)): \
                       ["e == x --> 2 * (x ^ (2 - 1) * -y) + 2 * (y ^ (2 - 1) * e) == 0"]})
 
+    def testVerify31(self):
+        # Basic benchmark, problem 24
+        # Conjunction rule and dI rule
+        # {d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1}
+        # t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1 & t < 10>
+        # {d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1}
+        runVerify(self, pre="d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1",
+                  hp="t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1 & t < 10>",
+                  post="d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1",
+                  ode_invariants={((1,), ()): \
+                      "d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1"},
+                  print_vcs=True,
+                  expected_vcs={((1,), (0,)): \
+                                ["2 * (d1 ^ (2 - 1) * (-w * d2)) + 2 * (d2 ^ (2 - 1) * (w * d1)) == \
+                                 w ^ 2 * (2 * (p ^ (2 - 1) * 0)) + 2 * (w ^ (2 - 1) * 0) * p ^ 2"],
+                                # ((1,), (1,)): ["-w * d2 == -w * d2 + -0 * x2"],
+                                ((1,), (2,)): ["w * d1 == w * d1 + 0 * x1"]})
+
+    def testVerify32(self):
+        # Benchmark, problem 25
+        # dC rule? and dI rule
+        # {w >= 0 && x == 0 && y == 3} 
+        # t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y & t < 10>
+        # {w^2 * x^2 + y^2 <= 9}
+        runVerify(self, pre="w >= 0 && x == 0 && y == 3",
+                  hp="t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y & t < 10>",
+                  post="w^2 * x^2 + y^2 <= 9",
+                  diff_cuts={((1,), ()): ["w >= 0"]},
+                  expected_vcs={((), ()): \
+                            ["w >= 0 && x == 0 && y == 3 --> w >= 0 && w ^ 2 * x ^ 2 + y ^ 2 <= 9"],
+                                ((1,), (0,)): ["0 >= 0"],
+                                ((1,), (1,)): \
+                            ["w >= 0 --> w ^ 2 * (2 * (x ^ (2 - 1) * y)) + 2 * (w ^ (2 - 1) * 0) * x ^ 2 + 2 * (y ^ (2 - 1) * (-w ^ 2 * x - 2 * w * y)) <= 0"]})
+
+    # Benchmark, problem 26
+
+    def testVerify33(self):
+        # Benchmark, problem 27
+        # {x >= 1 && y == 10 && z == -2} 
+        # <x_dot = y, y_dot = z + y^2 - y & y >= 0>
+        # {x >= 1 && y >= 0}
+        runVerify(self, pre="x >= 1 && y == 10 && z == -2", 
+                  hp="<x_dot = y, y_dot = z + y^2 - y & y >= 0>",
+                  post="x >= 1 && y >= 0",
+                  ode_invariants={((), ()): "x >= 1 && y >= 0"},
+                  diff_weakening={((), (1,)): "true", ((),(0,0)): "true"},
+                  diff_cuts={((), (0,)): ["y >= 0"]},
+                  expected_vcs={((), ()): ["x >= 1 && y == 10 && z == -2 --> x >= 1 && y >= 0"]})
 
 
 if __name__ == "__main__":
