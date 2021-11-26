@@ -13,12 +13,9 @@ def is_atomic(hp):
 
 def simplify_expr(expr):
     if not expr.get_vars():
-        if isinstance(expr,RelExpr)  and isinstance(expr.expr1,FunExpr) and expr.expr1.fun_name == "remove_InputMessage":
-            return expr
-        else:
-            b = simulator.eval_expr(expr, dict())
-            assert isinstance(b, bool)
-            return true_expr if b else false_expr
+        b = simulator.eval_expr(expr, dict())
+        assert isinstance(b, bool)
+        return true_expr if b else false_expr
     else:
         return expr
 
@@ -38,9 +35,7 @@ def simplify(hp):
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if  isinstance(simp_cond,RelExpr)  and isinstance(simp_cond.expr1,FunExpr) and simp_cond.expr1.fun_name == "remove_InputMessage":
-            return hcsp.Condition(simp_cond, simp_sub_hp)
-        elif simp_sub_hp.type == 'skip'  or simp_cond == false_expr:
+        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
             return hcsp.Skip()
         elif simp_cond == true_expr:
             return simp_sub_hp
