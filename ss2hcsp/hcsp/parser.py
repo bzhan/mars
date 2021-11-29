@@ -17,9 +17,9 @@ grammar = r"""
     ?atom_expr: lname
         | SIGNED_NUMBER -> num_expr
         | ESCAPED_STRING -> string_expr
-        | "[]" -> empty_list
-        | "()" ->empty_queue
+        | "[" "]" -> empty_list
         | "[" expr ("," expr)* "]" -> literal_list
+        | "{" "}" -> empty_dict
         | "{" CNAME ":" expr ("," CNAME ":" expr)* "}" -> literal_dict
         | "min" "(" expr "," expr ")" -> min_expr
         | "max" "(" expr "," expr ")" -> max_expr
@@ -27,19 +27,26 @@ grammar = r"""
         | CNAME "(" (expr)? ("," expr)* ")" -> fun_expr
         | "(" expr ")"
 
-    ?times_expr: times_expr "*" atom_expr -> times_expr
-        | times_expr "/" atom_expr -> divide_expr
-        | times_expr "%" atom_expr -> mod_expr
+    ?power_expr: power_expr "^" atom_expr -> power_expr    // priority 85
         | atom_expr
 
-    ?plus_expr: plus_expr "+" times_expr -> plus_expr
+    ?uminus: "-" uminus -> uminus | power_expr              // Unary minus: priority 80
+
+    ?times_expr: times_expr "*" uminus -> times_expr       // priority 70
+        | times_expr "/" uminus -> divide_expr
+        | times_expr "%" uminus -> mod_expr
+        | uminus
+
+    ?plus_expr: plus_expr "+" times_expr -> plus_expr      // priority 65
         | plus_expr "-" times_expr -> minus_expr
-        | "-" times_expr -> uminus_expr
         | times_expr
 
-    ?expr: plus_expr
+    ?if_expr: "(" cond "?" if_expr ":" if_expr ")"         // priority 40
+        | plus_expr
 
-    ?atom_cond: expr "==" expr -> eq_cond
+    ?expr: if_expr
+
+    ?atom_cond: expr "==" expr -> eq_cond                  // priority 50
         | expr "!=" expr -> ineq_cond
         | expr "<=" expr -> less_eq_cond
         | expr "<" expr -> less_cond
@@ -50,13 +57,16 @@ grammar = r"""
         | "false" -> false_cond
         | "(" cond ")"
     
-    ?conj: atom_cond "&&" conj | atom_cond     // Conjunction: priority 35
+    ?conj: atom_cond "&&" conj | atom_cond       // Conjunction: priority 35
 
-    ?disj: conj "||" disj | conj   // Disjunction: priority 30
+    ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 
-    ?imp: disj "-->" imp | disj  // Implies: priority 25
+    ?imp: disj "-->" imp | disj                  // Implies: priority 25
 
-    ?cond: imp
+    ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
+        | imp
+
+    ?cond: exists_expr
 
     ?comm_cmd: CNAME "?" lname -> input_cmd
         | CNAME "[" expr "]" "?" lname -> input_cmd
@@ -80,13 +90,17 @@ grammar = r"""
         | "wait" "(" expr ")" -> wait_cmd
         | atom_expr ":=" expr -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
+        | atom_expr ":=" "{" cond "}" -> random_assign_cmd
         | "assert" "(" cond ("," expr)* ")" -> assert_cmd
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
         | "(" cmd ")**" -> repeat_cmd
         | "(" cmd "){" cond "}**" -> repeat_cond_cmd
+        | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd_inv
+        | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd_inv
         | "<" ode_seq "&" cond ">" -> ode
+        | "<" ode_seq "&" cond ">@invariant(" cond ")" -> ode_inv
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
@@ -95,7 +109,9 @@ grammar = r"""
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
-    ?seq_cmd: cond_cmd (";" cond_cmd)*  // Priority: 70
+    ?ichoice_cmd: cond_cmd | cond_cmd "++" cond_cmd   // Priority: 80
+
+    ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
@@ -153,15 +169,16 @@ class HPTransformer(Transformer):
         return expr.AConst(str(s)[1:-1])  # remove quotes
 
     def empty_list(self):
-        return expr.AConst(list())
+        return expr.ListExpr()
 
-    def empty_queue(self):
-        return expr.AConst(tuple())
     def literal_list(self, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
             return expr.AConst(list(arg.value for arg in args))
         else:
             return expr.ListExpr(*args)
+
+    def empty_dict(self):
+        return expr.DictExpr()
 
     def literal_dict(self, *args):
         # args should contain 2*n elements, which are key-value pairs
@@ -186,33 +203,29 @@ class HPTransformer(Transformer):
     def field_expr(self, e, field):
         return expr.FieldNameExpr(e, field)
 
+    def if_expr(self, cond, e1, e2):
+        return expr.IfExpr(cond, e1, e2)
+
+    def exists_expr(self, var, e):
+        return expr.ExistsExpr(str(var), e)
+
     def plus_expr(self, e1, e2):
-        signs, exprs = [], []
-        if isinstance(e1, expr.PlusExpr):
-            signs.extend(e1.signs)
-            exprs.extend(e1.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e1)
-        if isinstance(e2, expr.PlusExpr):
-            signs.extend(e2.signs)
-            exprs.extend(e2.exprs)
-        else:
-            signs.append('+')
-            exprs.append(e2)
-        return expr.PlusExpr(signs, exprs)
+        return expr.OpExpr("+", e1, e2)
 
     def minus_expr(self, e1, e2):
-        return expr.PlusExpr(["+", "-"], [e1, e2])
+        return expr.OpExpr("-", e1, e2)
 
-    def uminus_expr(self, e):
-        return expr.PlusExpr(["-"], [e])
+    def uminus(self, e):
+        return expr.OpExpr("-", e)
 
     def times_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "*"], [e1, e2])
+        return expr.OpExpr("*", e1, e2)
 
     def divide_expr(self, e1, e2):
-        return expr.TimesExpr(["*", "/"], [e1, e2])
+        return expr.OpExpr("/", e1, e2)
+
+    def power_expr(self, e1, e2):
+        return expr.OpExpr("^", e1, e2)
 
     def min_expr(self, e1, e2):
         return expr.FunExpr("min", [e1, e2])
@@ -221,7 +234,7 @@ class HPTransformer(Transformer):
         return expr.FunExpr("max", [e1, e2])
 
     def mod_expr(self, e1, e2):
-        return expr.ModExpr(e1, e2)
+        return expr.OpExpr("%", e1, e2)
 
     def gcd_expr(self, *exprs):
         return expr.FunExpr(fun_name="gcd", exprs=exprs)
@@ -280,6 +293,9 @@ class HPTransformer(Transformer):
     def multi_assign_cmd(self, *args):
         return hcsp.Assign(args[:-1], args[-1])
 
+    def random_assign_cmd(self, var, cond):
+        return hcsp.RandomAssign(var, cond)
+
     def assert_cmd(self, *args):
         # First argument is the assert condition. The remaining ones
         # are error messages. 
@@ -329,6 +345,12 @@ class HPTransformer(Transformer):
     def repeat_cond_cmd(self, cmd, cond):
         return hcsp.Loop(cmd, constraint=cond)
 
+    def repeat_cmd_inv(self, cmd, inv):
+        return hcsp.Loop(cmd, inv=inv)
+
+    def repeat_cond_cmd_inv(self, cmd, inv, cond):
+        return hcsp.Loop(cmd, inv=inv, constraint=cond)
+
     def ode_seq(self, *args):
         res = []
         for i in range(0,len(args),2):
@@ -353,6 +375,9 @@ class HPTransformer(Transformer):
 
     def cond_cmd(self, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd)
+
+    def ichoice_cmd(self, cmd1, cmd2):
+        return hcsp.IChoice(cmd1, cmd2)
 
     def select_cmd(self, *args):
         assert len(args) % 2 == 0 and len(args) >= 4
@@ -413,7 +438,7 @@ class HPTransformer(Transformer):
     def module_arg_channel(self, *args):
         # First argument is channel name, remaining arguments are channel args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.Channel(str(ch_name), tuple(AConst(ch_arg) for ch_arg in ch_args))
+        return hcsp.Channel(str(ch_name), tuple(expr.AConst(ch_arg) for ch_arg in ch_args))
 
     def module_arg_expr(self, expr):
         return expr

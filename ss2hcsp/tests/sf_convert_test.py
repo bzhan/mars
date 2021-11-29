@@ -7,7 +7,6 @@ import cProfile
 
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.hcsp.pprint import pprint
 from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
@@ -35,7 +34,8 @@ def run_test(self, filename, num_cycle, res, *, io_filter=None,
 
     diagram = SL_Diagram(location=filename)
     proc_map = sf_convert.convert_diagram(
-        diagram, print_chart=print_chart, print_before_simp=print_before_simp, print_final=print_final)
+        diagram, print_chart=print_chart, print_before_simp=print_before_simp,
+        print_final=print_final)
 
     if profile:
         p = Stats(pr)
@@ -588,6 +588,11 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
              'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
 
+    def testSettaDemo(self):
+        run_test(self, "./Examples/Stateflow/tests/settaDemo.xml", 2,
+            ['log B', 'log D', 'log A', 'log D', 'delay 0.1',
+             'log B', 'log D', 'log A', 'log D', 'delay 0.1'])
+
     def testSFNew(self):
         random.seed(0)  # for repeatability
         io_filter = lambda s: s == 'WHC_out'
@@ -600,13 +605,13 @@ class SFConvertTest(unittest.TestCase):
             io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
 
     def testStopWatch(self):
-        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml",9,
+        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml", 9,
             ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000',
              'log en_RunW 0.000 0.000', 'IO ch_clock 0', 'log cond_TIC 0.000 0.000',
-             'log edu_Running 1.000 0.000', 'delay 0.01', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
-             'log edu_Running 2.000 0.000', 'delay 0.01', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
-             'log edu_Running 3.000 0.000', 'delay 0.01', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
-             'log edu_Running 4.000 0.000', 'delay 0.01'])
+             'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
+             'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
+             'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
+             'log edu_Running 4.000 0.000', 'delay 0.1'])
 
 
 if __name__ == "__main__":

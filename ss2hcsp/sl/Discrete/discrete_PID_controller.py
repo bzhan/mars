@@ -1,7 +1,7 @@
 """Discrete PID Controller"""
 
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, ModExpr, TimesExpr, PlusExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, OpExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 
@@ -42,19 +42,19 @@ class DiscretePID(SL_Block):
         out_var = self.src_lines[0][0].name
 
         step0 = hp.Assign(var_name="rtb_Sum", expr=AVar(in_var))
-        step1 = hp.Assign(var_name="rtb_IntegralGain", expr=TimesExpr("**", [AVar("rtb_Sum"), AConst(self.pid[1])]))
-        step2 = hp.Assign(var_name="rtb_Sum", expr=TimesExpr("**", [AVar("rtb_Sum"), AConst(self.pid[0])]))
-        step3 = hp.Assign(var_name="rtb_SumFdbk", expr=PlusExpr("++", [AVar("rtb_Sum"), AVar("Integrator_DSTATE")]))
+        step1 = hp.Assign(var_name="rtb_IntegralGain", expr=OpExpr("*", AVar("rtb_Sum"), AConst(self.pid[1])))
+        step2 = hp.Assign(var_name="rtb_Sum", expr=OpExpr("*", AVar("rtb_Sum"), AConst(self.pid[0])))
+        step3 = hp.Assign(var_name="rtb_SumFdbk", expr=OpExpr("+", AVar("rtb_Sum"), AVar("Integrator_DSTATE")))
         step4 = hp.ITE(if_hps=[(RelExpr(">", AVar("rtb_SumFdbk"), AConst(self.saturation[1])),
                                 hp.Assign(var_name="rtb_SumFdbk_0", expr=AConst(self.saturation[1]))),
                                (RelExpr("<", AVar("rtb_SumFdbk"), AConst(self.saturation[0])),
                                 hp.Assign(var_name="rtb_SumFdbk_0", expr=AConst(self.saturation[0])))],
                        else_hp=hp.Assign(var_name="rtb_SumFdbk_0", expr=AVar("rtb_SumFdbk"))
                        )
-        expr0 = TimesExpr("**", [PlusExpr("+-", [AVar("rtb_SumFdbk_0"), AVar("rtb_SumFdbk")]), AConst(self.kb)])
-        expr1 = TimesExpr("**", [PlusExpr("++", [expr0, AVar("rtb_IntegralGain")]), AConst(self.st)])
-        step5 = hp.Assign(var_name="rtb_IntegralGain", expr=PlusExpr("++", [expr1, AVar("Integrator_DSTATE")]))
-        step6 = hp.Assign(var_name="rtb_Sum", expr=PlusExpr("++", [AVar("rtb_Sum"), AVar("rtb_IntegralGain")]))
+        expr0 = OpExpr("*", OpExpr("-", AVar("rtb_SumFdbk_0"), AVar("rtb_SumFdbk")), AConst(self.kb))
+        expr1 = OpExpr("*", OpExpr("+", expr0, AVar("rtb_IntegralGain")), AConst(self.st))
+        step5 = hp.Assign(var_name="rtb_IntegralGain", expr=OpExpr("+", expr1, AVar("Integrator_DSTATE")))
+        step6 = hp.Assign(var_name="rtb_Sum", expr=OpExpr("+", AVar("rtb_Sum"), AVar("rtb_IntegralGain")))
         step7 = hp.ITE(if_hps=[(RelExpr(">", AVar("rtb_Sum"), AConst(self.saturation[1])),
                                 hp.Assign(var_name=out_var, expr=AConst(self.saturation[1]))),
                                (RelExpr("<", AVar("rtb_Sum"), AConst(self.saturation[0])),
@@ -62,7 +62,7 @@ class DiscretePID(SL_Block):
                        else_hp=hp.Assign(var_name=out_var, expr=AVar("rtb_Sum")))
         step8 = hp.Assign(var_name="Integrator_DSTATE", expr=AVar("rtb_IntegralGain"))
 
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
+        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
 
         return hp.Condition(cond=time_cond,
                             hp=hp.Sequence(step0, step1, step2, step3, step4, step5, step6, step7, step8))

@@ -23,7 +23,7 @@ grammar = r"""
         | "[" expr ((",")? expr)* "]" -> list_expr
         | "[" arr_num (";" arr_num)* "]" -> list_expr2
         | "(" expr ")"
-        | CNAME ("." CNAME)+ ->direct_name
+        | CNAME ("." CNAME)+ -> direct_name
 
     ?times_expr: times_expr "*" atom_expr -> times_expr
         | times_expr "/" atom_expr -> divide_expr
@@ -68,7 +68,7 @@ grammar = r"""
     ?lname: CNAME -> var_lname
         | CNAME "(" expr ("," expr)* ")" -> fun_lname
         | "[" lname ("," lname)* "]" -> list_lname
-        | CNAME ("." CNAME)+ ->direct_name
+        | CNAME ("." CNAME)+ -> direct_name
     
     // Assignment command includes possible type declarations
     ?assign_cmd: ("int" | "float")? lname "=" expr (";")?
@@ -335,15 +335,16 @@ class MatlabTransformer(Transformer):
             else:
                 raise TypeError
         return function.TransitionLabel(event, cond, cond_act, tran_act)
+
     def direct_name(self,*expr):
         return function.DirectName([str(e) for e in expr])
 
     def entry_op(self,cmd):
-
         return function.StateInnerOperate("en",cmd)
-    def during_op(self,cmd):
 
+    def during_op(self,cmd):
         return function.StateInnerOperate("du",cmd)
+
     def exit_op(self,cmd):
         return function.StateInnerOperate("ex",cmd)
 

@@ -80,13 +80,32 @@
 }
 
 .event-list {
-  margin-top: 10px;
+  margin-top: 0px;
   overflow: visible;
 }
 
 .event-list pre {
   margin: 0px;
   cursor: pointer;
+  overflow: visible;
+}
+.processes-list {
+  margin-top: 0px;
+  overflow: visible;
+}
+
+.processes-list pre {
+  margin: 0px;
+  cursor: pointer;
+  overflow: visible;
+}
+.callstack-list {
+  margin-top: 0px;
+  overflow: visible;
+}
+
+.callstack-list pre {
+  margin-top: 0px;
   overflow: visible;
 }
 
@@ -98,29 +117,68 @@
   margin: 0px 0px 0px 20px;
   align-self: center;
 }
-
+.navbar{
+  position: absolute;
+  top: 0%;
+  bottom: 90%;
+  width: 100%;
+  object-fit: cover;
+}
+.toolbar{
+  position: absolute;
+  top: 10%;
+  bottom: 87%;
+  width: 100%;
+  object-fit: cover;
+}
+.headline{
+  position: absolute;
+  top: 13%;
+  bottom: 15%;
+  width: 100%;
+}
 .left {
   display: inline-block;
   max-width: 70%;
-  position: fixed;
-  top: 127px;
+  position: absolute;
+  top: 15%;
   bottom: 0px;
   overflow-y: scroll;
   overflow-x: scroll;
 }
-
-.right {
+.event {
   display: inline-block;
   max-width: 30%;
   vertical-align: top;
-  position: fixed;
-  top: 127px;
-  bottom: 0px;
+  position: absolute;
+  top: 15%;
+  bottom: 50%;
   left: 70%;
   overflow-y: scroll;
   overflow-x: scroll;
 }
-
+.processes {
+  display: inline-block;
+  max-width: 30%;
+  vertical-align: top;
+  position: absolute;
+  top: 50%;
+  bottom: 20%;
+  left: 70%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
+.callstack {
+  display: inline-block;
+  max-width: 30%;
+  vertical-align: top;
+  position: absolute;
+  top: 80%;
+  bottom: 0%;
+  left: 70%;
+  overflow-y: scroll;
+  overflow-x: scroll;
+}
 .error-message {
   margin-left: 10px;
   color: red;

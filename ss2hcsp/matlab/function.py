@@ -654,10 +654,10 @@ class Message(Command):
     """Command for raising an event."""
     def __init__(self, message):
         assert isinstance(message, str)
-        self.message = message
+        self.message = str(message)
 
     def __str__(self):
-        return str(self.message)
+        return self.message
 
     def __repr__(self):
         return "RaiseEvent(%s)" % repr(self.message)
@@ -670,6 +670,7 @@ class Message(Command):
 
     def subst(self, inst):
         return self
+
 
 class Function:
     """Function declarations in Matlab.
@@ -781,7 +782,7 @@ class TransitionLabel:
             self.cond == other.cond and self.cond_act == other.cond_act and self.tran_act == other.tran_act
 
 class DirectName:
-    """docstring for ClassName"""
+    """Directed name."""
     def __init__(self, expr):
         self.exprs = expr
 
@@ -793,26 +794,29 @@ class DirectName:
 
 
 class StateInnerOperate:
-    def __init__(self,name,op):
-        self.name=name
-        self.op=op
+    def __init__(self, name, op):
+        self.name = name
+        self.op = op
+
     def __str__(self):
-        return self.name+":"+self.op
+        return self.name + ":" + self.op
+
     def __repr__(self):
-        return "StateInnerOperate(%s,%s)" %(self.name,self.op)
+        return "StateInnerOperate(%s,%s)" % (self.name, self.op)
+
 class StateOperate:
-    def __init__(self,name,en_op,du_op,ex_op):
-        self.name=name
-        self.en_op=en_op
-        self.du_op=du_op
-        self.ex_op=ex_op
+    def __init__(self, name, en_op, du_op, ex_op):
+        self.name = name
+        self.en_op = en_op
+        self.du_op = du_op
+        self.ex_op = ex_op
+
     def __str__(self):
-        state_name=self.name+"\n"
-        state_en_op=self.en_op.name+" : "+self.op+"\n"
-        state_du_op=self.du_op.name+" : "+self.op+"\n"
-        state_ex_op=self.ex_op.name+" : "+self.op+"\n"
-        return state_name+state_en_op+state_du_op+state_ex_op
+        state_name = self.name + "\n"
+        state_en_op = self.en_op.name + " : " + self.op + "\n"
+        state_du_op = self.du_op.name + " : " + self.op + "\n"
+        state_ex_op = self.ex_op.name + " : " + self.op + "\n"
+        return state_name + state_en_op + state_du_op + state_ex_op
 
     def __repr__(self):
-        return "StateOperate(%s,%s,%s,%s)" %(self.name,self.en_op,self.du_op,self.ex_op)
-
+        return "StateOperate(%s,%s,%s,%s)" % (self.name, self.en_op, self.du_op, self.ex_op)

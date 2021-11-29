@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, FunExpr, PlusExpr, true_expr
+from ss2hcsp.hcsp.expr import AVar, AConst, OpExpr, FunExpr, true_expr
 
 
 class Logic(SL_Block):
@@ -24,7 +24,7 @@ class Logic(SL_Block):
             expr = FunExpr("max", in_vars)
         elif isinstance(self, Not):
             assert len(in_vars) == 1
-            expr = PlusExpr("+-", [AConst(1), in_vars[0]])
+            expr = OpExpr("-", AConst(1), in_vars[0])
         else:
             raise RuntimeError("Error Type!")
         out_var = self.src_lines[0][0].name

@@ -62,34 +62,19 @@ def translate_isabelle(process, name):
             return "s %s" % mapping[e.name]
         elif isinstance(e, expr.AConst):
             return str(e.value)
-        elif isinstance(e, expr.PlusExpr):
-            res = trans_expr(e.exprs[0])
-            if e.signs[0] == "-":
-                if res.startswith("-") or isinstance(e.exprs[0], expr.PlusExpr):
-                    res = "-(" + res + ")"
-                else:
-                    res = "-" + res
-            for sign, e2 in zip(e.signs[1:], e.exprs[1:]):
-                trans_e2 = trans_expr(e2)
-                if trans_e2.startswith("-") or (sign == "-" and isinstance(e2, expr.PlusExpr)):
-                    res += " " + sign + " (" + trans_e2 + ")"
-                else:
-                    res += " " + sign + " " + trans_e2
-            return res
-        elif isinstance(e, expr.TimesExpr):
-            res = trans_expr(e.exprs[0])
-            if isinstance(e.exprs[0], expr.PlusExpr) or (e.signs[0] == "/" and isinstance(e.exprs[0], expr.TimesExpr)):
-                res = "(" + res + ")"
-            if e.signs[0] == "/":
-                res = "1/" + res
-            for sign, e2 in zip(e.signs[1:], e.exprs[1:]):
-                trans_e2 = trans_expr(e2)
-                if isinstance(e2, expr.PlusExpr) or (sign == "/" and isinstance(e2, expr.TimesExpr)) \
-                        or (sign == "*" and trans_e2.startswith("-")):
-                    res += " " + sign + " (" + trans_e2 + ")"
-                else:
-                    res += " " + sign + " " + trans_e2
-            return res
+        elif isinstance(e, expr.OpExpr):
+            if len(e.exprs) == 1:
+                res = trans_expr(e.exprs[0])
+                if e.exprs[0].priority() < e.priority():
+                    res = "(" + res + ")"
+                return "-" + res
+            else:
+                r1, r2 = trans_expr(e.exprs[0]), trans_expr(e.exprs[1])
+                if e.exprs[0].priority() < e.priority():
+                    r1 = "(" + r1 + ")"
+                if e.exprs[1].priority() < e.priority():
+                    r2 = "(" + r2 + ")"
+                return r1 + " " + e.op + " " + r2
         elif isinstance(e, expr.BConst):
             return "True" if e.value else "False"
         elif isinstance(e, expr.RelExpr):

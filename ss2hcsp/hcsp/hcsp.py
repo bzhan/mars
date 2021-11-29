@@ -3,6 +3,7 @@
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
 from ss2hcsp.matlab import function
+from ss2hcsp.util.topsort import topological_sort
 import re
 
 
@@ -90,6 +91,8 @@ class HCSP:
             return 50
         elif self.type == "sequence":
             return 70
+        elif self.type == "ichoice":
+            return 80
         elif self.type == "condition":
             return 90
         else:
@@ -278,6 +281,10 @@ class Wait(HCSP):
 class Assign(HCSP):
     """Assignment command.
 
+    var_name : AExpr - variable to be assigned, one of AVar (e.g. x),
+        ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : AExpr - value to be assigned.
+
     Left side is an expression that can serve as a lname. This includes
     variables, array indices, and field names.
 
@@ -329,6 +336,66 @@ class Assign(HCSP):
 
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
+
+    def priority(self):
+        return 100
+
+class RandomAssign(HCSP):
+    """Random Assignment commend.
+
+    x := {x >= 1}
+
+    var_name : AExpr - variable to be assigned, one of AVar (e.g. x), ArrayIdxExpr (e.g. a[0]), and FieldNameExpr (e.g. a.field1).
+    expr : BExpr - the range value to be randomly choose from.
+
+    Left side is an expression that can serve as a lname. This includes
+    variables, array indices, and field names.
+
+    """
+    def __init__(self, var_name, expr):
+        super(RandomAssign, self).__init__()
+        self.type = "randomassign"
+        assert isinstance(expr, BExpr)
+        if isinstance(var_name, str):
+            var_name = AVar(str(var_name))
+        if isinstance(var_name, AExpr):
+            self.var_name = var_name
+        elif isinstance(var_name, function.DirectName):
+            self.var_name = var_name
+        else:
+            var_name = tuple(var_name)
+            assert len(var_name) <= 2 and all (isinstance(name, (str, AExpr))for name in var_name)
+            self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
+        self.expr = expr
+
+    def __eq__(self, other):
+        return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
+
+    def __repr__(self):
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
+        else:
+            var_str = "[%s]" % (','.join(str(n) for n in self.var_name))
+        return "RandomAssign(%s, %s)" % (var_str, str(self.expr))
+
+    def __str__(self):
+        if isinstance(self.var_name, AExpr):
+            var_str = str(self.var_name)
+        elif isinstance(self.var_name,function.DirectName):
+            var_str=str(self.var_name)
+        else:
+            var_str = "(%s)" % (', '.join(str(n) for n in self.var_name))
+        return var_str + " := " + "{" + str(self.expr) + "}"
+
+    def __hash__(self):
+        return hash(("RandomAssign", self.var_name, self.expr))
+
+    def get_vars(self):
+        if isinstance(self.var_name, AExpr):
+            var_set = {str(self.var_name)}
+        else:
+            var_set = set(str(n) for n in self.var_name)
+        return var_set.union(self.expr.get_vars())
 
     def priority(self):
         return 100
@@ -572,10 +639,10 @@ def is_comm_channel(hp):
 
 class Sequence(HCSP):
     def __init__(self, *hps):
-        super(Sequence, self).__init__()
         """hps is a list of hybrid programs."""
+        super(Sequence, self).__init__()
         self.type = "sequence"
-        # assert all(isinstance(hp, HCSP) for hp in hps)
+        assert all(isinstance(hp, HCSP) for hp in hps)
         assert len(hps) >= 1
         self.hps = []
         for hp in hps:
@@ -624,6 +691,7 @@ def seq(hps):
     length 0 or 1.
 
     """
+    assert all(isinstance(hp, HCSP) for hp in hps)
     hps = [hp for hp in hps if hp != Skip()]
     if len(hps) == 0:
         return Skip()
@@ -631,6 +699,32 @@ def seq(hps):
         return hps[0]
     else:
         return Sequence(*hps)
+
+
+class IChoice(HCSP):
+    """Represents internal choice of the form P ++ Q."""
+    def __init__(self, hp1, hp2):
+        super(IChoice, self).__init__()
+        self.type = "ichoice"
+        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        self.hp1 = hp1
+        self.hp2 = hp2
+
+    def __eq__(self, other):
+        return self.hp1 == other.hp1 and self.hp2 == other.hp2
+
+    def __str__(self):
+        return "%s ++ %s" % (str(self.hp1), str(self.hp2))
+
+    def __repr__(self):
+        return "IChoice(%s,%s)" % (repr(self.hp1), repr(self.hp2))
+
+    def __hash__(self):
+        return hash(("ICHOICE", self.hp1, self.hp2))
+
+    def get_vars(self):
+        return self.hp1.get_vars().union(self.hp2.get_vars())
+
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -643,6 +737,8 @@ class ODE(HCSP):
         is the name of the variable, and expr is its derivative.
 
         constraint is a boolean formula.
+
+        invariant is a boolean formula.
 
         """
         super(ODE, self).__init__()
@@ -666,6 +762,12 @@ class ODE(HCSP):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr) for var_name, expr in self.eqs)
         str_out_hp = "" if isinstance(self.out_hp, Skip) else " |> " + str(self.out_hp)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + str_out_hp
+
+    def __repr__(self):
+        if self.out_hp == Skip():
+            return "ODE(%s, %s, invariant=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.inv))
+        else:
+            return "ODE(%s, %s, invariant=%s, out_hp=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.inv), repr(self.out_hp))
 
     def __hash__(self):
         return hash(("ODE", self.eqs, self.constraint, self.out_hp))
@@ -760,22 +862,30 @@ class ODE_Comm(HCSP):
 
 
 class Loop(HCSP):
-    """Represents an infinite loop of a program."""
-    def __init__(self, hp, constraint=true_expr):
+    """Represents an infinite loop of a program.
+    
+    hp : HCSP - body of the loop.
+    constraint : BExpr - loop condition, default to true.
+    inv : BExpr - invariant
+
+    """
+    def __init__(self, hp, *, inv=None, constraint=true_expr):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp
+        self.inv = inv
         self.constraint = constraint
 
     def __eq__(self, other):
-        return self.type == other.type and self.hp == other.hp and self.constraint == other.constraint
+        return self.type == other.type and self.hp == other.hp and \
+            self.constraint == other.constraint and self.inv == other.inv
 
     def __repr__(self):
         if self.constraint == true_expr:
-            return "Loop(%s)" % repr(self.hp)
+            return "Loop(%s)" % (repr(self.hp))
         else:
-            return "Loop(%s, %s)" % (repr(self.hp), self.constraint)
+            return "Loop(%s, %s)" % (repr(self.hp), str(self.constraint))
 
     def __str__(self):
         if self.constraint == true_expr:
@@ -1115,6 +1225,26 @@ class HCSPInfo:
 
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
+
+def subst_comm_all(hp, inst):
+    """Perform all substitutions given in inst. Detect cycles.
+    
+    First compute a topological sort of dependency in inst, which will
+    provide the order of substitution.
+
+    """
+    # Set of all variables to be substituted
+    all_vars = set(inst.keys())
+
+    # Mapping variable to its dependencies
+    dep_order = dict()
+    for var in all_vars:
+        dep_order[var] = list(inst[var].get_vars().intersection(all_vars))
+
+    topo_order = topological_sort(dep_order)
+    for var in reversed(topo_order):
+        hp = hp.subst_comm({var: inst[var]})
+    return hp
 
 def HCSP_subst(hp, inst):
     """Substitution of program variables for their instantiations."""

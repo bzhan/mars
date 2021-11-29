@@ -1,4 +1,3 @@
-
 """Simulation for HCSP programs.
 
 The state is given by a dictionary from variable names to numbers.
@@ -6,14 +5,14 @@ The state is given by a dictionary from variable names to numbers.
 """
 
 import copy
-import itertools
+import ast
 import math
 import random
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
-from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, PlusExpr, TimesExpr, FunExpr, ModExpr, \
-    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, NegExpr, \
-    RelExpr, true_expr, false_expr, opt_round, get_range, split_disj, str_of_val,FieldNameExpr
+from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
+    ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
+    RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
@@ -23,10 +22,15 @@ from ss2hcsp.matlab import function
 
 
 class SimulatorException(Exception):
+    """Exception raised during simulation. Indicates an error in the
+    HCSP program.
+    
+    """
     def __init__(self, error_msg):
         self.error_msg = error_msg
 
 class SimulatorAssertionException(Exception):
+    """Failure of a test in the HCSP program."""
     def __init__(self, expr, error_msg):
         self.expr = expr
         self.error_msg = error_msg
@@ -54,33 +58,24 @@ def eval_expr(expr, state):
         # Constant case
         return expr.value
 
-    elif isinstance(expr, PlusExpr):
-        # Sum of expressions
-        if isinstance(eval_expr(expr.exprs[0], state), str):
-            res = ""
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    raise SimulatorException("Type error when evaluating %s" % expr)
+    elif isinstance(expr, OpExpr):
+        # Arithmetic operations
+        if len(expr.exprs) == 1:
+            return -eval_expr(expr.exprs[0], state)
         else:
-            res = 0
-            for s, e in zip(expr.signs, expr.exprs):
-                if s == '+':
-                    res += eval_expr(e, state)
-                else:
-                    res -= eval_expr(e, state)
-        return res
-
-    elif isinstance(expr, TimesExpr):
-        # Product of expressions
-        res = 1
-        for s, e in zip(expr.signs, expr.exprs):
-            if s == '*':
-                res *= eval_expr(e, state)
+            e1, e2 = eval_expr(expr.exprs[0], state), eval_expr(expr.exprs[1], state)
+            if expr.op == '+':
+                return e1 + e2
+            elif expr.op == '-':
+                return e1 - e2
+            elif expr.op == '*':
+                return e1 * e2
+            elif expr.op == '/':
+                return e1 / e2
+            elif expr.op == '%':
+                return e1 % e2
             else:
-                res /= eval_expr(e, state)
-        return res
+                raise TypeError
 
     elif isinstance(expr, FunExpr):
         # Special functions
@@ -96,54 +91,8 @@ def eval_expr(expr, state):
         elif expr.fun_name == "div":
             a, b = args
             return int(a) // int(b)
-        elif expr.fun_name == "put":
-            n,a, b = args
-            
-            assert isinstance(a, tuple)
-            if isinstance(b, tuple):
-
-                return tuple(list(a) + list(b))
-            else:
-                if isinstance(b,dict) and n == "LQU":
-                    state[b['name']+'.'+'data']=b['data']
-                return tuple(list(a)+[b])
-        elif expr.fun_name == "exist":
-            n,a, b= args
-            index=-1
-            assert isinstance(a, tuple)
-            if len(a) == 0:
-                raise SimulatorException('When evaluating %s: argument is empty' % expr)
-            for i in range(0,len(a)):
-                if b == a[i]['name'] :
-                    state[a[i]['name']+'.'+'data']=a[i]['data']
-                    index=i
-                    break
-            if index>-1:
-                a=a[:index]+a[index+1:]
-                state[str(n)]=a
-            return index
-            
-        elif expr.fun_name == "remove_InputMessage":
-
-            for n,info in args[0].items():
-                if str(n)+".data" in state.keys(): 
-                    state.pop(str(n)+".data")
-            return 1
-          
-        # elif expr.fun_name == "isequals":
-            
-        #     n,b,c =args
-        #     if isinstance(b,FieldNameExpr):        
-        #         if state[str(b)] != c:
-        #             if n =="IQU":
-        #                 state.pop(str(b))
-        #             return 0
-        #         elif state[str(b)] == c:
-        #             if n =="IQU":
-        #                 state.pop(str(b))
-        #             return 1
-            
-          
+        elif expr.fun_name == "sin":
+            return math.sin(args[0])
         elif expr.fun_name == "push":
             a, b = args
             assert isinstance(a, list)
@@ -233,7 +182,7 @@ def eval_expr(expr, state):
         elif expr.fun_name == "unidrnd":
             assert len(args) == 1
             if args[0] <= 0:
-                raise SimulatorException('When evaluating %s: %s > %s' % (expr, args[0], args[1]))
+                raise SimulatorException('When evaluating %s: %s <= 0' % (expr, args[0]))
             return random.randint(1, args[0])
         elif expr.fun_name == "zeros":
             if len(args) == 3:
@@ -257,10 +206,12 @@ def eval_expr(expr, state):
         else:
             raise SimulatorException("When evaluating %s: unrecognized function" % expr)
 
-    elif isinstance(expr, ModExpr):
-        multiple = 1000
-        return (round(eval_expr(expr.expr1, state) * multiple) %
-                round(eval_expr(expr.expr2, state) * multiple)) / multiple
+    elif isinstance(expr, IfExpr):
+        cond = eval_expr(expr.cond, state)
+        if cond:
+            return eval_expr(expr.expr1, state)
+        else:
+            return eval_expr(expr.expr2, state)
 
     elif isinstance(expr, ListExpr):
         return list(eval_expr(arg, state) for arg in expr.args)
@@ -287,44 +238,36 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        # a = eval_expr(expr.expr1, state)
-        # b = eval_expr(expr.expr2, state)
         if expr.op == "&&":
-            return eval_expr(expr.expr1, state) and eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
         elif expr.op == "||":
-            return eval_expr(expr.expr1, state) or eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
         elif expr.op == "-->":
-            return (not eval_expr(expr.expr1, state)) or eval_expr(expr.expr2, state)
+            return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
         elif expr.op == "<-->":
-            return eval_expr(expr.expr1, state) == eval_expr(expr.expr2, state)
+            return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
+        elif expr.op == "~":
+            return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
 
-    elif isinstance(expr, NegExpr):
-        a = eval_expr(expr.expr, state)
-        return (not a)
-
     elif isinstance(expr, RelExpr):
-        a = eval_expr(expr.expr1, state)
-        b = eval_expr(expr.expr2, state)
+        a, b = eval_expr(expr.expr1, state), eval_expr(expr.expr2, state)
         if expr.op == "<":
-            return b - a > 1e-7
+            return a < b
         elif expr.op == ">":
-            return a - b > 1e-7
+            return a > b
         elif expr.op == "==":
-            if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                return abs(a - b) < 1e-7
+            if isinstance(a, float) or isinstance(b, float):
+                return abs(a - b) < 1e-10
             else:
                 return a == b
         elif expr.op == "!=":
-            if isinstance(a, (int, float)) and isinstance(b, (int, float)):
-                return abs(a - b) > 1e-7
-            else:
-                return a != b
+            return a != b
         elif expr.op == ">=":
-            return a - b > -1e-7
+            return a >= b
         elif expr.op == "<=":
-            return b - a > -1e-7
+            return a <= b
         else:
             raise NotImplementedError
 
@@ -335,8 +278,9 @@ def eval_expr(expr, state):
 def eval_channel(ch_name, state):
     """Evaluate channel ch_name at the given state.
 
-    A special case is when one or more indices of the communication channel
-    is a bound variable. In this case we do not modify the index.
+    A special case is when one or more indices of the communication
+    channel is a bound variable (indicated by variable name starting
+    with '_'). In this case we do not modify the index.
 
     """
     args = []
@@ -398,8 +342,10 @@ def get_ode_delay(hp, state):
 
     def is_zero(t):
         """Whether the given expression simplifies to 0."""
-        if isinstance(t, TimesExpr):
-            return any(t.signs[i] == '*' and is_zero(t.exprs[i]) for i in range(len(t.exprs)))
+        if isinstance(t, OpExpr) and t.op == '*':
+            return is_zero(t.exprs[0]) or is_zero(t.exprs[1])
+        elif isinstance(t, OpExpr) and t.op == '/':
+            return is_zero(t.exprs[0])
         elif isinstance(t, AConst):
             return t.value == 0
         elif isinstance(t, AVar):
@@ -426,12 +372,8 @@ def get_ode_delay(hp, state):
             return e.name == var_name
         elif isinstance(e, AConst):
             return False
-        elif isinstance(e, PlusExpr):
+        elif isinstance(e, (OpExpr, LogicExpr, FunExpr)):
             return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
-        elif isinstance(e, (PlusExpr, TimesExpr, FunExpr)):
-            return any(occur_var(sub_e, var_name) for sub_e in e.exprs)
-        elif isinstance(e, NegExpr):
-            return occur_var(e.expr, var_name)
         else:
             print('occur_var:', e)
             raise NotImplementedError
@@ -441,13 +383,13 @@ def get_ode_delay(hp, state):
 
     def test_cond(e):
         if isinstance(e, LogicExpr) and e.op == '||':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
         if isinstance(e, LogicExpr) and e.op == '&&':
-            delay1 = test_cond(e.expr1)
-            delay2 = test_cond(e.expr2)
+            delay1 = test_cond(e.exprs[0])
+            delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)
 
         # Condition never changes
@@ -505,21 +447,27 @@ def get_ode_delay(hp, state):
     return test_cond(hp.constraint)
 
 class Frame:
-    def __init__(self, pos=None, rec_vars=None, proc=None, thisproc=None):
+    """Represents a frame on the call stack."""
+    def __init__(self, pos, rec_vars, proc_name):
+        # Location within the program or procedure
         self.pos = pos
-        self.proc = proc # hcsp.Procedure
-        self.rec_vars = rec_vars 
-        self.innerpos = pos # inner position, use for display
-        self.thisproc = thisproc
-        
-    
+
+        # List recursive variables
+        self.rec_vars = rec_vars
+
+        # Name of the process to be called. Can be None for the main process
+        self.proc_name = proc_name
+
+        # Inner position, use for display
+        self.innerpos = pos
+
+
 class Callstack:
+    """Represents current call stack during simulation."""
+    def __init__(self, pos, rec_vars):
+        self.callstack = [Frame(pos, rec_vars, None)]
 
-    def __init__(self, pos, globalhp, rec_vars, proc, thisproc):
-        self.callstack = [Frame(pos, rec_vars, proc, thisproc)]    
-        self.globalhp = globalhp
-
-    def renewinnerpos(self):
+    def renewinnerpos(self, hp, procs):
         if self.callstack[-1].pos is None:
             self.callstack[-1].innerpos = copy.deepcopy(self.callstack[-1].pos)
         else:
@@ -531,31 +479,29 @@ class Callstack:
                 if curpos is None:
                     self.callstack[-1].innerpos = None
                 elif lastpos is None:
-                        self.callstack[-1].innerpos = curpos
+                    self.callstack[-1].innerpos = curpos
                 else:
                     self.callstack[-1].innerpos = curpos[len(lastpos)+1:]
             # if has recursion, renew cur-place by deleting inner recursion cycles
             pos = self.callstack[-1].pos
             rec_list = []
             length = len(self.callstack[-1].innerpos)
-            for i in range(len(pos) - length,len(pos) + 1):
-                hp = self.globalhp
-                sub_hp = get_pos(hp, pos[:i], self.callstack[-1].rec_vars, self.callstack[-1].proc)
+            for i in range(len(pos)-length, len(pos)+1):
+                sub_hp = get_pos(hp, pos[:i], self.callstack[-1].rec_vars, procs)
                 if sub_hp.type == "recursion":
                     rec_list.append(i)
             if len(rec_list) >= 2:
                 self.callstack[-1].innerpos = pos[:rec_list[0]] + pos[rec_list[-1]:]
                 self.callstack[-1].innerpos = self.callstack[-1].innerpos[(len(pos)-length):]
  
-    def push(self, pos, rec_vars, proc, thisproc):
+    def push(self, pos, rec_vars, proc_name):
         # when percedure shift occur,push
-        self.callstack.append(Frame(pos, rec_vars, proc, thisproc))
+        self.callstack.append(Frame(pos, rec_vars, proc_name))
     
     def renew(self, pos, rec_vars):
         # renew pos in same percedure or main part
         self.callstack[-1].pos = pos
         self.callstack[-1].rec_vars = rec_vars
-        
 
     def pop(self):
         if self.callstack:
@@ -566,45 +512,29 @@ class Callstack:
     def top_pos(self):
         return self.callstack[-1].pos
 
-    def top_procedure(self):
-        return self.callstack[-1].proc
+    def top_procname(self):
+        return self.callstack[-1].proc_name
 
-    def top_cur_proc(self):
-        return self.callstack[-1].thisproc
-
-    def top_innerpos(self):
-        return self.callstack[-1].innerpos  
-
-    def getinfo(self):
-        self.renewinnerpos()
-        callstack_info={
-            'innerpos':[],
-            'procedure':[],
+    def getinfo(self, hp, procs):
+        self.renewinnerpos(hp, procs)
+        callstack_info = {
+            'innerpos': [],
+            'procedure':[]
         }
-        index =len(self.callstack) - 1
+        index = len(self.callstack) - 1
         while index >= 0:
-            innerpos=self.callstack[index].innerpos
+            innerpos = self.callstack[index].innerpos
             if innerpos is None:
                 callstack_info['innerpos'].append('end')
+            elif get_pos(hp, self.callstack[-1].pos, self.callstack[-1].rec_vars, procs).type != 'wait':
+                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))   
             else:
-                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos))
-            
-            if self.callstack[index].thisproc is None:
-                callstack_info['procedure'].append(self.callstack[index].thisproc)
+                callstack_info['innerpos'].append('p' + ','.join(str(p) for p in innerpos[:-1]))         
+            if self.callstack[index].proc_name is None:
+                callstack_info['procedure'].append(self.callstack[index].proc_name)
             else:
-                callstack_info['procedure'].append(self.callstack[index].thisproc.name)
-            
+                callstack_info['procedure'].append(self.callstack[index].proc_name)
             index = index - 1
-        isempty = True
-        for proc in callstack_info['procedure']:
-            if proc is None:
-                isempty = True
-            else:
-                isempty =False
-                break
-        if isempty == True:
-            callstack_info['procedure'] = None
-
         return callstack_info
 
 
@@ -613,7 +543,7 @@ def start_pos(hp):
     if hp.type == 'sequence':
         return (0,) + start_pos(hp.hps[0])
     elif hp.type == 'loop':
-        return start_pos(hp.hp)
+        return (0,) + start_pos(hp.hp)
     elif hp.type == 'wait':
         return (0,)  # Time already spent in delay
     else:
@@ -639,7 +569,11 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
             return hp
         return get_pos(hp.hps[pos[0]], pos[1:], rec_vars, procs)
     elif hp.type == 'loop':
-        return get_pos(hp.hp, pos, rec_vars, procs)
+        if len(pos) == 0:
+            return hp
+        else:
+            assert pos[0] == 0
+        return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'wait':
         # assert len(pos) == 1
         return hp
@@ -688,6 +622,14 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
             return get_pos(rec_hp, pos[1:], rec_vars, procs)
         else:
             raise SimulatorException("Unrecognized process variable: " + hp.name)
+    elif hp.type == 'ichoice':
+        if len(pos) == 0:
+            return hp
+        assert pos[0] == 0 or pos[0] == 1
+        if pos[0] == 0:
+            return get_pos(hp.hp1, pos[1:], rec_vars, procs)
+        elif pos[0] == 1:
+            return get_pos(hp.hp2, pos[1:], rec_vars, procs)
     else:
         assert len(pos) == 0
         return hp
@@ -698,7 +640,6 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
     
     """
     # rec_vars and procs default to empty dictionaries
-    
     if rec_vars is None:
         rec_vars = dict()
     if procs is None:
@@ -725,14 +666,17 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             else:
                 return (pos[0],) + sub_step
         elif hp.type == 'loop':
-            sub_step = helper(hp.hp, pos)
+            assert len(pos) > 0
+            # Step inside the loop
+            assert pos[0] == 0
+            sub_step = helper(hp.hp, pos[1:])
             if sub_step is None:
                 if hp.constraint != true_expr and not eval_expr(hp.constraint, state):
                     return None
                 else:
-                    return start_pos(hp.hp)
+                    return (0,) + start_pos(hp.hp)
             else:
-                return sub_step
+                return (0,) + sub_step
         elif hp.type == 'condition':
             if len(pos) == 0:
                 return None
@@ -790,8 +734,10 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
         else:
             return None
 
-    pos = helper(hp,callstack.top_pos())
-    callstack.renew(pos,rec_vars)
+    pos = helper(hp, callstack.top_pos())
+    if callstack.top_procname() is not None:
+        callstack.pop()
+    callstack.renew(pos, rec_vars)
     return callstack
 
 def parse_pos(hp, pos):
@@ -811,38 +757,8 @@ def parse_pos(hp, pos):
 
     return pos
 
-# def remove_rec(hp, pos, rec_vars=None, procs=None):
-#     """Given a position in a program possibly with recursion and
-#     procedure calls, return the simplest expression for the same position
-#     in the program (removing recursion). This simpler position is used
-#     for display in user interface.
-
-#     """
-#     if pos is None:
-#         return None
-
-#     rec_list = []
-#     for i in range(len(pos)+1):
-#         sub_hp = get_pos(hp, pos[:i], rec_vars, procs)
-#         if sub_hp.type == 'recursion':
-#             rec_list.append(i)
-
-#     if len(rec_list) >= 2:
-#         pos = pos[:rec_list[0]] + pos[rec_list[-1]:]
-#     return pos
-
-# def string_of_pos(hp, pos, rec_vars=None, procs=None):
-#     """Convert pos in internal representation to string form."""
-#     if pos is None:
-#         return 'end'
-#     else:
-#         return 'p' + ','.join(str(p) for p in pos) 
-
-# def disp_of_pos(hp, pos, rec_vars=None, procs=None):
-#     return string_of_pos(hp, remove_rec(hp, pos, rec_vars, procs), rec_vars, procs)
-
-def disp_of_callstack(callstack):
-    return callstack.getinfo()
+def disp_of_callstack(info):
+    return info.callstack.getinfo(info.hp, info.procedures)
 
 class SimInfo:
     """Represents a (non-parallel) HCSP program together with
@@ -869,9 +785,12 @@ class SimInfo:
         # List of output variables, None indicates output everything.
         self.outputs = outputs
 
-        # List of procedure declarations
+        # Dictionary of procedure declarations
         if procedures is None:
-            procedures = []
+            procedures = dict()
+        # assert isinstance(procedures, dict)
+        # for k, v in procedures.items():
+        #     assert isinstance(k, str) and isinstance(v, hcsp.Procedure)
         self.procedures = procedures
 
         # Current position of execution
@@ -880,7 +799,7 @@ class SimInfo:
         else:
             assert isinstance(pos, tuple)
         
-        self.callstack = Callstack(pos,copy.deepcopy(self.hp),[],[],None)
+        self.callstack = Callstack(pos, [])
 
         # Current state
         if state is None:
@@ -941,7 +860,7 @@ class SimInfo:
         rec_vars = dict()
         cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars, self.procedures)
         if cur_hp.type == "skip":
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
             
         elif cur_hp.type == "assign":
@@ -957,7 +876,7 @@ class SimInfo:
                     if s != AVar('_'):
                         self.exec_assign(s, val[i], cur_hp)
             
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
             self.reason = None
 
         elif cur_hp.type == "assert":
@@ -1019,7 +938,7 @@ class SimInfo:
             for i in range(len(self.callstack.top_pos())):
                 hp = get_pos(self.hp, self.callstack.top_pos()[:i], rec_vars, self.procedures)
                 if hp.type == 'recursion' and hp.entry == cur_hp.name:
-                    pos=self.callstack.top_pos() + (0,) + start_pos(hp)
+                    pos = self.callstack.top_pos() + (0,) + start_pos(hp)
                     self.callstack.renew(pos, rec_vars)
                     self.reason = None
                     return
@@ -1027,8 +946,8 @@ class SimInfo:
             # Otherwise, enter code of procedure
             if cur_hp.name in self.procedures:
                 proc = self.procedures[cur_hp.name]
-                pos=self.callstack.top_pos() + (0,) + start_pos(proc.hp)
-                self.callstack.push(pos, rec_vars, self.procedures, proc)
+                pos = self.callstack.top_pos() + (0,) + start_pos(proc.hp)
+                self.callstack.push(pos, rec_vars, cur_hp.name)
                 self.reason = None
                 return
 
@@ -1137,12 +1056,12 @@ class SimInfo:
                 if comm_hp.type == "input_channel" and eval_channel(comm_hp.ch_name, self.state) == ch_name:
                     if comm_hp.var_name is None:
                         if x is not None:
-                            raise SimulatorAssertionException(comm_hp, "input value is not None")
+                            raise SimulatorException(comm_hp, "input value is not None")
                     else:
                         if x is None:
-                            raise SimulatorAssertionException(comm_hp, "input value is None")
+                            raise SimulatorException(comm_hp, "input value is None")
                         self.exec_assign(comm_hp.var_name, x, comm_hp)
-                    pos=self.callstack.top_pos() + (i,) + start_pos(out_hp)
+                    pos = self.callstack.top_pos() + (i,) + start_pos(out_hp)
                     self.callstack.renew(pos, rec_vars)
                     return
 
@@ -1348,6 +1267,7 @@ def extract_event(infos):
     else:
         return "deadlock"
 
+
 def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
@@ -1364,13 +1284,15 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
     time_series - records evolution of variables in each program by time.
         This is a dictionary indexed by names of programs.
 
+    statemap - record of all state. 
     """
     # Overall returned result
     res = {
         'time': 0,    # Current time
         'trace': [],  # List of events
         'time_series': {},  # Evolution of variables, indexed by program
-        'events': []  # Concise list of event strings
+        'events': [],  # Concise list of event strings
+        'statemap': dict()  # dict of all state
     }
 
     def log_event(ori_pos, **xargs):
@@ -1404,8 +1326,14 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         # Fill in information about current position
         cur_info = dict()
         for info in infos:
-            info_callstack = disp_of_callstack(info.callstack)
-            cur_info[info.name] = {'callstack': info_callstack, 'state': copy.deepcopy(info.state)}
+            info_callstack = disp_of_callstack(info)
+            fst_state = str(info.state)
+            if fst_state in res['statemap']:
+                state_num = res['statemap'].get(fst_state)
+            else:
+                state_num = len(res['statemap'])
+                res['statemap'][fst_state] = state_num
+            cur_info[info.name] = {'callstack': info_callstack, 'statenum': state_num}
         new_event['infos'] = cur_info
 
         # Finally add to trace
@@ -1416,21 +1344,18 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         """Log the given time series for program with the given name."""
         if info.name not in res['time_series']:
             return
-
         new_entry = {
             "time": time,
             "event": len(res['trace']),
             "state": dict()
         }
         for k, v in state.items():
-            if info.outputs is not None and any(k in output for output in info.outputs):
+            if info.outputs is None or any(k in output for output in info.outputs):
                 if isinstance(v, (int, float)):
                     new_entry['state'][k] = v
                 elif isinstance(v, list):
                     for i, val in enumerate(v):
                         new_entry['state'][k+'['+str(i)+']'] = val
-                else:
-                    pass
         series = res['time_series'][info.name]
         if len(series) == 0 or new_entry != series[-1]:
             series.append(new_entry)
@@ -1440,7 +1365,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         num_event = start_event['id'] + 1
         res['time'] = start_event['time']
         for info in infos:
-            pos=parse_pos(info.hp, start_event['infos'][info.name]['pos'])
+            pos = parse_pos(info.hp, start_event['infos'][info.name]['pos'])
             info.callstack.renew(pos, dict())
             info.state = start_event['infos'][info.name]['state']
 
@@ -1449,7 +1374,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         num_event = 0
 
         # List of processes that have been updated in the last round.
-        start_pos = dict((info.name, disp_of_callstack(info.callstack)) for info in infos)
+        start_pos = dict((info.name, disp_of_callstack(info)) for info in infos)
 
         # Record event and time series at the beginning.
         log_event(ori_pos=start_pos, type="start", str="start")
@@ -1466,12 +1391,12 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
     if num_io_events is None:
         num_io_events = num_steps
 
-    for iteration in range(num_io_events):
+    for _ in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
         for info in infos:
             while info.callstack.top_pos() is not None and not num_event >= start_id + num_steps:
-                ori_pos = {info.name: disp_of_callstack(info.callstack)}
+                ori_pos = {info.name: disp_of_callstack(info)}
                 try:
                     info.exec_step()
                 except SimulatorAssertionException as e:
@@ -1510,7 +1435,7 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         elif event[0] == "delay":
             _, min_delay, delay_pos = event
             assert min_delay >= 0, "min_delay %s less than zero" % min_delay
-            ori_pos = dict((infos[p].name, disp_of_callstack(infos[p].callstack)) for p in delay_pos)
+            ori_pos = dict((infos[p].name, disp_of_callstack(infos[p])) for p in delay_pos)
 
             trace_str = "delay %s" % str(round(min_delay, 3))
             all_series = []
@@ -1525,8 +1450,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
             res['time'] += min_delay
         else:  # event[0] == "comm"
             _, id_out, id_in, out_ch, in_ch, inst_out, inst_in = event
-            ori_pos = {infos[id_out].name: disp_of_callstack(infos[id_out].callstack),
-                       infos[id_in].name: disp_of_callstack(infos[id_in].callstack)}
+            ori_pos = {infos[id_out].name: disp_of_callstack(infos[id_out]),
+                       infos[id_in].name: disp_of_callstack(infos[id_in])}
             try:
                 val = infos[id_out].exec_output_comm(out_ch, inst=inst_out)
                 infos[id_in].exec_input_comm(in_ch, val, inst=inst_in)
@@ -1555,6 +1480,13 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
         if has_overflow:
             log_event(ori_pos=dict(), type="overflow", str="overflow")
             break
+
+    # Finally, exchange key and value, and change state back into dict in res['statemap']
+    statemap = dict()
+    for key, value in res['statemap'].items():
+        state = ast.literal_eval(key)
+        statemap[value] = state
+    res['statemap'] = statemap
     return res
 
 def graph(res, proc_name, tkplot=False, separate=True, variables=None):

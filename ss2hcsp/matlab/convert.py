@@ -10,7 +10,7 @@ def subtract_one(e):
     if isinstance(e, expr.AConst):
         return expr.AConst(e.value - 1)
     else:
-        return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
+        return expr.OpExpr("-", e, expr.AConst(1))
 
 def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
     """Convert a Matlab expression to HCSP.
@@ -38,23 +38,15 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
             else:
                 return expr.AConst(e.value)
         elif isinstance(e, function.DirectName):
-            sname = e.exprs[0]
-            return expr.AVar(str(expr.FieldNameExpr(expr.AVar(sname), str(e.exprs[1]))))
+            sname = expr.AVar(e.exprs[0])
+            for field in e.exprs[1:]:
+                sname = expr.FieldNameExpr(sname, field)
+            return sname
         elif isinstance(e, function.OpExpr):
             if e.op_name == '-' and len(e.exprs) == 1:
-                return expr.PlusExpr(['-'], [rec(e.exprs[0])])
-            elif e.op_name == '+':
-                return expr.PlusExpr(['+', '+'], [rec(e.exprs[0]), rec(e.exprs[1])])
-            elif e.op_name == '-':
-                return expr.PlusExpr(['+', '-'], [rec(e.exprs[0]), rec(e.exprs[1])])
-            elif e.op_name == '*':
-                return expr.TimesExpr(['*', '*'], [rec(e.exprs[0]), rec(e.exprs[1])])
-            elif e.op_name == '/':
-                return expr.TimesExpr(['*', '/'], [rec(e.exprs[0]), rec(e.exprs[1])])
-            elif e.op_name == '%':
-                return expr.ModExpr(rec(e.exprs[0]), rec(e.exprs[1]))
+                return expr.OpExpr('-', rec(e.exprs[0]))
             else:
-                raise NotImplementedError("Unknown operator %s" % e.op_name)
+                return expr.OpExpr(e.op_name, rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, function.FunExpr):
             print(e.fun_name =="enter")
             if e.fun_name == 'rand':
@@ -177,7 +169,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
     def conv_expr(e):
         return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages,states=states)
 
-
     def conv_exprs(es):
         # Convert a list of expressions
         pre_acts, res = [], []
@@ -245,9 +236,9 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             cmd_list=list()
             cmd_list.append(pre_act)
             if isinstance(assign_name,list):
-                if isinstance(hp_expr,expr.ListExpr) and len(hp_expr)>=1:
-                    for index in range(0,len(assign_name)):
-                        cmd_list.append(hcsp.Assign(assign_name[index], hp_expr[index]))
+                if isinstance(hp_expr, expr.ListExpr) and len(hp_expr.args) >= 1:
+                    for index in range(len(assign_name)):
+                        cmd_list.append(hcsp.Assign(assign_name[index], hp_expr.args[index]))
                 elif isinstance(hp_expr, expr.AVar):
                     cmd_list.append(hcsp.Assign(assign_name[0], hp_expr))
             else:
@@ -311,7 +302,6 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
             return raise_event(cmd.event)
 
         else:
-            print(cmd, type(cmd))
-            raise NotImplementedError
+            raise NotImplementedError("Unrecognized command %s" % cmd)
 
     return convert(cmd)

@@ -1,41 +1,42 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, ModExpr
+from ss2hcsp.hcsp.expr import AVar, AConst, RelExpr, OpExpr, IfExpr
 from ss2hcsp.hcsp import hcsp as hp
 
 
 class Switch(SL_Block):
     """Switch of two dest lines."""
     def __init__(self, name, relation, threshold, st=-1):
-        super(Switch, self).__init__()
-        self.name = name
-        self.type = "switch"
-        self.is_continuous = (st == 0)
-        self.num_src = 1
-        self.num_dest = 3
-        self.src_lines = [[]]
-        self.dest_lines = [None] * self.num_dest
+        super(Switch, self).__init__("switch", name, 1, 3, st)
+
+        assert relation in ('>=', '>', '<=', '<')
         self.relation = relation
 
         assert isinstance(threshold, (int, float))
         self.threshold = threshold
 
-        assert isinstance(st, (int, float))
-        self.st = st
+    def get_expr(self):
+        in_vars = [AVar(line.name) for line in self.dest_lines]
+        return IfExpr(RelExpr(self.relation, in_vars[1], AConst(self.threshold)),
+                      in_vars[0], in_vars[2])
 
     def __str__(self):
-        return "%s: Switch[in = %s, out = %s, st = %s]" % \
-               (self.name, str(self.dest_lines), str(self.src_lines), str(self.st))
+        out_var = self.src_lines[0][0].name
+        expr = self.get_expr()
+        return "%s: %s = %s  (st = %s)" % (self.name, out_var, expr, self.st)
 
     def __repr__(self):
-        return str(self)
+        return "Switch(%s, %s, %s, %s, in = %s, out = %s)" % \
+            (self.name, self.relation, self.threshold, self.st, str(self.dest_lines), str(self.src_lines))
 
     def get_output_hp(self):
-        in_vars = [AVar(line.name) for line in self.dest_lines]
-        cond = RelExpr(self.relation, in_vars[1], AConst(self.threshold))
+        expr = self.get_expr()
         out_var = self.src_lines[0][0].name
-        time_cond = RelExpr("==", ModExpr(AVar("t"), AConst(self.st)), AConst(0))
-        return hp.Condition(cond=time_cond, hp=hp.ITE(if_hps=[(cond, hp.Assign(var_name=out_var, expr=in_vars[0]))],
-                                                      else_hp=hp.Assign(var_name=out_var, expr=in_vars[2])))
+        return hp.Assign(out_var, expr)
+
+    def get_var_subst(self):
+        expr = self.get_expr()
+        out_var = self.src_lines[0][0].name
+        return {out_var: expr}
 
     def get_var_map(self):
         in_vars = [AVar(line.name) for line in self.dest_lines]

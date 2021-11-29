@@ -1,20 +1,20 @@
 """Simulink diagrams."""
 
 import lark
-import html
+from decimal import Decimal
 
 from ss2hcsp.sl.sl_line import SL_Line
-
-from ss2hcsp.matlab import function,convert
+from ss2hcsp.matlab import function, convert
 from ss2hcsp.matlab import function
-from ss2hcsp.matlab.parser import expr_parser, function_parser, cmd_parser, \
-    transition_parser, func_sig_parser,state_op_parser
+from ss2hcsp.matlab.parser import expr_parser, function_parser, \
+    transition_parser, func_sig_parser, state_op_parser
 from ss2hcsp.matlab import convert
 from ss2hcsp.sl.Continuous.clock import Clock
 from ss2hcsp.sl.port import Port
 from ss2hcsp.sl.Continuous.integrator import Integrator
 from ss2hcsp.sl.Continuous.constant import Constant
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
+from ss2hcsp.sl.Continuous.source import Sine
 from ss2hcsp.sl.MathOperations.product import Product
 from ss2hcsp.sl.MathOperations.bias import Bias
 from ss2hcsp.sl.MathOperations.gain import Gain
@@ -26,6 +26,7 @@ from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
 from ss2hcsp.sl.LogicOperations.relation import Relation
 from ss2hcsp.sl.LogicOperations.reference import Reference
 from ss2hcsp.sl.SignalRouting.switch import Switch
+from ss2hcsp.sl.SignalRouting.scope import Scope
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem, Triggered_Subsystem, Enabled_Subsystem
 from ss2hcsp.sl.Discontinuities.saturation import Saturation
 from ss2hcsp.sl.Discrete.unit_delay import UnitDelay 
@@ -44,13 +45,31 @@ from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
 from functools import reduce
 from math import gcd, pow
-# from ss2hcsp.matlab import parser
-from ss2hcsp.hcsp import hcsp 
-import re
 import operator
 
-from ss2hcsp.hcsp.parser import aexpr_parser
 
+def parse_sample_time(sample_time):
+    """Convert sample time in string to integer or decimal."""
+    if sample_time is None or sample_time == 'inf':
+        return -1
+    elif '.' in sample_time:
+        return Decimal(sample_time)
+    else:
+        return int(sample_time)
+
+def parse_value(value, default=None):
+    """Parse value to integer or float."""
+    if value:
+        if '.' in value:
+            return float(value)
+        else:
+            return int(value)
+    else:
+        return default
+
+def replace_spaces(name):
+    """Replace spaces and newlines in name with underscores."""
+    return name.strip().replace(' ', '_').replace('\n', '_')
 
 def get_gcd(sample_times):
     """Return the gcd of a list of sample times.
@@ -59,8 +78,11 @@ def get_gcd(sample_times):
     appropriate power of 10 before taking gcd.
 
     """
+    if len(sample_times) == 0:
+        return 0  # continuous
+
     assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
-    assert all(isinstance(st, (int, float)) for st in sample_times)
+    assert all(isinstance(st, (int, Decimal)) for st in sample_times)
 
     if len(sample_times) == 1:
         return sample_times[0]
@@ -76,31 +98,29 @@ def get_gcd(sample_times):
     for st in sample_times:
         if isinstance(st, int):
             scaling_positions.append(0)
-        else:  # isinstance(st, float)
+        else:  # isinstance(st, Decimal)
             scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
-    scale = pow(10, max(scaling_positions))
+    scale = 10 ** max(scaling_positions)
     scaling_sample_times = [int(st * scale) for st in sample_times]
     result_gcd = reduce(gcd, scaling_sample_times)
     if result_gcd % scale == 0:
         return result_gcd // int(scale)
     else:
-        return result_gcd / scale
+        return Decimal(result_gcd) / scale
 
 
-def get_attribute_value(block, attribute):
+def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
         if node.getAttribute("Name") == attribute:
             if node.childNodes:
-                return node.childNodes[0].data
+                if not name or name == node.childNodes[0].data:
+                    return node.childNodes[0].data
     return None
 
 
 class SL_Diagram:
     """Represents a Simulink diagram."""
     def __init__(self, location=""):
-        # List of blocks, in order of insertion.
-        self.blocks = list()
-
         # Dictionary of blocks indexed by name
         self.blocks_dict = dict()
 
@@ -112,6 +132,9 @@ class SL_Diagram:
 
         # Name of the diagram, set by parse_xml
         self.name = None
+
+        # Variables that needs to display
+        self.outputs = list()
         
         # Parsed model of the XML file
         if location:
@@ -351,10 +374,9 @@ class SL_Diagram:
         # Create charts
         charts = self.model.getElementsByTagName(name="chart")
         for chart in charts:
-
-            all_out_trans=dict()
+            all_out_trans = dict()
             chart_id = chart.getAttribute("id")
-            chart_name = get_attribute_value(block=chart, attribute="name").strip().replace(' ', '_')
+            chart_name = replace_spaces(get_attribute_value(block=chart, attribute="name"))
 
             # A chart is wrapped into an AND-state
             chart_state = AND_State(ssid=chart_id, name=chart_name)
@@ -375,18 +397,19 @@ class SL_Diagram:
             chart_st = eval(chart_st) if chart_st else -1
 
             chart_data = dict()
-            message_dict=dict()
-            event_dict=dict()
-            if (len(chart.getElementsByTagName(name="event"))>=1):
-                num=1
-                for e in chart.getElementsByTagName(name="event"):
-                    event_name=get_attribute_value(e, "name")
-                    event_scope=get_attribute_value(e, "scope")
-                    port=num
-                    event_trigger=get_attribute_value(e, "trigger") if (len(get_attribute_value(e, "trigger"))>=1) else None
-                    event=SF_Event(name=event_name,scope=event_scope,trigger=event_trigger,port=port)
-                    event_dict[event_name]=event
-                    num+=1
+            message_dict = dict()
+            event_dict = dict()
+            if chart.getElementsByTagName(name="event"):
+                for i, e in enumerate(chart.getElementsByTagName(name="event")):
+                    event_name = get_attribute_value(e, "name")
+                    event_scope = get_attribute_value(e, "scope")
+                    port = i + 1
+                    if get_attribute_value(e, "trigger"):
+                        event_trigger = get_attribute_value(e, "trigger")
+                    else:
+                        event_trigger = None
+                    event = SF_Event(name=event_name, scope=event_scope, trigger=event_trigger, port=port)
+                    event_dict[event_name] = event
 
             for data in chart.getElementsByTagName(name="data"):
                 var_name = data.getAttribute("name")
@@ -400,22 +423,24 @@ class SL_Diagram:
                 else:
                     value = 0
                 scope = get_attribute_value(data, "scope")
-                sf_data = SF_Data(name=var_name,value=value,scope=scope)
-                if len(data.getElementsByTagName(name="message")) >= 1:
-                    for node in data.getElementsByTagName(name="message"):
-                        mesgNode=node
-                        break
-                    is_mesg=get_attribute_value(mesgNode, "isMessage")
-                    if is_mesg == "1":
-                        data_value=0
-                        message=SF_Message(name=var_name,data=data_value,scope=scope)
-                         
-                        message_dict[var_name]=message
-                        
+                sf_data = SF_Data(name=var_name, value=value, scope=scope)
+
+                if data.getElementsByTagName(name="message"):
+                    mesgNode = data.getElementsByTagName(name="message")[0]
+                    if get_attribute_value(mesgNode, "isMessage") == "1":
+                        message = SF_Message(name=var_name, data=0, scope=scope)
+                        message_dict[var_name] = message
                 else:
                     chart_data[var_name] = sf_data
+
             assert chart_name not in self.chart_parameters
-            self.chart_parameters[chart_name] = {"state": chart_state, "data": chart_data, "st": chart_st, "message_dict":message_dict,"event_dict":event_dict}
+            self.chart_parameters[chart_name] = {
+                "state": chart_state,
+                "data": chart_data,
+                "st": chart_st,
+                "message_dict": message_dict,
+                "event_dict": event_dict
+            }
 
     def parse_xml(self, default_SampleTimes=()):
         # Extract BlockParameterDefaults
@@ -439,52 +464,37 @@ class SL_Diagram:
             self.name = models[0].getAttribute("Name")
 
         system = self.model.getElementsByTagName("System")[0]
-        max_step = 0.2
-        # start_time = 0.0
-        if len(self.model.getElementsByTagName("ConfigurationSet")) > 0:
-            configurationSet = self.model.getElementsByTagName("ConfigurationSet")[0]
-            array = [child for child in configurationSet.childNodes if child.nodeName == "Array"]
-            for node in array:
-                if node.nodeName == "Array":
-                    objs = [child for child in node.childNodes if child.nodeName == "Object"]
-                    for obj in objs:
-                        if obj.nodeName == "Object":
-                            arr = [child for child in obj.childNodes if child.nodeName == "Array"]
-                            for a in arr:
-                                if a.nodeName == "Array":
-                                    obj_childs = [child for child in a.childNodes if child.nodeName == "Object"]
-                                    # start_time = float(get_attribute_value(obj_childs[0], "StartTime"))
-                                    stop_time = float(get_attribute_value(obj_childs[0], "StopTime"))
-                                    max_step = float(get_attribute_value(obj_childs[0], "MaxStep"))\
-                                        if get_attribute_value(obj_childs[0], "MaxStep") != "auto" else stop_time/50
-                                break
-                        break
-                break
 
         # Add blocks
         blocks = [child for child in system.childNodes if child.nodeName == "Block"]
-        # The following dictionary is used to replace the port names as formatted ones.
-        # The name of each port shoud be in the form of port_type + port_number, such as in_0 and out_1
-        # in order to delete subsystems successfully (see function delete_subsystems in get_hcsp.py).
-        port_name_dict = dict()  # in the form {old_name: new_name}
+
+        # The following dictionary is used to replace port names as
+        # formatted ones. The name of each port shoud be in the form of
+        # port_type + port_number, such as in_0 and out_1 in order to delete
+        # subsystems successfully (see function delete_subsystems in get_hcsp.py).
+        port_name_dict = dict()  # mapping from old name to new name
+
         for block in blocks:
+            # Type of block
             block_type = block.getAttribute("BlockType")
-            # Delete spaces in block_name
-            block_name = block.getAttribute("Name")
+
+            # Block name.
+            block_name = replace_spaces(block.getAttribute("Name"))
+
+            # Sample time of block
             sample_time = get_attribute_value(block, "SampleTime")
             if (not sample_time) and block_type in default_SampleTimes:
                 sample_time = default_SampleTimes[block_type]
-            sample_time = eval(sample_time) if sample_time and sample_time != "inf" else -1
-         
+            sample_time = parse_sample_time(sample_time)
+
+            # For each type of block, obtain additional parameters
             if block_type == "Mux":
-                block_name = block.getAttribute("Name")
                 inputs = get_attribute_value(block, "Inputs")
                 displayOption = get_attribute_value(block, "DisplayOption")
-                ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
                 self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
             elif block_type == "DataStoreMemory":
                 init_value = get_attribute_value(block=block, attribute="InitialValue")
-                value = 0
                 if init_value is not None:
                     try:
                         value = expr_parser.parse(init_value)
@@ -493,30 +503,28 @@ class SL_Diagram:
                         raise e
                 else:
                     value = 0
-                name = block.getAttribute("Name")
                 dataStoreName = get_attribute_value(block, "DataStoreName")
-                self.add_block(DataStoreMemory(name=name, value=value, dataStoreName=dataStoreName))
+                self.add_block(DataStoreMemory(name=block_name, value=value, dataStoreName=dataStoreName))
             elif block_type == "DataStoreRead":
-                name = block.getAttribute("Name")
                 dataStoreName = get_attribute_value(block,"DataStoreName")
-                self.add_block(DataStoreRead(name=name, dataStoreName=dataStoreName))
+                self.add_block(DataStoreRead(name=block_name, dataStoreName=dataStoreName))
             elif block_type == "Constant":
                 value = get_attribute_value(block, "Value")
-                value = eval(value) if value else 1
+                value = parse_value(value, default=1)
                 self.add_block(Constant(name=block_name, value=value))
             elif block_type == "Integrator":
                 init_value = get_attribute_value(block, "InitialCondition")
-                init_value = eval(init_value) if init_value else 0
+                init_value = parse_value(init_value, default=0)
                 self.add_block(Integrator(name=block_name, init_value=init_value))
             elif block_type == "Logic":  # AND, OR, NOT
-                _operator = get_attribute_value(block, "Operator")
+                op_name = get_attribute_value(block, "Operator")
                 inputs = get_attribute_value(block, "Inputs")
                 num_dest = int(inputs) if inputs else 2
-                if _operator == "OR":
+                if op_name == "OR":
                     self.add_block(Or(name=block_name, num_dest=num_dest, st=sample_time))
-                elif _operator == "NOT":
+                elif op_name == "NOT":
                     self.add_block(Not(name=block_name, st=sample_time))
-                else:  # _operator == None, meaning it is an AND block
+                else:  # op_name == None, meaning it is an AND block
                     self.add_block(And(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "RelationalOperator":
                 relation = get_attribute_value(block, "Operator")
@@ -531,20 +539,19 @@ class SL_Diagram:
                     st = eval(get_attribute_value(block, "SampleTime"))
                     assert get_attribute_value(block, "IntegratorMethod") == "Backward Euler"
                     assert get_attribute_value(block, "FilterMethod") == "Forward Euler"
+                    assert get_attribute_value(block, "AntiWindupMode") == "back-calculation"
                     p = eval(get_attribute_value(block, "P"))
                     i = eval(get_attribute_value(block, "I"))
                     d = eval(get_attribute_value(block, "D"))
                     init_value = eval(get_attribute_value(block, "InitialConditionForIntegrator"))
                     upper_limit = eval(get_attribute_value(block, "UpperSaturationLimit"))
                     lower_limit = eval(get_attribute_value(block, "LowerSaturationLimit"))
-                    assert get_attribute_value(block, "AntiWindupMode") == "back-calculation"
                     kb = eval(get_attribute_value(block, "Kb"))
                     self.add_block(DiscretePID(name=block_name, controller=controller, st=st, pid=[p, i, d],
                                                init_value=init_value, saturation=[lower_limit, upper_limit], kb=kb))
                     continue
 
                 relop = get_attribute_value(block, "relop")
-                # assert relop
                 if relop:
                     if relop == "~=":
                         relop = "!="
@@ -578,16 +585,18 @@ class SL_Diagram:
                 factor = get_attribute_value(block, "Gain")
                 factor = eval(factor) if factor else 1
                 self.add_block(Gain(name=block_name, factor=factor, st=sample_time))
+            elif block_type == "Sin":
+                amplitude = parse_value(get_attribute_value(block, "Amplitude"), default=1)
+                bias = parse_value(get_attribute_value(block, "Bias"), default=0)
+                frequency = parse_value(get_attribute_value(block, "Frequency"), default=1)
+                phase = parse_value(get_attribute_value(block, "Phase"), default=0)
+                self.add_block(Sine(name=block_name, amplitude=amplitude, bias=bias, frequency=frequency, phase=phase, st=sample_time))
             elif block_type == "Saturate":
-                upper_limit = get_attribute_value(block, "UpperLimit")
-                upper_limit = eval(upper_limit) if upper_limit else 0.5
-                lower_limit = get_attribute_value(block, "LowerLimit")
-                lower_limit = eval(lower_limit) if lower_limit else -0.5
+                upper_limit = parse_value(get_attribute_value(block, "UpperLimit"), default=0.5)
+                lower_limit = parse_value(get_attribute_value(block, "LowerLimit"), default=-0.5)
                 self.add_block(Saturation(name=block_name, up_lim=upper_limit, low_lim=lower_limit, st=sample_time))
             elif block_type == "UnitDelay":
-                init_value = get_attribute_value(block, "InitialCondition")
-                init_value = eval(init_value) if init_value else 0
-                assert sample_time > 0
+                init_value = parse_value(get_attribute_value(block, "InitialCondition"), default=0)
                 self.add_block(UnitDelay(name=block_name, init_value=init_value, st=sample_time))
             elif block_type == "MinMax":
                 fun_name = get_attribute_value(block, "Function")
@@ -624,16 +633,24 @@ class SL_Diagram:
                     port_number = "1"
                 assert block_name not in port_name_dict
                 port_name_dict[block_name] = "in_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="in_port"))
+                self.add_block(Port(name=port_name_dict[block_name], port_name=block_name, port_type="in_port"))
             elif block_type == "Outport":
                 port_number = get_attribute_value(block=block, attribute="Port")
-                port_name= block.getAttribute("Name")
                 if not port_number:
                     port_number = "1"
                 assert block_name not in port_name_dict
-                
                 port_name_dict[block_name] = "out_" + str(int(port_number) - 1)
-                self.add_block(block=Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
+                self.add_block(Port(name=port_name_dict[block_name], port_name=block_name, port_type="out_port"))
+            elif block_type == "Scope":
+                num_dest = 0
+                for child in system.childNodes:
+                    if child.nodeName == "Line":
+                        if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
+                            name = get_attribute_value(block=child, attribute="Name")
+                            # assert name is not None
+                            self.outputs.append(name)
+                            num_dest += 1
+                self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
             elif block_type == "SubSystem":
                 subsystem = block.getElementsByTagName("System")[0]
 
@@ -700,12 +717,8 @@ class SL_Diagram:
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
-                    # assert block_name in self.chart_parameters
-                    block_name = block_name.strip()
-                    if " " in block_name:
-                        block_name = block_name.replace(" ","_")
                     chart_paras = self.chart_parameters[block_name]
-                    ports = list(aexpr_parser.parse(get_attribute_value(block=block, attribute="Ports")).value)
+                    ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
                     if len(ports) == 0:
                         ports = [0, 0]
                     elif len(ports) == 1:
@@ -759,7 +772,7 @@ class SL_Diagram:
                 else:  # it is a normal subsystem
                     ports = get_attribute_value(block=block, attribute="Ports")
                     num_dest, num_src = [int(port.strip("[ ]")) for port in ports.split(",")]
-                    subsystem = Subsystem(name=block_name, num_src=num_src, num_dest=num_dest)
+                    subsystem = Subsystem("subsystem", block_name, num_src, num_dest, st=sample_time)
                 subsystem.diagram = SL_Diagram()
                 # Parse subsystems recursively
                 subsystem.diagram.model = block
@@ -773,7 +786,7 @@ class SL_Diagram:
             if not line_name:
                 line_name = "?"
             ch_name = "?"
-            src_block = get_attribute_value(block=line, attribute="SrcBlock")
+            src_block = replace_spaces(get_attribute_value(block=line, attribute="SrcBlock"))
             if src_block in port_name_dict:  # an input port
                 ch_name = self.name + "_" + src_block
                 src_block = port_name_dict[src_block]
@@ -784,11 +797,9 @@ class SL_Diagram:
                         if not branch.getElementsByTagName(name="Branch")]
             if not branches:
                 branches = [line]
-            # if branches:
             for branch in branches:
-                dest_block = get_attribute_value(block=branch, attribute="DstBlock")
+                dest_block = replace_spaces(get_attribute_value(block=branch, attribute="DstBlock"))
                 if dest_block in port_name_dict:  # an output port
-                    # assert ch_name == "?"
                     ch_name = self.name + "_" + dest_block
                     dest_block = port_name_dict[dest_block]
                 dest_port = get_attribute_value(block=branch, attribute="DstPort")
@@ -799,14 +810,13 @@ class SL_Diagram:
 
         # The line name should keep consistent with the corresponding signals
         # if its src_block is a Signal Builder.
-        for block in self.blocks:
+        for block in self.blocks_dict.values():
             if block.type == "signalBuilder":
                 block.rename_src_lines()
 
     def add_block(self, block):
         """Add given block to the diagram."""
         assert block.name not in self.blocks_dict
-        self.blocks.append(block)
         self.blocks_dict[block.name] = block
 
     def add_line(self, src, dest, src_port, dest_port, *, name="?", ch_name="?"):
@@ -820,12 +830,8 @@ class SL_Diagram:
         dest_block.add_dest(line.dest_port, line)
 
     def __str__(self):
-        blocks = "\n".join(str(block) for block in self.blocks_dict.values())
-        # charts = "\n".join(str(chart) for chart in self.charts.values())
-
         result = ""
-        if self.blocks_dict:
-            result += "Blocks:\n" + blocks
+        result += "\n".join(str(block) for block in self.blocks_dict.values())
         # if self.charts:
         #     result += "Charts:\n" + charts
         return result
@@ -851,7 +857,7 @@ class SL_Diagram:
         for block in self.blocks_dict.values():
             # Give name to the group of lines containing each
             # incoming line (if no name is given already).
-            for i, line in enumerate(block.dest_lines):
+            for line in block.dest_lines:
                 if line:
                     src, src_port = line.src, line.src_port
                     line_group = self.blocks_dict[src].src_lines[src_port]
@@ -862,8 +868,8 @@ class SL_Diagram:
 
             # Give name to each group of outgoing lines (if no
             # name is given already).
-            for i, lines in enumerate(block.src_lines):
-                if len(lines) != 0 and lines[0].name == "?":
+            for lines in block.src_lines:
+                if lines and lines[0].name == "?":
                     for line in lines:
                         line.name = "x" + str(num_lines)
                     num_lines += 1
@@ -969,10 +975,12 @@ class SL_Diagram:
                     if sub_block.type not in ["in_port", "out_port"]:
                         blocks_in_subsystems.append(sub_block)
                 # Sort the input ports in the subsystem by name
-                input_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "in_port"]
+                input_ports = [sub_block for sub_block in subsystem.blocks_dict.values()
+                               if sub_block.type == "in_port"]
                 input_ports.sort(key=operator.attrgetter('name'))
                 # Sort the output ports in the subsystem by name
-                output_ports = [sub_block for sub_block in subsystem.blocks if sub_block.type == "out_port"]
+                output_ports = [sub_block for sub_block in subsystem.blocks_dict.values()
+                                if sub_block.type == "out_port"]
                 output_ports.sort(key=operator.attrgetter('name'))
 
                 # For each input line, find what is the source of this line
@@ -1047,13 +1055,13 @@ class SL_Diagram:
 
         # Add new blocks from subsystems to block_dict
         for block in blocks_in_subsystems:
-            assert block.name not in self.blocks_dict
+            assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
 
     def new_seperate_diagram(self):
-        discrete_diagram = [block for block in self.blocks if not block.is_continuous]
-        continuous_diagram = [block for block in self.blocks if block.is_continuous]
-        return discrete_diagram, continuous_diagram
+        discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
+        continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
+        return discrete_diagram, continuous_diagram, self.outputs
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""
@@ -1136,7 +1144,8 @@ class SL_Diagram:
         #             del scc_dict[block_name]
         #     discrete_subdiagrams_sorted.append(sorted_scc)
 
-        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, discretePulseGenerator,muxs,dataStoreMemorys,dataStoreReads,clocks
+        return discrete_subdiagrams, continuous_subdiagrams, sf_charts, buffers, \
+            discretePulseGenerator, muxs, dataStoreMemorys, dataStoreReads, clocks
 
     def add_buffers(self):
         buffers = []
