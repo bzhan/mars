@@ -12,7 +12,7 @@ def subtract_one(e):
     else:
         return expr.PlusExpr(["+", "-"], [e, expr.AConst(1)])
 
-def convert_expr(e, *, procedures=None, arrays=None, messages=None):
+def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
     """Convert a Matlab expression to HCSP.
 
     Since there are possibly functions that should be evaluated,
@@ -56,11 +56,50 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
             else:
                 raise NotImplementedError("Unknown operator %s" % e.op_name)
         elif isinstance(e, function.FunExpr):
+            print(e.fun_name =="enter")
             if e.fun_name == 'rand':
                 if len(e.exprs) == 0:
                     return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
                 else:
                     raise NotImplementedError("Function rand: argument not supported")
+            elif e.fun_name == "enter":
+                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                    p_state=e.exprs[0].exprs[0]
+                    d_state=e.exprs[0].exprs[-1]
+                    d_state_name=""
+                    p_state_name=""
+                    for state in states.values():
+                        if state.name == str(d_state):
+                            d_state_name=state.whole_name
+                        if  state.name == str(p_state):
+                            p_state_name=state.whole_name
+                    return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(d_state_name))
+            elif e.fun_name == "in":
+                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                    p_state=e.exprs[0].exprs[0]
+                    d_state=e.exprs[0].exprs[-1]
+                    d_state_name=""
+                    p_state_name=""
+                    for state in states.values():
+                        if state.name == str(d_state):
+                            d_state_name=state.whole_name
+                        if  state.name == str(p_state):
+                            p_state_name=state.whole_name
+                    return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(d_state_name))
+            elif e.fun_name == "exit":
+                if  isinstance(e.exprs[0],function.DirectName) == 1:
+                    p_state=e.exprs[0].exprs[0]
+                    d_state=e.exprs[0].exprs[-1]
+                    d_state_name=""
+                    p_state_name=""
+                    for state in states.values():
+                        if state.name == str(d_state):
+                            d_state_name=state.whole_name
+                        if  state.name == str(p_state):
+                            p_state_name=state.whole_name
+                    return expr.RelExpr("==",expr.AVar(p_state_name+"_st"),expr.AConst(""))
+
+
             elif e.fun_name in arrays:
                 # Subtract one since indexing in Matlab is 1-based while indexing
                 # in HCSP is 0-based.
@@ -111,7 +150,7 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None):
     return hcsp.seq(pre_acts), res
 
 
-def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None, events=None,messages=None):
+def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arrays=None, events=None,messages=None,states=None):
     """Convert a Matlab command to HCSP.
     
     raise_event : Event -> HCSP - specifies translation for raising events.
@@ -136,7 +175,7 @@ def convert_cmd(cmd, *, raise_event=None, procedures=None, still_there=None, arr
 
     """
     def conv_expr(e):
-        return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages)
+        return convert_expr(e, procedures=procedures, arrays=arrays, messages=messages,states=states)
 
 
     def conv_exprs(es):

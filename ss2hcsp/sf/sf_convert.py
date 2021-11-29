@@ -115,14 +115,14 @@ class SFConvert:
         # the corresponding functions in convert, but with extra arguments.
         def convert_expr(e):
             return convert.convert_expr(e, arrays=self.data.keys(), procedures=self.procedures,
-                                        messages=self.messages)
+                                        messages=self.messages,states=self.chart.all_states)
         self.convert_expr = convert_expr
 
         def convert_cmd(cmd, *, still_there=None):
             return convert.convert_cmd(
                 cmd, raise_event=self.raise_event, procedures=self.procedures,
                 still_there=still_there, arrays=self.data.keys(), events=self.events.keys(),
-                messages=self.messages)
+                messages=self.messages,states=self.chart.all_states)
         self.convert_cmd = convert_cmd
 
         # Dictionary mapping junction ID and (init_src, tran_act) to the
@@ -521,6 +521,8 @@ class SFConvert:
         if label.cond is not None:
             act, hp_cond = self.convert_expr(label.cond)
             pre_acts.append(act)
+            print(label.cond)
+            print(hp_cond)
             conds.append(hp_cond)
 
         cond_act = self.convert_cmd(label.cond_act, still_there=still_there)
@@ -564,9 +566,11 @@ class SFConvert:
                                           hcsp.seq([
                                               hcsp.Var(self.entry_proc_name(child)),
                                               self.get_rec_entry_proc(child)])))
+                    print(default_tran)
                     procs.append(hcsp.ITE(conds, default_tran))
                 else:
-                    procs.append(default_tran)
+                    if default_tran is not None:
+                        procs.append(default_tran)
             else:
                 pass  # Junction only
         return hcsp.seq(procs)
