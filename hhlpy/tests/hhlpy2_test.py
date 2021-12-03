@@ -7,16 +7,17 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, loop_invariants=None, ode_invariants=None, 
-              diff_weakening=None, diff_invariants=None, diff_cuts = None, ghost_equations = None,
-              ghost_invariants=None, print_vcs=False, expected_vcs=None):
+def runVerify(self, *, pre, hp, post, constants=[], loop_invariants=None, ode_invariants=None, 
+              diff_weakening=None, diff_invariants=None, assume_diff_invariants=None, 
+              diff_cuts=None, ghost_equations=None, ghost_invariants=None, darboux_equality = None,
+              print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
     hp = hp_parser.parse(hp)
     post = bexpr_parser.parse(post)
 
     # Initialize the verifier
-    verifier = CmdVerifier(pre=pre, hp=hp, post=post)
+    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants)
 
     # Place loop invariants
     if loop_invariants:
@@ -46,6 +47,13 @@ def runVerify(self, *, pre, hp, post, loop_invariants=None, ode_invariants=None,
                 diff_inv = bexpr_parser.parse(diff_inv)
             verifier.add_diff_invariant(pos, diff_inv)
     
+    # Place differential invariants in assume
+    if assume_diff_invariants:
+        for pos, assume_diff_inv in assume_diff_invariants.items():
+            if isinstance(assume_diff_inv, str):
+                assume_diff_inv = bexpr_parser.parse(assume_diff_inv)
+            verifier.set_assume_diff_invariant(pos, assume_diff_inv)
+    
     # Place differential cuts
     if diff_cuts:
         for pos, sub_diffcuts_str in diff_cuts.items():
@@ -72,6 +80,12 @@ def runVerify(self, *, pre, hp, post, loop_invariants=None, ode_invariants=None,
                 for name, e in ghost_eqs.eqs:
                     ghost_eqs_dict[name] = e
             verifier.add_ghost_equation(pos, ghost_eqs_dict)
+
+    if darboux_equality:
+        for pos, dbx_equal in darboux_equality.items():
+            if isinstance(dbx_equal, str):
+                dbx_equal = bexpr_parser.parse(dbx_equal)
+            verifier.use_darboux_equality(pos, dbx_equal)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -156,8 +170,8 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify9(self):
         # Basic benchmark, problem 4
-        # {x >= 0} x := x+1; <x_dot=2 & x <= 10> {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x <= 10>", post="x >= 1",            
+        # {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
+        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10>", post="x >= 1",            
                   diff_invariants={((1,), ()): "x >= 1"},
                   expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1"],
                                 ((1,), ()): ["2 >= 0"]})
@@ -195,7 +209,7 @@ class HHLPyTest(unittest.TestCase):
 
         # {x >= 1}
         runVerify(self, pre="x >= 0 && y >= 1", 
-                  hp="x := x + 1; (x := x + 1)** ++ y:= x + 1; <y_dot = 2 & y <= 10>; x := y", 
+                  hp="x := x + 1; (x := x + 1)** ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
                   post="x >= 1",
                   loop_invariants={((1,0,), ()): "x >= 1 && y >= 1"}, 
                   diff_invariants={((2,), ()): "y >= 1"},
@@ -289,6 +303,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0", 
                   hp="<x_dot = y, y_dot = z & x < 10>", post="x >= 0",
                   diff_cuts={((), ()):["z >= 0", "y >= 0"]},
+                  ode_invariants={((), ()): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 && z >= 0 --> z >= 0 && y >= 0 && x >= 0"],
                                 ((), (0,)): ["0 >= 0"],
                                 ((), (2,)): ["z >= 0 && y >= 0 --> y >= 0"]})
@@ -301,6 +316,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0 && j >= 0",
                   hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>", post="x >= 0",
                   diff_cuts={((), ()): ["j >= 0", "z >= 0", "y >= 0"]},
+                  ode_invariants={((), ()): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 && z >= 0 && j >= 0 --> \
                                             j >= 0 && z >= 0 && y >= 0 && x >= 0"],
                                 ((), (0,)): ["j * j >= 0"],
@@ -321,8 +337,8 @@ class HHLPyTest(unittest.TestCase):
 
     # def testVerify24(self):
     #     # Basic benchmark, problem17
-    #     # {x > 0 && y > 0} t := 0; <x_dot = -y * x & t < 10> {x > 0}
-    #     runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x & t < 10>", post="x > 0",
+    #     # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
+    #     runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10>", post="x > 0",
     #               invariants={(1,): "x > 0"},
     #               ghost_invariants={(1,): "x * z * z == 1"},
     #               expected_vcs={(): ["x > 0 && y > 0 --> x > 0"],
@@ -353,6 +369,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0",
                   hp="<x_dot = y, y_dot = y * y & x < 10>", post="x >= 0", 
                   diff_cuts={((), ()): ["y >= 0"]},
+                  ode_invariants={((), ()): "x >= 0"},
                 #   diff_invariants={((), (0,)): "y >= 0",
                 #                    ((), (1,)): "x >= 0"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 0 --> y >= 0 && x >= 0"],
@@ -398,14 +415,13 @@ class HHLPyTest(unittest.TestCase):
         # Basic benchmark, problem 24
         # Conjunction rule and dI rule
         # {d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1}
-        # t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1 & t < 10>
+        # t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1, t_dot = 1 & t < 10>
         # {d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1}
         runVerify(self, pre="d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1",
-                  hp="t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1 & t < 10>",
+                  hp="t := 0; <x1_dot = d1, x2_dot = d2, d1_dot = -w * d2, d2_dot = w * d1, t_dot = 1 & t < 10>",
                   post="d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1",
                   ode_invariants={((1,), ()): \
                       "d1^2 + d2^2 == w^2 * p^2 && d1 == -w * x2 && d2 == w * x1"},
-                  print_vcs=True,
                   expected_vcs={((1,), (0,)): \
                                 ["2 * (d1 ^ (2 - 1) * (-w * d2)) + 2 * (d2 ^ (2 - 1) * (w * d1)) == \
                                  w ^ 2 * (2 * (p ^ (2 - 1) * 0)) + 2 * (w ^ (2 - 1) * 0) * p ^ 2"],
@@ -416,32 +432,102 @@ class HHLPyTest(unittest.TestCase):
         # Benchmark, problem 25
         # dC rule? and dI rule
         # {w >= 0 && x == 0 && y == 3} 
-        # t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y & t < 10>
+        # t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10>
         # {w^2 * x^2 + y^2 <= 9}
         runVerify(self, pre="w >= 0 && x == 0 && y == 3",
-                  hp="t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y & t < 10>",
+                  hp="t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10>",
                   post="w^2 * x^2 + y^2 <= 9",
                   diff_cuts={((1,), ()): ["w >= 0"]},
+                  ode_invariants={((1,), ()): "w^2 * x^2 + y^2 <= 9"},
                   expected_vcs={((), ()): \
                             ["w >= 0 && x == 0 && y == 3 --> w >= 0 && w ^ 2 * x ^ 2 + y ^ 2 <= 9"],
                                 ((1,), (0,)): ["0 >= 0"],
                                 ((1,), (1,)): \
                             ["w >= 0 --> w ^ 2 * (2 * (x ^ (2 - 1) * y)) + 2 * (w ^ (2 - 1) * 0) * x ^ 2 + 2 * (y ^ (2 - 1) * (-w ^ 2 * x - 2 * w * y)) <= 0"]})
 
-    # Benchmark, problem 26
-
     def testVerify33(self):
+    # Benchmark, problem 26
+    # {x^3 > 5 && y > 2} <x_dot = x^3 + x^4, y_dot = 5 * y + y^2 & x < 10> {x^3 > 5 && y > 2}
+        runVerify(self, pre="x^3 > 5 && y > 2",
+                  hp="<x_dot = x^3 + x^4, y_dot = 5 * y + y^2 & x < 10>",
+                  post="x^3 > 5 && y > 2",
+                  diff_invariants={((), ()): "x^3 > 5 && y > 2"},
+                  assume_diff_invariants={((), ()): "true"})
+
+    def testVerify34(self):
         # Benchmark, problem 27
+        # dW rule
         # {x >= 1 && y == 10 && z == -2} 
-        # <x_dot = y, y_dot = z + y^2 - y & y >= 0>
+        # <x_dot = y, y_dot = z + y^2 - y & y > 0>
         # {x >= 1 && y >= 0}
         runVerify(self, pre="x >= 1 && y == 10 && z == -2", 
-                  hp="<x_dot = y, y_dot = z + y^2 - y & y >= 0>",
+                  hp="<x_dot = y, y_dot = z + y^2 - y & y > 0>",
                   post="x >= 1 && y >= 0",
                   ode_invariants={((), ()): "x >= 1 && y >= 0"},
                   diff_weakening={((), (1,)): "true", ((),(0,0)): "true"},
                   diff_cuts={((), (0,)): ["y >= 0"]},
                   expected_vcs={((), ()): ["x >= 1 && y == 10 && z == -2 --> x >= 1 && y >= 0"]})
+
+    def testVerify35(self):
+        # Benchmark, problem 28
+        # {x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c}
+        # t := 0;
+        # <x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2, 
+        # x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2, 
+        # t_dot = 1 & t < 10>
+        # {x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c}
+        runVerify(self, pre="x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c",
+                  hp="t := 0;\
+                  <x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2, \
+                   x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2, \
+                   t_dot = 1 & t < 10>",
+                  post="x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c")
+
+    def testVerify36(self):
+        # Benchmark, problem 29
+        # constants: ["B()"]
+        # {x + z == 0} 
+        # t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> 
+        # {0 == -x - z}
+        runVerify(self, pre="x + z == 0", 
+                  hp="t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10>",
+                  post="0 == -x - z",
+                  constants=["B()"],
+                  ode_invariants={((1,), ()): "x + z == 0"},
+                  darboux_equality={((1,), ()): "true"})
+
+    # Benchmark, problem 30-32
+
+    def testVerify40(self):
+        # Condition rule
+        # {x >= 0} x >= -2 -> (x := x+1 ++ x := x+2; x := x+1) {x >= 2}
+        runVerify(self, pre="x >= 0", hp="x >= -2 -> (x := x+1 ++ x := x+2; x := x+1)", post="x >= 2")
+
+    def testVerify41(self):
+        # Benchmark, problem 33
+        # {w>=0 & d>=0
+        #   & -2<=a&a<=2
+        #   & b^2>=1/3
+        #   & w^2*x^2+y^2 <= c}
+        #   [{
+        #     {x'=y, y'=-w^2*x-2*d*w*y};
+        #     {  { ?(x=y*a); w:=2*w; d:=d/2; c := c * ((2*w)^2+1^2) / (w^2+1^2); }
+        #     ++ { ?(x=y*b); w:=w/2; d:=2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2); }
+        #     ++ { ?true; } }
+        #    }*@invariant(w^2*x^2+y^2<=c&d>=0&w>=0)
+        #   ] 
+        # {w^2*x^2+y^2 <= c}
+        #  ++ \       x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))"
+                      #x == y * b -> (w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2)) ++ # \
+                      #skip;
+        runVerify(self, 
+                  pre="w >= 0 && d >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3 && w^2 * x^2 + y^2 <= c",
+                  hp="t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * d * w * y, t_dot = 1 & t < 10>; \
+                     (skip)**",
+                  post="w^2 * x^2 + y^2 <= c",
+                  loop_invariants={((2,), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0"},
+                  diff_cuts={((1,), (0,)): ["w >= 0 && d >= 0"]},
+                  ode_invariants={((1,), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0"})
 
 
 if __name__ == "__main__":

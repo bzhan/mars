@@ -10,6 +10,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.z3wrapper import z3_prove
+from sympy import *
 
 
 def compute_diff(e, eqs_dict):
@@ -57,6 +58,48 @@ def compute_diff(e, eqs_dict):
     
     return rec(e)
 
+def constraint_examination(e):
+    '''Examine whether the constraint is open intervals or not.'''
+    if not isinstance(e, expr.BExpr):
+        raise NotImplementedError
+    
+    def rec(e):
+        if isinstance(e, expr.RelExpr):
+            if e.op in [">", "<", "!="]:
+                return True
+            else:
+                return False
+        elif isinstance(e, expr.LogicExpr):
+            if e.op == '~':
+                return not rec(e.exprs[0])
+            elif e.op == '&&' or e.op == '||':
+                return rec(e.exprs[0] and e.exprs[1])
+    return rec(e)
+
+def compute_boundary(e):
+    # Compute the boundary for a boolean expression.
+    if isinstance(e, expr.RelExpr):
+        if e.op in ['<', '>', '!=']:
+            return expr.RelExpr("==", e.expr1, e.expr2)
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '&&':
+            boundary1 = compute_boundary(e.exprs[0])
+            boundary2 = compute_boundary(e.exprs[1])
+            disj1 = expr.LogicExpr('&&', e.exprs[0], boundary2)
+            disj2 = expr.LogicExpr('&&', e.exprs[1], boundary1)
+            disj3 = expr.LogicExpr('&&', boundary1, boundary2)
+            return expr.list_disj(disj1, disj2, disj3)
+        elif e.op == '||':
+            boundary1 = compute_boundary(e.exprs[0])
+            boundary2 = compute_boundary(e.exprs[1])
+            neg1 = expr.neg_expr(e.exprs[0])
+            neg2 = expr.neg_expr(e.exprs[1])
+            disj1 = expr.LogicExpr('&&', neg1, boundary2)
+            disj2 = expr.LogicExpr('&&', neg2, boundary1)
+            return expr.LogicExpr('||', disj1, disj2)
+        elif e.op == '~':
+            return compute_boundary(expr.neg_expr(e.exprs[0]))
+    
 
 class CmdInfo:
     """Information associated to each HCSP program."""
@@ -86,6 +129,9 @@ class CmdInfo:
         # Differential invariants for ODEs.
         self.diff_inv = None
 
+        # Set diff_inv as assumptions or not.
+        self.assume_diff_inv = False
+
         # Differential cuts for ODES.
         self.diff_cuts = []
 
@@ -94,6 +140,12 @@ class CmdInfo:
 
         # Computed differential equations for ghosts.
         self.ghost_eqs = dict()
+
+        # Use dbx rule or not
+        self.dbx_equal = False
+
+        # Dbx cofactor for ODEs
+        self.dbx_cofactor = None 
 
     def __str__(self):
         res = ""
@@ -118,7 +170,7 @@ class CmdInfo:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post):
+    def __init__(self, *, pre, hp, post, constants=[]):
         # The HCSP program to be verified.
         self.hp = hp
 
@@ -127,6 +179,9 @@ class CmdVerifier:
 
         # Set of variables that are used
         self.vars = hp.get_vars().union(pre.get_vars()).union(post.get_vars())
+
+        # Set of constants that are used
+        self.constants = constants
 
         # Initialize info for the root object. Place pre-condition and post-condition.
         # pos is a pair of two tuples. 
@@ -170,6 +225,11 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].diff_inv = diff_inv
 
+    def set_assume_diff_invariant(self, pos, assume_diff_inv):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].assume_diff_inv = assume_diff_inv
+
     def add_diff_cuts(self, pos, diff_cuts):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
@@ -182,8 +242,13 @@ class CmdVerifier:
 
     def add_ghost_equation(self, pos, ghost_eqs):
         if pos not in self.infos:
-            self.infos[pos] = CmdInfo
+            self.infos[pos] = CmdInfo()
         self.infos[pos].ghost_eqs = ghost_eqs
+
+    def use_darboux_equality(self, pos, dbx_equal):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].dbx_equal = dbx_equal
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -206,6 +271,8 @@ class CmdVerifier:
             # post-condition.
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
+            if cur_hp.var_name in self.constants:
+                raise NotImplementedError("Constants can not be assigned")
 
             var = cur_hp.var_name.name
             pre = post.subst({var: cur_hp.expr})
@@ -215,6 +282,8 @@ class CmdVerifier:
             #               pre: cur_hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
+            if cur_hp.var_name in self.constants:
+                raise NotImplementedError("Constants can not be assigned")
 
             var_str = cur_hp.var_name.name
 
@@ -298,22 +367,38 @@ class CmdVerifier:
         elif isinstance(cur_hp, hcsp.ODE):
             # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
             # Currently assume out_hp is Skip.
+
+            constraint = cur_hp.constraint
+
             if cur_hp.out_hp != hcsp.Skip():
                 raise NotImplementedError
-            eqs = cur_hp.eqs
+            for name, _ in cur_hp.eqs:
+                if name in self.constants:
+                    raise NotImplementedError("Constants cannot be changed in ODEs!")
+
+            if not constraint_examination(constraint):
+                raise AssertionError("Constriant is supposed to be open intervals!")
+
+            # Construct dictionary corresponding to eqs.
+            if not self.infos[pos].eqs_dict:
+                for name, e in cur_hp.eqs:
+                    self.infos[pos].eqs_dict[name] = e
             
             # Use dW rule
             # When dw is True.
             if self.infos[pos].dw:
-                self.infos[pos].vcs.append(expr.imp(cur_hp.constraint, post))  
+
+                boundary = compute_boundary(constraint)
+                self.infos[pos].vcs.append(expr.imp(boundary, post))  
 
                 pre = expr.true_expr              
 
             # Use dI rules
             # When diff_inv is set or by default
             elif self.infos[pos].diff_inv is not None or \
-               not self.infos[pos].dw and self.infos[pos].diff_inv is None and \
+                not self.infos[pos].dw and self.infos[pos].diff_inv is None and \
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
+                not self.infos[pos].dbx_equal and \
                 (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
                
                 if self.infos[pos].diff_inv is not None:
@@ -326,18 +411,21 @@ class CmdVerifier:
                 if self.infos[pos].ode_inv is not None:
                     assert diff_inv == self.infos[pos].ode_inv
                 if not isinstance(diff_inv, expr.BExpr):
-                    raise NotImplementedError('Invalid differential invariant for ODE!') 
-
-                # Construct dictionary corresponding to eqs.
-                if not self.infos[pos].eqs_dict:
-                    for name, e in cur_hp.eqs:
-                        self.infos[pos].eqs_dict[name] = e
+                    raise AssertionError('Invalid differential invariant for ODE!')               
 
                 # Compute the differential of inv. 
                 # One verification condition is the differential of inv must hold. 
                 # The second condition is inv --> post.
                 differential = compute_diff(diff_inv, eqs_dict=self.infos[pos].eqs_dict)
                 pre = diff_inv
+
+                # Set diff_inv as assumptions if required
+                if self.infos[pos].assume_diff_inv:
+                    if self.infos[pos].assume:
+                        self.infos[pos].assume = expr.LogicExpr('&&', self.infos[pos].assume, diff_inv)
+                    else:
+                        self.infos[pos].assume = diff_inv
+
                 if self.infos[pos].assume:
                     self.infos[pos].vcs.append(expr.imp(self.infos[pos].assume, differential))
                 else:
@@ -350,6 +438,7 @@ class CmdVerifier:
             #                        {P} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
+                ode_inv = self.infos[pos].ode_inv
                 
                 # Record the pre of each subproof
                 pre_list =[]
@@ -369,7 +458,7 @@ class CmdVerifier:
                     if i < len(diff_cuts):
                         self.infos[sub_pos].post = diff_cuts[i]
                     else:
-                        self.infos[sub_pos].post = post
+                        self.infos[sub_pos].post = ode_inv
 
                     # If i == 0, no assume for it, else, assume is the conjunction of 
                     # diff_cuts[:i].
@@ -382,6 +471,7 @@ class CmdVerifier:
                     pre_list.append(self.infos[sub_pos].pre)
 
                 pre = expr.list_conj(*pre_list)
+                self.infos[pos].vcs.append(expr.imp(ode_inv, post))
 
             # Use dG rules
             elif self.infos[pos].ghost_inv is not None:
@@ -464,6 +554,34 @@ class CmdVerifier:
                 # New precondition is inv
                 pre = ode_inv
 
+            # Using dbx rule
+            elif self.infos[pos].dbx_equal or self.infos[pos].dbx_cofactor is not None:
+                ode_inv = self.infos[pos].ode_inv
+
+                if not isinstance(ode_inv, expr.RelExpr): 
+                    raise NotImplementedError
+                
+                # Cases when ode_inv is "e == 0".
+                if ode_inv.op == "==" and ode_inv.expr2 == expr.AConst(0):
+                    # Compute the lie derivative of e.
+                    lie_deriv = compute_diff(ode_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+
+                    # Conversion from hcsp expression to sympy expression.
+                    e_sym = sympify(str(ode_inv.expr1))
+                    lie_deriv_sym = sympify(str(lie_deriv))
+
+                    # Compute the factor list of lie_deriv_sym
+                    factor_tuple = factor_list(lie_deriv_sym)
+                    factors = []
+                    for factor, _ in factor_tuple[1]: 
+                        factors.append(factor)  
+
+                    if e_sym not in factors: 
+                        raise NotImplementedError("This ODE cannot be solved by using Darboux Equality Rule!") 
+
+                    pre = ode_inv     
+                                    
+
             # Using Conjuntion Rule
             #  {I1} c {I1}     {I2} c {I2}
             #-------------------------------
@@ -492,6 +610,22 @@ class CmdVerifier:
 
             else:
                 raise AssertionError("No invariant set at position %s." % str(pos))
+
+        elif isinstance(cur_hp, hcsp.Condition):
+            # Condition, {P} cond -> c {Q}
+            # the wp of Condition is cond --> wp of c
+            cond = cur_hp.cond
+            if not isinstance(cond, expr.BExpr):
+                raise NotImplementedError
+
+            sub_pos = (pos[0] + (0,), pos[1])
+            if sub_pos not in self.infos:
+                self.infos[sub_pos] = CmdInfo()
+            self.infos[sub_pos].post = post
+            self.compute_wp(pos=sub_pos)
+
+            pre = expr.imp(cond, self.infos[sub_pos].pre)
+
 
         else:
             raise NotImplementedError

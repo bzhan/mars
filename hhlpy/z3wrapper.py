@@ -14,6 +14,11 @@ def convert(e):
             return e.value
         else:
             raise NotImplementedError
+    elif isinstance(e, expr.FunExpr):
+        if len(e.exprs) == 0:  # actually a constant
+            return z3.Real(e.fun_name)
+        else:
+            raise NotImplementedError
     elif isinstance(e, expr.LogicExpr):
         if e.op == '-->':
             return z3.Implies(convert(e.exprs[0]), convert(e.exprs[1]))
@@ -58,6 +63,7 @@ def convert(e):
     elif isinstance(e, expr.ExistsExpr):
         return z3.Exists([z3.Real(e.var)], convert(e.expr))
     else:
+        print(e, type(e))
         raise NotImplementedError
 
 def z3_prove(e):
@@ -67,4 +73,5 @@ def z3_prove(e):
     if str(s.check()) == 'unsat':
         return True
     else:
+        print('False')
         return False
