@@ -226,7 +226,7 @@ def translate_thread(name, info, bus=None):
 
 def translate_device(name, info):
     """Translate to HCSP module for devices."""
-    if info['impl'] == 'Simulink':
+    if info['impl'] == 'HCSP':
         hp = parser.hp_parser.parse(info['computation'])
         # new_mod = module.HCSPModule("DEVICE_" + name, [], [], hp)
         new_mod = module.HCSPModule(name="DEVICE_" + name, code=hp, outputs=info['display'])
