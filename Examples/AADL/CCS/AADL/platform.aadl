@@ -2,7 +2,7 @@ package platform
 public
 	bus bus0
 		properties
-			latency => 1ms..1ms;
+			latency => 3ms..3ms;
 	end bus0;
 	
 	bus implementation bus0.imp0
@@ -38,36 +38,13 @@ public
 	end bus0.imp7;
 	
 	bus implementation bus0.imp8
-	-- user_panel to pan_ctr_th.imp (inc)
+	-- user_panel to pan_ctr_th.imp (event)
 	end bus0.imp8;
-	
-	bus implementation bus0.imp9
-	-- user_panel to pan_ctr_th.imp (dec)
-	end bus0.imp9;
-	
-	-- connect cpu0 and cpu1
-	bus bus1
-		properties
-			latency => 500us..500us;
-	end bus1;
-	
-	bus implementation bus1.imp
-	-- pan_ctr_th.imp to comp_acc.imp (des_v)
-	end bus1.imp;
-	
-	-- for critical tasks
-	processor cpu0
+
+	processor cpu
 		features
-			rq_bus: requires bus access bus1.imp;
+			rq_bus: requires bus access bus0.imp;
 		properties
 			scheduling_protocol => (rms);
-	end cpu0;
-	
-	-- for non-critical tasks
-	processor cpu1
-		features
-			rq_bus: requires bus access bus1.imp;
-		properties
-			scheduling_protocol => (rms);
-	end cpu1;
+	end cpu;
 end platform;

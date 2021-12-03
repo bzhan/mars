@@ -26,12 +26,14 @@ public
 			proc_img: out data port;
 		properties
 			dispatch_protocol => periodic;
-			period => 50ms;
-			compute_execution_time => 10ms..40ms;
+			period => 45ms;
+			deadline => 45ms;
+			compute_execution_time => 10ms;
+			priority => 1;
 	end img_acq;
 	
 	thread implementation img_acq.imp
-		annex Simulink{** **};
+		annex Simulink{** ./Examples/AADL/CCS/Simulink/img_acq_imp.xml **};
 	end img_acq.imp;
 	
 	-- compute obstacle position
@@ -42,12 +44,14 @@ public
 			obs_pos: out data port;
 		properties
 			dispatch_protocol => periodic;
-			period => 100ms;
-			compute_execution_time => 20ms..50ms;
+			period => 97ms;
+			deadline => 97ms;
+			compute_execution_time => 20ms;
+			priority => 1;
 	end comp_obs_pos;
 	
 	thread implementation comp_obs_pos.imp
-		annex Simulink{** **};
+		annex Simulink{** ./Examples/AADL/CCS/Simulink/comp_obs_pos_imp.xml **};
 	end comp_obs_pos.imp;
 	
 	-- velocity controller
@@ -65,14 +69,14 @@ public
 	
 	process implementation velo_ctr.imp
 		subcomponents
-			comp_acc_imp: thread comp_acc.imp;
+			emerg_imp: thread emerg.imp;
 			velo_voter_imp: thread velo_voter.imp;
 		connections
-			tran_obs_pos: port obs_pos -> comp_acc_imp.obs_pos;
-			tran_cmd: port comp_acc_imp.cmd -> cmd;
-			tran_veh_pos: port veh_pos -> comp_acc_imp.veh_pos;
-			tran_veh_v: port velo_voter_imp.veh_v -> comp_acc_imp.veh_v;
-			tran_des_v: port des_v -> comp_acc_imp.des_v;
+			tran_obs_pos: port obs_pos -> emerg_imp.obs_pos;
+			tran_cmd: port emerg_imp.cmd -> cmd;
+			tran_veh_pos: port veh_pos -> emerg_imp.veh_pos;
+			tran_veh_v: port velo_voter_imp.veh_v -> emerg_imp.veh_v;
+			tran_des_v: port des_v -> emerg_imp.des_v;
 			tran_laser_valid: port laser_valid -> velo_voter_imp.laser_valid;
 			tran_laser_v: port laser_v -> velo_voter_imp.laser_v;
 			tran_wheel_valid: port wheel_valid -> velo_voter_imp.wheel_valid;
@@ -80,7 +84,7 @@ public
 	end velo_ctr.imp;
 	
 	-- compute acceleration
-	thread comp_acc
+	thread emerg
 		features
 			obs_pos: in data port;
 			veh_pos: in data port;
@@ -90,12 +94,14 @@ public
 		properties
 			dispatch_protocol => periodic;
 			period => 5ms;
-			compute_execution_time => 1ms..1ms;
-	end comp_acc;
+			deadline => 5ms;
+			compute_execution_time => 1ms;
+			priority => 2;
+	end emerg;
 	
-	thread implementation comp_acc.imp
-		annex Simulink{** **};
-	end comp_acc.imp;
+	thread implementation emerg.imp
+		annex Stateflow{** ./Examples/AADL/CCS/Simulink/emerg_imp.xml **};
+	end emerg.imp;
 	
 	-- velocity voter
 	thread velo_voter
@@ -108,18 +114,19 @@ public
 		properties
 			dispatch_protocol => periodic;
 			period => 8ms;
-			compute_execution_time => 1ms..1ms;
+			deadline => 8ms;
+			compute_execution_time => 1ms;
+			priority => 1;
 	end velo_voter;
 	
 	thread implementation velo_voter.imp
-		annex Simulink{** **};
+		annex Simulink{** ./Examples/AADL/CCS/Simulink/velo_voter_imp.xml **};
 	end velo_voter.imp;
 	
 	-- panel controller
 	process pan_ctr
 		features
-			inc: in event port;
-			dec: in event port;
+			event: in event port;
 			des_v: out data port;
 	end pan_ctr;
 	
@@ -127,24 +134,22 @@ public
 		subcomponents
 			pan_ctr_th_imp: thread pan_ctr_th.imp;
 		connections
-			tran_inc: port inc -> pan_ctr_th_imp.inc;
-			tran_dec: port dec -> pan_ctr_th_imp.dec;
+			tran_event: port event -> pan_ctr_th_imp.event;
 			tran_des_v: port pan_ctr_th_imp.des_v -> des_v;
 	end pan_ctr.imp;
 	
 	-- panel controller thread
 	thread pan_ctr_th
 		features
-			inc: in event port;
-			dec: in event port;
+			event: in event port;
 			des_v: out data port;
 		properties
 			dispatch_protocol => aperiodic;
-			compute_execution_time => 1ms..1ms;
+			compute_execution_time => 10ms..10ms;
 			deadline => 100ms;
 	end pan_ctr_th;
 	
 	thread implementation pan_ctr_th.imp
-		annex Stateflow{** **};
+		annex Stateflow{** ./Examples/AADL/CCS/Simulink/pan_ctr_th_imp.xml **};
 	end pan_ctr_th.imp;
 end software;
