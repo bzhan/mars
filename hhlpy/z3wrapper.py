@@ -10,10 +10,12 @@ def convert(e):
     if isinstance(e, expr.AVar):
         return z3.Real(e.name)
     elif isinstance(e, expr.AConst):
-        if isinstance(e.value, int):
-            return e.value
+        if isinstance(e.value, (int, float)):
+            return z3.RealVal(e.value)
         else:
             raise NotImplementedError
+    elif isinstance(e, expr.BConst):
+        return z3.BoolVal(e.value)
     elif isinstance(e, expr.FunExpr):
         if len(e.exprs) == 0:  # actually a constant
             return z3.Real(e.fun_name)
