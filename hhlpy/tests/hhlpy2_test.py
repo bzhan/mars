@@ -251,7 +251,7 @@ class HHLPyTest(unittest.TestCase):
         # (x := x+3)**@invariant(x > 0) ++ y := x 
         # {x>0 && y>0}
         runVerify(self, pre="x > 0 && y > 0", 
-                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>",
+                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>; (x := x+3)** ++ y := x",
                   post="x > 0 && y > 0",
                   loop_invariants={((2,0), ()): "x > 0 && y > 0"},
                   ode_invariants={((1,), ()): "x > 0 && y > 0"},
@@ -553,14 +553,71 @@ class HHLPyTest(unittest.TestCase):
         # Basic bencnmark, problem 41
         # A, B are constants.
         # {v >= 0 && A > 0 && B > 0}
-        # a := A ++ a := 0 ++ a := -B; 
-        # <x_dot = v, v_dot = a & v > 0>
+        # (
+        #  a := A ++ a := 0 ++ a := -B; 
+        #  <x_dot = v, v_dot = a & v > 0>
+        # )**
         # {v >= 0}
         runVerify(self, pre="v >= 0 && A > 0 && B > 0",
-                  hp="a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0>",
+                  hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0>)**",
                   post="v >= 0",
-                  diff_weakening={((1,), ()): "true"},
-                  print_vcs=True)
+                  constants={'A', 'B'},
+                  loop_invariants={((), ()): "v >= 0"},
+                  diff_weakening={((0,1,), ()): "true"})
+
+    def testVerify51(self):
+        # ITE
+        # {x >= 0} if x < 5 then x := x + 1 else x := x endif {x > 0}
+        runVerify(self, pre="x >= 0", hp="if x < 5 then x := x + 1 else x := x endif",
+                  post="x > 0")
+
+    def testVerify52(self):
+        # Basic benchmark, problem 42 
+        # constants = {'A', 'B', 'S'}
+        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S}
+        #
+        # (   if x + v^2 / (2*B) < S then a := A else a := -B endif
+        #  ++ if v == 0 then a := 0 else a := -B endif
+        #  ++ a := -B;
+        #     <x_dot = v, v_dot = a & v >= 0 && x + v^2 / (2*B) < S>
+        #  ++ <x_dot = v, v_dot = a & v >= 0 && x + v^2 / (2*B) > S>
+        # )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+        #
+        # {x <= S}
+        runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
+                  hp="(   if x + v^2 / (2*B) < S then a := A else a := -B endif \
+                       ++ if v == 0 then a := 0 else a := -B endif \
+                       ++ a := -B; \
+                          <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
+                       ++ <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) > S> \
+                      )**",
+                  post="x <= S",
+                  constants={'A', 'B', 'S'},
+                  loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
+                  diff_weakening={((0, 1, 0), ()): "true", ((0, 1, 1), ()): "true"}
+        )
+
+    def testVerify53(self):
+        # Basic benchmark, problem 53
+        # contants = {'A', 'V'}
+        # {v <= V && A > 0}
+        #
+        # (   if v == V then a := 0 else a := A endif
+        #  ++ if v != V then a := A else a := 0 endif;
+
+        #     <x_dot = v, v_dot = a & v <= V>
+        # )**@invariant(v <= V)
+        #
+        # {v <= V}
+        runVerify(self, pre="v <= V && A > 0", 
+                  hp="(   if v == V then a := 0 else a := A endif \
+                       ++ if v != V then a := A else a := 0 endif; \
+                          <x_dot = v, v_dot = a & v < V> \
+                      )**",
+                  post="v <= V",
+                  constants={'A', 'V'},
+                  loop_invariants={((), ()): "v <= V"},
+                  diff_weakening={((0,1), ()): "v <= V"})
 
 
 if __name__ == "__main__":

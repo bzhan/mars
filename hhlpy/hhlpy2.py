@@ -130,7 +130,7 @@ class CmdInfo:
         # Equation dict for ODEs.
         self.eqs_dict = dict()
 
-        # Assumptions for ODEs.
+        # Assumptions for HCSPs.
         self.assume = []
 
         # Use differential weakening rule or not
@@ -207,6 +207,18 @@ class CmdVerifier:
         self.infos[root_pos] = CmdInfo()
         self.infos[root_pos].pre = pre
         self.infos[root_pos].post = post
+
+        # If there are pre-conditions of constants in the form: A op c, 
+        # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
+        # the pre-conditions will always hold.
+        # Add this kind of pre-conditions into assumptions in HCSPs.
+        if not self.constants.isdisjoint(pre.get_vars()):
+            # Assume pre is a Conjunction Expression.
+            pre_list = expr.split_conj(pre)
+            for sub_pre in pre_list:
+                # The sub_pre cannot include variables.
+                if sub_pre.get_vars().isdisjoint(self.vars):
+                    self.infos[root_pos].assume.append(sub_pre)
 
     def __str__(self):
         res = ""
@@ -334,6 +346,8 @@ class CmdVerifier:
             info2 = self.infos[pos1]
             info1.post = post
             info2.post = post
+            info1.assume += self.infos[pos].assume
+            info2.assume += self.infos[pos].assume
             self.compute_wp(pos=pos0)
             self.compute_wp(pos=pos1)
             pre = expr.conj(self.infos[pos0].pre, self.infos[pos1].pre)
@@ -347,6 +361,7 @@ class CmdVerifier:
                     self.infos[sub_pos] = CmdInfo()
                 sub_info = self.infos[sub_pos]
                 sub_info.post = cur_post
+                sub_info.assume += self.infos[pos].assume
                 self.compute_wp(pos=sub_pos)
                 cur_post = sub_info.pre
             pre = cur_post
@@ -369,6 +384,7 @@ class CmdVerifier:
                 self.infos[sub_pos] = CmdInfo()
             sub_info = self.infos[sub_pos]
             sub_info.post = inv
+            sub_info.assume += self.infos[pos].assume
             self.compute_wp(pos=sub_pos)
             pre_loopbody = sub_info.pre
 
@@ -399,27 +415,20 @@ class CmdVerifier:
                 for name, e in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = e
 
-            # If there are pre-conditions of constants in the form: A op c, 
-            # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
-            # the pre-conditions will always hold.
-            # Add this kind of pre-conditions into assumptions in ODEs.
-            root_pos = ((), ())
-            if not self.constants.isdisjoint(self.infos[root_pos].pre.get_vars()):
-                # Assume pre is a Conjunction Expression.
-                pre_list = expr.split_conj(self.infos[root_pos].pre)
-                for sub_pre in pre_list:
-                    # The sub_pre cannot include variables.
-                    if sub_pre.get_vars().isdisjoint(self.vars):
-                        self.infos[pos].assume.append(sub_pre)
             
             # Use dW rule
+            # Note: remain unproved!
             # When dw is True.
+            #      Boundary of D --> Q || Q --> ~D
+            #------------------------------------------
+            #         {Q} <x_dot = f(x) & D> {Q}
             if self.infos[pos].dw:
 
                 boundary = compute_boundary(constraint)
-                self.infos[pos].vcs.append(expr.imp(boundary, post))  
+                self.infos[pos].vcs.append(expr.LogicExpr('||', expr.imp(boundary, post), \
+                                                            expr.imp(post, expr.neg_expr(constraint))))  
 
-                pre = expr.true_expr              
+                pre = post 
 
             # Use dI rules
             # When diff_inv is set or by default
@@ -446,14 +455,8 @@ class CmdVerifier:
                 # One semi-verification condition is boundary of constraint --> differential of inv.
                 differential = compute_diff(diff_inv, eqs_dict=self.infos[pos].eqs_dict)
                 boundary = compute_boundary(constraint)
-                semi_vc1 = expr.imp(boundary, differential)
+                vc1 = expr.imp(boundary, differential)
                 
-                # Assumptions added in semi_vc1
-                if self.infos[pos].assume:
-                    assume = expr.list_conj(*self.infos[pos].assume)
-                    vc1 = expr.imp(assume, semi_vc1)
-                else:
-                    vc1 = semi_vc1
                 
                 # The second condition is inv --> post.
                 vc2 = expr.imp(diff_inv, post)
@@ -675,6 +678,45 @@ class CmdVerifier:
 
             pre = expr.imp(cond, self.infos[sub_pos].pre)
 
+        elif isinstance(cur_hp, hcsp.ITE):
+            # ITE, if b then c1 else c2 endif
+            #                       {P1} c1 {Q}  {P2} c2 {Q}  {P3} c3 {Q}
+            #-----------------------------------------------------------------------------
+            #              {(b1 --> P1) && (~b1 && b2 --> P2)&& (~b1 && ~b2 --> P3)} 
+            #                      if b1 then c1 elif b2 then c2 else c3 endif 
+            #                                         {Q}
+            if_hps = cur_hp.if_hps
+
+            sub_imp_list = []
+            if_cond_list = []
+            for i in range(len(if_hps) + 1):
+                sub_pos = (pos[0] + (i,), pos[1])
+                if sub_pos not in self.infos:
+                    self.infos[sub_pos] = CmdInfo()
+                self.infos[sub_pos].post = post
+
+                # Compute the sub-pre-condition for each sub_hp, 
+                # e.g. P1, P2, P3 for c1, c2 and c3
+                self.compute_wp(pos=sub_pos)
+                sub_pre = self.infos[sub_pos].pre
+
+                # Collect the all if conditions.
+                if i < len(if_hps):
+                    if_cond_list.append(if_hps[i][0])
+
+                # Compute the hypothesis of each implication
+                if i == 0:
+                    sub_cond = if_cond_list[0]
+                elif i < len(if_hps):
+                    sub_cond = expr.LogicExpr('&&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
+                else:
+                    sub_cond =  expr.neg_expr(expr.list_disj(*if_cond_list[:]))
+
+                # Compute the implicaiton for each if_hp or else_hp
+                sub_imp = expr.imp(sub_cond, sub_pre)
+                sub_imp_list.append(sub_imp)
+
+            pre = expr.list_conj(*sub_imp_list)
 
         else:
             raise NotImplementedError
@@ -685,6 +727,13 @@ class CmdVerifier:
             self.infos[pos].pre = pre
         else:
             self.infos[pos].vcs.append(expr.imp(self.infos[pos].pre, pre))
+
+        # Add assume into the hypothesis of every verification condition.
+        if self.infos[pos].assume:
+            assume = expr.list_conj(*self.infos[pos].assume)
+            for i in range(len(self.infos[pos].vcs)):
+                self.infos[pos].vcs[i] = expr.imp(assume, self.infos[pos].vcs[i])
+        
 
     def get_all_vcs(self):
         all_vcs = dict()
