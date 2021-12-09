@@ -251,6 +251,11 @@ class SimTest(unittest.TestCase):
             3: {'z': 4, 'a': 1, 'y': 4}
         })
 
+    def testTemporalLogic(self):
+        run_test(self, "./Examples/Simulink/Temproal_Logic.xml", 80, {
+
+        })
+
 
 if __name__ == "__main__":
     unittest.main()
