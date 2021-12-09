@@ -252,7 +252,12 @@ class SimTest(unittest.TestCase):
         })
 
     def testTemporalLogic(self):
-        run_test(self, "./Examples/Simulink/Temproal_Logic.xml", 80, {
+        run_test(self, "./Examples/Simulink/Temporal_Logic.xml", 80, {
+
+        })
+
+    def testInputEvent(self):
+        run_test(self, "./Examples/Simulink/Input_Event.xml", 80, {
 
         })
 
