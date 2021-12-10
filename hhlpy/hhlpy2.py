@@ -10,7 +10,8 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.z3wrapper import z3_prove
-from sympy import *
+from sympy import sympify, degree, symbols, factor_list, fraction
+from ss2hcsp.hcsp.parser import aexpr_parser
 
 
 def compute_diff(e, eqs_dict):
@@ -112,8 +113,8 @@ def compute_boundary(e):
             return expr.LogicExpr('||', disj1, disj2)
         elif e.op == '~':
             return compute_boundary(expr.neg_expr(e.exprs[0]))
+            
     
-
 class CmdInfo:
     """Information associated to each HCSP program."""
     def __init__(self):
@@ -528,9 +529,11 @@ class CmdVerifier:
 
                 # Second condition: 
                 # If the differential equation satisfied by the ghost variable is offered, verify its soundness.
-                # if not, solve for the differential equation automatically.
+                # if not, solve for the ghost equation automatically.
+                # Then verify the reasonablity of the ghost eqaution for above two cases.
 
                 # Cases when the differential equation, alias ghost_eqs offered by the users.
+                # Assume y is the ghost variable.
                 if self.infos[pos].ghost_eqs:
                     ghost_eqs = self.infos[pos].ghost_eqs
 
@@ -538,6 +541,9 @@ class CmdVerifier:
                     assert ghost_var in ghost_eqs, \
                         'The ghost variable in ghost equation is different from that in ghost invariant.'
                     
+                    # The verification of  the reasonablity of the ghost equations is below if-else.
+                    dy = sympify(str(ghost_eqs[ghost_var]))
+
                     # Create a new CmdInfo for the ODE with ghost_eqs
                     sub_pos = (pos[0], pos[1] + (0,))
 
@@ -570,15 +576,34 @@ class CmdVerifier:
 
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
+                    # Simplify dy
+                    dy = sympify(str(dy))
+
                     self.infos[pos].ghost_eqs = {ghost_var: dy}
-               
+
+                # Verify the reasonablity of ghost equations.
+                # dy should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
+                ghost_var_degree = degree(dy, gen=symbols(ghost_var))
+                if not ghost_var_degree in {0,1}:
+                    raise AssertionError("Ghost equations should be linear in ghost variable!")
+
+                # The denominator of dy cannot be equal to 0.
+                _, denomi = fraction(dy)
+                denomi = aexpr_parser.parse(str(denomi))
+                denomi_not_zero = expr.RelExpr('!=', denomi, expr.AConst(0))
+                if self.infos[pos].assume:
+                    assume = expr.list_conj(*self.infos[pos].assume)
+                    vc2 = expr.imp(assume, denomi_not_zero)
+                else:
+                    vc2 = denomi_not_zero
+                        
                 # Third condition
                 vc3 = expr.imp(ghost_inv, ode_inv)
 
                 # Fourth condition
                 vc4 = expr.imp(ode_inv, post)
 
-                self.infos[pos].vcs = [vc1, vc3, vc4]
+                self.infos[pos].vcs = [vc1, vc2, vc3, vc4]
 
                 # New precondition is inv
                 pre = ode_inv
