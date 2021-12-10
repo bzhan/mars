@@ -1059,9 +1059,20 @@ class SL_Diagram:
             self.blocks_dict[block.name] = block
 
     def new_seperate_diagram(self):
-        discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
-        continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
-        return discrete_diagram, continuous_diagram, self.outputs
+        discrete_diagram = list()
+        continuous_diagram = list()
+        others = list()
+        for block in self.blocks_dict.values():
+            if hasattr(block, "is_continuous"):
+                if block.is_continuous:
+                    continuous_diagram.append(block)
+                else:
+                    discrete_diagram.append(block)
+            else:
+                others.append(block)
+        # discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
+        # continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
+        return discrete_diagram, continuous_diagram, others, self.outputs
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""
