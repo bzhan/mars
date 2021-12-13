@@ -240,7 +240,8 @@ class HHLPyTest(unittest.TestCase):
                 ode_invariants={((1,), ()): "x > 0"},
                 ghost_invariants={((1,), ()): "x * y * y == 1"},
                 expected_vcs={((1,), ()): ["x > 0 --> (EX y. x * y * y == 1)",
-                                    "x * y * y == 1 --> x > 0"]})
+                                           "x * y * y == 1 --> x > 0",
+                                           "2 != 0"]})
 
     def testVerify17(self):
         # Basic benchmark, problem9
@@ -258,7 +259,8 @@ class HHLPyTest(unittest.TestCase):
                   ghost_invariants={((1,), (0,)): "x * z * z == 1"},
                   diff_invariants={((1,), (1,)): "y > 0"},
                   expected_vcs={((1,), (0,)): ["x > 0 --> (EX z. x * z * z == 1)",
-                                               "x * z * z == 1 --> x > 0"],
+                                               "x * z * z == 1 --> x > 0",
+                                               "2 != 0"],
                                 ((1,), (1,)): ["t == 1 --> 0 >= 0"]})
 
     def testVerify18(self):
@@ -305,29 +307,32 @@ class HHLPyTest(unittest.TestCase):
 
     # Basic benchmark problem15 is verified in testVerify16
 
-    def testVerify23(self):
-        # Basic benchmark, problem16
-        # dG Rule
-        # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
-        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
-                  ode_invariants={((1,), ()): "x > 0"},
-                  ghost_invariants={((1,), ()): "x * y * y == 1"})
+    # def testVerify23(self):
+    #     # Basic benchmark, problem16
+    #     # dG Rule
+    #     # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
+    #     runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
+    #               ode_invariants={((1,), ()): "x > 0"},
+    #               ghost_invariants={((1,), ()): "x * y * y == 1"},
+    #               print_vcs=True)
 
-    # def testVerify24(self):
-    #     # Basic benchmark, problem17
-    #     # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
-    #     runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10>", post="x > 0",
-    #               invariants={(1,): "x > 0"},
-    #               ghost_invariants={(1,): "x * z * z == 1"},
-    #               expected_vcs={(): ["x > 0 && y > 0 --> x > 0"],
-    #                             (1,): ["x > 0 --> (EX z. x * z * z == 1)",
-    #                                    "x * z * z == 1 --> x > 0",]})
+    def testVerify24(self):
+        # Basic benchmark, problem17
+        # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
+        runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10>", 
+                  post="x > 0",
+                  ode_invariants={((1,), ()): "x > 0"},
+                  ghost_invariants={((1,), ()): "x * z * z == 1"},
+                  expected_vcs={((), ()): ["x > 0 && y > 0 --> x > 0"],
+                                ((1,), ()): ["x > 0 --> (EX z. x * z * z == 1)",
+                                             "x * z * z == 1 --> x > 0",
+                                             "2 != 0"]})
 
     def testVerify25(self):
         # Basic benchmark, problem 18
         # {x >= 0} <x_dot = x & x < 10> {x >= 0}
         # dG and Conjunction Rule
-        # Question remained: choose ghost_eqs_number
+        # Question remained: the form of ghost_equations.
         runVerify(self, pre="x >= 0", hp="<x_dot = x & x < 10>", post="x >= 0",
                   ode_invariants={((), ()): "x >= 0"},
                   diff_invariants={((), (0,1)): "x * y >= 0"},
@@ -598,7 +603,7 @@ class HHLPyTest(unittest.TestCase):
         )
 
     def testVerify53(self):
-        # Basic benchmark, problem 53
+        # Basic benchmark, problem 43
         # contants = {'A', 'V'}
         # {v <= V && A > 0}
         #
