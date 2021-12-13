@@ -10,7 +10,8 @@ from hhlpy.hhlpy2 import CmdVerifier
 
 def runVerify(self, *, pre, hp, post, constants=set(), loop_invariants=None, ode_invariants=None, 
               diff_weakening=None, diff_invariants=None, assume_invariants=None, 
-              diff_cuts=None, ghost_equations=None, ghost_invariants=None, darboux_equality = None,
+              diff_cuts=None, ghost_equations=None, ghost_invariants=None, 
+              darboux_rule=None, darboux_cofactors=None,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = bexpr_parser.parse(pre)
@@ -82,11 +83,17 @@ def runVerify(self, *, pre, hp, post, constants=set(), loop_invariants=None, ode
                     ghost_eqs_dict[name] = e
             verifier.add_ghost_equation(pos, ghost_eqs_dict)
 
-    if darboux_equality:
-        for pos, dbx_equal in darboux_equality.items():
-            if isinstance(dbx_equal, str):
-                dbx_equal = bexpr_parser.parse(dbx_equal)
-            verifier.use_darboux_equality(pos, dbx_equal)
+    if darboux_rule:
+        for pos, dbx_rule in darboux_rule.items():
+            if isinstance(dbx_rule, str):
+                dbx_rule = bexpr_parser.parse(dbx_rule)
+            verifier.use_darboux_rule(pos, dbx_rule)
+
+    if darboux_cofactors:
+        for pos, dbx_cofactor in darboux_cofactors.items():
+            if isinstance(dbx_cofactor, str):
+                dbx_cofactor = aexpr_parser.parse(dbx_cofactor)
+            verifier.add_darboux_cofactor(pos, dbx_cofactor)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -307,14 +314,13 @@ class HHLPyTest(unittest.TestCase):
 
     # Basic benchmark problem15 is verified in testVerify16
 
-    # def testVerify23(self):
-    #     # Basic benchmark, problem16
-    #     # dG Rule
-    #     # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
-    #     runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
-    #               ode_invariants={((1,), ()): "x > 0"},
-    #               ghost_invariants={((1,), ()): "x * y * y == 1"},
-    #               print_vcs=True)
+    def testVerify23(self):
+        # Basic benchmark, problem16
+        # dbx inequality Rule
+        # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
+        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
+                  darboux_rule={((1,), ()): 'true'},
+                  darboux_cofactors={((1,),()): "-1"})
 
     def testVerify24(self):
         # Basic benchmark, problem17
@@ -452,7 +458,7 @@ class HHLPyTest(unittest.TestCase):
                   post="0 == -x - z",
                   constants={"B()"},
                   ode_invariants={((1,), ()): "x + z == 0"},
-                  darboux_equality={((1,), ()): "true"})
+                  darboux_rule={((1,), ()): "true"})
 
     # Benchmark, problem 30-32
 
@@ -623,6 +629,26 @@ class HHLPyTest(unittest.TestCase):
                   constants={'A', 'V'},
                   loop_invariants={((), ()): "v <= V"},
                   diff_weakening={((0,1), ()): "v <= V"})
+
+    def testVerify54(self):
+        # Basic benchmark, problem 44
+        # constants = {'A', 'V'}
+        # {v <= V && A > 0}
+        #
+        # (a := A;
+        #  <x_dot = v, v_dot = a & v < V>
+        # )**
+        #
+        # {v <= V}
+        runVerify(self, pre="v <= V && A > 0", 
+                  hp="(a := A;\
+                      <x_dot = v, v_dot = a & v < V>\
+                       )**",
+                  post="v <= V",
+                  constants={'A', 'V'},
+                  loop_invariants={((), ()): "v <= V"},
+                  diff_weakening={((0,1), ()): "true"},
+        )
 
 
 if __name__ == "__main__":

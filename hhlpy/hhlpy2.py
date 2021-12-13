@@ -10,7 +10,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.z3wrapper import z3_prove
-from sympy import sympify, degree, symbols, factor_list, fraction
+from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 from ss2hcsp.hcsp.parser import aexpr_parser
 
 
@@ -113,8 +113,18 @@ def compute_boundary(e):
             return expr.LogicExpr('||', disj1, disj2)
         elif e.op == '~':
             return compute_boundary(expr.neg_expr(e.exprs[0]))
-            
+
+# Return the relexpression 'denomibator != 0' for term e.           
+def demoninator_not_zero(e):
+    if not isinstance(e, str):
+        e = str(e)
     
+    e = simplify(sympify(e))
+    _, denominator = fraction(e)
+    denominator = aexpr_parser.parse(str(denominator))
+
+    return expr.RelExpr('!=', denominator, expr.AConst(0))
+
 class CmdInfo:
     """Information associated to each HCSP program."""
     def __init__(self):
@@ -156,7 +166,7 @@ class CmdInfo:
         self.ghost_eqs = dict()
 
         # Use dbx rule or not
-        self.dbx_equal = False
+        self.dbx_rule = False
 
         # Dbx cofactor for ODEs
         self.dbx_cofactor = None 
@@ -274,10 +284,15 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].ghost_eqs = ghost_eqs
 
-    def use_darboux_equality(self, pos, dbx_equal):
+    def use_darboux_rule(self, pos, dbx_rule):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
-        self.infos[pos].dbx_equal = dbx_equal
+        self.infos[pos].dbx_rule = dbx_rule
+
+    def add_darboux_cofactor(self, pos, dbx_cofactor):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].dbx_cofactor = dbx_cofactor
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -413,9 +428,12 @@ class CmdVerifier:
 
             # Construct dictionary corresponding to eqs.
             if not self.infos[pos].eqs_dict:
-                for name, e in cur_hp.eqs:
-                    self.infos[pos].eqs_dict[name] = e
+                for name, deriv in cur_hp.eqs:
+                    self.infos[pos].eqs_dict[name] = deriv
 
+            # By default, ode_inv is post.
+            if not self.infos[pos].ode_inv:
+                self.infos[pos].ode_inv = self.infos[pos].post
             
             # Use dW rule
             # Note: remain unproved!
@@ -436,7 +454,8 @@ class CmdVerifier:
             elif self.infos[pos].diff_inv is not None or \
                 not self.infos[pos].dw and self.infos[pos].diff_inv is None and \
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
-                not self.infos[pos].dbx_equal and self.infos[pos].assume_inv is None and \
+                not self.infos[pos].dbx_rule and not self.infos[pos].dbx_cofactor and \
+                self.infos[pos].assume_inv is None and \
                 (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
                
                 if self.infos[pos].diff_inv is not None:
@@ -446,8 +465,8 @@ class CmdVerifier:
                     diff_inv = post
 
                 # ode_inv can be written in when using Conjuntion Rule.
-                if self.infos[pos].ode_inv is not None:
-                    assert diff_inv == self.infos[pos].ode_inv
+                # if self.infos[pos].ode_inv is not None:
+                #     assert diff_inv == self.infos[pos].ode_inv
                 if not isinstance(diff_inv, expr.BExpr):
                     raise AssertionError('Invalid differential invariant for ODE!')               
 
@@ -467,9 +486,9 @@ class CmdVerifier:
                 pre = diff_inv
             
             # Use dC rules
-            #  {P} c {R1}    R1--> {P} c {R2}     R1 && R2--> {P} c {Q}
+            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {I}
             #-----------------------------------------------------------
-            #                        {P} c {Q}
+            #                        {P1 && P2 && P3} c {I}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
@@ -520,8 +539,8 @@ class CmdVerifier:
                 self.names.add(ghost_var)
 
                 if not self.infos[pos].eqs_dict:
-                    for name, e in cur_hp.eqs:
-                        self.infos[pos].eqs_dict[name] = e
+                    for name, deriv in cur_hp.eqs:
+                        self.infos[pos].eqs_dict[name] = deriv
 
                 # The first condition is: inv implies there exists a value of ghost_var
                 # that satisfies ghost_inv.
@@ -541,8 +560,8 @@ class CmdVerifier:
                     assert ghost_var in ghost_eqs, \
                         'The ghost variable in ghost equation is different from that in ghost invariant.'
                     
-                    # The verification of  the reasonablity of the ghost equations is below if-else.
-                    dy = sympify(str(ghost_eqs[ghost_var]))
+                    # The verification of the reasonablity of the ghost equations is below if-else.
+                    dy = simplify(sympify(str(ghost_eqs[ghost_var])))
 
                     # Create a new CmdInfo for the ODE with ghost_eqs
                     sub_pos = (pos[0], pos[1] + (0,))
@@ -577,9 +596,9 @@ class CmdVerifier:
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
                     # Simplify dy
-                    dy = sympify(str(dy))
+                    dy = simplify(sympify(str(dy)))
 
-                    self.infos[pos].ghost_eqs = {ghost_var: dy}
+                    self.infos[pos].ghost_eqs = {ghost_var: aexpr_parser.parse(str(dy))}
 
                 # Verify the reasonablity of ghost equations.
                 # dy should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
@@ -588,14 +607,8 @@ class CmdVerifier:
                     raise AssertionError("Ghost equations should be linear in ghost variable!")
 
                 # The denominator of dy cannot be equal to 0.
-                _, denomi = fraction(dy)
-                denomi = aexpr_parser.parse(str(denomi))
-                denomi_not_zero = expr.RelExpr('!=', denomi, expr.AConst(0))
-                if self.infos[pos].assume:
-                    assume = expr.list_conj(*self.infos[pos].assume)
-                    vc2 = expr.imp(assume, denomi_not_zero)
-                else:
-                    vc2 = denomi_not_zero
+                denomi_not_zero = demoninator_not_zero(dy)
+                vc2 = denomi_not_zero
                         
                 # Third condition
                 vc3 = expr.imp(ghost_inv, ode_inv)
@@ -609,32 +622,85 @@ class CmdVerifier:
                 pre = ode_inv
 
             # Using dbx rule
-            elif self.infos[pos].dbx_equal or self.infos[pos].dbx_cofactor is not None:
+            elif self.infos[pos].dbx_rule or self.infos[pos].dbx_cofactor is not None:
                 ode_inv = self.infos[pos].ode_inv
 
                 if not isinstance(ode_inv, expr.RelExpr): 
                     raise NotImplementedError
                 
+                assert ode_inv.op in {'==', '>', '>=', '<', '<='}
+
+                # Tranlate '<' and '<=' into '>' and '>='.
+                if ode_inv.op == '<':
+                    ode_inv = expr.RelExpr('>', ode_inv.expr2, ode_inv.expr1)
+                elif ode_inv.op == '<=':
+                    ode_inv = expr.RelExpr('>=', ode_inv.expr2, ode_inv.expr1)
+
+                # Translate into the form e == 0 or e >(>=) 0
+                if ode_inv.expr2 != expr.AConst(0):
+                    ode_inv = expr.RelExpr(ode_inv.op, expr.OpExpr('-', ode_inv.expr1, ode_inv.expr2), 
+                                                                        expr.AConst(0)) 
+                
+                # Compute the lie derivative of e.
+                lie_deriv = compute_diff(ode_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+
                 # Cases when ode_inv is "e == 0".
-                if ode_inv.op == "==" and ode_inv.expr2 == expr.AConst(0):
-                    # Compute the lie derivative of e.
-                    lie_deriv = compute_diff(ode_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+                # Use Darboux Equality Rule
+                #          D --> e_lie_deriv == g * e
+                #--------------------------------------------    (g is the cofactor)
+                #   {e == 0} <x_dot = f(x) & D> {e == 0}
+                if ode_inv.op == "==" :
 
-                    # Conversion from hcsp expression to sympy expression.
-                    e_sym = sympify(str(ode_inv.expr1))
-                    lie_deriv_sym = sympify(str(lie_deriv))
+                    # # Compute the boundary of constraint.
+                    # boundary = compute_boundary(constraint)
 
-                    # Compute the factor list of lie_deriv_sym
-                    factor_tuple = factor_list(lie_deriv_sym)
-                    factors = []
-                    for factor, _ in factor_tuple[1]: 
-                        factors.append(factor)  
+                    # Compute the cofactor g by auto if it's not offered.
+                    if self.infos[pos].dbx_cofactor is None:
+                        g = expr.OpExpr('/', lie_deriv, ode_inv.expr1)
+                        g_sym = simplify(sympify(str(g)))
+                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(str(g_sym))
 
-                    if e_sym not in factors: 
-                        raise NotImplementedError("This ODE cannot be solved by using Darboux Equality Rule!") 
+                        denomi_not_zero = demoninator_not_zero(g_sym)
 
-                    pre = ode_inv     
-                                    
+                        # G_sym is supposed to be a reasonable expression.
+                        self.infos[pos].vcs.append(expr.imp(constraint, denomi_not_zero))
+
+                    # Cases when cofactor g is offered by the user.
+                    else:
+                        g = self.infos[pos].dbx_cofactor
+                        
+                        denomi_not_zero = demoninator_not_zero(g)
+
+                        vc1 = expr.imp(constraint, denomi_not_zero)
+                        # Boundary of D --> e_lie_deriv == g * e
+                        vc2 = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
+                                                                    expr.OpExpr('*'), g, ode_inv.expr1))
+
+                        self.infos[pos].dbx_cofactor = [vc1, vc2]
+
+                    pre = ode_inv
+
+                # Cases when ode_inv is e >(>=) 0.
+                # Use Darboux Inequality Rule.
+                #           D --> e_lie_deriv >= g * e
+                # ---------------------------------------------
+                #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
+                if ode_inv.op in {'>', '>='}:
+                    if self.infos[pos].dbx_cofactor is None:
+                        raise NotImplementedError("Please offer the cofactor for dbx inequality rule!")
+
+                    g = self.infos[pos].dbx_cofactor
+                    denomi_not_zero = demoninator_not_zero(g)
+
+                    vc1 = expr.imp(constraint, denomi_not_zero)
+
+                    vc2 = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
+                                                                  expr.OpExpr('*', g, ode_inv.expr1)))
+
+                    self.infos[pos].vcs = [vc1, vc2]
+
+
+                    pre = ode_inv              
 
             # Using Conjuntion Rule
             #  {I1} c {I1}     {I2} c {I2}
@@ -663,8 +729,8 @@ class CmdVerifier:
                 pre = ode_inv
 
             # Using the rule below:(proved by Isabelle)
-            #    e > 0 --> e_. >= 0
-            #--------------------------    # c is an ODE, e_. represent the lie derivation of e
+            #    e > 0 --> e_lie_deriv >= 0
+            #--------------------------    # c is an ODE, e_lie_deriv represent the lie derivation of e
             #    {e > 0} c {e > 0}
             elif self.infos[pos].assume_inv:
                 assume_inv = self.infos[pos].assume_inv
