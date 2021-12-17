@@ -36,8 +36,6 @@ public
 			bus06: bus platform::bus0.imp6;
 			bus07: bus platform::bus0.imp7;
 			bus08: bus platform::bus0.imp8;
-			bus09: bus platform::bus0.imp9;
-			bus1: bus platform::bus1.imp;
 		connections
 			tran_img: port camera.img -> obs_det.img;
 			tran_obs_pos_radar: port radar.obs_pos_radar -> obs_det.obs_pos_radar;
@@ -50,15 +48,10 @@ public
 			tran_laser_v: port laser.laser_v -> velo_ctr.laser_v;
 			tran_wheel_valid: port wheel.wheel_valid -> velo_ctr.wheel_valid;
 			tran_wheel_v: port wheel.wheel_v -> velo_ctr.wheel_v;
-			tran_inc: port user_panel.inc -> pan_ctr.inc;
-			tran_dec: port user_panel.dec -> pan_ctr.dec;
+			tran_event: port user_panel.event -> pan_ctr.event;
 			tran_des_v: port pan_ctr.des_v -> velo_ctr.des_v;
-			-- bus connections
-			cpu0_bus1: bus access cpu0.rq_bus -> bus1;
-			cpu1_bus1: bus access cpu1.rq_bus -> bus1;
 		properties
-			actual_processor_binding => (reference (cpu0)) applies to obs_det, velo_ctr;
-			actual_processor_binding => (reference (cpu1)) applies to pan_ctr;
+			actual_processor_binding => (reference (cpu)) applies to obs_det, velo_ctr, pan_ctr;
 			actual_connection_binding => (reference (bus00)) applies to tran_img;
 			actual_connection_binding => (reference (bus01)) applies to tran_obs_pos_radar;
 			actual_connection_binding => (reference (bus02)) applies to tran_cmd;
@@ -67,9 +60,7 @@ public
 			actual_connection_binding => (reference (bus05)) applies to tran_laser_v;
 			actual_connection_binding => (reference (bus06)) applies to tran_wheel_valid;
 			actual_connection_binding => (reference (bus07)) applies to tran_wheel_v;
-			actual_connection_binding => (reference (bus08)) applies to tran_inc;
-			actual_connection_binding => (reference (bus09)) applies to tran_dec;
-			actual_connection_binding => (reference (bus1)) applies to tran_des_v;
+			actual_connection_binding => (reference (bus08)) applies to tran_event;
 	end cruise_control_system.imp;
 	
 	system vehicle
@@ -81,6 +72,6 @@ public
 	end vehicle;
 	
 	system implementation vehicle.imp
-		annex Simulink{** **};
+		annex Simulink{** ./Examples/AADL/CCS/Simulink/vehicle_imp.xml **};
 	end vehicle.imp;
 end joint_model;

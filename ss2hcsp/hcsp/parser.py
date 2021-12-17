@@ -109,7 +109,7 @@ grammar = r"""
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
-    ?ichoice_cmd: cond_cmd | cond_cmd "++" cond_cmd   // Priority: 80
+    ?ichoice_cmd: cond_cmd | ichoice_cmd "++" cond_cmd   // Priority: 80
 
     ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
 

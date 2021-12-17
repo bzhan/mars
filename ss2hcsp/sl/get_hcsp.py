@@ -9,6 +9,8 @@ import operator
 from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.hcsp.module import HCSPModule
+from ss2hcsp.hcsp import hcsp
+from ss2hcsp.sf import sf_convert
 
 
 def translate_continuous(diagram):
@@ -388,11 +390,14 @@ def translate_discrete(diagram):
     return result_hp
 
 
-def new_translate_discrete(diagram):
+def new_translate_discrete(diagram, chart_parameters):
     # assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
     sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
+
+    # Storing procedures generated when translating
+    procedures = list()
 
     # # Get the (in- or out-)ports of the form {port_name: variable_name}
     # in_ports = dict()
@@ -418,9 +423,36 @@ def new_translate_discrete(diagram):
     for port_name in port_names:
         del block_dict[port_name]
 
+    # Translate Stateflow charts
+    charts = [block for block in block_dict.values() if block.type == "stateflow"]
+    if charts:
+        for chart in charts:
+            del block_dict[chart.name]
+        assert len(charts) == 1
+        converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
+                                         translate_io=False)
+        _init_hp = hcsp.Var(converter.init_name())
+        _dis_comp = hcsp.Var(converter.exec_name())
+        _procedures = converter.get_procs()
+        for _name, _hp in _procedures.items():
+            procedures.append(hcsp.Procedure(_name, _hp))
+
+    # Translate DiscretePulseGenerator
+    discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
+    num = 0
+    for block in discretePulseGenerators:
+        del block_dict[block.name]
+        for line in block.src_lines:
+            for branch in line:
+                if isinstance(branch.dest_block, Mux):
+                    procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp()))
+                else:
+                    procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp1()))
+        num += 1
+
     # Get initializations and procedures
     init_hps = list()
-    procedures = list()
+    # procedures = list()
     for block in block_dict.values():
         if block.type == "constant":
             out_var = block.src_lines[0][0].name
@@ -535,9 +567,9 @@ def new_translate_continuous(diagram):
     return init_hps, equations, var_subst, constraints, trig_procs, procedures
 
 
-def new_get_hcsp(discrete_diagram, continuous_diagram, outputs=()):
+def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs=()):
     dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
-        new_translate_discrete(discrete_diagram)
+        new_translate_discrete(discrete_diagram, chart_parameters)
     con_init_hps, equations, var_subst, constraints, trig_procs, con_procedures = \
         new_translate_continuous(continuous_diagram)
 

@@ -39,7 +39,7 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.add_line_name()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
-    discrete_diagram, continuous_diagram, outputs = diagram.new_seperate_diagram()
+    discrete_diagram, continuous_diagram, _, outputs = diagram.new_seperate_diagram()
 
     # Optional: print diagram
     if print_diagrams:
@@ -53,7 +53,7 @@ def run_test(self, location, num_steps, expected_series, *,
         print(outputs)
 
     # Convert to HCSP
-    result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, outputs)
+    result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, diagram.chart_parameters, outputs)
 
     # Optional: print HCSP
     if print_hcsp:
@@ -79,19 +79,20 @@ def run_test(self, location, num_steps, expected_series, *,
                 continue
             print("%.1f: %s" % (pt['time'], pt['state']))
 
-    series = dict()
-    for pt in res['time_series']['P']:
+    if print_time_series:
+        series = dict()
+        for pt in res['time_series']['P']:
+            for time in expected_series:
+                if abs(pt['time'] - time) < 1e-10:
+                    series[time] = pt['state']
         for time in expected_series:
-            if abs(pt['time'] - time) < 1e-10:
-                series[time] = pt['state']
-    for time in expected_series:
-        self.assertTrue(time in series, "Time %s not found in result" % time)
-        self.assertTrue(len(expected_series[time]) == len(series[time]))
-        for var in expected_series[time]:
-            self.assertTrue(var in series[time])
-            self.assertAlmostEqual(
-                series[time][var], expected_series[time][var],
-                msg="Disagreement at time %s, variable %s" % (time, var), places=3)
+            self.assertTrue(time in series, "Time %s not found in result" % time)
+            self.assertTrue(len(expected_series[time]) == len(series[time]))
+            for var in expected_series[time]:
+                self.assertTrue(var in series[time])
+                self.assertAlmostEqual(
+                    series[time][var], expected_series[time][var],
+                    msg="Disagreement at time %s, variable %s" % (time, var), places=3)
 
 
 class SimTest(unittest.TestCase):
@@ -155,16 +156,16 @@ class SimTest(unittest.TestCase):
             200.0: {'q': 92.852, 'c': 99.874}
         })
 
-    def testSignalBuilder(self):
-        directory = "./Examples/signalBuilder/"
-        xml_file = "testSignalBuilder.xml"
-        diagram = SL_Diagram(location=directory + xml_file)
-        model_name = diagram.parse_xml()
-        diagram.add_line_name()
-        diagram.comp_inher_st()
-        diagram.inherit_to_continuous()
-        real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
-        printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
+    # def testSignalBuilder(self):
+    #     directory = "./Examples/signalBuilder/"
+    #     xml_file = "testSignalBuilder.xml"
+    #     diagram = SL_Diagram(location=directory + xml_file)
+    #     model_name = diagram.parse_xml()
+    #     diagram.add_line_name()
+    #     diagram.comp_inher_st()
+    #     diagram.inherit_to_continuous()
+    #     real_hp = get_hcsp(*diagram.seperate_diagram(), model_name)
+    #     printTofile(path=directory+xml_file[:-3]+"txt", content=real_hp)
 
     # def testVelocityControl(self):
     #     directory = "./Examples/signalBuilder/"
@@ -221,10 +222,10 @@ class SimTest(unittest.TestCase):
             5: {'y': 8, 'x': 5}
         })
 
-    def testEnabled1(self):
-        run_test(self, "./Examples/Simulink/Enabled1.xml", 70, {
-
-        })
+    # def testEnabled1(self):
+    #     run_test(self, "./Examples/Simulink/Enabled1.xml", 70, {
+    #
+    #     })
 
     def testTriggered1(self):
         # Continuous triggered subsystem
@@ -250,6 +251,16 @@ class SimTest(unittest.TestCase):
             2.5: {'z': 2, 'a': 1, 'y': 3},
             3: {'z': 4, 'a': 1, 'y': 4}
         })
+
+    # def testTemporalLogic(self):
+    #     run_test(self, "./Examples/Simulink/Temporal_Logic.xml", 80, {
+    #
+    #     })
+
+    def testInputEvent(self):
+        run_test(self, "./Examples/Simulink/Input_Event.xml", 80, {
+
+        }, print_hcsp=True)
 
 
 if __name__ == "__main__":

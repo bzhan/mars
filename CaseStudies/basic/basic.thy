@@ -684,7 +684,6 @@ lemma b32:
   apply(auto simp add: vec2state_def)
   done
 
-
 lemma b33:
   assumes "a^2 \<le> 4"
     and "b^2 \<ge> 1/3"
@@ -767,7 +766,7 @@ lemma b33:
        apply (smt pos_divide_less_eq zero_less_power zero_power2)
       apply(subgoal_tac "(4 * xa\<^sup>2 * (s Y * a)\<^sup>2 + (s Y)\<^sup>2) * ((4 * xa\<^sup>2 + 1)) \<le>
                          (xa\<^sup>2 * (s Y * a)\<^sup>2 + (s Y)\<^sup>2) * (16 * xa\<^sup>2 + 1)")
-       apply (smt power2_less_0 real_mult_less_iff1)
+       apply (smt power2_less_0 mult_le_cancel_iff1)
       apply(auto simp add: algebra_simps )
       apply(subgoal_tac "xa\<^sup>2 * (a\<^sup>2 * (s Y)\<^sup>2) = a\<^sup>2 * (xa\<^sup>2 * (s Y)\<^sup>2) ")
        prefer 2 
@@ -793,7 +792,7 @@ lemma b33:
          apply (smt pos_divide_less_eq zero_less_power zero_power2)
         apply(subgoal_tac "((s L)\<^sup>2 * (s Y * b)\<^sup>2 + (s Y)\<^sup>2) * (2 * (s L)\<^sup>2 + 1) \<le>
                            ((s L)\<^sup>2 * 4 * (s Y * b)\<^sup>2 + (s Y)\<^sup>2)* ((s L)\<^sup>2 + 1) ")
-         apply (smt power2_less_0 real_mult_less_iff1)
+         apply (smt power2_less_0 mult_less_iff1)
         apply(auto simp add: algebra_simps )
         apply(subgoal_tac "3 * (b\<^sup>2 * ((s L)\<^sup>2 * (s Y)\<^sup>2)) \<ge> (s L)\<^sup>2 * (s Y)\<^sup>2 ")
          apply(subgoal_tac "2 * (b\<^sup>2 * ((s Y)\<^sup>2 * s L ^ 4)) \<ge> 0")
@@ -1267,8 +1266,8 @@ lemma b46:
       apply (rule ext)
       apply auto
       done
-    apply (metis (no_types, hide_lams) div_by_1 divide_divide_eq_right pos_less_divide_eq real_divide_square_eq)
-    using mult_imp_div_pos_less 
+      apply (metis less_divide_eq mult.commute)
+      using mult_imp_div_pos_less 
     apply (smt divide_eq_imp)
     subgoal
       unfolding ODEsol_def has_vderiv_on_def
@@ -1288,7 +1287,7 @@ lemma b46:
       apply auto
       done
     apply(auto simp add: algebra_simps)
-    apply (smt mult.commute real_mult_less_iff1)
+    apply (smt mult.commute mult_less_iff1)
     subgoal
     proof-
       have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then v $ Y else
@@ -1686,8 +1685,7 @@ lemma b55:
       apply (rule ext)
       apply auto
       done
-         apply (metis (no_types, hide_lams) div_by_1 divide_divide_eq_right pos_less_divide_eq
-        real_divide_square_eq)
+         apply (metis less_divide_eq mult.commute)
     using mult_imp_div_pos_less 
         apply (smt divide_eq_imp)
     subgoal
@@ -1708,7 +1706,7 @@ lemma b55:
       apply auto
       done
       apply(auto simp add: algebra_simps)
-      apply (smt mult.commute real_mult_less_iff1)
+      apply (smt mult.commute mult_less_iff1)
     subgoal
     proof-
       have b1:"bounded_linear (\<lambda>(v :: vec). (\<chi> a. if a = T then 0 else if a = X then v $ Y else

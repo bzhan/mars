@@ -1217,7 +1217,21 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     # Initial stages
     diagram.parse_xml()
     diagram.add_line_name()
-    _, continuous, charts, _, _, _, dsms, _, clocks = diagram.seperate_diagram()
+
+    discrete_blocks, continuous_blocks, others, _ = diagram.new_seperate_diagram()
+    clocks = list()
+    continuous = list()
+    for block in continuous_blocks:
+        if block.type == "clock":
+            clocks.append(block)
+        else:
+            continuous.append(block)
+    if continuous:
+        continuous = [continuous]
+    charts = [block for block in discrete_blocks if block.type == "stateflow"]
+    dsms = [block for block in others if block.type == "DataStoreMemory"]
+
+    # _, continuous, charts, _, _, _, dsms, _, clocks = diagram.seperate_diagram()
 
     # Optional: print chart
     if print_chart:

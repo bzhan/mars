@@ -1198,7 +1198,7 @@ subgoal premises pre for tr T p
       using assms(2) 
       unfolding Valid_def 
       using pre 4 5
-      by (smt atLeastAtMost_iff)
+      by (meson atLeastAtMost_iff less_eq_real_def)
   qed
   done
 

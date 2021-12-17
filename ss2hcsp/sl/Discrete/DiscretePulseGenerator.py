@@ -5,7 +5,7 @@ from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
 class DiscretePulseGenerator(SL_Block):
     """Block for unit delay."""
     def __init__(self,name="", amplitude=1,period=2,pluseType="",pluseWidth=1,phaseDelay=1,timeSource="",sampleTime=1,is_continuous=False):
-        super(DiscretePulseGenerator, self).__init__()
+        super(DiscretePulseGenerator, self).__init__(name="", num_dest=0, num_src=1, st=1, type="DiscretePulseGenerator")
         self.name = name
         self.type = "DiscretePulseGenerator"
         self.amplitude=amplitude
