@@ -48,7 +48,6 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
             else:
                 return expr.OpExpr(e.op_name, rec(e.exprs[0]), rec(e.exprs[1]))
         elif isinstance(e, function.FunExpr):
-            print(e.fun_name =="enter")
             if e.fun_name == 'rand':
                 if len(e.exprs) == 0:
                     return expr.FunExpr('uniform', [expr.AConst(0), expr.AConst(1)])
