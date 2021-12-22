@@ -75,5 +75,4 @@ def z3_prove(e):
     if str(s.check()) == 'unsat':
         return True
     else:
-        print('False')
         return False

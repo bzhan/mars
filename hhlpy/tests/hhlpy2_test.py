@@ -8,8 +8,9 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, constants=set(), loop_invariants=None, ode_invariants=None, 
-              diff_weakening=None, diff_invariants=None, assume_invariants=None, 
+def runVerify(self, *, pre, hp, post, strengthen_post=None, constants=set(), 
+              loop_invariants=None, ode_invariants=None, 
+              diff_invariant_rule=None, diff_weakening_rule=None, assume_invariants=None, 
               diff_cuts=None, ghost_equations=None, ghost_invariants=None, 
               darboux_rule=None, darboux_cofactors=None,
               print_vcs=False, expected_vcs=None):
@@ -36,18 +37,18 @@ def runVerify(self, *, pre, hp, post, constants=set(), loop_invariants=None, ode
             verifier.add_ode_invariant(pos, ode_inv)
 
     # Set differential weakening proof rule as true
-    if diff_weakening:
-        for pos, dw in diff_weakening.items():
+    if diff_weakening_rule:
+        for pos, dw in diff_weakening_rule.items():
             if isinstance(dw, str):
                 dw = bexpr_parser.parse(dw)
             verifier.set_diff_weakening(pos, dw)
             
-    # Place differential invariants
-    if diff_invariants:
-        for pos, diff_inv in diff_invariants.items():
-            if isinstance(diff_inv, str):
-                diff_inv = bexpr_parser.parse(diff_inv)
-            verifier.add_diff_invariant(pos, diff_inv)
+    # Use differential invariant rule
+    if diff_invariant_rule:
+        for pos, diff_inv_rule in diff_invariant_rule.items():
+            if isinstance(diff_inv_rule, str):
+                diff_inv_rule = bexpr_parser.parse(diff_inv_rule)
+            verifier.use_diff_invariant_rule(pos, diff_inv_rule)
     
     # Place assume invariants
     if assume_invariants:
@@ -77,10 +78,18 @@ def runVerify(self, *, pre, hp, post, constants=set(), loop_invariants=None, ode
     if ghost_equations:
         for pos, ghost_eqs in ghost_equations.items():
             if isinstance(ghost_eqs, str):
-                ghost_eqs = hp_parser.parse(ghost_eqs)
-                ghost_eqs_dict = dict()
-                for name, e in ghost_eqs.eqs:
-                    ghost_eqs_dict[name] = e
+                # Remove the blank space.
+                ghost_eqs = "".join(ghost_eqs.split())
+                if ghost_eqs.count("_dot=") == 1:
+                    index = ghost_eqs.index('_dot')
+                    ghost_var = ghost_eqs[:index]
+                    ghost_diff = ghost_eqs[index + 5:]
+                    ghost_diff = aexpr_parser.parse(ghost_diff)
+                    
+                    ghost_eqs_dict = dict()
+                    ghost_eqs_dict[ghost_var] = ghost_diff
+                else:
+                    raise AssertionError("Wrong Form of Ghost Equations!")
             verifier.add_ghost_equation(pos, ghost_eqs_dict)
 
     if darboux_rule:
@@ -164,7 +173,8 @@ class HHLPyTest(unittest.TestCase):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
         # Invariant for ODE is x >= 0.
         runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0",
-                  diff_invariants={((), ()): "x >= 0"})
+                  diff_invariant_rule={((), ()): "true"},
+                  ode_invariants={((), ()): "x >= 0"})
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -172,13 +182,14 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x * x + y * y == 1", 
                   hp="<x_dot=y, y_dot=-x & x > 0>",
                   post="x * x + y * y == 1",
-                  diff_invariants={((), ()): "x * x + y * y == 1"})
+                  diff_invariant_rule={((), ()): "true"},
+                  ode_invariants={((), ()): "x * x + y * y == 1"})
 
     def testVerify9(self):
         # Basic benchmark, problem 4
         # {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10>", post="x >= 1",            
-                  diff_invariants={((1,), ()): "x >= 1"})
+                  ode_invariants={((1,), ()): "x >= 1"})
 
     def testVerify10(self):
         # Basic Benchmark, problem5
@@ -216,11 +227,11 @@ class HHLPyTest(unittest.TestCase):
                   hp="x := x + 1; (x := x + 1)** ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
                   post="x >= 1",
                   loop_invariants={((1,0,), ()): "x >= 1 && y >= 1"}, 
-                  diff_invariants={((2,), ()): "y >= 1"},
+                  ode_invariants={((2,), ()): "y >= 1"},
                   expected_vcs={((), ()): ["x >= 0 && y >= 1 --> (x + 1 >= 1 && y >= 1) && x + 1 + 1 >= 1"],
                                 ((1,0,), ()): ["x >= 1 && y >= 1 --> x + 1 >= 1 && y >= 1", 
                                         "x >= 1 && y >= 1 --> y >= 1"],
-                                ((2,), ()): ["y == 10 --> 2 >= 0"]}) 
+                                ((2,), ()): ["y < 10 --> 2 >= 0"]}) 
 
     def testVerify15(self):
         # Basic benchmark, problem8
@@ -233,10 +244,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** ++ y := x", 
                   post="x > 0 && y > 0", 
                   loop_invariants={((1,0), ()): "x > 0 && y > 0"}, 
-                  diff_invariants={((0,), ()): "x > 0 && y > 0"},
-                  expected_vcs={((0,), ()): ["x == 10 --> 5 >= 0 && 0 >= 0", 
-                                        "x > 0 && y > 0 --> (x > 0 && y > 0) && x > 0 && x > 0"],
-                                ((1,0), ()): ["x > 0 && y > 0 --> x + 3 > 0 && y > 0"]})
+                  ode_invariants={((0,), ()): "x > 0 && y > 0"})
 
     def testVerify16(self):
         # Test case containing ghost variables
@@ -247,8 +255,7 @@ class HHLPyTest(unittest.TestCase):
                 ode_invariants={((1,), ()): "x > 0"},
                 ghost_invariants={((1,), ()): "x * y * y == 1"},
                 expected_vcs={((1,), ()): ["x > 0 --> (EX y. x * y * y == 1)",
-                                           "x * y * y == 1 --> x > 0",
-                                           "2 != 0"]})
+                                           "x * y * y == 1 --> x > 0"]})
 
     def testVerify17(self):
         # Basic benchmark, problem9
@@ -264,11 +271,9 @@ class HHLPyTest(unittest.TestCase):
                   loop_invariants={((2,0), ()): "x > 0 && y > 0"},
                   ode_invariants={((1,), ()): "x > 0 && y > 0"},
                   ghost_invariants={((1,), (0,)): "x * z * z == 1"},
-                  diff_invariants={((1,), (1,)): "y > 0"},
                   expected_vcs={((1,), (0,)): ["x > 0 --> (EX z. x * z * z == 1)",
-                                               "x * z * z == 1 --> x > 0",
-                                               "2 != 0"],
-                                ((1,), (1,)): ["t == 1 --> 0 >= 0"]})
+                                               "x * z * z == 1 --> x > 0"],
+                                ((1,), (1,)): ["t < 1 --> 0 >= 0"]})
 
     def testVerify18(self):
         # Basic bencmark, problem10
@@ -277,15 +282,14 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x > 0",
                   hp="<x_dot = 5 & x < 1>; <x_dot = 2 & x < 2>; <x_dot = x & x < 5>",
                   post="x > 0",
-                  diff_invariants={((0,), ()): "x > 0", ((1,), ()): "x > 0"},
-                  ghost_invariants={((2,), ()): "x * y * y == 1"},
-                  ode_invariants={((2,), ()): "x > 0"})
+                  ode_invariants={((0,), ()): "x > 0", ((1,), ()): "x > 0", ((2,), ()): "x > 0"},
+                  ghost_invariants={((2,), ()): "x * y * y == 1"})
 
     def testVerify19(self):
         # Basic benchmark, problem11
         # {x = 0} <x_dot = 1 & x < 10> {x >= 0}
         runVerify(self, pre="x == 0", hp="<x_dot = 1 & x < 10>", post="x >= 0", 
-                  diff_invariants={((), ()): "x >= 0"})
+                  ode_invariants={((), ()): "x >= 0"})
 
     def testVerify20(self):
         # Basic benchmark, problem12
@@ -331,8 +335,7 @@ class HHLPyTest(unittest.TestCase):
                   ghost_invariants={((1,), ()): "x * z * z == 1"},
                   expected_vcs={((), ()): ["x > 0 && y > 0 --> x > 0"],
                                 ((1,), ()): ["x > 0 --> (EX z. x * z * z == 1)",
-                                             "x * z * z == 1 --> x > 0",
-                                             "2 != 0"]})
+                                             "x * z * z == 1 --> x > 0"]})
 
     def testVerify25(self):
         # Basic benchmark, problem 18
@@ -340,9 +343,8 @@ class HHLPyTest(unittest.TestCase):
         # dG and Conjunction Rule
         # Question remained: the form of ghost_equations.
         runVerify(self, pre="x >= 0", hp="<x_dot = x & x < 10>", post="x >= 0",
-                  ode_invariants={((), ()): "x >= 0"},
-                  diff_invariants={((), (0,1)): "x * y >= 0"},
-                  ghost_equations = {((), ()): "<y_dot = - y & y < 10>"},
+                  ode_invariants={((), ()): "x >= 0", ((), (0,1)): "x * y >= 0"},
+                  ghost_equations = {((), ()): "y_dot = - y"},
                   ghost_invariants={((), ()): "y > 0 && x * y >= 0",
                                     ((), (0,0)): "y * z * z == 1"})
 
@@ -362,7 +364,7 @@ class HHLPyTest(unittest.TestCase):
         # {x >= 1} <x_dot = x ^ 2 + 2 * x ^ 4 & x < 10> {x ^ 3 >= x ^ 2}
         runVerify(self, pre="x >= 1", hp="<x_dot = x ^ 2 + 2 * x ^ 4 & x < 10>",
                   post="x ^ 3 >= x ^ 2",
-                  diff_invariants={((), ()): "x >= 1"})
+                  ode_invariants={((), ()): "x >= 1"})
 
     def testVerify29(self):
         # Basic benchmark, problem 22
@@ -371,7 +373,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x * x + y * y == 1", 
                   hp="t := 0; <x_dot = -y, y_dot = x, t_dot = 1 & t < 10>",
                   post="x * x + y * y == 1",
-                  diff_invariants={((1,), ()): "x * x + y * y == 1"})
+                  ode_invariants={((1,), ()): "x * x + y * y == 1"})
 
     def testVerify30(self):
         # Basic benchmark, problem 23
@@ -429,7 +431,7 @@ class HHLPyTest(unittest.TestCase):
                   hp="<x_dot = y, y_dot = z + y^2 - y & y > 0>",
                   post="x >= 1 && y >= 0",
                   ode_invariants={((), ()): "x >= 1 && y >= 0"},
-                  diff_weakening={((), (1,)): "true", ((),(0,0)): "true"},
+                  diff_weakening_rule={((), (1,)): "true", ((),(0,0)): "true"},
                   diff_cuts={((), (0,)): ["y >= 0"]})
 
     def testVerify35(self):
@@ -507,7 +509,7 @@ class HHLPyTest(unittest.TestCase):
         # Basic benchmark, problem 34
         # {x^3 >= -1} <x_dot = (x-3)^4 + a & a > 0> x^3 >= -1
         runVerify(self, pre="x^3 >= -1", hp="<x_dot = (x-3)^4 + a & a > 0>", post="x^3 >= -1",
-                  diff_invariants={((), ()): "x^3 >= -1"})
+                  ode_invariants={((), ()): "x^3 >= -1"})
 
     def testVerify44(self):
         # Basic benchmark, problem 35
@@ -574,7 +576,7 @@ class HHLPyTest(unittest.TestCase):
                   post="v >= 0",
                   constants={'A', 'B'},
                   loop_invariants={((), ()): "v >= 0"},
-                  diff_weakening={((0,1,), ()): "true"})
+                  diff_weakening_rule={((0,1,), ()): "true"})
 
     def testVerify51(self):
         # ITE
@@ -605,7 +607,7 @@ class HHLPyTest(unittest.TestCase):
                   post="x <= S",
                   constants={'A', 'B', 'S'},
                   loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
-                  diff_weakening={((0, 1, 0), ()): "true", ((0, 1, 1), ()): "true"}
+                  diff_weakening_rule={((0, 1, 0), ()): "true", ((0, 1, 1), ()): "true"}
         )
 
     def testVerify53(self):
@@ -628,7 +630,7 @@ class HHLPyTest(unittest.TestCase):
                   post="v <= V",
                   constants={'A', 'V'},
                   loop_invariants={((), ()): "v <= V"},
-                  diff_weakening={((0,1), ()): "v <= V"})
+                  diff_weakening_rule={((0,1), ()): "v <= V"})
 
     def testVerify54(self):
         # Basic benchmark, problem 44
@@ -647,8 +649,58 @@ class HHLPyTest(unittest.TestCase):
                   post="v <= V",
                   constants={'A', 'V'},
                   loop_invariants={((), ()): "v <= V"},
-                  diff_weakening={((0,1), ()): "true"},
+                  diff_weakening_rule={((0,1), ()): "true"},
         )
+
+    # Basic benchmark, problem 45-48
+
+    def testVerify59(self):
+        # Basic benchmark, problem 49
+        # Constants = {'Kp()', 'Kd()', 'xr()', 'c()'}
+        # {v >= 0 && c() > 0 && Kp() == 2 && Kd() == 3 && 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
+        # t := 0; 
+        # <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10>
+        # {5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()}
+        runVerify(self, \
+                  pre="v >= 0 && c() > 0 && Kp() == 2 && Kd() == 3 \
+                      && 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
+                  hp="t := 0; <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10>",
+                  post="5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
+                  constants={'Kp()', 'Kd()', 'xr()', 'c()'}
+                  )
+
+    # Basic benchmark, problem 50-51
+
+    def testVerify62(self):
+        # Basic benchmark, problem 52
+        # {v >= 0 && a >= 0}
+        # <x_dot = v, v_dot = a & v > 0>
+        # {v >= 0}
+        runVerify(self, pre="v >= 0 && a >= 0",
+                  hp="<x_dot = v, v_dot = a & v > 0>",
+                  post="v >= 0",
+                  diff_weakening_rule={((), ()): "true"})
+
+    # Basic benchmark, problem 53
+
+    def testVerify64(self):
+        # Basic benchmark, problem 54
+        # {v >= 0 && A >= 0 && b > 0}
+        # (
+        #     if m-x >= 2 then a := A else a := -B endif
+        #  ++ a := -b;
+        #     <x_dot = v, v_dot = a & v >= 0>
+        #  )**@invariant(v >= 0)
+        # {v >= 0}
+        runVerify(self, pre="v >= 0 && A >= 0 && b > 0",
+                  hp="( \
+                      if m-x >= 2 then a := A else a := -B endif ++ a := -b;\
+                      <x_dot = v, v_dot = a & v > 0> \
+                      )**",
+                  post="v >= 0",
+                  loop_invariants={((), ()): "v >= 0"},
+                  diff_weakening_rule={((0,1), ()): "true"},
+                  print_vcs=True)
 
 
 if __name__ == "__main__":

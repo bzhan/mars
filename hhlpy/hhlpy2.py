@@ -21,7 +21,11 @@ def compute_diff(e, eqs_dict):
             if e.op == "&&":
                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "||":
-                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
+                return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
+            elif e.op == "-->":
+                return rec(expr.LogicExpr("||", expr.neg_expr(e.exprs[0]), e.exprs[1]))
+            else:
+                raise NotImplementedError
         elif isinstance(e, expr.RelExpr):
             if e.op == '<' or e.op == '<=':
                 return expr.RelExpr("<=", rec(e.expr1), rec(e.expr2))
@@ -33,6 +37,9 @@ def compute_diff(e, eqs_dict):
                 raise NotImplementedError
         elif isinstance(e, expr.AConst):
             return expr.AConst(0)
+        elif isinstance(e, expr.FunExpr):
+            if len(e.exprs) == 0:
+                return expr.AConst(0)
         elif isinstance(e, expr.AVar):
             if e.name in eqs_dict:
                 return eqs_dict[e.name]
@@ -151,7 +158,7 @@ class CmdInfo:
         self.ode_inv = None
 
         # Differential invariants for ODEs.
-        self.diff_inv = None
+        self.diff_inv_rule = False
 
         # Assume invariants for ODEs.
         self.assume_inv = None
@@ -179,8 +186,8 @@ class CmdInfo:
             res += "vc: %s\n" % vc
         if self.inv is not None:
             res += "inv: %s\n" % self.inv
-        if self.diff_inv is not None:
-            res += "diff_inv: %s\n" % self.diff_inv
+        if self.ode_inv is not None:
+            res += "ode_inv: %s\n" % self.ode_inv
         if self.ghost_inv is not None:
             res += "ghost_inv: %s\n" % self.ghost_inv
         if self.ghost_eqs is not None:
@@ -203,9 +210,11 @@ class CmdVerifier:
 
         # Set of names that are used
         self.names = hp.get_vars().union(pre.get_vars()).union(post.get_vars())
+        print('names:', self.names)
 
         # Set of constants that are used
         self.constants = constants
+        print('constants:', self.constants)
 
         # Set of variable names that are used
         self.vars = self.names - self.constants
@@ -259,10 +268,10 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].dw = dw
 
-    def add_diff_invariant(self, pos, diff_inv):
+    def use_diff_invariant_rule(self, pos, diff_inv_rule):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
-        self.infos[pos].diff_inv = diff_inv
+        self.infos[pos].diff_inv_rule = diff_inv_rule
 
     def add_assume_invariant(self, pos, assume_inv):
         if pos not in self.infos:
@@ -438,57 +447,53 @@ class CmdVerifier:
             # Use dW rule
             # Note: remain unproved!
             # When dw is True.
-            #      Boundary of D --> Q || Q --> ~D
-            #------------------------------------------
-            #         {Q} <x_dot = f(x) & D> {Q}
+            #      P --> (~D -> Q) && (D -> (Boundary of D => Q))
+            #-----------------------------------------------------
+            #               {P} <x_dot = f(x) & D> {Q}
             if self.infos[pos].dw:
 
                 boundary = compute_boundary(constraint)
-                self.infos[pos].vcs.append(expr.LogicExpr('||', expr.imp(boundary, post), \
-                                                            expr.imp(post, expr.neg_expr(constraint))))  
+                semi_vc = expr.imp(boundary, post)
+                if z3_prove(semi_vc):
+                    semi_vc_result = expr.true_expr
+                else:
+                    semi_vc_result = expr.false_expr
 
-                pre = post 
+                pre = expr.LogicExpr('&&', expr.imp(expr.neg_expr(constraint), post),
+                                           expr.imp(constraint, semi_vc_result))
 
             # Use dI rules
-            # When diff_inv is set or by default
-            elif self.infos[pos].diff_inv is not None or \
-                not self.infos[pos].dw and self.infos[pos].diff_inv is None and \
+            # When diff_inv_rule is set or by default
+            elif self.infos[pos].diff_inv_rule or \
+                not self.infos[pos].dw and \
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
                 not self.infos[pos].dbx_rule and not self.infos[pos].dbx_cofactor and \
                 self.infos[pos].assume_inv is None and \
-                (self.infos[pos].ode_inv is None or isinstance(self.infos[pos].ode_inv, expr.RelExpr)):
+                isinstance(self.infos[pos].ode_inv, expr.RelExpr):
                
-                if self.infos[pos].diff_inv is not None:
-                    diff_inv = self.infos[pos].diff_inv
-                # By default, using post as diff_inv
-                else:
-                    diff_inv = post
+                ode_inv = self.infos[pos].ode_inv
 
-                # ode_inv can be written in when using Conjuntion Rule.
-                # if self.infos[pos].ode_inv is not None:
-                #     assert diff_inv == self.infos[pos].ode_inv
-                if not isinstance(diff_inv, expr.BExpr):
+                if not isinstance(ode_inv, expr.BExpr):
                     raise AssertionError('Invalid differential invariant for ODE!')               
 
                 # Compute the differential of inv.
                 # Compute the boundary of constraint. 
                 # One semi-verification condition is boundary of constraint --> differential of inv.
-                differential = compute_diff(diff_inv, eqs_dict=self.infos[pos].eqs_dict)
-                boundary = compute_boundary(constraint)
-                vc1 = expr.imp(boundary, differential)
+                differential = compute_diff(ode_inv, eqs_dict=self.infos[pos].eqs_dict)
+                vc1 = expr.imp(constraint, differential)
                 
                 
                 # The second condition is inv --> post.
-                vc2 = expr.imp(diff_inv, post)
+                vc2 = expr.imp(ode_inv, post)
 
                 self.infos[pos].vcs = [vc1, vc2]
 
-                pre = diff_inv
+                pre = ode_inv
             
             # Use dC rules
-            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {I}
+            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {Q}
             #-----------------------------------------------------------
-            #                        {P1 && P2 && P3} c {I}
+            #                        {P1 && P2 && P3} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
@@ -609,6 +614,8 @@ class CmdVerifier:
                 # The denominator of dy cannot be equal to 0.
                 denomi_not_zero = demoninator_not_zero(dy)
                 vc2 = denomi_not_zero
+                if not z3_prove(vc2):
+                    raise AssertionError("The denominator in the ghost equations cannot be equal be zero!")
                         
                 # Third condition
                 vc3 = expr.imp(ghost_inv, ode_inv)
@@ -616,7 +623,7 @@ class CmdVerifier:
                 # Fourth condition
                 vc4 = expr.imp(ode_inv, post)
 
-                self.infos[pos].vcs = [vc1, vc2, vc3, vc4]
+                self.infos[pos].vcs = [vc1, vc3, vc4]
 
                 # New precondition is inv
                 pre = ode_inv
@@ -663,7 +670,8 @@ class CmdVerifier:
                         denomi_not_zero = demoninator_not_zero(g_sym)
 
                         # G_sym is supposed to be a reasonable expression.
-                        self.infos[pos].vcs.append(expr.imp(constraint, denomi_not_zero))
+                        if not z3_prove(denomi_not_zero):
+                            raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
 
                     # Cases when cofactor g is offered by the user.
                     else:
@@ -671,12 +679,14 @@ class CmdVerifier:
                         
                         denomi_not_zero = demoninator_not_zero(g)
 
-                        vc1 = expr.imp(constraint, denomi_not_zero)
+                        if not z3_prove(denomi_not_zero):
+                            raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
+
                         # Boundary of D --> e_lie_deriv == g * e
-                        vc2 = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
+                        vc = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
                                                                     expr.OpExpr('*'), g, ode_inv.expr1))
 
-                        self.infos[pos].dbx_cofactor = [vc1, vc2]
+                        self.infos[pos].dbx_cofactor.append(vc)
 
                     pre = ode_inv
 
@@ -730,8 +740,8 @@ class CmdVerifier:
 
             # Using the rule below:(proved by Isabelle)
             #    e > 0 --> e_lie_deriv >= 0
-            #--------------------------    # c is an ODE, e_lie_deriv represent the lie derivation of e
-            #    {e > 0} c {e > 0}
+            #----------------------------------    # c is an ODE
+            #           {e > 0} c {e > 0}
             elif self.infos[pos].assume_inv:
                 assume_inv = self.infos[pos].assume_inv
                 assert assume_inv.op in ['>', '<']

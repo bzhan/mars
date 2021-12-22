@@ -206,7 +206,9 @@ class FunExpr(AExpr):
         return 100
 
     def get_vars(self):
-        return set().union(*(expr.get_vars() for expr in self.exprs))
+        names = set().union(*(expr.get_vars() for expr in self.exprs))
+        names.add(self.fun_name+'('+')')
+        return names
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])

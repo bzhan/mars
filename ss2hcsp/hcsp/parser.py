@@ -100,7 +100,6 @@ grammar = r"""
         | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd_inv
         | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd_inv
         | "<" ode_seq "&" cond ">" -> ode
-        | "<" ode_seq "&" cond ">@invariant(" cond ")" -> ode_inv
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
         | "rec" CNAME ".(" cmd ")" -> rec_cmd
