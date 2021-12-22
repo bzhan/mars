@@ -52,8 +52,8 @@ lemma mvt_real_eq:
 proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
-  then show ?thesis
+    by (metis atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_subset less_eq_real_def order_less_le_trans)
+    then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
   by force
@@ -70,7 +70,7 @@ lemma mvt_real_ge:
 proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
+    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_subset in_mono order_refl)
   then show ?thesis
   using assms
   using mvt_simple[of 0 x p q]
@@ -88,7 +88,7 @@ lemma mvt_real_le:
 proof -
   have "\<forall>t\<in>{0 .. x}. (p has_derivative q t) (at t within {0 .. x})"
     using assms 
-    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_within_subset in_mono order_refl)
+    by (meson atLeastAtMost_iff atLeastatMost_subset_iff has_derivative_subset in_mono order_refl)
   then obtain xa where "xa\<in>{0<..<x}" " p x - p 0 = q xa (x - 0)" if "x>0"
     using  mvt_simple[of 0 x p q] 
     using atLeastAtMost_iff by blast

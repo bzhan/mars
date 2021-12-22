@@ -53,6 +53,7 @@ grammar = r"""
         | "before" "(" expr "," event ")"  -> before_event
         | "at" "(" expr "," event ")"  -> at_event
         | "every" "(" expr "," event ")"  -> every_event
+        | expr
 
 
     
@@ -60,7 +61,7 @@ grammar = r"""
 
     ?disj: conj "||" disj | conj               // Disjunction: priority 30
 
-    ?cond: disj
+    ?cond: disj 
 
     // Commands
 
@@ -325,7 +326,7 @@ class MatlabTransformer(Transformer):
         for arg in args:
             if isinstance(arg, function.Event):
                 event = arg
-            elif isinstance(arg, function.BExpr):
+            elif isinstance(arg, (function.BExpr,function.FunExpr)):
                 cond = arg
             elif isinstance(arg, tuple) and arg[0] == "cond_act":
                 cond_act = arg[1]

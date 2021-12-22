@@ -166,7 +166,7 @@ class FunExpr(Expr):
         super(FunExpr, self).__init__()
         assert isinstance(fun_name, str)
         self.fun_name = fun_name
-        assert all(isinstance(expr, Expr) for expr in exprs)
+        assert all(isinstance(expr, (Expr,DirectName)) for expr in exprs)
         self.exprs = tuple(exprs)
 
     def __repr__(self):
@@ -753,7 +753,7 @@ class TransitionLabel:
     """
     def __init__(self, event, cond, cond_act, tran_act):
         assert event is None or isinstance(event, Event)
-        assert cond is None or isinstance(cond, BExpr)
+        assert cond is None or isinstance(cond, (BExpr,FunExpr))
         if cond_act is None:
             cond_act = Skip()
         if tran_act is None:
