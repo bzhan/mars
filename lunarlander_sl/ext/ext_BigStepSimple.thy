@@ -330,6 +330,10 @@ lemma Valid_ex_pre:
   "(\<And>v. \<Turnstile> {P v} c {Q}) \<Longrightarrow> \<Turnstile> {\<lambda>s t. \<exists>v. P v s t} c {Q}"
   unfolding Valid_def by auto
 
+lemma Valid_ex_pre':
+  "(\<And>v. \<Turnstile> {P v} c {Q}) \<Longrightarrow> \<Turnstile> {\<lambda>(a,s) t. \<exists>v. P v (a,s) t} c {Q}"
+  unfolding Valid_def by auto
+
 lemma Valid_ex_post:
   "\<exists>v. \<Turnstile> {P} c {Q v} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s t. \<exists>v. Q v s t}"
   unfolding Valid_def by blast
