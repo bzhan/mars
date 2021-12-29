@@ -9,7 +9,7 @@ from hhlpy.hhlpy2 import CmdVerifier
 
 
 def runVerify(self, *, pre, hp, post, strengthen_post=None, constants=set(), 
-              loop_invariants=None, ode_invariants=None, 
+              loop_invariants=None, ode_invariants=None, solution_rule=None,
               diff_invariant_rule=None, diff_weakening_rule=None, assume_invariants=None, 
               diff_cuts=None, ghost_equations=None, ghost_invariants=None, 
               darboux_rule=None, darboux_cofactors=None,
@@ -28,6 +28,12 @@ def runVerify(self, *, pre, hp, post, strengthen_post=None, constants=set(),
             if isinstance(loop_inv, str):
                 loop_inv = bexpr_parser.parse(loop_inv)
             verifier.add_loop_invariant(pos, loop_inv)
+    # Use solution rule
+    if solution_rule:
+        for pos, sln_rule in solution_rule.items():
+            if isinstance(sln_rule, str):
+                sln_rule = bexpr_parser.parse(sln_rule)
+            verifier.use_solution_rule(pos, sln_rule)
 
     # Place ode invariants
     if ode_invariants:
@@ -560,7 +566,8 @@ class HHLPyTest(unittest.TestCase):
         # A is a constant.
         # {v >= 0 && A > 0} <x_dot = v, v_dot = A & x < 10> {v >= 0}
         runVerify(self, pre="v >= 0 && A > 0", hp="<x_dot = v, v_dot = A & x < 10>",
-                  post="v >= 0", constants={'A'})
+                  post="v >= 0", constants={'A'}, 
+                  diff_cuts={((), ()): ["A > 0"]})
 
     def testVerify50(self):
         # Basic bencnmark, problem 41
@@ -587,27 +594,34 @@ class HHLPyTest(unittest.TestCase):
     def testVerify52(self):
         # Basic benchmark, problem 42 
         # constants = {'A', 'B', 'S'}
+
+        # another version
         # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S}
-        #
-        # (   if x + v^2 / (2*B) < S then a := A else a := -B endif
-        #  ++ if v == 0 then a := 0 else a := -B endif
-        #  ++ a := -B;
-        #     <x_dot = v, v_dot = a & v >= 0 && x + v^2 / (2*B) < S>
-        #  ++ <x_dot = v, v_dot = a & v >= 0 && x + v^2 / (2*B) > S>
-        # )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+        # 
+        # (if x + v^2 / (2*B) < S 
+        #     then a := A; <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S>
+        #  elif v == 0
+        #     then a := 0
+        #  else a := -B; <x_dot = v, v_dot = a & v > 0>
+        #  endif
+        # )**
         #
         # {x <= S}
         runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
-                  hp="(   if x + v^2 / (2*B) < S then a := A else a := -B endif \
-                       ++ if v == 0 then a := 0 else a := -B endif \
-                       ++ a := -B; \
-                          <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
-                       ++ <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) > S> \
+                  hp="(if x + v^2 / (2*B) < S \
+                          then (a := A; <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S>) \
+                       elif v == 0 \
+                          then a := 0 \
+                       else (a := -B; <x_dot = v, v_dot = a & v > 0>) \
+                       endif \
                       )**",
                   post="x <= S",
                   constants={'A', 'B', 'S'},
                   loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
-                  diff_weakening_rule={((0, 1, 0), ()): "true", ((0, 1, 1), ()): "true"}
+                  diff_weakening_rule={((0, 2, 1), (0,)): "true",
+                                       ((0, 0, 1), (0,)): "true",
+                                       ((0, 0, 1), (1,)): "true"},
+                  diff_cuts={((0, 2, 1), (1,)): ["a == -B"]},
         )
 
     def testVerify53(self):
@@ -669,6 +683,41 @@ class HHLPyTest(unittest.TestCase):
                   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
+    # def testVerify60(self):
+    #     # Basic benchmark, problem 50
+    #     #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
+    #     #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
+    #     #  -> [ { {  xm := x2;
+    #     #            xr := (xm + S)/2;
+    #     #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
+    #     #         ++ ?true;
+    #     #         };
+    #     #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
+    #     #           @invariant(
+    #     #             xm<=x2,
+    #     #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
+    #     #          )
+    #     #         }
+    #     #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
+    #     #     ] x2 <= S
+    #     runVerify(self, \
+    #               pre="v >= 0 && xm <= x2 && x2 <= S && xr = (xm + S)/2 && Kp = 2 & Kd = 3 \
+    #                 && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
+    #               hp="( \
+    #                     xm := x2; \
+    #                     xr := (xm + S)/2; \
+    #                     ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2 \
+    #                  ++ ?true; \
+    #                     <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
+    #                   )**",
+    #               post="x2 <= S",
+    #               constants={'Kp', 'Kd', 'S'},
+    #               loop_invariants={((), ()): "v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
+    #                                           5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2"},
+    #               diff_weakening_rule={((0,3), (0,)): "true"},
+    #               diff_cuts={((0, 3), (3,)): ["xm <= x2", 
+    #                  "5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2}"]})
+
     # Basic benchmark, problem 50-51
 
     def testVerify62(self):
@@ -700,6 +749,28 @@ class HHLPyTest(unittest.TestCase):
                   post="v >= 0",
                   loop_invariants={((), ()): "v >= 0"},
                   diff_weakening_rule={((0,1), ()): "true"},
+                  print_vcs=True)
+
+    def testVerify65(self):
+        # Solution Axiom
+        # {v >= 0}
+        # <v_dot = 1 & v < 10>
+        # {v >= 0}
+        runVerify(self, pre="v >= 0",
+                  hp="<v_dot = 1 & v < 10>",
+                  post="v >= 0",
+                  solution_rule = {((), ()): "true"},
+                  print_vcs=True)
+
+    def testVerify66(self):
+        # Solution Axiom
+        # {x >= 0 && v >= 0 && a >= 0}
+        # <x_dot = v, v_dot = a & x < 10>
+        # {x >= 0}
+        runVerify(self, pre="x >= 0 && v >= 0 && a >= 0",
+                  hp="<x_dot = v, v_dot = a & x < 10>",
+                  post="x >= 0",
+                  solution_rule={((), ()): "true"},
                   print_vcs=True)
 
 

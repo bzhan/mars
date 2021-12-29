@@ -6,6 +6,7 @@ HCSP program.
 
 """
 
+from hhlpy.wolframengine_wrapper import solveODE
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.simulator import get_pos
@@ -65,7 +66,7 @@ def compute_diff(e, eqs_dict):
                 # d(u/v) = (u*dv + du * v)/ v^2
                 # If v is constant, d(u/v) = 1/v * du, which is easier than using above rule.
                 if isinstance(e.exprs[1], expr.AConst) or \
-                   isinstance(e.expr[1], expr.FunExpr) and len(e.exprs == 0): # actually a constant
+                   isinstance(e.exprs[1], expr.FunExpr) and len(e.exprs == 0): # actually a constant
                     du = rec(e.exprs[0])
                     return expr.OpExpr('*', expr.OpExpr('/', expr.AConst(1), e.exprs[1]), du)
                 else:
@@ -132,6 +133,17 @@ def demoninator_not_zero(e):
 
     return expr.RelExpr('!=', denominator, expr.AConst(0))
 
+# Create a new variable name by adding suffix.
+# s is the root var, names is the set of names being used.
+def create_newvar(s, names):
+    if not isinstance(s, str):
+        raise AssertionError
+    suffix_n = 0
+    while (s in names):
+        s = s + str(suffix_n)
+        suffix_n = suffix_n + 1
+    return s
+
 class CmdInfo:
     """Information associated to each HCSP program."""
     def __init__(self):
@@ -150,6 +162,9 @@ class CmdInfo:
 
         # Assumptions for HCSPs.
         self.assume = []
+
+        # Use solution axiom or not
+        self.sln_rule = False
 
         # Use differential weakening rule or not
         self.dw = False
@@ -208,16 +223,20 @@ class CmdVerifier:
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
 
-        # Set of names that are used
-        self.names = hp.get_vars().union(pre.get_vars()).union(post.get_vars())
-        print('names:', self.names)
+        # Set of function names that are used
+        funs = hp.get_funs().union(pre.get_funs(), post.get_funs())
 
-        # Set of constants that are used
+        # Set of var_names that are used, the names of AVar expression 
+        vars = hp.get_vars().union(pre.get_vars(), post.get_vars())
+
+        # Set of funtion names and varnames that are used
+        self.names = funs.union(vars)
+
+        # Set of constants that are appointed
         self.constants = constants
-        print('constants:', self.constants)
 
-        # Set of variable names that are used
-        self.vars = self.names - self.constants
+        # Set of program variables that are used
+        self.variables = vars - self.constants
 
         # Initialize info for the root object. Place pre-condition and post-condition.
         # pos is a pair of two tuples. 
@@ -232,13 +251,26 @@ class CmdVerifier:
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
+
+        # There are constans in pre.
         if not self.constants.isdisjoint(pre.get_vars()):
-            # Assume pre is a Conjunction Expression.
-            pre_list = expr.split_conj(pre)
-            for sub_pre in pre_list:
-                # The sub_pre cannot include variables.
-                if sub_pre.get_vars().isdisjoint(self.vars):
-                    self.infos[root_pos].assume.append(sub_pre)
+            if isinstance(pre, expr.RelExpr):
+                if pre.get_vars().isdisjoint(self.variables):
+                    self.infos[root_pos].assume.append(pre)
+
+            elif isinstance(pre, expr.LogicExpr):
+                # Assume pre is a conjunction function
+                if pre.op == '&&':
+                    pre_list = expr.split_conj(pre)
+                    for sub_pre in pre_list:
+                        # No variables in sub_pre.
+                        if sub_pre.get_vars().isdisjoint(self.variables):
+                            self.infos[root_pos].assume.append(sub_pre)
+                else:
+                    raise NotImplementedError
+
+            else:
+                raise NotImplementedError
 
     def __str__(self):
         res = ""
@@ -257,6 +289,11 @@ class CmdVerifier:
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
         self.infos[pos].loop_inv = loop_inv
+
+    def use_solution_rule(self, pos, sln_rule):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].sln_rule = sln_rule
 
     def add_ode_invariant(self, pos, ode_inv):
         if pos not in self.infos:
@@ -341,11 +378,7 @@ class CmdVerifier:
             var_str = cur_hp.var_name.name
 
             # Create a new var
-            i = 0
-            newvar_str = var_str + str(i)
-            while(newvar_str in self.names):
-                i = i + 1
-                newvar_str = var_str + str(i)
+            newvar_str = create_newvar(var_str, self.names)
             self.names.add(newvar_str)
 
             #Compute the pre: hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
@@ -441,16 +474,78 @@ class CmdVerifier:
                     self.infos[pos].eqs_dict[name] = deriv
 
             # By default, ode_inv is post.
-            if not self.infos[pos].ode_inv:
+            if not self.infos[pos].ode_inv and not self.infos[pos].sln_rule and not self.infos[pos].dw:
                 self.infos[pos].ode_inv = self.infos[pos].post
-            
+
+            # Use solution axiom
+            # 
+            #             P -->
+            # Forall t >= 0  ((Forall 0 <= s < t D(y(s)) && not D(y(t))) --> (Forall 0 <= s <= t Q(y(s)))
+            #--------------------------------------------------------------------------------------------
+            #      {P} <x_dot = f(x) & D(x)> {Q(x)}
+            #
+            # Assume y(.) solve the symbolic initial value problem y'(t) = f(y), y(0) = x
+
+            if self.infos[pos].sln_rule:
+
+                # Create a new variable to represent time
+                time_var = create_newvar('t', self.names)
+                self.names.add(time_var)
+                time_var = expr.AVar(time_var)
+
+                # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
+                solution_dict = solveODE(cur_hp, self.names, time_var.name)
+
+                # Create a new variable to represent 's' in 'Forall 0 <= s < t'
+                in_var = create_newvar('s', self.names)
+                self.names.add(in_var)
+                in_var = expr.AVar(in_var)
+
+                # Compute y_s, alias y(s)
+                # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
+                y_s = dict()
+                for fun_name, sol in solution_dict.items():
+                    print('sol:', sol)
+                    print(type(sol))
+                    sol_s = sol.subst({time_var : in_var})
+                    y_s[fun_name] = sol_s
+
+                print(solution_dict)
+
+                D_y_t = constraint.subst(solution_dict)
+                print(D_y_t)
+                D_y_s = constraint.subst(y_s)
+                Q_y_s = self.infos[pos].post.subst(y_s)
+
+                # Compute the hypothesis of implication
+                # Forall (s, 0 <= s < t --> D(y(s)) && not D(y(t))
+                sub_cond = expr.ForallExpr(in_var.name, 
+                                expr.imp(expr.LogicExpr('&&', 
+                                                        expr.RelExpr('<=', expr.AConst(0), in_var),
+                                                        expr.RelExpr('<', in_var, time_var)),
+                                         D_y_s))
+                cond = expr.LogicExpr('&&', 
+                                      sub_cond,
+                                      expr.LogicExpr('~', D_y_t))
+                # Compute the conclusion of implication
+                # Forall (s, 0 <= s <= t --> Q(y(s))
+                conclu = expr.ForallExpr(in_var.name,
+                                expr.imp(expr.LogicExpr('&&', 
+                                                        expr.RelExpr('<=', expr.AConst(0), in_var),
+                                                        expr.RelExpr('<=', in_var, time_var)),
+                                         Q_y_s))
+
+                pre = expr.ForallExpr(time_var.name,
+                            expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
+                                    expr.imp(cond, conclu)))                                           
+           
             # Use dW rule
             # Note: remain unproved!
             # When dw is True.
             #      P --> (~D -> Q) && (D -> (Boundary of D => Q))
             #-----------------------------------------------------
             #               {P} <x_dot = f(x) & D> {Q}
-            if self.infos[pos].dw:
+            elif self.infos[pos].dw:
 
                 boundary = compute_boundary(constraint)
                 semi_vc = expr.imp(boundary, post)
@@ -465,6 +560,7 @@ class CmdVerifier:
             # Use dI rules
             # When diff_inv_rule is set or by default
             elif self.infos[pos].diff_inv_rule or \
+                not self.infos[pos].sln_rule and \
                 not self.infos[pos].dw and \
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
                 not self.infos[pos].dbx_rule and not self.infos[pos].dbx_cofactor and \
@@ -516,10 +612,10 @@ class CmdVerifier:
                         self.infos[sub_pos].post = diff_cuts[i]
                     else:
                         self.infos[sub_pos].post = post
-
+                    
                     # If i == 0, no update for assume, else, assume is updated by adding diff_cuts[:i].
                     if i != 0:
-                        self.infos[sub_pos].assume = self.infos[sub_pos].assume + diff_cuts[:i]
+                        self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
 
                     self.compute_wp(pos=sub_pos)
 
@@ -732,6 +828,7 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
                     self.infos[sub_pos].post = sub_inv
+                    self.infos[sub_pos].assume += self.infos[pos].assume
                     self.infos[sub_pos].eqs_dict = eqs_dict
                     self.infos[sub_pos].ode_inv = sub_inv
                     
@@ -795,6 +892,7 @@ class CmdVerifier:
                 if sub_pos not in self.infos:
                     self.infos[sub_pos] = CmdInfo()
                 self.infos[sub_pos].post = post
+                self.infos[sub_pos].assume += self.infos[pos].assume
 
                 # Compute the sub-pre-condition for each sub_hp, 
                 # e.g. P1, P2, P3 for c1, c2 and c3
@@ -847,6 +945,8 @@ class CmdVerifier:
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
         for _, vcs in all_vcs.items():
-            if not all(z3_prove(vc) for vc in vcs):
-                return False
+            for vc in vcs:
+                if not z3_prove(vc):
+                    print("The failed verification condition is :", str(vc))
+                    return False
         return True

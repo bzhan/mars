@@ -81,6 +81,9 @@ class HCSP:
     def get_vars(self):
         return set()
 
+    def get_funs(self):
+        return set()
+
     def get_chs(self):
         return set()
 
@@ -334,6 +337,9 @@ class Assign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
+    def get_funs(self):
+        return set().union(self.expr.get_funs())
+
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
 
@@ -397,6 +403,9 @@ class RandomAssign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
+    def get_funs(self):
+        return set.union(self.expr.get_funs())
+
     def priority(self):
         return 100
 
@@ -434,6 +443,12 @@ class Assert(HCSP):
             var_set.update(msg.get_vars())
         return var_set
 
+    def get_funs(self):
+        fun_set = self.bexpr.get_funs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_funs())
+        return fun_set
+
 
 class Test(HCSP):
     def __init__(self, bexpr, msgs):
@@ -468,6 +483,12 @@ class Test(HCSP):
         for msg in self.msgs:
             var_set.update(msg.get_vars())
         return var_set
+
+    def get_funs(self):
+        fun_set = self.bexpr.get_funs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_funs())
+        return fun_set
 
 
 class Log(HCSP):
@@ -507,6 +528,11 @@ class Log(HCSP):
             var_set.update(expr.get_vars())
         return var_set
 
+    def get_funs(self):
+        fun_set = self.pattern.get_funs()
+        for expr in self.exprs:
+            fun_set.update(expr.get_funs())
+        return fun_set
     
 class InputChannel(HCSP):
     def __init__(self, ch_name, var_name=None):
@@ -543,6 +569,9 @@ class InputChannel(HCSP):
     def get_vars(self):
         if self.var_name:
             return {str(self.var_name)}
+        return set()
+
+    def get_funs(self):
         return set()
 
     def get_chs(self):
@@ -604,6 +633,11 @@ class OutputChannel(HCSP):
     def get_vars(self):
         if self.expr:
             return self.expr.get_vars()
+        return set()
+
+    def get_funs(self):
+        if self.expr:
+            return self.expr.get_funs()
         return set()
 
     def get_chs(self):
@@ -679,6 +713,12 @@ class Sequence(HCSP):
             var_set.update(hp.get_vars())
         return var_set
 
+    def get_funs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_funs())
+        return fun_set
+
     def get_chs(self):
         ch_set = set()
         for hp in self.hps:
@@ -725,6 +765,9 @@ class IChoice(HCSP):
     def get_vars(self):
         return self.hp1.get_vars().union(self.hp2.get_vars())
 
+    def get_funs(self):
+        return self.hp1.get_funs().union(self.hp2.get_funs())
+
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -737,8 +780,6 @@ class ODE(HCSP):
         is the name of the variable, and expr is its derivative.
 
         constraint is a boolean formula.
-
-        invariant is a boolean formula.
 
         """
         super(ODE, self).__init__()
@@ -765,9 +806,9 @@ class ODE(HCSP):
 
     def __repr__(self):
         if self.out_hp == Skip():
-            return "ODE(%s, %s, invariant=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.inv))
+            return "ODE(%s, %s)" % (repr(self.eqs), repr(self.constraint))
         else:
-            return "ODE(%s, %s, invariant=%s, out_hp=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.inv), repr(self.out_hp))
+            return "ODE(%s, %s, out_hp=%s)" % (repr(self.eqs), repr(self.constraint), repr(self.out_hp))
 
     def __hash__(self):
         return hash(("ODE", self.eqs, self.constraint, self.out_hp))
@@ -780,6 +821,14 @@ class ODE(HCSP):
         var_set.update(self.constraint.get_vars())
         var_set.update(self.out_hp.get_vars())
         return var_set
+
+    def get_funs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_funs())
+        fun_set.update(self.constraint.get_funs())
+        fun_set.update(self.out_hp.get_funs())
+        return fun_set
 
     def get_chs(self):
         return self.out_hp.get_chs()
@@ -853,6 +902,16 @@ class ODE_Comm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
+    def get_funs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_funs())
+        fun_set.update(self.constraint.get_funs())
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_funs())
+            fun_set.update(out_hp.get_funs())
+        return fun_set
+
     def get_chs(self):
         ch_set = set()
         for ch, out_hp in self.io_comms:
@@ -903,6 +962,9 @@ class Loop(HCSP):
     def get_vars(self):
         return self.hp.get_vars()
 
+    def get_funs(self):
+        return self.hp.get_funs()
+
     def get_chs(self):
         return self.hp.get_chs()
 
@@ -940,6 +1002,9 @@ class Condition(HCSP):
 
     def get_vars(self):
         return self.cond.get_vars().union(self.hp.get_vars())
+
+    def get_funs(self):
+        return self.cond.get_funs().union(self.hp.get_funs())
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -985,6 +1050,12 @@ class Parallel(HCSP):
         for hp in self.hps:
             var_set.update(hp.get_vars())
         return var_set
+
+    def get_funs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_vars())
+        return fun_set
 
     def get_chs(self):
         ch_set = set()
@@ -1035,6 +1106,13 @@ class SelectComm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
+    def get_funs(self):
+        fun_set = set()
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_funs())
+            fun_set.update(out_hp.get_funs())
+        return fun_set
+
     def get_chs(self):
         ch_set = set()
         for ch, out_hp in self.io_comms:
@@ -1065,6 +1143,9 @@ class Recursion(HCSP):
 
     def get_vars(self):
         return self.hp.get_vars()
+
+    def get_funs(self):
+        return self.hp.get_funs()
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -1121,6 +1202,14 @@ class ITE(HCSP):
             var_set.update(hp.get_vars())
         var_set.update(self.else_hp.get_vars())
         return var_set
+
+    def get_funs(self):
+        fun_set = set()
+        for cond, hp in self.if_hps:
+            fun_set.update(cond.get_funs())
+            fun_set.update(hp.get_funs())
+        fun_set.update(self.else_hp.get_funs())
+        return fun_set
 
     def get_chs(self):
         ch_set = set()
@@ -1457,6 +1546,12 @@ class HCSPProcess:
         for _, hp in self.hps:
             var_set.update(hp.get_vars())
         return var_set
+
+    def get_funs(self):
+        fun_set = set()
+        for _, hp in self.hps:
+            fun_set.update(hp.get_funs())
+        return fun_set
 
     def get_chs(self):
         ch_set = set()

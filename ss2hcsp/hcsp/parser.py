@@ -66,7 +66,9 @@ grammar = r"""
     ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
         | imp
 
-    ?cond: exists_expr
+    ?forall_expr: "Forall" CNAME "." imp
+
+    ?cond: exists_expr | forall_expr
 
     ?comm_cmd: CNAME "?" lname -> input_cmd
         | CNAME "[" expr "]" "?" lname -> input_cmd
@@ -207,6 +209,9 @@ class HPTransformer(Transformer):
 
     def exists_expr(self, var, e):
         return expr.ExistsExpr(str(var), e)
+
+    def forall_expr(self, var, e):
+        return expr.ForallExpr(str(var), e)
 
     def plus_expr(self, e1, e2):
         return expr.OpExpr("+", e1, e2)

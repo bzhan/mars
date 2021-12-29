@@ -64,6 +64,8 @@ def convert(e):
             raise NotImplementedError
     elif isinstance(e, expr.ExistsExpr):
         return z3.Exists([z3.Real(e.var)], convert(e.expr))
+    elif isinstance(e, expr.ForallExpr):
+        return z3.ForAll([z3.Real(e.var)], convert(e.expr))
     else:
         print(e, type(e))
         raise NotImplementedError

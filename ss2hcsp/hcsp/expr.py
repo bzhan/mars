@@ -58,6 +58,10 @@ class AExpr:
         """Returns set of variables in the expression."""
         raise NotImplementedError
 
+    def get_funs(self):
+        """Return set of function names in the expression"""
+        return NotImplementedError
+
     def subst(self, inst):
         """inst is a dictionary mapping variable names to expressions."""
         raise NotImplementedError
@@ -86,6 +90,9 @@ class AVar(AExpr):
 
     def get_vars(self):
         return {self.name}
+
+    def get_funs(self):
+        return set()
 
     def subst(self, inst):
         if self.name in inst:
@@ -120,6 +127,9 @@ class AConst(AExpr):
     def get_vars(self):
         return set()
 
+    def get_funs(self):
+        return set()
+
     def subst(self, inst):
         return self
 
@@ -128,7 +138,11 @@ class OpExpr(AExpr):
     def __init__(self, op, *exprs):
         super(OpExpr, self).__init__()
         assert op in ('+', '-', '*', '/', '%', '^')
-        assert all(isinstance(expr, AExpr) for expr in exprs)
+        for expr in exprs:
+            if not isinstance(expr, AExpr):
+                print(expr, type(expr))
+                raise AssertionError
+        # assert all(isinstance(expr, AExpr) for expr in exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "OpExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:
@@ -173,6 +187,9 @@ class OpExpr(AExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
+    def get_funs(self):
+        return set().union(*(expr.get_funs() for expr in self.exprs))
+
     def subst(self, inst):
         return OpExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
 
@@ -206,9 +223,11 @@ class FunExpr(AExpr):
         return 100
 
     def get_vars(self):
-        names = set().union(*(expr.get_vars() for expr in self.exprs))
-        names.add(self.fun_name+'('+')')
-        return names
+        return set().union(*(expr.get_vars() for expr in self.exprs))
+
+    def get_funs(self):
+        fun_names = {self.fun_name+'('+')', self.fun_name}
+        return fun_names.union(*(expr.get_funs() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
@@ -241,6 +260,9 @@ class IfExpr(AExpr):
 
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in [self.cond, self.expr1, self.expr2]))
+
+    def get_funs(self):
+        return set().union(*(arg.get_funs() for arg in [self.cond, self.expr1, self.expr2]))
     
     def subst(self, inst):
         return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
@@ -272,6 +294,9 @@ class ListExpr(AExpr):
 
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))
+
+    def get_funs(self):
+        return set().union(*(arg.get_funs() for arg in self.args))
 
     def subst(self, inst):
         return ListExpr(*(expr.subst(inst) for expr in self.args))
@@ -305,6 +330,9 @@ class DictExpr(AExpr):
 
     def get_vars(self):
         return set().union(*(v.get_vars() for k, v in self.dict.items()))
+
+    def get_funs(self):
+        return set().union(*(v.get_funs() for k, v in self.dict.items()))
 
     def subst(self, inst):
         return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
@@ -351,6 +379,9 @@ class ArrayIdxExpr(AExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
+    def get_funs(self):
+        return self.expr1.get_funs().union(self.expr2.get_funs())
+
     def subst(self, inst):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
 
@@ -385,6 +416,9 @@ class FieldNameExpr(AExpr):
     def get_vars(self):
         return self.expr.get_vars()
 
+    def get_funs(self):
+        return self.expr.get_funs()
+
     def subst(self, inst):
         return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
 
@@ -399,6 +433,9 @@ class BExpr:
 
     def get_vars(self):
         raise NotImplementedError
+
+    def get_funs(self):
+        raise NotImplementedError   
 
     def subst(self, inst):
         raise NotImplementedError
@@ -426,6 +463,9 @@ class BConst(BExpr):  # Boolean expression
         return 100
 
     def get_vars(self):
+        return set()
+
+    def get_funs(self):
         return set()
 
     def subst(self, inst):
@@ -457,7 +497,7 @@ class LogicExpr(BExpr):
             s = str(self.exprs[0])
             if self.exprs[0].priority() < self.priority():
                 s = '(' + s + ')'
-            return '-' + s
+            return '~' + s
         else:
             s1, s2 = str(self.exprs[0]), str(self.exprs[1])
             if self.exprs[0].priority() <= self.priority():
@@ -481,11 +521,16 @@ class LogicExpr(BExpr):
             return 35
         elif self.op == '||':
             return 30
+        elif self.op == '~':
+            return 50
         else:
             raise NotImplementedError
 
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
+
+    def get_funs(self):
+        return set().union(*(expr.get_funs() for expr in self.exprs))
 
     def subst(self, inst):
         return LogicExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
@@ -590,6 +635,9 @@ class RelExpr(BExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
+    def get_funs(self):
+        return self.expr1.get_funs().union(self.expr2.get_funs())
+
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
 
@@ -620,6 +668,38 @@ class ExistsExpr(BExpr):
         # Currently also include the bound variable.
         return self.expr.get_vars()
 
+    def get_funs(self):
+        return self.expr.get_funs()
+
+class ForallExpr(BExpr):
+    """Forall expressions"""
+    def __init__(self, var, expr):
+        assert isinstance(var, str) and isinstance(expr, BExpr)
+        self.var = var
+        self.expr = expr
+
+    def __repr__(self):
+        return "ForallExpr(%s, %s)" % (repr(self.var), repr(self.expr))
+
+    def __str__(self):
+        return "Forall %s. %s" % (str(self.var), str(self.expr))
+
+    def __eq__(self, other):
+        # Currently does not consider alpha equivalence.
+        return isinstance(other, ForallExpr) and self.var == other.var and self.expr == other.expr
+
+    def __hash__(self):
+        return hash(("Forall", self.var, self.expr))
+
+    def priority(self):
+        return 10
+
+    def get_vars(self):
+        # Currently also include the bound variable.
+        return self.expr.get_vars()
+
+    def get_funs(self):
+        return self.expr.get_funs()
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move
