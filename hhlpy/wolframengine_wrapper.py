@@ -23,73 +23,59 @@ def solveODE(hp, names, time_var):
 
     with WolframLanguageSession(path) as session:
         # ODEs are tranlated from hcsp form to wolfram language 
-        wlexpr_eqn, init2var = Ode2Wlexpr(hp, names, time_var)
+        wlexpr_eqn, init2fun = Ode2Wlexpr(hp, names, time_var)
 
         # Solve the differential equations.
-        # For example, sol is :
+        # For example, sln is :
         # ((Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]))
         slns = session.evaluate(wlexpr('DSolve' + wlexpr_eqn))
 
-        # Solution is tranlated into string, like 'y(x) = 1/2 * x^2 + C(1)', or 
-        # ['v(t) = v0 + a * t', 'x(t) = x0 + v0 * t + a * t^2 / 2']
+        # Solutions in WLlanguage are translated into a list of Assign programs in hcsp.
+        # For example, [y(x) := 1/2 * x^2 + C(1)], or 
+        # [v(t) := v0 + a * t, x(t) := x0 + v0 * t + a * t^2 / 2]
         solutions = []
         for sln in slns[0]:
-            solutions.append(toString(sln))
+            solutions.append(toHcsp(sln))
 
-        # Change the intial value symbol,  for the sake of ODE solution axiom
-        # For example, from 'v(t) = v0 + a * t' to  'v(t) = v + a * t'
-        for init_value, var in init2var.items():
-            for i, sln in enumerate(solutions):
-                sln = sln.replace(init_value, var)
-                solutions[i] = sln
-
-        print(solutions)
-        # Tranlate solution into a dictionary form
+        # Tranlate solution into a dictionary form and 
+        # change the inital value symbol to function name symbol, for the sake of ODE solution axiom.
+        # e.g. from [v(t) := v0 + a * t] to {'v' : v + a * t}
         solution_dict = dict()
         for sol in solutions:
-            sol_list = sol.split('=') # e.g. ['v(t)', 'v + a * t']
 
-            assert len(sol_list) == 2
-            idx = sol_list[0].index('(')
-            fun_name = sol_list[0][:idx]
-            sol_expr = aexpr_parser.parse(sol_list[1])
-
-            solution_dict[fun_name] = sol_expr
+            fun_name = str(sol.var_name.fun_name)
+            solution_dict[fun_name] = sol.expr.subst(init2fun)
 
     return solution_dict
 
 def Ode2Wlexpr(hp, names, time_var):
+    """
+    Example: for ODE <x_dot = v, v_dot = a & v > 0>
+    
+    Return wlexpr_eqn: [{x'[t] == v[t], v'[t] == a, x[0] == x0, v[0] == v0}, {x[t], v[t]}, t] and
+           init2fun  : {'x0' : x, 'v0' : v}
 
-    eqs = hp.eqs
+    """
 
-    # <x_dot = v, v_dot = a & v > 0>
+    eqs = hp.eqs # eqs: [('x', v), ('v', a)]
 
-    # eqs: [('x', v), ('v', a)]
-    # constraint: v > 0
-
-    # wlexpr_eqn: [{x'[t] == v[t], v'[t] == a, x[0] == x0, v[0] == v0}, {x[t], v[t]}, t]
-
-    # <x_dot = v, v_dot = a, c_dot = 1 & c < 1>
-
-    # eqs: [('x', v), ('v', a), ('c', 1)]
-    # constraint: v > 0
-
-    # wlexpr_eqn: [{x'[t] == v[t], v'[t] == a, c'[t] == 1, x[0] == x0, v[0] == v0, c[0] = 0}, {x[t], v[t],c[t]}, t]
+    # Collect the function names and their corresponding derivative expressions.
     fun_names = []
     deriv_exprs = []
     for eq in eqs:
         fun_names.append(eq[0]) # ['x', 'v']
         deriv_exprs.append(str(eq[1])) #['v', 'a']
 
+    # If the derivative expression is a function names, add time variable for it.
     for i, deriv_expr in enumerate(deriv_exprs):
         if deriv_expr in fun_names:
             deriv_exprs[i] = deriv_expr + '[' + time_var + ']'  # ['v[t]', 'a']
 
     # Create the wlexpression for differential eqautions.
 
-    # Map initial value to their function name.
-    init2var = dict()
-    # Functions that will be solved.
+    # Map initial value symbol(str) to their function name symbol(AVar).
+    init2fun = dict()
+    # Functions to solve.
     tosolve_funs = []
     # Differential eqautions and their inital value.
     diff_eqs = []
@@ -101,8 +87,8 @@ def Ode2Wlexpr(hp, names, time_var):
         init_var = fun_name + '0'
         while init_var in names:
             init_var = init_var + '0'
-        # {'x0': 'x'}
-        init2var[init_var] = fun_name
+        # {'x0': x}
+        init2fun[init_var] = expr.AVar(fun_name)
 
         diff_eq = fun_name + '\'' + '[' + time_var + ']' + '==' + deriv_exprs[i]
         diff_eqs.append(diff_eq) # ["x'[t] == v[t]", "v'[t] == a"]
@@ -116,36 +102,55 @@ def Ode2Wlexpr(hp, names, time_var):
                       time_var + \
                  ']'
 
-    return wlexpr_eqn, init2var
+    return wlexpr_eqn, init2fun
 
-def toString(e):
+def toHcsp(e):
+    """
+    Translate a wlexpression to hcsp expression or program.
+    Example1:
+    wl: Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]
+    hcsp: y(x) := 1/2 * x^2 + C(1)
+
+    Example2:
+    wl: Rule[Global`x[Global`t], Times[Rational[1, 2], Plus[Times[Global`a, Power[Global`t, 2]], Times[2, Global`t, Global`v0], Times[2, Global`x0]]]])
+    hcsp: x(t) := 1/2 * (a * t^2 + 2 * v0 * t + 2 * x0)
+    
+    """
     if isinstance(e, WLFunction):
         if e.head == WLSymbol("Rule"):
             assert len(e.args) == 2
-            return "%s = %s" % (toString(e.args[0]), toString(e.args[1]))
-        elif e.head == WLSymbol("Plus"):
-            print('args', e.args)
+            return hcsp.Assign(toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Plus"):  # priority: 65
+            if len(e.args) == 2:
+                return expr.OpExpr('+', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.OpExpr('+', toHcsp(WLFunction(WLSymbol("Plus"), *e.args[:-1])),
+                                        toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Times"):  # priority: 70
+            if len(e.args) == 2:
+                return expr.OpExpr('*', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.OpExpr('*', toHcsp(WLFunction(WLSymbol("Times"), *e.args[:-1])),
+                                        toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Power"):  # priority: 85
             assert len(e.args) == 2
-            return "%s + %s" % (toString(e.args[0]), toString(e.args[1]))
-        elif e.head == WLSymbol("Times"):
+            return expr.OpExpr('^', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Rational"):  # priority: 85
             assert len(e.args) == 2
-            return "%s * %s" % (toString(e.args[0]), toString(e.args[1]))
-        elif e.head == WLSymbol("Power"):
-            assert len(e.args) == 2
-            return "%s^%s" % (toString(e.args[0]), toString(e.args[1]))
-        elif e.head == WLSymbol("Rational"):
-            assert len(e.args) == 2
-            return "%s/%s" % (toString(e.args[0]), toString(e.args[1]))            
+            return expr.OpExpr('/', toHcsp(e.args[0]), toHcsp(e.args[1]))
         else:
-            assert len(e.args) == 1, str(e)
-            return "%s(%s)" % (toString(e.head), toString(e.args[0]))
+            return expr.FunExpr(toHcsp(e.head), [toHcsp(arg) for arg in e.args])
     elif isinstance(e, WLSymbol):
         str_e = str(e)
         if str_e.startswith("Global`"):
             str_e = str_e[7:]
-        return str_e
+        return expr.AVar(str_e)
     elif isinstance(e, int):
-        return str(e)
+        return expr.AConst(e)
     else:
         assert False, "Unexpected expression: %s" % str(e)
         

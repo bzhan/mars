@@ -748,8 +748,7 @@ class HHLPyTest(unittest.TestCase):
                       )**",
                   post="v >= 0",
                   loop_invariants={((), ()): "v >= 0"},
-                  diff_weakening_rule={((0,1), ()): "true"},
-                  print_vcs=True)
+                  diff_weakening_rule={((0,1), ()): "true"})
 
     def testVerify65(self):
         # Solution Axiom
@@ -759,8 +758,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="v >= 0",
                   hp="<v_dot = 1 & v < 10>",
                   post="v >= 0",
-                  solution_rule = {((), ()): "true"},
-                  print_vcs=True)
+                  solution_rule = {((), ()): "true"})
 
     def testVerify66(self):
         # Solution Axiom
@@ -770,8 +768,17 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && v >= 0 && a >= 0",
                   hp="<x_dot = v, v_dot = a & x < 10>",
                   post="x >= 0",
-                  solution_rule={((), ()): "true"},
-                  print_vcs=True)
+                  solution_rule={((), ()): "true"})
+
+    def testVerify67(self):
+        # Solution Axiom
+        # {x >= 0 && v >= 0 && a >= 0 && c == 0}
+        # <x_dot = v, v_dot = a, c_dot = 1 & c < 10>
+        # {x >= 0}
+        runVerify(self, pre="x >= 0 && v >= 0 && a >= 0 && c == 0",
+                  hp="<x_dot = v, v_dot = a, c_dot = 1 & c < 10>",
+                  post="x >= 0",
+                  solution_rule={((), ()): "true"})
 
 
 if __name__ == "__main__":

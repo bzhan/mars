@@ -133,16 +133,19 @@ def demoninator_not_zero(e):
 
     return expr.RelExpr('!=', denominator, expr.AConst(0))
 
-# Create a new variable name by adding suffix.
-# s is the root var, names is the set of names being used.
+# Create a new AVar by adding suffix.
+# s is the root var name, names is the set of names being used.
 def create_newvar(s, names):
     if not isinstance(s, str):
         raise AssertionError
+    # If s is already a new variable name, return the AVar object of s.
+    if s not in names:
+        return expr.AVar(s)
+    # Increase the suffix number until it's a new variable name.
     suffix_n = 0
-    while (s in names):
-        s = s + str(suffix_n)
+    while (s + str(suffix_n) in names):
         suffix_n = suffix_n + 1
-    return s
+    return expr.AVar(s + str(suffix_n))
 
 class CmdInfo:
     """Information associated to each HCSP program."""
@@ -252,8 +255,8 @@ class CmdVerifier:
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
 
-        # There are constans in pre.
-        if not self.constants.isdisjoint(pre.get_vars()):
+        # There are constants in pre.
+        if not self.constants.isdisjoint(pre.get_vars().union(pre.get_funs())):
             if isinstance(pre, expr.RelExpr):
                 if pre.get_vars().isdisjoint(self.variables):
                     self.infos[root_pos].assume.append(pre)
@@ -369,7 +372,7 @@ class CmdVerifier:
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
-            #               pre: cur_hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
+            #               pre: cur_hp.expr(newvar|var_name) --> post(newvar|var_name)
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
             if cur_hp.var_name in self.constants:
@@ -378,12 +381,11 @@ class CmdVerifier:
             var_str = cur_hp.var_name.name
 
             # Create a new var
-            newvar_str = create_newvar(var_str, self.names)
-            self.names.add(newvar_str)
+            newvar = create_newvar(var_str, self.names)
+            self.names.add(newvar.name)
 
-            #Compute the pre: hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
-            newvar_name = expr.AVar(newvar_str)
-            pre = expr.imp(cur_hp.expr.subst({var_str: newvar_name}), post.subst({var_str: newvar_name}))
+            #Compute the pre: hp.expr(newvar|var) --> post(newvar|var)
+            pre = expr.imp(cur_hp.expr.subst({var_str: newvar}), post.subst({var_str: newvar}))
 
 
         elif isinstance(cur_hp, hcsp.IChoice):
@@ -490,30 +492,23 @@ class CmdVerifier:
 
                 # Create a new variable to represent time
                 time_var = create_newvar('t', self.names)
-                self.names.add(time_var)
-                time_var = expr.AVar(time_var)
+                self.names.add(time_var.name)
 
                 # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
                 solution_dict = solveODE(cur_hp, self.names, time_var.name)
 
                 # Create a new variable to represent 's' in 'Forall 0 <= s < t'
                 in_var = create_newvar('s', self.names)
-                self.names.add(in_var)
-                in_var = expr.AVar(in_var)
+                self.names.add(in_var.name)
 
                 # Compute y_s, alias y(s)
                 # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
                 y_s = dict()
                 for fun_name, sol in solution_dict.items():
-                    print('sol:', sol)
-                    print(type(sol))
-                    sol_s = sol.subst({time_var : in_var})
+                    sol_s = sol.subst({time_var.name : in_var})
                     y_s[fun_name] = sol_s
 
-                print(solution_dict)
-
                 D_y_t = constraint.subst(solution_dict)
-                print(D_y_t)
                 D_y_s = constraint.subst(y_s)
                 Q_y_s = self.infos[pos].post.subst(y_s)
 
