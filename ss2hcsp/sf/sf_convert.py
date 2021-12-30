@@ -400,20 +400,6 @@ class SFConvert:
                         ch_name += "_in"
                     procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
         return procs
-    def get_input_message(self):
-        procs = []
-        if self.translate_io:
-            for port_id, in_var in self.chart.port_to_in_var.items():
-                if in_var  in self.messages:
-                    line = self.chart.dest_lines[port_id]
-                    ch_name = "ch_" + line.name + "_" + str(line.branch)
-                    if ch_name in self.shared_chans:
-                        ch_name += "_in"
-                    procs.append(hcsp.InputChannel(ch_name, expr.AVar(in_var)))
-                    mqueue_name = self.get_message_queue_name_input(str(in_var))
-                    procs.append(hcsp.Assign(
-                    mqueue_name, expr.FunExpr("push", [expr.AVar(mqueue_name), expr.AVar(in_var)])))
-        return procs
 
     def get_output_data(self):
         """Obtain a list of processes for chart output."""
@@ -421,20 +407,6 @@ class SFConvert:
         if self.translate_io:
             for port_id, out_var in self.chart.port_to_out_var.items():
                 if out_var not in self.messages:
-                    lines = self.chart.src_lines[port_id]
-                    for line in lines:
-                        ch_name = "ch_" + line.name + "_" + str(line.branch)
-                        if ch_name in self.shared_chans:
-                            ch_name += "_out"
-                        procs.append(hcsp.OutputChannel(ch_name, expr.AVar(out_var)))
-        return procs
-
-    def get_output_message(self):
-        """Obtain a list of processes for chart output."""
-        procs = []
-        if self.translate_io:
-            for port_id, out_var in self.chart.port_to_out_var.items():
-                if out_var in self.messages:
                     lines = self.chart.src_lines[port_id]
                     for line in lines:
                         ch_name = "ch_" + line.name + "_" + str(line.branch)
@@ -957,8 +929,6 @@ class SFConvert:
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
-
-        # procs.extend(self.get_input_message())
         # Initialize state
         for or_father in self.or_fathers:
             procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
@@ -987,7 +957,6 @@ class SFConvert:
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
 
         procs.extend(self.get_output_data())
-        # procs.extend(self.get_output_message())
         # End signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
@@ -1049,7 +1018,6 @@ class SFConvert:
                 
         procs.extend(self.get_input_data())
 
-        # procs.extend(self.get_input_message())
         # Input from data store
         for vname, info in self.data.items():
             if info.scope == "DATA_STORE_MEMORY_DATA":
@@ -1063,7 +1031,6 @@ class SFConvert:
             if info.scope == "DATA_STORE_MEMORY_DATA":
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
         procs.extend(self.get_output_data())
-        # procs.extend(self.get_output_message())
         for _, e in self.events.items():
             if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
