@@ -5,7 +5,12 @@ begin
 
 datatype scheduler =
   sch (pool:"(int \<times> string) list")
+
 definition data :: char where "data = CHR ''x''"
+definition t :: char where "t = CHR ''t''"
+
+lemma vars_distinct[simp]:"data \<noteq> t" "t\<noteq>data"
+  unfolding data_def t_def by auto
 
 definition databuffer1 :: "cname \<Rightarrow> cname => scheduler proc" where
   "databuffer1 ch1 ch2 = data ::= (\<lambda>_.0); 
@@ -121,7 +126,7 @@ next
     using endio.simps(3)[of d res] by auto
 qed
 
-lemma coon0_prop:
+lemma databuffer1_prop:
 "\<Turnstile>{\<lambda>(a,s) t. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t t}
 databuffer1 ch1 ch2 
 {\<lambda>(a,s) t. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(data := endio 0 list)) \<and> db1 ch1 ch2 0 list t}"
@@ -171,3 +176,13 @@ databuffer1 ch1 ch2
           
 
 
+lemma coon0_prop:
+"\<Turnstile>{\<lambda>(a,s) t. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t t}
+coon0
+{\<lambda>(a,s) t. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(data := endio 0 list)) \<and> db1 ''outputs_bus0_img'' ''inputs_imgacpimp_img'' 0 list t}"
+  unfolding coon0_def
+  by(rule databuffer1_prop)
+
+
+
+end
