@@ -670,6 +670,11 @@ class ExistsExpr(BExpr):
     def get_funs(self):
         return self.expr.get_funs()
 
+    def subst(self, inst):
+        # Currently assume the bound variable cannot be substituded.
+        assert self.var not in inst
+        return ExistsExpr(self.var, self.expr.subst(inst))
+
 class ForallExpr(BExpr):
     """Forall expressions"""
     def __init__(self, var, expr):
@@ -699,6 +704,11 @@ class ForallExpr(BExpr):
 
     def get_funs(self):
         return self.expr.get_funs()
+    
+    def subst(self, inst):
+        # Currently assume the bound variable cannot be substituded.
+        assert self.var not in inst
+        return ForallExpr(self.var, self.expr.subst(inst))
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move

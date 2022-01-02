@@ -129,7 +129,7 @@ def demoninator_not_zero(e):
     
     e = simplify(sympify(e))
     _, denominator = fraction(e)
-    denominator = aexpr_parser.parse(str(denominator))
+    denominator = aexpr_parser.parse(str(denominator).replace('**', '^'))
 
     return expr.RelExpr('!=', denominator, expr.AConst(0))
 
@@ -153,6 +153,7 @@ class CmdInfo:
         # Pre-condition and post-condition are assertions.
         self.pre = None
         self.post = None
+        self.stren_post = None
 
         # List of verification conditions for this command.
         self.vcs = []
@@ -200,6 +201,8 @@ class CmdInfo:
         res = ""
         res += "pre = %s\n" % self.pre
         res += "post = %s\n" % self.post
+        if self.stren_post is not None:
+            res += "stren = %s \n" % self.stren_post
         for vc in self.vcs:
             res += "vc: %s\n" % vc
         if self.inv is not None:
@@ -288,6 +291,11 @@ class CmdVerifier:
             res += "%s:\n%s" % (pos, info)
         return res
 
+    def add_strengthened_post(self, pos, stren_post):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].stren_post = stren_post
+
     def add_loop_invariant(self, pos, loop_inv):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
@@ -352,7 +360,11 @@ class CmdVerifier:
         # The post-condition at the given position should already be
         # available.
         assert pos in self.infos and self.infos[pos].post is not None
-        post = self.infos[pos].post
+        if self.infos[pos].stren_post is not None:
+            self.infos[pos].vcs.append(expr.imp(self.infos[pos].stren_post, self.infos[pos].post))
+            post = self.infos[pos].stren_post
+        else:
+            post = self.infos[pos].post
 
         if isinstance(cur_hp, hcsp.Skip):
             # Skip: {P} skip {P}
@@ -475,10 +487,6 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-            # By default, ode_inv is post.
-            if not self.infos[pos].ode_inv and not self.infos[pos].sln_rule and not self.infos[pos].dw:
-                self.infos[pos].ode_inv = self.infos[pos].post
-
             # Use solution axiom
             # 
             #             P -->
@@ -510,7 +518,7 @@ class CmdVerifier:
 
                 D_y_t = constraint.subst(solution_dict)
                 D_y_s = constraint.subst(y_s)
-                Q_y_s = self.infos[pos].post.subst(y_s)
+                Q_y_s = post.subst(y_s)
 
                 # Compute the hypothesis of implication
                 # Forall (s, 0 <= s < t --> D(y(s)) && not D(y(t))
@@ -560,12 +568,14 @@ class CmdVerifier:
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
                 not self.infos[pos].dbx_rule and not self.infos[pos].dbx_cofactor and \
                 self.infos[pos].assume_inv is None and \
-                isinstance(self.infos[pos].ode_inv, expr.RelExpr):
-               
-                ode_inv = self.infos[pos].ode_inv
+                (isinstance(self.infos[pos].ode_inv, expr.RelExpr) or \
+                self.infos[pos].ode_inv is None and isinstance(post, expr.RelExpr)):
 
-                if not isinstance(ode_inv, expr.BExpr):
-                    raise AssertionError('Invalid differential invariant for ODE!')               
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
+
+                ode_inv = self.infos[pos].ode_inv           
 
                 # Compute the differential of inv.
                 # Compute the boundary of constraint. 
@@ -582,9 +592,9 @@ class CmdVerifier:
                 pre = ode_inv
             
             # Use dC rules
-            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {Q}
-            #-----------------------------------------------------------
-            #                        {P1 && P2 && P3} c {Q}
+            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {Q}   P --> P1 && P2 && P3
+            #--------------------------------------------------------------------------------------
+            #                                       {P} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
@@ -621,6 +631,10 @@ class CmdVerifier:
             # Use dG rules
             elif self.infos[pos].ghost_inv is not None:
                 ghost_inv = self.infos[pos].ghost_inv
+
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
                 ode_inv = self.infos[pos].ode_inv
 
                 if ode_inv is None or not isinstance(ode_inv, expr.BExpr):
@@ -694,7 +708,7 @@ class CmdVerifier:
                     # Simplify dy
                     dy = simplify(sympify(str(dy)))
 
-                    self.infos[pos].ghost_eqs = {ghost_var: aexpr_parser.parse(str(dy))}
+                    self.infos[pos].ghost_eqs = {ghost_var: aexpr_parser.parse(str(dy).replace('**', '^'))}
 
                 # Verify the reasonablity of ghost equations.
                 # dy should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
@@ -721,6 +735,10 @@ class CmdVerifier:
 
             # Using dbx rule
             elif self.infos[pos].dbx_rule or self.infos[pos].dbx_cofactor is not None:
+
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
                 ode_inv = self.infos[pos].ode_inv
 
                 if not isinstance(ode_inv, expr.RelExpr): 
@@ -756,19 +774,23 @@ class CmdVerifier:
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', lie_deriv, ode_inv.expr1)
                         g_sym = simplify(sympify(str(g)))
-                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(str(g_sym))
+                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(str(g_sym).replace('**', '^'))
 
-                        denomi_not_zero = demoninator_not_zero(g_sym)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                                   demoninator_not_zero(g_sym))
 
                         # G_sym is supposed to be a reasonable expression.
                         if not z3_prove(denomi_not_zero):
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
+                        else:
+                            self.infos[pos].dbx_cofactor = g
 
                     # Cases when cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
                         
-                        denomi_not_zero = demoninator_not_zero(g)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                          demoninator_not_zero(g))
 
                         if not z3_prove(denomi_not_zero):
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
@@ -777,9 +799,11 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
                                                                     expr.OpExpr('*'), g, ode_inv.expr1))
 
-                        self.infos[pos].dbx_cofactor.append(vc)
+                        self.infos[pos].vcs.append(vc)
 
                     pre = ode_inv
+
+                    self.infos[pos].vcs.append(expr.imp(ode_inv, post))
 
                 # Cases when ode_inv is e >(>=) 0.
                 # Use Darboux Inequality Rule.
@@ -787,48 +811,77 @@ class CmdVerifier:
                 # ---------------------------------------------
                 #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
                 if ode_inv.op in {'>', '>='}:
+                    # Compute the cofactor automatically if it's not offered
                     if self.infos[pos].dbx_cofactor is None:
-                        raise NotImplementedError("Please offer the cofactor for dbx inequality rule!")
+                        g = expr.OpExpr('/', lie_deriv, ode_inv.expr1)
+                        g_sym = simplify(sympify(str(g)))
+                        # Power expression is different in hcsp and sympy
+                        g_str = str(g_sym).replace('**', '^')
+                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(g_str)
 
-                    g = self.infos[pos].dbx_cofactor
-                    denomi_not_zero = demoninator_not_zero(g)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                          demoninator_not_zero(g_sym))
 
-                    vc1 = expr.imp(constraint, denomi_not_zero)
+                        # If the cofactor computed doesn't satisfy denomi_not_zero, require the users offer cofactor by their own
+                        if not z3_prove(denomi_not_zero):
+                            raise AssertionError("Please offer the cofactor for dbx inequality rule!")
+                        
+                    else:
+                        g = self.infos[pos].dbx_cofactor
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                        demoninator_not_zero(g))
 
-                    vc2 = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
-                                                                  expr.OpExpr('*', g, ode_inv.expr1)))
+                        vc1 = denomi_not_zero
 
-                    self.infos[pos].vcs = [vc1, vc2]
+                        vc2 = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
+                                                                    expr.OpExpr('*', self.infos[pos].dbx_cofactor, ode_inv.expr1)))
+                        
+                        self.infos[pos].vcs += [vc1, vc2]
 
+                    pre = ode_inv   
 
-                    pre = ode_inv              
+                    self.infos[pos].vcs.append(expr.imp(ode_inv, post))
+
+                print(pos, ':', self.infos[pos].dbx_cofactor)           
 
             # Using Conjuntion Rule
-            #  {I1} c {I1}     {I2} c {I2}
-            #-------------------------------
-            #    {I1 && I2} c {I1 && I2}
-            # Invariant is a conjunction expression, such as x > 0 && y > 0, we can compute wp for each sub_inv one by one.
-            # Different sub_inv may use different ODE rules
-            elif self.infos[pos].ode_inv is not None and isinstance(self.infos[pos].ode_inv, expr.LogicExpr):
-                ode_inv = self.infos[pos].ode_inv
+            #  {P1} c {Q1}     {P2} c {Q2}   P --> P1 && P2
+            #------------------------------------------------
+            #               {P} c {Q1 && Q2}
+            # or
+            #   P --> {I1 && I2}   {I1} c {I1}   {I2} c {I2}  {I1 && I2} --> Q
+            #------------------------------------------------------------------
+            #                           {P} c {Q}
+            elif isinstance(post, expr.LogicExpr) or \
+                 isinstance(self.infos[pos].ode_inv, expr.LogicExpr):
+                
+                if self.infos[pos].ode_inv:
+                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].ode_inv, post))
+                    post = self.infos[pos].ode_inv
+                
                 eqs_dict = self.infos[pos].eqs_dict
 
-                assert ode_inv.op == "&&"
-                sub_invs = expr.split_conj(ode_inv)
-                
+                if not post.op == '&&':
+                    raise NotImplementedError
+                sub_posts = expr.split_conj(post)
+
                 # Compute wp for each sub_inv
-                for i, sub_inv in enumerate(sub_invs):
+                sub_pres = []
+                for i, sub_post in enumerate(sub_posts):
                     # Create different CmdInfos for each sub-invariants
                     sub_pos = (pos[0], pos[1] + (i,))
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
-                    self.infos[sub_pos].post = sub_inv
+                    self.infos[sub_pos].post = sub_post
                     self.infos[sub_pos].assume += self.infos[pos].assume
                     self.infos[sub_pos].eqs_dict = eqs_dict
-                    self.infos[sub_pos].ode_inv = sub_inv
-                    
+                    if self.infos[pos].ode_inv: 
+                        self.infos[sub_pos].ode_inv = sub_post
                     self.compute_wp(pos=sub_pos)
-                pre = ode_inv
+
+                    sub_pres.append(self.infos[sub_pos].pre)
+
+                pre = expr.list_conj(*sub_pres)
 
             # Using the rule below:(proved by Isabelle)
             #    e > 0 --> e_lie_deriv >= 0

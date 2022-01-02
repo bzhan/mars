@@ -18,8 +18,13 @@ def solveODE(hp, names, time_var):
      v + a * t : AExpr
 
     """
-    if not isinstance(hp, hcsp.ODE):
-        raise AssertionError
+    assert isinstance(hp, hcsp.ODE)
+    assert isinstance(names, set)
+    for name in names:
+        assert isinstance(name, str)
+
+    if not isinstance(time_var, str):
+        time_var = str(time_var)
 
     with WolframLanguageSession(path) as session:
         # ODEs are tranlated from hcsp form to wolfram language 
@@ -53,56 +58,51 @@ def Ode2Wlexpr(hp, names, time_var):
     Example: for ODE <x_dot = v, v_dot = a & v > 0>
     
     Return wlexpr_eqn: [{x'[t] == v[t], v'[t] == a, x[0] == x0, v[0] == v0}, {x[t], v[t]}, t] and
-           init2fun  : {'x0' : x, 'v0' : v}
+           init2var  : {'x0' : x, 'v0' : v}
 
     """
 
     eqs = hp.eqs # eqs: [('x', v), ('v', a)]
 
-    # Collect the function names and their corresponding derivative expressions.
-    fun_names = []
-    deriv_exprs = []
+    # Map the function name variable to function expression.
+    var2fun = dict() # {'x' : x[t], 'v' : v[t]}
     for eq in eqs:
-        fun_names.append(eq[0]) # ['x', 'v']
-        deriv_exprs.append(str(eq[1])) #['v', 'a']
+        var2fun[eq[0]] = expr.AVar(eq[0] + '[' + time_var + ']')
 
-    # If the derivative expression is a function names, add time variable for it.
-    for i, deriv_expr in enumerate(deriv_exprs):
-        if deriv_expr in fun_names:
-            deriv_exprs[i] = deriv_expr + '[' + time_var + ']'  # ['v[t]', 'a']
+    # Differential eqautions and their inital value are recorded in the dictionary.
+    ode_wleqs = dict() # {"x'[t]" : 'v[t]', "v'[t]" : 'a', 'x[0]' : x0, 'v[0]' : v0}
+    # Functions that will be solved.
+    tosolve_funs = [] # ['x[t]', 'v[t]']
+    # Map the initial value symbol to their function name variable.
+    init2var = dict()  # {'x0' : 'x', 'v0' : 'v'}
 
-    # Create the wlexpression for differential eqautions.
+    for eq in eqs:
+        x_dot_t = eq[0] + "\'" + '[' + time_var +']'  # x'[t]
+        deriv_expr = str(eq[1].subst(var2fun))  # 'v[t]'
+        ode_wleqs[x_dot_t] = deriv_expr # {"x'[t]" : 'v[t]'}
 
-    # Map initial value symbol(str) to their function name symbol(AVar).
-    init2fun = dict()
-    # Functions to solve.
-    tosolve_funs = []
-    # Differential eqautions and their inital value.
-    diff_eqs = []
-    for i, fun_name in enumerate(fun_names):
-        # Functions that will be solved.
-        tosolve_funs.append(fun_name + '[' + time_var + ']') # {"x[t]", "v[t]"}
+        tosolve_funs.append(str(var2fun[eq[0]])) # ['x[t]', 'v[t]']
 
-        # Create a new variable for initial value of each functions.
-        init_var = fun_name + '0'
+        # Create a new variable for initial value symbol of each functions.
+        init_var = eq[0] + '0'
         while init_var in names:
             init_var = init_var + '0'
         # {'x0': x}
-        init2fun[init_var] = expr.AVar(fun_name)
-
-        diff_eq = fun_name + '\'' + '[' + time_var + ']' + '==' + deriv_exprs[i]
-        diff_eqs.append(diff_eq) # ["x'[t] == v[t]", "v'[t] == a"]
-
-        init_value_eq = fun_name + '[0]' + '==' + init_var
-        diff_eqs.append(init_value_eq) # ["x'[t] == v[t]", "x[0] == x0", "v'[t] == a", "v[0] == v0"]
+        init2var[init_var] = expr.AVar(eq[0])
+        x_0 = eq[0] + '[0]'
+        ode_wleqs[x_0] = init_var  # {"x'[t]" : 'v[t]', 'x[0]' : x0}
+     
+    ode_wleqs_list = []  # ["x'[t] == v[t], "x[0] == x0"]
+    for left, right in ode_wleqs.items():
+        ode_wleqs_list.append(left + '==' + right)
 
     # [{x'[t] == v[t], v'[t] == a, x[0] == x0, v[0] == v0}, {x[t], v[t]}, t]
-    wlexpr_eqn = '['+ '{' + ','.join(diff_eqs) + '}' + ',' + \
+    wlexpr_eqn = '['+ '{' + ','.join(ode_wleqs_list) + '}' + ',' + \
                       '{' + ','.join(tosolve_funs) + '}' + ',' + \
                       time_var + \
                  ']'
 
-    return wlexpr_eqn, init2fun
+    return wlexpr_eqn, init2var
 
 def toHcsp(e):
     """
@@ -153,6 +153,7 @@ def toHcsp(e):
         return expr.AConst(e)
     else:
         assert False, "Unexpected expression: %s" % str(e)
+
         
 
 

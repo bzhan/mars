@@ -265,7 +265,7 @@ class HPTransformer(Transformer):
         return expr.RelExpr(">", e1, e2)
 
     def not_cond(self, e):
-        return expr.NegExpr(e)
+        return expr.LogicExpr("~", e)
 
     def true_cond(self):
         return expr.BConst(True)

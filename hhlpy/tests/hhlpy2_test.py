@@ -8,7 +8,8 @@ from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, strengthen_post=None, constants=set(), 
+def runVerify(self, *, pre, hp, post, constants=set(), 
+              strengthened_posts=None,
               loop_invariants=None, ode_invariants=None, solution_rule=None,
               diff_invariant_rule=None, diff_weakening_rule=None, assume_invariants=None, 
               diff_cuts=None, ghost_equations=None, ghost_invariants=None, 
@@ -21,6 +22,12 @@ def runVerify(self, *, pre, hp, post, strengthen_post=None, constants=set(),
 
     # Initialize the verifier
     verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants)
+
+    if strengthened_posts:
+        for pos, stren_post in strengthened_posts.items():
+            if isinstance(stren_post, str):
+                stren_post = bexpr_parser.parse(stren_post)
+            verifier.add_strengthened_post(pos, stren_post)
 
     # Place loop invariants
     if loop_invariants:
@@ -217,6 +224,8 @@ class HHLPyTest(unittest.TestCase):
         # {x >= 0} x := x+1; y := {y >= x}; y := {y >= x + 1} {y >= 2}
         runVerify(self, pre="x >= 0", hp="x := x+1; y := {y >= x}; y := {y >= x+1}", post="y >= 2",
                   expected_vcs={((), ()): ["x >= 0 --> y1 >= x + 1 -->y0 >= x + 1 + 1 --> y0 >= 2"]})
+
+    # Basic benchmark problem 6 is hard to translate into HCSP program.
 
     def testVerify14(self):
         # Basic Benchmark, problem7
@@ -468,7 +477,17 @@ class HHLPyTest(unittest.TestCase):
                   ode_invariants={((1,), ()): "x + z == 0"},
                   darboux_rule={((1,), ()): "true"})
 
-    # Benchmark, problem 30-32
+    # Benchmark, problem 30, 32 are hard to translate into hcsp programs.
+
+    def testVerify38(self):
+        # Basic benchmark, problem 31
+        # {x + z >= 0} 
+        # <x_dot = x^2, z_dot = z * x + y & y > x^2>
+        # {x + z >= 0}
+        runVerify(self, pre="x + z >= 0",
+                  hp="<x_dot = x^2, z_dot = z * x + y & y > x^2>",
+                  post="x + z >= 0",
+                  darboux_cofactors={((), ()): "x"})
 
     def testVerify40(self):
         # Condition rule
@@ -621,6 +640,7 @@ class HHLPyTest(unittest.TestCase):
                   diff_weakening_rule={((0, 2, 1), (0,)): "true",
                                        ((0, 0, 1), (0,)): "true",
                                        ((0, 0, 1), (1,)): "true"},
+                  ode_invariants={((0, 2, 1), (1,)): "x+v^2/(2*B) <= S"},
                   diff_cuts={((0, 2, 1), (1,)): ["a == -B"]},
         )
 
@@ -668,6 +688,33 @@ class HHLPyTest(unittest.TestCase):
 
     # Basic benchmark, problem 45-48
 
+    # def testVerify56(self):
+        # Basic benchcmark, problem 46
+        # constants = {'A', 'B', 'S', 'ep'}
+        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
+        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif
+        #         ++ if v == 0 then a := 0 else a := -B endif
+        #         ++ a := -B
+        #         ;
+
+        #         c := 0;
+        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
+        #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+        # {x <= S}
+        # runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
+        #           hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
+        #                ++ if v == 0 then a := 0 else a := -B endif \
+        #                ++ a := -B; \
+        #                 c := 0; \
+        #                 < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
+        #              )**",
+        #           post="x <= S",
+        #           constants={'A', 'B', 'S', 'ep'},
+        #           loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
+        #           diff_weakening_rule={((0, 2), (0,)): "true"},
+        #           solution_rule={((0, 2), (1,)): "true"},
+        #           print_vcs=True)
+
     def testVerify59(self):
         # Basic benchmark, problem 49
         # Constants = {'Kp()', 'Kd()', 'xr()', 'c()'}
@@ -680,6 +727,7 @@ class HHLPyTest(unittest.TestCase):
                       && 5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
                   hp="t := 0; <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10>",
                   post="5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
+                  ode_invariants={((1,), ()): "5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()"},
                   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
@@ -780,6 +828,39 @@ class HHLPyTest(unittest.TestCase):
                   post="x >= 0",
                   solution_rule={((), ()): "true"})
 
+    def testVerify68(self):
+        # Strengthened post
+        # {x == 0}
+        # t := 0; <x_dot = 2, t_dot = 1 & t < 1>
+        # stren_post: {x == 2*t && t == 1}
+        # {x == 2}
+        runVerify(self, pre="x == 0",
+                  hp="t := 0; <x_dot = 2, t_dot = 1 & t < 1>",
+                  post="x == 2",
+                  strengthened_posts={((), ()): "x == 2 * t && t == 1"},
+                  diff_weakening_rule={((1,), (1,)): "true"})
+
+    def nonlinearTestVerify1(self):
+        # Nonlinear benchmark, problem 1
+        #  {0.5 <= x && x <= 0.7 && 0 <= y && y <= 0.3}
+        #  t := 0; <x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10>
+        #  {~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)}
+        runVerify(self,pre="0.5 <= x && x <= 0.7 && 0 <= y && y <= 0.3",
+                  hp="t := 0; <x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10>",
+                  post="~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)",
+                  ode_invariants={((1,),()): "x >= 0 && y >= 0"},
+                  darboux_rule={((1,),(0,)): "true", ((1,), (1,)): "true"})
+    
+    def nonlinearTestVerify2(self):
+        # Nonlinear bencnmark, problem 2
+        # {x == 1 && y == 1/8}
+        # t := 0; <x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10>@invariant(y^2 < x)
+        # {~(x < 0)}
+        runVerify(self,pre="x == 1 && y == 1/8",
+                  hp="t := 0; <x_dot = x - y^2, y_dot = y * (x - y^2) & t < 10>",
+                  post="~(x < 0)",
+                  ode_invariants={((1,), ()): "y^2 < x"},
+                  darboux_rule={((1,), ()): "true"})
 
 if __name__ == "__main__":
     unittest.main()
