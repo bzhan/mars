@@ -164,6 +164,15 @@ theorem Valid_cond_split':
   apply (auto elim!: condE seqE)
   by (auto simp add: seqB)
 
+theorem Valid_cond_split'':
+  assumes "\<Turnstile> {\<lambda>(a,s) t. b (a,s) \<and> P (a,s) t} c1 {Q}"
+    and "\<Turnstile> {\<lambda>(a,s) t. \<not>b (a,s) \<and> P (a,s) t} c2 {Q}"
+  shows "\<Turnstile> {\<lambda>(a,s) t. P (a,s) t}
+             IF b THEN c1 ELSE c2 FI
+            {\<lambda>(a,s) t. Q (a,s) t}"
+  using assms unfolding Valid_def
+  by (auto elim!: condE seqE)
+
 theorem Valid_ode_not:
   assumes "\<And>s. P s \<Longrightarrow> \<not> b s"
     and "\<And>s. P s \<Longrightarrow> Q s"
