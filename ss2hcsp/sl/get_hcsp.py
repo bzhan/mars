@@ -11,6 +11,7 @@ from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sf import sf_convert
+from ss2hcsp.hcsp.optimize import full_optimize_module
 
 
 def translate_continuous(diagram):
@@ -396,6 +397,8 @@ def new_translate_discrete(diagram, chart_parameters):
     sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
 
+    # Record initializations
+    init_hps = list()
     # Storing procedures generated when translating
     procedures = list()
 
@@ -426,32 +429,36 @@ def new_translate_discrete(diagram, chart_parameters):
     # Translate Stateflow charts
     charts = [block for block in block_dict.values() if block.type == "stateflow"]
     if charts:
-        for chart in charts:
-            del block_dict[chart.name]
         assert len(charts) == 1
+        if not charts[0].trigger_lines:  # == []
+            trigger_line = charts[0].dest_lines[-1].name
+            assert len(charts[0].input_events) == 1
+            trigger_type = charts[0].input_events[0][0]
+            event = charts[0].input_events[0][1]
+            charts[0].trigger_lines = [(trigger_line, trigger_type, event)]
         converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
                                          translate_io=False)
-        _init_hp = hcsp.Var(converter.init_name())
-        _dis_comp = hcsp.Var(converter.exec_name())
+        # _init_hp = hcsp.Var(converter.init_name())
+        init_hps.append(hcsp.Var(converter.init_name()))
+        charts[0].exec_name = converter.exec_name()
+        # _dis_comp = hcsp.Var(converter.exec_name())
         _procedures = converter.get_procs()
         for _name, _hp in _procedures.items():
             procedures.append(hcsp.Procedure(_name, _hp))
 
-    # Translate DiscretePulseGenerator
-    discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
-    num = 0
-    for block in discretePulseGenerators:
-        del block_dict[block.name]
-        for line in block.src_lines:
-            for branch in line:
-                if isinstance(branch.dest_block, Mux):
-                    procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp()))
-                else:
-                    procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp1()))
-        num += 1
+    # # Translate DiscretePulseGenerator
+    # discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
+    # num = 0
+    # for block in discretePulseGenerators:
+    #     del block_dict[block.name]
+    #     for line in block.src_lines:
+    #         for branch in line:
+    #             if isinstance(branch.dest_block, Mux):
+    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp()))
+    #             else:
+    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp1()))
+    #     num += 1
 
-    # Get initializations and procedures
-    init_hps = list()
     # procedures = list()
     for block in block_dict.values():
         if block.type == "constant":
@@ -482,7 +489,8 @@ def new_translate_discrete(diagram, chart_parameters):
         for name, block in block_dict.items():
             src_blocks = block.get_src_blocks()
             if src_blocks.isdisjoint(set(block_dict.keys())):
-                sorted_blocks.append(block)
+                if block.type != "mux":  # Delete muxes
+                    sorted_blocks.append(block)
                 head_block_names.append(name)
         assert head_block_names
         for name in head_block_names:
@@ -634,6 +642,9 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
 
     # Get procedures
     procedures = dis_procedures + con_procedures
+    dict_procs = {proc.name: proc.hp for proc in procedures}
+    dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
+    procedures = [hp.Procedure(name=proc_name, hp=proc_hp) for proc_name, proc_hp in dict_procs.items()]
     result = HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
     return result
 

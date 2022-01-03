@@ -620,9 +620,9 @@ class SL_Diagram:
                     sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
                     is_continuous = False
                 else:
-                    period = float(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
-                    pluseWidth=float(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
-                    phaseDelay=float(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
+                    period = eval(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
+                    pluseWidth=eval(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
+                    phaseDelay=eval(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
                     sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
                     is_continuous = False
                 timeSource=get_attribute_value(block, "TimeSource") if get_attribute_value(block, "TimeSource") else "Use simulation time"
@@ -713,7 +713,7 @@ class SL_Diagram:
                     self.add_block(SignalBuilder(name=block_name, signal_names=tuple(signal_names),
                                                  time_axises=time_axises, data_axises=data_axises))
                     continue
-            
+
                 # Check if it is a stateflow chart
                 sf_block_type = get_attribute_value(block, "SFBlockType")
                 if sf_block_type == "Chart":
@@ -726,6 +726,42 @@ class SL_Diagram:
                     num_dest, num_src = ports[:2]
                     stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
                                          num_src=num_src, num_dest=num_dest)
+
+                    # Check if it a triggered stateflow chart
+                    triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
+                                child.getAttribute("BlockType") == "TriggerPort"]
+                    assert len(triggers) <= 1
+                    if triggers:  # it is a triggered stateflow chart
+                        trigger_type = get_attribute_value(triggers[0], "TriggerType")
+                        if not trigger_type:
+                            trigger_type = "rising"
+                        assert trigger_type in ["rising", "falling", "either"]
+                        stateflow.trigger_type = trigger_type
+                        stateflow.num_dest += 1
+                        stateflow.dest_lines.append(None)
+                        # Extract the input events
+                        stateflow_blocks = self.model.getElementsByTagName("Stateflow")
+                        assert len(stateflow_blocks) == 1
+                        charts = stateflow_blocks[0].getElementsByTagName("chart")
+                        for chart in charts:
+                            if get_attribute_value(block=chart, attribute="name", name=stateflow.name):
+                                events = chart.getElementsByTagName("event")
+                                for event in events:
+                                    event_name = get_attribute_value(block=event, attribute="name")
+                                    event_scope = get_attribute_value(block=event, attribute="scope")
+                                    if event_scope == "INPUT_EVENT":
+                                        event_trigger = get_attribute_value(block=event, attribute="trigger")
+                                        if event_trigger == "RISING_EDGE_EVENT":
+                                            event_trigger = "rising"
+                                        elif event_trigger == "FALLING_EDGE_EVENT":
+                                            event_trigger = "falling"
+                                        elif event_trigger == "EITHER_EDGE_EVENT":
+                                            event_trigger = "either"
+                                        else:
+                                            raise RuntimeError("Not implemented yet")
+                                        stateflow.input_events.append((event_trigger, event_name))
+                                break
+
                     assert stateflow.port_to_in_var == dict() and stateflow.port_to_out_var == dict()
                     for child in subsystem.childNodes:
                         if child.nodeName == "Block":
@@ -1073,6 +1109,51 @@ class SL_Diagram:
         # discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
         # continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
         return discrete_diagram, continuous_diagram, others, self.outputs
+
+    def translate_mux(self):
+        muxes = [block.get_map() for block in self.blocks_dict.values() if block.type == "mux"]
+        # Topological sorting
+        sorted_muxes = list()
+        while muxes:
+            head = muxes.pop()
+            flag = True
+            for mux in muxes:
+                if head[0] in mux[1]:
+                    flag = False
+                    muxes.insert(0, head)
+                    break
+            if flag:
+                sorted_muxes.append(head)
+        # Substitute line names
+        substituted_muxes = list()
+        while sorted_muxes:
+            mux = sorted_muxes.pop()
+            substituted_muxes.append(mux)
+            for _mux in sorted_muxes:
+                if mux[0] in _mux[1]:
+                    index = _mux[1].index(mux[0])
+                    del _mux[1][index]
+                    for sub_mux in mux[1][::-1]:
+                        _mux[1].insert(index, sub_mux)
+        # Substitute the trigger line of triggered subsystems
+        for block in self.blocks_dict.values():
+            if block.type == "triggered_subsystem":
+                trigger_line = block.dest_lines[-1].name
+                for mux in substituted_muxes:
+                    if trigger_line == mux[0]:
+                        assert not block.trigger_lines  # == []
+                        for line in mux[1]:
+                            block.trigger_lines.append((line, block.trigger_type, None))
+                        break
+            elif block.type == "stateflow":
+                trigger_line = block.dest_lines[-1].name
+                for mux in substituted_muxes:
+                    if trigger_line == mux[0]:
+                        assert not block.trigger_lines  # == []
+                        assert len(mux[1]) == len(block.input_events)
+                        for line, (trigger_type, event) in zip(mux[1], block.input_events):
+                            block.trigger_lines.append((line, trigger_type, event))
+                        break
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""

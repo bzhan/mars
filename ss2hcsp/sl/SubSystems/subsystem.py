@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr
+from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr, FunExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -35,12 +35,15 @@ class Triggered_Subsystem(Subsystem):
         super(Triggered_Subsystem, self).__init__("triggered_subsystem", name, num_src, num_dest, st=-1)
 
         # Trigger type
-        assert trigger_type in ("rising", "falling", "either"), \
+        assert trigger_type in ("rising", "falling", "either", None), \
             "Unknown trigger type: %s" % trigger_type
         self.trigger_type = trigger_type
 
         # A flag variable denoting if the subsystem was triggered at the last step
         self.triggered = self.name + "_triggered"
+
+        # Trigger lines: [(line_name, trigger_type, event), ...]
+        self.trigger_lines = list()
 
     def __str__(self):
         trig_var = self.dest_lines[-1].name
@@ -53,38 +56,51 @@ class Triggered_Subsystem(Subsystem):
             (self.name, self.num_src, self.num_dest, self.trigger_type,
              str(self.dest_lines), str(self.src_lines))
 
-    def get_pre_cur_trig_signals(self):
+    def get_pre_cur_trig_signals(self, line):
         """Obtain variables for current and previous trigger value."""
-        trig_var = self.dest_lines[-1].name
-        cur_sig = AVar(trig_var)
-        pre_sig = AVar("pre_" + trig_var)
+        # trig_var = self.dest_lines[-1].name
+        cur_sig = AVar(line)
+        pre_sig = AVar("pre_" + line)
         return pre_sig, cur_sig
 
     def get_output_hp(self):
-        if_triggered = RelExpr("==", AVar(self.triggered), AConst(1))  # Triggered at the last step
-        time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-        trig_cond = self.get_discrete_triggered_condition()
-        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+        output_hps = list()
+        for line, trigger_type, event in self.trigger_lines:
+            name_line_triggered = self.name+"_"+line+"_triggered"
+            if_triggered = RelExpr("==", AVar(name_line_triggered), AConst(1))
+            time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
+            trig_cond = self.get_discrete_triggered_condition(line, trigger_type)
+            pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
+            if event:
+                assert self.type == "stateflow"
+                push_event = hp.Assign(var_name="EL",
+                                       expr=FunExpr(fun_name="push", exprs=[AVar("EL"), AVar(event)]))
+                execute_chart = hp.Var(self.exec_name)
+                main_execute = hp.Sequence(push_event, execute_chart)
+            else:
+                assert self.type == "triggered_subsystem"
+                main_execute = hp.Var(self.name)
+            output_hp = hp.Sequence(
+                hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
+                       else_hp=hp.Condition(cond=conj(time_cond, trig_cond),
+                                            hp=hp.Sequence(
+                                                hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
+                                                main_execute))),
+                hp.Assign(var_name=pre_sig.name, expr=cur_sig)
+            )
+            output_hps.append(output_hp)
 
-        output_hp = hp.Sequence(
-            hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=self.triggered, expr=AConst(0)))],
-                   else_hp=hp.Condition(cond=conj(time_cond, trig_cond),
-                                        hp=hp.Sequence(
-                                            hp.Assign(var_name=self.triggered, expr=AConst(1)),
-                                            hp.Var(self.name)))),
-            hp.Assign(var_name=pre_sig.name, expr=cur_sig)
-        )
-
-        return output_hp
+        return hp.seq(output_hps)
 
     def get_init_hps(self):
-        # Initialize the triggered signal
-        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+        # Initialize the triggered signals
         init_hps = list()
-        init_hps.append(hp.Assign(var_name=self.triggered, expr=AConst(1)))  # name_triggered := true
-        if not self.is_continuous:
-            init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
-            init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
+        for line, _, _ in self.trigger_lines:
+            pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
+            init_hps.append(hp.Assign(var_name=self.name+"_"+line+"_triggered", expr=AConst(1)))
+            if not self.is_continuous:
+                init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
+                init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
         # Initialize the output variables
         for lines in self.src_lines:
             out_var = lines[0].name
@@ -100,23 +116,23 @@ class Triggered_Subsystem(Subsystem):
                 init_hps.extend(block.get_init_hps())
         return init_hps
 
-    def get_discrete_triggered_condition(self):
+    def get_discrete_triggered_condition(self, line, trigger_type):
         """Obtain the discrete trigger condition."""
-        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+        pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
 
         # Compare pre_sig and cur_sig with zero. Different comparisons for
         # different trigger conditions.
-        if self.trigger_type == "rising":
+        if trigger_type == "rising":
             # (pre_sig < 0 && cur_sig >= 0) || (pre_sig == 0 && cur_sig > 0)
             op0, op1, op2, op3 = "<", ">=", "==", ">"
-        elif self.trigger_type == "falling":
+        elif trigger_type == "falling":
             # (pre_sig > 0 && cur_sig <= 0) || (pre_sig == 0 && cur_sig < 0)
             op0, op1, op2, op3 = ">", "<=", "==", "<"
-        elif self.trigger_type == "either":
+        elif trigger_type == "either":
             # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
             op0, op1, op2, op3 = "<", ">=", ">=", "<"
         else:
-            raise NotImplementedError("Unknown trigger type: %s" % self.trigger_type)
+            raise NotImplementedError("Unknown trigger type: %s" % trigger_type)
 
         return LogicExpr(
             "||", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
