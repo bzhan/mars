@@ -270,13 +270,159 @@ device_radar
   by(auto simp add:entails_def)
 
 
+definition device_actuator :: "scheduler proc" where
+" device_actuator = 
+Rep (Cm (''inputs_actuator_cmd''[?] cmd); Cm (''outputs_PHYvehicleimp_veha''[!] (\<lambda>(a,s). s cmd)); Wait (\<lambda>_. 0.002))"
+
+fun device_actuator_block :: "real \<Rightarrow> real list \<Rightarrow> scheduler tassn" where
+  "device_actuator_block init [] = emp\<^sub>t"
+| "device_actuator_block init (r#res) = 
+  In\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(cmd := init)))) ''inputs_actuator_cmd'' r  @\<^sub>t 
+  Out\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(cmd := r)))) ''outputs_PHYvehicleimp_veha'' r @\<^sub>t 
+  Wait\<^sub>t 0.002 (\<lambda>_ . (EState (sch [], ((\<lambda>_ . 0)(cmd := r))))) ({},{}) @\<^sub>t
+  device_actuator_block r res"
+
+lemma device_actuator_block_snoc:
+"device_actuator_block init (fcs@[r]) = 
+    device_actuator_block init fcs @\<^sub>t 
+  In\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(cmd := last(init#fcs))))) ''inputs_actuator_cmd'' r  @\<^sub>t 
+  Out\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(cmd := r)))) ''outputs_PHYvehicleimp_veha'' r @\<^sub>t 
+  Wait\<^sub>t 0.002 (\<lambda>_ . (EState (sch [], ((\<lambda>_ . 0)(cmd := r))))) ({},{})"
+proof(induction fcs arbitrary: init r)
+  case Nil
+  then show ?case 
+    apply(subst device_actuator_block.simps(1))
+    by auto
+next
+  case Con:(Cons a fcs)
+  have a:"(a # fcs) @ [r] = a # (fcs @ [r])"
+    by auto
+  have b:"last (a # fcs) = last (init # a # fcs)"
+    by auto
+  show ?case 
+    apply(subst a)
+    apply(subst device_actuator_block.simps(2)[of init a "fcs @ [r]"])
+    apply(subst Con)
+    apply(subst device_actuator_block.simps(2)[of init a "fcs"])
+    unfolding b
+    by(auto simp add:join_assoc)
+qed
+
+lemma device_actuator_prop:
+"\<Turnstile>{\<lambda>(a,s) tr. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t tr}
+device_actuator
+{\<lambda>(a,s) tr. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(cmd := last (0#list))) \<and> device_actuator_block 0 list tr}"
+  unfolding device_actuator_def
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_ex_pre')
+  apply(rule Valid_seq)
+  apply(rule Valid_receive_sp_st)
+   apply(rule Valid_ex_pre) 
+  subgoal for list v
+    apply(rule Valid_ex_post')
+    apply(rule exI[where x="list@[v]"])
+   apply(rule Valid_seq)
+    apply(rule Valid_send_sp_st)
+   apply(rule Valid_strengthen_post)
+  prefer 2
+     apply(rule Valid_wait_sp_st)
+    unfolding device_actuator_block_snoc[of 0 list v]
+    apply(auto simp add:entails_def fun_upd_def)
+     apply (metis join_assoc)
+    apply(subgoal_tac "(\<lambda>x. if x = cmd then v else 0) = (\<lambda>x. if x = cmd then v else if x = cmd then last list else 0)")
+    by(auto simp add:join_assoc)
+  apply(simp add:entails_def)
+  apply clarify 
+  subgoal premises pre for tr
+    apply(rule exI[where x="[]"])
+    by auto
+  done
+ 
+    
+definition device_gps :: "scheduler proc" where
+" device_gps = 
+Rep (Cm (''inputs_PHYvehicleimp_vehs''[?] data); Cm (''outputs_gps_vehpos''[!] (\<lambda>(a,s). s data)); Wait (\<lambda>_. 0.006))"
+
+fun device_gps_block :: "real \<Rightarrow> real list \<Rightarrow> scheduler tassn" where
+  "device_gps_block init [] = emp\<^sub>t"
+| "device_gps_block init (r#res) = 
+  In\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(data := init)))) ''inputs_PHYvehicleimp_vehs'' r  @\<^sub>t 
+  Out\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(data := r)))) ''outputs_gps_vehpos'' r @\<^sub>t 
+  Wait\<^sub>t 0.006 (\<lambda>_ . (EState (sch [], ((\<lambda>_ . 0)(data := r))))) ({},{}) @\<^sub>t
+  device_gps_block r res"
+
+lemma device_gps_block_snoc:
+"device_gps_block init (fcs@[r]) = 
+    device_gps_block init fcs @\<^sub>t 
+  In\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(data := last(init#fcs))))) ''inputs_PHYvehicleimp_vehs'' r  @\<^sub>t 
+  Out\<^sub>t (EState (sch [], ((\<lambda>_ . 0)(data := r)))) ''outputs_gps_vehpos'' r @\<^sub>t 
+  Wait\<^sub>t 0.006 (\<lambda>_ . (EState (sch [], ((\<lambda>_ . 0)(data := r))))) ({},{})"
+proof(induction fcs arbitrary: init r)
+  case Nil
+  then show ?case 
+    apply(subst device_gps_block.simps(1))
+    by auto
+next
+  case Con:(Cons a fcs)
+  have a:"(a # fcs) @ [r] = a # (fcs @ [r])"
+    by auto
+  have b:"last (a # fcs) = last (init # a # fcs)"
+    by auto
+  show ?case 
+    apply(subst a)
+    apply(subst device_gps_block.simps(2)[of init a "fcs @ [r]"])
+    apply(subst Con)
+    apply(subst device_gps_block.simps(2)[of init a "fcs"])
+    unfolding b
+    by(auto simp add:join_assoc)
+qed
+
+lemma device_gps_prop:
+"\<Turnstile>{\<lambda>(a,s) tr. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t tr}
+device_gps
+{\<lambda>(a,s) tr. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(data := last (0#list))) \<and> device_gps_block 0 list tr}"
+  unfolding device_gps_def
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_ex_pre')
+  apply(rule Valid_seq)
+  apply(rule Valid_receive_sp_st)
+   apply(rule Valid_ex_pre) 
+  subgoal for list v
+    apply(rule Valid_ex_post')
+    apply(rule exI[where x="list@[v]"])
+   apply(rule Valid_seq)
+    apply(rule Valid_send_sp_st)
+   apply(rule Valid_strengthen_post)
+  prefer 2
+     apply(rule Valid_wait_sp_st)
+    unfolding device_gps_block_snoc[of 0 list v]
+    apply(auto simp add:entails_def fun_upd_def)
+     apply (metis join_assoc)
+    apply(subgoal_tac "(\<lambda>x. if x = data then v else 0) = (\<lambda>x. if x = data then v else if x = data then last list else 0)")
+    by(auto simp add:join_assoc)
+  apply(simp add:entails_def)
+  apply clarify 
+  subgoal premises pre for tr
+    apply(rule exI[where x="[]"])
+    by auto
+  done
+
+
 definition device_laser :: "scheduler proc" where
 " device_laser = 
 Rep (Cm (''inputs_PHYvehicleimp_vehv1''[?] data); t::= (\<lambda>_ .0);
 Interrupt (ODE ((\<lambda> _ _.0)(t := (\<lambda> _ . 1)))) (\<lambda> s. s t < 0.01) [(''outputs_laser_laservalid''[!](\<lambda> _. 1), Cm (''outputs_laser_laserv''[!] (\<lambda>(a,s). s data)))];
 Cont (ODE ((\<lambda> _ _.0)(t := (\<lambda> _ . 1)))) (\<lambda> s. s t < 0.01))"
 
-inductive wait_for_until :: ""
+inductive device_laser_block :: "nat \<Rightarrow> scheduler tassn" where
+  "device_laser_block 0 []"
+| "
+device_laser_block (Suc n) []"
+
 
 
 
