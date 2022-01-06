@@ -5,7 +5,13 @@ begin
 
 datatype scheduler =
   sch (pool:"(int \<times> string) list")
+
 definition data :: char where "data = CHR ''x''"
+definition t :: char where "t = CHR ''t''"
+definition cmd :: char where "cmd = CHR ''c''"
+
+lemma vars_distinct[simp]:"data \<noteq> t" "data \<noteq> cmd" "t\<noteq>data" "t\<noteq>cmd" "cmd\<noteq>data" "cmd\<noteq>t"
+  unfolding data_def t_def cmd_def by auto
 
 definition databuffer1 :: "cname \<Rightarrow> cname => scheduler proc" where
   "databuffer1 ch1 ch2 = data ::= (\<lambda>_.0); 
@@ -121,7 +127,7 @@ next
     using endio.simps(3)[of d res] by auto
 qed
 
-lemma coon0_prop:
+lemma databuffer1_prop:
 "\<Turnstile>{\<lambda>(a,s) t. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t t}
 databuffer1 ch1 ch2 
 {\<lambda>(a,s) t. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(data := endio 0 list)) \<and> db1 ch1 ch2 0 list t}"
@@ -171,3 +177,70 @@ databuffer1 ch1 ch2
           
 
 
+lemma coon0_prop:
+"\<Turnstile>{\<lambda>(a,s) t. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t t}
+coon0
+{\<lambda>(a,s) t. \<exists> list. (a,s) = (sch [],(\<lambda>_ . 0)(data := endio 0 list)) \<and> db1 ''outputs_bus0_img'' ''inputs_imgacpimp_img'' 0 list t}"
+  unfolding coon0_def
+  by(rule databuffer1_prop)
+
+
+
+definition ACT_periodic :: "cname \<Rightarrow> real \<Rightarrow> scheduler proc"  where
+"ACT_periodic ch period = Rep(Cm (ch[!](\<lambda>_ .0));Wait(\<lambda>_.period))"
+
+fun ACT_periodic_block :: "cname \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> scheduler tassn" where
+  "ACT_periodic_block ch period 0 = emp\<^sub>t"
+| "ACT_periodic_block ch period (Suc n) = 
+  Out\<^sub>t (EState (sch [], (\<lambda>_ . 0))) ch 0 @\<^sub>t 
+  Wait\<^sub>t period (\<lambda>_ . (EState (sch [], (\<lambda>_ . 0)))) ({},{}) @\<^sub>t
+  ACT_periodic_block ch period n"
+
+lemma ACT_periodic_block_snoc:
+"ACT_periodic_block ch period (Suc n) = 
+  ACT_periodic_block ch period n @\<^sub>t 
+  Out\<^sub>t (EState (sch [], (\<lambda>_ . 0))) ch 0 @\<^sub>t 
+  Wait\<^sub>t period (\<lambda>_ . (EState (sch [], (\<lambda>_ . 0)))) ({},{})"
+proof (induction n)
+  case 0
+  then show ?case 
+    using ACT_periodic_block.simps(1)
+    by auto
+next
+  case Con:(Suc n)
+  show ?case 
+    apply(subst ACT_periodic_block.simps(2)[of ch period "Suc n"])
+    apply(subst Con)
+    apply(subst ACT_periodic_block.simps(2)[of ch period "n"])
+    by(auto simp add: join_assoc)
+qed
+
+lemma ACT_periodic_prop:
+  assumes "period>0"
+  shows"\<Turnstile>{\<lambda>(a,s) t. (a,s) = (sch [],\<lambda>_ . 0) \<and> emp\<^sub>t t}
+ACT_periodic ch period
+{\<lambda>(a,s) t. \<exists> n. (a,s) = (sch [],(\<lambda>_ . 0)) \<and> ACT_periodic_block ch period n t}"
+  unfolding ACT_periodic_def
+  apply(rule Valid_weaken_pre)
+   prefer 2
+   apply(rule Valid_rep)
+   apply(rule Valid_ex_pre')
+   apply(rule Valid_ex_post')
+  subgoal for n
+    apply(rule exI[where x="Suc n"])
+    apply(rule Valid_seq)
+     apply(rule Valid_send_sp_st)
+    apply(rule Valid_strengthen_post)
+    prefer 2
+     apply(rule Valid_wait_sp_st)
+    apply(auto simp add:entails_def assms)
+    using ACT_periodic_block_snoc[of ch period n]
+    by (simp add: join_assoc)
+  apply(auto simp add:entails_def)
+  subgoal for tr
+    apply(rule exI[where x="0"])
+    by auto
+  done
+
+
+end

@@ -140,7 +140,6 @@ class OpExpr(AExpr):
         assert op in ('+', '-', '*', '/', '%', '^')
         for expr in exprs:
             if not isinstance(expr, AExpr):
-                print(expr, type(expr))
                 raise AssertionError
         # assert all(isinstance(expr, AExpr) for expr in exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
@@ -226,7 +225,7 @@ class FunExpr(AExpr):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
     def get_funs(self):
-        fun_names = {self.fun_name+'('+')', self.fun_name}
+        fun_names = {str(self.fun_name)+'('+')', str(self.fun_name)}
         return fun_names.union(*(expr.get_funs() for expr in self.exprs))
 
     def subst(self, inst):
@@ -671,6 +670,11 @@ class ExistsExpr(BExpr):
     def get_funs(self):
         return self.expr.get_funs()
 
+    def subst(self, inst):
+        # Currently assume the bound variable cannot be substituded.
+        assert self.var not in inst
+        return ExistsExpr(self.var, self.expr.subst(inst))
+
 class ForallExpr(BExpr):
     """Forall expressions"""
     def __init__(self, var, expr):
@@ -700,6 +704,11 @@ class ForallExpr(BExpr):
 
     def get_funs(self):
         return self.expr.get_funs()
+    
+    def subst(self, inst):
+        # Currently assume the bound variable cannot be substituded.
+        assert self.var not in inst
+        return ForallExpr(self.var, self.expr.subst(inst))
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move

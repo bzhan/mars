@@ -338,6 +338,10 @@ lemma Valid_ex_post:
   "\<exists>v. \<Turnstile> {P} c {Q v} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>s t. \<exists>v. Q v s t}"
   unfolding Valid_def by blast
 
+lemma Valid_ex_post':
+  "\<exists>v. \<Turnstile> {P} c {Q v} \<Longrightarrow> \<Turnstile> {P} c {\<lambda>(a,s) t. \<exists>v. Q v (a,s) t}"
+  unfolding Valid_def by blast
+
 lemma Valid_and_pre:
   "(P1 \<Longrightarrow> \<Turnstile> {P} c {Q}) \<Longrightarrow> \<Turnstile> {\<lambda>s t. P1 \<and> P s t} c {Q}"
   unfolding Valid_def by auto
@@ -769,8 +773,24 @@ theorem Valid_assign_sp_st:
    prefer 2 apply (rule Valid_assign)
   by (auto simp add: entails_def)
 
+theorem Valid_assign_sp_st':
+  "\<Turnstile> {\<lambda>(a,s) t. (a,s) = (aa,st) \<and> P (a,s) t}
+        x ::= e
+      {\<lambda>(a,s) t. (a,s) = (aa,st(x := e (aa,st))) \<and> P (aa,st) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_assign)
+  by (auto simp add: entails_def)
+
 theorem Valid_assign_sp_bst:
   "\<Turnstile> {\<lambda>s t. s = (a,st) \<and> b s \<and> P s t}
+        x ::= e
+      {\<lambda>s t. s = (a,st(x := e (a,st))) \<and> b (a,st) \<and> P (a,st) t}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_assign)
+  by (auto simp add: entails_def)
+
+theorem Valid_assign_sp_bst':
+  "\<Turnstile> {\<lambda>s t. b s \<and> s = (a,st) \<and> P s t}
         x ::= e
       {\<lambda>s t. s = (a,st(x := e (a,st))) \<and> b (a,st) \<and> P (a,st) t}"
   apply (rule Valid_weaken_pre)
@@ -835,11 +855,20 @@ theorem Valid_wait_sp_st:
   "\<Turnstile>
     {\<lambda>s tr. s = (a,st) \<and> P s tr}
       Wait e
-    {\<lambda>s tr. s = (a,st) \<and> (P s @\<^sub>t (if e s > 0 then Wait\<^sub>t (e s) (\<lambda>_. EState (a,st)) ({}, {}) else emp\<^sub>t)) tr}"
+    {\<lambda>s tr. s = (a,st) \<and> (P (a,st) @\<^sub>t (if e (a,st) > 0 then Wait\<^sub>t (e (a,st)) (\<lambda>_. EState (a,st)) ({}, {}) else emp\<^sub>t)) tr}"
   apply (rule Valid_weaken_pre)
    prefer 2 apply (rule Valid_wait')
   by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
 
+
+theorem Valid_wait_sp_bst:
+  "\<Turnstile>
+    {\<lambda>s tr. s = (a,st) \<and> b s \<and> P s tr}
+      Wait e
+    {\<lambda>s tr. s = (a,st) \<and> b s \<and> (P (a,st) @\<^sub>t (if e (a,st) > 0 then Wait\<^sub>t (e (a,st)) (\<lambda>_. EState (a,st)) ({}, {}) else emp\<^sub>t)) tr}"
+  apply (rule Valid_weaken_pre)
+   prefer 2 apply (rule Valid_wait')
+  by (auto simp add: entails_def join_assn_def magic_wand_assn_def emp_assn_def)
 
 subsection \<open>Rules for internal and external choice\<close>
 

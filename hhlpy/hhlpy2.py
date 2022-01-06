@@ -129,20 +129,23 @@ def demoninator_not_zero(e):
     
     e = simplify(sympify(e))
     _, denominator = fraction(e)
-    denominator = aexpr_parser.parse(str(denominator))
+    denominator = aexpr_parser.parse(str(denominator).replace('**', '^'))
 
     return expr.RelExpr('!=', denominator, expr.AConst(0))
 
-# Create a new variable name by adding suffix.
-# s is the root var, names is the set of names being used.
+# Create a new AVar by adding suffix.
+# s is the root var name, names is the set of names being used.
 def create_newvar(s, names):
     if not isinstance(s, str):
         raise AssertionError
+    # If s is already a new variable name, return the AVar object of s.
+    if s not in names:
+        return expr.AVar(s)
+    # Increase the suffix number until it's a new variable name.
     suffix_n = 0
-    while (s in names):
-        s = s + str(suffix_n)
+    while (s + str(suffix_n) in names):
         suffix_n = suffix_n + 1
-    return s
+    return expr.AVar(s + str(suffix_n))
 
 class CmdInfo:
     """Information associated to each HCSP program."""
@@ -150,6 +153,7 @@ class CmdInfo:
         # Pre-condition and post-condition are assertions.
         self.pre = None
         self.post = None
+        self.stren_post = None
 
         # List of verification conditions for this command.
         self.vcs = []
@@ -197,6 +201,8 @@ class CmdInfo:
         res = ""
         res += "pre = %s\n" % self.pre
         res += "post = %s\n" % self.post
+        if self.stren_post is not None:
+            res += "stren = %s \n" % self.stren_post
         for vc in self.vcs:
             res += "vc: %s\n" % vc
         if self.inv is not None:
@@ -252,8 +258,8 @@ class CmdVerifier:
         # the pre-conditions will always hold.
         # Add this kind of pre-conditions into assumptions in HCSPs.
 
-        # There are constans in pre.
-        if not self.constants.isdisjoint(pre.get_vars()):
+        # There are constants in pre.
+        if not self.constants.isdisjoint(pre.get_vars().union(pre.get_funs())):
             if isinstance(pre, expr.RelExpr):
                 if pre.get_vars().isdisjoint(self.variables):
                     self.infos[root_pos].assume.append(pre)
@@ -284,6 +290,11 @@ class CmdVerifier:
         for pos, info in self.infos.items():
             res += "%s:\n%s" % (pos, info)
         return res
+
+    def add_strengthened_post(self, pos, stren_post):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].stren_post = stren_post
 
     def add_loop_invariant(self, pos, loop_inv):
         if pos not in self.infos:
@@ -349,7 +360,11 @@ class CmdVerifier:
         # The post-condition at the given position should already be
         # available.
         assert pos in self.infos and self.infos[pos].post is not None
-        post = self.infos[pos].post
+        if self.infos[pos].stren_post is not None:
+            self.infos[pos].vcs.append(expr.imp(self.infos[pos].stren_post, self.infos[pos].post))
+            post = self.infos[pos].stren_post
+        else:
+            post = self.infos[pos].post
 
         if isinstance(cur_hp, hcsp.Skip):
             # Skip: {P} skip {P}
@@ -369,7 +384,7 @@ class CmdVerifier:
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
-            #               pre: cur_hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
+            #               pre: cur_hp.expr(newvar|var_name) --> post(newvar|var_name)
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
             if cur_hp.var_name in self.constants:
@@ -378,12 +393,11 @@ class CmdVerifier:
             var_str = cur_hp.var_name.name
 
             # Create a new var
-            newvar_str = create_newvar(var_str, self.names)
-            self.names.add(newvar_str)
+            newvar = create_newvar(var_str, self.names)
+            self.names.add(newvar.name)
 
-            #Compute the pre: hp.expr(newvar_name|var_name) --> post(newvar_name|var_name)
-            newvar_name = expr.AVar(newvar_str)
-            pre = expr.imp(cur_hp.expr.subst({var_str: newvar_name}), post.subst({var_str: newvar_name}))
+            #Compute the pre: hp.expr(newvar|var) --> post(newvar|var)
+            pre = expr.imp(cur_hp.expr.subst({var_str: newvar}), post.subst({var_str: newvar}))
 
 
         elif isinstance(cur_hp, hcsp.IChoice):
@@ -473,10 +487,6 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-            # By default, ode_inv is post.
-            if not self.infos[pos].ode_inv and not self.infos[pos].sln_rule and not self.infos[pos].dw:
-                self.infos[pos].ode_inv = self.infos[pos].post
-
             # Use solution axiom
             # 
             #             P -->
@@ -490,32 +500,25 @@ class CmdVerifier:
 
                 # Create a new variable to represent time
                 time_var = create_newvar('t', self.names)
-                self.names.add(time_var)
-                time_var = expr.AVar(time_var)
+                self.names.add(time_var.name)
 
                 # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
                 solution_dict = solveODE(cur_hp, self.names, time_var.name)
 
                 # Create a new variable to represent 's' in 'Forall 0 <= s < t'
                 in_var = create_newvar('s', self.names)
-                self.names.add(in_var)
-                in_var = expr.AVar(in_var)
+                self.names.add(in_var.name)
 
                 # Compute y_s, alias y(s)
                 # e.g. {'x' : x + v*s + a*s^2/2, 'v' : v + a*s
                 y_s = dict()
                 for fun_name, sol in solution_dict.items():
-                    print('sol:', sol)
-                    print(type(sol))
-                    sol_s = sol.subst({time_var : in_var})
+                    sol_s = sol.subst({time_var.name : in_var})
                     y_s[fun_name] = sol_s
 
-                print(solution_dict)
-
                 D_y_t = constraint.subst(solution_dict)
-                print(D_y_t)
                 D_y_s = constraint.subst(y_s)
-                Q_y_s = self.infos[pos].post.subst(y_s)
+                Q_y_s = post.subst(y_s)
 
                 # Compute the hypothesis of implication
                 # Forall (s, 0 <= s < t --> D(y(s)) && not D(y(t))
@@ -565,12 +568,14 @@ class CmdVerifier:
                 not self.infos[pos].diff_cuts and self.infos[pos].ghost_inv is None and \
                 not self.infos[pos].dbx_rule and not self.infos[pos].dbx_cofactor and \
                 self.infos[pos].assume_inv is None and \
-                isinstance(self.infos[pos].ode_inv, expr.RelExpr):
-               
-                ode_inv = self.infos[pos].ode_inv
+                (isinstance(self.infos[pos].ode_inv, expr.RelExpr) or \
+                self.infos[pos].ode_inv is None and isinstance(post, expr.RelExpr)):
 
-                if not isinstance(ode_inv, expr.BExpr):
-                    raise AssertionError('Invalid differential invariant for ODE!')               
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
+
+                ode_inv = self.infos[pos].ode_inv           
 
                 # Compute the differential of inv.
                 # Compute the boundary of constraint. 
@@ -587,9 +592,9 @@ class CmdVerifier:
                 pre = ode_inv
             
             # Use dC rules
-            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {Q}
-            #-----------------------------------------------------------
-            #                        {P1 && P2 && P3} c {Q}
+            #  {P1} c {R1}    R1--> {P2} c {R2}     R1 && R2--> {P3} c {Q}   P --> P1 && P2 && P3
+            #--------------------------------------------------------------------------------------
+            #                                       {P} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
@@ -626,6 +631,10 @@ class CmdVerifier:
             # Use dG rules
             elif self.infos[pos].ghost_inv is not None:
                 ghost_inv = self.infos[pos].ghost_inv
+
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
                 ode_inv = self.infos[pos].ode_inv
 
                 if ode_inv is None or not isinstance(ode_inv, expr.BExpr):
@@ -699,7 +708,7 @@ class CmdVerifier:
                     # Simplify dy
                     dy = simplify(sympify(str(dy)))
 
-                    self.infos[pos].ghost_eqs = {ghost_var: aexpr_parser.parse(str(dy))}
+                    self.infos[pos].ghost_eqs = {ghost_var: aexpr_parser.parse(str(dy).replace('**', '^'))}
 
                 # Verify the reasonablity of ghost equations.
                 # dy should be in the form: a(x) * y + b(x), y is not in a(x) or b(x)
@@ -726,6 +735,10 @@ class CmdVerifier:
 
             # Using dbx rule
             elif self.infos[pos].dbx_rule or self.infos[pos].dbx_cofactor is not None:
+
+                # By default, ode_inv is post.
+                if self.infos[pos].ode_inv is None:
+                    self.infos[pos].ode_inv = post
                 ode_inv = self.infos[pos].ode_inv
 
                 if not isinstance(ode_inv, expr.RelExpr): 
@@ -761,19 +774,23 @@ class CmdVerifier:
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', lie_deriv, ode_inv.expr1)
                         g_sym = simplify(sympify(str(g)))
-                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(str(g_sym))
+                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(str(g_sym).replace('**', '^'))
 
-                        denomi_not_zero = demoninator_not_zero(g_sym)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                                   demoninator_not_zero(g_sym))
 
                         # G_sym is supposed to be a reasonable expression.
                         if not z3_prove(denomi_not_zero):
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
+                        else:
+                            self.infos[pos].dbx_cofactor = g
 
                     # Cases when cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
                         
-                        denomi_not_zero = demoninator_not_zero(g)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                          demoninator_not_zero(g))
 
                         if not z3_prove(denomi_not_zero):
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
@@ -782,9 +799,11 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
                                                                     expr.OpExpr('*'), g, ode_inv.expr1))
 
-                        self.infos[pos].dbx_cofactor.append(vc)
+                        self.infos[pos].vcs.append(vc)
 
                     pre = ode_inv
+
+                    self.infos[pos].vcs.append(expr.imp(ode_inv, post))
 
                 # Cases when ode_inv is e >(>=) 0.
                 # Use Darboux Inequality Rule.
@@ -792,48 +811,77 @@ class CmdVerifier:
                 # ---------------------------------------------
                 #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
                 if ode_inv.op in {'>', '>='}:
+                    # Compute the cofactor automatically if it's not offered
                     if self.infos[pos].dbx_cofactor is None:
-                        raise NotImplementedError("Please offer the cofactor for dbx inequality rule!")
+                        g = expr.OpExpr('/', lie_deriv, ode_inv.expr1)
+                        g_sym = simplify(sympify(str(g)))
+                        # Power expression is different in hcsp and sympy
+                        g_str = str(g_sym).replace('**', '^')
+                        self.infos[pos].dbx_cofactor = aexpr_parser.parse(g_str)
 
-                    g = self.infos[pos].dbx_cofactor
-                    denomi_not_zero = demoninator_not_zero(g)
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                          demoninator_not_zero(g_sym))
 
-                    vc1 = expr.imp(constraint, denomi_not_zero)
+                        # If the cofactor computed doesn't satisfy denomi_not_zero, require the users offer cofactor by their own
+                        if not z3_prove(denomi_not_zero):
+                            raise AssertionError("Please offer the cofactor for dbx inequality rule!")
+                        
+                    else:
+                        g = self.infos[pos].dbx_cofactor
+                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                                        demoninator_not_zero(g))
 
-                    vc2 = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
-                                                                  expr.OpExpr('*', g, ode_inv.expr1)))
+                        vc1 = denomi_not_zero
 
-                    self.infos[pos].vcs = [vc1, vc2]
+                        vc2 = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
+                                                                    expr.OpExpr('*', self.infos[pos].dbx_cofactor, ode_inv.expr1)))
+                        
+                        self.infos[pos].vcs += [vc1, vc2]
 
+                    pre = ode_inv   
 
-                    pre = ode_inv              
+                    self.infos[pos].vcs.append(expr.imp(ode_inv, post))
+
+                print(pos, ':', self.infos[pos].dbx_cofactor)           
 
             # Using Conjuntion Rule
-            #  {I1} c {I1}     {I2} c {I2}
-            #-------------------------------
-            #    {I1 && I2} c {I1 && I2}
-            # Invariant is a conjunction expression, such as x > 0 && y > 0, we can compute wp for each sub_inv one by one.
-            # Different sub_inv may use different ODE rules
-            elif self.infos[pos].ode_inv is not None and isinstance(self.infos[pos].ode_inv, expr.LogicExpr):
-                ode_inv = self.infos[pos].ode_inv
+            #  {P1} c {Q1}     {P2} c {Q2}   P --> P1 && P2
+            #------------------------------------------------
+            #               {P} c {Q1 && Q2}
+            # or
+            #   P --> {I1 && I2}   {I1} c {I1}   {I2} c {I2}  {I1 && I2} --> Q
+            #------------------------------------------------------------------
+            #                           {P} c {Q}
+            elif isinstance(post, expr.LogicExpr) or \
+                 isinstance(self.infos[pos].ode_inv, expr.LogicExpr):
+                
+                if self.infos[pos].ode_inv:
+                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].ode_inv, post))
+                    post = self.infos[pos].ode_inv
+                
                 eqs_dict = self.infos[pos].eqs_dict
 
-                assert ode_inv.op == "&&"
-                sub_invs = expr.split_conj(ode_inv)
-                
+                if not post.op == '&&':
+                    raise NotImplementedError
+                sub_posts = expr.split_conj(post)
+
                 # Compute wp for each sub_inv
-                for i, sub_inv in enumerate(sub_invs):
+                sub_pres = []
+                for i, sub_post in enumerate(sub_posts):
                     # Create different CmdInfos for each sub-invariants
                     sub_pos = (pos[0], pos[1] + (i,))
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
-                    self.infos[sub_pos].post = sub_inv
+                    self.infos[sub_pos].post = sub_post
                     self.infos[sub_pos].assume += self.infos[pos].assume
                     self.infos[sub_pos].eqs_dict = eqs_dict
-                    self.infos[sub_pos].ode_inv = sub_inv
-                    
+                    if self.infos[pos].ode_inv: 
+                        self.infos[sub_pos].ode_inv = sub_post
                     self.compute_wp(pos=sub_pos)
-                pre = ode_inv
+
+                    sub_pres.append(self.infos[sub_pos].pre)
+
+                pre = expr.list_conj(*sub_pres)
 
             # Using the rule below:(proved by Isabelle)
             #    e > 0 --> e_lie_deriv >= 0
