@@ -123,6 +123,16 @@ proof (induction rule: combine_blocks.cases)
     sorry
 qed (auto)
 
+lemma combine_blocks_pairE2:
+  "combine_blocks comms (SCons (CommBlock ch_type ch v) blks1) (SCons (WaitBlk d p rdy) blks2) blks \<Longrightarrow>
+   ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
+lemma combine_blocks_pairE2':
+  "combine_blocks comms  (SCons (WaitBlk d p rdy) blks1) (SCons (CommBlock ch_type ch v) blks2) blks \<Longrightarrow>
+   ch \<in> comms \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
+
 type_synonym tid = real
 
 datatype status =
@@ -391,35 +401,82 @@ proof (coinduction rule: task_dis_assn.coinduct)
         sorry
     next
       case (2 ent tp blk1 rest)
-      then show ?thesis sorry
+      note t2 = 2
+      show ?thesis 
+        thm t2 d1
+        using task_dis_assn(3)
+        unfolding d1(1) t2(1) d1(5) t2(3)
+        by(auto elim!:combine_blocks_pairE2')
     next
       case (3 ent tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (4 ent tp init_t wt blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (5 ent tp init_t blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (6 tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (7 tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (8 tp init_t init_c wt blk1 d rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (9 tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     next
       case (10 tp init_t init_c blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis by auto
     qed
   next
-    case (2 init_t' blk1 rest)
-    then show ?thesis sorry
+    case (2 init_t' blk1 rest1)
+    note d2 = 2
+    from task_dis_assn(2) show ?thesis
+    proof (cases rule: task_assn.cases)
+      case (1 ent tp wt blk1 rest)
+      note t1 = 1
+      show ?thesis 
+        using task_dis_assn(3)
+        unfolding d2(1) t1(1) d2(4) t1(4)
+        by(auto elim!:combine_blocks_pairE2)
+    next
+      case (2 ent tp blk1 rest)
+      note t2 = 2
+      show ?thesis 
+        thm d2
+        thm t2
+        using task_dis_assn(3)
+        unfolding d2(1) t2(1) d2(4) t2(3)
+        sorry
+    next
+      case (3 ent tp blk1 rest)
+      then show ?thesis by auto
+    next
+      case (4 ent tp init_t wt blk1 rest)
+      then show ?thesis by auto
+    next
+      case (5 ent tp init_t blk1 rest)
+      then show ?thesis by auto
+    next
+      case (6 tp blk1 rest)
+      then show ?thesis by auto
+    next
+      case (7 tp blk1 rest)
+      then show ?thesis by auto
+    next
+      case (8 tp init_t init_c wt blk1 d rest)
+      then show ?thesis by auto
+    next
+      case (9 tp blk1 rest)
+      then show ?thesis by auto
+    next
+      case (10 tp init_t init_c blk1 rest)
+      then show ?thesis by auto
+    qed
   qed
 qed
 
