@@ -409,7 +409,7 @@ theorem combine_task_dis:
      task_assn i pc start_es task_s blks2 \<Longrightarrow>
      combine_blocks {dispatch_ch i} blks1 blks2 blks \<Longrightarrow>
      task_dis_assn i pc dis_s start_es task_s blks"
-proof (coinduction arbitrary: dis_s blks1 blks2 blks rule: task_dis_assn.coinduct)
+proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: task_dis_assn.coinduct)
   have comm_in: "dispatch_ch i \<in> {dispatch_ch i}"
     by auto
   have req_not_in: "req_ch i \<notin> {dispatch_ch i}"
@@ -451,32 +451,22 @@ proof (coinduction arbitrary: dis_s blks1 blks2 blks rule: task_dis_assn.coinduc
           rest2 rest"
         using task_dis_assn(3)[unfolded d1(1) t3(2) d1(5) t3(4)]
         apply (elim combine_blocks_waitCommE2[OF req_not_in]) by blast
-      show ?thesis
-        apply (rule disjI2)
-        apply (rule disjI2)
-        apply (rule disjI1)
-        apply (rule exI[where x=start_es])
-        apply (rule exI[where x=ent])
-        apply (rule exI[where x=tp])
-        apply (rule exI[where x="OutBlock (req_ch i) tp"])
-        apply (rule exI[where x=i])
-        apply (rule exI[where x=dis_s])
-        apply (rule exI[where x=task_s])
-        apply (rule exI[where x=rest])
-        apply (intro conjI)
-        apply (rule refl)
-        using t3(1) apply simp
-              apply (rule refl)+
-        using rest(1) apply simp
-        using t3(3) apply simp
-        apply (rule refl)
-        apply (rule disjI1)
-        apply (rule exI[where x=dis_s])
-        sorry
-    next
-      case (4 ent tp init_t wt blk1 rest)
       then show ?thesis
-        sorry
+        using t3 d1 task_dis_assn(1) by auto
+    next
+      case (4 ent' tp' init_t2 wt2 blk1' rest2)
+      note t4 = 4
+      obtain rest where
+        "ereal wt1 = ereal wt2"
+        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState
+            (EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+            (EState (start_es, task_s(CHR ''t'' := init_t2 + t))))
+            (merge_rdy ({}, {}) ({}, {run_ch i}))) rest"
+        "combine_blocks {dispatch_ch i} rest1 rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t4(2) d1(5) t4(7)]
+        apply (elim combine_blocks_waitE) by blast
+      then show ?thesis
+        using t4 d1 by auto
     next
       case (5 ent tp init_t blk1 rest)
       then show ?thesis
