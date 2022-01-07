@@ -130,6 +130,14 @@ lemma combine_blocks_waitCommE:
   apply (induction rule: combine_blocks.cases)
   using assms by auto
 
+lemma combine_blocks_waitCommE':
+  assumes "ch \<in> comms"
+  shows
+    "combine_blocks comms (SCons (CommBlock ch_type ch v) blks1) 
+                          (SCons (WaitBlk d1 p1 rdy1) blks2) blks \<Longrightarrow> P"
+  apply (induction rule: combine_blocks.cases)
+  using assms by auto
+
 lemma combine_blocks_waitCommE2:
   assumes "ch \<notin> comms"
   shows
@@ -147,15 +155,40 @@ proof (induction rule: combine_blocks.cases)
     using combine_blocks_unpair2 a1 a2 by auto
 qed (auto simp: assms)
 
-lemma combine_blocks_pairE2:
-  "combine_blocks comms (SCons (CommBlock ch_type ch v) blks1) (SCons (WaitBlk d p rdy) blks2) blks \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+lemma combine_blocks_pairE:
+  assumes "ch1 \<in> comms"
+    and "ch2 \<in> comms"
+  shows "combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) (SCons (CommBlock ch_type2 ch2 v2) blks2) blks \<Longrightarrow>
+    (\<And>blks'. ch1 = ch2 \<Longrightarrow> v1 = v2 \<Longrightarrow> (ch_type1 = In \<and> ch_type2 = Out \<or> ch_type1 = Out \<and> ch_type2 = In) \<Longrightarrow>
+   blks = SCons (IOBlock ch1 v1) blks' \<Longrightarrow> combine_blocks comms blks1 blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto simp:assms)
 
-lemma combine_blocks_pairE2':
-  "combine_blocks comms  (SCons (WaitBlk d p rdy) blks1) (SCons (CommBlock ch_type ch v) blks2) blks \<Longrightarrow>
-   ch \<in> comms \<Longrightarrow> P"
-  by (induct rule: combine_blocks.cases, auto)
+lemma combine_blocks_unpairE1:
+  assumes "ch1 \<notin> comms "
+    and "ch2 \<in> comms "
+  shows "combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) (SCons (CommBlock ch_type2 ch2 v2) blks2) blks \<Longrightarrow>
+   (\<And>blks'. blks = SCons (CommBlock ch_type1 ch1 v1) blks' \<Longrightarrow>
+           combine_blocks comms blks1 (SCons (CommBlock ch_type2 ch2 v2) blks2) blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto simp:assms)
+
+lemma combine_blocks_unpairE1':
+  assumes "ch1 \<in> comms"  
+  and "ch2 \<notin> comms"
+shows "combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) (SCons (CommBlock ch_type2 ch2 v2) blks2) blks \<Longrightarrow>
+   (\<And>blks'. blks = SCons (CommBlock ch_type2 ch2 v2) blks' \<Longrightarrow>
+           combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  apply (induct rule: combine_blocks.cases)
+  using assms by auto
+
+lemma combine_blocks_unpairE2:
+  assumes "ch1 \<notin> comms" 
+    and " ch2 \<notin> comms"
+  shows "combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) (SCons (CommBlock ch_type2 ch2 v2 ) blks2) blks \<Longrightarrow>
+   (\<And>blks'. blks = SCons (CommBlock ch_type1 ch1 v1) blks' \<Longrightarrow>
+           combine_blocks comms blks1 (SCons (CommBlock ch_type2 ch2 v2) blks2) blks' \<Longrightarrow> P) \<Longrightarrow>
+   (\<And>blks'. blks = SCons (CommBlock ch_type2 ch2 v2) blks' \<Longrightarrow>
+           combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto simp add:assms)
 
 type_synonym tid = real
 
@@ -311,7 +344,7 @@ coinductive task_assn :: "tid \<Rightarrow> string \<Rightarrow> estate \<Righta
    wt \<le> 0.045 - init_t \<Longrightarrow>
    wt \<le> 0.01 - init_c \<Longrightarrow>
    wt > 0 \<Longrightarrow>
-   blk1 = WaitBlk (ereal d)
+   blk1 = WaitBlk (ereal wt)
       (\<lambda>t. EState (start_es, start_s(CHR ''t'' := init_t + t,
                                      CHR ''c'' := init_c + t))) ({}, {preempt_ch i}) \<Longrightarrow>
    task_assn i ''p4'' start_es (start_s(CHR ''t'' := init_t + wt,
@@ -382,11 +415,11 @@ coinductive task_dis_assn :: "tid \<Rightarrow> string \<Rightarrow> state \<Rig
    wt \<le> 0.01 - init_c \<Longrightarrow>
    wt \<le> 0.045 - init_t' \<Longrightarrow>
    wt > 0 \<Longrightarrow>
-   blk1 = WaitBlk (ereal d) (\<lambda>t. ParState
+   blk1 = WaitBlk (ereal wt) (\<lambda>t. ParState
       (EState (None, dis_s(CHR ''t'' := init_t' + t)))
       (EState (start_es, task_s(CHR ''t'' := init_t + t, CHR ''c'' := init_c + t))))
       ({}, {preempt_ch i}) \<Longrightarrow>
-   task_dis_assn i ''p4'' dis_s start_es (task_s(CHR ''t'' := init_t + wt,
+   task_dis_assn i ''p4'' (dis_s(CHR ''t'' := init_t' + wt)) start_es (task_s(CHR ''t'' := init_t + wt,
                                                  CHR ''c'' := init_c + wt)) rest \<Longrightarrow>
    task_dis_assn i ''p4'' dis_s start_es task_s (SCons blk1 rest)"
 | "start_es = Task RUNNING 1 tp \<Longrightarrow>
@@ -415,6 +448,18 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
   have req_not_in: "req_ch i \<notin> {dispatch_ch i}"
     unfolding req_ch_def dispatch_ch_def
     using assms by auto
+  have exit_not_in: "exit_ch i \<notin> {dispatch_ch i}"
+    unfolding exit_ch_def dispatch_ch_def
+    using assms by auto
+  have run_not_in: "run_ch i \<notin> {dispatch_ch i}"
+    unfolding run_ch_def dispatch_ch_def
+    using assms by auto
+  have preempt_not_in: "preempt_ch i \<notin> {dispatch_ch i}"
+    unfolding preempt_ch_def dispatch_ch_def
+    using assms by auto
+  have free_not_in: "free_ch i \<notin> {dispatch_ch i}"
+    unfolding free_ch_def dispatch_ch_def
+    using assms by auto
   case task_dis_assn
   from task_dis_assn(1) show ?case
   proof (cases rule: dispatch_assn.cases)
@@ -435,13 +480,13 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
       then show ?thesis
         using d1 t1 by auto
     next
-      case (2 ent tp blk1 rest1)
+      case (2 ent tp blk2' rest2)
       note t2 = 2
       from task_dis_assn(3)[unfolded d1(1) t2(2) d1(5) t2(4)]
       show ?thesis
         by (elim combine_blocks_waitCommE[OF comm_in])
     next
-      case (3 ent tp blk1 rest2)
+      case (3 ent tp blk2' rest2)
       note t3 = 3
       obtain rest where rest:
         "blks = SCons (OutBlock (req_ch i) tp) rest"
@@ -454,7 +499,7 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
       then show ?thesis
         using t3 d1 task_dis_assn(1) by auto
     next
-      case (4 ent' tp' init_t2 wt2 blk1' rest2)
+      case (4 ent' tp' init_t2 wt2 blk2' rest2)
       note t4 = 4
       obtain rest where
         "ereal wt1 = ereal wt2"
@@ -468,85 +513,187 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
       then show ?thesis
         using t4 d1 by auto
     next
-      case (5 ent tp init_t blk1 rest)
+      case (5 ent tp init_t blk2' rest2)
+      note t5 = 5
+      obtain rest where rest:
+        "blks = SCons (OutBlock (exit_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t5(2) d1(5) t5(6)]
+        apply (elim combine_blocks_waitCommE2[OF exit_not_in]) by blast
       then show ?thesis
-        sorry
+        using t5 d1 task_dis_assn(1) by auto
     next
-      case (6 tp blk1 rest)
+      case (6 tp blk2' rest2)
+      note t6 = 6
+      obtain rest where rest:
+        "blks = SCons (InBlock (run_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t6(2) d1(5) t6(4)]
+        apply (elim combine_blocks_waitCommE2[OF run_not_in]) by blast
       then show ?thesis
-        sorry
+        using t6 d1 task_dis_assn(1) by auto
     next
-      case (7 tp blk1 rest)
+      case (7 tp blk1 rest2)
+      note t7 = 7      
+      obtain rest where rest:
+        "blks = SCons (InBlock (run_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t7(2) d1(5) t7(4)]
+        apply (elim combine_blocks_waitCommE2[OF run_not_in]) by blast
       then show ?thesis
-        sorry
+        using t7 d1 task_dis_assn(1) by auto
     next
-      case (8 tp init_t init_c wt blk1 d rest)
-      then show ?thesis
-        sorry
+      case (8 tp init_t init_c wt2 blk2' rest2)
+      note t8 = 8
+      thm d1
+      obtain rest where rest:
+        "ereal wt1 = ereal wt2"
+        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState
+            (EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+            (EState (start_es, task_s(CHR ''t'' := init_t + t, CHR ''c'' := init_c + t)))) (merge_rdy ({}, {}) ({}, {preempt_ch i}))) rest"
+        "combine_blocks {dispatch_ch i} rest1 rest2 rest"
+        using task_dis_assn(3) [unfolded d1(1) d1(5) t8(2) t8(9)]
+        apply (elim combine_blocks_waitE) by blast
+      then show ?thesis using d1 t8 by auto
     next
-      case (9 tp blk1 rest)
+      case (9 tp blk2' rest2)
+      note t9 = 9
+      thm d1
+      obtain rest where rest:
+        "blks = SCons (InBlock (preempt_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t9(2) d1(5) t9(4)]
+        apply (elim combine_blocks_waitCommE2[OF preempt_not_in]) by blast
       then show ?thesis
-        sorry
+        using d1 t9 task_dis_assn by auto
     next
-      case (10 tp init_t init_c blk1 rest)
+      case (10 tp init_t init_c blk2' rest2)
+      note t10 = 10
+      obtain rest where rest:
+        "blks = SCons (OutBlock (free_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t10(2) d1(5) t10(7)]
+        apply (elim combine_blocks_waitCommE2[OF free_not_in]) by blast
       then show ?thesis
-        sorry
+        using d1 t10 task_dis_assn by auto
     qed
   next
-    case (2 init_t' blk1 rest1)
+    case (2 init_t' blk1' rest1)
     note d2 = 2
     from task_dis_assn(2) show ?thesis
     proof (cases rule: task_assn.cases)
-      case (1 ent tp wt blk1 rest)
+      case (1 ent tp wt blk2' rest2)
       note t1 = 1
-      show ?thesis 
-        using task_dis_assn(3)
-        unfolding d2(1) t1(1) d2(4) t1(4)
-        by(auto elim!:combine_blocks_pairE2)
+      from task_dis_assn(3)[unfolded d2(1) t1(2) d2(4) t1(5)]
+      show ?thesis
+        by (elim combine_blocks_waitCommE'[OF comm_in])
     next
-      case (2 ent tp blk1 rest)
+      case (2 ent tp blk2' rest2)
       note t2 = 2
-      show ?thesis 
-        thm d2
-        thm t2
-        using task_dis_assn(3)
-        unfolding d2(1) t2(1) d2(4) t2(3)
-        sorry
+      obtain rest where rest:
+        "blks = SCons (IOBlock (dispatch_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          rest1 rest2 rest"
+        using task_dis_assn(3)[unfolded d2(1,4) t2(2,4)]
+        apply(elim combine_blocks_pairE[OF comm_in comm_in]) by blast
+      then show ?thesis 
+        using d2 t2 task_dis_assn by auto
     next
-      case (3 ent tp blk1 rest)
-      then show ?thesis
-        sorry
+      case (3 ent tp blk2' rest2)
+      note t3=3
+      obtain rest where rest:
+        "blks = SCons (OutBlock (req_ch i) tp) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t3(2,4)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in req_not_in]) by blast
+      then show ?thesis 
+        using task_dis_assn d2 t3 by auto
     next
       case (4 ent tp init_t wt blk1 rest)
-      then show ?thesis
-        sorry
+      note t4 = 4
+      from task_dis_assn(3)[unfolded d2(1,4) t4(2,7)]
+      show ?thesis 
+        by (elim combine_blocks_waitCommE'[OF comm_in])
     next
-      case (5 ent tp init_t blk1 rest)
-      then show ?thesis
-        sorry
+      case (5 ent tp init_t blk2' rest2)
+      note t5 = 5
+      obtain rest where rest:
+        "blks = SCons (OutBlock (exit_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t5(2,6)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in exit_not_in]) by blast
+      then show ?thesis using task_dis_assn d2 t5 by auto
     next
-      case (6 tp blk1 rest)
-      then show ?thesis
-        sorry
+      case (6 tp blk2' rest2)
+      note t6 = 6
+      obtain rest where rest:
+        "blks = SCons (InBlock (run_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t6(2,4)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in run_not_in]) by blast
+      then show ?thesis using task_dis_assn d2 t6 by auto
     next
-      case (7 tp blk1 rest)
-      then show ?thesis
-        sorry
+      case (7 tp blk2' rest2)
+      note t7 = 7
+      obtain rest where rest:
+        "blks = SCons (InBlock (run_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t7(2,4)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in run_not_in]) by blast
+      then show ?thesis using task_dis_assn d2 t7 by auto
     next
-      case (8 tp init_t init_c wt blk1 d rest)
-      then show ?thesis
-        sorry
+      case (8 tp init_t init_c wt blk1 rest)
+      note t8 = 8
+      from task_dis_assn(3)[unfolded d2(1,4) t8(2,9)]
+      show ?thesis 
+        by (elim combine_blocks_waitCommE'[OF comm_in])
     next
-      case (9 tp blk1 rest)
-      then show ?thesis
-        sorry
+      case (9 tp blk2' rest2)
+      note t9 = 9
+      obtain rest where rest:
+        "blks = SCons (InBlock (preempt_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t9(2,4)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in preempt_not_in]) by blast
+      then show ?thesis using task_dis_assn d2 t9 by auto
     next
-      case (10 tp init_t init_c blk1 rest)
-      then show ?thesis
-        sorry
+      case (10 tp init_t init_c blk2' rest2)
+      note t10 = 10
+      obtain rest where rest:
+        "blks = SCons (OutBlock (free_ch i) 0) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (OutBlock (dispatch_ch i) 0) rest1)
+          rest2 rest"
+        using task_dis_assn(3) [unfolded d2(1,4) t10(2,7)]
+        apply(elim combine_blocks_unpairE1'[OF comm_in free_not_in]) by blast
+      then show ?thesis using task_dis_assn d2 t10 by auto
     qed
-  qed
 qed
-
+qed
 
 end
