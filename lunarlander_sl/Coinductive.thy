@@ -111,17 +111,42 @@ proof (induction rule: combine_blocks.cases)
        "WaitBlk d1 p1 rdy1 = WaitBlk t hist1 rdy1'"
        "WaitBlk d2 p2 rdy2 = WaitBlk t hist2 rdy2'"
     using combine_blocks_wait(2,3) by auto
-  have a2: "d1 = d2"
-    using WaitBlk_cong a1(3,4) by blast
+  have a2: "d1 = d2" "rdy1 = rdy1'" "rdy2 = rdy2'" "d1 = t" "d2 = t"
+    using WaitBlk_cong a1(3,4) by blast+
   have a3: "WaitBlk d1 p2 rdy2 = WaitBlk t hist2 rdy2'"
     using a2 a1(4) by auto
   have a4: "WaitBlk d1 (\<lambda>\<tau>. ParState (p1 \<tau>) (p2 \<tau>)) (merge_rdy rdy1 rdy2) =
             WaitBlk t (\<lambda>\<tau>. ParState (hist1 \<tau>) (hist2 \<tau>)) (merge_rdy rdy1' rdy2')"
     using WaitBlk_eq_combine[OF a1(3) a3] by auto
   show ?case
-    apply (rule combine_blocks_wait(9))
-    sorry
+    using combine_blocks_wait a1 a2 a4 by auto
 qed (auto)
+
+lemma combine_blocks_waitCommE:
+  assumes "ch \<in> comms"
+  shows
+    "combine_blocks comms (SCons (WaitBlk d1 p1 rdy1) blks1)
+                          (SCons (CommBlock ch_type ch v) blks2) blks \<Longrightarrow> P"
+  apply (induction rule: combine_blocks.cases)
+  using assms by auto
+
+lemma combine_blocks_waitCommE2:
+  assumes "ch \<notin> comms"
+  shows
+    "combine_blocks comms (SCons (WaitBlk d1 p1 rdy1) blks1)
+                          (SCons (CommBlock ch_type ch v) blks2) blks \<Longrightarrow>
+     (\<And>blks'. blks = SCons (CommBlock ch_type ch v) blks' \<Longrightarrow>
+              combine_blocks comms (SCons (WaitBlk d1 p1 rdy1) blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
+proof (induction rule: combine_blocks.cases)
+  case (combine_blocks_unpair2 ch' comms' blks1' blks2' blks' ch_type' v')
+  have a1: "blks2 = blks2'" "CommBlock ch_type ch v = CommBlock ch_type' ch' v'"
+    using combine_blocks_unpair2(3) by auto
+  have a2: "ch_type = ch_type'" "ch = ch'" "v = v'"
+    using a1 by auto
+  show ?case
+    using combine_blocks_unpair2 a1 a2 by auto
+qed (auto simp: assms)
+
 
 type_synonym tid = real
 
@@ -369,44 +394,92 @@ coinductive task_dis_assn :: "tid \<Rightarrow> string \<Rightarrow> state \<Rig
 thm task_dis_assn.coinduct
 
 theorem combine_task_dis:
-  "dispatch_assn i (\<lambda>_. 0) blks1 \<Longrightarrow>
-   task_assn i ''p1'' (Task WAIT 0 tp) (\<lambda>_. 0) blks2 \<Longrightarrow>
-   combine_blocks {dispatch_ch i} blks1 blks2 blks \<Longrightarrow>
-   task_dis_assn i ''p1'' (\<lambda>_. 0) (Task WAIT 0 tp) (\<lambda>_. 0) blks"
-proof (coinduction rule: task_dis_assn.coinduct)
+  assumes "i \<in> {1,2,3}"
+  shows
+    "dispatch_assn i dis_s blks1 \<Longrightarrow>
+     task_assn i pc start_es task_s blks2 \<Longrightarrow>
+     combine_blocks {dispatch_ch i} blks1 blks2 blks \<Longrightarrow>
+     task_dis_assn i pc dis_s start_es task_s blks"
+proof (coinduction arbitrary: dis_s blks1 blks2 blks rule: task_dis_assn.coinduct)
+  have comm_in: "dispatch_ch i \<in> {dispatch_ch i}"
+    by auto
+  have req_not_in: "req_ch i \<notin> {dispatch_ch i}"
+    unfolding req_ch_def dispatch_ch_def
+    using assms by auto
   case task_dis_assn
   from task_dis_assn(1) show ?case
   proof (cases rule: dispatch_assn.cases)
-    case (1 init_t' wt1 blk1 rest1)
+    case (1 init_t' wt1 blk1' rest1)
     note d1 = 1
     from task_dis_assn(2) show ?thesis
     proof (cases rule: task_assn.cases)
-      case (1 ent tp wt2 blk2 rest2)
+      case (1 ent' tp' wt2 blk2' rest2)
       note t1 = 1
+      obtain rest where rest:
+        "ereal wt1 = ereal wt2"
+        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState
+            (EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+            (EState (start_es, task_s))) (merge_rdy ({}, {}) ({}, {dispatch_ch i}))) rest"
+        "combine_blocks {dispatch_ch i} rest1 rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t1(2) d1(5) t1(5)]
+        apply (elim combine_blocks_waitE) by blast
+      then show ?thesis
+        using d1 t1 by auto
+    next
+      case (2 ent tp blk1 rest1)
+      note t2 = 2
+      from task_dis_assn(3)[unfolded d1(1) t2(2) d1(5) t2(4)]
       show ?thesis
-        thm d1 t1
-        thm task_dis_assn
-        using task_dis_assn(3)
-        unfolding d1(1) t1(1) d1(5) t1(4)
+        by (elim combine_blocks_waitCommE[OF comm_in])
+    next
+      case (3 ent tp blk1 rest2)
+      note t3 = 3
+      obtain rest where rest:
+        "blks = SCons (OutBlock (req_ch i) tp) rest"
+        "combine_blocks {dispatch_ch i}
+          (SCons (WaitBlk (ereal wt1) (\<lambda>t. EState (estate.None, dis_s(CHR ''t'' := init_t' + t)))
+                          ({}, {})) rest1)
+          rest2 rest"
+        using task_dis_assn(3)[unfolded d1(1) t3(2) d1(5) t3(4)]
+        apply (elim combine_blocks_waitCommE2[OF req_not_in]) by blast
+      show ?thesis
+        apply (rule disjI2)
+        apply (rule disjI2)
+        apply (rule disjI1)
+        apply (rule exI[where x=start_es])
+        apply (rule exI[where x=ent])
+        apply (rule exI[where x=tp])
+        apply (rule exI[where x="OutBlock (req_ch i) tp"])
+        apply (rule exI[where x=i])
+        apply (rule exI[where x=dis_s])
+        apply (rule exI[where x=task_s])
+        apply (rule exI[where x=rest])
+        apply (intro conjI)
+        apply (rule refl)
+        using t3(1) apply simp
+              apply (rule refl)+
+        using rest(1) apply simp
+        using t3(3) apply simp
+        apply (rule refl)
+        apply (rule disjI1)
+        apply (rule exI[where x=dis_s])
         sorry
     next
-      case (2 ent tp blk1 rest)
-      then show ?thesis sorry
-    next
-      case (3 ent tp blk1 rest)
-      then show ?thesis sorry
-    next
       case (4 ent tp init_t wt blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis
+        sorry
     next
       case (5 ent tp init_t blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis
+        sorry
     next
       case (6 tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis
+        sorry
     next
       case (7 tp blk1 rest)
-      then show ?thesis sorry
+      then show ?thesis
+        sorry
     next
       case (8 tp init_t init_c wt blk1 d rest)
       then show ?thesis sorry
