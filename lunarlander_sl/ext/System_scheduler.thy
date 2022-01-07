@@ -139,6 +139,15 @@ definition dispatch_ch :: "tid \<Rightarrow> string" where
     else if tid = 3 then ''dis3''
     else undefined)"
 
+definition tid_set :: "tid set" where "tid_set = {1,2,3}"
+
+lemma ch_dist:"dispatch_ch t \<noteq> run_ch t" "dispatch_ch t \<noteq> req_ch t" 
+              "run_ch t \<noteq> dispatch_ch t" "req_ch t \<noteq> dispatch_ch t"
+              if cond:"t\<in>tid_set"
+  using cond
+  unfolding dispatch_ch_def run_ch_def req_ch_def tid_set_def
+  by auto
+
 inductive task_assn :: "tid \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
   "task_assn t (Task st ent tp) start_s []"
 | "start_es = Task WAIT ent tp \<Longrightarrow>
@@ -240,7 +249,7 @@ inductive task_dis_assn :: "tid \<Rightarrow> state \<Rightarrow> estate \<Right
    task_dis_assn t dis_s task_es task_s (blk1 @ blk2 @ rest)"
 | "task_es = Task READY ent tp \<Longrightarrow>
    init_task_t = task_s (CHR ''t'') \<Longrightarrow>
-   init_dis_t = dis_s (CHR ''t'') \<Longrightarrow>
+   dis_t = dis_s (CHR ''t'') \<Longrightarrow>
    wt \<le> 0.045 - init_task_t \<Longrightarrow>
    Out\<^sub>t (EState (task_es, task_s)) (req_ch t) tp blk1 \<Longrightarrow>
    Waitin\<^sub>t wt (\<lambda>t. ParState (EState (task_es,task_s(CHR ''t'' := init_t + t))) (EState (None, dis_s(CHR ''t'' := dis_t + t)))) (run_ch t) 0 ({run_ch t}, {}) blk2 \<Longrightarrow>
@@ -286,10 +295,11 @@ inductive task_dis_assn :: "tid \<Rightarrow> state \<Rightarrow> estate \<Right
 lemma combine_task_dis:
   "task_assn t task_es task_s tr1 \<Longrightarrow>
    dispatch_assn t' dis_s tr2 \<Longrightarrow>
-   t = t' \<Longrightarrow>
+   t \<in> tid_set \<Longrightarrow>
+   t = t' \<Longrightarrow> 
    combine_blocks {dispatch_ch t} tr1 tr2 tr \<Longrightarrow>
    task_dis_assn t dis_s task_es task_s tr"
-proof (induction arbitrary: tr tr2 rule: task_assn.induct)
+proof (induction arbitrary: tr tr2 dis_s rule: task_assn.induct)
   case (1 t st ent tp task_s)
   note a1 = 1
   then show ?case
@@ -309,8 +319,7 @@ proof (induction arbitrary: tr tr2 rule: task_assn.induct)
 next
   case (2 task_es ent tp task_s t blk1 rest)
   note a2 = 2
-  thm a2
-  from a2(5,6,7,4) show ?case
+  from a2(5,6,7,8) show ?case
   proof (induction arbitrary: tr  rule: dispatch_assn.induct)
     case (1 t' start_s)
     then show ?case 
@@ -319,16 +328,68 @@ next
       by(auto elim!: sync_elims)
   next
     case (2 init_t start_s wt blk1' t' blk2 rest')
-    then show ?case 
-      using a2(1,2,3)
-
-  next
-    case (3 init_t start_s wt blk1 t rest)
-    then show ?case sorry
+    note b2 = 2
+    show ?case 
+      thm b2
+      thm a2
+      using a2(2)
+      using b2(2,3,4,5) using b2(8,9,10)
+      apply (auto elim!:in_assn.cases wait_assn.cases out_assn.cases sync_elims)
+      
+        
+      using b2(6) 
+      sorry
   qed
 next
   case (3 task_es ent tp init_t task_s wt t blk1 blk2 rest)
-  then show ?case sorry
+  note a3 = 3
+  from a3(8,9,10,11,7) show ?case 
+  proof (induction arbitrary: tr  rule: dispatch_assn.induct)
+    case (1 t' start_s)
+    note b1 = 1
+    show ?case 
+      thm a3
+      thm b1
+      using b1(1,2,3)
+      using a3(4,5)
+      apply (auto elim!:in_assn.cases wait_in_assn.cases out_assn.cases)
+                 apply (auto elim!: sync_elims)
+         apply (auto simp add: ch_dist) 
+      subgoal premises pre for tra
+      proof-
+        have 1:"task_dis_assn t start_s (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) tra"
+        using b1(4)[of start_s "[]" tra]
+        using dispatch_assn.intros(1)[of t' start_s]
+        using pre by blast
+      obtain start_t where startt:"start_t = start_s CHR ''t''"
+        by auto
+      have 2:"task_dis_assn t' start_s task_es task_s (OutBlock (req_ch t') tp # InBlock (run_ch t') 0 # tra)"
+        using task_dis_assn.intros(3)[of task_es ent tp init_t task_s start_t start_s wt t blk1 init_t blk2 tra]
+        using a3(1,2,3) startt apply auto
+        using a3(1,4) apply auto
+        using pre(4,5)
+        using waitin_assn.intros(2)[of wt "(\<lambda>t. ParState
+            (EState (Task READY ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t)))
+            (EState (estate.None, start_s(CHR ''t'' := start_s CHR ''t'' + t))))" "(run_ch t)"
+            0 "({run_ch t}, {})"] pre(2,3) apply auto
+        using 1 pre(2,4) a3(2) by auto
+      then show ?thesis using pre by auto
+    qed
+    subgoal sorry
+    subgoal sorry
+    subgoal sorry
+    done
+  next
+    case (2 init_t' start_s wt blk1 t' blk2 rest)
+    note b2 = 2
+    show ?case 
+      thm b2
+      thm a3
+      using b2(4,5,8,9,10) a3(4,5)
+      apply(auto elim!:wait_assn.cases wait_in_assn.cases out_assn.cases)
+                     apply (auto elim!: sync_elims)
+      apply(auto simp add: ch_dist)
+  qed
 next
   case (4 start_es ent tp init_t start_s wt t blk1 blk2 blk3 rest)
   then show ?case sorry
