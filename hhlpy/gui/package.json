@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "concurrently \"python ../server.py\" \"vue-cli-service serve\"",
+    "serve": "concurrently -c green,blue -n pythonserver,vueserver \"python server.py\" \"vue-cli-service serve\"",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@codemirror/basic-setup": "^0.19.1",
+    "@codemirror/view": "^0.19.39",
     "concurrently": "^7.0.0",
     "core-js": "^3.6.5",
     "vue": "^2.6.11"
