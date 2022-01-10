@@ -23,7 +23,7 @@ class HCSPModule:
     code: code (template) for the main process.
     
     """
-    def __init__(self, name, code, *, params=None, outputs=None, procedures=None):
+    def __init__(self, name, code, *, params=None, outputs=None, procedures=None, meta=None):
         self.name = name
         if params is None:
             params = tuple()
@@ -38,6 +38,7 @@ class HCSPModule:
             from ss2hcsp.hcsp.parser import hp_parser
             code = hp_parser.parse(code)
         self.code = code
+        self.meta = meta
 
     def __eq__(self, other):
         return self.name == other.name and self.params == other.params and \
@@ -95,10 +96,11 @@ class HCSPModuleInst:
     to be instantiated, and list of concrete argments for the parameters.
 
     """
-    def __init__(self, name, module_name, args):
+    def __init__(self, name, module_name, args, meta=None):
         self.name = name
         self.module_name = module_name
         self.args = args
+        self.meta = meta
 
     def __str__(self):
         if self.name == self.module_name:
@@ -153,8 +155,9 @@ class HCSPSystem:
     HCSP process.
     
     """
-    def __init__(self, module_insts):
+    def __init__(self, module_insts, meta=None):
         self.module_insts = module_insts
+        self.meta = meta
 
     def __str__(self):
         return ' ||\n'.join(module_inst.export() for module_inst in self.module_insts)
@@ -201,7 +204,7 @@ class HCSPDeclarations:
     system declaration (HCSPSystem).
 
     """
-    def __init__(self, args):
+    def __init__(self, args, meta=None):
         """Input is a list of HCSPModule, HCSPSystem, or
         HCSPDeclaration objects. The HCSPDeclaration objects are unfolded.
         
@@ -234,6 +237,7 @@ class HCSPDeclarations:
             else:
                 print(arg, type(arg))
                 raise NotImplementedError
+        self.meta = meta
 
     def __str__(self):
         res = ""

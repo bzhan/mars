@@ -68,10 +68,11 @@ class AExpr:
 
 
 class AVar(AExpr):
-    def __init__(self, name):
+    def __init__(self, name, meta=None):
         super(AVar, self).__init__()
         assert isinstance(name, str)
         self.name = name
+        self.meta = meta
 
     def __repr__(self):
         return "AVar(%s)" % self.name
@@ -102,12 +103,13 @@ class AVar(AExpr):
 
 
 class AConst(AExpr):
-    def __init__(self, value):
+    def __init__(self, value, meta=None):
         super(AConst, self).__init__()
         assert isinstance(value, (int, float, Decimal, list, str, tuple, dict))
         if isinstance(value, Decimal):
             value = float(value)
         self.value = value
+        self.meta = meta
 
     def __repr__(self):
         return "AConst(%s)" % str_of_val(self.value)
@@ -135,7 +137,7 @@ class AConst(AExpr):
 
 
 class OpExpr(AExpr):
-    def __init__(self, op, *exprs):
+    def __init__(self, op, *exprs, meta=None):
         super(OpExpr, self).__init__()
         assert op in ('+', '-', '*', '/', '%', '^')
         for expr in exprs:
@@ -148,6 +150,7 @@ class OpExpr(AExpr):
             assert op == '-', 'OpExpr: wrong number of arguments for %s' % op
         self.op = op
         self.exprs = tuple(exprs)
+        self.meta = meta
 
     def __repr__(self):
         return "OpExpr(%s,%s)" % (repr(self.op), repr(self.exprs))
@@ -194,7 +197,7 @@ class OpExpr(AExpr):
 
 
 class FunExpr(AExpr):
-    def __init__(self, fun_name, exprs):
+    def __init__(self, fun_name, exprs, meta=None):
         super(FunExpr, self).__init__()
         # assert fun_name in [
         #     "min", "max", "abs", "gcd", "delay", "sqrt", "div",
@@ -204,6 +207,7 @@ class FunExpr(AExpr):
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
+        self.meta = meta
 
     def __repr__(self):
         return "Fun(%s, %s)" % (self.fun_name, ", ".join(repr(expr) for expr in self.exprs))
@@ -233,12 +237,13 @@ class FunExpr(AExpr):
 
 
 class IfExpr(AExpr):
-    def __init__(self, cond, expr1, expr2):
+    def __init__(self, cond, expr1, expr2, meta=None):
         super(IfExpr, self).__init__()
         assert isinstance(cond, BExpr) and isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.cond = cond
         self.expr1 = expr1
         self.expr2 = expr2
+        self.meta = meta
     
     def __repr__(self):
         return "IfExpr(%s,%s,%s)" % (repr(self.cond), repr(self.expr1), repr(self.expr2))
@@ -269,12 +274,13 @@ class IfExpr(AExpr):
 
 class ListExpr(AExpr):
     """List expressions."""
-    def __init__(self, *args):
+    def __init__(self, *args, meta=None):
         super(ListExpr, self).__init__()
         args = tuple(args)
         assert all(isinstance(arg, AExpr) for arg in args)
         self.args = args
         self.count = 0
+        self.meta = meta
 
     def __repr__(self):
         return "List(%s)" % (','.join(repr(arg) for arg in self.args))
@@ -303,7 +309,7 @@ class ListExpr(AExpr):
 
 class DictExpr(AExpr):
     """Dictionary expressions (structures)."""
-    def __init__(self, *args):
+    def __init__(self, *args, meta=None):
         """Argument is a list of key-value pairs. Each key should be a string."""
         super(DictExpr, self).__init__()
         self.dict = dict()
@@ -311,6 +317,7 @@ class DictExpr(AExpr):
         assert all(isinstance(k, str) and isinstance(v, AExpr) for k, v in args)
         for k, v in args:
             self.dict[k] = v
+        self.meta = meta
 
     def __repr__(self):
         return "Dict(%s)" % (','.join(k + ':' + repr(v) for k, v in self.dict.items()))
@@ -343,7 +350,7 @@ class ArrayIdxExpr(AExpr):
     second argument is a list.
     
     """
-    def __init__(self, expr1, expr2):
+    def __init__(self, expr1, expr2, meta=None):
         super(ArrayIdxExpr, self).__init__()
         if isinstance(expr1, str):
             expr1 = AVar(expr1)
@@ -359,6 +366,7 @@ class ArrayIdxExpr(AExpr):
             else:
                 self.expr1 = ArrayIdxExpr(expr1, expr2[:-1])
                 self.expr2 = expr2[-1]
+        self.meta = meta
 
     def __repr__(self):
         return "ArrayIdxExpr(%s,%s)" % (repr(self.expr1), repr(self.expr2))
@@ -390,11 +398,12 @@ class FieldNameExpr(AExpr):
     and name is a field name.
 
     """
-    def __init__(self, expr, field):
+    def __init__(self, expr, field, meta=None):
         super(FieldNameExpr, self).__init__()
         assert isinstance(expr, AExpr) and isinstance(field, str)
         self.expr = expr
         self.field = field
+        self.meta = meta
 
     def __repr__(self):
         return "FieldNameExpr(%s,%s)" % (repr(self.expr), self.field)
@@ -441,10 +450,11 @@ class BExpr:
 
 
 class BConst(BExpr):  # Boolean expression
-    def __init__(self, value):
+    def __init__(self, value, meta=None):
         super(BConst, self).__init__()
         assert isinstance(value, bool)
         self.value = value
+        self.meta = meta
 
     def __repr__(self):
         return "BConst(%s)" % str(self.value)
@@ -476,7 +486,7 @@ false_expr = BConst(False)
 
 
 class LogicExpr(BExpr):
-    def __init__(self, op, *exprs):
+    def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
         assert op in ["&&", "||", "-->", "<-->", "~"]
         assert all(isinstance(expr, BExpr) for expr in exprs)
@@ -486,6 +496,7 @@ class LogicExpr(BExpr):
             assert op == '~', "LogicExpr: wrong number of arguments for %s" % op
         self.op = op
         self.exprs = tuple(exprs)
+        self.meta = meta
 
     def __repr__(self):
         return "Logic(%s,%s)" % (repr(self.op), repr(self.exprs))
@@ -602,13 +613,14 @@ def imp(b1, b2):
 class RelExpr(BExpr):
     neg_table = {"<": ">=", ">": "<=", "==": "!=", "!=": "==", ">=": "<", "<=": ">"}
 
-    def __init__(self, op, expr1, expr2):
+    def __init__(self, op, expr1, expr2, meta=None):
         super(RelExpr, self).__init__()
         assert op in ["<", ">", "==", "!=", ">=", "<="]
         assert isinstance(expr1, AExpr) and isinstance(expr2, AExpr)
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
+        self.meta = meta
 
     def __repr__(self):
         return "Rel(%s, %s, %s)" % (self.op, repr(self.expr1), repr(self.expr2))
@@ -642,10 +654,11 @@ class RelExpr(BExpr):
 
 class ExistsExpr(BExpr):
     """Exists expressions"""
-    def __init__(self, var, expr):
+    def __init__(self, var, expr, meta=None):
         assert isinstance(var, str) and isinstance(expr, BExpr)
         self.var = var
         self.expr = expr
+        self.meta = meta
 
     def __repr__(self):
         return "ExistsExpr(%s, %s)" % (repr(self.var), repr(self.expr))
@@ -677,10 +690,11 @@ class ExistsExpr(BExpr):
 
 class ForallExpr(BExpr):
     """Forall expressions"""
-    def __init__(self, var, expr):
+    def __init__(self, var, expr, meta=None):
         assert isinstance(var, str) and isinstance(expr, BExpr)
         self.var = var
         self.expr = expr
+        self.meta = meta
 
     def __repr__(self):
         return "ForallExpr(%s, %s)" % (repr(self.var), repr(self.expr))
