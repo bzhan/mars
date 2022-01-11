@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@codemirror/basic-setup": "^0.19.1",
+    "@codemirror/highlight": "^0.19.7",
+    "@codemirror/language": "^0.19.7",
     "@codemirror/view": "^0.19.39",
     "concurrently": "^7.0.0",
     "core-js": "^3.6.5",

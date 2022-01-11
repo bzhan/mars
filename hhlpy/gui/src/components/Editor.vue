@@ -5,18 +5,23 @@
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
     <button v-on:click="run">Run</button>
+    <button v-on:click="parse">Parse</button>
     <div class="vcs">{{vcs}}</div>
   </div>
 </template>
 
 <script>
 import {EditorState, EditorView, basicSetup} from "@codemirror/basic-setup"
+import {HCSP} from "../grammar/hcsp"
+import {parser} from "../grammar/hcsp_parser"
+
+
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
       doc: "x := x+1.23456",
-      extensions: [basicSetup]
+      extensions: [basicSetup, HCSP()]
     }),
     parent: document.getElementById("code")
   });
@@ -45,12 +50,18 @@ export default {
     };
   },
   methods: {
-    run : function () {
+    run: function () {
       let pre = this.pre
       let post = this.post
       let hp = this.editorView.state.doc.toString();
       this.socket.send(JSON.stringify({pre: pre, hp: hp, post:post}));
       console.log({pre: pre, hp: hp, post:post});
+    },
+    parse: function () {
+      console.log(parser)
+      let p = parser.parse(this.editorView.state.doc.toString())
+      console.log(p)
+      console.log(p.toString())
     }
   }
 }

@@ -1,0 +1,253 @@
+@precedence { conj @right, disj @right, imp @right }
+
+lname {
+  var_expr { CNAME }
+  | array_idx_expr { CNAME "[" expr "]" }
+  | array_idx_expr2 { CNAME "[" expr "]" "[" expr "]" }
+  | array_idx_expr3 { CNAME "[" expr "]" "[" expr "]""[" expr "]" }
+  | field_expr { lname "." CNAME }
+  | field_array_idx { lname "." CNAME "[" expr "]" }
+} 
+
+atom_expr {
+  lname
+  | SIGNED_NUMBER //-> num_expr
+  | ESCAPED_STRING //-> string_expr
+  | "[" "]" // -> empty_list
+  | "[" expr ("," expr)* "]" //-> literal_list
+  | "{" "}" //-> empty_dict
+  | "{" CNAME ":" expr ("," CNAME ":" expr)* "}" //-> literal_dict
+  | "min" "(" expr "," expr ")"// -> min_expr
+  | "max" "(" expr "," expr ")" //-> max_expr
+  | "gcd" "(" expr ("," expr)+ ")" //-> gcd_expr
+  | CNAME "(" (expr)? ("," expr)* ")" //-> fun_expr
+  | "(" expr ")"
+}
+
+power_expr {
+  power_expr "^" atom_expr //-> power_expr    // priority 85
+  | atom_expr
+}
+
+uminus {
+  "-" uminus //-> uminus 
+  | power_expr              // Unary minus: priority 80
+}
+
+times_expr {
+  times_expr "*" uminus //-> times_expr       // priority 70
+  | times_expr "/" uminus //-> divide_expr
+  | times_expr "%" uminus //-> mod_expr
+  | uminus
+}
+
+plus_expr {
+  plus_expr "+" times_expr //-> plus_expr      // priority 65
+  | plus_expr "-" times_expr //-> minus_expr
+  | times_expr
+} 
+
+if_expr {
+  "(" cond "?" if_expr ":" if_expr ")"         // priority 40
+  | plus_expr
+}
+
+expr { if_expr }
+
+atom_cond {
+  expr "==" expr //-> eq_cond                  // priority 50
+  | expr "!=" expr //-> ineq_cond
+  | expr "<=" expr //-> less_eq_cond
+  | expr "<" expr //-> less_cond
+  | expr ">=" expr //-> greater_eq_cond
+  | expr ">" expr //-> greater_cond
+  | "~" cond //-> not_cond
+  | "true"// -> true_cond
+  | "false"// -> false_cond
+  | "(" cond ")"
+} 
+
+conj {
+  atom_cond !conj "&&" conj 
+  | atom_cond       // Conjunction: priority 35
+}
+
+disj {
+  conj !disj "||" disj 
+  | conj                 // Disjunction: priority 30
+}
+
+imp {
+  disj !imp "-->" imp 
+  | disj                  // Implies: priority 25
+}
+
+exists_expr {
+  "EX" CNAME "." imp             // Exists: priority 10
+  | imp
+}
+
+forall_expr {
+  "Forall" CNAME "." imp
+}
+
+cond { 
+  exists_expr 
+  | forall_expr
+}
+
+comm_cmd {
+  CNAME "?" lname //-> input_cmd
+  | CNAME "[" expr "]" "?" lname //-> input_cmd
+  | CNAME "[" expr "]" "[" expr "]" "?" lname //-> input_cmd
+  | CNAME "?" //-> input_none_cmd
+  | CNAME "[" expr "]" "?" //-> input_none_cmd
+  | CNAME "[" expr "]" "[" expr "]" "?" //-> input_none_cmd
+  | CNAME "!" expr //-> output_cmd
+  | CNAME "[" expr "]" "!" expr //-> output_cmd
+  | CNAME "[" expr "]" "[" expr "]" "!" expr //-> output_cmd
+  | CNAME "!" //-> output_none_cmd
+  | CNAME "[" expr "]" "!" //-> output_none_cmd
+  | CNAME "[" expr "]" "[" expr "]" "!" //-> output_none_cmd
+}
+
+ode_seq {
+  CNAME "=" expr ("," CNAME "=" expr)*
+}
+
+interrupt {
+  comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
+}
+
+atom_cmd {
+  "@" CNAME //-> var_cmd
+  | "skip" //-> skip_cmd
+  | "wait" "(" expr ")" //-> wait_cmd
+  | atom_expr ":=" expr //-> assign_cmd
+  // | "(" lname ("," lname)* ")" ":=" expr //-> multi_assign_cmd  // TODO: Clashes with assign_cmd
+  | atom_expr ":=" "{" cond "}" //-> random_assign_cmd
+  | "assert" "(" cond ("," expr)* ")" //-> assert_cmd
+  | "test" "(" cond ("," expr)* ")" //-> test_cmd
+  | "log" "(" expr ("," expr)* ")" //-> log_cmd
+  | comm_cmd
+  | "(" cmd ")**" //-> repeat_cmd
+  | "(" cmd "){" cond "}**" //-> repeat_cond_cmd
+  | "(" cmd ")**@invariant(" cond ")" //-> repeat_cmd_inv
+  | "(" cmd "){" cond "}**@invariant(" cond ")" //-> repeat_cond_cmd_inv
+  | "<" ode_seq "&" cond ">" //-> ode
+  | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" //-> ode_comm_const
+  | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" //-> ode_comm
+  | "rec" CNAME ".(" cmd ")" //-> rec_cmd
+  | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" //-> ite_cmd 
+  | "(" cmd ")" //-> paren_cmd
+}
+
+cond_cmd {
+  atom_cmd 
+  | cond "->" atom_cmd       // Priority: 90
+}
+
+ichoice_cmd {
+  cond_cmd 
+  | ichoice_cmd "++" cond_cmd
+}   // Priority: 80
+
+seq_cmd {
+  ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
+}
+
+select_cmd {
+  seq_cmd 
+  | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
+}
+
+cmd { select_cmd }
+
+procedure { "procedure" CNAME "begin" cmd "end" }
+
+@top parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
+
+module_sig { 
+  CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  //-> module_sig
+  | CNAME "(" ")"                          //  -> module_sig
+}
+
+module_output {
+  "output" CNAME ("," CNAME)* ";"    //-> module_output
+}
+
+module {
+  "module" module_sig ":" (module_output)* (procedure)* "begin" cmd "end" "endmodule"
+}
+
+module_arg {
+  CNAME ("[" INT "]")*   //-> module_arg_channel
+  | "$" expr   // -> module_arg_expr
+}
+
+module_args { 
+  CNAME "(" module_arg ("," module_arg)* ")" // -> module_args
+  | CNAME "(" ")"                            //-> module_args
+}
+
+module_inst {
+  module_args    //-> module_inst_noname
+  | CNAME "=" module_args  //-> module_inst
+} 
+
+system {
+  "system" module_inst ("||" module_inst)* "endsystem" // -> system
+} 
+
+import {
+  "import" CNAME   //-> hcsp_import
+}
+
+decls {
+  "%type: module" (module | import | system)* //-> decls
+}
+
+@skip { WS | LineComment }
+
+@tokens {
+  DIGIT { $[0-9] }
+  INT { DIGIT+ }
+  SIGNED_INT { $[+-] INT }
+  DECIMAL { INT "." INT? | "." INT }
+  EXP { $[eE] SIGNED_INT }
+  FLOAT { INT EXP | DECIMAL EXP? }
+
+  NUMBER { FLOAT | INT }
+  SIGNED_NUMBER { $[+-] NUMBER }
+
+  // STRING_INNER { \.*?\ }
+  // STRING_ESC_INNER { STRING_INNER \(?<!\\)(\\\\)*?\ }
+  // TODO: String does not match Lark parser!
+
+  ESCAPED_STRING { '"' (![\\\n"] | "\\" _)* '"'? }
+
+  LCASE_LETTER { $[a-z] }
+  UCASE_LETTER { $[A-Z] }
+
+  LETTER { UCASE_LETTER | LCASE_LETTER }
+
+  CNAME { ("_"|LETTER) ("_"|LETTER|DIGIT)* }
+
+  LineComment { "#" ![\n]* }
+
+  WS { $[ \t\f\r\n]+ }
+
+  "+" "-"
+  "||" "-->" "$" ";" "++" "skip"
+
+  "(" ")"
+  "if" "then" "else" "elif" "endif"
+  "true" "false"
+  "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "EX" "Forall" "assert"
+
+  @precedence { 
+    SIGNED_NUMBER, "-",
+    "true", "false", "gcd", "if", "elif", "else", "endif", "log", "max", "min", "rec", "skip", "test", "wait", "EX", "Forall", "assert", CNAME }
+}
+
+@detectDelim
