@@ -696,4 +696,462 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
 qed
 qed
 
+
+
+coinductive sch_assn :: "string \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate stassn" where
+  "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   wt > 0 \<Longrightarrow>
+   blk1 = WaitBlk (ereal wt) (\<lambda>_. EState (sch_es, sch_s)) ({}, image req_ch {1,2,3} \<union> image free_ch {1,2,3}) \<Longrightarrow>
+   sch_assn ''q0'' sch_es sch_s rest \<Longrightarrow>
+   sch_assn ''q0'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   blk1 = InBlock (req_ch i) prior \<Longrightarrow>
+   sch_assn ''q1'' sch_es (sch_s(CHR ''p'' := prior, CHR ''i'' := i)) rest \<Longrightarrow>
+   sch_assn ''q0'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior \<ge> prior \<Longrightarrow>
+   sch_assn ''q0'' (sched_push i sch_es sch_s) sch_s rest \<Longrightarrow>
+   sch_assn ''q1'' sch_es sch_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now \<noteq> -1 \<Longrightarrow>
+   blk1 = OutBlock (preempt_ch r_now) 0 \<Longrightarrow>
+   sch_assn ''q2'' sch_es  sch_s rest \<Longrightarrow>
+   sch_assn ''q1'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now = -1 \<Longrightarrow>
+   sch_assn ''q2'' sch_es sch_s rest \<Longrightarrow>
+   sch_assn ''q1'' sch_es sch_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   blk1 = OutBlock (run_ch i) 0 \<Longrightarrow>
+   sch_assn ''q0'' (sched_assign i sch_es sch_s) sch_s rest \<Longrightarrow>
+   sch_assn ''q2'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   blk1 = InBlock (free_ch i) 0 \<Longrightarrow>
+   sch_assn ''q3'' sch_es (sch_s(CHR ''i'' := i)) rest \<Longrightarrow>
+   sch_assn ''q0'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   length p > 0 \<Longrightarrow>
+   blk1 = OutBlock (run_ch (snd (get_max p))) 0 \<Longrightarrow>
+   sch_assn ''q0'' (sched_get_max sch_es sch_s) sch_s rest \<Longrightarrow>
+   sch_assn ''q3'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   length p = 0 \<Longrightarrow>
+   sch_assn ''q0'' (sched_clear sch_es sch_s) sch_s rest \<Longrightarrow>
+   sch_assn ''q3'' sch_es sch_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   blk1 = InBlock (exit_ch i) 0 \<Longrightarrow>
+   sch_assn ''q4'' sch_es (sch_s(CHR ''i'' := i)) rest \<Longrightarrow>
+   sch_assn ''q0'' sch_es sch_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   sch_assn ''q0'' (sched_del_proc (sch_s CHR ''i'') sch_es sch_s) sch_s rest \<Longrightarrow>
+   sch_assn ''q4'' sch_es sch_s rest"
+
+
+
+coinductive sch_task_dis_assn :: "tid \<Rightarrow> string \<Rightarrow> string \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate stassn" where
+  "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   init_t' = dis_s (CHR ''t'') \<Longrightarrow>
+   init_t' < 0.045 \<Longrightarrow>
+   wt \<le> 0.045 - init_t' \<Longrightarrow>
+   blk1 = WaitBlk (ereal wt) (\<lambda>t. ParState (EState (sch_es, sch_s))(ParState
+      (EState (None, dis_s(CHR ''t'' := init_t' + t)))
+      (EState (start_es, task_s)))) 
+       ({}, {dispatch_ch i} \<union> image req_ch {1,2,3} \<union> image free_ch {1,2,3}) \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s (dis_s(CHR ''t'' := init_t' + wt)) start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (req_ch j) prior \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p1'' sch_es (sch_s(CHR ''p'' := prior, CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior \<ge> prior \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' (sched_push j sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p1'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now \<noteq> -1 \<Longrightarrow>
+   blk1 = OutBlock (preempt_ch r_now) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p1'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now = -1 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p1'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p1'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   blk1 = OutBlock (run_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' (sched_assign i sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (free_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p1'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   length p > 0 \<Longrightarrow>
+   blk1 = OutBlock (run_ch (snd (get_max p))) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' (sched_get_max sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   length p = 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' (sched_clear sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p1'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (exit_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p1'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' (sched_del_proc (sch_s CHR ''i'') sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p1'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task WAIT ent tp \<Longrightarrow>
+   init_t' = dis_s (CHR ''t'') \<Longrightarrow>
+   init_t' = 0.045 \<Longrightarrow>
+   blk1 = IOBlock (dispatch_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p2'' sch_es sch_s (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0)) rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p1'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   blk1 = IOBlock (req_ch i) prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   blk1 = OutBlock (req_ch i) tp \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es (sch_s(CHR ''p'' := prior, CHR ''i'' := i)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p2'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   r_prior \<ge> sch_s CHR ''p'' \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_push i sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   init_t = task_s (CHR ''t'') \<Longrightarrow>
+   init_t' = dis_s (CHR ''t'') \<Longrightarrow>
+   wt \<le> 0.045 - init_t \<Longrightarrow>
+   wt \<le> 0.045 - init_t' \<Longrightarrow>
+   blk1 = WaitBlk (ereal wt) (\<lambda>t. ParState (EState (sch_es,sch_s))(ParState
+      (EState (None, dis_t(CHR ''t'' := init_t' + t)))
+      (EState (start_es, task_s(CHR ''t'' := init_t + t))))) ({}, {run_ch i}) \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s (dis_s(CHR ''t'' := init_t' + wt))
+      start_es (task_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (req_ch j) prior \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es (sch_s(CHR ''p'' := prior, CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior \<ge> prior \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_push j sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now \<noteq> -1 \<Longrightarrow>
+   blk1 = OutBlock (preempt_ch r_now) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   r_now = -1 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   blk1 = OutBlock (run_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_assign j sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (free_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p3'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   length p > 0 \<Longrightarrow>
+   snd (get_max p) \<noteq> i \<Longrightarrow>
+   blk1 = OutBlock (run_ch (snd (get_max p))) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_get_max sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+(*  
+Task READY 0 tp   and   Task READY 1 tp
+*)
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   length p > 0 \<Longrightarrow>
+   snd (get_max p) = i \<Longrightarrow>
+   blk1 = IOBlock (run_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_get_max sch_es sch_s) sch_s dis_s (Task RUNNING 1 tp) task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+(* length p must be greater than 0
+*)
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   length p = 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_clear sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (exit_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p3'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' (sched_del_proc (sch_s CHR ''i'') sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   init_t = task_s (CHR ''t'') \<Longrightarrow>
+   init_t = 0.045 \<Longrightarrow>
+   blk1 = IOBlock (exit_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p1'' sch_es sch_s dis_s (Task WAIT ent tp) task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   r_prior < sch_s CHR ''p'' \<Longrightarrow>
+   r_now \<noteq> -1 \<Longrightarrow>
+   blk1 = OutBlock (preempt_ch r_now) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY ent tp \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   r_prior < sch_s CHR ''p'' \<Longrightarrow>
+   r_now = -1 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p3'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   start_es = Task READY 0 tp \<Longrightarrow>
+   blk1 = IOBlock (run_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_assign i sch_es sch_s) sch_s dis_s (Task RUNNING 1 tp) (task_s(CHR ''c'' := 0)) rest \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   i = sch_s CHR ''i'' \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   blk1 = IOBlock (run_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_assign i sch_es sch_s) sch_s dis_s (Task RUNNING 1 tp) task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p3'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task RUNNING 1 tp \<Longrightarrow>
+   init_t = task_s (CHR ''t'') \<Longrightarrow>
+   init_c = task_s (CHR ''c'') \<Longrightarrow>
+   init_t' = dis_s (CHR ''t'') \<Longrightarrow>
+   wt \<le> 0.045 - init_t \<Longrightarrow>
+   wt \<le> 0.01 - init_c \<Longrightarrow>
+   wt \<le> 0.045 - init_t' \<Longrightarrow>
+   wt > 0 \<Longrightarrow>
+   blk1 = WaitBlk (ereal wt) (\<lambda>t. ParState (EState (sch_es, sch_s)) (ParState
+      (EState (None, dis_s(CHR ''t'' := init_t' + t)))
+      (EState (start_es, task_s(CHR ''t'' := init_t + t, CHR ''c'' := init_c + t)))))
+      ({}, {preempt_ch i}\<union> image req_ch {1,2,3} \<union> image free_ch {1,2,3}) \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s (dis_s(CHR ''t'' := init_t' + wt)) start_es (task_s(CHR ''t'' := init_t + wt,
+                                                 CHR ''c'' := init_c + wt)) rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task RUNNING 1 tp \<Longrightarrow>
+   init_t = task_s (CHR ''t'') \<Longrightarrow>
+   init_c = task_s (CHR ''c'') \<Longrightarrow>
+   init_c = 0.01 \<or> init_t = 0.045 \<Longrightarrow>
+   blk1 = IOBlock (free_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p1'' sch_es (sch_s(CHR ''i'' := i)) dis_s (Task READY 1 tp) task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task RUNNING 1 tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (req_ch j) prior \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p4'' sch_es (sch_s(CHR ''p'' := prior, CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task RUNNING 1 tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior \<ge> prior \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_push j sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p4'' sch_es sch_s dis_s start_es task_s rest"
+
+(* 
+r_now = i, r_prior = tp
+*)
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task RUNNING 1 tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>   
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   r_prior < prior \<Longrightarrow>
+   blk1 = IOBlock (preempt_ch i) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p2'' sch_es sch_s dis_s (Task READY 1 tp) task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q1'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   j = sch_s CHR ''i'' \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   prior = sch_s CHR ''p'' \<Longrightarrow>
+   blk1 = OutBlock (run_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p2'' (sched_assign j sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q2'' ''p2'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (free_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p4'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp  \<Longrightarrow>
+   length p > 0 \<Longrightarrow>
+   blk1 = OutBlock (run_ch (snd (get_max p))) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_get_max sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   length p = 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_clear sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q3'' ''p4'' sch_es sch_s dis_s start_es task_s rest"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   j \<noteq> i \<Longrightarrow>
+   blk1 = InBlock (exit_ch j) 0 \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p4'' sch_es (sch_s(CHR ''i'' := j)) dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' sch_es sch_s dis_s start_es task_s (SCons blk1 rest)"
+| "sch_es = Sch p r_now r_prior \<Longrightarrow>
+   start_es = Task READY 1 tp \<Longrightarrow>
+   sch_task_dis_assn i ''q0'' ''p4'' (sched_del_proc (sch_s CHR ''i'') sch_es sch_s) sch_s dis_s start_es task_s rest \<Longrightarrow>
+   sch_task_dis_assn i ''q4'' ''p4'' sch_es sch_s dis_s start_es task_s rest"
+
+
+theorem combine_sch_task_dis:
+  assumes "i \<in> {1,2,3}"
+  shows "sch_assn qc sch_es sch_s blks1 \<Longrightarrow>
+         task_dis_assn i pc dis_s start_es task_s blks2 \<Longrightarrow>
+         combine_blocks {dispatch_ch i, req_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 blks2 blks \<Longrightarrow>
+         sch_task_dis_assn i qc pc sch_es sch_s dis_s start_es task_s blks"
+proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blks2 blks rule: sch_task_dis_assn.coinduct)
+  case sch_task_dis_assn
+  from sch_task_dis_assn(1) 
+  show ?case
+  proof (cases rule: sch_assn.cases)
+    case (1 p r_now r_prior wt1 blk1 rest1)
+    note s1 = 1
+    from sch_task_dis_assn(2) 
+    show ?thesis 
+    proof (cases rule : task_dis_assn.cases)
+      case (1 ent tp init_t' wt2 blk2 rest2)
+      note t1 = 1
+      obtain rest where rest:
+      then show ?thesis 
+    next
+      case (2 ent tp init_t' blk rest)
+      then show ?thesis sorry
+    next
+      case (3 ent tp blk1 rest)
+      then show ?thesis sorry
+    next
+      case (4 ent tp init_t init_t' wt blk1 dis_t rest)
+      then show ?thesis sorry
+    next
+      case (5 ent tp init_t blk1 rest)
+      then show ?thesis sorry
+    next
+      case (6 tp blk1 rest)
+      then show ?thesis sorry
+    next
+      case (7 tp blk1 rest)
+      then show ?thesis sorry
+    next
+      case (8 tp init_t init_c init_t' wt blk1 rest)
+      then show ?thesis sorry
+    next
+      case (9 tp blk1 rest)
+      then show ?thesis sorry
+    next
+      case (10 tp init_t init_c blk1 rest)
+      then show ?thesis sorry
+    qed
+  next
+    case (2 p r_now r_prior blk1 i prior rest)
+    then show ?thesis sorry
+  next
+    case (3 p r_now r_prior i prior)
+    then show ?thesis sorry
+  next
+    case (4 p r_now r_prior i prior blk1 rest)
+    then show ?thesis sorry
+  next
+    case (5 p r_now r_prior i prior)
+    then show ?thesis sorry
+  next
+    case (6 p r_now r_prior i prior blk1 rest)
+    then show ?thesis sorry
+  next
+    case (7 p r_now r_prior blk1 i rest)
+    then show ?thesis sorry
+  next
+    case (8 p r_now r_prior blk1 rest)
+    then show ?thesis sorry
+  next
+    case (9 p r_now r_prior)
+    then show ?thesis sorry
+  next
+    case (10 p r_now r_prior blk1 i rest)
+    then show ?thesis sorry
+  next
+    case (11 p r_now r_prior)
+    then show ?thesis sorry
+  qed
+qed
+
 end
