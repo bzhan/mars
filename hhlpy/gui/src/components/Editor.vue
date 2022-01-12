@@ -14,14 +14,14 @@
 import {EditorState, EditorView, basicSetup} from "@codemirror/basic-setup"
 import {HCSP} from "../grammar/hcsp"
 import {parser} from "../grammar/hcsp_parser"
-
-
+import {indentWithTab} from "@codemirror/commands"
+import {keymap} from "@codemirror/view"
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: "x := x+1.23456",
-      extensions: [basicSetup, HCSP()]
+      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif",
+      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
   });
