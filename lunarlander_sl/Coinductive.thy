@@ -1095,21 +1095,22 @@ theorem combine_sch_task_dis:
   assumes "i \<in> {1,2,3}"
   shows "sch_assn qc sch_es sch_s blks1 \<Longrightarrow>
          task_dis_assn i pc dis_s start_es task_s blks2 \<Longrightarrow>
-         combine_blocks {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 blks2 blks \<Longrightarrow>
+         combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 blks2 blks \<Longrightarrow>
          sch_task_dis_assn i qc pc sch_es sch_s dis_s start_es task_s blks"
 proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blks2 blks rule: sch_task_dis_assn.coinduct)
-  have comm_in_dis:"dispatch_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+  have comm_in_req:"req_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
     by auto
-  have comm_in_req:"req_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+  have comm_in_exit:"exit_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
     by auto
-  have comm_in_exit:"exit_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+  have comm_in_run:"run_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
     by auto
-  have comm_in_run:"run_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+  have comm_in_preempt:"preempt_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
     by auto
-  have comm_in_preempt:"preempt_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+  have comm_in_free:"free_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
     by auto
-  have comm_in_free:"free_ch i \<in> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
+  have comm_not_in_dis:"dispatch_ch i \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+    apply(auto simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
+    using assms by auto
   case sch_task_dis_assn
   from sch_task_dis_assn(1) 
   show ?case
@@ -1126,16 +1127,21 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
         "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
         (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s))))
             ({}, {dispatch_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
+        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
         using sch_task_dis_assn(3)[unfolded s1(2,5) t1(2,7)]
         apply (elim combine_blocks_waitE)
         by (smt merge_rdy.simps sup_assoc sup_commute sup_idem)
       then show ?thesis using s1 t1 sch_task_dis_assn by auto
     next
-      case (2 ent tp init_t' blk rest)
+      case (2 ent tp init_t' blk2 rest2)
       note t2 = 2
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t2(2,6)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_dis])
+        obtain rest where rest:   
+        "blks = SCons (IOBlock (dispatch_ch i) 0) rest"
+        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 rest2 rest"
+          using sch_task_dis_assn(3)[unfolded s1(2,5) t2(2,6)]
+          apply(simp add: s1(2,5) t2(2,6))
+          apply(elim combine_blocks_waitCommE2[OF comm_not_in_dis]) by blast
+      then show ?thesis using s1 t2 sch_task_dis_assn by auto
     next
       case (3 ent tp blk1 rest)
       note t3 = 3
@@ -1149,7 +1155,7 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
         "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
         (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s(CHR ''t'' := init_t + t)))))
             ({}, {run_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
+        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
         using sch_task_dis_assn(3)[unfolded s1(2,5) t4(2,8)]
         apply (elim combine_blocks_waitE) 
         by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right merge_rdy.simps sup_bot.left_neutral sup_bot_right)
@@ -1177,7 +1183,7 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
         "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
         (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s(CHR ''t'' := init_t + t, CHR ''c'' := init_c + t)))))
             ({}, {preempt_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
+        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
         using sch_task_dis_assn(3)[unfolded s1(2,5) t8(2,11)]
         apply (elim combine_blocks_waitE) 
         by (simp add: insert_commute)
@@ -1208,17 +1214,17 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
         show ?thesis by(elim combine_blocks_waitCommE'[OF comm_in_req])
       next
         case False
-        then have comm_not_in:"(req_ch j) \<notin> {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+        then have comm_not_in:"(req_ch j) \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
           apply(simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
           using assms s2(5) by auto 
         obtain rest where rest:
         "blks = SCons (InBlock (req_ch j) prior) rest"
-        "combine_blocks {dispatch_ch i, req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 blks2 rest"
+        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 blks2 rest"
           using sch_task_dis_assn(3)[unfolded s2(2,4) t1(2,7)]
           apply(simp add: t1(2,7))
           apply(elim combine_blocks_waitCommE2'[OF comm_not_in]) by auto
-        show ?thesis
-          apply(rule disjI2)
+        show ?thesis 
+         apply(rule disjI2)
           apply(rule disjI1)
           apply(rule exI[where x="sch_es"])
           apply(rule exI[where x="pool sch_es"])
@@ -1236,9 +1242,9 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
           apply(rule exI[where x="task_s"])
           apply(rule exI[where x="rest"])
           apply(intro conjI)
-                       apply(rule refl, simp add: s2 t1)+
+          apply(rule refl, simp add: s2 t1)+
           using t1 apply simp
-                    apply(rule refl)+
+          apply(rule refl)+
           using rest apply simp
           using s2 apply simp
           using t1 apply simp
@@ -1247,15 +1253,48 @@ proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blk
           apply(rule disjI1)
           apply(rule exI[where x="''q1''"])
           apply(rule exI[where x="''p1''"])
-          using t1
-
-
-
-
+          apply(rule exI[where x="sch_es"])
+          apply(rule exI[where x="sch_s(CHR ''p'' := prior, CHR ''i'' := j)"])
+          apply(rule exI[where x="dis_s"])
+          apply(rule exI[where x="start_es"])
+          apply(rule exI[where x="task_s"])
+          apply(rule exI[where x="rest1"])
+          apply(rule exI[where x="blks2"])
+          apply(rule exI[where x="rest"])
+          apply(intro conjI)
+          apply(rule refl)+
+          using s2 apply simp
+          using sch_task_dis_assn t1 apply simp
+          using rest apply simp
+          done
       qed
     next
-      case (2 ent tp init_t' blk1 rest)
-      then show ?thesis sorry
+      case (2 ent tp init_t' blk2 rest2)
+      note t2 = 2
+      show ?thesis 
+      proof (cases " j = i")
+        case True
+        obtain rest where
+          "blks = SCons (IOBlock (dispatch_ch i) 0) rest"
+          "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 rest2 rest"
+          using sch_task_dis_assn(3)[unfolded s2(2,4) t2(2,6) True]
+          apply (simp add: s2(2,4) t2(2,6) True)
+          apply(elim combine_blocks_unpairE1'[OF comm_in_req comm_not_in_dis]) by blast
+        then show ?thesis using sch_task_dis_assn s2 t2 True by auto
+      next
+        case False
+        then have comm_not_in:"(req_ch j) \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
+          apply(simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
+          using assms s2(5) by auto 
+        obtain rest where
+          "blks = SCons (InBlock (req_ch j) prior) rest"
+          "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 blks2 rest"
+          using sch_task_dis_assn(3)[unfolded s2(2,4) t2(2,6)]
+          apply (simp add: s2(2,4) t2(2,6))
+          apply(elim combine_blocks_unpairE2[OF comm_not_in comm_not_in_dis]) 
+        then show ?thesis sorry
+      qed
+
     next
       case (3 ent tp blk1 rest)
       then show ?thesis sorry
