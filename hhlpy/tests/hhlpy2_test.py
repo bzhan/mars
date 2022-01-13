@@ -4,12 +4,12 @@ from operator import pos
 import unittest
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser, hp_parser
+from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
 
 
-def runVerify(self, *, pre, hp, post, 
-              constants=set(), strengthened_posts=None,
+def runVerify(self, *, pre, hp, post, constants=set(), 
+              strengthened_posts=None,
               loop_invariants=None, ode_invariants=None, 
               solution_rule=None,
               diff_invariant_rule=None, diff_weakening_rule=None, diff_cuts=None, 
@@ -19,10 +19,9 @@ def runVerify(self, *, pre, hp, post,
               wolfram_engine = False, z3 = True,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
-    pre = bexpr_parser.parse(pre)
-
-    hp = hp_parser.parse(hp)
-    post = bexpr_parser.parse(post)
+    pre = parse_bexpr_with_meta(pre)
+    hp = parse_hp_with_meta(hp)
+    post = parse_bexpr_with_meta(post)
 
     # Initialize the verifier
     verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
@@ -31,48 +30,48 @@ def runVerify(self, *, pre, hp, post,
     if strengthened_posts:
         for pos, stren_post in strengthened_posts.items():
             if isinstance(stren_post, str):
-                stren_post = bexpr_parser.parse(stren_post)
+                stren_post = parse_bexpr_with_meta(stren_post)
             verifier.add_strengthened_post(pos, stren_post)
 
     # Place loop invariants
     if loop_invariants:
         for pos, loop_inv in loop_invariants.items():
             if isinstance(loop_inv, str):
-                loop_inv = bexpr_parser.parse(loop_inv)
+                loop_inv = parse_bexpr_with_meta(loop_inv)
             verifier.add_loop_invariant(pos, loop_inv)
     # Use solution rule
     if solution_rule:
         for pos, sln_rule in solution_rule.items():
             if isinstance(sln_rule, str):
-                sln_rule = bexpr_parser.parse(sln_rule)
+                sln_rule = parse_bexpr_with_meta(sln_rule)
             verifier.use_solution_rule(pos, sln_rule)
 
     # Place ode invariants
     if ode_invariants:
         for pos, ode_inv in ode_invariants.items():
             if isinstance(ode_inv, str):
-                ode_inv = bexpr_parser.parse(ode_inv)
+                ode_inv = parse_bexpr_with_meta(ode_inv)
             verifier.add_ode_invariant(pos, ode_inv)
 
     # Set differential weakening proof rule as true
     if diff_weakening_rule:
         for pos, dw in diff_weakening_rule.items():
             if isinstance(dw, str):
-                dw = bexpr_parser.parse(dw)
+                dw = parse_bexpr_with_meta(dw)
             verifier.set_diff_weakening(pos, dw)
             
     # Use differential invariant rule
     if diff_invariant_rule:
         for pos, diff_inv_rule in diff_invariant_rule.items():
             if isinstance(diff_inv_rule, str):
-                diff_inv_rule = bexpr_parser.parse(diff_inv_rule)
+                diff_inv_rule = parse_bexpr_with_meta(diff_inv_rule)
             verifier.use_diff_invariant_rule(pos, diff_inv_rule)
     
     # Place assume invariants
     if assume_invariants:
         for pos, assume_inv in assume_invariants.items():
             if isinstance(assume_inv, str):
-                assume_inv = bexpr_parser.parse(assume_inv)
+                assume_inv = parse_bexpr_with_meta(assume_inv)
             verifier.add_assume_invariant(pos, assume_inv)
     
     # Place differential cuts
@@ -81,7 +80,7 @@ def runVerify(self, *, pre, hp, post,
             sub_diffcuts = []
             for diff_cut in sub_diffcuts_str:
                 if isinstance(diff_cut, str):
-                    diff_cut = bexpr_parser.parse(diff_cut)
+                    diff_cut = parse_bexpr_with_meta(diff_cut)
                     sub_diffcuts.append(diff_cut)
             verifier.add_diff_cuts(pos, sub_diffcuts)
 
@@ -89,7 +88,7 @@ def runVerify(self, *, pre, hp, post,
     if ghost_invariants:
         for pos, ghost_inv in ghost_invariants.items():
             if isinstance(ghost_inv, str):
-                ghost_inv = bexpr_parser.parse(ghost_inv)
+                ghost_inv = parse_bexpr_with_meta(ghost_inv)
             verifier.add_ghost_invariant(pos, ghost_inv)
 
     # Place ghost equations：
@@ -102,7 +101,7 @@ def runVerify(self, *, pre, hp, post,
                     index = ghost_eqs.index('_dot')
                     ghost_var = ghost_eqs[:index]
                     ghost_diff = ghost_eqs[index + 5:]
-                    ghost_diff = aexpr_parser.parse(ghost_diff)
+                    ghost_diff = parse_aexpr_with_meta(ghost_diff)
                     
                     ghost_eqs_dict = dict()
                     ghost_eqs_dict[ghost_var] = ghost_diff
@@ -113,19 +112,19 @@ def runVerify(self, *, pre, hp, post,
     if darboux_rule:
         for pos, dbx_rule in darboux_rule.items():
             if isinstance(dbx_rule, str):
-                dbx_rule = bexpr_parser.parse(dbx_rule)
+                dbx_rule = parse_bexpr_with_meta(dbx_rule)
             verifier.use_darboux_rule(pos, dbx_rule)
 
     if darboux_cofactors:
         for pos, dbx_cofactor in darboux_cofactors.items():
             if isinstance(dbx_cofactor, str):
-                dbx_cofactor = aexpr_parser.parse(dbx_cofactor)
+                dbx_cofactor = parse_aexpr_with_meta(dbx_cofactor)
             verifier.add_darboux_cofactor(pos, dbx_cofactor)
 
     if barrier_certificate_rule:
         for pos, barrier_rule in barrier_certificate_rule.items():
             if isinstance(barrier_rule, str):
-                barrier_rule = bexpr_parser.parse(barrier_rule)
+                barrier_rule = parse_bexpr_with_meta(barrier_rule)
             verifier.use_barrier_certificate_rule(pos, barrier_rule)
 
     # Compute wp and verify
@@ -150,7 +149,7 @@ def runVerify(self, *, pre, hp, post,
 
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
-            vcs = [bexpr_parser.parse(vc) for vc in vcs]
+            vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
             actual_vcs = [vc for vc in verifier.infos[pos].vcs if not is_trivial(vc)]
             self.assertEqual(set(vcs), set(actual_vcs))
 

@@ -1,0 +1,266 @@
+// TODO: Capital letters indicate that the rule produces a node in the parse tree!
+
+@precedence { conj @right, disj @right, imp @right }
+
+lname {
+  var_expr { CNAME }
+  | array_idx_expr { CNAME "[" expr "]" }
+  | array_idx_expr2 { CNAME "[" expr "]" "[" expr "]" }
+  | array_idx_expr3 { CNAME "[" expr "]" "[" expr "]""[" expr "]" }
+  | field_expr { lname "." CNAME }
+  | field_array_idx { lname "." CNAME "[" expr "]" }
+} 
+
+atom_expr {
+  lname
+  | NumExpr { SIGNED_NUMBER } 
+  | StringExpr { escaped_string }
+  | EmptyList { "[" "]" }
+  | LiteralList { "[" expr ("," expr)* "]" }
+  | EmptyDict { "{" "}" }
+  | LiteralDict { "{" CNAME ":" expr ("," CNAME ":" expr)* "}" }
+  | MinExpr { "min" "(" expr "," expr ")" }
+  | MaxExpr { "max" "(" expr "," expr ")" }
+  | GcdExpr { "gcd" "(" expr ("," expr)+ ")" }
+  | FunExpr { CNAME "(" (expr)? ("," expr)* ")" }
+  | paren_expr { "(" expr ")" }
+}
+
+power_expr {
+  PowerExpr { power_expr "^" atom_expr }   // priority 85
+  | atom_expr
+}
+
+uminus {
+  UminusExpr { "-" uminus }
+  | power_expr              // Unary minus: priority 80
+}
+
+times_expr {
+  TimesExpr { times_expr "*" uminus }     // priority 70
+  | DivideExpr { times_expr "/" uminus }
+  | ModExpr { times_expr "%" uminus }
+  | uminus
+}
+
+plus_expr {
+  PlusExpr { plus_expr "+" times_expr }     // priority 65
+  | MinusExpr { plus_expr "-" times_expr }
+  | times_expr
+} 
+
+if_expr {
+  IfExpr { "(" cond "?" if_expr ":" if_expr ")" }     // priority 40
+  | plus_expr
+}
+
+expr { if_expr }
+
+atom_cond {
+  EqCond { expr "==" expr }                 // priority 50
+  | IneqCond { expr "!=" expr }
+  | LessEqCond { expr "<=" expr }
+  | LessCond { expr "<" expr }
+  | GreaterEqCond { expr ">=" expr }
+  | GreaterCond { expr ">" expr }
+  | NotCond { "~" cond }
+  | TrueCond { "true" }
+  | FalseCond { "false" }
+  | "(" cond ")"
+} 
+
+conj {
+  ConjCond { atom_cond !conj "&&" conj }
+  | atom_cond       // Conjunction: priority 35
+}
+
+disj {
+  DisjCond { conj !disj "||" disj }
+  | conj                 // Disjunction: priority 30
+}
+
+imp {
+  ImpCond { disj !imp "-->" imp }
+  | disj                  // Implies: priority 25
+}
+
+exists_expr {
+  ExCond { "EX" CNAME "." imp }            // Exists: priority 10
+  | imp
+}
+
+forall_expr {
+  ForallCond { "Forall" CNAME "." imp }
+}
+
+cond { 
+  exists_expr 
+  | forall_expr
+}
+
+comm_cmd {
+  InputCmd { 
+    CNAME "?" lname
+    | CNAME "[" expr "]" "?" lname
+    | CNAME "[" expr "]" "[" expr "]" "?" lname
+  }
+  | InputNoneCmd {
+    CNAME "?"
+    | CNAME "[" expr "]" "?"
+    | CNAME "[" expr "]" "[" expr "]" "?"
+  }
+  | OutputCmd {
+    CNAME "!" expr 
+    | CNAME "[" expr "]" "!" expr 
+    | CNAME "[" expr "]" "[" expr "]" "!" expr 
+  }
+  | OutputNoneCmd {
+    CNAME "!"
+    | CNAME "[" expr "]" "!"
+    | CNAME "[" expr "]" "[" expr "]" "!"
+  }
+}
+
+ode_seq {
+  CNAME "=" expr ("," CNAME "=" expr)*
+}
+
+interrupt {
+  comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
+}
+
+atom_cmd {
+  VarCmd { "@" CNAME }
+  | SkipCmd { "skip" }
+  | WaitCmd { "wait" "(" expr ")" }
+  | AssignCmd { atom_expr ":=" expr }
+  | MultiAssignCmd { "(" lname ("," lname)+ ")" ":=" expr } // TODO: used + instead * here to avoid abiguity
+  | RandomAssignCmd { atom_expr ":=" "{" cond "}" }
+  | AssertCmd { "assert" "(" cond ("," expr)* ")" }
+  | TestCmd { "test" "(" cond ("," expr)* ")" }
+  | LogCmd { "log" "(" expr ("," expr)* ")" }
+  | comm_cmd
+  | RepeatCmd { "(" cmd ")**" }
+  | RepeatCondCmd { "(" cmd "){" cond "}**" }
+  | RepeatCmdInv { "(" cmd ")**@invariant(" cond ")" }
+  | RepeatCondCmdInv { "(" cmd "){" cond "}**@invariant(" cond ")" }
+  | Ode { "<" ode_seq "&" cond ">" }
+  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" }
+  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" } 
+  | RecCmd { "rec" CNAME ".(" cmd ")" }
+  | IteCmd { "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" }
+  | ParenCmd { "(" cmd ")" }
+}
+
+cond_cmd {
+  atom_cmd 
+  | CondCmd { cond "->" atom_cmd }      // Priority: 90
+}
+
+ichoice_cmd {
+  cond_cmd 
+  | IchoiceCmd { ichoice_cmd "++" cond_cmd }
+}   // Priority: 80
+
+SeqCmd {
+  ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
+}
+
+select_cmd {
+  SeqCmd 
+  | SelectCmd { comm_cmd "-->" SeqCmd ("$" comm_cmd "-->" SeqCmd)* }  // Priority 50
+}
+
+cmd { select_cmd }
+
+procedure { "procedure" CNAME "begin" cmd "end" }
+
+@top parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
+
+ModuleSig { 
+  CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  
+  | CNAME "(" ")"
+}
+
+ModuleOutput {
+  "output" CNAME ("," CNAME)* ";"
+}
+
+Module {
+  "module" ModuleSig ":" (ModuleOutput)* (procedure)* "begin" cmd "end" "endmodule"
+}
+
+module_arg {
+  ModuleArgChannel { CNAME ("[" int "]")* } 
+  | ModuleArgExpr { "$" expr }
+}
+
+ModuleArgs { 
+  CNAME "(" module_arg ("," module_arg)* ")" 
+  | CNAME "(" ")"
+}
+
+module_inst {
+  ModuleInstNoName { ModuleArgs }
+  | ModuleInst { CNAME "=" ModuleArgs }
+} 
+
+System {
+  "system" module_inst ("||" module_inst)* "endsystem"
+} 
+
+Import {
+  "import" CNAME
+}
+
+Decls {
+  "%type: module" (Module | Import | System)*
+}
+
+@skip { ws | line_comment }
+
+@tokens {
+  digit { $[0-9] }
+  int { digit+ }
+  signed_int { $[+-] int }
+  decimal { int "." int? | "." int }
+  exp { $[eE] signed_int }
+  float { int exp | decimal exp? }
+
+  number { float | int }
+  SIGNED_NUMBER { ("+"|"-")? number }
+
+  // STRING_INNER { \.*?\ }
+  // STRING_ESC_INNER { STRING_INNER \(?<!\\)(\\\\)*?\ }
+  // TODO: String does not match Lark parser!
+
+  escaped_string { '"' (![\\\n"] | "\\" _)* '"'? }
+
+  lcase_letter { $[a-z] }
+  ucase_letter { $[A-Z] }
+
+  letter { ucase_letter | lcase_letter }
+
+  CNAME { ("_"|letter) ("_"|letter|digit)* }
+
+  line_comment { "#" ![\n]* }
+
+  ws { $[ \t\f\r\n]+ }
+
+  "+" "-" "^" "*" "/" "%"
+  "&&" "||" "-->" "->" "$" ";" "++" "skip" "." "," ":" "?" "~" "&"
+  "=" ":="
+  "==" "!=" "<" "<=" ">" ">="
+
+  "(" ")" "[" "]" "{" "}" ")**" "){" ")**@invariant(" "|>" "[]" ".("
+  "if" "then" "else" "elif" "endif"
+  "true" "false"
+  "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "EX" "Forall" "assert"
+  "output"  "module" "begin" "end" "endmodule" "system" "endsystem" "import" "%type: module"
+  
+  @precedence { 
+    SIGNED_NUMBER, "-",
+    "true", "false", "gcd", "if", "elif", "else", "endif", "log", "max", "min", "rec", "skip", "test", "wait", "EX", "Forall", "assert", CNAME }
+}
+
+@detectDelim

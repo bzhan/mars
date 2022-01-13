@@ -1,6 +1,7 @@
 """Parser for expressions."""
 
 from lark import Lark, Transformer, v_args, exceptions
+from lark.tree import Meta
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
@@ -156,271 +157,274 @@ grammar = r"""
     %ignore WS
 """
 
-@v_args(inline=True)
+def _vargs_meta_inline(f, _data, children, meta):
+    return f(meta, *children)
+
+@v_args(wrapper=_vargs_meta_inline)
 class HPTransformer(Transformer):
     def __init__(self):
         pass
 
-    def var_expr(self, s):
-        return expr.AVar(str(s))
+    def var_expr(self, meta, s):
+        return expr.AVar(str(s), meta=meta)
 
-    def num_expr(self, v):
-        return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v))
+    def num_expr(self, meta, v):
+        return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
 
-    def string_expr(self, s):
-        return expr.AConst(str(s)[1:-1])  # remove quotes
+    def string_expr(self, meta, s):
+        return expr.AConst(str(s)[1:-1], meta=meta)  # remove quotes
 
-    def empty_list(self):
-        return expr.ListExpr()
+    def empty_list(self, meta):
+        return expr.ListExpr(meta=meta)
 
-    def literal_list(self, *args):
+    def literal_list(self, meta, *args):
         if all(isinstance(arg, expr.AConst) for arg in args):
-            return expr.AConst(list(arg.value for arg in args))
+            return expr.AConst(list(arg.value for arg in args), meta=meta)
         else:
-            return expr.ListExpr(*args)
+            return expr.ListExpr(*args, meta=meta)
 
-    def empty_dict(self):
-        return expr.DictExpr()
+    def empty_dict(self, meta):
+        return expr.DictExpr(meta=meta)
 
-    def literal_dict(self, *args):
+    def literal_dict(self, meta, *args):
         # args should contain 2*n elements, which are key-value pairs
         assert len(args) >= 2 and len(args) % 2 == 0
         pairs = []
         for i in range(0,len(args),2):
             pairs.append((str(args[i]), args[i+1]))
-        return expr.DictExpr(*pairs)
+        return expr.DictExpr(*pairs, meta=meta)
 
-    def array_idx_expr(self, a, i):
-        return expr.ArrayIdxExpr(expr.AVar(str(a)), i)
+    def array_idx_expr(self, meta, a, i):
+        return expr.ArrayIdxExpr(expr.AVar(str(a)), i, meta=meta)
     
-    def array_idx_expr2(self, a, i, j):
-        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j)
+    def array_idx_expr2(self, meta, a, i, j):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i, meta=meta), j, meta=meta)
 
-    def array_idx_expr3(self, a, i, j, k):
-        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i), j), k)
+    def array_idx_expr3(self, meta, a, i, j, k):
+        return expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.ArrayIdxExpr(expr.AVar(str(a)), i, meta=meta), j, meta=meta), k, meta=meta)
 
-    def field_array_idx(self, e, field, i):
-        return expr.ArrayIdxExpr(expr.FieldNameExpr(e, field), i)
+    def field_array_idx(self, meta, e, field, i):
+        return expr.ArrayIdxExpr(expr.FieldNameExpr(e, field, meta=meta), i, meta=meta)
 
-    def field_expr(self, e, field):
-        return expr.FieldNameExpr(e, field)
+    def field_expr(self, meta, e, field):
+        return expr.FieldNameExpr(e, field, meta=meta)
 
-    def if_expr(self, cond, e1, e2):
-        return expr.IfExpr(cond, e1, e2)
+    def if_expr(self, meta, cond, e1, e2):
+        return expr.IfExpr(cond, e1, e2, meta=meta)
 
-    def exists_expr(self, var, e):
-        return expr.ExistsExpr(str(var), e)
+    def exists_expr(self, meta, var, e):
+        return expr.ExistsExpr(str(var), e, meta=meta)
 
-    def forall_expr(self, var, e):
-        return expr.ForAllExpr(str(var), e)
+    def forall_expr(self, meta, var, e):
+        return expr.ForAllExpr(str(var), e, meta=meta)
 
-    def plus_expr(self, e1, e2):
-        return expr.OpExpr("+", e1, e2)
+    def plus_expr(self, meta, e1, e2):
+        return expr.OpExpr("+", e1, e2, meta=meta)
 
-    def minus_expr(self, e1, e2):
-        return expr.OpExpr("-", e1, e2)
+    def minus_expr(self, meta, e1, e2):
+        return expr.OpExpr("-", e1, e2, meta=meta)
 
-    def uminus(self, e):
-        return expr.OpExpr("-", e)
+    def uminus(self, meta, e):
+        return expr.OpExpr("-", e, meta=meta)
 
-    def times_expr(self, e1, e2):
-        return expr.OpExpr("*", e1, e2)
+    def times_expr(self, meta, e1, e2):
+        return expr.OpExpr("*", e1, e2, meta=meta)
 
-    def divide_expr(self, e1, e2):
-        return expr.OpExpr("/", e1, e2)
+    def divide_expr(self, meta, e1, e2):
+        return expr.OpExpr("/", e1, e2, meta=meta)
 
-    def power_expr(self, e1, e2):
-        return expr.OpExpr("^", e1, e2)
+    def power_expr(self, meta, e1, e2):
+        return expr.OpExpr("^", e1, e2, meta=meta)
 
-    def min_expr(self, e1, e2):
-        return expr.FunExpr("min", [e1, e2])
+    def min_expr(self, meta, e1, e2):
+        return expr.FunExpr("min", [e1, e2], meta=meta)
 
-    def max_expr(self, e1, e2):
-        return expr.FunExpr("max", [e1, e2])
+    def max_expr(self, meta, e1, e2):
+        return expr.FunExpr("max", [e1, e2], meta=meta)
 
-    def mod_expr(self, e1, e2):
-        return expr.OpExpr("%", e1, e2)
+    def mod_expr(self, meta, e1, e2):
+        return expr.OpExpr("%", e1, e2, meta=meta)
 
-    def gcd_expr(self, *exprs):
-        return expr.FunExpr(fun_name="gcd", exprs=exprs)
+    def gcd_expr(self, meta, *exprs):
+        return expr.FunExpr(fun_name="gcd", exprs=exprs, meta=meta)
 
-    def fun_expr(self, fun_name, *exprs):
-        return expr.FunExpr(fun_name, exprs)
+    def fun_expr(self, meta, fun_name, *exprs):
+        return expr.FunExpr(fun_name, exprs, meta=meta)
 
-    def eq_cond(self, e1, e2):
-        return expr.RelExpr("==", e1, e2)
+    def eq_cond(self, meta, e1, e2):
+        return expr.RelExpr("==", e1, e2, meta=meta)
 
-    def ineq_cond(self, e1, e2):
-        return expr.RelExpr("!=", e1, e2)
+    def ineq_cond(self, meta, e1, e2):
+        return expr.RelExpr("!=", e1, e2, meta=meta)
 
-    def less_eq_cond(self, e1, e2):
-        return expr.RelExpr("<=", e1, e2)
+    def less_eq_cond(self, meta, e1, e2):
+        return expr.RelExpr("<=", e1, e2, meta=meta)
 
-    def less_cond(self, e1, e2):
-        return expr.RelExpr("<", e1, e2)
+    def less_cond(self, meta, e1, e2):
+        return expr.RelExpr("<", e1, e2, meta=meta)
 
-    def greater_eq_cond(self, e1, e2):
-        return expr.RelExpr(">=", e1, e2)
+    def greater_eq_cond(self, meta, e1, e2):
+        return expr.RelExpr(">=", e1, e2, meta=meta)
 
-    def greater_cond(self, e1, e2):
-        return expr.RelExpr(">", e1, e2)
+    def greater_cond(self, meta, e1, e2):
+        return expr.RelExpr(">", e1, e2, meta=meta)
 
-    def not_cond(self, e):
-        return expr.LogicExpr("~", e)
+    def not_cond(self, meta, e):
+        return expr.LogicExpr("~", e, meta=meta)
 
-    def true_cond(self):
-        return expr.BConst(True)
+    def true_cond(self, meta):
+        return expr.BConst(True, meta=meta)
 
-    def false_cond(self):
-        return expr.BConst(False)
+    def false_cond(self, meta):
+        return expr.BConst(False, meta=meta)
 
-    def conj(self, b1, b2):
-        return expr.LogicExpr("&&", b1, b2)
+    def conj(self, meta, b1, b2):
+        return expr.LogicExpr("&&", b1, b2, meta=meta)
 
-    def disj(self, b1, b2):
-        return expr.LogicExpr("||", b1, b2)
+    def disj(self, meta, b1, b2):
+        return expr.LogicExpr("||", b1, b2, meta=meta)
 
-    def imp(self, b1, b2):
-        return expr.LogicExpr("-->", b1, b2)
+    def imp(self, meta, b1, b2):
+        return expr.LogicExpr("-->", b1, b2, meta=meta)
 
-    def var_cmd(self, name):
-        return hcsp.Var(str(name))
+    def var_cmd(self, meta, name):
+        return hcsp.Var(str(name), meta=meta)
 
-    def skip_cmd(self):
-        return hcsp.Skip()
+    def skip_cmd(self, meta):
+        return hcsp.Skip(meta=meta)
 
-    def wait_cmd(self, delay):
-        return hcsp.Wait(delay)
+    def wait_cmd(self, meta, delay):
+        return hcsp.Wait(delay, meta=meta)
 
-    def assign_cmd(self, var, expr):
-        return hcsp.Assign(var, expr)
+    def assign_cmd(self, meta, var, expr):
+        return hcsp.Assign(var, expr, meta=meta)
 
-    def multi_assign_cmd(self, *args):
-        return hcsp.Assign(args[:-1], args[-1])
+    def multi_assign_cmd(self, meta, *args):
+        return hcsp.Assign(args[:-1], args[-1], meta=meta)
 
-    def random_assign_cmd(self, var, cond):
-        return hcsp.RandomAssign(var, cond)
+    def random_assign_cmd(self, meta, var, cond):
+        return hcsp.RandomAssign(var, cond, meta=meta)
 
-    def assert_cmd(self, *args):
+    def assert_cmd(self, meta, *args):
         # First argument is the assert condition. The remaining ones
         # are error messages. 
         bexpr, msgs = args[0], args[1:]
-        return hcsp.Assert(bexpr, msgs)
+        return hcsp.Assert(bexpr, msgs, meta=meta)
 
-    def test_cmd(self, *args):
+    def test_cmd(self, meta, *args):
         # First argument is the test condition. The remaining ones
         # are warning messages.
         bexpr, msgs = args[0], args[1:]
-        return hcsp.Test(bexpr, msgs)
+        return hcsp.Test(bexpr, msgs, meta=meta)
 
-    def log_cmd(self, *args):
-        return hcsp.Log(args[0], exprs=args[1:])
+    def log_cmd(self, meta, *args):
+        return hcsp.Log(args[0], exprs=args[1:], meta=meta)
 
-    def seq_cmd(self, *args):
+    def seq_cmd(self, meta, *args):
         if len(args) == 1:
             return args[0]
         else:
-            return hcsp.Sequence(*args)
+            return hcsp.Sequence(*args, meta=meta)
 
-    def input_cmd(self, *args):
+    def input_cmd(self, meta, *args):
         # First argument is channel name, last argument is variable name.
         # Middle arguments are args to channel name.
         ch_name, ch_args, var_name = args[0], args[1:-1], args[-1]
-        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args), var_name)
+        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), var_name, meta=meta)
 
-    def input_none_cmd(self, *args):
+    def input_none_cmd(self, meta, *args):
         # First argument is channel name, remaining arguments are its args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args))
+        return hcsp.InputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), meta=meta)
 
-    def output_cmd(self, *args):
+    def output_cmd(self, meta, *args):
         # First argument is channel name, last argument is variable name.
         # Middle arguments are args to channel name.
         ch_name, ch_args, expr = args[0], args[1:-1], args[-1]
-        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args), expr)
+        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), expr, meta=meta)
 
-    def output_none_cmd(self, *args):
+    def output_none_cmd(self, meta, *args):
         # First argument is channel name, remaining arguments are its args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args))
+        return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), meta=meta)
 
-    def repeat_cmd(self, cmd):
-        return hcsp.Loop(cmd)
+    def repeat_cmd(self, meta, cmd):
+        return hcsp.Loop(cmd, meta=meta)
 
-    def repeat_cond_cmd(self, cmd, cond):
-        return hcsp.Loop(cmd, constraint=cond)
+    def repeat_cond_cmd(self, meta, cmd, cond):
+        return hcsp.Loop(cmd, constraint=cond, meta=meta)
 
-    def repeat_cmd_inv(self, cmd, inv):
-        return hcsp.Loop(cmd, inv=inv)
+    def repeat_cmd_inv(self, meta, cmd, inv):
+        return hcsp.Loop(cmd, inv=inv, meta=meta)
 
-    def repeat_cond_cmd_inv(self, cmd, inv, cond):
-        return hcsp.Loop(cmd, inv=inv, constraint=cond)
+    def repeat_cond_cmd_inv(self, meta, cmd, inv, cond):
+        return hcsp.Loop(cmd, inv=inv, constraint=cond, meta=meta)
 
-    def ode_seq(self, *args):
+    def ode_seq(self, meta, *args):
         res = []
         for i in range(0,len(args),2):
             assert args[i].endswith("_dot")
             res.append((str(args[i][:-4]), args[i+1]))
         return res
 
-    def interrupt(self, *args):
+    def interrupt(self, meta, *args):
         res = []
         for i in range(0, len(args), 2):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, eqs, constraint):
-        return hcsp.ODE(eqs, constraint)
+    def ode(self, meta, eqs, constraint):
+        return hcsp.ODE(eqs, constraint, meta=meta)
 
-    def ode_comm_const(self, constraint, io_comms):
-        return hcsp.ODE_Comm([], constraint, io_comms)
+    def ode_comm_const(self, meta, constraint, io_comms):
+        return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)
 
-    def ode_comm(self, eqs, constraint, io_comms):
-        return hcsp.ODE_Comm(eqs, constraint, io_comms)
+    def ode_comm(self, meta, eqs, constraint, io_comms):
+        return hcsp.ODE_Comm(eqs, constraint, io_comms, meta=meta)
 
-    def cond_cmd(self, cond, cmd):
-        return hcsp.Condition(cond=cond, hp=cmd)
+    def cond_cmd(self, meta, cond, cmd):
+        return hcsp.Condition(cond=cond, hp=cmd, meta=meta)
 
-    def ichoice_cmd(self, cmd1, cmd2):
-        return hcsp.IChoice(cmd1, cmd2)
+    def ichoice_cmd(self, meta, cmd1, cmd2):
+        return hcsp.IChoice(cmd1, cmd2, meta=meta)
 
-    def select_cmd(self, *args):
+    def select_cmd(self, meta, *args):
         assert len(args) % 2 == 0 and len(args) >= 4
         io_comms = []
         for i in range(0, len(args), 2):
             io_comms.append((args[i], args[i+1]))
-        return hcsp.SelectComm(*io_comms)
+        return hcsp.SelectComm(*io_comms, meta=meta)
 
-    def rec_cmd(self, var_name, c):
-        return hcsp.Recursion(c, entry=var_name)
+    def rec_cmd(self, meta, var_name, c):
+        return hcsp.Recursion(c, entry=var_name, meta=meta)
 
-    def ite_cmd(self, *args):
+    def ite_cmd(self, meta, *args):
         assert len(args) % 2 == 1 and len(args) >= 3
         if_hps = []
         for i in range(0, len(args)-1, 2):
             if_hps.append((args[i], args[i+1]))
         else_hp = args[-1]
-        return hcsp.ITE(if_hps, else_hp)
+        return hcsp.ITE(if_hps, else_hp, meta=meta)
 
-    def paren_cmd(self, c):
+    def paren_cmd(self, meta, c):
         return c
 
-    def procedure(self, name, hp):
-        return hcsp.Procedure(name, hp)
+    def procedure(self, meta, name, hp):
+        return hcsp.Procedure(name, hp, meta=meta)
 
-    def parallel_cmd(self, *args):
+    def parallel_cmd(self, meta, *args):
         if len(args) == 1:
             return args[0]
         else:
-            return hcsp.Parallel(*args)
+            return hcsp.Parallel(*args, meta=meta)
 
-    def module_sig(self, *args):
+    def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)
 
-    def module_output(self, *args):
+    def module_output(self, meta, *args):
         return tuple(str(arg) for arg in args)
 
-    def module(self, *args):
+    def module(self, meta, *args):
         # The first item is a tuple consisting of name and list of parameters
         # The middle items are the output sequences or procedure declarations
         # The last item is code for the module
@@ -438,26 +442,26 @@ class HPTransformer(Transformer):
                 procedures.append(decl)
             else:
                 raise NotImplementedError
-        return module.HCSPModule(name, code, params=params, outputs=outputs, procedures=procedures)
+        return module.HCSPModule(name, code, params=params, outputs=outputs, procedures=procedures, meta=meta)
 
-    def module_arg_channel(self, *args):
+    def module_arg_channel(self, meta, *args):
         # First argument is channel name, remaining arguments are channel args.
         ch_name, ch_args = args[0], args[1:]
-        return hcsp.Channel(str(ch_name), tuple(expr.AConst(ch_arg) for ch_arg in ch_args))
+        return hcsp.Channel(str(ch_name), tuple(expr.AConst(ch_arg, meta=meta) for ch_arg in ch_args), meta=meta)
 
-    def module_arg_expr(self, expr):
+    def module_arg_expr(self, meta, expr):
         return expr
 
-    def module_args(self, *args):
+    def module_args(self, meta, *args):
         return args
 
-    def module_inst(self, name, sig):
-        return module.HCSPModuleInst(name, sig[0], sig[1:])
+    def module_inst(self, meta, name, sig):
+        return module.HCSPModuleInst(name, sig[0], sig[1:], meta=meta)
     
-    def module_inst_noname(self, sig):
-        return module.HCSPModuleInst(sig[0], sig[0], sig[1:])
+    def module_inst_noname(self, meta, sig):
+        return module.HCSPModuleInst(sig[0], sig[0], sig[1:], meta=meta)
 
-    def hcsp_import(self, filename):
+    def hcsp_import(self, meta, filename):
         # Importing from a file
         text = module.read_file(filename + '.txt')
         if text is None:
@@ -483,21 +487,38 @@ class HPTransformer(Transformer):
                     error_str += " " * (e.column-1) + "^" + '\n'
             raise ParseFileException(error_str)
 
-    def system(self, *args):
+    def system(self, meta, *args):
         # Each item is a module instantiation
-        return module.HCSPSystem(args)
+        return module.HCSPSystem(args, meta=meta)
 
-    def decls(self, *args):
+    def decls(self, meta, *args):
         # A list of declarations.
-        return module.HCSPDeclarations(args)
+        return module.HCSPDeclarations(args, meta=meta)
 
+hp_transformer = HPTransformer()
 
-aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=HPTransformer())
-bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=HPTransformer())
-hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=HPTransformer())
-module_parser = Lark(grammar, start="module", parser="lalr", transformer=HPTransformer())
-system_parser = Lark(grammar, start="system", parser="lalr", transformer=HPTransformer())
-decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=HPTransformer())
+aexpr_parser = Lark(grammar, start="expr", parser="lalr", transformer=hp_transformer)
+bexpr_parser = Lark(grammar, start="cond", parser="lalr", transformer=hp_transformer)
+hp_parser = Lark(grammar, start="parallel_cmd", parser="lalr", transformer=hp_transformer)
+module_parser = Lark(grammar, start="module", parser="lalr", transformer=hp_transformer)
+system_parser = Lark(grammar, start="system", parser="lalr", transformer=hp_transformer)
+decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=hp_transformer)
+
+# Variants of the parsers without internal transformer, returning a Lark Tree instead of a HCSP expression.
+# They allow us to get meta information about line and character numbers of the parsed code.
+aexpr_tree_parser = Lark(grammar, start="expr", parser="lalr", propagate_positions=True)
+bexpr_tree_parser = Lark(grammar, start="cond", parser="lalr", propagate_positions=True)
+hp_tree_parser = Lark(grammar, start="parallel_cmd", parser="lalr", propagate_positions=True)
+module_tree_parser = Lark(grammar, start="module", parser="lalr", propagate_positions=True)
+system_tree_parser = Lark(grammar, start="system", parser="lalr", propagate_positions=True)
+decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positions=True)
+
+def parse_aexpr_with_meta(text): return hp_transformer.transform(aexpr_tree_parser.parse(text))
+def parse_bexpr_with_meta(text): return hp_transformer.transform(bexpr_tree_parser.parse(text))
+def parse_hp_with_meta(text): return hp_transformer.transform(hp_tree_parser.parse(text))
+def parse_module_with_meta(text): return hp_transformer.transform(module_tree_parser.parse(text))
+def parse_system_with_meta(text): return hp_transformer.transform(system_tree_parser.parse(text))
+def parse_decls_with_meta(text): return hp_transformer.transform(decls_tree_parser.parse(text))
 
 
 class ParseFileException(Exception):
