@@ -1,6 +1,203 @@
-theory Coinductive
-  imports Main "HOL-Library.BNF_Corec" "ext/ext_BigStepSimple"
+theory Coinductive_par
+  imports Main "HOL-Library.BNF_Corec" Ordinary_Differential_Equations.Flow
 begin
+
+subsection \<open>Definition of states\<close>
+
+text \<open>Variable names\<close>
+type_synonym var = char
+
+text \<open>State\<close>
+type_synonym state = "var \<Rightarrow> real"
+
+text \<open>Expressions\<close>
+type_synonym exp = "state \<Rightarrow> real"
+
+text \<open>Predicates\<close>
+type_synonym fform = "state \<Rightarrow> bool"
+
+text \<open>States as a vector\<close>
+type_synonym vec = "real^(var)"
+
+text \<open>Conversion between state and vector\<close>
+definition state2vec :: "state \<Rightarrow> vec" where
+  "state2vec s = (\<chi> x. s x)"
+
+definition vec2state :: "vec \<Rightarrow> state" where
+  "(vec2state v) x = v $ x"
+
+
+
+type_synonym 'a ext_state = "'a \<times> state"
+
+type_synonym 'a ext_exp = "'a ext_state \<Rightarrow> real"
+
+type_synonym 'a ext_fform = "'a ext_state \<Rightarrow> bool"
+
+type_synonym cname = string
+
+type_synonym rdy_info = "cname set \<times> cname set"
+
+
+datatype 'a gstate =
+  EmptyState
+| EState "'a ext_state"
+| ParState "'a gstate"  "'a gstate"
+
+
+
+datatype comm_type = In | Out | IO
+
+datatype 'a trace_block =
+  CommBlock comm_type cname real
+| WaitBlock ereal "real \<Rightarrow> 'a gstate" rdy_info
+
+abbreviation "InBlock ch v \<equiv> CommBlock In ch v"
+abbreviation "OutBlock ch v \<equiv> CommBlock Out ch v"
+abbreviation "IOBlock ch v \<equiv> CommBlock IO ch v"
+
+fun WaitBlk :: "ereal \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> 'a trace_block" where
+  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
+| "WaitBlk PInfty p rdy = WaitBlock PInfty (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
+| "WaitBlk MInfty p rdy = WaitBlock MInfty (\<lambda>_. undefined) rdy"
+
+lemma WaitBlk_simps [simp]:
+  "WaitBlk (ereal d) p rdy = WaitBlock (ereal d) (\<lambda>\<tau>\<in>{0..d}. p \<tau>) rdy"
+  "WaitBlk \<infinity> p rdy = WaitBlock \<infinity> (\<lambda>\<tau>\<in>{0..}. p \<tau>) rdy"
+  "WaitBlk (-\<infinity>) p rdy = WaitBlock (-\<infinity>) (\<lambda>_. undefined) rdy"
+  apply auto
+  using WaitBlk.simps(2) infinity_ereal_def 
+  apply metis
+  using WaitBlk.simps(3) 
+  by (metis MInfty_eq_minfinity)
+
+declare WaitBlk.simps [simp del]
+
+lemma WaitBlk_not_Comm [simp]:
+  "WaitBlk d p rdy \<noteq> CommBlock ch_type ch v"
+  "CommBlock ch_type ch v \<noteq> WaitBlk d p rdy"
+  by (cases d, auto)+
+
+
+lemma restrict_cong_to_eq:
+  fixes x :: real
+  shows "restrict p1 {0..t} = restrict p2 {0..t} \<Longrightarrow> 0 \<le> x \<Longrightarrow> x \<le> t \<Longrightarrow> p1 x = p2 x"
+  apply (auto simp add: restrict_def) by metis
+
+lemma restrict_cong_to_eq2:
+  fixes x :: real
+  shows "restrict p1 {0..} = restrict p2 {0..} \<Longrightarrow> 0 \<le> x \<Longrightarrow> p1 x = p2 x"
+  apply (auto simp add: restrict_def) by metis
+
+lemma WaitBlk_ext:
+  fixes t1 t2 :: ereal
+    and hist1 hist2 :: "real \<Rightarrow> 'a gstate"
+  shows "t1 = t2 \<Longrightarrow>
+   (\<And>\<tau>::real. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
+   WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
+  apply (cases t1)
+  apply (auto simp add: restrict_def)
+  apply (rule ext) by auto
+
+lemma WaitBlk_ext_real:
+  fixes t1 :: real
+    and t2 :: real
+  shows "t1 = t2 \<Longrightarrow> (\<And>\<tau>. 0 \<le> \<tau> \<Longrightarrow> \<tau> \<le> t1 \<Longrightarrow> hist1 \<tau> = hist2 \<tau>) \<Longrightarrow> rdy1 = rdy2 \<Longrightarrow>
+         WaitBlk (ereal t1) hist1 rdy1 = WaitBlk (ereal t2) hist2 rdy2"
+  by (auto simp add: restrict_def)
+
+lemma WaitBlk_cong:
+  "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2 \<Longrightarrow> t1 = t2 \<and> rdy1 = rdy2"
+  apply (cases t1) by (cases t2, auto)+
+
+lemma WaitBlk_cong2:
+  assumes "WaitBlk t1 hist1 rdy1 = WaitBlk t2 hist2 rdy2"
+    and "0 \<le> t" "t \<le> t1"
+  shows "hist1 t = hist2 t"
+proof -
+  have a: "t1 = t2" "rdy1 = rdy2"
+    using assms WaitBlk_cong 
+    by blast+
+  show ?thesis
+  proof (cases t1)
+    case (real r)
+    have real2: "t2 = ereal r"
+      using real a by auto
+    show ?thesis
+      using assms(1)[unfolded real real2]
+      apply auto using restrict_cong_to_eq assms ereal_less_eq(3) real by blast
+  next
+    case PInf
+    have PInf2: "t2 = \<infinity>"
+      using PInf a by auto
+    show ?thesis
+      using assms(1)[unfolded PInf PInf2] restrict_cong_to_eq2 assms by auto
+  next
+    case MInf
+    show ?thesis
+      using assms MInf by auto
+  qed
+qed
+
+lemma WaitBlk_split1:
+  fixes t1 :: real
+  assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
+    and "0 < t1" "ereal t1 < t"
+  shows "WaitBlk (ereal t1) p1 rdy = WaitBlk (ereal t1) p2 rdy"
+proof (cases t)
+  case (real r)
+  show ?thesis
+    apply auto apply (rule ext) subgoal for x
+      using assms[unfolded real] 
+      using restrict_cong_to_eq[of p1 r p2 x] by auto
+    done
+next
+  case PInf
+  show ?thesis
+    apply auto apply (rule ext) subgoal for x
+      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 x] by auto
+    done
+next
+  case MInf
+  then show ?thesis
+    using assms by auto
+qed
+
+lemma WaitBlk_split2:
+  fixes t1 :: real
+  assumes "WaitBlk t p1 rdy = WaitBlk t p2 rdy"
+    and "0 < t1" "ereal t1 < t"
+  shows "WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p1 (\<tau> + t1)) rdy =
+         WaitBlk (t - ereal t1) (\<lambda>\<tau>::real. p2 (\<tau> + t1)) rdy"
+proof (cases t)
+  case (real r)
+  have a: "t - ereal t1 = ereal (r - t1)"
+    unfolding real by auto
+  show ?thesis
+    unfolding a apply auto apply (rule ext) subgoal for x
+      using assms[unfolded real]
+      using restrict_cong_to_eq[of p1 r p2 "x + t1"] by auto
+    done
+next
+  case PInf
+  have a: "t - ereal t1 = \<infinity>"
+    unfolding PInf by auto
+  show ?thesis
+    unfolding a
+    apply auto
+    apply (rule ext) subgoal for x
+      using assms[unfolded PInf] restrict_cong_to_eq2[of p1 p2 "x + t1"] by auto
+    done
+next
+  case MInf
+  then show ?thesis
+    using assms by auto
+qed
+
+lemmas WaitBlk_split = WaitBlk_split1 WaitBlk_split2
+declare WaitBlk_simps [simp del]
+
+
 
 codatatype 'a stream = SCons (shd: 'a) (stl: "'a stream")
 
@@ -17,6 +214,8 @@ fun compat_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> bool" where
 text \<open>Merge two rdy infos\<close>
 fun merge_rdy :: "rdy_info \<Rightarrow> rdy_info \<Rightarrow> rdy_info" where
   "merge_rdy (r11, r12) (r21, r22) = (r11 \<union> r21, r12 \<union> r22)"
+
+
 
 lemma WaitBlk_eq_combine:
   assumes "WaitBlk d1 p1 rdy1 = WaitBlk d1' p1' rdy1'"
@@ -61,7 +260,7 @@ proof -
       by (auto simp: a1 WaitBlk_simps)
   qed
 qed
-
+(*
 coinductive combine_blocks :: "cname set \<Rightarrow> 'a strace \<Rightarrow> 'a strace \<Rightarrow> 'a strace \<Rightarrow> bool" where
   \<comment> \<open>Paired communication\<close>
   combine_blocks_pair1:
@@ -206,8 +405,49 @@ lemma combine_blocks_unpairE2:
    (\<And>blks'. blks = SCons (CommBlock ch_type2 ch2 v2) blks' \<Longrightarrow>
            combine_blocks comms (SCons (CommBlock ch_type1 ch1 v1) blks1) blks2 blks' \<Longrightarrow> P) \<Longrightarrow> P"
   by (induct rule: combine_blocks.cases, auto simp add:assms)
+*)
 
 type_synonym tid = real
+
+
+fun compat_rdy_set :: "rdy_info set \<Rightarrow> bool" where
+  "compat_rdy_set S = (\<forall> i \<in> S . \<forall> j \<in> S . i \<noteq> j \<longrightarrow> fst i \<inter> snd j = {})"
+
+fun merge_rdy_set :: "rdy_info set \<Rightarrow> rdy_info " where
+  "merge_rdy_set S  = (\<Union> (image fst S), \<Union> (image snd S))"
+
+
+coinductive combine_blocks_set :: "cname set \<Rightarrow> tid set \<Rightarrow> (tid \<Rightarrow> 'a strace) \<Rightarrow> 'a strace \<Rightarrow> bool" where
+  \<comment> \<open>Paired communication\<close>
+  combine_blocks_pair:
+  "ch \<in> comms \<Longrightarrow>
+   i \<in> S \<Longrightarrow> j \<in> S \<Longrightarrow>
+   f i = (SCons (InBlock ch v) blksi) \<Longrightarrow>
+   f j = (SCons (OutBlock ch v) blksj) \<Longrightarrow>
+   g = f(i := blksi, j := blksj) \<Longrightarrow> 
+   combine_blocks_set comms S g blks \<Longrightarrow>
+   combine_blocks_set comms S f (SCons (IOBlock ch v) blks)"
+
+  \<comment> \<open>Paired communication\<close>
+| combine_blocks_unpair1:
+  "ch \<notin> comms \<Longrightarrow>
+   i \<in> S \<Longrightarrow>
+   f i = (SCons (CommBlock ch_type ch v) blksi) \<Longrightarrow>
+   g = f(i := blksi) \<Longrightarrow>
+   combine_blocks_set comms S g blks \<Longrightarrow>
+   combine_blocks_set comms S f (SCons (CommBlock ch_type ch v) blks)"
+
+  \<comment> \<open>Wait\<close>
+| combine_blocks_wait:
+  "combine_blocks comms blks1 blks2 blks \<Longrightarrow>
+   compat_rdy rdy1 rdy2 \<Longrightarrow>
+   hist = (\<lambda>\<tau>. ParState ((\<lambda>x::real. hist1 x) \<tau>) ((\<lambda>x::real. hist2 x) \<tau>)) \<Longrightarrow>
+   rdy = merge_rdy rdy1 rdy2 \<Longrightarrow>
+   combine_blocks comms (SCons (WaitBlk t (\<lambda>x::real. hist1 x) rdy1) blks1)
+                        (SCons (WaitBlk t (\<lambda>x::real. hist2 x) rdy2) blks2)
+                        (SCons (WaitBlk t hist rdy) blks)"
+
+
 
 datatype status =
   WAIT | READY | RUNNING
@@ -713,68 +953,6 @@ proof (coinduction arbitrary: pc dis_s start_es task_s blks1 blks2 blks rule: ta
 qed
 qed
 
-definition sch :: "estate proc" where
-"sch = EChoice 
-[((req_ch 1)[?]CHR ''p'',
-        (CHR ''i'' ::= (\<lambda>_ . 1));
-         IF (\<lambda> (a,s) . run_prior a \<ge> s (CHR ''p'')) 
-           THEN Basic (sched_push 1) 
-           ELSE (IF (\<lambda> (a,s) . run_now a \<noteq> -1) 
-                   THEN (Cm (preempt_ch 1 [!] (\<lambda>_. 0))) 
-                   ELSE Skip 
-                 FI);
-                 Basic (sched_assign 1); 
-                 Cm (run_ch 1[!](\<lambda>_ . 0)) 
-         FI),
- ((free_ch 1)[?]CHR ''F'',
-        (CHR ''i'' ::= (\<lambda>_ . 1));
-         IF (\<lambda> (a,s) . length (pool a) > 0) 
-           THEN (Basic (sched_get_max) ; Cm (run_ch 1[!](\<lambda>_ . 0))) 
-           ELSE Basic sched_clear 
-         FI),
- ((exit_ch 1)[?]CHR ''E'',
-        (CHR ''i'' ::= (\<lambda>_ . 1)); 
-         Basic (sched_del_proc 1)),
- ((req_ch 2)[?]CHR ''p'',
-        (CHR ''i'' ::= (\<lambda>_ . 2));
-         IF (\<lambda> (a,s) . run_prior a \<ge> s (CHR ''p'')) 
-           THEN Basic (sched_push 2) 
-           ELSE (IF (\<lambda> (a,s) . run_now a \<noteq> -1) 
-                   THEN (Cm (preempt_ch 2 [!] (\<lambda>_. 0))) 
-                   ELSE Skip 
-                 FI);
-                 Basic (sched_assign 2); 
-                 Cm (run_ch 2[!](\<lambda>_ . 0)) 
-         FI),
- ((free_ch 2)[?]CHR ''F'',
-        (CHR ''i'' ::= (\<lambda>_ . 2));
-         IF (\<lambda> (a,s) . length (pool a) > 0) 
-           THEN (Basic (sched_get_max) ; Cm (run_ch 2[!](\<lambda>_ . 0))) 
-           ELSE Basic sched_clear 
-         FI),
- ((exit_ch 2)[?]CHR ''E'',
-        (CHR ''i'' ::= (\<lambda>_ . 2)); 
-         Basic (sched_del_proc 2)),
- ((req_ch 3)[?]CHR ''p'',
-        (CHR ''i'' ::= (\<lambda>_ . 3));
-         IF (\<lambda> (a,s) . run_prior a \<ge> s (CHR ''p'')) 
-           THEN Basic (sched_push 3) 
-           ELSE (IF (\<lambda> (a,s) . run_now a \<noteq> -1) 
-                   THEN (Cm (preempt_ch 3 [!] (\<lambda>_. 0))) 
-                   ELSE Skip 
-                 FI);
-                 Basic (sched_assign 3); 
-                 Cm (run_ch 3[!](\<lambda>_ . 0)) 
-         FI),
- ((free_ch 3)[?]CHR ''F'',
-        (CHR ''i'' ::= (\<lambda>_ . 3));
-         IF (\<lambda> (a,s) . length (pool a) > 0) 
-           THEN (Basic (sched_get_max) ; Cm (run_ch 3[!](\<lambda>_ . 0))) 
-           ELSE Basic sched_clear 
-         FI),
- ((exit_ch 3)[?]CHR ''E'',
-        (CHR ''i'' ::= (\<lambda>_ . 3)); 
-         Basic (sched_del_proc 3))]"
 
 
 coinductive sch_assn :: "string \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate stassn" where
@@ -1153,263 +1331,5 @@ r_now = i, r_prior = tp
    sch_task_dis_assn i ''q4'' ''p4'' sch_es sch_s dis_s start_es task_s rest"
 
 
-theorem combine_sch_task_dis:
-  assumes "i \<in> {1,2,3}"
-  shows "sch_assn qc sch_es sch_s blks1 \<Longrightarrow>
-         task_dis_assn i pc dis_s start_es task_s blks2 \<Longrightarrow>
-         combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 blks2 blks \<Longrightarrow>
-         sch_task_dis_assn i qc pc sch_es sch_s dis_s start_es task_s blks"
-proof (coinduction arbitrary: qc pc sch_es sch_s dis_s start_es task_s blks1 blks2 blks rule: sch_task_dis_assn.coinduct)
-  have comm_in_req:"req_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
-  have comm_in_exit:"exit_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
-  have comm_in_run:"run_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
-  have comm_in_preempt:"preempt_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
-  have comm_in_free:"free_ch i \<in> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    by auto
-  have comm_not_in_dis:"dispatch_ch i \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-    apply(auto simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
-    using assms by auto
-  case sch_task_dis_assn
-  from sch_task_dis_assn(1) 
-  show ?case
-  proof (cases rule: sch_assn.cases)
-    case (1 p r_now r_prior wt1 blk1 rest1)
-    note s1 = 1
-    from sch_task_dis_assn(2) 
-    show ?thesis 
-    proof (cases rule : task_dis_assn.cases)
-      case (1 ent tp init_t' wt2 blk2 rest2)
-      note t1 = 1
-      obtain rest where rest:   
-        "ereal wt1 = ereal wt2"
-        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
-        (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s))))
-            ({}, {dispatch_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
-        using sch_task_dis_assn(3)[unfolded s1(2,5) t1(2,7)]
-        apply (elim combine_blocks_waitE)
-        by (smt merge_rdy.simps sup_assoc sup_commute sup_idem)
-      then show ?thesis using s1 t1 sch_task_dis_assn by auto
-    next
-      case (2 ent tp init_t' blk2 rest2)
-      note t2 = 2
-        obtain rest where rest:   
-        "blks = SCons (IOBlock (dispatch_ch i) 0) rest"
-        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 rest2 rest"
-          using sch_task_dis_assn(3)[unfolded s1(2,5) t2(2,6)]
-          apply(simp add: s1(2,5) t2(2,6))
-          apply(elim combine_blocks_waitCommE2[OF comm_not_in_dis]) by blast
-      then show ?thesis using s1 t2 sch_task_dis_assn by auto
-    next
-      case (3 ent tp blk1 rest)
-      note t3 = 3
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t3(2,4)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_req])
-    next
-      case (4 ent tp init_t init_t' wt2 blk2 dis_s rest2)
-      note t4 = 4
-      obtain rest where 
-        "ereal wt1 = ereal wt2"
-        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
-        (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s(CHR ''t'' := init_t + t)))))
-            ({}, {run_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
-        using sch_task_dis_assn(3)[unfolded s1(2,5) t4(2,8)]
-        apply (elim combine_blocks_waitE) 
-        by (smt (verit, ccfv_threshold) Un_insert_left Un_insert_right merge_rdy.simps sup_bot.left_neutral sup_bot_right)
-        then show ?thesis using s1 t4 sch_task_dis_assn by auto
-    next
-      case (5 ent tp init_t blk1 rest)
-      note t5 = 5
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t5(2,6)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_exit])
-    next
-      case (6 tp blk1 rest)
-      note t6 = 6
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t6(2,4)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_run])
-    next
-      case (7 tp blk1 rest)
-      note t7 = 7
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t7(2,4)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_run])
-    next
-      case (8 tp init_t init_c init_t' wt2 blk2 rest2)
-      note t8 = 8
-      obtain rest where 
-        "ereal wt1 = ereal wt2"
-        "blks = SCons (WaitBlk (ereal wt1) (\<lambda>t. ParState (EState (sch_es, sch_s)) 
-        (ParState (EState (None, dis_s(CHR ''t'' := init_t' + t))) (EState (start_es, task_s(CHR ''t'' := init_t + t, CHR ''c'' := init_c + t)))))
-            ({}, {preempt_ch i} \<union> req_ch ` {1, 2, 3} \<union> free_ch ` {1, 2, 3} \<union> exit_ch ` {1, 2, 3})) rest"
-        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 rest2 rest"
-        using sch_task_dis_assn(3)[unfolded s1(2,5) t8(2,11)]
-        apply (elim combine_blocks_waitE) 
-        by (simp add: insert_commute)
-      then show ?thesis using s1 t8 sch_task_dis_assn by auto
-    next
-      case (9 tp blk1 rest)
-      note t9 = 9
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t9(2,4)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_preempt])
-    next
-      case (10 tp init_t init_c blk1 rest)
-      note t10 =10
-      from sch_task_dis_assn(3)[unfolded s1(2,5) t10(2,7)]
-      show ?thesis by(elim combine_blocks_waitCommE[OF comm_in_free])
-    qed
-  next
-    case (2 p r_now r_prior blk1 j prior rest1)
-    note s2 = 2
-    from sch_task_dis_assn(2) 
-    show ?thesis 
-    proof (cases rule : task_dis_assn.cases)
-      case (1 ent tp init_t' wt blk2 rest2)
-      note t1 = 1
-      show ?thesis
-      proof (cases "j = i")
-        case True
-        from sch_task_dis_assn(3)[unfolded s2(2,4) t1(2,7) True]
-        show ?thesis by(elim combine_blocks_waitCommE'[OF comm_in_req])
-      next
-        case False
-        then have comm_not_in:"(req_ch j) \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-          apply(simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
-          using assms s2(5) by auto 
-        obtain rest where rest:
-        "blks = SCons (InBlock (req_ch j) prior) rest"
-        "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 blks2 rest"
-          using sch_task_dis_assn(3)[unfolded s2(2,4) t1(2,7)]
-          apply(simp add: t1(2,7))
-          apply(elim combine_blocks_waitCommE2'[OF comm_not_in]) by auto
-        show ?thesis 
-         apply(rule disjI2)
-          apply(rule disjI1)
-          apply(rule exI[where x="sch_es"])
-          apply(rule exI[where x="pool sch_es"])
-          apply(rule exI[where x="run_now sch_es"])
-          apply(rule exI[where x="run_prior sch_es"])
-          apply(rule exI[where x="start_es"])
-          apply(rule exI[where x="entered start_es"])
-          apply(rule exI[where x="task_prior start_es"])
-          apply(rule exI[where x="j"])
-          apply(rule exI[where x="i"])
-          apply(rule exI[where x="(InBlock (req_ch j) prior)"])
-          apply(rule exI[where x="prior"])
-          apply(rule exI[where x="sch_s"])
-          apply(rule exI[where x="dis_s"])
-          apply(rule exI[where x="task_s"])
-          apply(rule exI[where x="rest"])
-          apply(intro conjI)
-          apply(rule refl, simp add: s2 t1)+
-          using t1 apply simp
-          apply(rule refl)+
-          using rest apply simp
-          using s2 apply simp
-          using t1 apply simp
-          using False apply simp
-          apply(rule refl)
-          apply(rule disjI1)
-          apply(rule exI[where x="''q1''"])
-          apply(rule exI[where x="''p1''"])
-          apply(rule exI[where x="sch_es"])
-          apply(rule exI[where x="sch_s(CHR ''p'' := prior, CHR ''i'' := j)"])
-          apply(rule exI[where x="dis_s"])
-          apply(rule exI[where x="start_es"])
-          apply(rule exI[where x="task_s"])
-          apply(rule exI[where x="rest1"])
-          apply(rule exI[where x="blks2"])
-          apply(rule exI[where x="rest"])
-          apply(intro conjI)
-          apply(rule refl)+
-          using s2 apply simp
-          using sch_task_dis_assn t1 apply simp
-          using rest apply simp
-          done
-      qed
-    next
-      case (2 ent tp init_t' blk2 rest2)
-      note t2 = 2
-      show ?thesis 
-      proof (cases " j = i")
-        case True
-        obtain rest where
-          "blks = SCons (IOBlock (dispatch_ch i) 0) rest"
-          "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} blks1 rest2 rest"
-          using sch_task_dis_assn(3)[unfolded s2(2,4) t2(2,6) True]
-          apply (simp add: s2(2,4) t2(2,6) True)
-          apply(elim combine_blocks_unpairE1'[OF comm_in_req comm_not_in_dis]) by blast
-        then show ?thesis using sch_task_dis_assn s2 t2 True by auto
-      next
-        case False
-        then have comm_not_in:"(req_ch j) \<notin> {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i}"
-          apply(simp add: dispatch_ch_def req_ch_def run_ch_def free_ch_def preempt_ch_def exit_ch_def)
-          using assms s2(5) by auto 
-        obtain rest where
-          "blks = SCons (InBlock (req_ch j) prior) rest"
-          "combine_blocks {req_ch i, run_ch i, free_ch i, preempt_ch i, exit_ch i} rest1 blks2 rest"
-          using sch_task_dis_assn(3)[unfolded s2(2,4) t2(2,6)]
-          apply (simp add: s2(2,4) t2(2,6))
-          apply(elim combine_blocks_unpairE2[OF comm_not_in comm_not_in_dis]) 
-        then show ?thesis sorry
-      qed
-
-    next
-      case (3 ent tp blk1 rest)
-      then show ?thesis sorry
-    next
-      case (4 ent tp init_t init_t' wt blk1 dis_t rest)
-      then show ?thesis sorry
-    next
-      case (5 ent tp init_t blk1 rest)
-      then show ?thesis sorry
-    next
-      case (6 tp blk1 rest)
-      then show ?thesis sorry
-    next
-      case (7 tp blk1 rest)
-      then show ?thesis sorry
-    next
-      case (8 tp init_t init_c init_t' wt blk1 rest)
-      then show ?thesis sorry
-    next
-      case (9 tp blk1 rest)
-      then show ?thesis sorry
-    next
-      case (10 tp init_t init_c blk1 rest)
-      then show ?thesis sorry
-    qed
-  next
-    case (3 p r_now r_prior i prior)
-    then show ?thesis sorry
-  next
-    case (4 p r_now r_prior i prior blk1 rest)
-    then show ?thesis sorry
-  next
-    case (5 p r_now r_prior i prior)
-    then show ?thesis sorry
-  next
-    case (6 p r_now r_prior i prior blk1 rest)
-    then show ?thesis sorry
-  next
-    case (7 p r_now r_prior blk1 i rest)
-    then show ?thesis sorry
-  next
-    case (8 p r_now r_prior blk1 rest)
-    then show ?thesis sorry
-  next
-    case (9 p r_now r_prior)
-    then show ?thesis sorry
-  next
-    case (10 p r_now r_prior blk1 i rest)
-    then show ?thesis sorry
-  next
-    case (11 p r_now r_prior)
-    then show ?thesis sorry
-  qed
-qed
 
 end
