@@ -3,6 +3,7 @@ import {LRLanguage, LanguageSupport, indentNodeProp, foldNodeProp, foldInside, c
 import {styleTags, tags as t} from "@codemirror/highlight"
 import {completeFromList} from "@codemirror/autocomplete"
 import {snippets} from "./snippets"
+import {linter} from "@codemirror/lint"
 
 export const HCSPLanguage = LRLanguage.define({
   parser: parser.configure({
@@ -54,6 +55,25 @@ export const HCSPCompletion = HCSPLanguage.data.of({
   autocomplete: completeFromList(snippets)
 })
 
+export const HCSPLinter = linter((editorView) =>{
+  console.log(editorView);
+
+  let tree = parser.parse(editorView.state.doc.toString())
+  let cursor = tree.cursor()
+  let diags = []
+  do {
+    if (cursor.type.isError) {
+      diags.push({
+        from: cursor.from,
+        to: cursor.to,
+        message: "Error",
+        severity: "error",
+      })
+    }
+  } while (cursor.next())
+  return diags
+})
+
 export function HCSP() {
-  return new LanguageSupport(HCSPLanguage, [HCSPCompletion])
+  return new LanguageSupport(HCSPLanguage, [HCSPCompletion, HCSPLinter])
 }
