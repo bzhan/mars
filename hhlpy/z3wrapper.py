@@ -1,5 +1,6 @@
 """Wrapper for Z3 prover."""
 
+from decimal import Decimal
 import z3
 
 from ss2hcsp.hcsp import expr
@@ -10,9 +11,12 @@ def convert(e):
     if isinstance(e, expr.AVar):
         return z3.Real(e.name)
     elif isinstance(e, expr.AConst):
-        if isinstance(e.value, (int, float)):
+        if isinstance(e.value, int):
             return z3.RealVal(e.value)
+        elif isinstance(e.value, Decimal):
+            return z3.RealVal(str(e.value))
         else:
+            print(e.value, type(e.value))
             raise NotImplementedError
     elif isinstance(e, expr.BConst):
         return z3.BoolVal(e.value)
@@ -64,7 +68,7 @@ def convert(e):
             raise NotImplementedError
     elif isinstance(e, expr.ExistsExpr):
         return z3.Exists([z3.Real(e.var)], convert(e.expr))
-    elif isinstance(e, expr.ForallExpr):
+    elif isinstance(e, expr.ForAllExpr):
         return z3.ForAll([z3.Real(e.var)], convert(e.expr))
     else:
         print(e, type(e))

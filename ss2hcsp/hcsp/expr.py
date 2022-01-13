@@ -2,6 +2,7 @@
 
 import math
 from decimal import Decimal
+from fractions import Fraction
 import itertools
 
 from ss2hcsp.util.topsort import topological_sort
@@ -104,9 +105,9 @@ class AVar(AExpr):
 class AConst(AExpr):
     def __init__(self, value):
         super(AConst, self).__init__()
-        assert isinstance(value, (int, float, Decimal, list, str, tuple, dict))
-        if isinstance(value, Decimal):
-            value = float(value)
+        assert isinstance(value, (int, float, Decimal, Fraction, list, str, tuple, dict))
+        # if isinstance(value, Decimal):
+        #     value = float(value)
         self.value = value
 
     def __repr__(self):
@@ -675,25 +676,25 @@ class ExistsExpr(BExpr):
         assert self.var not in inst
         return ExistsExpr(self.var, self.expr.subst(inst))
 
-class ForallExpr(BExpr):
-    """Forall expressions"""
+class ForAllExpr(BExpr):
+    """ForAll expressions"""
     def __init__(self, var, expr):
         assert isinstance(var, str) and isinstance(expr, BExpr)
         self.var = var
         self.expr = expr
 
     def __repr__(self):
-        return "ForallExpr(%s, %s)" % (repr(self.var), repr(self.expr))
+        return "ForAllExpr(%s, %s)" % (repr(self.var), repr(self.expr))
 
     def __str__(self):
-        return "Forall %s. %s" % (str(self.var), str(self.expr))
+        return "ForAll %s. %s" % (str(self.var), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
-        return isinstance(other, ForallExpr) and self.var == other.var and self.expr == other.expr
+        return isinstance(other, ForAllExpr) and self.var == other.var and self.expr == other.expr
 
     def __hash__(self):
-        return hash(("Forall", self.var, self.expr))
+        return hash(("ForAll", self.var, self.expr))
 
     def priority(self):
         return 10
@@ -708,7 +709,7 @@ class ForallExpr(BExpr):
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
         assert self.var not in inst
-        return ForallExpr(self.var, self.expr.subst(inst))
+        return ForAllExpr(self.var, self.expr.subst(inst))
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move

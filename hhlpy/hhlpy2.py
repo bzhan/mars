@@ -11,6 +11,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.z3wrapper import z3_prove
+from hhlpy.wolframengine_wrapper import wol_prove
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 
@@ -237,9 +238,16 @@ class CmdInfo:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, constants=set()):
+    def __init__(self, *, pre, hp, post, constants=set(), wolfram_engine = False, z3 = True):
         # The HCSP program to be verified.
         self.hp = hp
+
+        # The prover used to verify conditions.
+        # Use z3 by default.
+        self.wolfram_engine = wolfram_engine
+        self.z3 = z3
+        if self.wolfram_engine:
+            self.z3 = False
 
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
@@ -515,7 +523,7 @@ class CmdVerifier:
             # Use solution axiom
             # 
             #             P -->
-            # Forall t >= 0  ((Forall 0 <= s < t D(y(s)) && not D(y(t))) --> (Forall 0 <= s <= t Q(y(s)))
+            # ForAll t >= 0  ((ForAll 0 <= s < t D(y(s)) && not D(y(t))) --> (ForAll 0 <= s <= t Q(y(s)))
             #--------------------------------------------------------------------------------------------
             #      {P} <x_dot = f(x) & D(x)> {Q(x)}
             #
@@ -530,7 +538,7 @@ class CmdVerifier:
                 # Solution is, e.g. {'x' : x + v*t + a*t^2/2, 'v' : v + a*t}.
                 solution_dict = solveODE(cur_hp, self.names, time_var.name)
 
-                # Create a new variable to represent 's' in 'Forall 0 <= s < t'
+                # Create a new variable to represent 's' in 'ForAll 0 <= s < t'
                 in_var = create_newvar('s', self.names)
                 self.names.add(in_var.name)
 
@@ -546,8 +554,8 @@ class CmdVerifier:
                 Q_y_s = post.subst(y_s)
 
                 # Compute the hypothesis of implication
-                # Forall (s, 0 <= s < t --> D(y(s)) && not D(y(t))
-                sub_cond = expr.ForallExpr(in_var.name, 
+                # ForAll (s, 0 <= s < t --> D(y(s)) && not D(y(t))
+                sub_cond = expr.ForAllExpr(in_var.name, 
                                 expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
                                                         expr.RelExpr('<', in_var, time_var)),
@@ -556,14 +564,14 @@ class CmdVerifier:
                                       sub_cond,
                                       expr.LogicExpr('~', D_y_t))
                 # Compute the conclusion of implication
-                # Forall (s, 0 <= s <= t --> Q(y(s))
-                conclu = expr.ForallExpr(in_var.name,
+                # ForAll (s, 0 <= s <= t --> Q(y(s))
+                conclu = expr.ForAllExpr(in_var.name,
                                 expr.imp(expr.LogicExpr('&&', 
                                                         expr.RelExpr('<=', expr.AConst(0), in_var),
                                                         expr.RelExpr('<=', in_var, time_var)),
                                          Q_y_s))
 
-                pre = expr.ForallExpr(time_var.name,
+                pre = expr.ForAllExpr(time_var.name,
                             expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
                                     expr.imp(cond, conclu)))                                           
            
@@ -1050,11 +1058,22 @@ class CmdVerifier:
     def verify(self):
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
-        for _, vcs in all_vcs.items():
-            for vc in vcs:
-                if not z3_prove(vc):
-                    # print("The failed verification condition is :", str(vc))
-                    return False
-                # else:
-                    # print("The successful verificaiton condition is:", str(vc))
-        return True
+        if self.wolfram_engine:
+            for _, vcs in all_vcs.items():
+                for vc in vcs:
+                    if not wol_prove(vc):
+                        # print('wol_prove false', vc)
+                        return False
+                    # else:
+                    #     print('wol_prove, true', vc)
+            return True
+
+        elif self.z3:
+            for _, vcs in all_vcs.items():
+                for vc in vcs:
+                    if not z3_prove(vc):
+                        # print("The failed verification condition is :", str(vc))
+                        return False
+                    # else:
+                        # print("The successful verificaiton condition is:", str(vc))
+            return True
