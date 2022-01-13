@@ -1,9 +1,11 @@
 """Parser for expressions."""
 
 from lark import Lark, Transformer, v_args, exceptions
+from lark.tree import Meta
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
+from decimal import Decimal
 
 
 grammar = r"""
@@ -66,7 +68,7 @@ grammar = r"""
     ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
         | imp
 
-    ?forall_expr: "Forall" CNAME "." imp
+    ?forall_expr: "ForAll" CNAME "." imp
 
     ?cond: exists_expr | forall_expr
 
@@ -167,7 +169,7 @@ class HPTransformer(Transformer):
         return expr.AVar(str(s), meta=meta)
 
     def num_expr(self, meta, v):
-        return expr.AConst(float(v) if '.' in v or 'e' in v else int(v), meta=meta)
+        return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
 
     def string_expr(self, meta, s):
         return expr.AConst(str(s)[1:-1], meta=meta)  # remove quotes
@@ -214,7 +216,7 @@ class HPTransformer(Transformer):
         return expr.ExistsExpr(str(var), e, meta=meta)
 
     def forall_expr(self, meta, var, e):
-        return expr.ForallExpr(str(var), e, meta=meta)
+        return expr.ForAllExpr(str(var), e, meta=meta)
 
     def plus_expr(self, meta, e1, e2):
         return expr.OpExpr("+", e1, e2, meta=meta)

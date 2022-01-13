@@ -7,6 +7,7 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
 
+
 def runVerify(self, *, pre, hp, post, constants=set(), 
               strengthened_posts=None,
               loop_invariants=None, ode_invariants=None, 
@@ -15,6 +16,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
               ghost_equations=None, ghost_invariants=None, 
               darboux_rule=None, darboux_cofactors=None,
               barrier_certificate_rule = None, assume_invariants=None, 
+              wolfram_engine = False, z3 = True,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = parse_bexpr_with_meta(pre)
@@ -22,7 +24,8 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     post = parse_bexpr_with_meta(post)
 
     # Initialize the verifier
-    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants)
+    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
+                           wolfram_engine=wolfram_engine, z3=z3)
 
     if strengthened_posts:
         for pos, stren_post in strengthened_posts.items():
@@ -155,7 +158,7 @@ class HHLPyTest(unittest.TestCase):
     def testVerify1(self):
         # Baisc benchmark, problem 1 
         # {x >= 0} x := x + 1 {x >= 1}
-        runVerify(self, pre="x >= 0.12345", hp="x := x+1.23456", post="x >= 1", print_vcs=True)
+        runVerify(self, pre="x >= 0.12345", hp="x := x+1.23456", post="x >= 1")
                   #expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1"]})
 
     def testVerify2(self):
@@ -717,31 +720,31 @@ class HHLPyTest(unittest.TestCase):
                 )       
 
     # def testVerify56(self):
-        # Basic benchcmark, problem 46
-        # constants = {'A', 'B', 'S', 'ep'}
-        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif
-        #         ++ if v == 0 then a := 0 else a := -B endif
-        #         ++ a := -B
-        #         ;
+    #     # Basic benchcmark, problem 46
+    #     # constants = {'A', 'B', 'S', 'ep'}
+    #     # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
+    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif
+    #     #         ++ if v == 0 then a := 0 else a := -B endif
+    #     #         ++ a := -B
+    #     #         ;
 
-        #         c := 0;
-        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
-        #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
-        # {x <= S}
-        # runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
-        #           hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
-        #                ++ if v == 0 then a := 0 else a := -B endif \
-        #                ++ a := -B; \
-        #                 c := 0; \
-        #                 < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
-        #              )**",
-        #           post="x <= S",
-        #           constants={'A', 'B', 'S', 'ep'},
-        #           loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
-        #           diff_weakening_rule={((0, 2), (0,)): "true"},
-        #           solution_rule={((0, 2), (1,)): "true"},
-        #           print_vcs=True)
+    #     #         c := 0;
+    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
+    #     #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+    #     # {x <= S}
+    #     runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
+    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
+    #                    ++ if v == 0 then a := 0 else a := -B endif \
+    #                    ++ a := -B; \
+    #                     c := 0; \
+    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
+    #                  )**",
+    #               post="x <= S",
+    #               constants={'A', 'B', 'S', 'ep'},
+    #               loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
+    #               diff_weakening_rule={((0, 2), (0,)): "true"},
+    #               solution_rule={((0, 2), (1,)): "true"},
+    #               print_vcs=True)
 
     def testVerify59(self):
         # Basic benchmark, problem 49
@@ -958,18 +961,35 @@ class HHLPyTest(unittest.TestCase):
                   ode_invariants={((1,), ()): "x * ((-73) + 23*x) < 157 + y * (134 + 81*y)"},
                   barrier_certificate_rule={((1,), ()): "true"})
 
-    # def nonlinearTestVerify6(self):
-    #     # Nonlinear benchmark, problem 6
-    #     # {x^2 + (-1/2 + y)^2 < 1/24}
-    #     #     <x_dot = -x + 2*x^3*y^2, y_dot = -y & x^2*y^2 < 1>
-    #     # @invariant(4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y))
-    #     # {~(x <= -2 || y <= -1)}
-    #     runVerify(self, pre="x^2 + (-1/2 + y)^2 < 1/24",
-    #               hp="<x_dot = -x + 2*x^3*y^2, y_dot = -y & x^2*y^2 < 1>",
-    #               post="~(x <= -2 || y <= -1)",
-    #               strengthened_posts={((), ()): "4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y) && x^2*y^2 == 1"},
-    #               barrier_certificate_rule={((), (0,)): "true"},
-    #               diff_weakening_rule={((), (1,)): "true"})
+    def nonlinearTestVerify6(self):
+        # Nonlinear benchmark, problem 6
+        # {x^2 + (-1/2 + y)^2 < 1/24}
+        #     <x_dot = -x + 2*x^3*y^2, y_dot = -y & x^2*y^2 < 1>
+        # @invariant(4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y))
+        # {~(x <= -2 || y <= -1)}
+        runVerify(self, pre="x^2 + (-1/2 + y)^2 < 1/24",
+                  hp="<x_dot = -x + 2*x^3*y^2, y_dot = -y & x^2*y^2 < 1>",
+                  post="~(x <= -2 || y <= -1)",
+                  strengthened_posts={((), ()): "4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y) && x^2*y^2 == 1"},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"},
+                  wolfram_engine=True,
+                  print_vcs=True)
+
+    def nonlinearTestVerify7(self):
+    #   {(2+x)^2 + (-1+y)^2 <= 1/4}
+    #     t := 0;
+    #     <x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x+y), t_dot = 1 & t < 10>@invariant(x<y, x+y<0)
+    #   {~(x > 0)}
+        runVerify(self, pre="(2+x)^2 + (-1+y)^2 <= 1/4", 
+                  hp="t := 0; \
+                      <x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x + y), t_dot = 1 & t < 10>",
+                  post="~(x > 0)",
+                  ode_invariants={((1,), ()): "x < y && x + y < 0"},
+                  diff_cuts={((1,), (1,)): ["x < y"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1, 0)): "true",
+                                ((1,), (1, 1)): "true"})
 
 
 if __name__ == "__main__":
