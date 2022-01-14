@@ -77,6 +77,7 @@ def translate_action(c, is_tran_act=False):
                     return "send1 ''%s'' True" % c.args[0]
                 else:
                     return "send1 ''%s'' False" % c.args[0]
+            #The following two conditions are directed send
             elif len(args) == 2:
                 event,direct_name=args[0],args[1]
                 direct_name = '\'\', \'\''.join(str(direct_name).split('.'))
@@ -106,6 +107,7 @@ def translate_action(c, is_tran_act=False):
                     if i != (len(args)-1):
                         expr += "; "
                 return expr
+        #matlab functions and graphical fucntions
         else:
             f = c.func_name
             args = c.args
