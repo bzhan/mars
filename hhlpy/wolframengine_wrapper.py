@@ -1,5 +1,6 @@
-"""Wrapper for Wolfram Engine to solve ordinary differential equatiions."""
+"""Wrapper for Wolfram Engine."""
 
+from decimal import Decimal
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
 from wolframclient.language.expression import WLFunction, WLSymbol
@@ -8,6 +9,123 @@ from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import aexpr_parser
 
 path = "D:\Program Files\WolframEngine_13.0\wolframengine\MathKernel.exe"
+
+def toWLexpr(e):
+    """Convert a hcsp expression to WolframLanguage expression"""
+    if isinstance(e, expr.AVar):
+        return WLSymbol(e.name)
+    elif isinstance(e, expr.AConst):
+        if isinstance(e.value, int):
+            return e.value
+        else:
+            print(e, type(e))
+            raise NotImplementedError
+    elif isinstance(e, expr.FunExpr):
+        return WLFunction(WLSymbol(e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
+    elif isinstance(e, expr.BConst):
+        return WLSymbol(str(e.value))
+
+    elif isinstance(e, expr.OpExpr):
+        if e.op == '+':
+            return wl.Plus(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '-':
+            if len(e.exprs) == 1:
+                return wl.Minus(toWLexpr(e.exprs[0]))
+            else:
+                return wl.Subtract(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '*':
+            return wl.Times(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '/':
+            return wl.Divide(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '^':
+            return wl.Power(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        else:
+            raise NotImplementedError
+
+    elif isinstance(e, expr.RelExpr):
+        if e.op == '>':
+            return wl.Greater(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        elif e.op == '>=':
+            return wl.GreaterEqual(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        elif e.op == '<':
+            return wl.Less(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        elif e.op == '<=':
+            return wl.LessEqual(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        elif e.op == '==':
+            return wl.Equal(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        elif e.op == '!=':
+            return wl.Unequal(toWLexpr(e.expr1), toWLexpr(e.expr2))
+        else:
+            raise AssertionError
+
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '&&':
+            return wl.And(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '||':
+            return wl.Or(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op == '~':
+            return wl.Not(toWLexpr(e.exprs[0]))
+        elif e.op == '-->':
+            return wl.Implies(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        elif e.op =='<-->':
+            return wl.Equivalent(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
+        else:
+            raise AssertionError
+            
+    else:
+        raise NotImplementedError
+
+
+def toHcsp(e):
+    """
+    Translate a wlexpression to hcsp expression or program.
+    Example1:
+    wl: Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]
+    hcsp: y(x) := 1/2 * x^2 + C(1)
+
+    Example2:
+    wl: Rule[Global`x[Global`t], Times[Rational[1, 2], Plus[Times[Global`a, Power[Global`t, 2]], Times[2, Global`t, Global`v0], Times[2, Global`x0]]]])
+    hcsp: x(t) := 1/2 * (a * t^2 + 2 * v0 * t + 2 * x0)
+    
+    """
+    if isinstance(e, WLFunction):
+        if e.head == WLSymbol("Rule"):
+            assert len(e.args) == 2
+            return hcsp.Assign(toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Plus"):  # priority: 65
+            if len(e.args) == 2:
+                return expr.OpExpr('+', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.OpExpr('+', toHcsp(WLFunction(WLSymbol("Plus"), *e.args[:-1])),
+                                        toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Times"):  # priority: 70
+            if len(e.args) == 2:
+                return expr.OpExpr('*', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.OpExpr('*', toHcsp(WLFunction(WLSymbol("Times"), *e.args[:-1])),
+                                        toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Power"):  # priority: 85
+            assert len(e.args) == 2
+            return expr.OpExpr('^', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Rational"):  # priority: 85
+            assert len(e.args) == 2
+            return expr.OpExpr('/', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        else:
+            return expr.FunExpr(toHcsp(e.head), [toHcsp(arg) for arg in e.args])
+    elif isinstance(e, WLSymbol):
+        str_e = str(e)
+        if str_e.startswith("Global`"):
+            str_e = str_e[7:]
+        return expr.AVar(str_e)
+    elif isinstance(e, int):
+        return expr.AConst(e)
+    else:
+        assert False, "Unexpected expression: %s" % str(e)
+
 
 def solveODE(hp, names, time_var):
     """ Return the solution dictionary. 
@@ -104,58 +222,22 @@ def Ode2Wlexpr(hp, names, time_var):
 
     return wlexpr_eqn, init2var
 
-def toHcsp(e):
-    """
-    Translate a wlexpression to hcsp expression or program.
-    Example1:
-    wl: Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]
-    hcsp: y(x) := 1/2 * x^2 + C(1)
 
-    Example2:
-    wl: Rule[Global`x[Global`t], Times[Rational[1, 2], Plus[Times[Global`a, Power[Global`t, 2]], Times[2, Global`t, Global`v0], Times[2, Global`x0]]]])
-    hcsp: x(t) := 1/2 * (a * t^2 + 2 * v0 * t + 2 * x0)
-    
-    """
-    if isinstance(e, WLFunction):
-        if e.head == WLSymbol("Rule"):
-            assert len(e.args) == 2
-            return hcsp.Assign(toHcsp(e.args[0]), toHcsp(e.args[1]))
-        elif e.head == WLSymbol("Plus"):  # priority: 65
-            if len(e.args) == 2:
-                return expr.OpExpr('+', toHcsp(e.args[0]), toHcsp(e.args[1]))
-            elif len(e.args) > 2:
-                return expr.OpExpr('+', toHcsp(WLFunction(WLSymbol("Plus"), *e.args[:-1])),
-                                        toHcsp(e.args[-1]))
-            else:
-                raise AssertionError
-        elif e.head == WLSymbol("Times"):  # priority: 70
-            if len(e.args) == 2:
-                return expr.OpExpr('*', toHcsp(e.args[0]), toHcsp(e.args[1]))
-            elif len(e.args) > 2:
-                return expr.OpExpr('*', toHcsp(WLFunction(WLSymbol("Times"), *e.args[:-1])),
-                                        toHcsp(e.args[-1]))
-            else:
-                raise AssertionError
-        elif e.head == WLSymbol("Power"):  # priority: 85
-            assert len(e.args) == 2
-            return expr.OpExpr('^', toHcsp(e.args[0]), toHcsp(e.args[1]))
-        elif e.head == WLSymbol("Rational"):  # priority: 85
-            assert len(e.args) == 2
-            return expr.OpExpr('/', toHcsp(e.args[0]), toHcsp(e.args[1]))
+def wol_prove(e):
+    """Attempt to prove the given condition."""
+    if not isinstance(e, expr.BExpr):
+        raise NotImplementedError
+
+    # Compute the negation of the given condition. 
+    # If the negation is proved to be false, then the given condition is true.
+    wl_expr = toWLexpr(expr.LogicExpr('~', e))
+
+    with WolframLanguageSession(path) as session:
+        result = session.evaluate(wl.Reduce(wl_expr))
+        if str(result) == 'False':
+            return True
         else:
-            return expr.FunExpr(toHcsp(e.head), [toHcsp(arg) for arg in e.args])
-    elif isinstance(e, WLSymbol):
-        str_e = str(e)
-        if str_e.startswith("Global`"):
-            str_e = str_e[7:]
-        return expr.AVar(str_e)
-    elif isinstance(e, int):
-        return expr.AConst(e)
-    else:
-        assert False, "Unexpected expression: %s" % str(e)
-
-        
-
+            return False
 
     
 

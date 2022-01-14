@@ -17,7 +17,7 @@ class Channel:
     to be matched are indicated by variables.
 
     """
-    def __init__(self, name, args=None):
+    def __init__(self, name, args=None, meta=None):
         assert isinstance(name, str)
         if args is None:
             args = tuple()
@@ -27,6 +27,7 @@ class Channel:
 
         self.name = name
         self.args = args
+        self.meta = meta
 
     def __str__(self):
         def str_arg(arg):
@@ -221,11 +222,12 @@ class HCSP:
 
 
 class Var(HCSP):
-    def __init__(self, name):
+    def __init__(self, name, meta=None):
         super(Var, self).__init__()
         self.type = "var" 
         assert isinstance(name, str)
         self.name = name
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.name == other.name
@@ -244,9 +246,10 @@ class Var(HCSP):
 
 
 class Skip(HCSP):
-    def __init__(self):
+    def __init__(self, meta=None):
         super(Skip, self).__init__()
         self.type = "skip"
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type
@@ -262,11 +265,12 @@ class Skip(HCSP):
 
 
 class Wait(HCSP):
-    def __init__(self, delay):
+    def __init__(self, delay, meta=None):
         super(Wait, self).__init__()
         assert isinstance(delay, AExpr)
         self.type = "wait"
         self.delay = delay
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.delay == other.delay
@@ -292,7 +296,7 @@ class Assign(HCSP):
     variables, array indices, and field names.
 
     """
-    def __init__(self, var_name, expr):
+    def __init__(self, var_name, expr, meta=None):
         super(Assign, self).__init__()
         self.type = "assign"
         assert isinstance(expr, (AExpr, str, int))
@@ -307,6 +311,7 @@ class Assign(HCSP):
             assert len(var_name) >= 2 and all(isinstance(name, (str, AExpr)) for name in var_name)
             self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
@@ -358,7 +363,7 @@ class RandomAssign(HCSP):
     variables, array indices, and field names.
 
     """
-    def __init__(self, var_name, expr):
+    def __init__(self, var_name, expr, meta=None):
         super(RandomAssign, self).__init__()
         self.type = "randomassign"
         assert isinstance(expr, BExpr)
@@ -373,6 +378,7 @@ class RandomAssign(HCSP):
             assert len(var_name) <= 2 and all (isinstance(name, (str, AExpr))for name in var_name)
             self.var_name = [AVar(n) if isinstance(n, str) else n for n in var_name]
         self.expr = expr
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.var_name == other.var_name and self.expr == other.expr
@@ -410,7 +416,7 @@ class RandomAssign(HCSP):
         return 100
 
 class Assert(HCSP):
-    def __init__(self, bexpr, msgs):
+    def __init__(self, bexpr, msgs, meta=None):
         super(Assert, self).__init__()
         self.type = "assert"
         assert isinstance(bexpr, BExpr)
@@ -418,6 +424,7 @@ class Assert(HCSP):
         msgs = tuple(msgs)
         assert all(isinstance(msg, AExpr) for msg in msgs)
         self.msgs = msgs
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
@@ -451,7 +458,7 @@ class Assert(HCSP):
 
 
 class Test(HCSP):
-    def __init__(self, bexpr, msgs):
+    def __init__(self, bexpr, msgs, meta=None):
         super(Test, self).__init__()
         self.type = "test"
         assert isinstance(bexpr, BExpr)
@@ -459,6 +466,7 @@ class Test(HCSP):
         msgs = tuple(msgs)
         assert all(isinstance(msg, AExpr) for msg in msgs)
         self.msgs = msgs
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.bexpr == other.bexpr and self.msgs == other.msgs
@@ -492,7 +500,7 @@ class Test(HCSP):
 
 
 class Log(HCSP):
-    def __init__(self, pattern, *, exprs=None):
+    def __init__(self, pattern, *, exprs=None, meta=None):
         super(Log, self).__init__()
         self.type = "log"
         assert isinstance(pattern, AExpr)
@@ -503,6 +511,7 @@ class Log(HCSP):
             exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.pattern == other.pattern and self.exprs == other.exprs
@@ -535,7 +544,7 @@ class Log(HCSP):
         return fun_set
     
 class InputChannel(HCSP):
-    def __init__(self, ch_name, var_name=None):
+    def __init__(self, ch_name, var_name=None, meta=None):
         super(InputChannel, self).__init__()
         self.type = "input_channel"
         if isinstance(ch_name, str):
@@ -546,6 +555,7 @@ class InputChannel(HCSP):
         assert var_name is None or isinstance(var_name, AExpr)
         self.ch_name = ch_name  # Channel
         self.var_name = var_name  # AExpr or None
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.ch_name == other.ch_name and \
@@ -602,7 +612,7 @@ class ParaInputChannel(InputChannel):
 
 
 class OutputChannel(HCSP):
-    def __init__(self, ch_name, expr=None):
+    def __init__(self, ch_name, expr=None, meta=None):
         super(OutputChannel, self).__init__()
         self.type = "output_channel"
         if isinstance(ch_name, str):
@@ -611,6 +621,7 @@ class OutputChannel(HCSP):
         assert expr is None or isinstance(expr, AExpr)
         self.ch_name = ch_name  # Channel
         self.expr = expr  # AExpr or None
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.expr == other.expr and self.ch_name == other.ch_name
@@ -672,7 +683,7 @@ def is_comm_channel(hp):
 
 
 class Sequence(HCSP):
-    def __init__(self, *hps):
+    def __init__(self, *hps, meta=None):
         """hps is a list of hybrid programs."""
         super(Sequence, self).__init__()
         self.type = "sequence"
@@ -685,6 +696,7 @@ class Sequence(HCSP):
             else:
                 self.hps.append(hp)
         self.hps = tuple(self.hps)
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
@@ -743,12 +755,13 @@ def seq(hps):
 
 class IChoice(HCSP):
     """Represents internal choice of the form P ++ Q."""
-    def __init__(self, hp1, hp2):
+    def __init__(self, hp1, hp2, meta=None):
         super(IChoice, self).__init__()
         self.type = "ichoice"
         assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
         self.hp1 = hp1
         self.hp2 = hp2
+        self.meta = meta
 
     def __eq__(self, other):
         return self.hp1 == other.hp1 and self.hp2 == other.hp2
@@ -775,7 +788,7 @@ class ODE(HCSP):
     <F(s',s) = 0 & B> |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip()):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -794,6 +807,7 @@ class ODE(HCSP):
         self.eqs = eqs  # list of tuples (string, AExpr)
         self.constraint = constraint  # BExpr
         self.out_hp = out_hp  # None or hcsp
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.eqs == other.eqs and \
@@ -841,7 +855,7 @@ class ODE_Comm(HCSP):
     <F(s',s) = 0 & B> |> [] (io_i --> Q_i)
 
     """
-    def __init__(self, eqs, constraint, io_comms):
+    def __init__(self, eqs, constraint, io_comms, meta=None):
         """Each equation is of the form (var_name, expr). Each element
         of io_comms is of the form (comm_hp, out_hp), where comm_hp
         is a communication process (either InputChannel or OutputChannel).
@@ -864,6 +878,7 @@ class ODE_Comm(HCSP):
         self.eqs = eqs  # list
         self.constraint = constraint  # BExpr
         self.io_comms = io_comms  # list
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.eqs == other.eqs and \
@@ -928,13 +943,14 @@ class Loop(HCSP):
     inv : BExpr - invariant
 
     """
-    def __init__(self, hp, *, inv=None, constraint=true_expr):
+    def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.hp == other.hp and \
@@ -974,12 +990,13 @@ class Condition(HCSP):
     it terminates immediately.
      
     """
-    def __init__(self, cond, hp):
+    def __init__(self, cond, hp, meta=None):
         super(Condition, self).__init__()
         assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
         self.type = "condition"
         self.cond = cond
         self.hp = hp
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.cond == other.cond and self.hp == other.hp
@@ -1011,7 +1028,7 @@ class Condition(HCSP):
 
 
 class Parallel(HCSP):
-    def __init__(self, *hps):
+    def __init__(self, *hps, meta=None):
         """hps is a list of hybrid programs."""
         super(Parallel, self).__init__()
         self.type = "parallel"
@@ -1025,6 +1042,7 @@ class Parallel(HCSP):
             else:
                 self.hps.append(hp)
         self.hps = tuple(self.hps)
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.hps == other.hps
@@ -1065,7 +1083,7 @@ class Parallel(HCSP):
 
 
 class SelectComm(HCSP):
-    def __init__(self, *io_comms):
+    def __init__(self, *io_comms, meta=None):
         """io_comms is a list of pairs, where the first element of each
         pair must be a communication, and the second entry can be
         any program.
@@ -1078,6 +1096,7 @@ class SelectComm(HCSP):
         assert all(is_comm_channel(comm_hp) and isinstance(out_hp, HCSP)
                    for comm_hp, out_hp in io_comms)
         self.io_comms = tuple(io_comms)
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.io_comms == other.io_comms
@@ -1122,12 +1141,13 @@ class SelectComm(HCSP):
 
 
 class Recursion(HCSP):
-    def __init__(self, hp, entry="X"):
+    def __init__(self, hp, entry="X", meta=None):
         super(Recursion, self).__init__()
         assert isinstance(entry, str) and isinstance(hp, HCSP)
         self.type = "recursion"
         self.entry = entry
         self.hp = hp
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.entry == other.entry and self.hp == other.hp
@@ -1152,7 +1172,7 @@ class Recursion(HCSP):
 
 
 class ITE(HCSP):
-    def __init__(self, if_hps, else_hp=None):
+    def __init__(self, if_hps, else_hp=None, meta=None):
         """if-then-else statements.
 
         if_hps : List[Tuple[BExpr, HCSP]] - list of condition-program pairs.
@@ -1173,6 +1193,7 @@ class ITE(HCSP):
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
+        self.meta = meta
 
     def __eq__(self, other):
         return self.type == other.type and self.if_hps == other.if_hps and self.else_hp == other.else_hp
@@ -1271,12 +1292,13 @@ def get_comm_chs(hp):
 
 class Procedure:
     """Declared procedure within a process."""
-    def __init__(self, name, hp):
+    def __init__(self, name, hp, meta=None):
         self.name = name
         if isinstance(hp, str):
             from ss2hcsp.hcsp.parser import hp_parser
             hp = hp_parser.parse(hp)
         self.hp = hp
+        self.meta = meta
 
     def __eq__(self, other):
         return self.name == other.name and self.hp == other.hp
