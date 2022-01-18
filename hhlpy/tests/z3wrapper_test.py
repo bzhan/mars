@@ -13,6 +13,8 @@ class Z3WrapperTest(unittest.TestCase):
             "x >= 1 --> x + 1 >= 1",
             "x >= 1 --> x + 1 >= 1 && x >= 1",
             "x >= 0 --> x + 1 >= 1 || x >= 1",
+            "ForAll x. x^2 >= 0",
+            "ForAll {x, y}. x^2 + y^2 >= 0"
         ]
 
         for e in test_case:

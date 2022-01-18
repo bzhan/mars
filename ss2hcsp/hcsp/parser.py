@@ -66,9 +66,11 @@ grammar = r"""
     ?imp: disj "-->" imp | disj                  // Implies: priority 25
 
     ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
+        | "EX" "{" CNAME "," CNAME ("," CNAME)* "}" "." imp
         | imp
 
     ?forall_expr: "ForAll" CNAME "." imp
+        | "ForAll" "{" CNAME "," CNAME ("," CNAME)* "}" "." imp
 
     ?cond: exists_expr | forall_expr
 
@@ -212,11 +214,23 @@ class HPTransformer(Transformer):
     def if_expr(self, meta, cond, e1, e2):
         return expr.IfExpr(cond, e1, e2, meta=meta)
 
-    def exists_expr(self, meta, var, e):
-        return expr.ExistsExpr(str(var), e, meta=meta)
+    def exists_expr(self, meta, *args):
+        # The last arg is the expression, other args are variables.
+        assert len(args) >= 2
+        e = args[-1]
+        if len(args) == 2:
+            return expr.ExistsExpr(str(args[0]), e, meta=meta)
+        else:
+            return expr.ExistsExpr(list(str(arg) for arg in args[:-1]), e, meta=meta)
 
-    def forall_expr(self, meta, var, e):
-        return expr.ForAllExpr(str(var), e, meta=meta)
+    def forall_expr(self, meta, *args):
+        # The last arg is the expression, other args are variables.
+        assert len(args) >= 2
+        e = args[-1]
+        if len(args) == 2:
+            return expr.ForAllExpr(str(args[0]), e, meta=meta)
+        else:
+            return expr.ForAllExpr(list(str(arg) for arg in args[:-1]), e, meta=meta)
 
     def plus_expr(self, meta, e1, e2):
         return expr.OpExpr("+", e1, e2, meta=meta)
