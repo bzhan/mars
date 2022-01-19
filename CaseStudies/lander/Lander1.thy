@@ -99,7 +99,19 @@ apply clarify
     done
   apply(rule Valid_weaken_pre)
    prefer 2
-   apply(rule Valid_inv_barrier_s_tr_le)
+   apply (rule DC'[where init= "\<lambda> s. landerInv s \<le> 0 \<and> s T = 0" and c = "\<lambda> s. s T \<ge> 0"])
+    apply(rule Valid_weaken_pre)
+ prefer 2
+     apply(rule Valid_inv_s_tr_ge)
+      apply clarify
+      apply(simp add:vec2state_def)
+      apply (fast intro!: derivative_intros)
+  subgoal
+    by(auto simp add:state2vec_def)
+    prefer 2
+apply(rule Valid_weaken_pre)
+ prefer 2
+  apply(rule Valid_inv_barrier_s_tr_le)
 apply clarify
        apply(simp add:vec2state_def landerInv_def landerinv_def)
     apply (fast intro!: derivative_intros)
