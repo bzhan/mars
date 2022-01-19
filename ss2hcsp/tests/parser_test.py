@@ -4,7 +4,8 @@ import unittest
 
 from ss2hcsp.hcsp.hcsp import HCSPInfo, Procedure
 from ss2hcsp.hcsp import module
-from ss2hcsp.hcsp.parser import hp_parser, module_parser, parse_file, parse_module_file
+from ss2hcsp.hcsp.parser import hp_parser, module_parser, parse_file, parse_module_file, \
+                                bexpr_parser
 
 
 class ParserTest(unittest.TestCase):
@@ -128,6 +129,15 @@ class ParserTest(unittest.TestCase):
             "P0", "x := 0; @incr; @incr; ch!x",
             procedures=[Procedure("incr", "x := x+1")],
         ))
+
+    def testQuantifierExpr(self):
+        exprs = [bexpr_parser.parse("ForAll x. x != 0 --> 1/x != 0"),
+                 bexpr_parser.parse("ForAll {x, y}. x^2 + y^2 >= 0"),
+                 bexpr_parser.parse("EX x. x > 0 --> x * y^2 == 1"),
+                 bexpr_parser.parse("EX {x, y}. x^2 + y^2 == 0")]
+
+        for expr in exprs:
+            print(expr)         
 
 
 if __name__ == "__main__":

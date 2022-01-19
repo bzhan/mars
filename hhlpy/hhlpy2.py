@@ -451,6 +451,8 @@ class CmdVerifier:
             self.compute_wp(pos=pos0)
             self.compute_wp(pos=pos1)
             pre = expr.conj(self.infos[pos0].pre, self.infos[pos1].pre)
+            # if self.infos[pos].split:
+            #     pre = expr.split_conj(pre)
         
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
@@ -1039,6 +1041,13 @@ class CmdVerifier:
         if self.infos[pos].pre is None:
             self.infos[pos].pre = pre
         else:
+            # if self.infos[pos].split == True:
+            #     assert isinstance(pre, expr.LogicExpr) and pre.op == '&&', \
+            #         "Unexpected expression type: %s" % type(pre)
+            #     sub_pres = expr.split_conj(pre)
+            #     self.infos[pos].vcs += list(expr.imp(self.infos[pos].pre, sub_pre) \
+            #                                     for sub_pre in sub_pres)
+            # else:
             self.infos[pos].vcs.append(expr.imp(self.infos[pos].pre, pre))
 
         # Add assume into the hypothesis of every verification condition.
