@@ -704,7 +704,7 @@ definition landerode :: "var \<Rightarrow> exp" where
 
 lemma landerode_prop:
  assumes "\<forall>x. ((\<lambda>v. landerInv (vec2state v)) has_derivative g' (x)) (at x within UNIV)"
-    and "\<forall>S. (S T < Period)\<longrightarrow> ((landerInv S = 0) \<longrightarrow> 
+    and "\<forall>S. (S T \<le> Period)\<longrightarrow> (S T \<ge> 0)\<longrightarrow>((landerInv S = 0) \<longrightarrow> 
        g' (state2vec S) (ODE2Vec (ODE landerode) S) < 0)"
     and "(ODEsol(ODE landerode))  (p) (Period)"
     and "p 0  = (\<lambda>_. 0)(V := v1, W := w1)"
@@ -816,7 +816,9 @@ next
        apply(simp add:vec2state_def landerInv_def landerinv_def)
               apply (fast intro!: derivative_intros)
              apply(auto simp add:state2vec_def entails_def landerInv_def landerinv_def)
-          subgoal for S sorry
+          subgoal for S 
+            apply (auto simp add: landerode_def)
+            sorry
           using pre2(2) apply(simp add: landerode_def)
           using pre2(3) apply simp
           using suc(2) 
