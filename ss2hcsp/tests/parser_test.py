@@ -134,10 +134,19 @@ class ParserTest(unittest.TestCase):
         exprs = [bexpr_parser.parse("ForAll x. x != 0 --> 1/x != 0"),
                  bexpr_parser.parse("ForAll {x, y}. x^2 + y^2 >= 0"),
                  bexpr_parser.parse("EX x. x > 0 --> x * y^2 == 1"),
-                 bexpr_parser.parse("EX {x, y}. x^2 + y^2 == 0")]
+                 bexpr_parser.parse("EX {x, y}. x^2 + y^2 == 0"),
+                 bexpr_parser.parse("ForAll x. EX y. x > 0 --> x * y^2 == 1"),
+                 bexpr_parser.parse("EX y. ForAll x. x > 0 --> x * y^2 == 1"),
+                 bexpr_parser.parse("ForAll x. ForAll y. x^2 + y^2 >= 0")]
 
         for expr in exprs:
-            print(expr)         
+            print(expr) 
+
+    def testNotExpr(self):
+        exprs = [bexpr_parser.parse("~(x >= 0)")]
+
+        for expr in exprs:
+            print(expr)      
 
 
 if __name__ == "__main__":

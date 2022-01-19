@@ -73,13 +73,16 @@ def toWLexpr(e):
             return wl.Equivalent(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
         else:
             raise AssertionError
-
-    elif isinstance(e, expr.ListExpr):
-        return wl.List(toWLexpr(arg) for arg in e.args)
     elif isinstance(e, expr.ForAllExpr):
-        return wl.ForAll(toWLexpr(e.vars), toWLexpr(e.expr))
+        if isinstance(e.vars, tuple):
+            return wl.Forall(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
+        else:
+            return wl.ForAll(toWLexpr(e.vars), toWLexpr(e.expr))
     elif isinstance(e, expr.ExistsExpr):
-        return wl.Exists(toWLexpr(e.vars), toWLexpr(e.expr))
+        if isinstance(e.vars, tuple):
+            return wl.Exists(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
+        else:
+            return wl.Exists(toWLexpr(e.vars), toWLexpr(e.expr))
     else:
         raise NotImplementedError
 

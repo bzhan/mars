@@ -536,7 +536,7 @@ class LogicExpr(BExpr):
         elif self.op == '||':
             return 30
         elif self.op == '~':
-            return 50
+            return 80
         else:
             raise NotImplementedError
 
@@ -664,8 +664,8 @@ class ExistsExpr(BExpr):
             vars = AVar(vars)
         elif isinstance(vars, list):
             assert all(isinstance(var, str) for var in vars)
-            vars = ListExpr(*list(AVar(var) for var in vars))
-        assert isinstance(vars, (AVar, ListExpr))
+            vars = tuple(AVar(var) for var in vars)
+        assert isinstance(vars, (AVar, tuple))
         self.vars = vars
         self.expr = expr
         self.meta = meta
@@ -674,13 +674,13 @@ class ExistsExpr(BExpr):
         if isinstance(self.vars, AVar):
             return "ExistsExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
         else:
-            return "ExistsExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars.args)), repr(self.expr))
+            return "ExistsExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
         if isinstance(self.vars, AVar):
             return "EX %s. %s" % (str(self.vars), str(self.expr))
         else:
-            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars.args)), str(self.expr))
+            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
@@ -712,8 +712,8 @@ class ForAllExpr(BExpr):
             vars = AVar(vars)
         elif isinstance(vars, list):
             assert all(isinstance(var, str) for var in vars)
-            vars = ListExpr(*list(AVar(var) for var in vars))
-        assert isinstance(vars, (AVar, ListExpr))
+            vars = tuple(AVar(var) for var in vars)
+        assert isinstance(vars, (AVar, tuple))
         self.vars = vars
         self.expr = expr
         self.meta = meta
@@ -722,13 +722,13 @@ class ForAllExpr(BExpr):
         if isinstance(self.vars, AVar):
             return "ForAllExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
         else:
-            return "ForAllExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars.args)), repr(self.expr))
+            return "ForAllExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
         if isinstance(self.vars, AVar):
             return "ForAll %s. %s" % (str(self.vars), str(self.expr))
         else:
-            return "ForAll {%s}. %s" % ((', '.join(str(var) for var in self.vars.args)), str(self.expr))
+            return "ForAll {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.

@@ -67,12 +67,16 @@ def convert(e):
         else:
             raise NotImplementedError
     
-    elif isinstance(e, expr.ListExpr):
-        return list(convert(arg) for arg in e.args)
     elif isinstance(e, expr.ExistsExpr):
-        return z3.Exists(convert(e.vars), convert(e.expr))
+        if isinstance(e.vars, tuple):
+            return z3.Exists(list(convert(var) for var in e.vars), convert(e.expr))
+        else:
+            return z3.Exists(convert(e.vars), convert(e.expr))
     elif isinstance(e, expr.ForAllExpr):
-        return z3.ForAll(convert(e.vars), convert(e.expr))
+        if isinstance(e.vars, tuple):
+            return z3.ForAll(list(convert(var) for var in e.vars), convert(e.expr))
+        else:
+            return z3.ForAll(convert(e.vars), convert(e.expr))
     else:
         print(e, type(e))
         raise NotImplementedError
