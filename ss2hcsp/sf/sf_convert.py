@@ -202,11 +202,15 @@ class SFConvert:
         """Returns the command for raising the given event."""
         if isinstance(event, function.BroadcastEvent):
             # Raise broadcast event
-            return hcsp.seq([
-                hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
-                hcsp.Var(self.exec_name()),
-                hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
-            ])
+            if self.events[str(event)].scope == "OUTPUT_EVENT" and self.events[str(event)].trigger == "FUNCTION_CALL_EVENT":
+                if self.has_signal:
+                    return  hcsp.seq([hcsp.InputChannel("start_fun_trigger" + self.chart.name),hcsp.InputChannel("end_fun_trigger" + self.chart.name)])
+            else:
+                return hcsp.seq([
+                    hcsp.Assign("EL", expr.FunExpr("push", [expr.AVar("EL"), expr.AConst(event.name)])),
+                    hcsp.Var(self.exec_name()),
+                    hcsp.Assign("EL", expr.FunExpr("pop", [expr.AVar("EL")]))
+                ])
 
         elif isinstance(event, function.DirectedEvent):
             # First, find the innermost state name and event
@@ -891,13 +895,19 @@ class SFConvert:
     def exec_name(self):
         return "exec_" + self.chart.name
 
+    def is_has_functon_call_event(self):
+        for _, e in self.events.items():
+            if e.scope == "OUTPUT_EVENT" and e.trigger =="FUNCTION_CALL_EVENT":
+                return True
+        return False
     def get_init_proc(self):
         """Initialization procedure."""
         procs = []
 
         # Start signal
-        if self.has_signal:
-            procs.append(hcsp.InputChannel("start_" + self.chart.name))
+        if not self.is_has_functon_call_event():
+            if self.has_signal:
+                procs.append(hcsp.InputChannel("start_" + self.chart.name))
 
         # Initialize event stack
         procs.append(hcsp.Assign("EL", expr.ListExpr()))
@@ -957,10 +967,13 @@ class SFConvert:
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
 
         procs.extend(self.get_output_data())
+
         # End signal
-        if self.has_signal:
-            procs.append(hcsp.InputChannel("end_" + self.chart.name))
-        
+        if not self.is_has_functon_call_event():
+            if self.has_signal:
+                procs.append(hcsp.InputChannel("end_" + self.chart.name))
+        if self.is_has_functon_call_event():
+            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         return hcsp.seq(procs)
 
@@ -1010,8 +1023,9 @@ class SFConvert:
         procs = []
 
         # Start signal
-        if self.has_signal:
-            procs.append(hcsp.InputChannel("start_" + self.chart.name))
+        if not self.is_has_functon_call_event():
+            if self.has_signal:
+                procs.append(hcsp.InputChannel("start_" + self.chart.name))
         for n,e in  self.events.items():
             if e.scope == "INPUT_EVENT" and e.trigger =="EITHER_EDGE_EVENT":
                 procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
@@ -1036,15 +1050,17 @@ class SFConvert:
                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
 
         # End signal
-        if self.has_signal:
-            procs.append(hcsp.InputChannel("end_" + self.chart.name))
+        if not self.is_has_functon_call_event():
+            if self.has_signal:
+                procs.append(hcsp.InputChannel("end_" + self.chart.name))
         
         
         # Wait the given sample time
         if self.ode_map:
             procs.append(self.get_ode(self.chart.diagram, cur_states=[], cur_eqs=[]))
         else:
-            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
+            if self.chart.trigger_type != "function-call":
+                procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
         
         # Update counter for absolute time events
         for ssid in self.absolute_time_events:
@@ -1100,8 +1116,10 @@ def get_execute_order(charts):
     ch_name_in = dict()
     # Mapping from channel name to output chart
     ch_name_out = dict()
-    
+    is_trigger_chart=False
     for chart in charts:
+        if chart.trigger_type is not None:
+            is_trigger_chart = True
         for port_id, in_var in chart.port_to_in_var.items():
             line = chart.dest_lines[port_id]
             ch_name = "ch_" + line.name + "_" + str(line.branch)
@@ -1122,7 +1140,7 @@ def get_execute_order(charts):
             shared_chans.append(chan)
             chart_in, chart_out = ch_name_in[chan], ch_name_out[chan]
             edges[chart_out].add(chart_in)
-    
+   
     # Finally, compute the ordering of charts
     chart_order = []
     def rec(chart_name):
@@ -1130,6 +1148,8 @@ def get_execute_order(charts):
             chart_order.append(chart_name)
             for dest in sorted(edges[chart_name]):
                 rec(dest)
+
+    
 
     while True:
         # In each iteration, let the starting chart be the one that has
@@ -1148,7 +1168,20 @@ def get_execute_order(charts):
         if len(chart_order) == len(edges):
             break
 
-    return shared_chans, chart_order
+    chart_order1 = []
+    for order in chart_order:
+        for chart in charts:
+            if chart.name == order and chart.trigger_type is not None:
+                if chart.trigger_type == "function-call":
+                    chart_order1.append("fun_trigger"+chart_order[chart_order.index(order)-1])
+                else:
+                    chart_order1.append("edge_trigger"+chart_order[chart_order.index(order)-1])
+                chart_order1.append(order)
+       
+    if is_trigger_chart:        
+        return shared_chans, chart_order1
+    else:
+        return shared_chans, chart_order
 
 def get_control_proc(chart_order):
     procs = []

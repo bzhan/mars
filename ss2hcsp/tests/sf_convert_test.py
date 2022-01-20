@@ -619,6 +619,18 @@ class SFConvertTest(unittest.TestCase):
              'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
              'log edu_Running 4.000 0.000', 'delay 0.1'])
 
+    def testFunction_call(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/trigger_subsystem/fuc_call_inputEvent_enabling_chart_example.xml",15,
+            ['log en_chart1', 'log en_chart2', 'delay 0.1', 'log du_chart1', 'log du_chart2', 'delay 0.1',
+             'log du_chart1', 'log du_chart2', 'delay 0.1'],io_filter=io_filter,print_res=True)
+    def testFunction_call_mul(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_eg.xml",18,
+            ['log en_ENTRY', 'delay 0.1', 'log en_A', 'log en_AA', 'log du_AA', 'log du_AA',
+             'log du_AA', 'delay 0.1'],io_filter=io_filter,print_res=True)
+    
+
 
 if __name__ == "__main__":
     unittest.main()
