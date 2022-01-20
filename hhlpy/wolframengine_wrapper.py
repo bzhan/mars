@@ -17,6 +17,8 @@ def toWLexpr(e):
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, int):
             return e.value
+        elif isinstance(e.value, Decimal):
+            return wl.Rationalize(e.value)
         else:
             print(e, type(e))
             raise NotImplementedError
@@ -71,7 +73,16 @@ def toWLexpr(e):
             return wl.Equivalent(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
         else:
             raise AssertionError
-            
+    elif isinstance(e, expr.ForAllExpr):
+        if isinstance(e.vars, tuple):
+            return wl.Forall(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
+        else:
+            return wl.ForAll(toWLexpr(e.vars), toWLexpr(e.expr))
+    elif isinstance(e, expr.ExistsExpr):
+        if isinstance(e.vars, tuple):
+            return wl.Exists(wl.List(toWLexpr(var) for var in e.vars), toWLexpr(e.expr))
+        else:
+            return wl.Exists(toWLexpr(e.vars), toWLexpr(e.expr))
     else:
         raise NotImplementedError
 
@@ -228,13 +239,11 @@ def wol_prove(e):
     if not isinstance(e, expr.BExpr):
         raise NotImplementedError
 
-    # Compute the negation of the given condition. 
-    # If the negation is proved to be false, then the given condition is true.
-    wl_expr = toWLexpr(expr.LogicExpr('~', e))
+    wl_expr = toWLexpr(e)
 
     with WolframLanguageSession(path) as session:
-        result = session.evaluate(wl.Reduce(wl_expr))
-        if str(result) == 'False':
+        result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
+        if str(result) == 'True':
             return True
         else:
             return False

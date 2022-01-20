@@ -733,9 +733,10 @@ class SL_Diagram:
                     assert len(triggers) <= 1
                     if triggers:  # it is a triggered stateflow chart
                         trigger_type = get_attribute_value(triggers[0], "TriggerType")
+                        
                         if not trigger_type:
                             trigger_type = "rising"
-                        assert trigger_type in ["rising", "falling", "either"]
+                        assert trigger_type in ["rising", "falling", "either","function-call"]
                         stateflow.trigger_type = trigger_type
                         stateflow.num_dest += 1
                         stateflow.dest_lines.append(None)
@@ -757,6 +758,8 @@ class SL_Diagram:
                                             event_trigger = "falling"
                                         elif event_trigger == "EITHER_EDGE_EVENT":
                                             event_trigger = "either"
+                                        elif event_trigger == "FUNCTION_CALL_EVENT":
+                                            event_trigger = "function-call"
                                         else:
                                             raise RuntimeError("Not implemented yet")
                                         stateflow.input_events.append((event_trigger, event_name))

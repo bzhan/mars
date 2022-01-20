@@ -48,29 +48,34 @@ grammar = r"""
 
     ?expr: if_expr
 
-    ?atom_cond: expr "==" expr -> eq_cond                  // priority 50
+    ?atom_cond: "true" -> true_cond
+        | "false" -> false_cond
+        | "(" cond ")"
+    
+    ?neg_cond: "~" neg_cond -> not_cond          // priority 80
+        | atom_cond
+
+    ?rel_cond: expr "==" expr -> eq_cond         // priority 50
         | expr "!=" expr -> ineq_cond
         | expr "<=" expr -> less_eq_cond
         | expr "<" expr -> less_cond
         | expr ">=" expr -> greater_eq_cond
         | expr ">" expr -> greater_cond
-        | "~" cond -> not_cond
-        | "true" -> true_cond
-        | "false" -> false_cond
-        | "(" cond ")"
-    
-    ?conj: atom_cond "&&" conj | atom_cond       // Conjunction: priority 35
+        | neg_cond
+
+    ?conj: rel_cond "&&" conj | rel_cond         // Conjunction: priority 35
 
     ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 
     ?imp: disj "-->" imp | disj                  // Implies: priority 25
 
-    ?exists_expr: "EX" CNAME "." imp             // Exists: priority 10
+    ?quant: "EX" CNAME "." quant                         -> exists_expr  // priority 10
+        | "EX" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
+        | "ForAll" CNAME "." quant                       -> forall_expr
+        | "ForAll" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
         | imp
 
-    ?forall_expr: "ForAll" CNAME "." imp
-
-    ?cond: exists_expr | forall_expr
+    ?cond: quant
 
     ?comm_cmd: CNAME "?" lname -> input_cmd
         | CNAME "[" expr "]" "?" lname -> input_cmd
@@ -212,11 +217,23 @@ class HPTransformer(Transformer):
     def if_expr(self, meta, cond, e1, e2):
         return expr.IfExpr(cond, e1, e2, meta=meta)
 
-    def exists_expr(self, meta, var, e):
-        return expr.ExistsExpr(str(var), e, meta=meta)
+    def exists_expr(self, meta, *args):
+        # The last arg is the expression, other args are variables.
+        assert len(args) >= 2
+        e = args[-1]
+        if len(args) == 2:
+            return expr.ExistsExpr(str(args[0]), e, meta=meta)
+        else:
+            return expr.ExistsExpr(list(str(arg) for arg in args[:-1]), e, meta=meta)
 
-    def forall_expr(self, meta, var, e):
-        return expr.ForAllExpr(str(var), e, meta=meta)
+    def forall_expr(self, meta, *args):
+        # The last arg is the expression, other args are variables.
+        assert len(args) >= 2
+        e = args[-1]
+        if len(args) == 2:
+            return expr.ForAllExpr(str(args[0]), e, meta=meta)
+        else:
+            return expr.ForAllExpr(list(str(arg) for arg in args[:-1]), e, meta=meta)
 
     def plus_expr(self, meta, e1, e2):
         return expr.OpExpr("+", e1, e2, meta=meta)

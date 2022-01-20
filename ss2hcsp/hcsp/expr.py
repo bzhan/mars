@@ -169,7 +169,10 @@ class OpExpr(AExpr):
                 s1 = '(' + s1 + ')'
             if self.exprs[1].priority() <= self.priority():
                 s2 = '(' + s2 + ')'
-            return s1 + ' ' + self.op + ' ' + s2
+            if self.op == '^':
+                return s1 + self.op + s2
+            else:
+                return s1 + ' ' + self.op + ' ' + s2
 
     def __eq__(self, other):
         return isinstance(other, OpExpr) and self.op == other.op and self.exprs == other.exprs
@@ -533,7 +536,7 @@ class LogicExpr(BExpr):
         elif self.op == '||':
             return 30
         elif self.op == '~':
-            return 50
+            return 80
         else:
             raise NotImplementedError
 
@@ -655,24 +658,36 @@ class RelExpr(BExpr):
 
 class ExistsExpr(BExpr):
     """Exists expressions"""
-    def __init__(self, var, expr, meta=None):
-        assert isinstance(var, str) and isinstance(expr, BExpr)
-        self.var = var
+    def __init__(self, vars, expr, meta=None):
+        assert isinstance(expr, BExpr)
+        if isinstance(vars, str):
+            vars = AVar(vars)
+        elif isinstance(vars, list):
+            assert all(isinstance(var, str) for var in vars)
+            vars = tuple(AVar(var) for var in vars)
+        assert isinstance(vars, (AVar, tuple))
+        self.vars = vars
         self.expr = expr
         self.meta = meta
 
     def __repr__(self):
-        return "ExistsExpr(%s, %s)" % (repr(self.var), repr(self.expr))
+        if isinstance(self.vars, AVar):
+            return "ExistsExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
+        else:
+            return "ExistsExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
-        return "EX %s. %s" % (str(self.var), str(self.expr))
+        if isinstance(self.vars, AVar):
+            return "EX %s. %s" % (str(self.vars), str(self.expr))
+        else:
+            return "EX {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
-        return isinstance(other, ExistsExpr) and self.var == other.var and self.expr == other.expr
+        return isinstance(other, ExistsExpr) and self.vars == other.vars and self.expr == other.expr
 
     def __hash__(self):
-        return hash(("Exists", self.var, self.expr))
+        return hash(("Exists", self.vars, self.expr))
 
     def priority(self):
         return 10
@@ -686,29 +701,41 @@ class ExistsExpr(BExpr):
 
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.var not in inst
-        return ExistsExpr(self.var, self.expr.subst(inst))
+        assert self.vars not in inst
+        return ExistsExpr(self.vars, self.expr.subst(inst))
 
 class ForAllExpr(BExpr):
     """ForAll expressions"""
-    def __init__(self, var, expr, meta=None):
-        assert isinstance(var, str) and isinstance(expr, BExpr)
-        self.var = var
+    def __init__(self, vars, expr, meta=None):
+        assert isinstance(expr, BExpr)
+        if isinstance(vars, str):
+            vars = AVar(vars)
+        elif isinstance(vars, list):
+            assert all(isinstance(var, str) for var in vars)
+            vars = tuple(AVar(var) for var in vars)
+        assert isinstance(vars, (AVar, tuple))
+        self.vars = vars
         self.expr = expr
         self.meta = meta
 
     def __repr__(self):
-        return "ForAllExpr(%s, %s)" % (repr(self.var), repr(self.expr))
+        if isinstance(self.vars, AVar):
+            return "ForAllExpr(%s, %s)" % (repr(self.vars), repr(self.expr))
+        else:
+            return "ForAllExpr({%s}, %s)" % ((', '.join(repr(var) for var in self.vars)), repr(self.expr))
 
     def __str__(self):
-        return "ForAll %s. %s" % (str(self.var), str(self.expr))
+        if isinstance(self.vars, AVar):
+            return "ForAll %s. %s" % (str(self.vars), str(self.expr))
+        else:
+            return "ForAll {%s}. %s" % ((', '.join(str(var) for var in self.vars)), str(self.expr))
 
     def __eq__(self, other):
         # Currently does not consider alpha equivalence.
-        return isinstance(other, ForAllExpr) and self.var == other.var and self.expr == other.expr
+        return isinstance(other, ForAllExpr) and self.vars == other.vars and self.expr == other.expr
 
     def __hash__(self):
-        return hash(("ForAll", self.var, self.expr))
+        return hash(("ForAll", self.vars, self.expr))
 
     def priority(self):
         return 10
@@ -722,8 +749,8 @@ class ForAllExpr(BExpr):
     
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
-        assert self.var not in inst
-        return ForAllExpr(self.var, self.expr.subst(inst))
+        assert self.vars not in inst
+        return ForAllExpr(self.vars, self.expr.subst(inst))
 
 def neg_expr(e):
     """Returns the negation of an expression, using deMorgan's law to move

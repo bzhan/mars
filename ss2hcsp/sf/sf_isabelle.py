@@ -67,39 +67,63 @@ def translate_action(c, is_tran_act=False):
         return "SKIP"
     elif isinstance(c, function.Assign):
         return "\'\'%s\'\' ::= %s" % (c.lname, translate_expr(c.expr))
+    elif isinstance(c, function.Sequence):
+        return "(%s); (%s)" %(translate_action(c.cmd1, is_tran_act), translate_action(c.cmd2, is_tran_act))
     elif isinstance(c, function.FunctionCall):
         if c.func_name == "send":
             args = c.args
-            if len(args) == 1:
+            if len(args) == 1 and len(str(args[0]).split('.')) == 1:
                 if is_tran_act:
                     return "send1 ''%s'' True" % c.args[0]
                 else:
                     return "send1 ''%s'' False" % c.args[0]
+            #The following two conditions are directed send
             elif len(args) == 2:
                 event,direct_name=args[0],args[1]
+                direct_name = '\'\', \'\''.join(str(direct_name).split('.'))
                 if is_tran_act:
-                    return "send2 ''%s'' True ''%s'' " % (event,direct_name)
+                    return "send2 ''%s'' True [''%s''] " % (event,direct_name)
                 else:
-                    return "send2 ''%s'' False ''%s'' " % (event,direct_name)
+                    return "send2 ''%s'' False [''%s''] " % (event,direct_name)
+            elif len(args) == 1 and len(str(args[0]).split('.')) > 1:
+                tmp = args.split('.')
+                event = tmp[-1]
+                direct_name = '\'\', \'\''.join(tmp[:-1])
+                if is_tran_act:
+                    return "send2 ''%s'' True [''%s''] " % (event,direct_name)
+                else:
+                    return "send2 ''%s'' False [''%s''] " % (event,direct_name)
             else:
                 raise NotImplementedError
         elif c.func_name == 'fprintf':
-            args = c.args
+            args = list(c.args)
             if len(args) == 1:
                 return "print1 ''%s'' " % args[0].value
             else:
                 del(args[0])
                 expr = ""
                 for i in range(0, len(args)):
-                    expr += "print2 ''" + str(args[i]) + "''"
+                    expr += "print2 (V ''" + str(args[i]) + "'')"
                     if i != (len(args)-1):
                         expr += "; "
                 return expr
+        #matlab functions and graphical fucntions
         else:
+            f = c.func_name
+            args = c.args
+            expr = str(f)
+            for i in range(0, len(args)):
+                expr += ''
             raise NotImplementedError
+    elif isinstance(c, function.RaiseEvent):
+        if is_tran_act:
+            return "send1 ''%s'' True" % str(c.event)
+        else:
+            return "send1 ''%s'' False" % str(c.event)
     else:
         print(type(c))
-        raise NotImplementedError
+        return "SKIP"
+        #raise NotImplementedError
 
 def translate_actions(cs, is_tran_act=False):
     return ";".join(translate_action(c, is_tran_act=is_tran_act) for c in cs)
@@ -110,8 +134,11 @@ def translate_event(event):
     elif isinstance(event, function.BroadcastEvent):
         return "S [\'\'%s\'\']" % event.name
     elif isinstance(event, function.TemporalEvent):
-        temporal_name = event.name.title()
-        return "T1 %s %s" % (temporal_name, translate_expr(event.expr))
+        temporal_name = event.temp_op.title()
+        now_event = str(event.event)
+        if now_event == 'sec':
+            now_event = 'Sec'
+        return "T1 (%s (\'\'%s\'\') (%s))" % (temporal_name, now_event, translate_expr(event.expr))
     else:
         print(type(event))
         raise NotImplementedError
@@ -159,6 +186,7 @@ def translate_trans(tran, diagram):
     label = tran.label
     event_str = translate_event(label.event)
     cond_str = translate_expr(label.cond)
+    #print(label.tran_act)
     cond_act_str = translate_action(label.cond_act, is_tran_act=False)
     tran_act_str = translate_action(label.tran_act, is_tran_act=True)
 
@@ -169,8 +197,14 @@ def translate_state(ssid, diagram):
     state = diagram.all_states[ssid]
     if isinstance(state, OR_State):
         en_str = translate_actions(state.en)
+        if en_str == '':
+            en_str = 'SKIP'
         du_str = translate_actions(state.du)
+        if du_str == '':
+            du_str = 'SKIP'
         ex_str = translate_actions(state.ex)
+        if ex_str == '':
+            ex_str = 'SKIP'
 
         state_path = get_state_path(state)
 
@@ -188,13 +222,21 @@ def translate_state(ssid, diagram):
             comp_str = "No_Composition"
         else:
             comp_str = translate_composition(ssid, diagram)
+            if comp_str == '':
+                comp_str = "No_Composition"
 
-        return "state %s\n  (%s)\n  (%s)\n  (%s)\n  [%s]\n  [%s]\n  %s" % \
+        return "state %s\n  (%s)\n  (%s)\n  (%s)\n  [%s]\n  [%s]\n  (%s)" % \
             (state_path, en_str, du_str, ex_str, in_str, out_str, comp_str)
     elif isinstance(state, AND_State):
         en_str = translate_actions(state.en)
+        if en_str == '':
+            en_str = 'SKIP'
         du_str = translate_actions(state.du)
+        if du_str == '':
+            du_str = 'SKIP'
         ex_str = translate_actions(state.ex)
+        if ex_str == '':
+            ex_str = 'SKIP'
 
         state_path = get_state_path(state)
 
@@ -209,8 +251,10 @@ def translate_state(ssid, diagram):
             comp_str = "No_Composition"
         else:
             comp_str = translate_composition(ssid, diagram)
+            if comp_str == '':
+                comp_str = "No_Composition"
         
-        return "state [''%s'']\n  (%s)\n  (%s)\n  (%s)\n  [%s]\n  [%s]\n  %s" % \
+        return "state %s\n  (%s)\n  (%s)\n  (%s)\n  [%s]\n  [%s]\n  (%s)" % \
             (state_path, en_str, du_str, ex_str, in_str, out_str, comp_str)
     else:
         return ""
@@ -219,15 +263,19 @@ def translate_composition(ssid, diagram):
     state = diagram.all_states[ssid]
     if isinstance(state.children[0], OR_State):
         
-        default_str = ''
+        default_str = '['
         for i in range(len(state.children)):
             default_trans = state.children[i].default_tran
             if not default_trans:
                 continue
             else:
                 trans_str = translate_trans(default_trans, diagram)
-                default_str = '[' + trans_str + ']'
-        
+                default_str += trans_str + ','
+        if len(default_str) > 1:
+            default_str = default_str[:-1] + ']'
+        else:
+            default_str = '[]'
+
         history_junc_str = 'False'
         if isinstance(state, OR_State) and state.has_history_junc == True:
             history_junc_str = 'True'
@@ -274,7 +322,10 @@ def translate_junction_function(diagram):
             for tran in state.out_trans:
                 translist_str += translate_trans(tran, diagram)
                 translist_str += ',\n'
-            translist_str = translist_str[:-2] + ']'
+            if translist_str[-1] == '\n':
+                translist_str = translist_str[:-2] + ']'
+            else:
+                translist_str += ']'
             fun_str += 'if str = %s then %s else \n' %(junc_path, translist_str)
     fun_str += '[])\"'
     return fun_str
