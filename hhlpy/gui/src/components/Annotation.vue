@@ -1,13 +1,23 @@
 <template>
-<span class="annotation">
-  Add Annotation
-</span>
+<div class="annotation">
+  Loop invariant: <input type="text" v-model="loopInv" v-on:input="loopInvChanged">
+</div>
 </template>
 
 <script>
 export default {
   name: 'Annotation',
-  props: []//['ok','condition']
+  props: [],//['ok','condition']
+  data: function () {
+    return {
+      loopInv: ""
+    }
+  },
+  methods : {
+    loopInvChanged: function () {
+      this.$emit("changed", this.loopInv)
+    }
+  }
 }
 </script>
 
@@ -15,11 +25,13 @@ export default {
 <style scoped>
 .annotation {
   border-radius: 20px;
-  background: #60911b;
+  background: #c6ccbf;
   padding: 0 5px;
-  color:white;
-  font-weight: bold;
   font-family: Avenir, Helvetica, Arial, sans-serif;
-  font-size: smaller
+}
+
+input {
+  font-family: monospace;
+  font-size: 20pt;
 }
 </style>
