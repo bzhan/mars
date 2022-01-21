@@ -20,7 +20,7 @@ import {keymap} from "@codemirror/view"
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif",
+      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif;\n( x := x + 1 )**",
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
@@ -74,10 +74,16 @@ export default {
   height: 300px;
   text-align: left;
   margin: auto;
+  font-size: 20pt;
 }
 
 input {
   font-family: monospace;
+  font-size: 20pt;
+}
+
+button {
+  font-size: 20pt;
 }
 
 .vcs {
