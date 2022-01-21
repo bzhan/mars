@@ -7,9 +7,10 @@ from wolframclient.evaluation import WolframLanguageSession
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
+from hhlpy.wolframengine_wrapper import session
 
 path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
-session = WolframLanguageSession(path)
+# session = WolframLanguageSession(path)
 
 
 def runVerify(self, *, pre, hp, post, constants=set(), 
@@ -763,7 +764,7 @@ class HHLPyTest(unittest.TestCase):
 class WLHHLPyTest(unittest.TestCase):
     
     @classmethod
-    def setUpClass(WLHHLPyTest):
+    def setUpClass(cls):
         session.start()
 
     @classmethod
@@ -1099,3 +1100,4 @@ class WLHHLPyTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
