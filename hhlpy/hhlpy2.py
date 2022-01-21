@@ -486,6 +486,7 @@ class CmdVerifier:
                 sub_info.post = cur_post
                 sub_info.assume += self.infos[pos].assume
                 self.compute_wp(pos=sub_pos)
+                # self.infos[sub_pos].TODO == True
                 cur_post = sub_info.pre
             pre = cur_post
 
@@ -635,7 +636,6 @@ class CmdVerifier:
                     self.infos[pos].dI_inv = post
 
                 dI_inv = self.infos[pos].dI_inv           
-                print(pos, dI_inv)
                 # Compute the differential of inv.
                 # Compute the boundary of constraint. 
                 # One semi-verification condition is boundary of constraint --> differential of inv.

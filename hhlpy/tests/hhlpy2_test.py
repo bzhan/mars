@@ -1,11 +1,15 @@
 """Unit test for hhlpy."""
 
-from operator import pos
 import unittest
+from wolframclient.evaluation import WolframLanguageSession
+
 
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
+
+path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
+session = WolframLanguageSession(path)
 
 
 def runVerify(self, *, pre, hp, post, constants=set(), 
@@ -156,6 +160,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
             verifier.use_conjunction_rule(pos, conj_rule)
 
     # Compute wp and verify
+    #while TODO == True:
     verifier.compute_wp()
 
     # Optional: Print verification conditions
@@ -224,8 +229,7 @@ class HHLPyTest(unittest.TestCase):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
         # Invariant for ODE is x >= 0.
         runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0",
-                  diff_invariant_rule={((), ()): "true"},
-                  strengthened_posts={((), ()): "x >= 0"})
+                  dI_invariants={((), ()): "x >= 0"})
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -301,7 +305,7 @@ class HHLPyTest(unittest.TestCase):
         # dG Rule
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1>", post="x > 0",
-                strengthened_posts={((1,), ()): "x > 0"},
+                dG_invariants={((1,), ()): "x > 0"},
                 ghost_invariants={((1,), ()): "x * y * y == 1"},
                 expected_vcs={((1,), ()): ["x > 0 --> (EX y. x * y * y == 1)",
                                            "x * y * y == 1 --> x > 0"]})
@@ -356,6 +360,7 @@ class HHLPyTest(unittest.TestCase):
                   hp="<x_dot = y, y_dot = z & x < 10>", post="x >= 0",
                   diff_cuts={((), ()):["z >= 0", "y >= 0"]})
 
+
     def testVerify22(self):
         # Basic benchmark, problem14
         # dC Rule
@@ -374,6 +379,7 @@ class HHLPyTest(unittest.TestCase):
         # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10>", post="x > 0",
                   darboux_rule={((1,), ()): 'true'},
+                  dbx_invariants={((1,), ()): "x > 0"},
                   dbx_cofactors={((1,),()): "-1"})
 
     def testVerify24(self):
@@ -465,6 +471,7 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify33(self):
     # Benchmark, problem 26
+    # Barrier Rule
     # {x^3 > 5 && y > 2} 
     # t := 0; <x_dot = x^3 + x^4, y_dot = 5 * y + y^2, t_dot = 1 & t < 10>
     # {x^3 > 5 && y > 2}
@@ -752,8 +759,17 @@ class HHLPyTest(unittest.TestCase):
                   diff_weakening_rule={((0, 1, 1), ()): "true"},
                 ) 
 
+
 class WLHHLPyTest(unittest.TestCase):
-      
+    
+    @classmethod
+    def setUpClass(WLHHLPyTest):
+        session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        session.terminate()
+
     def testVerify56(self):
         # Basic benchcmark, problem 46
         # constants = {'A', 'B', 'S', 'ep'}

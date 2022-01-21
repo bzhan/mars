@@ -8,7 +8,9 @@ from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import aexpr_parser
 
-path = "D:\Program Files\WolframEngine_13.0\wolframengine\MathKernel.exe"
+# logging.basicConfig(level=logging.DEBUG)
+path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
+session = WolframLanguageSession(path)
 
 def toWLexpr(e):
     """Convert a hcsp expression to WolframLanguage expression"""
@@ -155,30 +157,30 @@ def solveODE(hp, names, time_var):
     if not isinstance(time_var, str):
         time_var = str(time_var)
 
-    with WolframLanguageSession(path) as session:
-        # ODEs are tranlated from hcsp form to wolfram language 
-        wlexpr_eqn, init2fun = Ode2Wlexpr(hp, names, time_var)
+    # with WolframLanguageSession(path) as session:
+    # ODEs are tranlated from hcsp form to wolfram language 
+    wlexpr_eqn, init2fun = Ode2Wlexpr(hp, names, time_var)
 
-        # Solve the differential equations.
-        # For example, sln is :
-        # ((Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]))
-        slns = session.evaluate(wlexpr('DSolve' + wlexpr_eqn))
+    # Solve the differential equations.
+    # For example, sln is :
+    # ((Rule[Global`y[Global`x], Plus[Times[Rational[1, 2], Power[Global`x, 2]], C[1]]]))
+    slns = session.evaluate(wlexpr('DSolve' + wlexpr_eqn))
 
-        # Solutions in WLlanguage are translated into a list of Assign programs in hcsp.
-        # For example, [y(x) := 1/2 * x^2 + C(1)], or 
-        # [v(t) := v0 + a * t, x(t) := x0 + v0 * t + a * t^2 / 2]
-        solutions = []
-        for sln in slns[0]:
-            solutions.append(toHcsp(sln))
+    # Solutions in WLlanguage are translated into a list of Assign programs in hcsp.
+    # For example, [y(x) := 1/2 * x^2 + C(1)], or 
+    # [v(t) := v0 + a * t, x(t) := x0 + v0 * t + a * t^2 / 2]
+    solutions = []
+    for sln in slns[0]:
+        solutions.append(toHcsp(sln))
 
-        # Tranlate solution into a dictionary form and 
-        # change the inital value symbol to function name symbol, for the sake of ODE solution axiom.
-        # e.g. from [v(t) := v0 + a * t] to {'v' : v + a * t}
-        solution_dict = dict()
-        for sol in solutions:
+    # Tranlate solution into a dictionary form and 
+    # change the inital value symbol to function name symbol, for the sake of ODE solution axiom.
+    # e.g. from [v(t) := v0 + a * t] to {'v' : v + a * t}
+    solution_dict = dict()
+    for sol in solutions:
 
-            fun_name = str(sol.var_name.fun_name)
-            solution_dict[fun_name] = sol.expr.subst(init2fun)
+        fun_name = str(sol.var_name.fun_name)
+        solution_dict[fun_name] = sol.expr.subst(init2fun)
 
     return solution_dict
 
@@ -241,14 +243,9 @@ def wol_prove(e):
 
     wl_expr = toWLexpr(e)
 
-    with WolframLanguageSession(path) as session:
-        result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
-        if str(result) == 'True':
-            return True
-        else:
-            return False
-
-    
-
-
-
+    # with WolframLanguageSession(path) as session:
+    result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
+    if str(result) == 'True':
+        return True
+    else:
+        return False
