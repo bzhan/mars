@@ -1,7 +1,6 @@
 """Optimization of HCSP code."""
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr,RelExpr,FunExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 
@@ -11,13 +10,23 @@ def is_atomic(hp):
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
                        'input_channel', 'output_channel', 'ode')
 
-def simplify_expr(expr):
-    if not expr.get_vars():
-        b = simulator.eval_expr(expr, dict())
+def simplify_expr(e):
+    assert isinstance(e, expr.BExpr)
+    if not e.get_vars():
+        b = simulator.eval_expr(e, dict())
         assert isinstance(b, bool)
-        return true_expr if b else false_expr
+        return expr.true_expr if b else expr.false_expr
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '&&':
+            return expr.conj(*(simplify_expr(arg) for arg in e.exprs))
+        elif e.op == '||':
+            return expr.disj(*(simplify_expr(arg) for arg in e.exprs))
+        elif e.op == '-->':
+            return expr.imp(simplify_expr(e.exprs[0]), simplify_expr(e.exprs[1]))
+        else:
+            return e
     else:
-        return expr
+        return e
 
 def simplify(hp):
     """Perform immediate simplifications to HCSP process. This includes:
@@ -35,9 +44,9 @@ def simplify(hp):
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
+        if simp_sub_hp.type == 'skip' or simp_cond == expr.false_expr:
             return hcsp.Skip()
-        elif simp_cond == true_expr:
+        elif simp_cond == expr.true_expr:
             return simp_sub_hp
         else:
             return hcsp.Condition(simp_cond, simp_sub_hp)
@@ -452,7 +461,7 @@ class HCSPAnalysis:
                         if not isinstance(def_hp.var_name, expr.AVar):
                             unique_assign = None
                             break
-                        if not isinstance(def_hp.expr, AConst):
+                        if not isinstance(def_hp.expr, expr.AConst):
                             unique_assign = None
                             break
                         if unique_assign is not None and def_hp.expr != unique_assign:
