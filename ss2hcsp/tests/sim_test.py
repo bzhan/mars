@@ -261,7 +261,7 @@ class SimTest(unittest.TestCase):
     def testInputEvent(self):
         run_test(self, "./Examples/Simulink/Input_Event_2018a.xml", 80, {
 
-        }, print_hcsp=False)
+        }, print_hcsp=True)
 
     def testMux(self):
         run_test(self, "/Users/BEAR/Projects/mars/Examples/Simulink/mux.xml", 80, {
