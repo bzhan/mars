@@ -43,7 +43,7 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "./Examples/Stateflow/translate/WashMachine.xml"
+        filename = "./Examples/Stateflow/translate/States/States1.xml"
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
@@ -106,13 +106,13 @@ class SFIsabelleTest(unittest.TestCase):
             if(cnt > 80):
                 str += '\n'
                 cnt = 0
-        str += '\n  apply simp\n'
-        str += '  by stateflow_execution2\n\n'
+        #str += '\n  apply simp'
+        str += '\n  by stateflow_execution2\n\n'
         str += 'end'
         str = str.replace("-", "_")
         str = str.replace("(_", "(-")
         print(str)
-        save_name += '.thy'
+        save_name = "Semantic_Stateflow/" + save_name + '.thy'
         f = open(save_name, 'w')
         f.write(str)
         f.close()
