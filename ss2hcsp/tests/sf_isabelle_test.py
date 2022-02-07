@@ -6,12 +6,13 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.sf.sf_state import Junction, OR_State, AND_State
 from ss2hcsp.sf.sf_isabelle import translate_composition, translate_expr, translate_action, translate_actions, \
     translate_event, translate_trans, translate_state, translate_junction_function, dfs_search_chart, \
-    translate_chart_info
+    translate_chart_info, translate_fe_info, translate_ge_info
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, cond_parser, cmd_parser, event_parser
 
 
 class SFIsabelleTest(unittest.TestCase):
+    '''
     def testTranslateExpr(self):
         test_data = [
             ("0", "N 0"),
@@ -32,17 +33,6 @@ class SFIsabelleTest(unittest.TestCase):
             e = cond_parser.parse(e)
             self.assertEqual(translate_expr(e), res)
 
-    def testTranslateHp(self):
-        test_data = [
-            ("x = 0", "\'\'x\'\' ::= N 0"),
-            ("x = -1", "\'\'x\'\' ::= N (-1)"),
-            ("x = x + 1", "\'\'x\'\' ::= Plus (V ''x'') (N 1)"),
-        ]
-
-        for c, res in test_data:
-            c = cmd_parser.parse(c)
-            self.assertEqual(translate_action(c), res)
-
     def testTranslateEvent(self):
         test_data = [
             ("e", "S [\'\'e\'\']"),
@@ -51,10 +41,9 @@ class SFIsabelleTest(unittest.TestCase):
         for event, res in test_data:
             event = event_parser.parse(event)
             self.assertEqual(translate_event(event), res)
-
-    #unittest.skip("skip")
+    '''
     def testTranslate1(self):
-        filename = "./Examples/Stateflow/translate/Functions/Function1.xml"
+        filename = "./Examples/Stateflow/translate/States/States1.xml"
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
@@ -63,7 +52,7 @@ class SFIsabelleTest(unittest.TestCase):
         print(chart)
         print('\n')
         save_name  = filename.split('/')[-1].split('.')[0]
-        str = 'theory %s\n  imports Send_Total_ML \nbegin\n\n' %save_name
+        str = 'theory %s\n  imports Final_ML \nbegin\n\n' %save_name
         chart_str, def_list = dfs_search_chart(chart.diagram.ssid, chart, '', [])
         str += chart_str
         #print(chart_str)
@@ -76,15 +65,38 @@ class SFIsabelleTest(unittest.TestCase):
         str += v_str + '\n'
         def_list.append('v_def')
         
-        chart_str = translate_chart_info(chart)
-
+        #chart_str = translate_chart_info(chart)
+        chart_str = 'definition I :: ctxt where \n\"I str = (Info False [] [])\"'
         str += chart_str + '\n'
         #print(str)
-        def_list.append('Chart_def')
+        def_list.append('I_def')
+
+        #fe and ge
+        fe_str = 'definition fe::fenv where \" ' + '\n'
+        fe_str += translate_fe_info(chart)
+
+        #print(fe_str)
+        str += fe_str + '\n'
+        def_list.append('fe_def')
+
+        ge_str = 'definition ge::genv where \" ' + '\n'
+        ge_str += translate_ge_info(chart)
+
+        print(ge_str)
+        str += ge_str + '\n'
+        def_list.append('ge_def')
+
+        env_str = 'definition env::env where \"env = Env Root fe ge g\" ' + '\n'
+        str += env_str
+        def_list.append('env_def')
+
+        status_str = 'definition s::status where \" s = Status v I\" ' + '\n'
+        str += status_str
+        def_list.append('s_def')
 
         str += 'text‹EXECUTION PROOF›\n'
 
-        str += 'schematic_goal \"root_execution_for_times Root \'\'\'\' (%s::int) Chart v g ?Chart2 ?v2\"\n' %'2'
+        str += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
 
         str += '  unfolding '
         cnt = len('  unfolding ')
@@ -94,13 +106,13 @@ class SFIsabelleTest(unittest.TestCase):
             if(cnt > 80):
                 str += '\n'
                 cnt = 0
-        str += '\n  apply simp\n'
-        str += '  by stateflow_execution2\n\n'
+        #str += '\n  apply simp'
+        str += '\n  by stateflow_execution2\n\n'
         str += 'end'
         str = str.replace("-", "_")
         str = str.replace("(_", "(-")
         print(str)
-        save_name += '.thy'
+        save_name = "Semantic_Stateflow/" + save_name + '.thy'
         f = open(save_name, 'w')
         f.write(str)
         f.close()

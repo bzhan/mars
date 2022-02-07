@@ -150,3 +150,78 @@
 * Expected result:
   - a
   - c
+
+### DirectedEventBoardCast
+* A simple example of directed send in And-Composition
+* Expected result:
+  - Entry A
+  - Entry A1
+  - Entry B
+  - Entry B1
+  - Exit B1
+  - Entry B2
+  - Exit A1
+  - Entry A2
+  - During B2
+
+### AndBroadcast
+* An example of send in And-Composition
+* Expected result:
+  - Entry A
+  - Entry A1
+  - Entry A1a
+  - Entry A2
+  - Entry A2a
+  - During A
+  - During A1
+  - During A
+  - During A1
+  - During A1a
+  - During A2
+  - Exit A2a
+  - Entry A2b
+  - Exit A1a
+  - Entry A1b
+  - During A2
+  - During A2b
+
+### AndBroadcast2
+* An example of send in And-Composition with On E:send(...)
+* Expected result:
+  - Entry A
+  - Entry A1
+  - Entry A1a
+  - Entry A2
+  - Entry A2a
+  - During A
+  - During A1
+  - During A
+  - During A1
+  - During A1a
+  - During A2
+  - Exit A2a
+  - Entry A2b
+  - Exit A1a
+  - Entry A1b
+  - During A2
+  - During A2b
+  
+### AndBroadcast3
+* An example of send in And-Composition
+* Expected result:
+  - Entry A
+  - Entry A1
+  - Entry A1a
+  - Entry A2
+  - Entry A2a
+  - During A
+  - During A1
+  - Exit A1a
+  - During A
+  - During A1
+  - During A2
+  - Exit A2a
+  - Entry A2b
+  - Entry A1b
+  - During A2
+  - During A2b
