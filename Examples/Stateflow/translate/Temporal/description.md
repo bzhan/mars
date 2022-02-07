@@ -106,3 +106,63 @@
   - en_A
   - du_A
   - du_A
+
+### TemporalEvent
+
+* After(x,E) in the ouetr transition of A and exit the composition of A.
+* Expected result (3 iterations):
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Entry A1
+  - During A
+  - Exit A1
+  - Entry A1
+  - Exit A1
+  - Exit A
+  - Entry B
+  
+### TemporalEvent2
+
+* similar with TemporalEvent but the position of junction is outside A
+* Expected result (3 iterations):
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1
+
+### TemporalEvent3
+
+* similar with TemporalEvent but the position of junction is in B
+* Expected result (3 iterations):
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1
+  - During A
+  - Exit A1
+  - Exit A
+  - Entry A
+  - Entry A1

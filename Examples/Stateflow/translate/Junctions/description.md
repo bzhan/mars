@@ -98,3 +98,25 @@
   - ca2
   - exA
   - enC
+
+### TerminatingJunction
+
+* transition terminate in a junction
+* Expected result:
+  - Entry A
+  - Condition Action1
+  - Condition Action3
+  - During A
+
+### FlowCHartNotation
+
+* inner transition with multiple targets
+* Expected result (2 iterations):
+  - Entry A
+  - Entry A2
+  - During A
+  - Exit A2
+  - Entry A2
+  - During A
+  - Exit A2
+  - Entry A3

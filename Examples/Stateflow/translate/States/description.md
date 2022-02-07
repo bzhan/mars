@@ -111,3 +111,45 @@
   - loop
   - loop
   - 100,200,300,400,500
+  
+### SelfLoop
+
+* A practical example of the use of a self loop, with a junction.
+* Expected result (5 iterations)
+  - Entry A
+  - Exit A
+  - Entry A
+  - Exit A
+  - Entry A
+  - Exit A
+  - Entry A
+  - Exit A
+  - Entry A
+  - Exit A
+  - Transition Action1
+  - Entry B
+  
+### HistoryJunction1
+
+* A simple example of history junctions.
+* Expected result (6 iterations)
+  - Entry A
+  - Exit A
+  - Entry B
+  - Entry B1
+  - Entry B2
+  - Entry B4
+  - Exit B
+  - Entry A
+  - Exit A
+  - Entry B
+  - Entry B4
+  
+### EventAction
+
+* An example with input event.
+* Expected result
+  - Entry A
+  - Entry A1
+  - Exit A1
+  - Entry A2

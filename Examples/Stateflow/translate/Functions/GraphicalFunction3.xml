@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
   <Model Name="GraphicalFunction3">
-    <P Name="Version">10.1</P>
-    <P Name="SavedCharacterEncoding">GBK</P>
+    <P Name="Version">10.2</P>
+    <P Name="SavedCharacterEncoding">UTF-8</P>
+    <P Name="ModelUUID">3f6f5874-cc51-4ab9-8810-b93bd1bfc3e5</P>
     <GraphicalInterface>
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.22</P>
+      <P Name="ComputedModelVersion">2.0</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -23,12 +24,13 @@
       <P Name="NumExternalFileReferences">0</P>
       <P Name="OrderedModelArguments">1</P>
     </GraphicalInterface>
+    <P Name="SLCCPlugin">on</P>
+    <P Name="slcheck_filter_plugin">on</P>
     <P Name="DiagnosticSuppressor">on</P>
-    <P Name="LogicAnalyzerPlugin">on</P>
+    <P Name="AnimationPlugin">on</P>
     <P Name="WebScopes_FoundationPlugin">on</P>
     <P Name="NotesPlugin">on</P>
-    <P Name="SLCCPlugin">on</P>
-    <P Name="AnimationPlugin">on</P>
+    <P Name="LogicAnalyzerPlugin">on</P>
     <P Name="EnableAccessToBaseWorkspace">on</P>
     <P Name="ScopeRefreshTime">0.035000</P>
     <P Name="OverrideScopeRefreshTime">on</P>
@@ -39,11 +41,11 @@
     <P Name="MinMaxOverflowArchiveMode">Overwrite</P>
     <P Name="FPTRunName">Run 1</P>
     <P Name="MaxMDLFileLineLength">120</P>
-    <P Name="LastSavedArchitecture">win64</P>
+    <P Name="LastSavedArchitecture">maci64</P>
     <Object PropName="BdWindowsInfo" ObjectID="1" ClassName="Simulink.BDWindowsInfo">
       <Object PropName="WindowsInfo" ObjectID="2" ClassName="Simulink.WindowInfo">
         <P Name="IsActive" Class="logical">1</P>
-        <P Name="Location" Class="double">[-7.0, -7.0, 1295.0, 695.0]</P>
+        <P Name="Location" Class="double">[8.0, 33.0, 1295.0, 695.0]</P>
         <Object PropName="ModelBrowserInfo" ObjectID="3" ClassName="Simulink.ModelBrowserInfo">
           <P Name="Visible" Class="logical">0</P>
           <P Name="DockPosition" Class="char">Left</P>
@@ -55,29 +57,29 @@
         <Object PropName="ExplorerBarInfo" ObjectID="4" ClassName="Simulink.ExplorerBarInfo">
           <P Name="Visible" Class="logical">1</P>
         </Object>
-        <Object PropName="EditorsInfo" ObjectID="5" ClassName="Simulink.EditorInfo">
-          <P Name="IsActive" Class="logical">1</P>
-          <P Name="IsTabbed" Class="logical">1</P>
-          <P Name="ViewObjType" Class="char">StateflowChart</P>
-          <P Name="LoadSaveID" Class="char">1</P>
-          <P Name="Extents" Class="double">[1864.0, 701.0]</P>
-          <P Name="ZoomFactor" Class="double">1.3972786167494824</P>
-          <P Name="Offset" Class="double">[-94.7230056292251, 41.396390081534832]</P>
-          <P Name="SceneRectInView" Class="double">[-94.7230056292251, 41.396390081534832, 889.347802056477, 334.45966161029531]</P>
-        </Object>
-        <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*2">
-          <Object ObjectID="6">
-            <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
-            <P Name="ID" Class="char">Property Inspector</P>
-            <P Name="Visible" Class="logical">0</P>
-            <P Name="CreateCallback" Class="char"/>
-            <P Name="UserData" Class="char"/>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">426</P>
-            <P Name="Height" Class="int32">320</P>
-            <P Name="Minimized" Class="char">Unset</P>
+        <Array PropName="EditorsInfo" Type="Simulink.EditorInfo" Dimension="1*2">
+          <Object ObjectID="5">
+            <P Name="IsActive" Class="logical">1</P>
+            <P Name="IsTabbed" Class="logical">1</P>
+            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
+            <P Name="LoadSaveID" Class="char">0</P>
+            <P Name="Extents" Class="double">[1257.0, 460.0]</P>
+            <P Name="ZoomFactor" Class="double">1.0</P>
+            <P Name="Offset" Class="double">[-573.0, -185.0]</P>
+            <P Name="SceneRectInView" Class="double">[-573.0, -185.0, 1257.0, 460.0]</P>
           </Object>
+          <Object ObjectID="6">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">1</P>
+            <P Name="Extents" Class="double">[1257.0, 460.0]</P>
+            <P Name="ZoomFactor" Class="double">1.3753527040758098</P>
+            <P Name="Offset" Class="double">[-107.02279443157488, 41.396390081534832]</P>
+            <P Name="SceneRectInView" Class="double">[-107.02279443157488, 41.396390081534832, 913.94737966117657, 334.45966161029531]</P>
+          </Object>
+        </Array>
+        <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*3">
           <Object ObjectID="7">
             <P Name="Type" Class="char">GLUE2:DDG Component</P>
             <P Name="ID" Class="char">SymbolManager</P>
@@ -86,28 +88,55 @@
             <P Name="UserData" Class="char">1</P>
             <P Name="Floating" Class="logical">0</P>
             <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">252</P>
-            <P Name="Height" Class="int32">492</P>
+            <P Name="Width" Class="int32">450</P>
+            <P Name="Height" Class="int32">493</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
+          <Object ObjectID="8">
+            <P Name="Type" Class="char">Simulink:Editor:ReferencedFiles</P>
+            <P Name="ID" Class="char">Referenced Files</P>
+            <P Name="Visible" Class="logical">0</P>
+            <P Name="CreateCallback" Class="char"/>
+            <P Name="UserData" Class="char">{&quot;filterShowRefModels&quot;:&quot;true&quot;,&quot;filterShowRefSubs&quot;:&quot;true&quot;,&quot;filterShowOnlyDirtyFiles&quot;:&quot;false&quot;}
+</P>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Left</P>
+            <P Name="Width" Class="int32">640</P>
+            <P Name="Height" Class="int32">480</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
+          <Object ObjectID="9">
+            <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
+            <P Name="ID" Class="char">Property Inspector</P>
+            <P Name="Visible" Class="logical">0</P>
+            <P Name="CreateCallback" Class="char"/>
+            <P Name="UserData" Class="char"/>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Right</P>
+            <P Name="Width" Class="int32">640</P>
+            <P Name="Height" Class="int32">480</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
         </Array>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAHGAAADlPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAACoAAAKAAAACgAD////7AAAAQgBHAEwAVQBFADIAOgBEAEQARwAgAEMAbwBtAHAAbwBuAGUAbgB0AC8AUwB5AG0AYgBvAGwATQBhAG4AYQBnAGUAcgAAAAAqAAADlAAAACwA////AAAHgAAAAwkAAAABAAAAAgAAAAEAAAAC/AAAAAQAAAAAAAAAAAAAAAEAAAAAAAAAAgAAAAAAAAADAAAAAA==</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAABPsAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAABrAP////sAAABgAFMAaQBtAHUAbABpAG4AawA6AEUAZABpAHQAbwByADoAUgBlAGYAZQByAGUAbgBjAGUAZABGAGkAbABlAHMALwBSAGUAZgBlAHIAZQBuAGMAZQBkACAARgBpAGwAZQBzAAAAAAD/////AAAAjwD///8AAAABAAABxgAAAgn8AgAAAAL7AAAAVABHAEwAVQBFADIAOgBQAHIAbwBwAGUAcgB0AHkASQBuAHMAcABlAGMAdABvAHIALwBQAHIAbwBwAGUAcgB0AHkAIABJAG4AcwBwAGUAYwB0AG8AcgAAAAAqAAACgAAAAawA////+wAAAEIARwBMAFUARQAyADoARABEAEcAIABDAG8AbQBwAG8AbgBlAG4AdAAvAFMAeQBtAGIAbwBsAE0AYQBuAGEAZwBlAHIAAAAAeQAAAgkAAAAgAP///wAABQ8AAAIJAAAAAQAAAAIAAAABAAAAAvwAAAAEAAAAAAAAAAAAAAABAAAAAAAAAAIAAAAAAAAAAwAAAAA=</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">4b0c3c22-e5a1-42ab-b634-f995db2b2e66</P>
       </Object>
-      <P Name="BDUuid" Class="char">c2441b95-6d64-4d36-b3d6-e5aa49e1741b</P>
+      <P Name="BDUuid" Class="char">b96af159-fe3f-4541-a3d7-b1d479208344</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
+    <P Name="SequenceViewerTimePrecision">3</P>
+    <P Name="SequenceViewerHistory">1000</P>
     <ConfigManagerSettings>
       <P Name="Created">Mon Jun 14 21:03:06 2021</P>
       <P Name="Creator">bzhan</P>
       <P Name="UpdateHistory">UpdateHistoryNever</P>
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedBy">bzhan</P>
+      <P Name="LastModifiedBy">apple</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Jul 23 21:45:44 2021</P>
-      <P Name="RTWModifiedTimeStamp">548977538</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:22&gt;</P>
+      <P Name="LastModifiedDate">Thu Feb 03 13:44:08 2022</P>
+      <P Name="RTWModifiedTimeStamp">565796070</P>
+      <P Name="ModelVersionFormat">%&lt;AutoIncrement:2.0&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -129,7 +158,6 @@
       <P Name="ShowTestPointIcons">on</P>
       <P Name="ShowSignalResolutionIcons">on</P>
       <P Name="ShowViewerIcons">on</P>
-      <P Name="SortedOrder">off</P>
       <P Name="VariantCondition">off</P>
       <P Name="ShowLinearizationAnnotations">on</P>
       <P Name="ShowVisualizeInsertedRTB">on</P>
@@ -167,7 +195,7 @@
       <P Name="AccelTemplateMakefile">accel_default_tmf</P>
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
-      <Object PropName="DataLoggingOverride" ObjectID="8" ClassName="Simulink.SimulationData.ModelLoggingInfo">
+      <Object PropName="DataLoggingOverride" ObjectID="10" ClassName="Simulink.SimulationData.ModelLoggingInfo">
         <P Name="model_" Class="char">GraphicalFunction3</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
@@ -185,6 +213,7 @@
       <P Name="ExtModeTrigMode">normal</P>
       <P Name="ExtModeTrigPort">1</P>
       <P Name="ExtModeTrigElement">any</P>
+      <P Name="ExtModeTrigSignalOutputPortIndex">0</P>
       <P Name="ExtModeTrigDuration">1000</P>
       <P Name="ExtModeTrigDurationFloating">auto</P>
       <P Name="ExtModeTrigHoldOff">0</P>
@@ -201,6 +230,9 @@
       <P Name="ExtModeLogAll">on</P>
       <P Name="ExtModeAutoUpdateStatusClock">on</P>
     </ExternalMode>
+    <EngineSettings>
+      <P Name="VariantFading">on</P>
+    </EngineSettings>
     <ModelReferenceSettings>
       <P Name="ShowModelReferenceBlockVersion">off</P>
       <P Name="ShowModelReferenceBlockIO">off</P>
@@ -208,11 +240,11 @@
     </ModelReferenceSettings>
     <ConfigurationSet>
       <Array PropName="ConfigurationSets" Type="Handle" Dimension="1*1">
-        <Object ObjectID="9" Version="20.0.1" ClassName="Simulink.ConfigSet">
+        <Object ObjectID="11" Version="20.1.0" ClassName="Simulink.ConfigSet">
           <P Name="DisabledProps" Class="double">[]</P>
           <P Name="Description"/>
           <Array PropName="Components" Type="Handle" Dimension="1*10">
-            <Object ObjectID="10" Version="20.0.1" ClassName="Simulink.SolverCC">
+            <Object ObjectID="12" Version="20.1.0" ClassName="Simulink.SolverCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -234,7 +266,6 @@
               <P Name="RelTol">1e-3</P>
               <P Name="EnableMultiTasking">on</P>
               <P Name="ConcurrentTasks">off</P>
-              <P Name="Solver">FixedStepDiscrete</P>
               <P Name="SolverName">FixedStepDiscrete</P>
               <P Name="SolverJacobianMethodControl">auto</P>
               <P Name="ShapePreserveControl">DisableAll</P>
@@ -253,7 +284,7 @@
               <P Name="MinimalZcImpactIntegration">off</P>
               <P Name="ODENIntegrationMethod">ode3</P>
             </Object>
-            <Object ObjectID="11" Version="20.0.1" ClassName="Simulink.DataIOCC">
+            <Object ObjectID="13" Version="20.1.0" ClassName="Simulink.DataIOCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -293,7 +324,7 @@
               <P Name="LoggingFileName">out.mat</P>
               <P Name="LoggingIntervals">[-inf, inf]</P>
             </Object>
-            <Object ObjectID="12" Version="20.0.1" ClassName="Simulink.OptimizationCC">
+            <Object ObjectID="14" Version="20.1.0" ClassName="Simulink.OptimizationCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*9">
                 <Cell Class="char">BooleansAsBitfields</Cell>
                 <Cell Class="char">PassReuseOutputArgsAs</Cell>
@@ -362,7 +393,7 @@
               <P Name="DenormalBehavior">GradualUnderflow</P>
               <P Name="EfficientTunableParamExpr">off</P>
             </Object>
-            <Object ObjectID="13" Version="20.0.1" ClassName="Simulink.DebuggingCC">
+            <Object ObjectID="15" Version="20.1.0" ClassName="Simulink.DebuggingCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*1">
                 <Cell Class="char">UseOnlyExistingSharedCode</Cell>
               </Array>
@@ -436,6 +467,7 @@
               <P Name="ModelReferenceIOMismatchMessage">none</P>
               <P Name="UnknownTsInhSupMsg">warning</P>
               <P Name="ModelReferenceDataLoggingMessage">warning</P>
+              <P Name="ModelReferenceNoExplicitFinalValueMsg">none</P>
               <P Name="ModelReferenceSymbolNameMessage">warning</P>
               <P Name="ModelReferenceExtraNoncontSigs">error</P>
               <P Name="StateNameClashWarn">none</P>
@@ -477,8 +509,9 @@
               <P Name="UnderSpecifiedDimensionMsg">none</P>
               <P Name="DebugExecutionForFMUViaOutOfProcess">off</P>
               <P Name="ArithmeticOperatorsInVariantConditions">warning</P>
+              <P Name="VariantConditionMismatch">none</P>
             </Object>
-            <Object ObjectID="14" Version="20.0.1" ClassName="Simulink.HardwareCC">
+            <Object ObjectID="16" Version="20.1.0" ClassName="Simulink.HardwareCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -526,7 +559,7 @@
               <P Name="UseSimulinkCoderFeatures">on</P>
               <P Name="HardwareBoardFeatureSet">EmbeddedCoderHSP</P>
             </Object>
-            <Object ObjectID="15" Version="20.0.1" ClassName="Simulink.ModelReferenceCC">
+            <Object ObjectID="17" Version="20.1.0" ClassName="Simulink.ModelReferenceCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -544,7 +577,7 @@
               <P Name="PropagateSignalLabelsOutOfModel">on</P>
               <P Name="SupportModelReferenceSimTargetCustomCode">off</P>
             </Object>
-            <Object ObjectID="16" Version="20.0.1" ClassName="Simulink.SFSimCC">
+            <Object ObjectID="18" Version="20.1.0" ClassName="Simulink.SFSimCC">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
@@ -565,7 +598,6 @@
               <P Name="SimUseLocalCustomCode">off</P>
               <P Name="SimParseCustomCode">on</P>
               <P Name="SimAnalyzeCustomCode">off</P>
-              <P Name="SimBuildMode">sf_incremental_build</P>
               <P Name="SimGenImportedTypeDefs">off</P>
               <P Name="ModelFunctionsGlobalVisibility">on</P>
               <P Name="CompileTimeRecursionLimit">50</P>
@@ -575,8 +607,18 @@
               <P Name="CustomCodeFunctionArrayLayout" Class="double">[]</P>
               <P Name="DefaultCustomCodeFunctionArrayLayout">NotSpecified</P>
               <P Name="CustomCodeUndefinedFunction">UseInterfaceOnly</P>
+              <P Name="CustomCodeGlobalsAsFunctionIO">off</P>
+              <P Name="SimTargetLang">C</P>
+              <P Name="GPUAcceleration">off</P>
+              <P Name="SimGPUMallocThreshold">200</P>
+              <P Name="SimGPUStackLimitPerThread">1024</P>
+              <P Name="SimGPUErrorChecks">off</P>
+              <P Name="SimGPUCustomComputeCapability"/>
+              <P Name="SimGPUCompilerFlags"/>
+              <P Name="SimDLTargetLibrary">mkl-dnn</P>
+              <P Name="SimDLAutoTuning">on</P>
             </Object>
-            <Object BackupClass="Simulink.RTWCC" ObjectID="17" Version="20.0.1" ClassName="Simulink.RTWCC">
+            <Object BackupClass="Simulink.RTWCC" ObjectID="19" Version="20.1.0" ClassName="Simulink.RTWCC">
               <Array PropName="DisabledProps" Type="Cell" Dimension="1*16">
                 <Cell Class="char">IncludeHyperlinkInReport</Cell>
                 <Cell Class="char">GenerateTraceInfo</Cell>
@@ -642,6 +684,7 @@
               <P Name="CodeProfilingInstrumentation">off</P>
               <P Name="SILDebugging">off</P>
               <P Name="TargetLang">C</P>
+              <P Name="GenerateGPUCode">None</P>
               <P Name="IncludeBusHierarchyInRTWFileBlockHierarchyMap">off</P>
               <P Name="GenerateTraceInfo">off</P>
               <P Name="GenerateTraceReport">off</P>
@@ -657,8 +700,24 @@
               <P Name="RTWCustomCompilerOptimizations"/>
               <P Name="CheckMdlBeforeBuild">Off</P>
               <P Name="SharedConstantsCachingThreshold">1024</P>
+              <P Name="GPUKernelNamePrefix"/>
+              <P Name="GPUDeviceID">-1</P>
+              <P Name="GPUMallocMode">discrete</P>
+              <P Name="GPUMallocThreshold">200</P>
+              <P Name="GPUStackLimitPerThread">1024</P>
+              <P Name="GPUcuBLAS">on</P>
+              <P Name="GPUcuSOLVER">on</P>
+              <P Name="GPUcuFFT">on</P>
+              <P Name="GPUErrorChecks">off</P>
+              <P Name="GPUComputeCapability">3.5</P>
+              <P Name="GPUCustomComputeCapability"/>
+              <P Name="GPUCompilerFlags"/>
+              <P Name="DLTargetLibrary">none</P>
+              <P Name="DLAutoTuning">on</P>
+              <P Name="DLArmComputeVersion">19.05</P>
+              <P Name="DLArmComputeArch">unspecified</P>
               <Array PropName="Components" Type="Handle" Dimension="1*2">
-                <Object ObjectID="18" Version="20.0.1" ClassName="Simulink.CodeAppCC">
+                <Object ObjectID="20" Version="20.1.0" ClassName="Simulink.CodeAppCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*30">
                     <Cell Class="char">IgnoreCustomStorageClasses</Cell>
                     <Cell Class="char">ParameterTuningSideEffectCode</Cell>
@@ -744,7 +803,7 @@
                   <P Name="ReservedNameArray" Class="double">[]</P>
                   <P Name="EnumMemberNameClash">error</P>
                 </Object>
-                <Object BackupClass="Simulink.TargetCC" ObjectID="19" Version="20.0.1" ClassName="Simulink.GRTTargetCC">
+                <Object BackupClass="Simulink.TargetCC" ObjectID="21" Version="20.1.0" ClassName="Simulink.GRTTargetCC">
                   <Array PropName="DisabledProps" Type="Cell" Dimension="1*17">
                     <Cell Class="char">GeneratePreprocessorConditionals</Cell>
                     <Cell Class="char">IncludeMdlTerminateFcn</Cell>
@@ -795,7 +854,6 @@
                   <P Name="SupportAbsoluteTime">on</P>
                   <P Name="LogVarNameModifier">rt_</P>
                   <P Name="MatFileLogging">on</P>
-                  <P Name="MultiInstanceERTCode">off</P>
                   <P Name="CodeInterfacePackaging">Nonreusable function</P>
                   <P Name="PurelyIntegerCode">off</P>
                   <P Name="SupportNonFinite">on</P>
@@ -844,7 +902,7 @@
                 </Object>
               </Array>
             </Object>
-            <Object ObjectID="20" Version="20.0.1" ClassName="SlCovCC.ConfigComp">
+            <Object ObjectID="22" Version="20.1.0" ClassName="SlCovCC.ConfigComp">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">Simulink Coverage Configuration Component</P>
               <P Name="Components" Class="double">[]</P>
@@ -860,7 +918,6 @@
               <P Name="CovFilter"/>
               <P Name="CovHTMLOptions"/>
               <P Name="CovNameIncrementing">off</P>
-              <P Name="CovHtmlReporting">on</P>
               <P Name="CovForceBlockReductionOff">on</P>
               <P Name="CovEnableCumulative">on</P>
               <P Name="CovSaveCumulativeToWorkspaceVar">on</P>
@@ -870,7 +927,6 @@
               <P Name="CovSaveOutputData">on</P>
               <P Name="CovOutputDir">slcov_output/$ModelName$</P>
               <P Name="CovDataFileName">$ModelName$_cvdata</P>
-              <P Name="CovShowResultsExplorer">off</P>
               <P Name="CovReportOnPause">on</P>
               <P Name="CovModelRefEnable">off</P>
               <P Name="CovModelRefExcluded"/>
@@ -883,7 +939,7 @@
               <P Name="CovStopTime">0</P>
               <P Name="CovMcdcMode">Masking</P>
             </Object>
-            <Object ObjectID="21" Version="20.0.1" ClassName="hdlcoderui.hdlcc">
+            <Object ObjectID="23" Version="20.1.0" ClassName="hdlcoderui.hdlcc">
               <P Name="DisabledProps" Class="double">[]</P>
               <P Name="Description">HDL Coder custom configuration component</P>
               <P Name="Components" Class="double">[]</P>
@@ -900,10 +956,10 @@
           <P Name="ExtraOptions"/>
         </Object>
       </Array>
-      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="9" ClassName="Simulink.ConfigSet"/>
+      <Object Reference="true" PropName="ActiveConfigurationSet" ObjectID="11" ClassName="Simulink.ConfigSet"/>
     </ConfigurationSet>
     <ConcurrentExecutionSettings>
-      <Object PropName="DataTransfer" ObjectID="22" ClassName="Simulink.GlobalDataTransfer">
+      <Object PropName="DataTransfer" ObjectID="24" ClassName="Simulink.GlobalDataTransfer">
         <P Name="DefaultTransitionBetweenSyncTasks" Class="char">Ensure deterministic transfer (maximum delay)</P>
         <P Name="DefaultTransitionBetweenAsyncTasks" Class="char">Ensure data integrity only</P>
         <P Name="DefaultTransitionBetweenContTasks" Class="char">Ensure deterministic transfer (minimum delay)</P>
@@ -1023,8 +1079,8 @@
         <P Name="MaskHideContents">off</P>
         <P Name="SFBlockType">NONE</P>
         <P Name="Variant">off</P>
-        <P Name="VariantControlMode">Expression</P>
-        <P Name="GeneratePreprocessorConditionals">off</P>
+        <P Name="VariantControlMode">expression</P>
+        <P Name="VariantActivationTime">update diagram</P>
         <P Name="AllowZeroVariantControls">off</P>
         <P Name="PropagateVariantConditions">off</P>
         <P Name="TreatAsGroupedWhenPropagatingVariantConditions">on</P>
@@ -1038,7 +1094,9 @@
       <Block BlockType="Terminator"/>
     </BlockParameterDefaults>
     <System>
-      <P Name="Location">[331, 94, 1288, 789]</P>
+      <P Name="Location">[8, 33, 1303, 728]</P>
+      <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1056,53 +1114,54 @@
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="SFBlockType">Chart</P>
         <System>
-          <P Name="Location">[-7, -7, 1288, 688]</P>
+          <P Name="Location">[8, 33, 1303, 728]</P>
+          <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
-          <P Name="SIDHighWatermark">92</P>
+          <P Name="SIDHighWatermark">96</P>
           <P Name="SimulinkSubDomain">Simulink</P>
-          <Block BlockType="Demux" Name=" Demux " SID="1::90">
+          <Block BlockType="Demux" Name=" Demux " SID="1::94">
             <P Name="Ports">[1, 1]</P>
             <P Name="Position">[270, 100, 320, 140]</P>
-            <P Name="ZOrder">70</P>
+            <P Name="ZOrder">74</P>
             <P Name="Outputs">1</P>
           </Block>
-          <Block BlockType="Ground" Name=" Ground " SID="1::92">
+          <Block BlockType="Ground" Name=" Ground " SID="1::96">
             <P Name="Position">[20, 111, 40, 129]</P>
-            <P Name="ZOrder">72</P>
+            <P Name="ZOrder">76</P>
           </Block>
-          <Block BlockType="S-Function" Name=" SFunction " SID="1::89">
+          <Block BlockType="S-Function" Name=" SFunction " SID="1::93">
             <P Name="Tag">Stateflow S-Function 3</P>
             <P Name="Ports">[1, 1]</P>
             <P Name="Position">[180, 100, 230, 140]</P>
-            <P Name="ZOrder">69</P>
+            <P Name="ZOrder">73</P>
             <P Name="FunctionName">sf_sfun</P>
             <P Name="PortCounts">[1 1]</P>
             <P Name="SFunctionDeploymentMode">off</P>
             <P Name="EnableBusSupport">on</P>
             <P Name="SFcnIsStateOwnerBlock">off</P>
           </Block>
-          <Block BlockType="Terminator" Name=" Terminator " SID="1::91">
+          <Block BlockType="Terminator" Name=" Terminator " SID="1::95">
             <P Name="Position">[460, 111, 480, 129]</P>
-            <P Name="ZOrder">71</P>
+            <P Name="ZOrder">75</P>
           </Block>
           <Line>
-            <P Name="ZOrder">22</P>
+            <P Name="ZOrder">25</P>
             <P Name="SrcBlock"> Ground </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> SFunction </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">23</P>
+            <P Name="ZOrder">26</P>
             <P Name="SrcBlock"> Demux </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Terminator </P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
-            <P Name="ZOrder">24</P>
+            <P Name="ZOrder">27</P>
             <P Name="SrcBlock"> SFunction </P>
             <P Name="SrcPort">1</P>
             <P Name="DstBlock"> Demux </P>
@@ -1114,17 +1173,17 @@
   </Model>
   <Stateflow>
     <machine id="48">
-      <P Name="sfVersion">80000032</P>
+      <P Name="sfVersion">80000036</P>
       <P Name="sfDemoChecksum">[2988005370 2771551416 1695967507 1706016003]</P>
       <Children>
-        <target id="89" name="sfun">
+        <target id="86" name="sfun">
           <P Name="description">Default Simulink S-Function Target.</P>
         </target>
         <chart id="49">
           <P Name="name">Chart</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-94.723 794.625 41.396 375.856]</P>
-          <P Name="zoomFactor">0.954</P>
+          <P Name="viewLimits">[-107.023 806.925 41.396 375.856]</P>
+          <P Name="zoomFactor">0.727</P>
           <P Name="stateColor">[0.3803921568627451 0.2745098039215687 0.1803921568627451]</P>
           <P Name="stateLabelColor">[0.4588235294117647 0.2980392156862745 0.1411764705882353]</P>
           <P Name="transitionColor">[0.3215686274509804 0.5450980392156862 0.7725490196078432]</P>
@@ -1133,6 +1192,7 @@
           <P Name="chartColor">[1 0.9882352941176471 0.9254901960784314]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">49</P>
+          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">47</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -1148,6 +1208,7 @@
               <P Name="subviewer">49</P>
               <P Name="type">FUNC_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
               <Children>
                 <data SSID="4" name="index">
                   <P Name="scope">FUNCTION_OUTPUT_DATA</P>
@@ -1210,8 +1271,8 @@
                   <P Name="executionOrder">3</P>
                 </transition>
                 <transition SSID="3">
-                  <P Name="labelString">{i=1;}</P>
-                  <P Name="labelPosition">[163.541 100.667 29.656 16]</P>
+                  <P Name="labelString">{i=1;a=1;}</P>
+                  <P Name="labelPosition">[163.541 100.667 53.562 14]</P>
                   <P Name="fontSize">12</P>
                   <src>
                     <P Name="intersection">[0 1 0 0 152 122.5 0 0]</P>
@@ -1272,8 +1333,8 @@
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="8">
-                  <P Name="labelString">[i&lt;=N&amp;&amp;a(i)==0]</P>
-                  <P Name="labelPosition">[78.189 151.78 87.938 16]</P>
+                  <P Name="labelString">[i&lt;=N&amp;&amp;a&lt;=2]</P>
+                  <P Name="labelPosition">[78.189 151.78 77.312 14]</P>
                   <P Name="fontSize">12</P>
                   <src>
                     <P Name="SSID">2</P>
@@ -1314,8 +1375,8 @@
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="7">
-                  <P Name="labelString">{i=i+1;}</P>
-                  <P Name="labelPosition">[196.341 197 39.313 16]</P>
+                  <P Name="labelString">{i=i+1;a=a+1;}</P>
+                  <P Name="labelPosition">[196.341 197 76.891 14]</P>
                   <P Name="fontSize">12</P>
                   <src>
                     <P Name="SSID">5</P>
@@ -1368,6 +1429,7 @@
               <P Name="subviewer">49</P>
               <P Name="type">FUNC_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
               <Children>
                 <data SSID="24" name="i1">
                   <P Name="scope">FUNCTION_INPUT_DATA</P>
@@ -1571,54 +1633,18 @@
                 </data>
               </Children>
             </state>
-            <state SSID="40">
-              <P Name="labelString">g(n)</P>
-              <P Name="position">[219.5 263.7841 105 75]</P>
-              <P Name="fontSize">12</P>
-              <P Name="superState">SUBCHART</P>
-              <P Name="subviewer">49</P>
-              <P Name="type">FUNC_STATE</P>
-              <P Name="decomposition">CLUSTER_STATE</P>
-              <eml>
-                <P Name="isEML">1</P>
-                <P Name="script">function g(n)
-  fprintf(&quot;%.0f\n&quot;, n);
-</P>
-                <P Name="editorLayout" Class="double">Matrix(4,1)
-[10.0, 5.0, 700.0, 500.0]</P>
-              </eml>
-              <Children>
-                <data SSID="41" name="n">
-                  <P Name="scope">FUNCTION_INPUT_DATA</P>
-                  <props>
-                    <array>
-                      <P Name="size">-1</P>
-                    </array>
-                    <type>
-                      <P Name="method">SF_INHERITED_TYPE</P>
-                      <P Name="primitive">SF_DOUBLE_TYPE</P>
-                      <P Name="isSigned">1</P>
-                      <P Name="wordLength">16</P>
-                    </type>
-                    <P Name="frame">SF_FRAME_INHERITED</P>
-                    <unit>
-                      <P Name="name">inherit</P>
-                    </unit>
-                  </props>
-                  <P Name="dataType">Inherit: From definition in chart</P>
-                </data>
-              </Children>
-            </state>
             <state SSID="18">
               <P Name="labelString">B
 en: f(&quot;en_B&quot;);
  [x,y]=square(x,y);
- g(x);g(y);</P>
+ fprintf(&quot;%f&quot;,x);
+ fprintf(&quot;%f&quot;, x)</P>
               <P Name="position">[535.3152 287.4631 144.2139 75.3826]</P>
               <P Name="fontSize">12</P>
               <P Name="subviewer">49</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
             </state>
             <state SSID="16">
               <P Name="labelString">A
@@ -1628,6 +1654,7 @@ en: f(&quot;en_A&quot;)</P>
               <P Name="subviewer">49</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
+              <eml/>
             </state>
             <data SSID="44" name="i">
               <P Name="scope">LOCAL_DATA</P>
@@ -1686,26 +1713,6 @@ en: f(&quot;en_A&quot;)</P>
               </props>
               <P Name="dataType">double</P>
             </data>
-            <data SSID="47" name="a">
-              <P Name="scope">LOCAL_DATA</P>
-              <props>
-                <P Name="initialValue">[0 0 1 2]</P>
-                <array>
-                  <P Name="size">-1</P>
-                </array>
-                <type>
-                  <P Name="method">SF_INHERITED_TYPE</P>
-                  <P Name="primitive">SF_DOUBLE_TYPE</P>
-                  <P Name="isSigned">1</P>
-                  <P Name="wordLength">16</P>
-                </type>
-                <P Name="frame">SF_FRAME_INHERITED</P>
-                <unit>
-                  <P Name="name">inherit</P>
-                </unit>
-              </props>
-              <P Name="dataType">Inherit: From definition in chart</P>
-            </data>
             <transition SSID="17">
               <P Name="labelString"/>
               <P Name="labelPosition">[370.532 281.667 0 0]</P>
@@ -1728,7 +1735,7 @@ en: f(&quot;en_A&quot;)</P>
             </transition>
             <transition SSID="19">
               <P Name="labelString">[find(4)==3]</P>
-              <P Name="labelPosition">[455.168 299 63.297 16]</P>
+              <P Name="labelPosition">[455.168 299 63.312 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="SSID">16</P>
@@ -1751,7 +1758,7 @@ en: f(&quot;en_A&quot;)</P>
         </chart>
       </Children>
     </machine>
-    <instance id="88">
+    <instance id="85">
       <P Name="machine">48</P>
       <P Name="name">Chart</P>
       <P Name="chart">49</P>
