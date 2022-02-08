@@ -575,7 +575,7 @@ CASE: send will increase the temporal count but remain the state "time"\<close>
    \<Longrightarrow> comp_exit env (FindComposition1 ex_ST (get_root env)) ex_ST e 
        (Status v5 I4) (Status v6 I5) True
    \<Longrightarrow> actlist_exec env A2 e name (Status v6 I5) (Status v7 I6) True
-   \<Longrightarrow> p1 = (entry_path name p)
+   \<Longrightarrow> p1 = (entry_path path p)
    \<Longrightarrow> p2 = (if (name = p) then name else (butlast p))
    \<Longrightarrow> comp_entry env (FindComposition1 p2 (get_root env)) p2 e p1 (Status v7 I6)
                    (Status v8 I7) b
