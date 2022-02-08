@@ -8,7 +8,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.3</P>
+      <P Name="ComputedModelVersion">1.4</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -67,22 +67,22 @@
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">1</P>
+            <P Name="Extents" Class="double">[1031.0, 545.0]</P>
+            <P Name="ZoomFactor" Class="double">0.67360574446146881</P>
+            <P Name="Offset" Class="double">[-408.12171046470593, -25.876724630823507]</P>
+            <P Name="SceneRectInView" Class="double">[-408.12171046470593, -25.876724630823507, 1530.5688950504114, 809.07861086563935]</P>
+          </Object>
+          <Object ObjectID="7">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
             <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1031.0, 545.0]</P>
             <P Name="ZoomFactor" Class="double">1.0</P>
             <P Name="Offset" Class="double">[0.0, 0.0]</P>
             <P Name="SceneRectInView" Class="double">[0.0, 0.0, 1031.0, 545.0]</P>
-          </Object>
-          <Object ObjectID="7">
-            <P Name="IsActive" Class="logical">0</P>
-            <P Name="IsTabbed" Class="logical">0</P>
-            <P Name="ViewObjType" Class="char">StateflowChart</P>
-            <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1031.0, 545.0]</P>
-            <P Name="ZoomFactor" Class="double">0.87113564110860509</P>
-            <P Name="Offset" Class="double">[-216.40590215974103, 179.8457264495035]</P>
-            <P Name="SceneRectInView" Class="double">[-216.40590215974103, 179.8457264495035, 1183.5125913203963, 625.62013799186809]</P>
           </Object>
         </Array>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*3">
@@ -140,9 +140,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">apple</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Thu Feb 03 16:33:08 2022</P>
-      <P Name="RTWModifiedTimeStamp">565806757</P>
-      <P Name="ModelVersionFormat">%&lt;AutoIncrement:1.3&gt;</P>
+      <P Name="LastModifiedDate">Tue Feb 08 23:03:03 2022</P>
+      <P Name="RTWModifiedTimeStamp">566248172</P>
+      <P Name="ModelVersionFormat">%&lt;AutoIncrement:1.4&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1099,7 +1099,6 @@
     <System>
       <P Name="Location">[8, 33, 1153, 813]</P>
       <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
-      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1119,6 +1118,7 @@
         <System>
           <P Name="Location">[8, 33, 1153, 813]</P>
           <P Name="SystemRect">[0.000000, 0.000000, 0.000000, 0.000000]</P>
+          <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1184,12 +1184,10 @@
         <chart id="37">
           <P Name="name">Washing machine</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-216.406 967.107 179.846 805.466]</P>
-          <P Name="zoomFactor">1.148</P>
+          <P Name="viewLimits">[-408.122 1122.447 -25.877 783.202]</P>
+          <P Name="zoomFactor">1.485</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">37</P>
-          <P Name="visible">1</P>
-          <subviewS/>
           <P Name="ssIdHighWaterMark">35</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -1206,7 +1204,6 @@
               <P Name="subviewer">37</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
               <Children>
                 <state SSID="7">
                   <P Name="labelString">Initial_State</P>
@@ -1215,7 +1212,6 @@
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
                 </state>
                 <state SSID="17">
                   <P Name="labelString">off
@@ -1226,7 +1222,6 @@ finish = 0;</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
                 </state>
                 <state SSID="9">
                   <P Name="labelString">Pending_State</P>
@@ -1235,7 +1230,6 @@ finish = 0;</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
                 </state>
                 <transition SSID="8">
                   <P Name="labelString"/>
@@ -1303,13 +1297,12 @@ finish = 0;</P>
             </state>
             <state SSID="6">
               <P Name="labelString">ON
-du:fprintf(&quot;Washing Completed!&quot;);</P>
+on E:fprintf(&quot;Washing Completed!&quot;);</P>
               <P Name="position">[621.9733 250.5934 332 238]</P>
               <P Name="fontSize">13</P>
               <P Name="subviewer">37</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">CLUSTER_STATE</P>
-              <eml/>
               <Children>
                 <state SSID="10">
                   <P Name="labelString">Add_Water
@@ -1319,7 +1312,6 @@ du:time = time + 1;</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
                 </state>
                 <state SSID="12">
                   <P Name="labelString">Washing
@@ -1329,7 +1321,6 @@ du:time = time + 1;</P>
                   <P Name="subviewer">37</P>
                   <P Name="type">OR_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
-                  <eml/>
                 </state>
                 <transition SSID="15">
                   <P Name="labelString">[time &gt;= n1]/{time = 0;}</P>
@@ -1521,7 +1512,7 @@ du:time = time + 1;</P>
             </transition>
             <transition SSID="14">
               <P Name="labelString">SWITCH</P>
-              <P Name="labelPosition">[427.836 288.093 53.219 15]</P>
+              <P Name="labelPosition">[442.759 293.833 53.219 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">7</P>
@@ -1542,18 +1533,18 @@ du:time = time + 1;</P>
             </transition>
             <transition SSID="19">
               <P Name="labelString">OFF</P>
-              <P Name="labelPosition">[454.898 342.222 27.984 15]</P>
+              <P Name="labelPosition">[456.855 326.959 27.984 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">6</P>
-                <P Name="intersection">[4 -1 0 0.5 621.9733 369.5934 0 0]</P>
+                <P Name="intersection">[4 -1 0 0.6124 621.9733 342.8513 0 0]</P>
               </src>
               <dst>
                 <P Name="SSID">1</P>
-                <P Name="intersection">[2 1 -0 0.5 324.1776 369.5934 0 0]</P>
+                <P Name="intersection">[2 1 -0 0.3881 324.1776 342.8513 0 0]</P>
               </dst>
-              <P Name="midPoint">[477.0755 369.5934]</P>
-              <P Name="dataLimits">[324.178 621.973 367.193 371.993]</P>
+              <P Name="midPoint">[477.0754 342.8513]</P>
+              <P Name="dataLimits">[324.178 621.973 340.451 345.251]</P>
               <P Name="subviewer">37</P>
               <P Name="drawStyle">SMART</P>
               <slide>
@@ -1563,18 +1554,18 @@ du:time = time + 1;</P>
             </transition>
             <transition SSID="26">
               <P Name="labelString">after(n3,sec)[finish == 0]{finish = 1;send(E);}</P>
-              <P Name="labelPosition">[351.995 418.151 255.969 15]</P>
+              <P Name="labelPosition">[355.1 370.48 255.969 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">6</P>
-                <P Name="intersection">[4 -1 0 0.3445 621.9733 406.5934 0 0]</P>
+                <P Name="intersection">[4 -1 0 0.5448 621.9733 358.9223 0 0]</P>
               </src>
               <dst>
                 <P Name="SSID">1</P>
-                <P Name="intersection">[2 1 -0 0.6548 324.1776 406.5934 0 0]</P>
+                <P Name="intersection">[2 1 -0 0.4554 324.1776 358.9223 0 0]</P>
               </dst>
-              <P Name="midPoint">[477.0755 406.5934]</P>
-              <P Name="dataLimits">[324.178 621.973 404.193 408.993]</P>
+              <P Name="midPoint">[477.0754 358.9223]</P>
+              <P Name="dataLimits">[324.178 621.973 356.522 361.322]</P>
               <P Name="subviewer">37</P>
               <P Name="drawStyle">SMART</P>
               <slide>
@@ -1584,18 +1575,18 @@ du:time = time + 1;</P>
             </transition>
             <transition SSID="27">
               <P Name="labelString">SWITCH</P>
-              <P Name="labelPosition">[421.94 465.093 53.219 15]</P>
+              <P Name="labelPosition">[419.969 400.916 53.219 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">9</P>
-                <P Name="intersection">[2 1 0 0.7167 260.1776 454.0934 0 0]</P>
+                <P Name="intersection">[2 1 0 0.1636 260.1776 420.9104 0 0]</P>
               </src>
               <dst>
                 <P Name="SSID">6</P>
-                <P Name="intersection">[4 -1 -0 0.145 621.9733 454.0934 0 0]</P>
+                <P Name="intersection">[4 -1 -0 0.2844 621.9733 420.9104 0 0]</P>
               </dst>
-              <P Name="midPoint">[437.0755 454.0934]</P>
-              <P Name="dataLimits">[260.178 621.973 451.693 456.493]</P>
+              <P Name="midPoint">[437.0754 420.9104]</P>
+              <P Name="dataLimits">[260.178 621.973 418.51 423.31]</P>
               <P Name="subviewer">37</P>
               <P Name="drawStyle">SMART</P>
               <slide>
@@ -1605,22 +1596,21 @@ du:time = time + 1;</P>
             </transition>
             <transition SSID="20">
               <P Name="labelString">SWITCH{n3 = n3 - temporalCount(sec)}</P>
-              <P Name="labelPosition">[342.166 561.838 231.391 15]</P>
+              <P Name="labelPosition">[341.722 459.992 231.391 15]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">6</P>
-                <P Name="intersection">[3 0 1 0.7334 710.4733 488.5934 0 0]</P>
+                <P Name="intersection">[4 -1 0 0.159 621.9733 450.7565 0 0]</P>
               </src>
               <dst>
                 <P Name="SSID">9</P>
-                <P Name="intersection">[3 0 1 0.5 169.1776 471.0934 0 0]</P>
+                <P Name="intersection">[2 1 0 0.6611 260.1776 450.7565 0 0]</P>
               </dst>
-              <P Name="midPoint">[439.8255 619.1881]</P>
-              <P Name="dataLimits">[166.778 710.473 471.093 619.182]</P>
+              <P Name="midPoint">[445.0755 450.7565]</P>
+              <P Name="dataLimits">[260.178 621.973 448.356 453.156]</P>
               <P Name="subviewer">37</P>
               <P Name="drawStyle">SMART</P>
               <slide>
-                <P Name="mode">MIRROR_SLIDE</P>
                 <P Name="sticky">BOTH_STICK</P>
               </slide>
               <P Name="executionOrder">2</P>
