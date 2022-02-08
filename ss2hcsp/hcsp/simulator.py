@@ -613,7 +613,6 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         if len(pos) == 0:
             return hp
         assert pos[0] == 0
-
         if hp.name in rec_vars:
             rec_hp = rec_vars[hp.name]
             return get_pos(rec_hp, pos[1:], rec_vars, procs)
@@ -845,7 +844,7 @@ class SimInfo:
         else:
             raise NotImplementedError
 
-    def exec_step(self):
+    def exec_step(self,infos):
         """Compute a single process for one step.
 
         If there is a step to be taken, return "step".
@@ -857,10 +856,15 @@ class SimInfo:
         by a channel name and direction (e.g. ("p2c", "!") or ("c2p", "?"))).
         
         """
+
+        procedures_list={}
+        for info in infos:
+            procedures_list.update(info.procedures)
+         
         rec_vars = dict()
-        cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars, self.procedures)
+        cur_hp = get_pos(self.hp, self.callstack.top_pos(), rec_vars,procedures_list)
         if cur_hp.type == "skip":
-            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             self.reason = None
             
         elif cur_hp.type == "assign":
@@ -876,7 +880,7 @@ class SimInfo:
                     if s != AVar('_'):
                         self.exec_assign(s, val[i], cur_hp)
             
-            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack = step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             self.reason = None
 
         elif cur_hp.type == "assert":
@@ -889,13 +893,13 @@ class SimInfo:
                     error_msg += str(val)
                 raise SimulatorException(error_msg)
             else:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
                 self.reason = None
 
         elif cur_hp.type == "test":
             # Evaluate a test. If fails, output a warning but do not stop
             # the execution.
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             self.reason = None
             if not eval_expr(cur_hp.bexpr, self.state):
                 warning_expr = ''
@@ -906,7 +910,7 @@ class SimInfo:
 
         elif cur_hp.type == "log":
             # Output a log item to the simulator
-            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+            self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             str_pat = eval_expr(cur_hp.pattern, self.state)
             if not isinstance(str_pat, str):
                 str_pat = str(str_pat)
@@ -924,7 +928,7 @@ class SimInfo:
                 pos=self.callstack.top_pos() + (0,) + start_pos(cur_hp.hp)
                 self.callstack.renew(pos, rec_vars)
             else:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, self.procedures)
+                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
             self.reason = None
 
         elif cur_hp.type == "recursion":
@@ -936,7 +940,7 @@ class SimInfo:
         elif cur_hp.type == "var":
             # Return to body of recursion
             for i in range(len(self.callstack.top_pos())):
-                hp = get_pos(self.hp, self.callstack.top_pos()[:i], rec_vars, self.procedures)
+                hp = get_pos(self.hp, self.callstack.top_pos()[:i], rec_vars, procedures_list)
                 if hp.type == 'recursion' and hp.entry == cur_hp.name:
                     pos = self.callstack.top_pos() + (0,) + start_pos(hp)
                     self.callstack.renew(pos, rec_vars)
@@ -944,8 +948,8 @@ class SimInfo:
                     return
 
             # Otherwise, enter code of procedure
-            if cur_hp.name in self.procedures:
-                proc = self.procedures[cur_hp.name]
+            if cur_hp.name in procedures_list:
+                proc = procedures_list[cur_hp.name]
                 pos = self.callstack.top_pos() + (0,) + start_pos(proc.hp)
                 self.callstack.push(pos, rec_vars, cur_hp.name)
                 self.reason = None
@@ -1268,7 +1272,7 @@ def extract_event(infos):
         return "deadlock"
 
 
-def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
+def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
                   show_interval=None, start_event=None, show_event_only=False):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
@@ -1335,7 +1339,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
                 res['statemap'][fst_state] = state_num
             cur_info[info.name] = {'callstack': info_callstack, 'statenum': state_num}
         new_event['infos'] = cur_info
-
         # Finally add to trace
         if not show_event_only or new_event['type'] != 'step':
             res['trace'].append(new_event)
@@ -1394,11 +1397,13 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
     for _ in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
+        states={}
         for info in infos:
             while info.callstack.top_pos() is not None and not num_event >= start_id + num_steps:
                 ori_pos = {info.name: disp_of_callstack(info)}
                 try:
-                    info.exec_step()
+                    info.exec_step(infos)
+                    states.update(info.state)
                 except SimulatorAssertionException as e:
                     if 'warning' not in res:
                         info.reason = {'warning': str(e)}
@@ -1422,7 +1427,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=1010, num_show=None,
 
             if info.callstack.top_pos() is None:
                 info.reason = {'end': None}
-
+        for info in infos:
+            info.state=states
         if num_event >= start_id + num_steps:
             break
 
