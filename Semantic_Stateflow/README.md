@@ -7,7 +7,7 @@ We define a formal operational semantics for a subset of Stateflow and formalize
 
 ```python -m unittest Semantic_Stateflow.sf_isabelle_test```
 
-then check the result is Semactic_Stateflow/example_name.thy
+then check the result in Semactic_Stateflow/example_name.thy
 
 * Translator code is ```sf_isabelle.py```
 
