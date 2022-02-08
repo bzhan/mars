@@ -2,7 +2,7 @@
 # Code for Semantics of Stateflow in Isabelle:
 
 ## Usage
-* To run a test, we entry into the root and add an example path in ```Semantic_Stateflow/sf_isabelle_test.py``` and run:
+* To run a test, we enter into the root and add an example path in ```Semantic_Stateflow/sf_isabelle_test.py``` and run:
 
 ```python -m unittest Semantic_Stateflow.sf_isabelle_test```
 
