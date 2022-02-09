@@ -39,10 +39,10 @@ class DiscretePulseGenerator(SL_Block):
         assert isinstance(self.pluseWidth, int) and 0 < self.pluseWidth < 100
         # assert (self.period * self.pluseWidth) % 100 == 0
         if_then_else = hcsp.ITE(if_hps=[(conj(RelExpr(">=", AVar("t_delay"), AConst(0)),
-                                              RelExpr("<=", AVar("t_delay"), AConst(self.period * self.pluseWidth / 100))),
+                                              RelExpr("<", AVar("t_delay"), AConst(self.period * self.pluseWidth / 100))),
                                          hcsp.Assign(var_name=out_var, expr=AConst(self.amplitude)))],
                                 else_hp=hcsp.Assign(var_name=out_var, expr=AConst(0)))
-        return hcsp.Loop(hcsp.Sequence(hcsp.InputChannel("current_time_out",AVar("t")),t_delay, if_then_else,hcsp.OutputChannel("ch_clock",AVar(out_var))))
+        return hcsp.Sequence(t_delay, if_then_else,hcsp.Condition(RelExpr("==",AVar("pre_"+out_var),AConst("")),hcsp.Assign(AVar("pre_"+out_var),AVar(out_var))))
 
     
     def get_hcsp(self):

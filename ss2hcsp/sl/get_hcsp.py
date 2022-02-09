@@ -394,6 +394,7 @@ def translate_discrete(diagram):
 def new_translate_discrete(diagram, chart_parameters):
     # assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
+   
     sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
 
@@ -439,8 +440,8 @@ def new_translate_discrete(diagram, chart_parameters):
         converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
                                          translate_io=False)
         # _init_hp = hcsp.Var(converter.init_name())
-        init_hps.append(hcsp.Var(converter.init_name()))
-        charts[0].exec_name = converter.exec_name()
+        init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
+        charts[0].exec_name = converter.exec_name(charts[0].name)
         # _dis_comp = hcsp.Var(converter.exec_name())
         _procedures = converter.get_procs()
         for _name, _hp in _procedures.items():
@@ -497,6 +498,7 @@ def new_translate_discrete(diagram, chart_parameters):
             del block_dict[name]
 
     # Get the OUTPUT of each block in sorted_blocks
+     
     output_hps = []
     update_hps = []
     for block in sorted_blocks:
@@ -505,6 +507,7 @@ def new_translate_discrete(diagram, chart_parameters):
         else:
             assert block.st % sample_time == 0
             period = block.st // sample_time
+            
             output_hps.append(hp.Condition(
                 RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
                 block.get_output_hp()))

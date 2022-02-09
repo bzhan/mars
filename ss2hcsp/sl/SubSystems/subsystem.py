@@ -73,21 +73,29 @@ class Triggered_Subsystem(Subsystem):
             pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
             if event:
                 assert self.type == "stateflow"
-                push_event = hp.Assign(var_name="EL",
-                                       expr=FunExpr(fun_name="push", exprs=[AVar("EL"), AVar(event)]))
+                push_event = hp.Assign(var_name=self.name+"EL",
+                                       expr=FunExpr(fun_name="push", exprs=[AVar(self.name+"EL"), AConst(event)]))
                 execute_chart = hp.Var(self.exec_name)
                 main_execute = hp.Sequence(push_event, execute_chart)
             else:
                 assert self.type == "triggered_subsystem"
                 main_execute = hp.Var(self.name)
+            # output_hp = hp.Sequence(
+            #     hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
+            #            else_hp=hp.Condition(cond=conj(time_cond,trig_cond),
+            #                                 hp=hp.Sequence(
+            #                                     hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
+            #                                     main_execute))),
+            #     hp.Assign(var_name=pre_sig.name, expr=cur_sig)
+            # )
             output_hp = hp.Sequence(
-                hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
-                       else_hp=hp.Condition(cond=conj(time_cond, trig_cond),
-                                            hp=hp.Sequence(
-                                                hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
-                                                main_execute))),
-                hp.Assign(var_name=pre_sig.name, expr=cur_sig)
-            )
+            hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
+                   else_hp=hp.Condition(cond=trig_cond,
+                                        hp=hp.Sequence(
+                                            hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
+                                            main_execute))),
+            hp.Assign(var_name=pre_sig.name, expr=cur_sig)
+        )
             output_hps.append(output_hp)
 
         return hp.seq(output_hps)
@@ -130,7 +138,8 @@ class Triggered_Subsystem(Subsystem):
             op0, op1, op2, op3 = ">", "<=", "==", "<"
         elif trigger_type == "either":
             # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
-            op0, op1, op2, op3 = "<", ">=", ">=", "<"
+            op0, op1, op2, op3 = "<=", ">", ">", "<="
+            
         else:
             raise NotImplementedError("Unknown trigger type: %s" % trigger_type)
 
