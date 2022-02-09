@@ -11,20 +11,20 @@ then check the result in ```Semactic_Stateflow/example_name.thy```
 ## Introduction to the Files
 
 ### Syntax_Final.thy and Semantics_Final.thy
-* Syntax_Final.thy is the syntax for a subset of Stateflow
-* Semantics_Final.thy is the corresponding semantics
+* Syntax_Final.thy: the syntax for a subset of Stateflow
+* Semantics_Final.thy: the big-step operational semantics of the Stateflow subset.
 
 ### Final_ML.thy
-* An execution engine based on the semantics, which generates the execution results of this model according to the semantics automatically.
+* The tactic for the automatic execution of the Stateflow semantics.
 
 ### sf_isabelle.py and sf_isabelle_test.py
-* sf_isabelle.py is an automatic translator from Stateflow to Isabelle
-* sf_isabelle_test.py is the corresponding test code with a xml file
+* sf_isabelle.py: a translation tool from Stateflow charts to Isabelle representations.
+* sf_isabelle_test.py: the corresponding test code of the translation tool.
 
 ### example_xml
-* all Stateflow examples in xls format and xml format
+* All Stateflow examples in xls format and xml format
 
 ### example_thy
-* all examples in thy format
+* All test Stateflow examples in .thy format
 
 
