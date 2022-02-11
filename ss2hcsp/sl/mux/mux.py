@@ -6,7 +6,7 @@ class Mux(SL_Block):
 	def __init__(self,name, inputs,displayOption,ports):
 		super(Mux, self).__init__(name=name, num_dest=int(inputs), num_src=1, st=-1, type="mux")
 		# self.name=name
-		# self.type = "mux"
+		self.type = "mux"
 		self.inputs=inputs
 		self.displayOption=displayOption
 		self.signal_names = list()

@@ -394,7 +394,6 @@ def translate_discrete(diagram):
 def new_translate_discrete(diagram, chart_parameters):
     # assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
-   
     sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
 
@@ -440,7 +439,7 @@ def new_translate_discrete(diagram, chart_parameters):
         converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
                                          translate_io=False)
         # _init_hp = hcsp.Var(converter.init_name())
-        init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
+        # init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
         charts[0].exec_name = converter.exec_name(charts[0].name)
         # _dis_comp = hcsp.Var(converter.exec_name())
         _procedures = converter.get_procs()
@@ -496,9 +495,7 @@ def new_translate_discrete(diagram, chart_parameters):
         assert head_block_names
         for name in head_block_names:
             del block_dict[name]
-
     # Get the OUTPUT of each block in sorted_blocks
-     
     output_hps = []
     update_hps = []
     for block in sorted_blocks:
@@ -521,7 +518,6 @@ def new_translate_discrete(diagram, chart_parameters):
                 update_hps.append(hp.Condition(
                     RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
                     block.get_update_hp()))
-
     return init_hps, procedures, output_hps, update_hps, sample_time
 
 
@@ -645,8 +641,9 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
 
     # Get procedures
     procedures = dis_procedures + con_procedures
+
     dict_procs = {proc.name: proc.hp for proc in procedures}
-    dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
+    # dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
     procedures = [hp.Procedure(name=proc_name, hp=proc_hp) for proc_name, proc_hp in dict_procs.items()]
     result = HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
     return result

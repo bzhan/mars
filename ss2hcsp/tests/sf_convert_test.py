@@ -658,5 +658,11 @@ class SFConvertTest(unittest.TestCase):
              'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+    def testStopWatch_With_Max(self):
+  
+        run_test(self, "./Examples/Stateflow/tests/stopWatch1.xml",15,
+          ['log en_StopW', 'log Reset', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Running', 'delay 0.1', 'delay 0.1',
+           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Lap','delay 0.1', 'delay 0.1',
+           'delay 0.1', 'log en_StopW', 'log LapStop', 'delay 0.1', 'delay 0.1'],print_res=True)
 if __name__ == "__main__":
     unittest.main()

@@ -30,7 +30,7 @@ class DiscretePulseGenerator(SL_Block):
     def get_output_hp(self):
         out_var = self.src_lines[0][0].name
         assert isinstance(self.phaseDelay, int) and self.phaseDelay >= 0
-        assert isinstance(self.period, int) and self.period > 0
+        assert isinstance(self.period, (int,float)) and self.period > 0
         # t_delay := (t - phaseDelay) % period
         t_delay = hcsp.Assign(var_name="t_delay", expr=OpExpr("%", OpExpr("-", AVar("t"), AConst(self.phaseDelay)),
                                                               AConst(self.period)))

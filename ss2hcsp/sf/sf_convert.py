@@ -1140,17 +1140,24 @@ class SFConvert:
         return hcsp.seq(procs)
     def get_pluse_generator_proc(self):
         self.diagram.comp_inher_st()
+        self.diagram.translate_mux()
+   
+        self.diagram.inherit_to_continuous()
         dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
         get_hcsp.new_translate_discrete(self.discrete_diagram, self.chart_parameters1)
         con_init_hps, equations, var_subst, constraints, trig_procs, con_procedures = \
         get_hcsp.new_translate_continuous(self.continuous_diagram)
         name_line_triggered = ""
-        pre_var=""
+        pre_vars=list()
+    
         # Initialization
         for line, trigger_type, event in self.chart.trigger_lines:
             name_line_triggered = self.chart.name+"_"+line+"_triggered"
-            pre_var = "pre_"+line 
-        init_hps = [hcsp.Assign("tt", expr.AConst(0)),hcsp.Assign("t", expr.AConst(0)), hcsp.Assign("tick", expr.AConst(0)),hcsp.Assign(expr.AVar(name_line_triggered),expr.AConst(0)),hcsp.Assign(expr.AVar(pre_var),expr.AConst(""))]
+            pre_vars.append(hcsp.Assign(expr.AVar(name_line_triggered),expr.AConst(1)))
+            pre_vars.append(hcsp.Assign(expr.AVar("pre_"+line),expr.AConst(""))) 
+       
+        init_hps = [hcsp.Assign("tt", expr.AConst(0)),hcsp.Assign("t",expr.AConst(0)), hcsp.Assign("tick", expr.AConst(0))] + dis_init_hps + con_init_hps + pre_vars
+     
         init_hp = init_hps[0] if len(init_hps) == 1 else hcsp.Sequence(*init_hps)
 
         ### Discrete process ###
@@ -1238,7 +1245,7 @@ class SFConvert:
         all_procs[self.init_name(self.chart.name)] = self.get_init_proc()
         all_procs[self.exec_name(self.chart.name)] = self.get_exec_proc()
         if self.has_plus_generator:
-                    all_procs["pluse_generator_proc"]=self.get_pluse_generator_proc()
+            all_procs["pluse_generator_proc"]=self.get_pluse_generator_proc()
 
         return all_procs
 
@@ -1405,13 +1412,17 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     # Processes for charts
     has_signal = (len(charts) > 1)
-    has_plus_generator = (len(plus_generator) >= 1)
-    
+    has_pluse_generator_or_mux = 0
     for chart in charts:
         diagram.chart_parameters[chart.name]['st'] = sample_time
+        for dest_line in chart.dest_lines:
+            for block in discrete_blocks:
+                if block.name == dest_line.src:
+                    if block.type in ["DiscretePulseGenerator","mux"]:
+                        has_pluse_generator_or_mux=1
         converter = SFConvert(
             chart, chart_parameters=diagram.chart_parameters[chart.name],
-            has_signal=has_signal, shared_chans=shared_chans,has_plus_generator=has_plus_generator,exec_order=exec_order,charts=charts,
+            has_signal=has_signal, shared_chans=shared_chans,has_plus_generator=has_pluse_generator_or_mux,exec_order=exec_order,charts=charts,
             discrete_diagram=discrete_blocks,continuous_diagram= continuous_blocks,outputs=outputs,chart_parameters1=diagram.chart_parameters,diagram=diagram)
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
