@@ -32,14 +32,14 @@ class DiscretePulseGenerator(SL_Block):
         assert isinstance(self.phaseDelay, int) and self.phaseDelay >= 0
         assert isinstance(self.period, (int,float)) and self.period > 0
         # t_delay := (t - phaseDelay) % period
-        t_delay = hcsp.Assign(var_name="t_delay", expr=OpExpr("%", OpExpr("-", AVar("t"), AConst(self.phaseDelay)),
-                                                              AConst(self.period)))
+        t_delay = hcsp.Assign(var_name="t_delay", expr=OpExpr("%", OpExpr("-", AVar("t"), AConst(self.phaseDelay*10)),
+                                                              AConst(self.period*10)))
         # if 0 <= t_delay <= period * pluseWidth % then out_var := amplitude
         # else out_var := 0
         assert isinstance(self.pluseWidth, int) and 0 < self.pluseWidth < 100
         # assert (self.period * self.pluseWidth) % 100 == 0
-        if_then_else = hcsp.ITE(if_hps=[(conj(RelExpr(">=", AVar("t_delay"), AConst(0)),
-                                              RelExpr("<", AVar("t_delay"), AConst(self.period * self.pluseWidth / 100))),
+        if_then_else = hcsp.ITE(if_hps=[(conj(RelExpr(">=", AVar("t_delay"), AConst(0*10)),
+                                              RelExpr("<", AVar("t_delay"), AConst(self.period * self.pluseWidth / 100*10))),
                                          hcsp.Assign(var_name=out_var, expr=AConst(self.amplitude)))],
                                 else_hp=hcsp.Assign(var_name=out_var, expr=AConst(0)))
         return hcsp.Sequence(t_delay, if_then_else,hcsp.Condition(RelExpr("==",AVar("pre_"+out_var),AConst("")),hcsp.Assign(AVar("pre_"+out_var),AVar(out_var))))

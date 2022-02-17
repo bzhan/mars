@@ -556,9 +556,9 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages9(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages9.xml",40,
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages9.xml", 40,
             ['log en_A', 'log en_A0','log en_B', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
-             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'],io_filter=io_filter)
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
 
     def testContinuous1(self):
         run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 2,
@@ -624,45 +624,57 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/trigger_subsystem/fuc_call_inputEvent_enabling_chart_example.xml",15,
             ['log en_chart2', 'log en_chart1', 'log du_chart2', 'delay 0.1', 'log du_chart1',
              'log du_chart2', 'delay 0.1', 'log du_chart1','log du_chart2', 'delay 0.1',
-             'log du_chart1', 'log du_chart2', 'delay 0.1'],io_filter=io_filter)
+             'log du_chart1', 'log du_chart2', 'delay 0.1'], io_filter=io_filter)
+   
     def testFunction_call_mul(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_eg.xml",10,
-            [ 'log en_AA','log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'log du_AA',
-             'log du_AA','log du_AA', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_eg.xml", 10,
+            [ 'log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'log du_AA',
+              'log du_AA', 'log du_AA', 'delay 0.1'], io_filter=io_filter)
+    
     def testEdge_call(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg.xml",15,
-            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg.xml", 15,
+            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1', 
+             'delay 0.1', 'delay 0.1'], io_filter=io_filter)
+    
     def testEdge_call1(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg_rising.xml",25,
-            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1',
-             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg_rising.xml", 25,
+            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
+             'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
+             'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
+    
     def testEdge_call3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger3.xml",15,
-           ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
-            'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/edge_trigger3.xml", 15,
+           ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
+             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
+    
     def testEdge_call4(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger4_falling.xml",20,
-            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 
-             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/edge_trigger4_falling.xml", 20,
+            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
+              'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
+    
     def testEdge_call5(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger5_either.xml",25,
-            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1',
-             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'delay 0.1', 'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'],io_filter=io_filter)
+        run_test(self, "./Examples/trigger_subsystem/edge_trigger5_either.xml", 25,
+            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
+    
     def testStopWatch_With_Max(self):
-  
-        run_test(self, "./Examples/Stateflow/tests/stopWatch1.xml",15,
-          ['log en_StopW', 'log Reset', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Running', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Lap','delay 0.1', 'delay 0.1',
-           'delay 0.1', 'log en_StopW', 'log LapStop', 'delay 0.1', 'delay 0.1'],print_res=True)
+        run_test(self, "./Examples/Stateflow/tests/stopWatch1.xml", 15,
+          ['log en_StopW', 'log Reset', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Running',
+           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
+           'delay 0.1', 'log Lap','delay 0.1', 'delay 0.1', 'delay 0.1', 'log en_StopW',
+           'log LapStop', 'delay 0.1', 'delay 0.1'])
 if __name__ == "__main__":
     unittest.main()

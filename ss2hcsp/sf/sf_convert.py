@@ -45,8 +45,9 @@ class SFConvert:
 
     """
     def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
-                 shared_chans=None, translate_io=True,has_plus_generator=False,
-                 exec_order=None,charts=None,discrete_diagram=None,continuous_diagram= None,outputs=None,chart_parameters1=None,diagram=None):
+                 shared_chans=None, translate_io=True, has_pluse_generator=False,
+                 exec_order=None, charts=None, discrete_diagram=None, continuous_diagram=None,
+                 outputs=None, chart_parameters1=None, diagram=None):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
@@ -55,7 +56,7 @@ class SFConvert:
         self.chart_parameters1 = chart_parameters1
         self.translate_io = translate_io
         self.has_signal = has_signal
-        self.has_plus_generator = has_plus_generator
+        self.has_pluse_generator = has_pluse_generator
         self.discrete_diagram =discrete_diagram
         self.continuous_diagram=continuous_diagram
         self.outputs=outputs
@@ -955,43 +956,13 @@ class SFConvert:
         if self.has_signal:
             procs.append(hcsp.InputChannel("start_" + self.chart.name))
        
-        # if self.has_plus_generator:
-        #     procs.append(hcsp.Assign(expr.AVar("current_time"),expr.AConst(0.001)))
-        #     procs.append(hcsp.OutputChannel("current_time_out",expr.AVar("current_time")))
-        #     procs.append(hcsp.InputChannel("ch_clock",expr.AVar("osag")))
-        #     procs.append(hcsp.Assign("is_end",expr.AConst(0)))
-       
         # Initialize event stack
         procs.append(hcsp.Assign(self.chart.name+"EL", expr.ListExpr()))
         for _, e in self.events.items():
-        #     if e.scope == "INPUT_EVENT" and e.trigger in ["EITHER_EDGE_EVENT","RISING_EDGE_EVENT","FALLING_EDGE_EVENT"]:
-        #         if e.trigger == "EITHER_EDGE_EVENT":
-        #             is_edge_trigger_either = True
-        #             if self.has_plus_generator:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
-        #             else:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AConst(0)))
-        #         elif e.trigger == "RISING_EDGE_EVENT":
-        #             is_edge_trigger_rising = True
-        #             if self.has_plus_generator:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
-        #             else:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AConst(0)))
-        #         else:
-        #             is_edge_trigger_falling = True
-        #             if self.has_plus_generator:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AVar("osag")))
-        #             else:
-        #                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AConst(0)))
-               
-        #         # if not self.has_plus_generator:
-        #         #     procs.append(hcsp.InputChannel("ch_clock", expr.AVar("osag")))
-               
             if e.scope == "OUTPUT_EVENT" and e.trigger in ["EITHER_EDGE_EVENT","RISING_EDGE_EVENT","FALLING_EDGE_EVENT"]:
                 procs.append(hcsp.Assign(expr.AVar("last"),expr.AConst(0)))
                 procs.append(hcsp.Assign(expr.AVar("osag"),expr.AConst(0)))
                
-
         # Input data
         procs.extend(self.get_input_data())
         
@@ -1048,7 +1019,7 @@ class SFConvert:
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
         if self.is_has_trigger_event() or self.is_has_Inputtrigger_event():
-            if not self.has_plus_generator: 
+            if not self.has_pluse_generator: 
                 procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
            
         return hcsp.seq(procs)
@@ -1138,10 +1109,10 @@ class SFConvert:
                     expr.OpExpr('+', expr.AVar(time_name), expr.AConst(self.sample_time)))))
 
         return hcsp.seq(procs)
+    
     def get_pluse_generator_proc(self):
         self.diagram.comp_inher_st()
         self.diagram.translate_mux()
-   
         self.diagram.inherit_to_continuous()
         dis_init_hps, dis_procedures, output_hps, update_hps, sample_time = \
         get_hcsp.new_translate_discrete(self.discrete_diagram, self.chart_parameters1)
@@ -1156,7 +1127,7 @@ class SFConvert:
             pre_vars.append(hcsp.Assign(expr.AVar(name_line_triggered),expr.AConst(1)))
             pre_vars.append(hcsp.Assign(expr.AVar("pre_"+line),expr.AConst(""))) 
        
-        init_hps = [hcsp.Assign("tt", expr.AConst(0)),hcsp.Assign("t",expr.AConst(0)), hcsp.Assign("tick", expr.AConst(0))] + dis_init_hps + con_init_hps + pre_vars
+        init_hps = [hcsp.Assign("t",expr.AConst(0)), hcsp.Assign("tick", expr.AConst(0))] + dis_init_hps + con_init_hps + pre_vars
      
         init_hp = init_hps[0] if len(init_hps) == 1 else hcsp.Sequence(*init_hps)
 
@@ -1200,8 +1171,8 @@ class SFConvert:
             continuous_hp = hp.Loop(hp=hcsp.Sequence(continuous_hp, trig_proc), constraint=time_constraint)
 
         # Update t := t + tt
-        update_t = hcsp.Assign("t", expr.OpExpr("+", expr.AVar("t"),expr.AVar("tt")))
-        # update_t = hcsp.Assign("t", expr.OpExpr("+", expr.AVar("t"),expr.AConst(self.sample_time)))
+        # update_t = hcsp.Assign("t", expr.OpExpr("+", expr.AVar("t"),expr.AVar("tt")))
+        update_t = hcsp.Assign("t", expr.OpExpr("+", expr.AVar("t"), expr.AConst(self.sample_time*10)))
         # Update tick := tick + 1
         update_tick = hcsp.Assign("tick", expr.OpExpr("+", expr.AVar("tick"), expr.AConst(1)))
 
@@ -1244,16 +1215,16 @@ class SFConvert:
         # Initialization and iteration
         all_procs[self.init_name(self.chart.name)] = self.get_init_proc()
         all_procs[self.exec_name(self.chart.name)] = self.get_exec_proc()
-        if self.has_plus_generator:
+        if self.has_pluse_generator:
             all_procs["pluse_generator_proc"]=self.get_pluse_generator_proc()
 
         return all_procs
 
     def get_toplevel_process(self):
         """Returns the top-level process for chart."""
-        if self.has_plus_generator:
+        if self.has_pluse_generator:
             return  hcsp.Sequence( 
-            hcsp.Var(self.init_name(self.chart.name)),hcsp.Var("pluse_generator_proc"),
+            hcsp.Var(self.init_name(self.chart.name)), hcsp.Var("pluse_generator_proc"),
             )
         else:
             return hcsp.Sequence( 
@@ -1385,7 +1356,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
         continuous = [continuous]
     charts = [block for block in discrete_blocks if block.type == "stateflow"]
     dsms = [block for block in others if block.type == "DataStoreMemory"]
-    plus_generator = [block for block in discrete_blocks if block.type == "DiscretePulseGenerator"]
+    pluse_generator = [block for block in discrete_blocks if block.type == "DiscretePulseGenerator"]
     # _, continuous, charts, _, _, _, dsms, _, clocks = diagram.seperate_diagram()
 
     # Optional: print chart
@@ -1422,8 +1393,9 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
                         has_pluse_generator_or_mux=1
         converter = SFConvert(
             chart, chart_parameters=diagram.chart_parameters[chart.name],
-            has_signal=has_signal, shared_chans=shared_chans,has_plus_generator=has_pluse_generator_or_mux,exec_order=exec_order,charts=charts,
-            discrete_diagram=discrete_blocks,continuous_diagram= continuous_blocks,outputs=outputs,chart_parameters1=diagram.chart_parameters,diagram=diagram)
+            has_signal=has_signal, shared_chans=shared_chans, has_pluse_generator=has_pluse_generator_or_mux,
+            exec_order=exec_order, charts=charts, discrete_diagram=discrete_blocks, continuous_diagram= continuous_blocks,
+            outputs=outputs, chart_parameters1=diagram.chart_parameters, diagram=diagram)
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
         proc_map[chart.name] = (procs, hp)
