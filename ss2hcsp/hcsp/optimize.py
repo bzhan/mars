@@ -95,7 +95,7 @@ def get_read_vars(hp):
     elif hp.type == 'ite':
         return set().union(*(if_cond.get_vars() for if_cond, _ in hp.if_hps))
     elif hp.type == 'ode':
-        return hp.constraint.get_vars().union(*(eq.get_vars() for _, eq in hp.eqs))
+        return hp.constraint.get_vars().union(*(eq.get_vars().union({v}) for v, eq in hp.eqs))
     else:
         raise NotImplementedError
 
@@ -402,6 +402,7 @@ class HCSPAnalysis:
                     info.reach_after.add((write_vars, loc))
             elif info.sub_hp.type == 'ode':
                 for var, eq in info.sub_hp.eqs:
+                    info.reach_before.add((var, loc))
                     info.reach_after.add((var, loc))
 
         # After procedure calls, anything can happen
