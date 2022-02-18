@@ -471,6 +471,8 @@ def new_translate_discrete(diagram, chart_parameters):
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
             procedures.extend(block.get_procedures())
+        elif block.type == "signalBuilder":
+            init_hps.append(block.get_init_hp())
 
     # Delete Constant blocks
     block_names = [name for name, block in block_dict.items() if block.type == "constant"]
@@ -495,6 +497,7 @@ def new_translate_discrete(diagram, chart_parameters):
         assert head_block_names
         for name in head_block_names:
             del block_dict[name]
+
     # Get the OUTPUT of each block in sorted_blocks
     output_hps = []
     update_hps = []

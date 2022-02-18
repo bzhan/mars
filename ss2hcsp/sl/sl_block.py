@@ -68,3 +68,9 @@ class SL_Block:
     def get_output_vars(self):
         assert all(len(set(line.name for line in line_list)) == 1 for line_list in self.src_lines)
         return set(line_list[0].name for line_list in self.src_lines)
+
+    def get_init_hp(self):
+        return None
+
+    def get_output_hp(self):
+        return None

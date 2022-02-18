@@ -1,18 +1,30 @@
+from decimal import Decimal
+
 from ss2hcsp.sl.sl_block import SL_Block
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
-from ss2hcsp.hcsp.expr import conj, true_expr
-import random
+from ss2hcsp.hcsp.expr import conj, true_expr, AVar, AConst, OpExpr, RelExpr
 
 
 class SignalBuilder(SL_Block):
     """Block for Signal Builder."""
     def __init__(self, name, signal_names=(), time_axises=(), data_axises=(), out_index=()):
-        super(SignalBuilder, self).__init__("signalBuilder", name, len(signal_names), 0, 0)
+        super(SignalBuilder, self).__init__("signalBuilder", name, len(signal_names), 0, Decimal("0.01"))
+
+        # Both time_axises and data_axises are lists of tuples of values, where
+        # each tuple represents one series.
+        assert len(time_axises) == len(data_axises) == len(signal_names)
+        self.num_series = len(signal_names)
+        for i in range(self.num_series):
+            assert len(time_axises[i]) == len(data_axises[i])
+
         self.signal_names = signal_names
         self.time_axises = time_axises
         self.data_axises = data_axises
         self.out_indexs = out_index
+
+        # Variable representing tick within the signal builder
+        self.tick_var = self.name + "_tick"
 
     def __str__(self):
         return "%s: SignalBuilder[signals = %s, out = %s]" % (self.name, str(self.signal_names), str(self.src_lines))
@@ -20,11 +32,40 @@ class SignalBuilder(SL_Block):
     def __repr__(self):
         return str(self)
 
+    def get_init_hp(self):
+        return hp.Assign(self.tick_var, AConst(0))
+
+    def get_output_hp(self):
+        procs = []
+        procs.append(hp.Assign(self.tick_var, OpExpr("+", AVar(self.tick_var), AConst(1))))
+        for s_id in range(self.num_series):
+            branches = []
+            time_axis = self.time_axises[s_id]
+            data_axis = self.data_axises[s_id]
+            signal_name = self.signal_names[s_id]
+            for i in range(len(time_axis)-1):
+                left = round(time_axis[i] * 100)
+                right = round(time_axis[i+1] * 100)
+                if left == right:
+                    continue
+                cond = conj(RelExpr(">=", AVar(self.tick_var), AConst(left)),
+                            RelExpr("<", AVar(self.tick_var), AConst(right)))
+                slope = (data_axis[i+1] - data_axis[i]) / (right - left)
+                act = hp.Assign(AVar(signal_name),
+                    OpExpr("+", OpExpr("*", AConst(slope), OpExpr("-", AVar(self.tick_var), AConst(left))),
+                                AConst(data_axis[i])))
+                branches.append((cond, act))
+
+            else_act = hp.Assign(AVar(signal_name), AConst(data_axis[-1]))
+            procs.append(hp.ITE(branches, else_act))
+        return hp.seq(procs)
+
     def rename_src_lines(self):
         assert len(self.signal_names) == len(self.src_lines)
         for i in range(len(self.signal_names)):
             for line in self.src_lines[i]:
                 line.name = self.signal_names[i]
+
     def get_hp(self, init_ode=hp.Skip(), ode_hps=()):
         assert isinstance(init_ode, hp.HCSP)
         assert all(isinstance(ode_hp, (hp.ODE, hp.ODE_Comm)) for ode_hp in ode_hps)

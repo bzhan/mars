@@ -270,6 +270,11 @@ class SimTest(unittest.TestCase):
 
         })
 
+    def testStopWatch1(self):
+        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 9, {
+            0: {'t': 0},
+        }, print_hcsp=True, print_time_series=True)
+
 
 if __name__ == "__main__":
     unittest.main()
