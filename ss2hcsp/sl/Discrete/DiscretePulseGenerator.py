@@ -1,49 +1,63 @@
-from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp import hcsp 
-from ss2hcsp.hcsp.expr import AVar, AConst, OpExpr, BExpr, conj,disj, RelExpr
-from ss2hcsp.hcsp.parser import bexpr_parser, hp_parser
+from decimal import Decimal
+import math
+
+from ss2hcsp.sl.sl_block import SL_Block, get_gcd
+from ss2hcsp.hcsp import hcsp as hp
+from ss2hcsp.hcsp.expr import AVar, AConst, OpExpr, conj
+
+
 class DiscretePulseGenerator(SL_Block):
     """Block for unit delay."""
-    def __init__(self,name="", amplitude=1,period=2,pluseType="",pluseWidth=1,phaseDelay=1,timeSource="",sampleTime=1,is_continuous=False):
-        super(DiscretePulseGenerator, self).__init__(name="", num_dest=0, num_src=1, st=1, type="DiscretePulseGenerator")
-        self.name = name
-        self.type = "DiscretePulseGenerator"
-        self.amplitude=amplitude
-        self.period=period
-        self.pluseType=pluseType
-        self.pluseWidth=pluseWidth
-        self.phaseDelay=phaseDelay
-        self.timeSource=timeSource
-        self.st=sampleTime
-        self.is_continuous = is_continuous
-        self.num_src = 1
-        self.src_lines = [[]]
+    def __init__(self, name, pulseType, amplitude, period, pulseWidth, phaseDelay):
+        assert isinstance(period, Decimal)
+        assert isinstance(pulseWidth, Decimal)
+        assert isinstance(phaseDelay, Decimal)
 
+        self.pulseType = pulseType
+        self.amplitude = amplitude
+        self.period = period
+        self.pulseWidth = pulseWidth
+        self.phaseDelay = phaseDelay
+
+        # Compute sample time from period, pulseWidth and phaseDelay
+        self.on_width = self.pulseWidth / 100 * self.period
+        self.off_width = (1 - self.pulseWidth / 100) * self.period
+        st = get_gcd([self.phaseDelay + self.on_width, self.period, self.off_width])
+        print("Sample time:", st, self.phaseDelay, self.on_width, self.period, self.off_width)
+        # Convert start, end, and period to number of sample times
+        self.start_st = int(self.phaseDelay / st)
+        self.end_st = int((self.phaseDelay + self.on_width) / st)
+        self.period_st = int(self.period / st)
+        print(st, self.start_st, self.end_st, self.period_st)
+
+        super(DiscretePulseGenerator, self).__init__("DiscretePulseGenerator", name, 1, 0, st)
+
+        # Tick variable
+        self.tick_var = self.name + "_tick"
 
     def __str__(self):
-        return "%s: DiscretePulseGenerator[amplitude = %s, period = %s, pluseType = %s, pluseWidth = %s,phaseDelay= %s,timeSource = %s,sampleTime= %s]" % \
-               (self.name,str(self.amplitude), str(self.period), str(self.pluseType), str(self.pluseWidth), str(self.phaseDelay),str(self.timeSource),str(self.st))
+        return "%s: DiscretePulseGenerator[amplitude = %s, period = %s, pulseWidth = %s, phaseDelay = %s]" % \
+            (self.name, str(self.amplitude), str(self.period), str(self.pulseWidth), str(self.phaseDelay))
 
     def __repr__(self):
         return str(self)
 
-    def get_output_hp(self):
-        out_var = self.src_lines[0][0].name
-        assert isinstance(self.phaseDelay, int) and self.phaseDelay >= 0
-        assert isinstance(self.period, (int,float)) and self.period > 0
-        # t_delay := (t - phaseDelay) % period
-        t_delay = hcsp.Assign(var_name="t_delay", expr=OpExpr("%", OpExpr("-", AVar("t"), AConst(self.phaseDelay*10)),
-                                                              AConst(self.period*10)))
-        # if 0 <= t_delay <= period * pluseWidth % then out_var := amplitude
-        # else out_var := 0
-        assert isinstance(self.pluseWidth, int) and 0 < self.pluseWidth < 100
-        # assert (self.period * self.pluseWidth) % 100 == 0
-        if_then_else = hcsp.ITE(if_hps=[(conj(RelExpr(">=", AVar("t_delay"), AConst(0*10)),
-                                              RelExpr("<", AVar("t_delay"), AConst(self.period * self.pluseWidth / 100*10))),
-                                         hcsp.Assign(var_name=out_var, expr=AConst(self.amplitude)))],
-                                else_hp=hcsp.Assign(var_name=out_var, expr=AConst(0)))
-        return hcsp.Sequence(t_delay, if_then_else,hcsp.Condition(RelExpr("==",AVar("pre_"+out_var),AConst("")),hcsp.Assign(AVar("pre_"+out_var),AVar(out_var))))
+    def get_init_hp(self):
+        return hp.Assign(self.tick_var, AConst(0))
 
+    def get_output_hp(self):
+        # Output variable
+        out_var = self.src_lines[0][0].name
+
+        procs = []
+        cycle_st = OpExpr("%", AVar(self.tick_var), AConst(self.period_st))
+        cond = conj(hp.RelExpr(">=", cycle_st, AConst(self.start_st)),
+                    hp.RelExpr("<", cycle_st, AConst(self.end_st)))
+        act1 = hp.Assign(out_var, AConst(self.amplitude))
+        act2 = hp.Assign(out_var, AConst(0.0))
+        procs.append(hp.ITE([(cond, act1)], act2))
+        procs.append(hp.Assign(self.tick_var, OpExpr("+", AVar(self.tick_var), AConst(1))))
+        return hp.seq(procs)
     
     def get_hcsp(self):
         if self.pluseType == "Time based":

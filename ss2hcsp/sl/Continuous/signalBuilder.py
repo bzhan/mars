@@ -18,7 +18,7 @@ class SignalBuilder(SL_Block):
         for i in range(self.num_series):
             assert len(time_axises[i]) == len(data_axises[i])
 
-        self.signal_names = signal_names
+        self.signal_names = [name.replace(' ', '_') for name in signal_names]
         self.time_axises = time_axises
         self.data_axises = data_axises
         self.out_indexs = out_index

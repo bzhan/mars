@@ -76,7 +76,9 @@ class Triggered_Subsystem(Subsystem):
                 push_event = hp.Assign(var_name=self.name+"EL",
                                        expr=FunExpr(fun_name="push", exprs=[AVar(self.name+"EL"), AConst(event)]))
                 execute_chart = hp.Var(self.exec_name)
-                main_execute = hp.Sequence(push_event, execute_chart)
+                pop_event = hp.Assign(var_name=self.name+"EL",
+                                      expr=FunExpr(fun_name="pop", exprs=[AVar(self.name+"EL")]))
+                main_execute = hp.Sequence(push_event, execute_chart, pop_event)
             else:
                 assert self.type == "triggered_subsystem"
                 main_execute = hp.Var(self.name)
@@ -105,14 +107,17 @@ class Triggered_Subsystem(Subsystem):
         init_hps = list()
         for line, _, _ in self.trigger_lines:
             pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
+            print("init for ", self.name+"_"+line+"_triggered")
             init_hps.append(hp.Assign(var_name=self.name+"_"+line+"_triggered", expr=AConst(1)))
             if not self.is_continuous:
                 init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
                 init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
+
         # Initialize the output variables
         for lines in self.src_lines:
             out_var = lines[0].name
             init_hps.append(hp.Assign(var_name=out_var, expr=AConst(0)))
+
         # Initialize the variables of the inner blocks
         for block in self.diagram.blocks_dict.values():
             if block.type == "constant":

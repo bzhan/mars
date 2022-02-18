@@ -174,7 +174,7 @@ class HPTransformer(Transformer):
         return expr.AVar(str(s), meta=meta)
 
     def num_expr(self, meta, v):
-        return expr.AConst(Decimal(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
+        return expr.AConst(float(str(v)) if '.' in v or 'e' in v else int(v), meta=meta)
 
     def string_expr(self, meta, s):
         return expr.AConst(str(s)[1:-1], meta=meta)  # remove quotes

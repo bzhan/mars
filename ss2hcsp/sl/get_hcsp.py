@@ -1,8 +1,7 @@
 """Translation from diagrams to HCSP processes."""
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.sl.sl_diagram import get_gcd
+from ss2hcsp.sl.sl_block import SL_Block, get_gcd
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
@@ -446,6 +445,7 @@ def new_translate_discrete(diagram, chart_parameters):
         for _name, _hp in _procedures.items():
             procedures.append(hcsp.Procedure(_name, _hp))
 
+
     # # Translate DiscretePulseGenerator
     # discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
     # num = 0
@@ -472,6 +472,8 @@ def new_translate_discrete(diagram, chart_parameters):
             init_hps.extend(block.get_init_hps())
             procedures.extend(block.get_procedures())
         elif block.type == "signalBuilder":
+            init_hps.append(block.get_init_hp())
+        elif block.type == "DiscretePulseGenerator":
             init_hps.append(block.get_init_hp())
 
     # Delete Constant blocks

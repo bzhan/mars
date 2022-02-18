@@ -1,10 +1,49 @@
 """Simulink blocks."""
 
 from decimal import Decimal
+from functools import reduce
+from math import gcd, pow
 
 from ss2hcsp.sl.sl_line import SL_Line
 from ss2hcsp.hcsp.expr import true_expr
 
+
+def get_gcd(sample_times):
+    """Return the gcd of a list of sample times.
+
+    If some of the sample times are not integers, first multiply by an
+    appropriate power of 10 before taking gcd.
+
+    """
+    if len(sample_times) == 0:
+        return 0  # continuous
+
+    assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
+    assert all(isinstance(st, (int, Decimal)) for st in sample_times)
+
+    if len(sample_times) == 1:
+        return sample_times[0]
+
+    if 0 in sample_times:
+        return 0
+    elif -2 in sample_times:
+        return -2
+    elif -1 in sample_times:
+        return -1
+
+    scaling_positions = []
+    for st in sample_times:
+        if isinstance(st, int):
+            scaling_positions.append(0)
+        else:  # isinstance(st, Decimal)
+            scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
+    scale = 10 ** max(scaling_positions)
+    scaling_sample_times = [int(st * scale) for st in sample_times]
+    result_gcd = reduce(gcd, scaling_sample_times)
+    if result_gcd % scale == 0:
+        return result_gcd // int(scale)
+    else:
+        return Decimal(result_gcd) / scale
 
 class SL_Block:
     """Represents a block in a Simulink diagram."""

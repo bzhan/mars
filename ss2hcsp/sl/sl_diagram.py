@@ -4,6 +4,7 @@ import lark
 from decimal import Decimal
 
 from ss2hcsp.sl.sl_line import SL_Line
+from ss2hcsp.sl.sl_block import get_gcd
 from ss2hcsp.matlab import function, convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, \
@@ -43,8 +44,6 @@ from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
 from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
-from functools import reduce
-from math import gcd, pow
 import operator
 
 
@@ -70,44 +69,6 @@ def parse_value(value, default=None):
 def replace_spaces(name):
     """Replace spaces and newlines in name with underscores."""
     return name.strip().replace(' ', '_').replace('\n', '_')
-
-def get_gcd(sample_times):
-    """Return the gcd of a list of sample times.
-
-    If some of the sample times are not integers, first multiply by an
-    appropriate power of 10 before taking gcd.
-
-    """
-    if len(sample_times) == 0:
-        return 0  # continuous
-
-    assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
-    assert all(isinstance(st, (int, Decimal)) for st in sample_times)
-
-    if len(sample_times) == 1:
-        return sample_times[0]
-
-    if 0 in sample_times:
-        return 0
-    elif -2 in sample_times:
-        return -2
-    elif -1 in sample_times:
-        return -1
-
-    scaling_positions = []
-    for st in sample_times:
-        if isinstance(st, int):
-            scaling_positions.append(0)
-        else:  # isinstance(st, Decimal)
-            scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
-    scale = 10 ** max(scaling_positions)
-    scaling_sample_times = [int(st * scale) for st in sample_times]
-    result_gcd = reduce(gcd, scaling_sample_times)
-    if result_gcd % scale == 0:
-        return result_gcd // int(scale)
-    else:
-        return Decimal(result_gcd) / scale
-
 
 def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
@@ -619,22 +580,14 @@ class SL_Diagram:
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
             elif block_type == "DiscretePulseGenerator":
-                amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1        
-                pluseType=get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
-                if pluseType == "Sample based":
-                    period = int(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
-                    pluseWidth=int(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
-                    phaseDelay=int(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
-                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
-                    is_continuous = False
-                else:
-                    period = eval(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
-                    pluseWidth=eval(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
-                    phaseDelay=eval(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
-                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
-                    is_continuous = False
-                timeSource=get_attribute_value(block, "TimeSource") if get_attribute_value(block, "TimeSource") else "Use simulation time"
-                self.add_block(DiscretePulseGenerator(name=block_name,amplitude=amplitude,period=period,pluseType=pluseType,pluseWidth=pluseWidth,phaseDelay=phaseDelay,timeSource=timeSource,sampleTime=sampleTime,is_continuous=is_continuous))
+                pulseType = get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
+                amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1.0
+                period = Decimal(get_attribute_value(block, "Period"))
+                pulseWidth = Decimal(get_attribute_value(block, "PulseWidth"))
+                phaseDelay = Decimal(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else Decimal("0.0")
+                self.add_block(DiscretePulseGenerator(
+                    name=block_name, pulseType=pulseType, amplitude=amplitude, period=period,
+                    pulseWidth=pulseWidth, phaseDelay=phaseDelay))
             elif block_type == "Inport":
                 port_number = get_attribute_value(block, "Port")
                 if not port_number:
