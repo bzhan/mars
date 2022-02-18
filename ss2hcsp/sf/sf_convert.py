@@ -928,10 +928,10 @@ class SFConvert:
         res[proc.name] = hcsp.seq([ cond_act, hcsp.Var("J" + proc.default_tran.dst)])
         return res
 
-    def init_name(self,name):
+    def init_name(self, name):
         return "init_" + name
 
-    def exec_name(self,name):
+    def exec_name(self, name):
         # return "exec_" + self.chart.name
         return "exec_" + name
 

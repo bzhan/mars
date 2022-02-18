@@ -11,6 +11,7 @@ from ss2hcsp.sl.SignalRouting.switch import Switch
 from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
 from ss2hcsp.hcsp.parser import hp_parser
@@ -80,7 +81,7 @@ def run_test(self, location, num_steps, expected_series, *,
         for i, pt in enumerate(series):
             if i != len(series)-1 and pt['time'] == series[i+1]['time']:
                 continue
-            print("%.1f: %s" % (pt['time'], pt['state']))
+            print("%.2f: %s" % (pt['time'], pt['state']))
 
     if print_time_series:
         series = dict()
@@ -96,7 +97,6 @@ def run_test(self, location, num_steps, expected_series, *,
                 self.assertAlmostEqual(
                     series[time][var], expected_series[time][var],
                     msg="Disagreement at time %s, variable %s" % (time, var), places=3)
-
 
 class SimTest(unittest.TestCase):
     def testLunarLander(self):
@@ -271,9 +271,19 @@ class SimTest(unittest.TestCase):
         })
 
     def testStopWatch1(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 9, {
-            0: {'t': 0},
-        }, print_hcsp=True, print_time_series=True)
+        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 26000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            1: {'t': 0.9, 'cent': 5, 'disp_cent': 5},
+            2: {'t': 1.9, 'cent': 16, 'disp_cent': 16},
+            3: {'t': 2.9, 'cent': 27, 'disp_cent': 17},
+            4: {'t': 3.9, 'cent': 38, 'disp_cent': 17},
+            5: {'t': 4.9, 'cent': 49, 'disp_cent': 49},
+            6: {'t': 5.9, 'cent': 61, 'disp_cent': 61},
+            7: {'t': 6.9, 'cent': 72, 'disp_cent': 72},
+            8: {'t': 7.9, 'cent': 83, 'disp_cent': 83},
+            9: {'t': 8.9, 'cent': 94, 'disp_cent': 94},
+            10: {'t': 9.9, 'cent': 5, 'disp_cent': 5},
+        }, print_hcsp=True, print_time_series=True, print_module_path="stopWatch1")
 
 
 if __name__ == "__main__":

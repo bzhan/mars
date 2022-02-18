@@ -119,14 +119,15 @@ class Triggered_Subsystem(Subsystem):
             init_hps.append(hp.Assign(var_name=out_var, expr=AConst(0)))
 
         # Initialize the variables of the inner blocks
-        for block in self.diagram.blocks_dict.values():
-            if block.type == "constant":
-                out_var = block.src_lines[0][0].name
-                init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
-            elif block.type == "unit_delay":
-                init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
-            elif block.type == "triggered_subsystem":
-                init_hps.extend(block.get_init_hps())
+        if self.type == "triggered_subsystem":
+            for block in self.diagram.blocks_dict.values():
+                if block.type == "constant":
+                    out_var = block.src_lines[0][0].name
+                    init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.value)))
+                elif block.type == "unit_delay":
+                    init_hps.append(hp.Assign(var_name=block.name+"_state", expr=AConst(block.init_value)))
+                elif block.type == "triggered_subsystem":
+                    init_hps.extend(block.get_init_hps())
         return init_hps
 
     def get_discrete_triggered_condition(self, line, trigger_type):

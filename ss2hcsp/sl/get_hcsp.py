@@ -391,35 +391,18 @@ def translate_discrete(diagram):
 
 
 def new_translate_discrete(diagram, chart_parameters):
-    # assert all(block.st > 0 for block in diagram)
+    """Obtain procedures for the discrete part of the diagram."""
+    assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
     sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
     block_dict = {block.name: block for block in diagram}
 
     # Record initializations
     init_hps = list()
+
     # Storing procedures generated when translating
     procedures = list()
 
-    # # Get the (in- or out-)ports of the form {port_name: variable_name}
-    # in_ports = dict()
-    # out_ports = dict()
-    # for block in block_dict.values():
-    #     for dest_line in block.dest_lines:
-    #         src_block = dest_line.src_block
-    #         if src_block.type == "in_port":
-    #             if src_block.port_name not in in_ports:
-    #                 in_ports[src_block.port_name] = dest_line.name
-    #             else:
-    #                 assert in_ports[src_block.port_name] == dest_line.name
-    #     for src_lines in block.src_lines:
-    #         for src_line in src_lines:
-    #             dest_block = src_line.dest_block
-    #             if dest_block.type == "out_port":
-    #                 if dest_block.port_name not in out_ports:
-    #                     out_ports[dest_block.port_name] = src_line.name
-    #                 else:
-    #                     assert out_ports[dest_block.port_name] == src_line.name
     # Delete in_ and out_ports from block_dict
     port_names = [name for name, block in block_dict.items() if block.type in ("in_port", "out_port")]
     for port_name in port_names:
@@ -437,7 +420,7 @@ def new_translate_discrete(diagram, chart_parameters):
             charts[0].trigger_lines = [(trigger_line, trigger_type, event)]
         converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
                                          translate_io=False)
-        # _init_hp = hcsp.Var(converter.init_name())
+        init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
         # init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
         charts[0].exec_name = converter.exec_name(charts[0].name)
         # _dis_comp = hcsp.Var(converter.exec_name())
@@ -445,21 +428,7 @@ def new_translate_discrete(diagram, chart_parameters):
         for _name, _hp in _procedures.items():
             procedures.append(hcsp.Procedure(_name, _hp))
 
-
-    # # Translate DiscretePulseGenerator
-    # discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
-    # num = 0
-    # for block in discretePulseGenerators:
-    #     del block_dict[block.name]
-    #     for line in block.src_lines:
-    #         for branch in line:
-    #             if isinstance(branch.dest_block, Mux):
-    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp()))
-    #             else:
-    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp1()))
-    #     num += 1
-
-    # procedures = list()
+    # Generate init_hp
     for block in block_dict.values():
         if block.type == "constant":
             out_var = block.src_lines[0][0].name
@@ -473,6 +442,8 @@ def new_translate_discrete(diagram, chart_parameters):
             procedures.extend(block.get_procedures())
         elif block.type == "signalBuilder":
             init_hps.append(block.get_init_hp())
+        elif block.type == "stateflow":
+            init_hps.extend(block.get_init_hps())
         elif block.type == "DiscretePulseGenerator":
             init_hps.append(block.get_init_hp())
 
@@ -509,7 +480,6 @@ def new_translate_discrete(diagram, chart_parameters):
         else:
             assert block.st % sample_time == 0
             period = block.st // sample_time
-            
             output_hps.append(hp.Condition(
                 RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
                 block.get_output_hp()))

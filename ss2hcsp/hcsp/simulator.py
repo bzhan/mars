@@ -8,6 +8,7 @@ import copy
 import ast
 import math
 import random
+from decimal import Decimal
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
@@ -56,7 +57,10 @@ def eval_expr(expr, state):
 
     elif isinstance(expr, AConst):
         # Constant case
-        return expr.value
+        if isinstance(expr.value, Decimal):
+            return float(expr.value)
+        else:
+            return expr.value
 
     elif isinstance(expr, OpExpr):
         # Arithmetic operations
@@ -73,7 +77,12 @@ def eval_expr(expr, state):
             elif expr.op == '/':
                 return e1 / e2
             elif expr.op == '%':
-                return e1 % e2
+                if isinstance(e2, Decimal):
+                    if e2 != int(e2):
+                        raise SimulatorException("When evaluating %s: %s is not an integer" % (expr, e2))
+                    return e1 % int(e2)
+                else:
+                    return e1 % e2
             else:
                 raise TypeError
 
@@ -1163,7 +1172,6 @@ class SimInfo:
                 for var_name, _ in cur_hp.eqs:
                     y0.append(self.state[var_name])
 
-                delay = float(delay)  # ensure delay is a floating-point for solve_ivp
                 t_eval = [x for x in get_range(0, delay)]
                 sol = solve_ivp(ode_fun, [0, delay], y0, t_eval=t_eval, rtol=1e-5, atol=1e-7)
 
@@ -1450,8 +1458,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
                 series = []
                 info.exec_delay(min_delay, time_series=series)
                 for entry in series:
-                    log_time_series(info, float(res['time']) + entry['time'], entry['state'])
-                log_time_series(info, float(res['time']) + float(min_delay), info.state)
+                    log_time_series(info, res['time'] + entry['time'], entry['state'])
+                log_time_series(info, res['time'] + min_delay, info.state)
 
             log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay
