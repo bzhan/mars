@@ -636,38 +636,6 @@ class SFConvertTest(unittest.TestCase):
             ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
              'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
              'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-        
-    def testStopWatchPeriodic(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 150,
-          ['log en_StopW', 'log Reset', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'log Running', 'log Lap', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'log Running', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'log Lap', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'log en_StopW', 'log LapStop', 'log Reset', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'log Running', 'log Lap', 'delay 0.1',
-           'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-           'delay 0.1'], io_filter=io_filter)
-
-    def testStopWatch1(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 9,
-            ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000',
-             'log en_RunW 0.000 0.000', 'IO ch_clock 0', 'log cond_TIC 0.000 0.000',
-             'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
-             'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
-             'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
-             'log edu_Running 4.000 0.000', 'delay 0.1'])
 
 
 if __name__ == "__main__":

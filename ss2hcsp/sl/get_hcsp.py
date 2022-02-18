@@ -481,7 +481,7 @@ def new_translate_discrete(diagram, chart_parameters):
             assert block.st % sample_time == 0
             period = block.st // sample_time
             output_hps.append(hp.Condition(
-                RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
                 block.get_output_hp()))
 
         if block.type == "unit_delay":
@@ -491,7 +491,7 @@ def new_translate_discrete(diagram, chart_parameters):
                 assert block.st % sample_time == 0
                 period = block.st // sample_time
                 update_hps.append(hp.Condition(
-                    RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                    RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
                     block.get_update_hp()))
     return init_hps, procedures, output_hps, update_hps, sample_time
 
@@ -556,7 +556,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
         new_translate_continuous(continuous_diagram)
 
     # Initialization
-    init_hps = [hp.Assign("t", AConst(0)), hp.Assign("tick", AConst(0))] + dis_init_hps + con_init_hps
+    init_hps = [hp.Assign("t", AConst(0)), hp.Assign("_tick", AConst(0))] + dis_init_hps + con_init_hps
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     ### Discrete process ###
@@ -601,7 +601,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
     update_t = hp.Assign("t", OpExpr("+", AVar("t"), AVar("tt")))
 
     # Update tick := tick + 1
-    update_tick = hp.Assign("tick", OpExpr("+", AVar("tick"), AConst(1)))
+    update_tick = hp.Assign("_tick", OpExpr("+", AVar("_tick"), AConst(1)))
 
     # Reset tt := 0
     reset_tt = hp.Assign(var_name="tt", expr=AConst(0))

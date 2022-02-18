@@ -91,7 +91,7 @@ def run_test(self, location, num_steps, expected_series, *,
                     series[time] = pt['state']
         for time in expected_series:
             self.assertTrue(time in series, "Time %s not found in result" % time)
-            self.assertTrue(len(expected_series[time]) == len(series[time]))
+            self.assertTrue(len(expected_series[time]) == len(series[time]), "Unequal length at time %s" % time)
             for var in expected_series[time]:
                 self.assertTrue(var in series[time])
                 self.assertAlmostEqual(
@@ -239,7 +239,7 @@ class SimTest(unittest.TestCase):
             3: {'a': 1, 'y': 4},
             4: {'a': 1, 'y': 6},
             5: {'a': 1, 'y': 8}
-        })
+        }, print_hcsp=True)
 
     def testTriggered2(self):
         # Discrete triggered subsystem
@@ -313,20 +313,35 @@ class SimTest(unittest.TestCase):
         }, print_hcsp=True, print_module_path="trigger_edge3")
 
     def testStopWatch1(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 26000, {
+        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 28000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
             1: {'t': 0.9, 'cent': 5, 'disp_cent': 5},
-            2: {'t': 1.9, 'cent': 16, 'disp_cent': 16},
-            3: {'t': 2.9, 'cent': 27, 'disp_cent': 17},
-            4: {'t': 3.9, 'cent': 38, 'disp_cent': 17},
-            5: {'t': 4.9, 'cent': 49, 'disp_cent': 49},
-            6: {'t': 5.9, 'cent': 61, 'disp_cent': 61},
-            7: {'t': 6.9, 'cent': 72, 'disp_cent': 72},
-            8: {'t': 7.9, 'cent': 83, 'disp_cent': 83},
-            9: {'t': 8.9, 'cent': 94, 'disp_cent': 94},
-            10: {'t': 9.9, 'cent': 5, 'disp_cent': 5},
+            2: {'t': 1.9, 'cent': 15, 'disp_cent': 15},
+            3: {'t': 2.9, 'cent': 25, 'disp_cent': 15},
+            4: {'t': 3.9, 'cent': 35, 'disp_cent': 15},
+            5: {'t': 4.9, 'cent': 45, 'disp_cent': 45},
+            6: {'t': 5.9, 'cent': 55, 'disp_cent': 55},
+            7: {'t': 6.9, 'cent': 65, 'disp_cent': 65},
+            8: {'t': 7.9, 'cent': 75, 'disp_cent': 75},
+            9: {'t': 8.9, 'cent': 85, 'disp_cent': 85},
+            10: {'t': 9.9, 'cent': 95, 'disp_cent': 95},
+            11: {'t': 10.9, 'cent': 5, 'disp_cent': 5},
         })
 
+    def testStopWatchPeriodic(self):
+        run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 15000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            1: {'t': 0.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            2: {'t': 1.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            3: {'t': 2.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            4: {'t': 3.9, 'cent': 10, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            5: {'t': 4.9, 'cent': 20, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
+            6: {'t': 5.9, 'cent': 30, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
+            7: {'t': 6.9, 'cent': 30, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
+            8: {'t': 7.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            9: {'t': 8.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            10: {'t': 9.9, 'cent': 10, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+        })
 
 if __name__ == "__main__":
     unittest.main()
