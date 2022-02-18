@@ -83,7 +83,7 @@ def run_test(self, location, num_steps, expected_series, *,
                 continue
             print("%.2f: %s" % (pt['time'], pt['state']))
 
-    if print_time_series:
+    if expected_series:
         series = dict()
         for pt in res['time_series']['P']:
             for time in expected_series:
@@ -270,6 +270,48 @@ class SimTest(unittest.TestCase):
 
         })
 
+    def testTriggerEdge1(self):
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge1.xml", 200, {
+            0: {'y': 0},
+            0.5: {'y': 0, 'signal': 1.0},
+            1.0: {'y': 0, 'signal': 0.0},
+            1.5: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 1, 'signal': 0.0},
+            2.5: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 2, 'signal': 0.0},
+            3.5: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 3, 'signal': 0.0},
+            4.5: {'y': 4, 'signal': 1.0}
+        })
+
+    def testTriggerEdge2(self):
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge2.xml", 200, {
+            0: {'y': 0},
+            0.5: {'y': 0, 'signal': 1.0},
+            1.0: {'y': 1, 'signal': 0.0},
+            1.5: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 0.0},
+            2.5: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 0.0},
+            3.5: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 0.0},
+            4.5: {'y': 4, 'signal': 1.0}
+        })
+
+    def testTriggerEdge3(self):
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 200, {
+            0: {'y': 0},
+            0.5: {'y': 0, 'signal': 1.0},
+            1.0: {'y': 1, 'signal': 0.0},
+            1.5: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 0.0},
+            2.5: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 0.0},
+            3.5: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 0.0},
+            4.5: {'y': 4, 'signal': 1.0}
+        }, print_hcsp=True, print_module_path="trigger_edge3")
+
     def testStopWatch1(self):
         run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 26000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
@@ -283,7 +325,7 @@ class SimTest(unittest.TestCase):
             8: {'t': 7.9, 'cent': 83, 'disp_cent': 83},
             9: {'t': 8.9, 'cent': 94, 'disp_cent': 94},
             10: {'t': 9.9, 'cent': 5, 'disp_cent': 5},
-        }, print_hcsp=True, print_time_series=True, print_module_path="stopWatch1")
+        })
 
 
 if __name__ == "__main__":

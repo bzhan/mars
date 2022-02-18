@@ -23,13 +23,13 @@ class DiscretePulseGenerator(SL_Block):
         self.on_width = self.pulseWidth / 100 * self.period
         self.off_width = (1 - self.pulseWidth / 100) * self.period
         st = get_gcd([self.phaseDelay + self.on_width, self.period, self.off_width])
-        print("Sample time:", st, self.phaseDelay, self.on_width, self.period, self.off_width)
+
         # Convert start, end, and period to number of sample times
         self.start_st = int(self.phaseDelay / st)
         self.end_st = int((self.phaseDelay + self.on_width) / st)
         self.period_st = int(self.period / st)
-        print(st, self.start_st, self.end_st, self.period_st)
 
+        # Now call parent class's constructor
         super(DiscretePulseGenerator, self).__init__("DiscretePulseGenerator", name, 1, 0, st)
 
         # Tick variable

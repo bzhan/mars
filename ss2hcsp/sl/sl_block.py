@@ -33,7 +33,7 @@ def get_gcd(sample_times):
 
     scaling_positions = []
     for st in sample_times:
-        if isinstance(st, int):
+        if isinstance(st, int) or int(st) == st:
             scaling_positions.append(0)
         else:  # isinstance(st, Decimal)
             scaling_positions.append(len(str(st)) - str(st).index(".") - 1)

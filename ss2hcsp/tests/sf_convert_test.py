@@ -636,31 +636,7 @@ class SFConvertTest(unittest.TestCase):
             ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
              'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
              'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-    
-    def testEdge_call3(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger3.xml", 15,
-           ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-            'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
-             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-    
-    def testTriggerEdge2(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/TriggerEdge2.xml", 20,
-            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
-              'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-    
-    def testTriggerEdge3(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 25,
-            ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-    
+        
     def testStopWatchPeriodic(self):
         io_filter = lambda s: False
         run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 150,

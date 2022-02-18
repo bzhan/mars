@@ -107,7 +107,6 @@ class Triggered_Subsystem(Subsystem):
         init_hps = list()
         for line, _, _ in self.trigger_lines:
             pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
-            print("init for ", self.name+"_"+line+"_triggered")
             init_hps.append(hp.Assign(var_name=self.name+"_"+line+"_triggered", expr=AConst(1)))
             if not self.is_continuous:
                 init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
