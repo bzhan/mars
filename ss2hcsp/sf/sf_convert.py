@@ -948,10 +948,7 @@ class SFConvert:
     def get_init_proc(self):
         """Initialization procedure."""
         procs = []
-        procs1 = []
-        is_edge_trigger_either = False
-        is_edge_trigger_rising = False
-        is_edge_trigger_falling = False
+
         # Start signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("start_" + self.chart.name))
@@ -986,6 +983,7 @@ class SFConvert:
             if info.value is not None and info.scope in ("LOCAL_DATA", "OUTPUT_DATA", "CONSTANT_DATA"):
                 pre_act, val = self.convert_expr(info.value)
                 procs.append(hcsp.seq([pre_act, hcsp.Assign(vname, val)]))
+
         # Initialize state
         for or_father in self.or_fathers:
             procs.append(hcsp.Assign(self.active_state_name(self.chart.all_states[or_father]), expr.AConst("")))
@@ -1014,6 +1012,7 @@ class SFConvert:
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
 
         procs.extend(self.get_output_data())
+
         # End signal
         # if  self.is_has_trigger_event():
         if self.has_signal:
@@ -1186,8 +1185,8 @@ class SFConvert:
 
         # Main process
         main_hp = hcsp.Sequence(init_hp, hcsp.Loop(hcsp.Sequence(discrete_hp, continuous_hp)))
-     
         return main_hp
+
     def get_procs(self):
         """Returns the list of procedures."""
         all_procs = dict()
@@ -1270,8 +1269,6 @@ def get_execute_order(charts):
             chart_order.append(chart_name)
             for dest in sorted(edges[chart_name]):
                 rec(dest)
-
-    
 
     while True:
         # In each iteration, let the starting chart be the one that has
@@ -1364,6 +1361,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
 
     proc_map = dict()
     converter_map = dict()
+
     # Obtain sample time
     sample_time = -1
     if 'st' in diagram.chart_parameters and diagram.chart_parameters['st'] != -1:
@@ -1418,6 +1416,9 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     for i, c in enumerate(clocks):
         proc_map["Clock" + str(i+1)] = (dict(), c.get_hcsp())
 
+    # Processes for scope
+    for scope in diagram.scopes:
+        proc_map[scope.name] = (dict(), scope.get_receive_hp())
    
     # Optional: print HCSP program before simplification
     if print_before_simp:

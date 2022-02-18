@@ -139,6 +139,7 @@ class SL_Diagram:
         # Different parts of the diagram
         self.continuous_blocks = list()
         self.discrete_blocks = list()
+        self.scopes = list()
         self.dsms = list()
 
         self.others = list()
@@ -1112,7 +1113,9 @@ class SL_Diagram:
         for _, block in self.blocks_dict.items():
             # Continuous and discrete blocks contain the field is_continuous
             if hasattr(block, "is_continuous"):
-                if block.is_continuous:
+                if isinstance(block, Scope):
+                    self.scopes.append(block)
+                elif block.is_continuous:
                     self.continuous_blocks.append(block)
                 else:
                     self.discrete_blocks.append(block)
