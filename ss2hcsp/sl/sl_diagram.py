@@ -135,6 +135,13 @@ class SL_Diagram:
 
         # Variables that needs to display
         self.outputs = list()
+
+        # Different parts of the diagram
+        self.continuous_blocks = list()
+        self.discrete_blocks = list()
+        self.dsms = list()
+
+        self.others = list()
         
         # Parsed model of the XML file
         if location:
@@ -647,7 +654,7 @@ class SL_Diagram:
                     if child.nodeName == "Line":
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
-                            # assert name is not None
+                            assert name is not None, "Scope output line is not named"
                             self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
@@ -1097,21 +1104,22 @@ class SL_Diagram:
             assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
 
-    def new_seperate_diagram(self):
-        discrete_diagram = list()
-        continuous_diagram = list()
-        others = list()
-        for block in self.blocks_dict.values():
+    def separate_diagram(self):
+        """Separate the diagram into the different parts, and stored in the
+        corresponding variables in self.
+
+        """
+        for _, block in self.blocks_dict.items():
+            # Continuous and discrete blocks contain the field is_continuous
             if hasattr(block, "is_continuous"):
                 if block.is_continuous:
-                    continuous_diagram.append(block)
+                    self.continuous_blocks.append(block)
                 else:
-                    discrete_diagram.append(block)
+                    self.discrete_blocks.append(block)
+            elif isinstance(block, DataStoreMemory):
+                self.dsms.append(block)
             else:
-                others.append(block)
-        # discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
-        # continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
-        return discrete_diagram, continuous_diagram, others, self.outputs
+                assert False, "block: %s" % type(block)
 
     def translate_mux(self):
         muxes = [block.get_map() for block in self.blocks_dict.values() if block.type == "mux"]

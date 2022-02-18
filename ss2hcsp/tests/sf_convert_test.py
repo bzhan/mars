@@ -653,17 +653,17 @@ class SFConvertTest(unittest.TestCase):
             'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
              'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
     
-    def testEdge_call4(self):
+    def testTriggerEdge2(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger4_falling.xml", 20,
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge2.xml", 20,
             ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'log du_AA',
               'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
     
-    def testEdge_call5(self):
+    def testTriggerEdge3(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_trigger5_either.xml", 25,
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 25,
             ['log en_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',
              'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1',

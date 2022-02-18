@@ -1163,6 +1163,7 @@ class SimInfo:
                 for var_name, _ in cur_hp.eqs:
                     y0.append(self.state[var_name])
 
+                delay = float(delay)  # ensure delay is a floating-point for solve_ivp
                 t_eval = [x for x in get_range(0, delay)]
                 sol = solve_ivp(ode_fun, [0, delay], y0, t_eval=t_eval, rtol=1e-5, atol=1e-7)
 
@@ -1449,8 +1450,8 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
                 series = []
                 info.exec_delay(min_delay, time_series=series)
                 for entry in series:
-                    log_time_series(info, res['time'] + entry['time'], entry['state'])
-                log_time_series(info, res['time'] + min_delay, info.state)
+                    log_time_series(info, float(res['time']) + entry['time'], entry['state'])
+                log_time_series(info, float(res['time']) + float(min_delay), info.state)
 
             log_event(ori_pos=ori_pos, type="delay", delay_time=min_delay, str=trace_str)
             res['time'] += min_delay

@@ -1344,20 +1344,18 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     diagram.parse_xml()
     diagram.add_line_name()
 
-    discrete_blocks, continuous_blocks, others, outputs= diagram.new_seperate_diagram()
+    diagram.separate_diagram()
     clocks = list()
     continuous = list()
-    for block in continuous_blocks:
+    for block in diagram.continuous_blocks:
         if block.type == "clock": 
             clocks.append(block)
         else:
             continuous.append(block)
     if continuous:
         continuous = [continuous]
-    charts = [block for block in discrete_blocks if block.type == "stateflow"]
-    dsms = [block for block in others if block.type == "DataStoreMemory"]
-    pluse_generator = [block for block in discrete_blocks if block.type == "DiscretePulseGenerator"]
-    # _, continuous, charts, _, _, _, dsms, _, clocks = diagram.seperate_diagram()
+    charts = [block for block in diagram.discrete_blocks if block.type == "stateflow"]
+    pluse_generator = [block for block in diagram.discrete_blocks if block.type == "DiscretePulseGenerator"]
 
     # Optional: print chart
     if print_chart:
@@ -1387,15 +1385,15 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     for chart in charts:
         diagram.chart_parameters[chart.name]['st'] = sample_time
         for dest_line in chart.dest_lines:
-            for block in discrete_blocks:
+            for block in diagram.discrete_blocks:
                 if block.name == dest_line.src:
-                    if block.type in ["DiscretePulseGenerator","mux"]:
+                    if block.type in ["DiscretePulseGenerator", "mux"]:
                         has_pluse_generator_or_mux=1
         converter = SFConvert(
             chart, chart_parameters=diagram.chart_parameters[chart.name],
             has_signal=has_signal, shared_chans=shared_chans, has_pluse_generator=has_pluse_generator_or_mux,
-            exec_order=exec_order, charts=charts, discrete_diagram=discrete_blocks, continuous_diagram= continuous_blocks,
-            outputs=outputs, chart_parameters1=diagram.chart_parameters, diagram=diagram)
+            exec_order=exec_order, charts=charts, discrete_diagram=diagram.discrete_blocks, continuous_diagram=diagram.continuous_blocks,
+            outputs=diagram.outputs, chart_parameters1=diagram.chart_parameters, diagram=diagram)
         hp = converter.get_toplevel_process()
         procs = converter.get_procs()
         proc_map[chart.name] = (procs, hp)
@@ -1405,7 +1403,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
     comm_data = []
     for channel in shared_chans:
         comm_data.append((channel, None))
-    for dsm in dsms:
+    for dsm in diagram.dsms:
         _, init_value = convert.convert_expr(dsm.value)
         comm_data.append((dsm.dataStoreName, init_value))
    
@@ -1437,7 +1435,7 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             for _, proc in procs.items():
                 before_size += proc.size()
 
-    # # Reduce procedures
+    # Reduce procedures
     # for name, (procs, hp) in proc_map.items():
     #     if name in converter_map:
     #         local_vars = converter_map[name].local_vars

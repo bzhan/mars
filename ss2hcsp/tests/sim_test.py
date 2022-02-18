@@ -40,21 +40,23 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.translate_mux()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
-    discrete_diagram, continuous_diagram, _, outputs = diagram.new_seperate_diagram()
+    diagram.separate_diagram()
 
     # Optional: print diagram
     if print_diagrams:
-        print("Discrete diagram:")
-        for block in discrete_diagram:
+        print("Discrete blocks:")
+        for block in diagram.discrete_blocks:
             print(block)
-        print("Continuous diagram:")
-        for block in continuous_diagram:
+        print("Continuous blocks:")
+        for block in diagram.continuous_blocks:
             print(block)
         print("Outputs:")
-        print(outputs)
+        print(diagram.outputs)
 
     # Convert to HCSP
-    result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, diagram.chart_parameters, outputs)
+    result_hp = new_get_hcsp(
+        diagram.discrete_blocks, diagram.continuous_blocks,
+        diagram.chart_parameters, diagram.outputs)
 
     # Optional: print HCSP
     if print_hcsp:
@@ -261,12 +263,12 @@ class SimTest(unittest.TestCase):
     def testInputEvent(self):
         run_test(self, "./Examples/Simulink/Input_Event_2018a.xml", 80, {
 
-        }, print_hcsp=True)
+        })
 
     def testMux(self):
-        run_test(self, "/Users/BEAR/Projects/mars/Examples/Simulink/mux.xml", 80, {
+        run_test(self, "./Examples/Simulink/Mux.xml", 80, {
 
-        }, print_hcsp=False)
+        })
 
 
 if __name__ == "__main__":
