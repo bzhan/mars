@@ -1445,13 +1445,13 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
                 before_size += proc.size()
 
     # Reduce procedures
-    # for name, (procs, hp) in proc_map.items():
-    #     if name in converter_map:
-    #         local_vars = converter_map[name].local_vars
-    #     else:
-    #         local_vars = set()
-    #     proc_map[name] = optimize.full_optimize_module(
-    #         procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
+    for name, (procs, hp) in proc_map.items():
+        if name in converter_map:
+            local_vars = converter_map[name].local_vars
+        else:
+            local_vars = set()
+        proc_map[name] = optimize.full_optimize_module(
+            procs, hp, local_vars=local_vars, local_vars_proc={'_ret'}.union(local_vars))
 
     # Optional: print final HCSP program
     if print_final:

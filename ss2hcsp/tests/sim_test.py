@@ -2,20 +2,11 @@
 
 import unittest
 
-from ss2hcsp.sl.port import Port
-from ss2hcsp.sl.Continuous.integrator import Integrator
-from ss2hcsp.sl.MathOperations.gain import Gain
-from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
-from ss2hcsp.sl.LogicOperations.relation import Relation
-from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.hcsp import hcsp
-from ss2hcsp.hcsp import module
-from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
-from ss2hcsp.hcsp.parser import hp_parser
 from ss2hcsp.hcsp.simulator import SimInfo, exec_parallel
+from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import optimize
 
 
 def printTofile(path, content, module=False):
@@ -58,6 +49,13 @@ def run_test(self, location, num_steps, expected_series, *,
         diagram.discrete_blocks, diagram.continuous_blocks,
         diagram.chart_parameters, diagram.outputs)
 
+    # Optimize module
+    hp = result_hp.code
+    procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
+    procs, hp = optimize.full_optimize_module(procs, hp)
+    result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+    result_hp.code = hp
+
     # Optional: print HCSP
     if print_hcsp:
         print(result_hp.export())
@@ -72,7 +70,7 @@ def run_test(self, location, num_steps, expected_series, *,
     for proc in result_hp.procedures:
         proc_dict[proc.name] = proc
     info = SimInfo(result_hp.name, result_hp.code, procedures=proc_dict, outputs=result_hp.outputs)
-    res = exec_parallel([info], num_steps=num_steps)
+    res = exec_parallel([info], num_steps=num_steps, verbose=False)
 
     # Optional: print time series
     if print_time_series:
@@ -266,7 +264,7 @@ class SimTest(unittest.TestCase):
 
     def testMux(self):
         run_test(self, "./Examples/Simulink/Mux.xml", 1000, {
-            0: {'y': -1},
+            0: {},
             0.2: {'y': 0.0},
             0.4: {'y': 2.0},
             0.6: {'y': 3.0},
@@ -279,7 +277,7 @@ class SimTest(unittest.TestCase):
 
     def testTriggerEdge1(self):
         run_test(self, "./Examples/trigger_subsystem/TriggerEdge1.xml", 200, {
-            0: {'y': 0},
+            0: {},
             1.0: {'y': 1, 'signal': 1.0},
             2.0: {'y': 2, 'signal': 1.0},
             3.0: {'y': 3, 'signal': 1.0},
@@ -289,7 +287,7 @@ class SimTest(unittest.TestCase):
 
     def testTriggerEdge2(self):
         run_test(self, "./Examples/trigger_subsystem/TriggerEdge2.xml", 200, {
-            0: {'y': 0},
+            0: {},
             0.5: {'y': 0, 'signal': 1.0},
             1.0: {'y': 1, 'signal': 0.0},
             1.5: {'y': 1, 'signal': 1.0},
@@ -303,7 +301,7 @@ class SimTest(unittest.TestCase):
 
     def testTriggerEdge3(self):
         run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 300, {
-            0: {'y': 0},
+            0: {},
             0.3: {'y': 1, 'signal': 1.0},
             0.8: {'y': 2, 'signal': 0.0},
             1.3: {'y': 3, 'signal': 1.0},
@@ -311,8 +309,8 @@ class SimTest(unittest.TestCase):
         })
 
     def testStopWatch1(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 28000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 21000, {
+            0: {'t': 0.0, 'cent': 0},
             1: {'t': 0.9, 'cent': 5, 'disp_cent': 5},
             2: {'t': 1.9, 'cent': 15, 'disp_cent': 15},
             3: {'t': 2.9, 'cent': 25, 'disp_cent': 15},
@@ -328,7 +326,7 @@ class SimTest(unittest.TestCase):
 
     def testStopWatchPeriodic(self):
         run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 15000, {
-            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0: {'t': 0.0, 'cent': 0},
             1: {'t': 0.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
             2: {'t': 1.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
             3: {'t': 2.9, 'cent': 27, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},

@@ -1282,7 +1282,7 @@ def extract_event(infos):
 
 
 def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
-                  show_interval=None, start_event=None, show_event_only=False):
+                  show_interval=None, start_event=None, show_event_only=False, verbose=True):
     """Given a list of SimInfo objects, execute the hybrid programs
     in parallel on their respective states for the given number steps.
 
@@ -1312,8 +1312,9 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         """Log the given event, starting with the given event info."""
         nonlocal num_event
         num_event += 1
-        if num_event % 10000 == 0:
-            print('i:', num_event)
+        if verbose:
+            if num_event % 10000 == 0:
+                print('i:', num_event)
 
         new_event = xargs
         # Process log/warning/error string
