@@ -609,20 +609,6 @@ class SFConvertTest(unittest.TestCase):
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1'],
             io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
-       
-    def testEdge_call(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg.xml", 15,
-            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
-             'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1', 'log du_AA', 'delay 0.1', 
-             'delay 0.1', 'delay 0.1'], io_filter=io_filter)
-    
-    def testEdge_call1(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/edge_call_outputEvent_mulBrodcast_eg_rising.xml", 25,
-            ['log en_AA', 'log en_ENTRY', 'delay 0.1', 'log en_A', 'log du_AA', 'delay 0.1',
-             'delay 0.1', 'log du_AA', 'delay 0.1', 'delay 0.1', 'delay 0.1', 'delay 0.1', 
-             'delay 0.1', 'delay 0.1', 'delay 0.1'], io_filter=io_filter)
 
 
 if __name__ == "__main__":
