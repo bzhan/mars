@@ -342,8 +342,18 @@ class SimTest(unittest.TestCase):
         })
 
     def testTriggerFun1(self):
-        run_test(self, "./Examples/trigger_subsystem/TriggerFun1.xml", 200, {
-        }, print_diagrams=True, print_hcsp=True)
+        run_test(self, "./Examples/trigger_subsystem/TriggerFun1.xml", 800, {
+            0.1: {'y': 1},
+            0.2: {'y': 2},
+            0.3: {'y': 3},
+            0.4: {'y': 4},
+            1.0: {'y': 4},
+            1.1: {'y': 5},
+            1.2: {'y': 6},
+            1.3: {'y': 7},
+            1.4: {'y': 8},
+            2.0: {'y': 8},
+        })
 
 
 if __name__ == "__main__":

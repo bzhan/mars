@@ -3,10 +3,11 @@ from ss2hcsp.sf.sf_state import AND_State, OR_State
 
 
 class SF_Chart(Triggered_Subsystem):
-    def __init__(self, name, state, data, num_src, num_dest):
+    def __init__(self, name, state, data, num_src, num_dest, st):
         super(SF_Chart, self).__init__(name, num_src, num_dest, None)
 
         self.type = "stateflow"
+        self.st = st
 
         self.input_events = list()  # [(trigger_type, event)]
         self.exec_name = ""

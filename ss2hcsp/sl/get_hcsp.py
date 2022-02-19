@@ -392,9 +392,9 @@ def translate_discrete(diagram):
 
 def new_translate_discrete(diagram, chart_parameters):
     """Obtain procedures for the discrete part of the diagram."""
-    assert all(block.st > 0 for block in diagram)
     assert isinstance(diagram, list)  # diagram is a list of blocks
-    sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
+    sample_time = get_gcd([block.st for block in diagram
+                          if isinstance(block.st, (int, Decimal)) and block.st > 0])
     block_dict = {block.name: block for block in diagram}
 
     # Record initializations
@@ -410,14 +410,20 @@ def new_translate_discrete(diagram, chart_parameters):
 
     # Translate Stateflow charts
     charts = [block for block in block_dict.values() if block.type == "stateflow"]
-    if charts:
-        assert len(charts) == 1
-        converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
-                                         translate_io=False)
-        init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
-        # init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
-        charts[0].exec_name = converter.exec_name(charts[0].name)
-        # _dis_comp = hcsp.Var(converter.exec_name())
+
+    # First, for the charts triggered by function calls, obtain mapping
+    # from events to corresponding charts.
+    fun_call_map = dict()
+    for chart in charts:
+        for trigger_type, event in chart.input_events:
+            if trigger_type == 'function-call':
+                fun_call_map[event] = chart.name
+    for chart in charts:
+        converter = sf_convert.SFConvert(
+            chart, chart_parameters=chart_parameters[chart.name], translate_io=False,
+            fun_call_map=fun_call_map)
+        init_hps.append(hcsp.Var(converter.init_name(chart.name)))
+        chart.exec_name = converter.exec_name(charts[0].name)
         _procedures = converter.get_procs()
         for _name, _hp in _procedures.items():
             procedures.append(hcsp.Procedure(_name, _hp))
@@ -469,6 +475,10 @@ def new_translate_discrete(diagram, chart_parameters):
     update_hps = []
     for block in sorted_blocks:
         if block.st == sample_time:
+            # Block runs at every sample time
+            output_hps.append(block.get_output_hp())
+        elif block.st < 0:
+            # Block may be triggered, add the triggering code
             output_hps.append(block.get_output_hp())
         else:
             assert block.st % sample_time == 0

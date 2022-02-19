@@ -363,7 +363,13 @@ class SL_Diagram:
             assert chart_state.check_children()
            
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
-            chart_st = eval(chart_st) if chart_st else -1
+            if chart_st:
+                if '.' in chart_st or 'e' in chart_st:
+                    chart_st = Decimal(chart_st)
+                else:
+                    chart_st = int(chart_st)
+            else:
+                chart_st = -1
 
             chart_data = dict()
             message_dict = dict()
@@ -684,13 +690,16 @@ class SL_Diagram:
                     elif len(ports) == 1:
                         ports.append(0)
                     num_dest, num_src = ports[:2]
-                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest)
 
                     # Check if it a triggered stateflow chart
                     triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
                                 child.getAttribute("BlockType") == "TriggerPort"]
                     assert len(triggers) <= 1
+                    st = -2 if triggers else chart_paras['st']
+
+                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
+                                         num_src=num_src, num_dest=num_dest, st=st)
+
                     if triggers:  # it is a triggered stateflow chart
                         trigger_type = get_attribute_value(triggers[0], "TriggerType")
                         

@@ -609,13 +609,6 @@ class SFConvertTest(unittest.TestCase):
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1'],
             io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
-
-    def testFunction_call(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/fuc_call_inputEvent_enabling_chart_example.xml",15,
-            ['log en_chart2', 'log en_chart1', 'log du_chart2', 'delay 0.1', 'log du_chart1',
-             'log du_chart2', 'delay 0.1', 'log du_chart1','log du_chart2', 'delay 0.1',
-             'log du_chart1', 'log du_chart2', 'delay 0.1'], io_filter=io_filter)
    
     def testFunction_call_mul(self):
         io_filter = lambda s: False

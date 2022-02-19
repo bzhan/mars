@@ -89,6 +89,11 @@ class Triggered_Subsystem(Subsystem):
                     output_hps.append(hp.Condition(trig_cond, main_execute))
                 output_hps.append(hp.Assign(pre_sig_all.name, cur_sig_all))
                 return hp.seq(output_hps)
+
+            elif not self.input_events:
+                assert self.st > 0
+                return hp.Var(self.exec_name)
+
             else:
                 return hp.Skip()
 
@@ -108,11 +113,12 @@ class Triggered_Subsystem(Subsystem):
         if self.type == "stateflow":
             trigger_events = [(trigger_type, event) for trigger_type, event in self.input_events
                               if trigger_type in ['rising', 'falling', 'either']]
-            pre_sig_all, _ = self.get_pre_cur_trig_signals()
-            if len(trigger_events) == 1:
-                init_hps.append(hp.Assign(pre_sig_all, AConst(0)))
-            else:
-                init_hps.append(hp.Assign(pre_sig_all, AConst([0] * len(trigger_events))))
+            if trigger_events:
+                pre_sig_all, _ = self.get_pre_cur_trig_signals()
+                if len(trigger_events) == 1:
+                    init_hps.append(hp.Assign(pre_sig_all, AConst(0)))
+                else:
+                    init_hps.append(hp.Assign(pre_sig_all, AConst([0] * len(trigger_events))))
         elif self.type == "triggered_subsystem":
             pre_sig, _ = self.get_pre_cur_trig_signals()
             init_hps.append(hp.Assign(pre_sig, AConst(0)))

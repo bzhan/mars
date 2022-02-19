@@ -47,7 +47,7 @@ class SFConvert:
     def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
                  shared_chans=None, translate_io=True, has_pluse_generator=False,
                  exec_order=None, charts=None, discrete_diagram=None, continuous_diagram=None,
-                 outputs=None, chart_parameters1=None, diagram=None):
+                 outputs=None, chart_parameters1=None, diagram=None, fun_call_map=None):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
@@ -64,6 +64,8 @@ class SFConvert:
         if shared_chans:
             self.shared_chans = shared_chans
         self.charts=charts
+        self.fun_call_map = fun_call_map
+
         # List of data variables
         self.data = dict()
         if 'data' in self.chart_parameters:
@@ -74,6 +76,7 @@ class SFConvert:
         self.messages = dict()
         if 'message_dict' in self.chart_parameters:
             self.messages = self.chart_parameters['message_dict']
+
         # Sample time
         self.sample_time = 0.1
         if 'st' in self.chart_parameters and self.chart_parameters['st'] != -1:
@@ -211,9 +214,14 @@ class SFConvert:
         if isinstance(event, function.BroadcastEvent):
             # Raise broadcast event
             if self.events[str(event)].scope == "OUTPUT_EVENT" and self.events[str(event)].trigger == "FUNCTION_CALL_EVENT":
-                for name in self.exec_order:
-                    if name != self.chart.name:
-                        return hcsp.ITE([(expr.RelExpr("==",expr.AVar(name+"_st"),expr.AConst("")),hcsp.Var(self.init_name(name)))],hcsp.Var(self.exec_name(name)))
+                # Function call to another chart. If the target chart is not initialized,
+                # invoke its init procedure. Otherwise, invoke its exec procedure.
+                chart_name = self.fun_call_map[str(event)]
+                chart_st = chart_name + "_st"
+                init_name = self.init_name(chart_name)
+                exec_name = self.exec_name(chart_name)
+                return hcsp.ITE([(expr.RelExpr("==", expr.AVar(chart_st), expr.AConst("")), hcsp.Var(init_name))],
+                                hcsp.Var(exec_name))
             # elif self.events[str(event)].scope == "OUTPUT_EVENT" and self.events[str(event)].trigger in ["EITHER_EDGE_EVENT","RISING_EDGE_EVENT","FALLING_EDGE_EVENT"]:
             #     if self.has_signal:
             #         proc_list=[]
