@@ -38,7 +38,6 @@ def run_test(self, location, num_steps, expected_series, *,
     diagram.parse_xml()
     diagram.delete_subsystems()
     diagram.add_line_name()
-    diagram.translate_mux()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
     diagram.separate_diagram()
@@ -266,22 +265,26 @@ class SimTest(unittest.TestCase):
         })
 
     def testMux(self):
-        run_test(self, "./Examples/Simulink/Mux.xml", 80, {
-
+        run_test(self, "./Examples/Simulink/Mux.xml", 1000, {
+            0: {'y': -1},
+            0.2: {'y': 0.0},
+            0.4: {'y': 2.0},
+            0.6: {'y': 3.0},
+            0.9: {'y': 1.0},
+            1.2: {'y': 0.0},
+            1.4: {'y': 2.0},
+            1.6: {'y': 3.0},
+            1.9: {'y': 1.0}
         })
 
     def testTriggerEdge1(self):
         run_test(self, "./Examples/trigger_subsystem/TriggerEdge1.xml", 200, {
             0: {'y': 0},
-            0.5: {'y': 0, 'signal': 1.0},
-            1.0: {'y': 0, 'signal': 0.0},
-            1.5: {'y': 1, 'signal': 1.0},
-            2.0: {'y': 1, 'signal': 0.0},
-            2.5: {'y': 2, 'signal': 1.0},
-            3.0: {'y': 2, 'signal': 0.0},
-            3.5: {'y': 3, 'signal': 1.0},
-            4.0: {'y': 3, 'signal': 0.0},
-            4.5: {'y': 4, 'signal': 1.0}
+            1.0: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 1.0},
+            5.0: {'y': 5, 'signal': 1.0}
         })
 
     def testTriggerEdge2(self):
@@ -299,18 +302,13 @@ class SimTest(unittest.TestCase):
         })
 
     def testTriggerEdge3(self):
-        run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 200, {
+        run_test(self, "./Examples/trigger_subsystem/TriggerEdge3.xml", 300, {
             0: {'y': 0},
-            0.5: {'y': 0, 'signal': 1.0},
-            1.0: {'y': 1, 'signal': 0.0},
-            1.5: {'y': 1, 'signal': 1.0},
-            2.0: {'y': 2, 'signal': 0.0},
-            2.5: {'y': 2, 'signal': 1.0},
-            3.0: {'y': 3, 'signal': 0.0},
-            3.5: {'y': 3, 'signal': 1.0},
-            4.0: {'y': 4, 'signal': 0.0},
-            4.5: {'y': 4, 'signal': 1.0}
-        }, print_hcsp=True, print_module_path="trigger_edge3")
+            0.3: {'y': 1, 'signal': 1.0},
+            0.8: {'y': 2, 'signal': 0.0},
+            1.3: {'y': 3, 'signal': 1.0},
+            1.8: {'y': 4, 'signal': 0.0}
+        })
 
     def testStopWatch1(self):
         run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 28000, {
@@ -331,17 +329,22 @@ class SimTest(unittest.TestCase):
     def testStopWatchPeriodic(self):
         run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 15000, {
             0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
-            1: {'t': 0.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            2: {'t': 1.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            3: {'t': 2.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            4: {'t': 3.9, 'cent': 10, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            5: {'t': 4.9, 'cent': 20, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
-            6: {'t': 5.9, 'cent': 30, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
-            7: {'t': 6.9, 'cent': 30, 'disp_cent': 20, 'start': 0.0, 'lap': 0.0},
-            8: {'t': 7.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            9: {'t': 8.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            10: {'t': 9.9, 'cent': 10, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            1: {'t': 0.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            2: {'t': 1.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
+            3: {'t': 2.9, 'cent': 27, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            4: {'t': 3.9, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+            5: {'t': 4.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            6: {'t': 5.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            7: {'t': 6.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            8: {'t': 7.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
+            9: {'t': 8.9, 'cent': 27, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            10: {'t': 9.9, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
         })
+
+    def testTriggerFun1(self):
+        run_test(self, "./Examples/trigger_subsystem/TriggerFun1.xml", 200, {
+        }, print_diagrams=True, print_hcsp=True)
+
 
 if __name__ == "__main__":
     unittest.main()

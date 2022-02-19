@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.20</P>
+      <P Name="ComputedModelVersion">1.22</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -65,22 +65,22 @@
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
-            <P Name="ViewObjType" Class="char">StateflowChart</P>
-            <P Name="LoadSaveID" Class="char">1</P>
-            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
-            <P Name="ZoomFactor" Class="double">1.25</P>
-            <P Name="Offset" Class="double">[56.801666666665483, 33.665999999999315]</P>
-            <P Name="SceneRectInView" Class="double">[56.801666666665483, 33.665999999999315, 994.13333333333333, 448.0]</P>
-          </Object>
-          <Object ObjectID="7">
-            <P Name="IsActive" Class="logical">0</P>
-            <P Name="IsTabbed" Class="logical">0</P>
             <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1864.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.5</P>
             <P Name="Offset" Class="double">[-37.277777777777942, 37.833333333333343]</P>
             <P Name="SceneRectInView" Class="double">[-37.277777777777942, 37.833333333333343, 828.44444444444446, 373.33333333333331]</P>
+          </Object>
+          <Object ObjectID="7">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
+            <P Name="ViewObjType" Class="char">StateflowChart</P>
+            <P Name="LoadSaveID" Class="char">1</P>
+            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
+            <P Name="ZoomFactor" Class="double">1.25</P>
+            <P Name="Offset" Class="double">[56.801666666665483, 33.665999999999315]</P>
+            <P Name="SceneRectInView" Class="double">[56.801666666665483, 33.665999999999315, 994.13333333333333, 448.0]</P>
           </Object>
         </Array>
         <Object PropName="DockComponentsInfo" ObjectID="8" ClassName="Simulink.DockComponentInfo">
@@ -99,7 +99,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">a758bc24-d481-45e8-aeb6-38a99f8ee581</P>
       </Object>
-      <P Name="BDUuid" Class="char">e3b6f806-3b81-4f95-b7a9-5862ddad82d3</P>
+      <P Name="BDUuid" Class="char">faca639f-52de-41b6-afb6-dabad43f13df</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -109,9 +109,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Feb 18 14:37:09 2022</P>
-      <P Name="RTWModifiedTimeStamp">567095823</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:20&gt;</P>
+      <P Name="LastModifiedDate">Sat Feb 19 12:46:19 2022</P>
+      <P Name="RTWModifiedTimeStamp">567175578</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:22&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -221,7 +221,7 @@
               <P Name="Description"/>
               <P Name="Components" Class="double">[]</P>
               <P Name="StartTime">0.0</P>
-              <P Name="StopTime">30</P>
+              <P Name="StopTime">10</P>
               <P Name="AbsTol">auto</P>
               <P Name="AutoScaleAbsTol">on</P>
               <P Name="FixedStep">auto</P>
@@ -1104,6 +1104,7 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[-7, -7, 1288, 688]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1217,6 +1218,7 @@
         <P Name="PulseType">Time based</P>
         <P Name="Period">3</P>
         <P Name="PulseWidth">30</P>
+        <P Name="PhaseDelay">0.3</P>
         <Port>
           <P Name="PortNumber">1</P>
           <P Name="Name">start</P>
@@ -1229,6 +1231,7 @@
         <P Name="PulseType">Time based</P>
         <P Name="Period">1</P>
         <P Name="PulseWidth">30</P>
+        <P Name="PhaseDelay">0.5</P>
         <Port>
           <P Name="PortNumber">1</P>
           <P Name="Name">lap</P>
@@ -1250,7 +1253,7 @@
         <P Name="Ports">[3]</P>
         <P Name="Position">[620, 249, 650, 281]</P>
         <P Name="ZOrder">297</P>
-        <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;-5.25&apos;,&apos;MaxYLimReal&apos;,&apos;47.25&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;47.25&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;disp_cent&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1),struct(&apos;MinYLimReal&apos;,&apos;-0.125&apos;,&apos;MaxYLimReal&apos;,&apos;1.125&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;47.25&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;start&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,2),struct(&apos;MinYLimReal&apos;,&apos;-0.125&apos;,&apos;MaxYLimReal&apos;,&apos;1.125&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;47.25&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;lap&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,3)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;YLabelReal&apos;,&apos;&apos;,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863]),&apos;DisplayLayoutDimensions&apos;,[3 1]),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true,&apos;AutoscaleMode&apos;,&apos;Auto&apos;),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2020a&apos;)),&apos;Version&apos;,&apos;2020a&apos;,&apos;Position&apos;,[167 91 997.333333333333 479],&apos;VisibleAtModelOpen&apos;,&apos;on&apos;)</P>
+        <P Name="ScopeSpecificationString">Simulink.scopes.TimeScopeBlockCfg(&apos;CurrentConfiguration&apos;, extmgr.ConfigurationSet(extmgr.Configuration(&apos;Core&apos;,&apos;General UI&apos;,true),extmgr.Configuration(&apos;Core&apos;,&apos;Source UI&apos;,true),extmgr.Configuration(&apos;Sources&apos;,&apos;WiredSimulink&apos;,true),extmgr.Configuration(&apos;Visuals&apos;,&apos;Time Domain&apos;,true,&apos;SerializedDisplays&apos;,{struct(&apos;MinYLimReal&apos;,&apos;-2.75&apos;,&apos;MaxYLimReal&apos;,&apos;24.75&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;24.75&apos;,&apos;LegendVisibility&apos;,&apos;Off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;disp_cent&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,1),struct(&apos;MinYLimReal&apos;,&apos;-0.125&apos;,&apos;MaxYLimReal&apos;,&apos;1.125&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;47.25&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;start&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,2),struct(&apos;MinYLimReal&apos;,&apos;-0.125&apos;,&apos;MaxYLimReal&apos;,&apos;1.125&apos;,&apos;YLabelReal&apos;,&apos;&apos;,&apos;MinYLimMag&apos;,&apos;0.00000&apos;,&apos;MaxYLimMag&apos;,&apos;47.25&apos;,&apos;LegendVisibility&apos;,&apos;off&apos;,&apos;XGrid&apos;,true,&apos;YGrid&apos;,true,&apos;PlotMagPhase&apos;,false,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[1 1 0.0666666666666667;0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;0.392156862745098 0.831372549019608 0.0745098039215686;0.717647058823529 0.274509803921569 1;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863],&apos;Title&apos;,&apos;%&lt;SignalLabel&gt;&apos;,&apos;LinePropertiesCache&apos;,{{}},&apos;UserDefinedChannelNames&apos;,{{}},&apos;NumLines&apos;,1,&apos;LineNames&apos;,{{&apos;lap&apos;}},&apos;ShowContent&apos;,true,&apos;Placement&apos;,3)},&apos;DisplayPropertyDefaults&apos;,struct(&apos;YLabelReal&apos;,&apos;&apos;,&apos;AxesColor&apos;,[0 0 0],&apos;AxesTickColor&apos;,[0.686274509803922 0.686274509803922 0.686274509803922],&apos;ColorOrder&apos;,[0.0745098039215686 0.623529411764706 1;1 0.411764705882353 0.16078431372549;1 1 0.0666666666666667;0.717647058823529 0.274509803921569 1;0.392156862745098 0.831372549019608 0.0745098039215686;0.0588235294117647 1 1;1 0.0745098039215686 0.650980392156863]),&apos;DisplayLayoutDimensions&apos;,[3 1]),extmgr.Configuration(&apos;Tools&apos;,&apos;Plot Navigation&apos;,true,&apos;AutoscaleMode&apos;,&apos;Auto&apos;),extmgr.Configuration(&apos;Tools&apos;,&apos;Measurements&apos;,true,&apos;Version&apos;,&apos;2020a&apos;)),&apos;Version&apos;,&apos;2020a&apos;,&apos;Position&apos;,[167 91 997.333333333333 479],&apos;VisibleAtModelOpen&apos;,&apos;on&apos;)</P>
         <P Name="NumInputPorts">3</P>
         <P Name="Floating">off</P>
       </Block>
@@ -1340,6 +1343,7 @@ Generator2</P>
           <P Name="zoomFactor">1.067</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">50</P>
+          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">48</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>

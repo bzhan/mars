@@ -80,9 +80,9 @@ def eval_expr(expr, state):
                 if isinstance(e2, Decimal):
                     if e2 != int(e2):
                         raise SimulatorException("When evaluating %s: %s is not an integer" % (expr, e2))
-                    return e1 % int(e2)
+                    return round(e1) % int(e2)
                 else:
-                    return e1 % e2
+                    return round(e1) % e2
             else:
                 raise TypeError
 
@@ -104,11 +104,11 @@ def eval_expr(expr, state):
             return math.sin(args[0])
         elif expr.fun_name == "push":
             a, b = args
-            assert isinstance(a, list)
-            if isinstance(b, list):
-                return a + b
-            else:
-                return a + [b]
+            if not isinstance(a, list):
+                a = [a]
+            if not isinstance(b, list):
+                b = [b]
+            return a + b
         elif expr.fun_name == "pop":
             a, = args
             assert isinstance(a, list)

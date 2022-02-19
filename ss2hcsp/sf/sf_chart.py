@@ -11,8 +11,6 @@ class SF_Chart(Triggered_Subsystem):
         self.input_events = list()  # [(trigger_type, event)]
         self.exec_name = ""
 
-        # self.num_src = 10
-        # self.num_dest = num_dest
         self.src_lines = [[] for _ in range(self.num_src)]  # [[]] * self.num_src
         self.dest_lines = [None] * self.num_dest
 
@@ -31,4 +29,8 @@ class SF_Chart(Triggered_Subsystem):
         self.port_to_out_var = dict()
 
     def __str__(self):
-        return "Chart(%s):\n%s" % (self.name, str(self.diagram))
+        input_events_str = ""
+        if self.input_events:
+            for trigger_type, event in self.input_events:
+                input_events_str += "Input event %s, %s\n" % (trigger_type, event)
+        return "Chart(%s):\n%s%s" % (self.name, input_events_str, str(self.diagram))

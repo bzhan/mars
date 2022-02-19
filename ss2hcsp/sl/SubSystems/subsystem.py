@@ -1,5 +1,5 @@
 from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.hcsp.expr import RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr, FunExpr
+from ss2hcsp.hcsp.expr import ArrayIdxExpr, RelExpr, AVar, AConst, true_expr, LogicExpr, conj, OpExpr, FunExpr
 import ss2hcsp.hcsp.hcsp as hp
 
 
@@ -56,61 +56,72 @@ class Triggered_Subsystem(Subsystem):
             (self.name, self.num_src, self.num_dest, self.trigger_type,
              str(self.dest_lines), str(self.src_lines))
 
-    def get_pre_cur_trig_signals(self, line):
+    def get_pre_cur_trig_signals(self, index=None):
         """Obtain variables for current and previous trigger value."""
-        # trig_var = self.dest_lines[-1].name
+        line = self.dest_lines[-1].name
         cur_sig = AVar(line)
         pre_sig = AVar("pre_" + line)
+        if index is not None:
+            assert isinstance(index, int)
+            cur_sig = ArrayIdxExpr(cur_sig, AConst(index))
+            pre_sig = ArrayIdxExpr(pre_sig, AConst(index))
         return pre_sig, cur_sig
 
     def get_output_hp(self):
-        output_hps = list()
-        for line, trigger_type, event in self.trigger_lines:
-            name_line_triggered = self.name+"_"+line+"_triggered"
-            if_triggered = RelExpr("==", AVar(name_line_triggered), AConst(1))
-            time_cond = RelExpr("==", OpExpr("%", AVar("t"), AConst(self.st)), AConst(0))
-            trig_cond = self.get_discrete_triggered_condition(line, trigger_type)
-            pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
-            if event:
-                assert self.type == "stateflow"
-                push_event = hp.Assign(var_name=self.name+"EL",
-                                       expr=FunExpr(fun_name="push", exprs=[AVar(self.name+"EL"), AConst(event)]))
-                execute_chart = hp.Var(self.exec_name)
-                pop_event = hp.Assign(var_name=self.name+"EL",
-                                      expr=FunExpr(fun_name="pop", exprs=[AVar(self.name+"EL")]))
-                main_execute = hp.Sequence(push_event, execute_chart, pop_event)
-            else:
-                assert self.type == "triggered_subsystem"
-                main_execute = hp.Var(self.name)
-            # output_hp = hp.Sequence(
-            #     hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
-            #            else_hp=hp.Condition(cond=conj(time_cond,trig_cond),
-            #                                 hp=hp.Sequence(
-            #                                     hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
-            #                                     main_execute))),
-            #     hp.Assign(var_name=pre_sig.name, expr=cur_sig)
-            # )
-            output_hp = hp.Sequence(
-            hp.ITE(if_hps=[(if_triggered, hp.Assign(var_name=name_line_triggered, expr=AConst(0)))],
-                   else_hp=hp.Condition(cond=trig_cond,
-                                        hp=hp.Sequence(
-                                            hp.Assign(var_name=name_line_triggered, expr=AConst(1)),
-                                            main_execute))),
-            hp.Assign(var_name=pre_sig.name, expr=cur_sig)
-        )
-            output_hps.append(output_hp)
+        output_hps = []
+        if self.type == "stateflow":
+            trigger_events = [(trigger_type, event) for trigger_type, event in self.input_events
+                              if trigger_type in ['rising', 'falling', 'either']]
+            if trigger_events:
+                # Stateflow has trigger events, then the last dest_lines
+                # is the trigger line
+                for i, (trigger_type, event) in enumerate(trigger_events):
+                    if len(trigger_events) == 1:
+                        pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+                    else:
+                        pre_sig, cur_sig = self.get_pre_cur_trig_signals(i)
+                    trig_cond = self.get_discrete_triggered_condition(pre_sig, cur_sig, trigger_type)
+                    push_event = hp.Assign(var_name=self.name+"EL",
+                                           expr=FunExpr(fun_name="push", exprs=[AVar(self.name+"EL"), AConst(event)]))
+                    execute_chart = hp.Var(self.exec_name)
+                    pop_event = hp.Assign(var_name=self.name+"EL",
+                                          expr=FunExpr(fun_name="pop", exprs=[AVar(self.name+"EL")]))
+                    main_execute = hp.Sequence(push_event, execute_chart, pop_event)
 
-        return hp.seq(output_hps)
+                    pre_sig_all, cur_sig_all = self.get_pre_cur_trig_signals()
+                    output_hps.append(hp.Condition(trig_cond, main_execute))
+                output_hps.append(hp.Assign(pre_sig_all.name, cur_sig_all))
+                return hp.seq(output_hps)
+            else:
+                return hp.Skip()
+
+        elif self.type == "triggered_subsystem":
+            for line, trigger_type, event in self.trigger_lines:
+                pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+                trig_cond = self.get_discrete_triggered_condition(pre_sig, cur_sig, trigger_type)
+                main_execute = hp.Var(self.name)
+                return hp.seq([hp.Condition(trig_cond, main_execute),
+                                hp.Assign(line, AVar("pre_" + line))])
+
+        else:
+            raise NotImplementedError
 
     def get_init_hps(self):
         # Initialize the triggered signals
         init_hps = list()
-        for line, _, _ in self.trigger_lines:
-            pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
-            init_hps.append(hp.Assign(var_name=self.name+"_"+line+"_triggered", expr=AConst(1)))
-            if not self.is_continuous:
-                init_hps.append(hp.Assign(var_name=pre_sig.name, expr=AConst(0)))  # pre_sig := 0
-                init_hps.append(hp.Assign(var_name=cur_sig.name, expr=AConst(0)))  # cur_sig := 0
+        if self.type == "stateflow":
+            trigger_events = [(trigger_type, event) for trigger_type, event in self.input_events
+                              if trigger_type in ['rising', 'falling', 'either']]
+            pre_sig_all, _ = self.get_pre_cur_trig_signals()
+            if len(trigger_events) == 1:
+                init_hps.append(hp.Assign(pre_sig_all, AConst(0)))
+            else:
+                init_hps.append(hp.Assign(pre_sig_all, AConst([0] * len(trigger_events))))
+        elif self.type == "triggered_subsystem":
+            pre_sig, _ = self.get_pre_cur_trig_signals()
+            init_hps.append(hp.Assign(pre_sig, AConst(0)))
+        else:
+            raise NotImplementedError
 
         # Initialize the output variables
         for lines in self.src_lines:
@@ -129,10 +140,8 @@ class Triggered_Subsystem(Subsystem):
                     init_hps.extend(block.get_init_hps())
         return init_hps
 
-    def get_discrete_triggered_condition(self, line, trigger_type):
+    def get_discrete_triggered_condition(self, pre_sig, cur_sig, trigger_type):
         """Obtain the discrete trigger condition."""
-        pre_sig, cur_sig = self.get_pre_cur_trig_signals(line)
-
         # Compare pre_sig and cur_sig with zero. Different comparisons for
         # different trigger conditions.
         if trigger_type == "rising":
@@ -144,7 +153,6 @@ class Triggered_Subsystem(Subsystem):
         elif trigger_type == "either":
             # (pre_sig < 0 && cur_sig >= 0) || (pre_sig >= 0 && cur_sig < 0)
             op0, op1, op2, op3 = "<=", ">", ">", "<="
-            
         else:
             raise NotImplementedError("Unknown trigger type: %s" % trigger_type)
 

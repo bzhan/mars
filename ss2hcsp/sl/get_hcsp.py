@@ -412,12 +412,6 @@ def new_translate_discrete(diagram, chart_parameters):
     charts = [block for block in block_dict.values() if block.type == "stateflow"]
     if charts:
         assert len(charts) == 1
-        if not charts[0].trigger_lines:  # == []
-            trigger_line = charts[0].dest_lines[-1].name
-            assert len(charts[0].input_events) == 1
-            trigger_type = charts[0].input_events[0][0]
-            event = charts[0].input_events[0][1]
-            charts[0].trigger_lines = [(trigger_line, trigger_type, event)]
         converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
                                          translate_io=False)
         init_hps.append(hcsp.Var(converter.init_name(charts[0].name)))
@@ -464,8 +458,7 @@ def new_translate_discrete(diagram, chart_parameters):
         for name, block in block_dict.items():
             src_blocks = block.get_src_blocks()
             if src_blocks.isdisjoint(set(block_dict.keys())):
-                if block.type != "mux":  # Delete muxes
-                    sorted_blocks.append(block)
+                sorted_blocks.append(block)
                 head_block_names.append(name)
         assert head_block_names
         for name in head_block_names:

@@ -459,9 +459,8 @@ class SL_Diagram:
             # For each type of block, obtain additional parameters
             if block_type == "Mux":
                 inputs = get_attribute_value(block, "Inputs")
-                displayOption = get_attribute_value(block, "DisplayOption")
                 ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
-                self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
+                self.add_block(Mux(name=block_name, inputs=inputs, ports=ports))
             elif block_type == "DataStoreMemory":
                 init_value = get_attribute_value(block=block, attribute="InitialValue")
                 if init_value is not None:
@@ -832,8 +831,6 @@ class SL_Diagram:
     def __str__(self):
         result = ""
         result += "\n".join(str(block) for block in self.blocks_dict.values())
-        # if self.charts:
-        #     result += "Charts:\n" + charts
         return result
 
     def check(self):
@@ -1076,51 +1073,6 @@ class SL_Diagram:
                 self.dsms.append(block)
             else:
                 assert False, "block: %s" % type(block)
-
-    def translate_mux(self):
-        muxes = [block.get_map() for block in self.blocks_dict.values() if block.type == "mux"]
-        # Topological sorting
-        sorted_muxes = list()
-        while muxes:
-            head = muxes.pop()
-            flag = True
-            for mux in muxes:
-                if head[0] in mux[1]:
-                    flag = False
-                    muxes.insert(0, head)
-                    break
-            if flag:
-                sorted_muxes.append(head)
-        # Substitute line names
-        substituted_muxes = list()
-        while sorted_muxes:
-            mux = sorted_muxes.pop()
-            substituted_muxes.append(mux)
-            for _mux in sorted_muxes:
-                if mux[0] in _mux[1]:
-                    index = _mux[1].index(mux[0])
-                    del _mux[1][index]
-                    for sub_mux in mux[1][::-1]:
-                        _mux[1].insert(index, sub_mux)
-        # Substitute the trigger line of triggered subsystems
-        for block in self.blocks_dict.values():
-            if block.type == "triggered_subsystem":
-                trigger_line = block.dest_lines[-1].name
-                for mux in substituted_muxes:
-                    if trigger_line == mux[0]:
-                        assert not block.trigger_lines  # == []
-                        for line in mux[1]:
-                            block.trigger_lines.append((line, block.trigger_type, None))
-                        break
-            elif block.type == "stateflow":
-                trigger_line = block.dest_lines[-1].name
-                for mux in substituted_muxes:
-                    if trigger_line == mux[0]:
-                        assert not block.trigger_lines  # == []
-                        assert len(mux[1]) == len(block.input_events)
-                        for line, (trigger_type, event) in zip(mux[1], block.input_events):
-                            block.trigger_lines.append((line, trigger_type, event))
-                        break
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""
