@@ -42,9 +42,6 @@ class Triggered_Subsystem(Subsystem):
         # A flag variable denoting if the subsystem was triggered at the last step
         self.triggered = self.name + "_triggered"
 
-        # Trigger lines: [(line_name, trigger_type, event), ...]
-        self.trigger_lines = list()
-
     def __str__(self):
         trig_var = self.dest_lines[-1].name
         res = "%s: on_%s(%s):\n" % (self.name, self.trigger_type, trig_var)
@@ -96,12 +93,11 @@ class Triggered_Subsystem(Subsystem):
                 return hp.Skip()
 
         elif self.type == "triggered_subsystem":
-            for line, trigger_type, event in self.trigger_lines:
-                pre_sig, cur_sig = self.get_pre_cur_trig_signals()
-                trig_cond = self.get_discrete_triggered_condition(pre_sig, cur_sig, trigger_type)
-                main_execute = hp.Var(self.name)
-                return hp.seq([hp.Condition(trig_cond, main_execute),
-                                hp.Assign(line, AVar("pre_" + line))])
+            pre_sig, cur_sig = self.get_pre_cur_trig_signals()
+            trig_cond = self.get_discrete_triggered_condition(pre_sig, cur_sig, self.trigger_type)
+            main_execute = hp.Var(self.name)
+            return hp.seq([hp.Condition(trig_cond, main_execute),
+                            hp.Assign(pre_sig, cur_sig)])
 
         else:
             raise NotImplementedError

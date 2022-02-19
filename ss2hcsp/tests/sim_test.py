@@ -238,7 +238,7 @@ class SimTest(unittest.TestCase):
             3: {'a': 1, 'y': 4},
             4: {'a': 1, 'y': 6},
             5: {'a': 1, 'y': 8}
-        }, print_hcsp=True)
+        })
 
     def testTriggered2(self):
         # Discrete triggered subsystem
@@ -249,9 +249,9 @@ class SimTest(unittest.TestCase):
             0: {'z': -1, 'a': 0, 'y': -1},
             1: {'z': 0, 'a': 1, 'y': 0},
             1.5: {'z': 0, 'a': 1, 'y': 1},
-            2: {'z': 2, 'a': 1, 'y': 2},
-            2.5: {'z': 2, 'a': 1, 'y': 3},
-            3: {'z': 4, 'a': 1, 'y': 4}
+            2: {'z': 2, 'a': 3, 'y': 2},
+            2.5: {'z': 2, 'a': 3, 'y': 4},
+            3: {'z': 6, 'a': 3, 'y': 6}
         })
 
     # def testTemporalLogic(self):

@@ -520,12 +520,13 @@ def new_translate_continuous(diagram):
         elif block.type == "integrator":
             in_var = block.dest_lines[0].name
             out_var = block.src_lines[0][0].name
-            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.init_value)))
+            init_hps.append(hp.Assign(out_var, AConst(block.init_value)))
             equations.append((out_var, AVar(in_var)))
             if block.enable != true_expr:
                 constraints.append(block.enable)
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
+            init_hps.append(hp.Assign(block.triggered, AConst(0)))
             trig_cond = block.get_continuous_triggered_condition()
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(neg_expr(trig_cond))
