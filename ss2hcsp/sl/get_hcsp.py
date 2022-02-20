@@ -52,28 +52,6 @@ def translate_continuous(diagram):
     for name in integator_names:
         del block_dict[name]
 
-    # Deal with Signal Builders
-    signal_builders = [block for block in block_dict.values() if block.type == "signalBuilder"]
-    # Merge multiple Signal Builders
-    merged_signal_builder_name = "_".join(block.name for block in signal_builders)
-    signal_names = []  # Merge signal_names,
-    time_axises = []   # time_axises and
-    data_axises = []   # data_axises
-    for signal_builder in signal_builders:
-        for signal_name in signal_builder.signal_names:
-            signal_names.append(signal_name)
-        for time_axis in signal_builder.time_axises:
-            time_axises.append(time_axis)
-        for data_axis in signal_builder.data_axises:
-            data_axises.append(data_axis)
-    assert len(signal_names) == len(set(signal_names))
-    assert not time_axises or all(time_axis[-1] == time_axises[0][-1] for time_axis in time_axises)
-    merged_signal_builder = SignalBuilder(name=merged_signal_builder_name,
-                                          signal_names=signal_names, time_axises=time_axises, data_axises=data_axises)
-    # Delete Signal Builders from block_dict
-    for block in signal_builders:
-        del block_dict[block.name]
-
     # Constant blocks are for substitution
     var_substitute = Conditional_Inst()  # an object for variable substitution
     for block in block_dict.values():
@@ -201,9 +179,6 @@ def translate_continuous(diagram):
     #         initialised_vars.append(var_name)
     assert init_hps
     init_ode = hp.Sequence(*init_hps)
-
-    if signal_builders:
-        return merged_signal_builder.get_hp(init_ode=init_ode, ode_hps=ode_hps)
 
     assert ode_hps
     # cond_ode_hps = []

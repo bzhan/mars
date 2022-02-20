@@ -325,7 +325,7 @@ class SimTest(unittest.TestCase):
         })
 
     def testStopWatchPeriodic(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 15000, {
+        run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 6500, {
             0: {'t': 0.0, 'cent': 0},
             1: {'t': 0.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
             2: {'t': 1.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
@@ -334,13 +334,10 @@ class SimTest(unittest.TestCase):
             5: {'t': 4.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
             6: {'t': 5.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
             7: {'t': 6.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
-            8: {'t': 7.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
-            9: {'t': 8.9, 'cent': 27, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
-            10: {'t': 9.9, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
         })
 
     def testTriggerFun1(self):
-        run_test(self, "./Examples/trigger_subsystem/TriggerFun1.xml", 800, {
+        run_test(self, "./Examples/trigger_subsystem/TriggerFun1.xml", 400, {
             0: {'y': 1},
             0.1: {'y': 2},
             0.2: {'y': 3},
@@ -351,10 +348,11 @@ class SimTest(unittest.TestCase):
             1.2: {'y': 7},
             1.3: {'y': 8},
             1.9: {'y': 8},
+            2.0: {'y': 9}
         })
 
     def testTriggerFun2(self):
-        run_test(self, "./Examples/trigger_subsystem/TriggerFun2.xml", 200, {
+        run_test(self, "./Examples/trigger_subsystem/TriggerFun2.xml", 100, {
             0.0: {'y': 4},
             0.1: {'y': 4},
             0.2: {'y': 4},
