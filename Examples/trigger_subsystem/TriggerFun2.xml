@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.22</P>
+      <P Name="ComputedModelVersion">1.23</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -65,22 +65,22 @@
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">1</P>
             <P Name="IsTabbed" Class="logical">1</P>
-            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
-            <P Name="LoadSaveID" Class="char">0</P>
-            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
-            <P Name="ZoomFactor" Class="double">1.7499999999999998</P>
-            <P Name="Offset" Class="double">[60.696428571428385, 14.029761904761557]</P>
-            <P Name="SceneRectInView" Class="double">[60.696428571428385, 14.029761904761557, 710.09523809523819, 320.00000000000006]</P>
-          </Object>
-          <Object ObjectID="7">
-            <P Name="IsActive" Class="logical">0</P>
-            <P Name="IsTabbed" Class="logical">0</P>
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">1</P>
             <P Name="Extents" Class="double">[1864.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.000250062515629</P>
             <P Name="Offset" Class="double">[0.0, 0.0]</P>
             <P Name="SceneRectInView" Class="double">[0.0, 0.0, 1242.356, 559.86]</P>
+          </Object>
+          <Object ObjectID="7">
+            <P Name="IsActive" Class="logical">0</P>
+            <P Name="IsTabbed" Class="logical">0</P>
+            <P Name="ViewObjType" Class="char">SimulinkTopLevel</P>
+            <P Name="LoadSaveID" Class="char">0</P>
+            <P Name="Extents" Class="double">[1864.0, 840.0]</P>
+            <P Name="ZoomFactor" Class="double">1.7499999999999998</P>
+            <P Name="Offset" Class="double">[60.696428571428385, 14.029761904761557]</P>
+            <P Name="SceneRectInView" Class="double">[60.696428571428385, 14.029761904761557, 710.09523809523819, 320.00000000000006]</P>
           </Object>
           <Object ObjectID="8">
             <P Name="IsActive" Class="logical">0</P>
@@ -105,11 +105,11 @@
           <P Name="Height" Class="int32">320</P>
           <P Name="Minimized" Class="char">Unset</P>
         </Object>
-        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAFOAAADlPwCAAAAAvsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD////7/////wAAAAAqAAADlAAAAMQA////AAAHgAAAA5QAAAABAAAAAgAAAAEAAAAC/AAAAAEAAAACAAAAAA==</P>
+        <P Name="WindowState" Class="char">AAAA/wAAAAD9AAAAAgAAAAAAAAC9AAAB+PwCAAAAA/sAAAAWAEQAbwBjAGsAVwBpAGQAZwBlAHQAMwEAAAAxAAAB+AAAAAAAAAAA+wAAABYARABvAGMAawBXAGkAZABnAGUAdAA0AAAAAAD/////AAAAAAAAAAD7AAAAUgBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQALwBHAEwAVQBFADIAIAB0AHIAZQBlACAAYwBvAG0AcABvAG4AZQBuAHQAAAAAAP////8AAACTAP///wAAAAEAAAFOAAADlPwCAAAAAfsAAABUAEcATABVAEUAMgA6AFAAcgBvAHAAZQByAHQAeQBJAG4AcwBwAGUAYwB0AG8AcgAvAFAAcgBvAHAAZQByAHQAeQAgAEkAbgBzAHAAZQBjAHQAbwByAAAAAAD/////AAACgAD///8AAAeAAAADlAAAAAEAAAACAAAAAQAAAAL8AAAAAQAAAAIAAAAA</P>
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">e3a2431f-5797-4153-8b66-8d6a6f8cc8aa</P>
       </Object>
-      <P Name="BDUuid" Class="char">4084438e-0ccd-4126-8bdd-1e6a136c1d7a</P>
+      <P Name="BDUuid" Class="char">519ecb4f-5b79-4b54-a645-41f5f26bcb1f</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -119,9 +119,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Feb 19 15:55:49 2022</P>
-      <P Name="RTWModifiedTimeStamp">567186938</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:22&gt;</P>
+      <P Name="LastModifiedDate">Sun Feb 20 10:33:52 2022</P>
+      <P Name="RTWModifiedTimeStamp">567254030</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:23&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1389,6 +1389,7 @@ du: y = y + 1;</P>
           <P Name="sampleTime">0.1</P>
           <P Name="chartFileNumber">3</P>
           <P Name="allowGlobalAccessToExportedFunctions">0</P>
+          <P Name="executeAtInitialization">1</P>
           <P Name="saturateOnIntegerOverflow">1</P>
           <P Name="userSpecifiedStateTransitionExecutionOrder">1</P>
           <P Name="disableImplicitCasting">1</P>

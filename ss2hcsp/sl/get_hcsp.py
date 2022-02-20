@@ -419,9 +419,10 @@ def new_translate_discrete(diagram, chart_parameters):
             if trigger_type == 'function-call':
                 fun_call_map[event] = chart.name
     for chart in charts:
+        wait_init = any(trigger_type != 'function-call' for trigger_type, _ in chart.input_events)
         converter = sf_convert.SFConvert(
             chart, chart_parameters=chart_parameters[chart.name], translate_io=False,
-            fun_call_map=fun_call_map)
+            fun_call_map=fun_call_map, wait_init=wait_init)
         init_hps.append(hcsp.Var(converter.init_name(chart.name)))
         chart.exec_name = converter.exec_name(charts[0].name)
         _procedures = converter.get_procs()
@@ -624,8 +625,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
     dict_procs = {proc.name: proc.hp for proc in procedures}
     # dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
     procedures = [hp.Procedure(name=proc_name, hp=proc_hp) for proc_name, proc_hp in dict_procs.items()]
-    result = HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
-    return result
+    return HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,

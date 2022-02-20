@@ -41,8 +41,7 @@ class SFConvert:
 
     """
     def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
-                 shared_chans=None, translate_io=True,
-                 fun_call_map=None):
+                 shared_chans=None, translate_io=True, fun_call_map=None, wait_init=False):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
@@ -53,6 +52,7 @@ class SFConvert:
         if shared_chans:
             self.shared_chans = shared_chans
         self.fun_call_map = fun_call_map
+        self.wait_init = wait_init
 
         # List of data variables
         self.data = dict()
@@ -895,16 +895,6 @@ class SFConvert:
         # return "exec_" + self.chart.name
         return "exec_" + name
 
-    def is_has_trigger_event(self):
-        for _, e in self.events.items():
-            if e.scope == "OUTPUT_EVENT" and (e.trigger =="FUNCTION_CALL_EVENT" or e.trigger in ["EITHER_EDGE_EVENT","RISING_EDGE_EVENT","FALLING_EDGE_EVENT"]):
-                return True
-        return False
-    def is_has_Inputtrigger_event(self):
-        for _, e in self.events.items():
-            if e.scope == "INPUT_EVENT" and ( e.trigger in ["EITHER_EDGE_EVENT","RISING_EDGE_EVENT","FALLING_EDGE_EVENT"]):
-                return True
-        return False
     def get_init_proc(self):
         """Initialization procedure."""
         procs = []
@@ -972,9 +962,9 @@ class SFConvert:
         # End signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
-        if self.is_has_trigger_event() or self.is_has_Inputtrigger_event():
-            if not self.has_pluse_generator: 
-                procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
+
+        if self.wait_init:
+            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
            
         return hcsp.seq(procs)
 
@@ -1022,8 +1012,8 @@ class SFConvert:
 
     def get_iteration(self):
         procs = []
+
         # Start signal
-        # if self.is_has_trigger_event():
         if self.has_signal:
             procs.append(hcsp.InputChannel("start_" + self.chart.name))       
         procs.extend(self.get_input_data())
@@ -1041,15 +1031,17 @@ class SFConvert:
             if info.scope == "DATA_STORE_MEMORY_DATA":
                 procs.append(hcsp.OutputChannel(vname + "_out", expr.AVar(vname)))
         procs.extend(self.get_output_data())
+
         # End signal
-        # if  self.is_has_trigger_event():
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
+
         # Wait the given sample time
         if self.ode_map:
             procs.append(self.get_ode(self.chart.diagram, cur_states=[], cur_eqs=[]))
         else:
             procs.append(hcsp.Wait(expr.AConst(self.sample_time)))       
+
         # Update counter for absolute time events
         for ssid in self.absolute_time_events:
             time_name = self.entry_time_name(self.chart.all_states[ssid])
@@ -1104,15 +1096,13 @@ def get_execute_order(charts):
     ch_name_in = dict()
     # Mapping from channel name to output chart
     ch_name_out = dict()
-    # is_trigger_chart=False
+
     for chart in charts:
-        # if chart.trigger_type is not None:
-        #     is_trigger_chart = True
-        for port_id, in_var in chart.port_to_in_var.items():
+        for port_id in chart.port_to_in_var:
             line = chart.dest_lines[port_id]
             ch_name = "ch_" + line.name + "_" + str(line.branch)
             ch_name_in[ch_name] = chart.name
-        for port_id, out_var in chart.port_to_out_var.items():
+        for port_id in chart.port_to_out_var:
             lines = chart.src_lines[port_id]
             for line in lines:
                 ch_name = "ch_" + line.name + "_" + str(line.branch)
@@ -1160,9 +1150,9 @@ def get_control_proc(chart_order,charts):
     procs1 = []
     procs2 = []
     flag = 0
-    charts=reversed(charts)
+    charts = reversed(charts)
     for chart in charts:
-        if len(chart.input_events)>0 :
+        if len(chart.input_events) > 0 :
             flag = 1
             procs1.append(hcsp.OutputChannel("start_" + chart.name))
             procs1.append(hcsp.OutputChannel("end_" + chart.name))
@@ -1171,12 +1161,11 @@ def get_control_proc(chart_order,charts):
             procs2.append(hcsp.OutputChannel("start_" + chart.name))
             procs2.append(hcsp.OutputChannel("end_" + chart.name))
     if flag == 1:
-            return hcsp.seq([hcsp.seq(procs1),hcsp.Loop(hcsp.seq(procs2))])    
-    if flag ==0:  
+        return hcsp.seq([hcsp.seq(procs1),hcsp.Loop(hcsp.seq(procs2))])    
+    if flag == 0:
         for ch_name in chart_order:
             procs.append(hcsp.OutputChannel("start_" + ch_name))
             procs.append(hcsp.OutputChannel("end_" + ch_name))
-      
         return hcsp.Loop(hcsp.seq(procs))
     
 def get_data_proc(comm_data):
