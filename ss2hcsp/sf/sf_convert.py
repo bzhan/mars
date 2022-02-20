@@ -1180,7 +1180,7 @@ def get_data_proc(comm_data):
     return hcsp.seq(procs)
 
 def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_final=False,
-                    debug_name=None):
+                    debug_name=True):
     """Full conversion function for Stateflow.
 
     diagram : SL_Diagram - input diagram.
@@ -1292,6 +1292,6 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
             after_size += hp.size()
             for _, proc in procs.items():
                 after_size += proc.size()
-        print(debug_name, before_size, after_size)
+        print(diagram.name, before_size, after_size)
 
     return proc_map

@@ -23,7 +23,7 @@ def print_module(path, m):
 
 def run_test(self, location, num_steps, expected_series, *,
              print_diagrams=False, print_hcsp=False, print_time_series=False,
-             print_module_path=None):
+             print_module_path=None, debug_name=True):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
@@ -49,12 +49,25 @@ def run_test(self, location, num_steps, expected_series, *,
         diagram.discrete_blocks, diagram.continuous_blocks,
         diagram.chart_parameters, diagram.outputs)
 
+    if debug_name:
+        before_size = 0
+        before_size += result_hp.code.size()
+        for proc in result_hp.procedures:
+            before_size += proc.hp.size()
+
     # Optimize module
     hp = result_hp.code
     procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
     procs, hp = optimize.full_optimize_module(procs, hp)
     result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
     result_hp.code = hp
+
+    if debug_name:
+        after_size = 0
+        after_size += result_hp.code.size()
+        for proc in result_hp.procedures:
+            after_size += proc.hp.size()
+        print(diagram.name, before_size, after_size)
 
     # Optional: print HCSP
     if print_hcsp:
