@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from ss2hcsp.sl.sl_block import SL_Block
+from ss2hcsp.sl.sl_block import SL_Block, get_gcd
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.parser import hp_parser, bexpr_parser
 from ss2hcsp.hcsp.expr import conj, true_expr, AVar, AConst, OpExpr, RelExpr
@@ -9,8 +9,6 @@ from ss2hcsp.hcsp.expr import conj, true_expr, AVar, AConst, OpExpr, RelExpr
 class SignalBuilder(SL_Block):
     """Block for Signal Builder."""
     def __init__(self, name, signal_names=(), time_axises=(), data_axises=(), out_index=()):
-        super(SignalBuilder, self).__init__("signalBuilder", name, len(signal_names), 0, Decimal("0.01"))
-
         # Both time_axises and data_axises are lists of tuples of values, where
         # each tuple represents one series.
         assert len(time_axises) == len(data_axises) == len(signal_names)
@@ -22,6 +20,12 @@ class SignalBuilder(SL_Block):
         self.time_axises = time_axises
         self.data_axises = data_axises
         self.out_indexs = out_index
+
+        # Now compute the sample time
+        st = get_gcd([t for t in self.time_axises[0] if t > 0])
+        for axes in self.time_axises[1:]:
+            st = get_gcd([st, *(t for t in axes if t > 0)])
+        super(SignalBuilder, self).__init__("signalBuilder", name, len(signal_names), 0, st)
 
         # Variable representing tick within the signal builder
         self.tick_var = self.name + "_tick"
@@ -37,15 +41,14 @@ class SignalBuilder(SL_Block):
 
     def get_output_hp(self):
         procs = []
-        procs.append(hp.Assign(self.tick_var, OpExpr("+", AVar(self.tick_var), AConst(1))))
         for s_id in range(self.num_series):
             branches = []
             time_axis = self.time_axises[s_id]
             data_axis = self.data_axises[s_id]
             signal_name = self.signal_names[s_id]
             for i in range(len(time_axis)-1):
-                left = round(time_axis[i] * 100)
-                right = round(time_axis[i+1] * 100)
+                left = int(time_axis[i] / self.st)
+                right = int(time_axis[i+1] / self.st)
                 if left == right:
                     continue
                 cond = conj(RelExpr(">=", AVar(self.tick_var), AConst(left)),
@@ -58,6 +61,7 @@ class SignalBuilder(SL_Block):
 
             else_act = hp.Assign(AVar(signal_name), AConst(data_axis[-1]))
             procs.append(hp.ITE(branches, else_act))
+        procs.append(hp.Assign(self.tick_var, OpExpr("+", AVar(self.tick_var), AConst(1))))
         return hp.seq(procs)
 
     def rename_src_lines(self):

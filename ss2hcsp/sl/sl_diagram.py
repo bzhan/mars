@@ -645,7 +645,7 @@ class SL_Diagram:
                                 assert xData.count('[') == xData.count(']') == 1
                                 start = xData.index('[')
                                 end = xData.index(']')
-                                time_axises.append(tuple(float(e) for e in xData[start+1:end].split(',')))
+                                time_axises.append(tuple(Decimal(e) for e in xData[start+1:end].split(',')))
                                 yData = get_attribute_value(obj, "YData")
                                 # if "\n" in yData:
                                 #     yData = yData.split("\n")[1]
@@ -665,7 +665,7 @@ class SL_Diagram:
                                 assert xData.count('[') == xData.count(']') == 1
                                 start = xData.index('[')
                                 end = xData.index(']')
-                                time_axises.append(tuple(float(e) for e in xData[start + 1:end].split(',')))
+                                time_axises.append(tuple(Decimal(e) for e in xData[start + 1:end].split(',')))
                                 yData = get_attribute_value(node, "YData")
                                 # if "\n" in yData:
                                 #     yData = yData.split("\n")[1]

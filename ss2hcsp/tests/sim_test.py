@@ -309,7 +309,7 @@ class SimTest(unittest.TestCase):
         })
 
     def testStopWatch1(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 21000, {
+        run_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 6000, {
             0: {'t': 0.0, 'cent': 0},
             1: {'t': 0.9, 'cent': 5, 'disp_cent': 5},
             2: {'t': 1.9, 'cent': 15, 'disp_cent': 15},

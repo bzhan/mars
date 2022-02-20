@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.1</P>
+      <P Name="ComputedModelVersion">1.4</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -103,9 +103,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Feb 18 16:04:18 2022</P>
-      <P Name="RTWModifiedTimeStamp">567101056</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:1&gt;</P>
+      <P Name="LastModifiedDate">Sun Feb 20 12:32:01 2022</P>
+      <P Name="RTWModifiedTimeStamp">567261121</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:4&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1252,7 +1252,7 @@
         <P Name="StopFcn">sigbuilder_block(&apos;stop&apos;);</P>
         <P Name="NameChangeFcn">sigbuilder_block(&apos;namechange&apos;);</P>
         <P Name="ClipboardFcn">sigbuilder_block(&apos;clipboard&apos;);</P>
-        <P Name="OpenFcn">sigbuilder_block(&apos;open&apos;,[0 0 1440 796 ]);</P>
+        <P Name="OpenFcn">sigbuilder_block(&apos;open&apos;,[5.5 30 949 419 ]);</P>
         <P Name="CloseFcn">sigbuilder_block(&apos;close&apos;);</P>
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="MaskHideContents">on</P>
@@ -1348,10 +1348,8 @@
                       <P Name="Name" Class="char">Group 1</P>
                       <Object PropName="Signals" ObjectID="27" ClassName="SigSuiteSignal">
                         <P Name="Name" Class="char">Signal 1</P>
-                        <P Name="XData" Class="double">Vector(7)
-[0.0, 0.01, 0.5, 0.5, 6.0, 6.0, 10.0]</P>
-                        <P Name="YData" Class="double">Vector(7)
-[-0.0, -0.0, 0.0, 1.0, 1.0, 0.0, 0.0]</P>
+                        <P Name="XData" Class="double">[0.0, 0.5, 0.5, 6.0, 6.0, 10.0]</P>
+                        <P Name="YData" Class="double">[-0.02, 0.0, 1.0, 1.0, 0.0, 0.0]</P>
                       </Object>
                     </Object>
                   </Object>
@@ -1415,7 +1413,7 @@
         <P Name="StopFcn">sigbuilder_block(&apos;stop&apos;);</P>
         <P Name="NameChangeFcn">sigbuilder_block(&apos;namechange&apos;);</P>
         <P Name="ClipboardFcn">sigbuilder_block(&apos;clipboard&apos;);</P>
-        <P Name="OpenFcn">sigbuilder_block(&apos;open&apos;,[0 0 1440 796 ]);</P>
+        <P Name="OpenFcn">sigbuilder_block(&apos;open&apos;,[5.5 5.5 949 475 ]);</P>
         <P Name="CloseFcn">sigbuilder_block(&apos;close&apos;);</P>
         <P Name="RequestExecContextInheritance">off</P>
         <P Name="MaskHideContents">on</P>
@@ -1511,10 +1509,10 @@
                       <P Name="Name" Class="char">Group 1</P>
                       <Object PropName="Signals" ObjectID="32" ClassName="SigSuiteSignal">
                         <P Name="Name" Class="char">Signal 1</P>
-                        <P Name="XData" Class="double">Vector(11)
-[0.0, 0.01, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 6.0, 6.0, 10.0]</P>
-                        <P Name="YData" Class="double">Vector(11)
-[0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0]</P>
+                        <P Name="XData" Class="double">Vector(10)
+[0.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0, 6.0, 6.0, 10.0]</P>
+                        <P Name="YData" Class="double">Vector(10)
+[0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0]</P>
                       </Object>
                     </Object>
                   </Object>
