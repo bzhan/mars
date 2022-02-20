@@ -25,10 +25,10 @@ class OptimizeTest(unittest.TestCase):
              "log(0+\"\\n\"); s := 1"),
 
             ("x := 0; a[x] := 1; x := 1",
-             "x := 0; a[x] := 1; x := 1"),
+             "a[0] := 1; x := 1"),
 
             ("x := 0; ch?a[x]; x := 1",
-             "x := 0; ch?a[x]; x := 1"),
+             "ch?a[0]; x := 1"),
 
             ("x := 0; ch!a[x]; x := 1",
              "ch!a[0]; x := 1")

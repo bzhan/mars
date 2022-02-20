@@ -65,6 +65,12 @@ def simplify(hp):
         raise NotImplementedError
 
 def get_read_vars_lname(lname):
+    """Return the set of variables that are read in an expression to be
+    assigned to. This does *not* include the variable that is assigned.
+    
+    Example: if lname = a[i+j], then the result is {i, j}.
+    
+    """
     if lname is None:
         return set()
     elif isinstance(lname, expr.AVar):
@@ -73,6 +79,22 @@ def get_read_vars_lname(lname):
         return lname.expr2.get_vars().union(get_read_vars_lname(lname.expr1))
     elif isinstance(lname, expr.FieldNameExpr):
         return get_read_vars_lname(lname.expr)
+    else:
+        raise NotImplementedError
+
+def replace_read_vars_lname(lname, inst):
+    """Replace read variables in an expression to be assigned to. This
+    does *not* replace the variable that is assigned.
+    
+    """
+    if lname is None:
+        return None
+    elif isinstance(lname, expr.AVar):
+        return lname
+    elif isinstance(lname, expr.ArrayIdxExpr):
+        return expr.ArrayIdxExpr(replace_read_vars_lname(lname.expr1, inst), lname.expr2.subst(inst))
+    elif isinstance(lname, expr.FieldNameExpr):
+        return expr.FieldNameExpr(replace_read_vars_lname(lname.expr, inst), lname.field)
     else:
         raise NotImplementedError
 
@@ -109,7 +131,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'wait':
         return hcsp.Wait(hp.delay.subst(inst))
     elif hp.type == 'assign':
-        return hcsp.Assign(hp.var_name, hp.expr.subst(inst))
+        return hcsp.Assign(replace_read_vars_lname(hp.var_name, inst), hp.expr.subst(inst))
     elif hp.type == 'assert':
         return hcsp.Assert(hp.bexpr.subst(inst), [msg.subst(inst) for msg in hp.msgs])
     elif hp.type == 'test':
@@ -117,7 +139,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'log':
         return hcsp.Log(hp.pattern.subst(inst), exprs=[e.subst(inst) for e in hp.exprs])
     elif hp.type == 'input_channel':
-        return hp
+        return hcsp.InputChannel(hp.ch_name, replace_read_vars_lname(hp.var_name, inst))
     elif hp.type == 'output_channel':
         if len(hp.ch_name.args) > 0:
             raise NotImplementedError
