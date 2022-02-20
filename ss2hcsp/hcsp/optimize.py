@@ -152,18 +152,45 @@ def replace_read_vars(hp, inst):
     else:
         raise NotImplementedError
 
-def get_write_vars(lname):
+def get_write_vars_lname(lname):
     """Given lname of an assignment, return the set of variables written."""
     if lname is None:
         return {}
     elif isinstance(lname, expr.AVar):
         return {lname.name}
     elif isinstance(lname, expr.ArrayIdxExpr):
-        return get_write_vars(lname.expr1)
+        return get_write_vars_lname(lname.expr1)
     elif isinstance(lname, expr.FieldNameExpr):
-        return get_write_vars(lname.expr)
+        return get_write_vars_lname(lname.expr)
     else:
         raise NotImplementedError
+
+def get_write_vars(hp):
+    """Returns the set of written variables for an HCSP program."""
+    if hp.type == 'assign':
+        return get_write_vars_lname(hp.var_name)
+    elif hp.type == 'input_channel':
+        return get_write_vars_lname(hp.var_name)
+    elif hp.type == 'ode':
+        res = set()
+        for var, _ in hp.eqs:
+            res = res.union({var})
+        return res
+    else:
+        return set()
+
+def get_write_vars_pre(hp):
+    """Returns the set of written variables for an HCSP program, that should
+    be considered at the before label of the program.
+    
+    """
+    if hp.type == 'ode':
+        res = set()
+        for var, _ in hp.eqs:
+            res = res.union({var})
+        return res
+    else:
+        return set()
 
 def targeted_replace(hp, repls):
     """Make the given list of replacements."""
@@ -260,6 +287,12 @@ def targeted_remove(hp, remove_locs):
             raise NotImplementedError
     return rec(hp, tuple())
 
+def extract_eq_pairs(cond):
+    if isinstance(cond, expr.RelExpr) and isinstance(cond.exprs[0], expr.AVar) and \
+        isinstance(cond.exprs[1], expr.AConst):
+        return [(cond.exprs[0], cond.exprs[1])]
+    else:
+        return []
 
 class LocationInfo:
     """Information for each location obtained during static analysis."""
@@ -384,9 +417,9 @@ class HCSPAnalysis:
         rec(self.hp, tuple())
 
     def init_all_vars(self):
+        """Obtain the list of all variables assigned."""
         for loc, info in self.infos.items():
-            if info.sub_hp.type == 'assign':
-                self.all_vars = self.all_vars.union(get_write_vars(info.sub_hp.var_name))
+            self.all_vars = self.all_vars.union(get_write_vars(info.sub_hp))
 
     def compute_reaching_definition(self):
         """Reaching definition analysis.
@@ -405,8 +438,7 @@ class HCSPAnalysis:
         """
         # Propagate from reach_before to reach_after
         def propagate_before_after(info, var, loc):
-            if (var, loc) not in info.reach_after and \
-                (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
+            if (var, loc) not in info.reach_after and var not in get_write_vars(info.sub_hp):
                 info.reach_after.add((var, loc))
 
         # Initial definitions
@@ -416,16 +448,10 @@ class HCSPAnalysis:
 
         # Assignments
         for loc, info in self.infos.items():
-            if info.sub_hp.type == 'assign':
-                for write_vars in get_write_vars(info.sub_hp.var_name):
-                    info.reach_after.add((write_vars, loc))
-            elif info.sub_hp.type == 'input_channel':
-                for write_vars in get_write_vars(info.sub_hp.var_name):
-                    info.reach_after.add((write_vars, loc))
-            elif info.sub_hp.type == 'ode':
-                for var, eq in info.sub_hp.eqs:
-                    info.reach_before.add((var, loc))
-                    info.reach_after.add((var, loc))
+            for var in get_write_vars(info.sub_hp):
+                info.reach_after.add((var, loc))
+            for var in get_write_vars_pre(info.sub_hp):
+                info.reach_before.add((var, loc))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -558,7 +584,7 @@ class HCSPAnalysis:
         dead_code = []
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'assign':
-                if all(name not in info.live_after for name in get_write_vars(info.sub_hp.var_name)):
+                if all(name not in info.live_after for name in get_write_vars(info.sub_hp)):
                     dead_code.append(loc)
         return dead_code
 
