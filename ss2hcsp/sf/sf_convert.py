@@ -41,7 +41,7 @@ class SFConvert:
 
     """
     def __init__(self, chart=None, *, chart_parameters=None, has_signal=False,
-                 shared_chans=None, translate_io=True, fun_call_map=None, wait_init=False):
+                 shared_chans=None, translate_io=True, fun_call_map=None):
         self.chart = chart
         if chart_parameters is None:
             chart_parameters = dict()
@@ -52,7 +52,6 @@ class SFConvert:
         if shared_chans:
             self.shared_chans = shared_chans
         self.fun_call_map = fun_call_map
-        self.wait_init = wait_init
 
         # List of data variables
         self.data = dict()
@@ -962,9 +961,6 @@ class SFConvert:
         # End signal
         if self.has_signal:
             procs.append(hcsp.InputChannel("end_" + self.chart.name))
-
-        if self.wait_init:
-            procs.append(hcsp.Wait(expr.AConst(self.sample_time)))
            
         return hcsp.seq(procs)
 

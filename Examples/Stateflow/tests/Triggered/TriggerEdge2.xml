@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.23</P>
+      <P Name="ComputedModelVersion">1.25</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -99,7 +99,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">1ff49966-8613-493c-bc7a-25ce4c75f308</P>
       </Object>
-      <P Name="BDUuid" Class="char">2a67856e-b2d3-4347-9466-da7c7a4a0254</P>
+      <P Name="BDUuid" Class="char">f4b6d16d-b9b2-4d2f-b75f-5eb29637f186</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -109,9 +109,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Fri Feb 18 23:47:14 2022</P>
-      <P Name="RTWModifiedTimeStamp">567128834</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:23&gt;</P>
+      <P Name="LastModifiedDate">Sun Feb 20 15:10:32 2022</P>
+      <P Name="RTWModifiedTimeStamp">567270631</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:25&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1097,7 +1097,6 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[-7, -7, 1288, 688]</P>
-      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>

@@ -394,10 +394,9 @@ def new_translate_discrete(diagram, chart_parameters):
             if trigger_type == 'function-call':
                 fun_call_map[event] = chart.name
     for chart in charts:
-        wait_init = any(trigger_type != 'function-call' for trigger_type, _ in chart.input_events)
         converter = sf_convert.SFConvert(
             chart, chart_parameters=chart_parameters[chart.name], translate_io=False,
-            fun_call_map=fun_call_map, wait_init=wait_init)
+            fun_call_map=fun_call_map)
         init_hps.append(hcsp.Var(converter.init_name(chart.name)))
         chart.exec_name = converter.exec_name(charts[0].name)
         _procedures = converter.get_procs()

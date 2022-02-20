@@ -7,7 +7,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">1.23</P>
+      <P Name="ComputedModelVersion">1.26</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -63,8 +63,8 @@
             <P Name="LoadSaveID" Class="char">0</P>
             <P Name="Extents" Class="double">[1465.0, 840.0]</P>
             <P Name="ZoomFactor" Class="double">1.0</P>
-            <P Name="Offset" Class="double">[0.0, 0.0]</P>
-            <P Name="SceneRectInView" Class="double">[0.0, 0.0, 976.66666666666663, 560.0]</P>
+            <P Name="Offset" Class="double">[-252.0, -112.5]</P>
+            <P Name="SceneRectInView" Class="double">[-252.0, -112.5, 976.66666666666663, 560.0]</P>
           </Object>
           <Object ObjectID="6">
             <P Name="IsActive" Class="logical">0</P>
@@ -72,9 +72,9 @@
             <P Name="ViewObjType" Class="char">StateflowChart</P>
             <P Name="LoadSaveID" Class="char">20</P>
             <P Name="Extents" Class="double">[1920.0, 1080.0]</P>
-            <P Name="ZoomFactor" Class="double">1.531371853952499</P>
-            <P Name="Offset" Class="double">[-7.9293981481482092, -22.25]</P>
-            <P Name="SceneRectInView" Class="double">[-7.9293981481482092, -22.25, 835.851851851852, 470.16666666666669]</P>
+            <P Name="ZoomFactor" Class="double">1.4076137522506444</P>
+            <P Name="Offset" Class="double">[-40.796129599438871, -56.481447507901692]</P>
+            <P Name="SceneRectInView" Class="double">[-40.796129599438871, -56.481447507901692, 909.34036269068713, 511.50395401351147]</P>
           </Object>
           <Object ObjectID="7">
             <P Name="IsActive" Class="logical">0</P>
@@ -117,7 +117,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">164a4b54-4b56-44b3-9f60-a665ee622a44</P>
       </Object>
-      <P Name="BDUuid" Class="char">e1803321-42a5-402f-867e-9f6e071e7b25</P>
+      <P Name="BDUuid" Class="char">5449ac6f-526b-480d-9335-bb2ce852d049</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -127,9 +127,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">bzhan</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Sat Feb 19 12:21:58 2022</P>
-      <P Name="RTWModifiedTimeStamp">567174117</P>
-      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:23&gt;</P>
+      <P Name="LastModifiedDate">Sun Feb 20 15:15:57 2022</P>
+      <P Name="RTWModifiedTimeStamp">567270957</P>
+      <P Name="ModelVersionFormat">1.%&lt;AutoIncrement:26&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1122,6 +1122,7 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[-7, -7, 1288, 688]</P>
+      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1213,7 +1214,7 @@
         <P Name="PhaseDelay">0.5</P>
         <Port>
           <P Name="PortNumber">1</P>
-          <P Name="Name">a</P>
+          <P Name="Name">w</P>
         </Port>
       </Block>
       <Block BlockType="Scope" Name="Scope" SID="22">
@@ -1236,10 +1237,12 @@
         <P Name="ContentPreviewEnabled">on</P>
         <Port>
           <P Name="PortNumber">1</P>
-          <P Name="Name">y</P>
+          <P Name="Name">a</P>
+          <P Name="PropagatedSignals">a</P>
         </Port>
         <System>
           <P Name="Location">[-7, -7, 1288, 688]</P>
+          <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1271,24 +1274,24 @@
             <P Name="SFcnIsStateOwnerBlock">off</P>
             <Port>
               <P Name="PortNumber">2</P>
-              <P Name="Name">y</P>
+              <P Name="Name">a</P>
             </Port>
           </Block>
           <Block BlockType="Terminator" Name=" Terminator " SID="20::97">
             <P Name="Position">[460, 241, 480, 259]</P>
             <P Name="ZOrder">77</P>
           </Block>
-          <Block BlockType="Outport" Name="y" SID="20::98">
+          <Block BlockType="Outport" Name="a" SID="20::98">
             <P Name="Position">[460, 101, 480, 119]</P>
             <P Name="ZOrder">78</P>
           </Block>
           <Line>
-            <P Name="Name">y</P>
+            <P Name="Name">a</P>
             <P Name="ZOrder">31</P>
             <P Name="Labels">[0, 0]</P>
             <P Name="SrcBlock"> SFunction </P>
             <P Name="SrcPort">2</P>
-            <P Name="DstBlock">y</P>
+            <P Name="DstBlock">a</P>
             <P Name="DstPort">1</P>
           </Line>
           <Line>
@@ -1346,7 +1349,7 @@ Generator2</P>
         <P Name="DstPort">1</P>
       </Line>
       <Line>
-        <P Name="Name">a</P>
+        <P Name="Name">w</P>
         <P Name="ZOrder">6</P>
         <P Name="Labels">[1, 1]</P>
         <P Name="SrcBlock">Pulse
@@ -1387,7 +1390,7 @@ Generator3</P>
         <P Name="DstPort">trigger</P>
       </Line>
       <Line>
-        <P Name="Name">y</P>
+        <P Name="Name">a</P>
         <P Name="ZOrder">11</P>
         <P Name="Labels">[1, 1]</P>
         <P Name="SrcBlock">Trig_SF</P>
@@ -1407,8 +1410,8 @@ Generator3</P>
         <chart id="25">
           <P Name="name">Trig_SF</P>
           <P Name="windowPosition">[199.5 216.75 417 348.75]</P>
-          <P Name="viewLimits">[-7.929 827.922 -22.25 447.917]</P>
-          <P Name="zoomFactor">0.871</P>
+          <P Name="viewLimits">[-40.796 868.544 -56.481 455.023]</P>
+          <P Name="zoomFactor">0.947</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">25</P>
           <P Name="ssIdHighWaterMark">23</P>
@@ -1474,8 +1477,8 @@ Generator3</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="21">
-                  <P Name="labelString">event2{y = 2;}</P>
-                  <P Name="labelPosition">[568.006 238.44 81.766 17]</P>
+                  <P Name="labelString">event2{a = 2;}</P>
+                  <P Name="labelPosition">[568.006 238.44 82.484 17]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="SSID">16</P>
@@ -1495,8 +1498,8 @@ Generator3</P>
                   <P Name="executionOrder">1</P>
                 </transition>
                 <transition SSID="22">
-                  <P Name="labelString">event3{y = 3;}</P>
-                  <P Name="labelPosition">[567.07 289.321 81.766 17]</P>
+                  <P Name="labelString">event3{a = 3;}</P>
+                  <P Name="labelPosition">[567.07 289.321 82.484 17]</P>
                   <P Name="fontSize">13</P>
                   <src>
                     <P Name="SSID">18</P>
@@ -1517,7 +1520,7 @@ Generator3</P>
                 </transition>
               </Children>
             </state>
-            <data SSID="23" name="y">
+            <data SSID="23" name="a">
               <P Name="scope">OUTPUT_DATA</P>
               <props>
                 <P Name="initialValue">-1</P>
@@ -1578,8 +1581,8 @@ Generator3</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="6">
-              <P Name="labelString">event{y = 0;}</P>
-              <P Name="labelPosition">[337.683 195.761 74.547 17]</P>
+              <P Name="labelString">event{a = 0;}</P>
+              <P Name="labelPosition">[337.683 195.761 75.266 17]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">3</P>
@@ -1599,8 +1602,8 @@ Generator3</P>
               <P Name="executionOrder">1</P>
             </transition>
             <transition SSID="7">
-              <P Name="labelString">event1{y = 1;}</P>
-              <P Name="labelPosition">[335.603 252.628 81.766 17]</P>
+              <P Name="labelString">event1{a = 1;}</P>
+              <P Name="labelPosition">[335.603 252.628 82.484 17]</P>
               <P Name="fontSize">13</P>
               <src>
                 <P Name="SSID">5</P>

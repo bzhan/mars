@@ -603,48 +603,53 @@ class SFConvertTest(unittest.TestCase):
 
     def testTriggerEdge1(self):
         run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge1.xml", 200, {
-            0: {},
-            1.0: {'y': 1, 'signal': 1.0},
-            2.0: {'y': 2, 'signal': 1.0},
-            3.0: {'y': 3, 'signal': 1.0},
-            4.0: {'y': 4, 'signal': 1.0},
-            5.0: {'y': 5, 'signal': 1.0}
+            0: {'y': 0, 'signal': 0.0},
+            0.5: {'y': 1, 'signal': 1.0},
+            1.0: {'y': 1, 'signal': 0.0},
+            1.5: {'y': 2, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 0.0},
+            2.5: {'y': 3, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 0.0},
+            3.5: {'y': 4, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 0.0},
+            4.5: {'y': 5, 'signal': 1.0}
         })
 
     def testTriggerEdge2(self):
         run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge2.xml", 200, {
-            0: {},
-            0.5: {'y': 0, 'signal': 1.0},
-            1.0: {'y': 1, 'signal': 0.0},
-            1.5: {'y': 1, 'signal': 1.0},
-            2.0: {'y': 2, 'signal': 0.0},
-            2.5: {'y': 2, 'signal': 1.0},
-            3.0: {'y': 3, 'signal': 0.0},
-            3.5: {'y': 3, 'signal': 1.0},
-            4.0: {'y': 4, 'signal': 0.0},
-            4.5: {'y': 4, 'signal': 1.0}
+            0: {'y': 0, 'signal': 1.0},
+            0.5: {'y': 1, 'signal': 0.0},
+            1.0: {'y': 1, 'signal': 1.0},
+            1.5: {'y': 2, 'signal': 0.0},
+            2.0: {'y': 2, 'signal': 1.0},
+            2.5: {'y': 3, 'signal': 0.0},
+            3.0: {'y': 3, 'signal': 1.0},
+            3.5: {'y': 4, 'signal': 0.0},
+            4.0: {'y': 4, 'signal': 1.0},
+            4.5: {'y': 5, 'signal': 0.0}
         })
 
     def testTriggerEdge3(self):
         run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge3.xml", 300, {
-            0: {},
+            0: {'y': 0, 'signal': 0.0},
             0.3: {'y': 1, 'signal': 1.0},
             0.8: {'y': 2, 'signal': 0.0},
             1.3: {'y': 3, 'signal': 1.0},
-            1.8: {'y': 4, 'signal': 0.0}
+            1.8: {'y': 4, 'signal': 0.0},
+            2.3: {'y': 5, 'signal': 1.0}
         })
 
     def testTriggerEdge4(self):
         run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge4.xml", 1000, {
-            0: {},
-            0.2: {'y': 0.0},
-            0.4: {'y': 2.0},
-            0.6: {'y': 3.0},
-            0.9: {'y': 1.0},
-            1.2: {'y': 0.0},
-            1.4: {'y': 2.0},
-            1.6: {'y': 3.0},
-            1.9: {'y': 1.0}
+            0: {'a': 0.0},
+            0.2: {'a': 0.0},
+            0.4: {'a': 2.0},
+            0.6: {'a': 3.0},
+            0.9: {'a': 1.0},
+            1.2: {'a': 0.0},
+            1.4: {'a': 2.0},
+            1.6: {'a': 3.0},
+            1.9: {'a': 1.0}
         })
 
     def testTriggerEdge5(self):
