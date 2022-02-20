@@ -1249,7 +1249,8 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
         proc_map["data_ctrl"] = (dict(), get_data_proc(comm_data))
 
     # Processes for continuous
-    proc_map["Continuous"] = (dict(), get_hcsp.translate_continuous(continuous))
+    if continuous:
+        proc_map["Continuous"] = (dict(), get_hcsp.translate_continuous(continuous))
 
     # Processes for scope
     for scope in diagram.scopes:
