@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModelInformation Version="1.0">
-  <Model Name="Mux">
+  <Model Name="TriggerEdge4">
     <P Name="Version">10.1</P>
     <P Name="SavedCharacterEncoding">GBK</P>
     <GraphicalInterface>
@@ -117,7 +117,7 @@
         <Array PropName="PersistedApps" Type="Cell" Dimension="0*1"/>
         <P Name="WindowUuid" Class="char">164a4b54-4b56-44b3-9f60-a665ee622a44</P>
       </Object>
-      <P Name="BDUuid" Class="char">5449ac6f-526b-480d-9335-bb2ce852d049</P>
+      <P Name="BDUuid" Class="char">e1803321-42a5-402f-867e-9f6e071e7b25</P>
     </Object>
     <P Name="HideAutomaticNames">on</P>
     <ConfigManagerSettings>
@@ -190,10 +190,10 @@
       <P Name="AccelMakeCommand">make_rtw</P>
       <P Name="TryForcingSFcnDF">off</P>
       <Object PropName="DataLoggingOverride" ObjectID="10" ClassName="Simulink.SimulationData.ModelLoggingInfo">
-        <P Name="model_" Class="char">Mux</P>
+        <P Name="model_" Class="char">TriggerEdge4</P>
         <P Name="overrideMode_" Class="uint32">0U</P>
         <Array PropName="logAsSpecifiedByModels_" Type="Cell" Dimension="1*1">
-          <Cell Class="char">Mux</Cell>
+          <Cell Class="char">TriggerEdge4</Cell>
         </Array>
         <Array PropName="logAsSpecifiedByModelsSSIDs_" Type="Cell" Dimension="1*1">
           <Cell Class="double">[]</Cell>
@@ -1122,7 +1122,6 @@
     </BlockParameterDefaults>
     <System>
       <P Name="Location">[-7, -7, 1288, 688]</P>
-      <P Name="Open">on</P>
       <P Name="SetExecutionDomain">off</P>
       <P Name="ExecutionDomainType">Deduce</P>
       <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>
@@ -1241,7 +1240,6 @@
         </Port>
         <System>
           <P Name="Location">[-7, -7, 1288, 688]</P>
-          <P Name="Open">on</P>
           <P Name="SetExecutionDomain">off</P>
           <P Name="ExecutionDomainType">Deduce</P>
           <P Name="TiledPaperMargins">[0.500000, 0.500000, 0.500000, 0.500000]</P>

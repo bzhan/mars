@@ -10,6 +10,7 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
+from ss2hcsp.tests.sim_test import run_test as run_sim_test
 from ss2hcsp.hcsp.pprint import pprint
 
 
@@ -599,6 +600,76 @@ class SFConvertTest(unittest.TestCase):
         run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous6.xml", 3,
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
              'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
+
+    def testTriggerEdge1(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge1.xml", 200, {
+            0: {},
+            1.0: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 1.0},
+            5.0: {'y': 5, 'signal': 1.0}
+        })
+
+    def testTriggerEdge2(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge2.xml", 200, {
+            0: {},
+            0.5: {'y': 0, 'signal': 1.0},
+            1.0: {'y': 1, 'signal': 0.0},
+            1.5: {'y': 1, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 0.0},
+            2.5: {'y': 2, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 0.0},
+            3.5: {'y': 3, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 0.0},
+            4.5: {'y': 4, 'signal': 1.0}
+        })
+
+    def testTriggerEdge3(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge3.xml", 300, {
+            0: {},
+            0.3: {'y': 1, 'signal': 1.0},
+            0.8: {'y': 2, 'signal': 0.0},
+            1.3: {'y': 3, 'signal': 1.0},
+            1.8: {'y': 4, 'signal': 0.0}
+        })
+
+    def testTriggerEdge4(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge4.xml", 1000, {
+            0: {},
+            0.2: {'y': 0.0},
+            0.4: {'y': 2.0},
+            0.6: {'y': 3.0},
+            0.9: {'y': 1.0},
+            1.2: {'y': 0.0},
+            1.4: {'y': 2.0},
+            1.6: {'y': 3.0},
+            1.9: {'y': 1.0}
+        })
+
+    def testTriggerFun1(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun1.xml", 400, {
+            0: {'y': 1},
+            0.1: {'y': 2},
+            0.2: {'y': 3},
+            0.3: {'y': 4},
+            0.9: {'y': 4},
+            1.0: {'y': 5},
+            1.1: {'y': 6},
+            1.2: {'y': 7},
+            1.3: {'y': 8},
+            1.9: {'y': 8},
+            2.0: {'y': 9}
+        })
+
+    def testTriggerFun2(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun2.xml", 100, {
+            0.0: {'y': 4},
+            0.1: {'y': 4},
+            0.2: {'y': 4},
+            0.3: {'y': 4},
+            0.4: {'y': 4}
+        })
 
     def testSettaDemo(self):
         run_test(self, "./Examples/Stateflow/tests/settaDemo.xml", 2,
