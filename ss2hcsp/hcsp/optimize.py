@@ -192,6 +192,20 @@ def get_write_vars_pre(hp):
     else:
         return set()
 
+def get_write_vars_val(hp, var):
+    """Returns the value of the written variables in an HCSP program. If the
+    written value is uncertain, return None.
+    
+    """
+    if hp.type == 'assign':
+        if isinstance(hp.var_name, expr.AVar) and isinstance(hp.expr, expr.AConst):
+            assert hp.var_name == expr.AVar(var)
+            return hp.expr
+        else:
+            return None
+    else:
+        return None
+
 def targeted_replace(hp, repls):
     """Make the given list of replacements."""
     def rec(hp, cur_pos):
@@ -437,9 +451,9 @@ class HCSPAnalysis:
 
         """
         # Propagate from reach_before to reach_after
-        def propagate_before_after(info, var, loc):
-            if (var, loc) not in info.reach_after and var not in get_write_vars(info.sub_hp):
-                info.reach_after.add((var, loc))
+        def propagate_before_after(info, var, val):
+            if (var, val) not in info.reach_after and var not in get_write_vars(info.sub_hp):
+                info.reach_after.add((var, val))
 
         # Initial definitions
         for var in self.all_vars:
@@ -449,9 +463,9 @@ class HCSPAnalysis:
         # Assignments
         for loc, info in self.infos.items():
             for var in get_write_vars(info.sub_hp):
-                info.reach_after.add((var, loc))
+                info.reach_after.add((var, get_write_vars_val(info.sub_hp, var)))
             for var in get_write_vars_pre(info.sub_hp):
-                info.reach_before.add((var, loc))
+                info.reach_before.add((var, get_write_vars_val(info.sub_hp, var)))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -467,12 +481,12 @@ class HCSPAnalysis:
             found = False
             for process_loc in process_order:
                 info = self.infos[process_loc]
-                for var, loc in info.reach_after:
+                for var, val in info.reach_after:
                     for next_loc in info.edges:
-                        if (var, loc) not in self.infos[next_loc].reach_before:
+                        if (var, val) not in self.infos[next_loc].reach_before:
                             found = True
-                            self.infos[next_loc].reach_before.add((var, loc))
-                            propagate_before_after(self.infos[next_loc], var, loc)
+                            self.infos[next_loc].reach_before.add((var, val))
+                            propagate_before_after(self.infos[next_loc], var, val)
 
             if not found:
                 break
@@ -488,35 +502,19 @@ class HCSPAnalysis:
             if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):   
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
-                    reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
+                    reach_defs = [prev_val for prev_var, prev_val in info.reach_before
                                   if prev_var == var]
                     
-                    if any(prev_loc is None for prev_loc in reach_defs):
-                        continue
-
-                    # Obtain the unique expression assigned to. The replacement
-                    # is valid only if all three of the following conditions hold:
-                    #   1. all assignments are to constant expressions.
-                    #   2. all assignments are the same.
-                    #   3. all assignments are to variable itself, rather than to
-                    #      some array index or field name.
+                    # Obtain the unique expression assigned to.
                     unique_assign = None
-                    for prev_loc in reach_defs:
-                        def_hp = self.infos[prev_loc].sub_hp
-                        if def_hp.type in ('input_channel', 'ode'):
+                    for prev_val in reach_defs:
+                        if prev_val is None:
                             unique_assign = None
                             break
-                        assert def_hp.type == 'assign'
-                        if not isinstance(def_hp.var_name, expr.AVar):
+                        if unique_assign is not None and prev_val != unique_assign:
                             unique_assign = None
                             break
-                        if not isinstance(def_hp.expr, expr.AConst):
-                            unique_assign = None
-                            break
-                        if unique_assign is not None and def_hp.expr != unique_assign:
-                            unique_assign = None
-                            break
-                        unique_assign = def_hp.expr
+                        unique_assign = prev_val
                     # If there is a unique assigned value which is a constant,
                     # add to replacement list.
                     if not unique_assign:
