@@ -712,16 +712,26 @@ class SFConvertTest(unittest.TestCase):
             ['log B', 'log D', 'log A', 'log D', 'delay 0.1',
              'log B', 'log D', 'log A', 'log D', 'delay 0.1'])
 
-    def testSFNew(self):
+    def testRTPS(self):
         random.seed(0)  # for repeatability
         io_filter = lambda s: s == 'WHC_out'
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 95,
+        run_test(self, "./Examples/Stateflow/tests/RTPS.xml", 500,
             ['IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
-             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1'],
-            io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]'], io_filter=io_filter)
 
 
 if __name__ == "__main__":
