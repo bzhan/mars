@@ -647,6 +647,42 @@ class SFConvertTest(unittest.TestCase):
             1.9: {'y': 1.0}
         })
 
+    def testTriggerEdge5(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge5.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 1.0},
+            5.9: {'y': 1.0},
+            6.1: {'y': 2.0}
+        })
+
+    def testTriggerEdge6(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge6.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 1.0},
+            5.9: {'y': 1.0},
+            6.1: {'y': 1.0}
+        })
+
+    def testTriggerEdge7(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge7.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 0.0},
+            5.9: {'y': 0.0},
+            6.1: {'y': 1.0}
+        })
+
+    def testTriggerEdge8(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge8.xml", 100, {
+            0.1: {'y': 0.0},
+            0.9: {'y': 0.0},
+            1.1: {'y': 1.0},
+            3.9: {'y': 1.0},
+            4.1: {'y': 2.0}
+        })
+
     def testTriggerFun1(self):
         run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun1.xml", 400, {
             0: {'y': 1},
