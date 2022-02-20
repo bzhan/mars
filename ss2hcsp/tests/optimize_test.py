@@ -31,7 +31,13 @@ class OptimizeTest(unittest.TestCase):
              "ch?a[0]; x := 1"),
 
             ("x := 0; ch!a[x]; x := 1",
-             "ch!a[0]; x := 1")
+             "ch!a[0]; x := 1"),
+
+            ("x == 0 -> (x == 0 -> x := 1)",
+             "x == 0 -> x := 1"),
+
+            ("0 == 0 -> x := 1",
+             "x := 1"),
         ]
 
         for s, res in test_data:

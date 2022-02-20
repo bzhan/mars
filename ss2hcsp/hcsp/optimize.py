@@ -48,6 +48,11 @@ def simplify(hp):
             return hcsp.Skip()
         elif simp_cond == expr.true_expr:
             return simp_sub_hp
+        elif simp_sub_hp.type == 'condition' and simp_sub_hp.cond == simp_cond:
+            return hcsp.Condition(simp_cond, simp_sub_hp.hp)
+        elif simp_sub_hp.type == 'sequence' and simp_sub_hp.hps[0].type == 'condition' \
+            and simp_sub_hp.hps[0].cond == simp_cond:
+            return hcsp.Condition(simp_cond, hcsp.Sequence(simp_sub_hp.hps[0].hp, *simp_sub_hp.hps[1:]))
         else:
             return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
