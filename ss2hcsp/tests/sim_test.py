@@ -291,6 +291,22 @@ class SimTest(unittest.TestCase):
             0.8: {'t': 0.8, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
             0.9: {'t': 0.9, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
             1.0: {'t': 1.0, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+        })
+
+    def testStopWatch3(self):
+        run_test(self, "./Examples/Stateflow/tests/StopWatch3.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 5},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 5},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 26},
+            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 35},
+            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 35},
+            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 35},
+            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 36},
+            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
+            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
+            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
+            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
         }, print_time_series=True)
 
 
