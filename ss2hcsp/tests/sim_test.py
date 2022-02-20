@@ -278,16 +278,19 @@ class SimTest(unittest.TestCase):
             1.1: {'t': 1.1, 'cent': 6, 'disp_cent': 6},
         })
 
-    def testStopWatchPeriodic(self):
-        run_test(self, "./Examples/Stateflow/tests/StopWatchPeriodic.xml", 6500, {
-            0: {'t': 0.0, 'cent': 0},
-            1: {'t': 0.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
-            2: {'t': 1.9, 'cent': 17, 'disp_cent': 17, 'start': 0.0, 'lap': 0.0},
-            3: {'t': 2.9, 'cent': 27, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
-            4: {'t': 3.9, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
-            5: {'t': 4.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            6: {'t': 5.9, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
-            7: {'t': 6.9, 'cent': 7, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+    def testStopWatch2(self):
+        run_test(self, "./Examples/Stateflow/tests/StopWatch2.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'t': 0.1, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.2: {'t': 0.2, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.3: {'t': 0.3, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            0.4: {'t': 0.4, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+            0.5: {'t': 0.5, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.6: {'t': 0.6, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.7: {'t': 0.7, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.8: {'t': 0.8, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.9: {'t': 0.9, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            1.0: {'t': 1.0, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
         }, print_time_series=True)
 
 
