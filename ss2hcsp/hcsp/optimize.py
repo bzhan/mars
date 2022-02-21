@@ -306,12 +306,6 @@ def targeted_remove(hp, remove_locs):
             raise NotImplementedError
     return rec(hp, tuple())
 
-def extract_eq_pairs(cond):
-    if isinstance(cond, expr.RelExpr) and isinstance(cond.exprs[0], expr.AVar) and \
-        isinstance(cond.exprs[1], expr.AConst):
-        return [(cond.exprs[0], cond.exprs[1])]
-    else:
-        return []
 
 class LocationInfo:
     """Information for each location obtained during static analysis."""

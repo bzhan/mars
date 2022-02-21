@@ -22,8 +22,8 @@ def print_module(path, m):
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
 def run_test(self, location, num_steps, expected_series, *,
-             print_diagrams=False, print_hcsp=False, print_time_series=False,
-             print_module_path=None, debug_name=True):
+             print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
+             print_time_series=False, print_module_path=None, debug_name=True):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
@@ -54,6 +54,10 @@ def run_test(self, location, num_steps, expected_series, *,
         before_size += result_hp.code.size()
         for proc in result_hp.procedures:
             before_size += proc.hp.size()
+
+    # Optional: print HCSP before optimization
+    if print_hcsp_raw:
+        print(result_hp.export())
 
     # Optimize module
     hp = result_hp.code
