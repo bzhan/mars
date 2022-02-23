@@ -1,5 +1,5 @@
 theory Trans_State2State
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_On :: state where " Chart_On = State [''On'']

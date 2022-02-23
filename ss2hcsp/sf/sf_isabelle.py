@@ -182,17 +182,37 @@ def translate_action(c, diagram, is_tran_act=False):
             else:
                 raise NotImplementedError
     elif isinstance(c, function.RaiseEvent):
-        if is_tran_act:
-            return "send1 ''%s'' True" % str(c.event)
+        if len(str(c.event).split('.')) == 1:
+            if is_tran_act:
+                return "send1 ''%s'' True" % c.event
+            else:
+                return "send1 ''%s'' False" % c.event
+        #The following two conditions are directed send
         else:
-            return "send1 ''%s'' False" % str(c.event)
+            tmp = str(c.event).split('.')
+            event = tmp[-1]
+            for ssid, state in diagram.all_states.items():
+                if state.name == tmp[-2]:
+                    direct_name = get_state_path(state)
+            if is_tran_act:
+                return "send2 ''%s'' True %s " % (event,direct_name)
+            else:
+                return "send2 ''%s'' False %s " % (event,direct_name)
     else:
         print(type(c))
         return "SKIP"
         #raise NotImplementedError
 
 def translate_actions(cs, diagram, is_tran_act=False):
-    return ";".join(translate_action(c, diagram, is_tran_act=is_tran_act) for c in cs)
+    actions_str = ''
+    for i in range(len(cs)):
+        actions_str += translate_action(cs[i], diagram, is_tran_act=is_tran_act)
+        if i != len(cs) -1 :
+            actions_list = list(actions_str)
+            actions_list.insert(0,'(')
+            actions_str = ''.join(actions_list)
+            actions_str += ');'
+    return actions_str
 
 def translate_event(event):
     if event is None:
@@ -257,6 +277,9 @@ def translate_trans(tran, diagram, is_GraphicalJunction = False):
     label = tran.label
     event_str = translate_event(label.event)
     cond_str = translate_expr(label.cond)
+    if isinstance(label.cond, function.RelExpr) and isinstance(label.cond.expr1, function.FunExpr):
+        cond_str = "(V '''') " + cond_str.split(') ')[1]
+
     #print(label.tran_act)
     cond_act_str = translate_action(label.cond_act, is_tran_act=False, diagram=diagram)
     tran_act_str = translate_action(label.tran_act, is_tran_act=True, diagram=diagram)
@@ -288,6 +311,30 @@ def translate_state(ssid, diagram):
             out_str = ", ".join(translate_trans(tran, diagram) for tran in state.out_trans)
         else:
             out_str = ""
+        for tran in state.out_trans:
+            label = tran.label
+            tmp_str = ""
+            if isinstance(label.cond, function.RelExpr) and isinstance(label.cond.expr1, function.FunExpr):
+                procedures = dict()
+                for fun in diagram.diagram.funs:
+                    procedures[fun.name] = fun
+                #print(procedures)
+                c = label.cond.expr1
+                f = "\'\'" + c.fun_name + "\'\'"
+                tmp_str = "((([[V '''', No_Expr]])::="
+                if isinstance(procedures[c.fun_name], function.Function):
+                    tmp_str += "\'\'" + c.fun_name + "\'\'" + '<'
+                    tmp_str += translate_expr(c)
+                    tmp_str += '>))'
+                elif isinstance(procedures[c.fun_name], GraphicalFunction):
+                    tmp_str += "\'\'" + c.fun_name + "\'\'" + '<<'
+                    tmp_str += translate_expr(c)
+                    tmp_str += '>>))'
+                en_list = list(en_str)
+                en_list.insert(0,'(')
+                en_str = "".join(en_list)
+                en_str += "); "
+                en_str += tmp_str
 
         if not state.children:
             comp_str = "No_Composition"
@@ -397,7 +444,8 @@ def translate_junction_function(diagram):
                 translist_str = translist_str[:-2] + ']'
             else:
                 translist_str += ']'
-            fun_str += 'if str = %s then %s else \n' %(junc_path, translist_str)
+            if translist_str != "[]":
+                fun_str += 'if str = %s then %s else \n' %(junc_path, translist_str)
     for fun in diagram.diagram.funs:
         if not isinstance(fun, GraphicalFunction):
             continue

@@ -1,5 +1,5 @@
 theory ConditionAction
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_C :: state where " Chart_C = State [''C'']

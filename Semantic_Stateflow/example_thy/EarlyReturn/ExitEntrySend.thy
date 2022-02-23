@@ -1,5 +1,5 @@
 theory ExitEntrySend
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_B_B1 :: state where " Chart_B_B1 = State [''B'', ''B1'']

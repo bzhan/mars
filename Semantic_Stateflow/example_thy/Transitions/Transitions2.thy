@@ -1,5 +1,5 @@
 theory Transitions2
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_S_A :: state where " Chart_S_A = State [''S'', ''A'']

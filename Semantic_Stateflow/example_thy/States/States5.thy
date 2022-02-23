@@ -1,5 +1,5 @@
 theory States5
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_A_A2 :: state where " Chart_A_A2 = State [''A'', ''A2'']

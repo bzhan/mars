@@ -1,5 +1,5 @@
 theory TransitiontoMultipleDestinations
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_B :: state where " Chart_B = State [''B'']

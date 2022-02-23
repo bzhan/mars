@@ -1,5 +1,5 @@
 theory DirectedEvent4
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_AM_A_A1 :: state where " Chart_AM_A_A1 = State [''AM'', ''A'', ''A1'']

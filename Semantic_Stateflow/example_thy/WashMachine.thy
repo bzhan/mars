@@ -1,5 +1,5 @@
 theory WashMachine
-  imports Final_ML 
+  imports "../Final_ML"
 begin
 
 definition Washing_machine_OFF_Initial_State :: state where " Washing_machine_OFF_Initial_State = State [''OFF'', ''Initial_State'']

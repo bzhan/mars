@@ -1,5 +1,5 @@
 theory AndBroadcast
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_A_A1_A1a :: state where " Chart_A_A1_A1a = State [''A'', ''A1'', ''A1a'']

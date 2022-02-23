@@ -43,7 +43,7 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "./Examples/Stateflow/translate/States/States1.xml"
+        filename = "./Examples/Stateflow/translate/Event/DirectedEvent1.xml"
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
@@ -94,7 +94,7 @@ class SFIsabelleTest(unittest.TestCase):
         str += status_str
         def_list.append('s_def')
 
-        str += 'text‹EXECUTION PROOF›\n'
+        str += 'text\<open>EXECUTION PROOF\<close>\n'
 
         str += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
 
@@ -116,16 +116,6 @@ class SFIsabelleTest(unittest.TestCase):
         f = open(save_name, 'w')
         f.write(str)
         f.close()
-'''
-    def testTranslate2(self):
-        test_data = [
-            ("e", "S [\'\'e\'\']"),
-        ]
-
-        for event, res in test_data:
-            event = event_parser.parse(event)
-            self.assertEqual(translate_event(event), res)
-'''
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()

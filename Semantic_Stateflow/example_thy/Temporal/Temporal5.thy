@@ -1,5 +1,5 @@
 theory Temporal5
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_A :: state where " Chart_A = State [''A'']

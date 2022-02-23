@@ -8,6 +8,12 @@
 
 then check the result in ```Semactic_Stateflow/example_name.thy```
 
+* To get all translation files in one time, we can run:
+
+```python -m unittest Semantic_Stateflow.transform_test.py ```
+
+then we construct a content ```all_examples``` and all thy files in are put in this content
+
 ## Introduction to the Files
 
 ### Syntax_Final.thy and Semantics_Final.thy
@@ -17,9 +23,10 @@ then check the result in ```Semactic_Stateflow/example_name.thy```
 ### Final_ML.thy
 * The tactic for the automatic execution of the Stateflow semantics.
 
-### sf_isabelle.py and sf_isabelle_test.py
+### sf_isabelle.py, sf_isabelle_test.py and transform_test.py
 * sf_isabelle.py: a translation tool from Stateflow charts to Isabelle representations.
 * sf_isabelle_test.py: the corresponding test code of the translation tool.
+* transform_test.py: a test tool to get all translation files in one time
 
 ### example_xml
 * All Stateflow examples in xls format and xml format

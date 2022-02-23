@@ -62,7 +62,7 @@
 ### EarlyReturn7
 
 * This is a variant of EarlyReturn6, where the source of the transition is different from the default state.
-* Expected result (two iterations):
+* Expected result (3 iterations):
   - en_A
   - en_A1
   - ex_A1

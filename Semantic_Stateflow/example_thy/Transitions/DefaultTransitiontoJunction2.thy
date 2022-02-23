@@ -1,5 +1,5 @@
 theory DefaultTransitiontoJunction2
-  imports Final_ML 
+  imports "../../Final_ML"
 begin
 
 definition Chart_B_B1_B1a :: state where " Chart_B_B1_B1a = State [''B'', ''B1'', ''B1a'']
