@@ -1,4 +1,5 @@
 #coding:utf-8
+import json
 import os
 import traceback
 import unittest
@@ -52,18 +53,36 @@ class TransformAllExamples(unittest.TestCase):
             #print("dir：", dir)
             for f in file:
                 filename = str(f)
-                print(filename)
+                #print(filename)
                 if filename.endswith('.xml'):
                     if (filename == "Semantic_Stateflow/example_xml/WashMachine/WashMachine.xml" or
-                       filename == "Semantic_Stateflow/example_xml/Transitions/InnerTransitiontoHistoryJunction.xml"):
-                        continue    #These two example has a feature that cannot be tranformed so that we transformed it manually
+                       filename == "Semantic_Stateflow/example_xml/Transitions/InnerTransitiontoHistoryJunction.xml" or
+                       filename == "Semantic_Stateflow/example_xml/Transitions/LabeledDefaultTransition.xml"):
+                        continue    #These three example has a feature that cannot be tranformed so that we transformed it manually
+                    
+                    n = 2
+                    input_enent = ""
+                    output_str = ""
+                    try:
+                        jsonname = filename.split('.')[0] + '.json'
+                        with open(jsonname,'r',encoding='utf8')as fp:
+                            json_data = json.load(fp)
+                            for key in json_data.keys():
+                                if key == "output1":
+                                    output_str = json_data['output1']
+                                elif key == 'n':
+                                    n = json_data['n']
+                                elif key == 'inputEvent':
+                                    input_enent = json_data['inputEvent']
+                    except:
+                        print(jsonname)
                     diagram = SL_Diagram(location=filename)
                     diagram.parse_xml()
                     diagram.add_line_name()
                     _, _, charts, _, _, _, _, _, _ = diagram.seperate_diagram()
                     chart = charts[0]
-                    print(chart)
-                    print('\n')
+                    #print(chart)
+                    #print('\n')
                     save_name  = filename.split('/')[-1].split('.')[0]
                     content = 'theory %s\n  imports "../Final_ML" \nbegin\n\n' %save_name
                     chart_str, def_list = dfs_search_chart(chart.diagram.ssid, chart, '', [])
@@ -71,7 +90,7 @@ class TransformAllExamples(unittest.TestCase):
                     #print(chart_str)
 
                     junc_str = translate_junction_function(chart)
-                    print(junc_str)
+                    #print(junc_str)
                     content += junc_str + '\n\n'
                     def_list.append('g_def')
 
@@ -111,7 +130,12 @@ class TransformAllExamples(unittest.TestCase):
                     content += 'text\<open>EXECUTION PROOF\<close>\n'
 
                     #note that the default n is 2
-                    content += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
+                    #content += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
+                    content += 'schematic_goal \"Root_Exec_for_times env \'\'%s\'\' (%s::int) s' %(input_enent, n)
+                    if output_str == "":
+                        content += ' ?s\"\n'
+                    else:
+                        content += '\n (Status (Vals ?v1 ?v2 ?v3 (%s, ?o2)) (?I))\"\n' %output_str
 
                     content += '  unfolding '
                     cnt = len('  unfolding ')
@@ -125,7 +149,7 @@ class TransformAllExamples(unittest.TestCase):
                     content += 'end'
                     content = content.replace("-", "_")
                     content = content.replace("(_", "(-")
-                    print(content)
+                    #print(content)
                     save_name = "Semantic_Stateflow/all_examples/" + save_name + '.thy'
                     if os.path.exists("Semantic_Stateflow/all_examples/") == False:
                         os.makedirs("Semantic_Stateflow/all_examples/")

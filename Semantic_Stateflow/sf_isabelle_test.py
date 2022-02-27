@@ -1,6 +1,7 @@
 """Unit test for sf_isabelle"""
 
 import unittest
+import json
 
 from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.sf.sf_state import Junction, OR_State, AND_State
@@ -43,7 +44,24 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "./Examples/Stateflow/translate/Event/DirectedEvent1.xml"
+        filename = "./Examples/Stateflow/translate/Transitions/LabeledDefaultTransition.xml"
+        n = 2
+        input_enent = ""
+        output_str = ""
+        try:
+            jsonname  = "./Semantic_Stateflow/LabeledDefaultTransition.json"
+            with open(jsonname,'r',encoding='utf8')as fp:
+                json_data = json.load(fp)
+                for key in json_data.keys():
+                    if key == "output1":
+                        output_str = json_data['output1']
+                    elif key == 'n':
+                        n = json_data['n']
+                    elif key == 'inputEvent':
+                        input_enent = json_data['inputEvent']
+        except:
+            pass
+        
         diagram = SL_Diagram(location=filename)
         diagram.parse_xml()
         diagram.add_line_name()
@@ -96,8 +114,11 @@ class SFIsabelleTest(unittest.TestCase):
 
         str += 'text\<open>EXECUTION PROOF\<close>\n'
 
-        str += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
-
+        str += 'schematic_goal \"Root_Exec_for_times env \'\'%s\'\' (%s::int) s' %(input_enent, n)
+        if output_str == "":
+            str += ' ?s\"\n'
+        else:
+            str += '\n (Status (Vals ?v1 ?v2 ?v3 (%s, ?o2)) (?I))\"\n' %output_str
         str += '  unfolding '
         cnt = len('  unfolding ')
         for mydef in def_list:

@@ -1,0 +1,5 @@
+{
+"inputEvent" : "E_one",
+"output1" : "[''Entry A'', ''Exit A'', ''Entry B'', ''Entry B2'', ''Entry B2a'', ''During B'', ''Entry B1'', ''Entry B1a'']",
+"n" : 2
+}

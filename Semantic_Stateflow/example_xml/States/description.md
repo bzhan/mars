@@ -110,7 +110,7 @@
   - loop
   - loop
   - loop
-  - 100,200,300,400,500
+  - du
   
 ### SelfLoop
 
@@ -132,12 +132,14 @@
 ### HistoryJunction1
 
 * A simple example of history junctions.
-* Expected result (6 iterations)
+* Expected result (5 iterations)
   - Entry A
   - Exit A
   - Entry B
   - Entry B1
+  - During B
   - Entry B2
+  - During B
   - Entry B4
   - Exit B
   - Entry A
@@ -151,5 +153,6 @@
 * Expected result
   - Entry A
   - Entry A1
+  - During A
   - Exit A1
   - Entry A2

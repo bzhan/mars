@@ -60,13 +60,13 @@
 
 * This example tests handling of deep recursions.
 * Expected result:
-  - a 5
-  - a 4
-  - a 3
-  - a 2
-  - a 1
-  - a 0
-  - en_A2 0
+  - a
+  - a
+  - a
+  - a
+  - a
+  - a
+  - en_A2
 
 ### DirectedEvent1
 
@@ -151,7 +151,7 @@
   - a
   - c
 
-### DirectedEventBoardCast
+### DirectedEventBroadCast
 * A simple example of directed send in And-Composition
 * Expected result:
   - Entry A

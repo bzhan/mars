@@ -25,9 +25,9 @@
 
 * Another configuration of early return (shown in the user's manual).
 * Expected result:
-  - en_A 1
-  - ex_A 2
-  - en_C 2
+  - en_A
+  - ex_A
+  - en_C
 
 ### EarlyReturn4
 
@@ -228,6 +228,11 @@
   - ca2
   - exS
   - enT
+  
+### ExitSend
+
+* Expected result:
+  - Never End
 
 ### EntrySend
 

@@ -18,8 +18,12 @@
 
 ### Temporal2
 
-* This gives an example of waiting for a random number of seconds. Note it is important to create the random number and store it in a variable first.
-* Expected result: after entering into each state, the number of delays should be one less than the random number picked.
+* This gives an example of waiting for n ticks.
+* Expected result (8 iterations): 
+  - en_A
+  - en_B
+  - en_A
+  - en_B
 
 ### Temporal3
 

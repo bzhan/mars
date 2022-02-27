@@ -90,7 +90,7 @@
 ### Transitions8
 
 * This example demonstrates ordering between the inner transitions.
-* Expected result:
+* Expected result (5 iterations):
   - enS
   - duS
   - ca1
@@ -226,7 +226,7 @@
 ### DefaultTransitiontojunction2
 
 * A complex example of default transition to a junction
-* Expected result:
+* Expected result (2 iterations):
   - Entry A
   - Exit A
   - Entry B
@@ -259,5 +259,11 @@
 * Expected result:
   - Entry A
   - Condition Action
+  - Exit A
+  - Entry B
+
+### TransitionCommonEvent
+* Excepted result:
+  - Entry A
   - Exit A
   - Entry B
