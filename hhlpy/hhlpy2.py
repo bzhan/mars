@@ -172,9 +172,6 @@ class CmdInfo:
         # List of verification conditions for this command.
         self.vcs = []
 
-        # Invariants for loops.
-        self.loop_inv = None
-
         # Equation dict for ODEs.
         self.eqs_dict = dict()
 
@@ -326,11 +323,6 @@ class CmdVerifier:
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
         self.infos[pos].stren_post = stren_post
-
-    def add_loop_invariant(self, pos, loop_inv):
-        if pos not in self.infos:
-            self.infos[pos] = CmdInfo()
-        self.infos[pos].loop_inv = loop_inv
 
     def use_solution_rule(self, pos, sln_rule):
         if pos not in self.infos:
@@ -499,9 +491,7 @@ class CmdVerifier:
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            inv = cur_hp.inv
-            if not isinstance(inv, expr.BExpr):
-                raise NotImplementedError('Invalid Invariant for Loop!') 
+            inv = expr.list_conj(*cur_hp.inv)
 
             # Compute wp for loop body with respect to invariant
             sub_pos = (pos[0] + (0,), pos[1])

@@ -113,7 +113,7 @@ grammar = r"""
         | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
         | "(" cmd ")" -> paren_cmd
 
-    ?maybe_invariant: ("invariant" invariant)? -> maybe_invariant
+    ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
 
     ?invariant: "[" cond "]"
 
@@ -371,7 +371,7 @@ class HPTransformer(Transformer):
         if len(args) == 0:
             return None
         else:
-            return args[0]
+            return args
 
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)

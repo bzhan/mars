@@ -940,7 +940,7 @@ class Loop(HCSP):
     
     hp : HCSP - body of the loop.
     constraint : BExpr - loop condition, default to true.
-    inv : BExpr - invariant
+    inv : list of BExpr - invariants
 
     """
     def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):

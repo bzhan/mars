@@ -272,7 +272,7 @@ class HHLPyTest(unittest.TestCase):
 
         # {x >= 1}
         runVerify(self, pre="x >= 0 && y >= 1", 
-                  hp="x := x + 1; (x := x + 1)** invariant [x >= 1 && y >= 1] ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
+                  hp="x := x + 1; (x := x + 1)** invariant [x >= 1] [y >= 1] ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
                   post="x >= 1",
                   strengthened_posts={((2,), ()): "y >= 1"}) 
 
@@ -284,7 +284,7 @@ class HHLPyTest(unittest.TestCase):
         # (x := x + 3)**@invariant(x > 0) ++ y := x
 
         # {x > 0 && y > 0}
-        runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** invariant [x > 0 && y > 0] ++ y := x", 
+        runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** invariant [x > 0] [y > 0] ++ y := x", 
                   post="x > 0 && y > 0",
                   strengthened_posts={((0,), ()): "x > 0 && y > 0"})
 
@@ -310,7 +310,7 @@ class HHLPyTest(unittest.TestCase):
         #
         # {x>0 && y>0}
         runVerify(self, pre="x > 0 && y > 0", 
-                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>; (x := x+3)** invariant [x > 0 && y > 0] ++ y := x",
+                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>; (x := x+3)** invariant [x > 0] [y > 0] ++ y := x",
                   post="x > 0 && y > 0",
                   conjunction_rule={((1,), ()): "true"},
                   strengthened_posts={((1,), ()): "x > 0 && y > 0"},
@@ -547,7 +547,7 @@ class HHLPyTest(unittest.TestCase):
                       (x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))\
                       ++ x == y * b -> (w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2)) \
                       ++ skip)** \
-                      invariant [w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3]",
+                      invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]",
                   post="w^2 * x^2 + y^2 <= c",
                   diff_cuts={((1,), (0,)): ["w >= 0 && d >= 0", "w^2 * x^2 + y^2 <= c"]},
                   strengthened_posts={((1,), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3"},
@@ -559,7 +559,7 @@ class HHLPyTest(unittest.TestCase):
                   hp=
                    "(x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))\
                   ++ x == y * b -> (w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2)))**\
-                  invariant [w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3]",
+                  invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]",
                   post="w^2 * x^2 + y^2 <= c")
 
 
@@ -666,7 +666,7 @@ class HHLPyTest(unittest.TestCase):
                        else (a := -B; <x_dot = v, v_dot = a & v > 0>) \
                        endif \
                       )** \
-                      invariant [v >= 0 && x+v^2/(2*B) <= S]",
+                      invariant [v >= 0] [x+v^2/(2*B) <= S]",
                   post="x <= S",
                   constants={'A', 'B', 'S'},
                   conjunction_rule={((0, 0, 1), ()): "true",
@@ -776,7 +776,7 @@ class WLHHLPyTest(unittest.TestCase):
                         c := 0; \
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
                      )** \
-                     invariant [v >= 0 && x+v^2/(2*B) <= S]",
+                     invariant [v >= 0] [x+v^2/(2*B) <= S]",
                   post="x <= S",
                   constants={'A', 'B', 'S', 'ep'},
                   conjunction_rule={((0, 2), ()): "true"},
@@ -864,7 +864,7 @@ class WLHHLPyTest(unittest.TestCase):
                       else a := -b; <x_dot = v, v_dot = a & v > 0> \
                       endif \
                       )** \
-                      invariant [v >= 0 && A >= 0]",
+                      invariant [v >= 0] [A >= 0]",
                   post="v >= 0",
                   conjunction_rule={((0, 1, 1), ()): "true"},
                   diff_weakening_rule={((0, 1, 1), (0,)): "true"},
