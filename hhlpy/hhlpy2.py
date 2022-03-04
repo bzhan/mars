@@ -25,6 +25,8 @@ def compute_diff(e, eqs_dict):
                 return expr.LogicExpr("&&", rec(e.exprs[0]), rec(e.exprs[1]))
             elif e.op == "-->":
                 return rec(expr.LogicExpr("||", expr.neg_expr(e.exprs[0]), e.exprs[1]))
+            elif e.op == "~":
+                return rec(expr.neg_expr(e.exprs[0]))
             else:
                 raise NotImplementedError
         elif isinstance(e, expr.RelExpr):
@@ -486,7 +488,6 @@ class CmdVerifier:
                 sub_info.post = cur_post
                 sub_info.assume += self.infos[pos].assume
                 self.compute_wp(pos=sub_pos)
-                # self.infos[sub_pos].TODO == True
                 cur_post = sub_info.pre
             pre = cur_post
 
@@ -649,9 +650,9 @@ class CmdVerifier:
                 pre = dI_inv
             
             # Use dC rules
-            #            {C} c {C}    C => {P1} c {Q}   P --> R && P1
-            #-----------------------------------------------------------
-            #                      {P} c {Q}
+            #            {R1} c {R1}    R1 => {R2} c {R2}   P --> R1 && R2   R1 && R2 --> Q
+            #--------------------------------------------------------------------------------
+            #                                       {P} c {Q}
             elif self.infos[pos].diff_cuts:
                 diff_cuts = self.infos[pos].diff_cuts
                 
@@ -680,14 +681,16 @@ class CmdVerifier:
                     pre_list.append(self.infos[sub_pos].pre)
 
                 # Compute wp for the last branch, in which the post condition is post.
-                sub_pos = (pos[0], pos[1] + (len(diff_cuts),))
-                if sub_pos not in self.infos:
-                    self.infos[sub_pos] = CmdInfo()
-                self.infos[sub_pos].post = post
-                self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:]
-                self.compute_wp(pos=sub_pos)
-                pre_list.append(self.infos[sub_pos].pre)
+                # sub_pos = (pos[0], pos[1] + (len(diff_cuts),))
+                # if sub_pos not in self.infos:
+                #     self.infos[sub_pos] = CmdInfo()
+                # self.infos[sub_pos].post = post
+                # self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:]
+                # self.compute_wp(pos=sub_pos)
+                # pre_list.append(self.infos[sub_pos].pre)
 
+                dC_inv = expr.list_conj(*diff_cuts)
+                self.infos[pos].vcs.append(expr.imp(dC_inv, post))
                 pre = expr.list_conj(*pre_list)
 
             # Use dG rules
@@ -802,8 +805,14 @@ class CmdVerifier:
                 dbx_inv = self.infos[pos].dbx_inv
 
                 if not isinstance(dbx_inv, expr.RelExpr): 
-                    print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
-                    raise NotImplementedError
+                    # Case when dbx_inv is, for example, ~(x > 1). 
+                    # Translate the dbx_inv into x <= 1
+                    if isinstance(dbx_inv, expr.LogicExpr) and dbx_inv.op == '~' \
+                        and isinstance(dbx_inv.exprs[0], expr.RelExpr):
+                        dbx_inv = expr.neg_expr(dbx_inv.exprs[0])
+                    else:
+                        print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
+                        raise NotImplementedError
                 
                 assert dbx_inv.op in {'==', '>', '>=', '<', '<='}
 
@@ -1096,17 +1105,18 @@ class CmdVerifier:
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
         if self.wolfram_engine:
-            for _, vcs in all_vcs.items():
+            for pos, vcs in all_vcs.items():
                 for vc in vcs:
                     if not wol_prove(vc):
+                        print("The failed verification condition is :\n", pos, ':', str(vc))
                         return False
             return True
 
         elif self.z3:
-            for _, vcs in all_vcs.items():
+            for pos, vcs in all_vcs.items():
                 for vc in vcs:
                     if not z3_prove(vc):
-                        print("The failed verification condition is :", str(vc))
+                        print("The failed verification condition is :\n", pos, ':', str(vc))
                         return False
                     # else:
                         # print("The successful verificaiton condition is:", str(vc))
