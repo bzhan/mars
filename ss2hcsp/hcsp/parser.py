@@ -104,16 +104,18 @@ grammar = r"""
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
-        | "(" cmd ")**" -> repeat_cmd
-        | "(" cmd "){" cond "}**" -> repeat_cond_cmd
-        | "(" cmd ")**@invariant(" cond ")" -> repeat_cmd_inv
-        | "(" cmd "){" cond "}**@invariant(" cond ")" -> repeat_cond_cmd_inv
-        | "<" ode_seq "&" cond ">" -> ode
-        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm_const
-        | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" -> ode_comm
-        | "rec" CNAME ".(" cmd ")" -> rec_cmd
+        | "(" cmd ")**" maybe_invariant -> repeat_cmd
+        | "(" cmd "){" cond "}**" maybe_invariant -> repeat_cond_cmd
+        | "<" ode_seq "&" cond ">" maybe_invariant -> ode
+        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_invariant -> ode_comm_const
+        | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_invariant -> ode_comm
+        | "rec" CNAME ".(" cmd ")" maybe_invariant -> rec_cmd
         | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
         | "(" cmd ")" -> paren_cmd
+
+    ?maybe_invariant: ("invariant" invariant)? -> maybe_invariant
+
+    ?invariant: "[" cond "]"
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
@@ -365,17 +367,17 @@ class HPTransformer(Transformer):
         ch_name, ch_args = args[0], args[1:]
         return hcsp.OutputChannel(hcsp.Channel(str(ch_name), ch_args, meta=meta), meta=meta)
 
-    def repeat_cmd(self, meta, cmd):
-        return hcsp.Loop(cmd, meta=meta)
+    def maybe_invariant(self, meta, *args):
+        if len(args) == 0:
+            return None
+        else:
+            return args[0]
 
-    def repeat_cond_cmd(self, meta, cmd, cond):
-        return hcsp.Loop(cmd, constraint=cond, meta=meta)
+    def repeat_cmd(self, meta, cmd, inv):
+        return hcsp.Loop(cmd, meta=meta, inv=inv)
 
-    def repeat_cmd_inv(self, meta, cmd, inv):
-        return hcsp.Loop(cmd, inv=inv, meta=meta)
-
-    def repeat_cond_cmd_inv(self, meta, cmd, inv, cond):
-        return hcsp.Loop(cmd, inv=inv, constraint=cond, meta=meta)
+    def repeat_cond_cmd(self, meta, cmd, cond, inv):
+        return hcsp.Loop(cmd, constraint=cond, meta=meta, inv=inv)
 
     def ode_seq(self, meta, *args):
         res = []
@@ -390,13 +392,13 @@ class HPTransformer(Transformer):
             res.append((args[i], args[i+1]))
         return res
 
-    def ode(self, meta, eqs, constraint):
+    def ode(self, meta, eqs, constraint, inv):
         return hcsp.ODE(eqs, constraint, meta=meta)
 
-    def ode_comm_const(self, meta, constraint, io_comms):
+    def ode_comm_const(self, meta, constraint, io_comms, inv):
         return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)
 
-    def ode_comm(self, meta, eqs, constraint, io_comms):
+    def ode_comm(self, meta, eqs, constraint, io_comms, inv):
         return hcsp.ODE_Comm(eqs, constraint, io_comms, meta=meta)
 
     def cond_cmd(self, meta, cond, cmd):
@@ -412,7 +414,7 @@ class HPTransformer(Transformer):
             io_comms.append((args[i], args[i+1]))
         return hcsp.SelectComm(*io_comms, meta=meta)
 
-    def rec_cmd(self, meta, var_name, c):
+    def rec_cmd(self, meta, var_name, c, inv):
         return hcsp.Recursion(c, entry=var_name, meta=meta)
 
     def ite_cmd(self, meta, *args):

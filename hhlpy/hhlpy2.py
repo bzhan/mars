@@ -496,10 +496,10 @@ class CmdVerifier:
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
-            if self.infos[pos].loop_inv is None:
+            if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            inv = self.infos[pos].loop_inv
+            inv = cur_hp.inv
             if not isinstance(inv, expr.BExpr):
                 raise NotImplementedError('Invalid Invariant for Loop!') 
 

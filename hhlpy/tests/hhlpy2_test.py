@@ -15,7 +15,6 @@ path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
 
 def runVerify(self, *, pre, hp, post, constants=set(), 
               strengthened_posts=None,
-              loop_invariants=None, 
               solution_rule=None, 
               diff_weakening_rule=None,
               diff_invariant_rule=None, dI_invariants = None,
@@ -40,13 +39,6 @@ def runVerify(self, *, pre, hp, post, constants=set(),
             if isinstance(stren_post, str):
                 stren_post = parse_bexpr_with_meta(stren_post)
             verifier.add_strengthened_post(pos, stren_post)
-
-    # Add loop invariants
-    if loop_invariants:
-        for pos, loop_inv in loop_invariants.items():
-            if isinstance(loop_inv, str):
-                loop_inv = parse_bexpr_with_meta(loop_inv)
-            verifier.add_loop_invariant(pos, loop_inv)
             
     # Set solution rule
     if solution_rule:
@@ -213,16 +205,14 @@ class HHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="(x := x+1)**", post="x >= 0",
-                  loop_invariants={((), ()): "x >= 0"},
+        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]", post="x >= 0",
                   expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 0"]})
 
     def testVerify6(self):
         # Basic benchmark, problem 3
         # {x >= 0} x := x+1; (x := x+1)** {x >= 1}
         # Invariant for loop is x >= 1.
-        runVerify(self, pre="x >= 0", hp="x := x+1; (x := x+1)**", post="x >= 1", 
-                  loop_invariants={((1,), ()): "x >= 1"},
+        runVerify(self, pre="x >= 0", hp="x := x+1; (x := x+1)** invariant [x >= 1]", post="x >= 1",
                   expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1"],
                                 ((1,), ()): ["x >= 1 --> x + 1 >= 1"]})
 
@@ -282,9 +272,8 @@ class HHLPyTest(unittest.TestCase):
 
         # {x >= 1}
         runVerify(self, pre="x >= 0 && y >= 1", 
-                  hp="x := x + 1; (x := x + 1)** ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
+                  hp="x := x + 1; (x := x + 1)** invariant [x >= 1 && y >= 1] ++ y:= x + 1; <y_dot = 2 & y < 10>; x := y", 
                   post="x >= 1",
-                  loop_invariants={((1,0,), ()): "x >= 1 && y >= 1"}, 
                   strengthened_posts={((2,), ()): "y >= 1"}) 
 
     def testVerify15(self):
@@ -295,9 +284,8 @@ class HHLPyTest(unittest.TestCase):
         # (x := x + 3)**@invariant(x > 0) ++ y := x
 
         # {x > 0 && y > 0}
-        runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** ++ y := x", 
-                  post="x > 0 && y > 0", 
-                  loop_invariants={((1,0), ()): "x > 0 && y > 0"}, 
+        runVerify(self, pre="x > 0 && y > 0", hp="<x_dot = 5 & x < 10>; (x := x + 3)** invariant [x > 0 && y > 0] ++ y := x", 
+                  post="x > 0 && y > 0",
                   strengthened_posts={((0,), ()): "x > 0 && y > 0"})
 
     def testVerify16(self):
@@ -322,9 +310,8 @@ class HHLPyTest(unittest.TestCase):
         #
         # {x>0 && y>0}
         runVerify(self, pre="x > 0 && y > 0", 
-                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>; (x := x+3)** ++ y := x",
+                  hp="t := 0; <x_dot = -x, t_dot = 1 & t < 1>; (x := x+3)** invariant [x > 0 && y > 0] ++ y := x",
                   post="x > 0 && y > 0",
-                  loop_invariants={((2,0), ()): "x > 0 && y > 0"},
                   conjunction_rule={((1,), ()): "true"},
                   strengthened_posts={((1,), ()): "x > 0 && y > 0"},
                   ghost_invariants={((1,), (0,)): "x * z * z == 1"},
@@ -559,9 +546,9 @@ class HHLPyTest(unittest.TestCase):
                       <x_dot = y, y_dot = -w^2 * x - 2 * d * w * y, t_dot = 1 & t < 10>; \
                       (x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))\
                       ++ x == y * b -> (w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2)) \
-                      ++ skip)**",
+                      ++ skip)** \
+                      invariant [w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3]",
                   post="w^2 * x^2 + y^2 <= c",
-                  loop_invariants={((2,), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3"},
                   diff_cuts={((1,), (0,)): ["w >= 0 && d >= 0", "w^2 * x^2 + y^2 <= c"]},
                   strengthened_posts={((1,), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3"},
                   conjunction_rule={((1,), ()): "true"})
@@ -571,9 +558,9 @@ class HHLPyTest(unittest.TestCase):
                   pre="w >= 0 && d >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3 && w^2 * x^2 + y^2 <= c",
                   hp=
                    "(x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))\
-                  ++ x == y * b -> (w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2)))**",
-                  post="w^2 * x^2 + y^2 <= c",
-                  loop_invariants={((), ()): "w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3"})
+                  ++ x == y * b -> (w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2)))**\
+                  invariant [w^2 * x^2 + y^2 <= c && d >= 0 && w >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3]",
+                  post="w^2 * x^2 + y^2 <= c")
 
 
     def testVerify43(self):
@@ -643,10 +630,10 @@ class HHLPyTest(unittest.TestCase):
         # )**
         # {v >= 0}
         runVerify(self, pre="v >= 0 && A > 0 && B > 0",
-                  hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0>)**",
+                  hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0>)**\
+                      invariant [v >= 0]",
                   post="v >= 0",
                   constants={'A', 'B'},
-                  loop_invariants={((), ()): "v >= 0"},
                   diff_weakening_rule={((0,1,), ()): "true"})
 
     def testVerify51(self):
@@ -678,10 +665,10 @@ class HHLPyTest(unittest.TestCase):
                           then a := 0 \
                        else (a := -B; <x_dot = v, v_dot = a & v > 0>) \
                        endif \
-                      )**",
+                      )** \
+                      invariant [v >= 0 && x+v^2/(2*B) <= S]",
                   post="x <= S",
                   constants={'A', 'B', 'S'},
-                  loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
                   conjunction_rule={((0, 0, 1), ()): "true",
                                     ((0, 2, 1), ()): "true"},
                   diff_weakening_rule={((0, 2, 1), (0,)): "true",
@@ -706,10 +693,10 @@ class HHLPyTest(unittest.TestCase):
                   hp="(   if v == V then a := 0 else a := A endif \
                        ++ if v != V then a := A else a := 0 endif; \
                           <x_dot = v, v_dot = a & v < V> \
-                      )**",
+                      )** \
+                      invariant [v <= V]",
                   post="v <= V",
                   constants={'A', 'V'},
-                  loop_invariants={((), ()): "v <= V"},
                   diff_weakening_rule={((0,1), ()): "v <= V"})
 
     def testVerify54(self):
@@ -725,10 +712,10 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="v <= V && A > 0", 
                   hp="(a := A;\
                       <x_dot = v, v_dot = a & v < V>\
-                       )**",
+                       )**\
+                       invariant [v <= V]",
                   post="v <= V",
                   constants={'A', 'V'},
-                  loop_invariants={((), ()): "v <= V"},
                   diff_weakening_rule={((0,1), ()): "true"},
         )
 
@@ -747,10 +734,10 @@ class HHLPyTest(unittest.TestCase):
                   hp="(if v == V then a := 0; t := 0; <x_dot = v, v_dot = a & t < 10> \
                        else a := A; <x_dot = v, v_dot = a & v < V> \
                        endif \
-                       )**",
+                       )** \
+                       invariant [v <= V]",
                   post="v <= V",
                   constants={'A', 'V'},
-                  loop_invariants={((), ()): "v <= V"},
                   diff_cuts={((0, 0, 2), ()): ["a == 0", "v <= V"]},
                   diff_weakening_rule={((0, 1, 1), ()): "true"},
                 ) 
@@ -788,10 +775,10 @@ class WLHHLPyTest(unittest.TestCase):
                        ++ a := -B; \
                         c := 0; \
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
-                     )**",
+                     )** \
+                     invariant [v >= 0 && x+v^2/(2*B) <= S]",
                   post="x <= S",
                   constants={'A', 'B', 'S', 'ep'},
-                  loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
                   conjunction_rule={((0, 2), ()): "true"},
                   diff_weakening_rule={((0, 2), (0,)): "true"},
                   solution_rule={((0, 2), (1,)): "true"},
@@ -876,9 +863,9 @@ class WLHHLPyTest(unittest.TestCase):
                         then a := A; t := 0; <x_dot = v, v_dot = a & t < 10> \
                       else a := -b; <x_dot = v, v_dot = a & v > 0> \
                       endif \
-                      )**",
+                      )** \
+                      invariant [v >= 0 && A >= 0]",
                   post="v >= 0",
-                  loop_invariants={((), ()): "v >= 0 && A >= 0"},
                   conjunction_rule={((0, 1, 1), ()): "true"},
                   diff_weakening_rule={((0, 1, 1), (0,)): "true"},
                   diff_cuts={((0, 0, 2), ()): ["a >= 0", "v >= 0 && A >= 0"]})
