@@ -1,8 +1,7 @@
 """Translation from diagrams to HCSP processes."""
 from ss2hcsp.hcsp import hcsp as hp
 from ss2hcsp.hcsp.expr import *
-from ss2hcsp.sl.sl_block import SL_Block
-from ss2hcsp.sl.sl_diagram import get_gcd
+from ss2hcsp.sl.sl_block import SL_Block, get_gcd
 from ss2hcsp.sl.Continuous.signalBuilder import SignalBuilder
 from itertools import product
 import operator
@@ -52,28 +51,6 @@ def translate_continuous(diagram):
     integator_names = [name for name, block in block_dict.items() if block.type == "integrator"]
     for name in integator_names:
         del block_dict[name]
-
-    # Deal with Signal Builders
-    signal_builders = [block for block in block_dict.values() if block.type == "signalBuilder"]
-    # Merge multiple Signal Builders
-    merged_signal_builder_name = "_".join(block.name for block in signal_builders)
-    signal_names = []  # Merge signal_names,
-    time_axises = []   # time_axises and
-    data_axises = []   # data_axises
-    for signal_builder in signal_builders:
-        for signal_name in signal_builder.signal_names:
-            signal_names.append(signal_name)
-        for time_axis in signal_builder.time_axises:
-            time_axises.append(time_axis)
-        for data_axis in signal_builder.data_axises:
-            data_axises.append(data_axis)
-    assert len(signal_names) == len(set(signal_names))
-    assert not time_axises or all(time_axis[-1] == time_axises[0][-1] for time_axis in time_axises)
-    merged_signal_builder = SignalBuilder(name=merged_signal_builder_name,
-                                          signal_names=signal_names, time_axises=time_axises, data_axises=data_axises)
-    # Delete Signal Builders from block_dict
-    for block in signal_builders:
-        del block_dict[block.name]
 
     # Constant blocks are for substitution
     var_substitute = Conditional_Inst()  # an object for variable substitution
@@ -202,9 +179,6 @@ def translate_continuous(diagram):
     #         initialised_vars.append(var_name)
     assert init_hps
     init_ode = hp.Sequence(*init_hps)
-
-    if signal_builders:
-        return merged_signal_builder.get_hp(init_ode=init_ode, ode_hps=ode_hps)
 
     assert ode_hps
     # cond_ode_hps = []
@@ -392,35 +366,18 @@ def translate_discrete(diagram):
 
 
 def new_translate_discrete(diagram, chart_parameters):
-    # assert all(block.st > 0 for block in diagram)
+    """Obtain procedures for the discrete part of the diagram."""
     assert isinstance(diagram, list)  # diagram is a list of blocks
-    sample_time = get_gcd([block.st for block in diagram if isinstance(block.st, (int, Decimal))])
+    sample_time = get_gcd([block.st for block in diagram
+                          if isinstance(block.st, (int, Decimal)) and block.st > 0])
     block_dict = {block.name: block for block in diagram}
 
     # Record initializations
     init_hps = list()
+
     # Storing procedures generated when translating
     procedures = list()
 
-    # # Get the (in- or out-)ports of the form {port_name: variable_name}
-    # in_ports = dict()
-    # out_ports = dict()
-    # for block in block_dict.values():
-    #     for dest_line in block.dest_lines:
-    #         src_block = dest_line.src_block
-    #         if src_block.type == "in_port":
-    #             if src_block.port_name not in in_ports:
-    #                 in_ports[src_block.port_name] = dest_line.name
-    #             else:
-    #                 assert in_ports[src_block.port_name] == dest_line.name
-    #     for src_lines in block.src_lines:
-    #         for src_line in src_lines:
-    #             dest_block = src_line.dest_block
-    #             if dest_block.type == "out_port":
-    #                 if dest_block.port_name not in out_ports:
-    #                     out_ports[dest_block.port_name] = src_line.name
-    #                 else:
-    #                     assert out_ports[dest_block.port_name] == src_line.name
     # Delete in_ and out_ports from block_dict
     port_names = [name for name, block in block_dict.items() if block.type in ("in_port", "out_port")]
     for port_name in port_names:
@@ -428,38 +385,25 @@ def new_translate_discrete(diagram, chart_parameters):
 
     # Translate Stateflow charts
     charts = [block for block in block_dict.values() if block.type == "stateflow"]
-    if charts:
-        assert len(charts) == 1
-        if not charts[0].trigger_lines:  # == []
-            trigger_line = charts[0].dest_lines[-1].name
-            assert len(charts[0].input_events) == 1
-            trigger_type = charts[0].input_events[0][0]
-            event = charts[0].input_events[0][1]
-            charts[0].trigger_lines = [(trigger_line, trigger_type, event)]
-        converter = sf_convert.SFConvert(charts[0], chart_parameters=chart_parameters[charts[0].name],
-                                         translate_io=False)
-        # _init_hp = hcsp.Var(converter.init_name())
-        init_hps.append(hcsp.Var(converter.init_name()))
-        charts[0].exec_name = converter.exec_name()
-        # _dis_comp = hcsp.Var(converter.exec_name())
+
+    # First, for the charts triggered by function calls, obtain mapping
+    # from events to corresponding charts.
+    fun_call_map = dict()
+    for chart in charts:
+        for trigger_type, event in chart.input_events:
+            if trigger_type == 'function-call':
+                fun_call_map[event] = chart.name
+    for chart in charts:
+        converter = sf_convert.SFConvert(
+            chart, chart_parameters=chart_parameters[chart.name], translate_io=False,
+            fun_call_map=fun_call_map)
+        init_hps.append(hcsp.Var(converter.init_name(chart.name)))
+        chart.exec_name = converter.exec_name(charts[0].name)
         _procedures = converter.get_procs()
         for _name, _hp in _procedures.items():
             procedures.append(hcsp.Procedure(_name, _hp))
 
-    # # Translate DiscretePulseGenerator
-    # discretePulseGenerators = [block for block in block_dict.values() if block.type == "DiscretePulseGenerator"]
-    # num = 0
-    # for block in discretePulseGenerators:
-    #     del block_dict[block.name]
-    #     for line in block.src_lines:
-    #         for branch in line:
-    #             if isinstance(branch.dest_block, Mux):
-    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp()))
-    #             else:
-    #                 procedures.append(hcsp.Procedure("DPG" + str(num), block.get_hcsp1()))
-    #     num += 1
-
-    # procedures = list()
+    # Generate init_hp
     for block in block_dict.values():
         if block.type == "constant":
             out_var = block.src_lines[0][0].name
@@ -471,6 +415,12 @@ def new_translate_discrete(diagram, chart_parameters):
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
             procedures.extend(block.get_procedures())
+        elif block.type == "signalBuilder":
+            init_hps.append(block.get_init_hp())
+        elif block.type == "stateflow":
+            init_hps.extend(block.get_init_hps())
+        elif block.type == "DiscretePulseGenerator":
+            init_hps.append(block.get_init_hp())
 
     # Delete Constant blocks
     block_names = [name for name, block in block_dict.items() if block.type == "constant"]
@@ -489,8 +439,7 @@ def new_translate_discrete(diagram, chart_parameters):
         for name, block in block_dict.items():
             src_blocks = block.get_src_blocks()
             if src_blocks.isdisjoint(set(block_dict.keys())):
-                if block.type != "mux":  # Delete muxes
-                    sorted_blocks.append(block)
+                sorted_blocks.append(block)
                 head_block_names.append(name)
         assert head_block_names
         for name in head_block_names:
@@ -501,12 +450,16 @@ def new_translate_discrete(diagram, chart_parameters):
     update_hps = []
     for block in sorted_blocks:
         if block.st == sample_time:
+            # Block runs at every sample time
+            output_hps.append(block.get_output_hp())
+        elif block.st < 0:
+            # Block may be triggered, add the triggering code
             output_hps.append(block.get_output_hp())
         else:
             assert block.st % sample_time == 0
             period = block.st // sample_time
             output_hps.append(hp.Condition(
-                RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
                 block.get_output_hp()))
 
         if block.type == "unit_delay":
@@ -516,9 +469,8 @@ def new_translate_discrete(diagram, chart_parameters):
                 assert block.st % sample_time == 0
                 period = block.st // sample_time
                 update_hps.append(hp.Condition(
-                    RelExpr("==", OpExpr("%", AVar("tick"), AConst(period)), AConst(0)),
+                    RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
                     block.get_update_hp()))
-
     return init_hps, procedures, output_hps, update_hps, sample_time
 
 
@@ -553,12 +505,13 @@ def new_translate_continuous(diagram):
         elif block.type == "integrator":
             in_var = block.dest_lines[0].name
             out_var = block.src_lines[0][0].name
-            init_hps.append(hp.Assign(var_name=out_var, expr=AConst(block.init_value)))
+            init_hps.append(hp.Assign(out_var, AConst(block.init_value)))
             equations.append((out_var, AVar(in_var)))
             if block.enable != true_expr:
                 constraints.append(block.enable)
         elif block.type == "triggered_subsystem":
             init_hps.extend(block.get_init_hps())
+            init_hps.append(hp.Assign(block.triggered, AConst(0)))
             trig_cond = block.get_continuous_triggered_condition()
             trig_procs.append((trig_cond, hp.Var(block.name)))
             constraints.append(neg_expr(trig_cond))
@@ -582,7 +535,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
         new_translate_continuous(continuous_diagram)
 
     # Initialization
-    init_hps = [hp.Assign("t", AConst(0)), hp.Assign("tick", AConst(0))] + dis_init_hps + con_init_hps
+    init_hps = [hp.Assign("t", AConst(0)), hp.Assign("_tick", AConst(0))] + dis_init_hps + con_init_hps
     init_hp = init_hps[0] if len(init_hps) == 1 else hp.Sequence(*init_hps)
 
     ### Discrete process ###
@@ -627,7 +580,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
     update_t = hp.Assign("t", OpExpr("+", AVar("t"), AVar("tt")))
 
     # Update tick := tick + 1
-    update_tick = hp.Assign("tick", OpExpr("+", AVar("tick"), AConst(1)))
+    update_tick = hp.Assign("_tick", OpExpr("+", AVar("_tick"), AConst(1)))
 
     # Reset tt := 0
     reset_tt = hp.Assign(var_name="tt", expr=AConst(0))
@@ -642,11 +595,11 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
 
     # Get procedures
     procedures = dis_procedures + con_procedures
+
     dict_procs = {proc.name: proc.hp for proc in procedures}
-    dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
+    # dict_procs, main_hp = full_optimize_module(dict_procs, main_hp)
     procedures = [hp.Procedure(name=proc_name, hp=proc_hp) for proc_name, proc_hp in dict_procs.items()]
-    result = HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
-    return result
+    return HCSPModule(name="P", code=main_hp, procedures=procedures, outputs=outputs)
 
 
 def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,

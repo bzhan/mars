@@ -2,19 +2,11 @@
 
 import unittest
 
-from ss2hcsp.sl.port import Port
-from ss2hcsp.sl.Continuous.integrator import Integrator
-from ss2hcsp.sl.MathOperations.gain import Gain
-from ss2hcsp.sl.LogicOperations.logic import And, Or, Not
-from ss2hcsp.sl.LogicOperations.relation import Relation
-from ss2hcsp.sl.SignalRouting.switch import Switch
-from ss2hcsp.sl.SubSystems.subsystem import Subsystem
 from ss2hcsp.sl.sl_diagram import SL_Diagram
-from ss2hcsp.hcsp import hcsp
-from ss2hcsp.hcsp import pprint
 from ss2hcsp.sl.get_hcsp import get_hcsp, new_get_hcsp
-from ss2hcsp.hcsp.parser import hp_parser
 from ss2hcsp.hcsp.simulator import SimInfo, exec_parallel
+from ss2hcsp.hcsp import hcsp
+from ss2hcsp.hcsp import optimize
 
 
 def printTofile(path, content, module=False):
@@ -30,31 +22,56 @@ def print_module(path, m):
         f.write("system\n  %s=%s()\nendsystem" % (m.name, m.name))
 
 def run_test(self, location, num_steps, expected_series, *,
-             print_diagrams=False, print_hcsp=False, print_time_series=False,
-             print_module_path=None):
+             print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
+             print_time_series=False, print_module_path=None, debug_name=True):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
     diagram.delete_subsystems()
     diagram.add_line_name()
-    diagram.translate_mux()
     diagram.comp_inher_st()
     diagram.inherit_to_continuous()
-    discrete_diagram, continuous_diagram, _, outputs = diagram.new_seperate_diagram()
+    diagram.separate_diagram()
 
     # Optional: print diagram
     if print_diagrams:
-        print("Discrete diagram:")
-        for block in discrete_diagram:
+        print("Discrete blocks:")
+        for block in diagram.discrete_blocks:
             print(block)
-        print("Continuous diagram:")
-        for block in continuous_diagram:
+        print("Continuous blocks:")
+        for block in diagram.continuous_blocks:
             print(block)
         print("Outputs:")
-        print(outputs)
+        print(diagram.outputs)
 
     # Convert to HCSP
-    result_hp = new_get_hcsp(discrete_diagram, continuous_diagram, diagram.chart_parameters, outputs)
+    result_hp = new_get_hcsp(
+        diagram.discrete_blocks, diagram.continuous_blocks,
+        diagram.chart_parameters, diagram.outputs)
+
+    if debug_name:
+        before_size = 0
+        before_size += result_hp.code.size()
+        for proc in result_hp.procedures:
+            before_size += proc.hp.size()
+
+    # Optional: print HCSP before optimization
+    if print_hcsp_raw:
+        print(result_hp.export())
+
+    # Optimize module
+    hp = result_hp.code
+    procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
+    procs, hp = optimize.full_optimize_module(procs, hp)
+    result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+    result_hp.code = hp
+
+    if debug_name:
+        after_size = 0
+        after_size += result_hp.code.size()
+        for proc in result_hp.procedures:
+            after_size += proc.hp.size()
+        print(diagram.name, before_size, after_size)
 
     # Optional: print HCSP
     if print_hcsp:
@@ -70,7 +87,7 @@ def run_test(self, location, num_steps, expected_series, *,
     for proc in result_hp.procedures:
         proc_dict[proc.name] = proc
     info = SimInfo(result_hp.name, result_hp.code, procedures=proc_dict, outputs=result_hp.outputs)
-    res = exec_parallel([info], num_steps=num_steps)
+    res = exec_parallel([info], num_steps=num_steps, verbose=False)
 
     # Optional: print time series
     if print_time_series:
@@ -78,9 +95,9 @@ def run_test(self, location, num_steps, expected_series, *,
         for i, pt in enumerate(series):
             if i != len(series)-1 and pt['time'] == series[i+1]['time']:
                 continue
-            print("%.1f: %s" % (pt['time'], pt['state']))
+            print("%.2f: %s" % (pt['time'], pt['state']))
 
-    if print_time_series:
+    if expected_series:
         series = dict()
         for pt in res['time_series']['P']:
             for time in expected_series:
@@ -88,13 +105,12 @@ def run_test(self, location, num_steps, expected_series, *,
                     series[time] = pt['state']
         for time in expected_series:
             self.assertTrue(time in series, "Time %s not found in result" % time)
-            self.assertTrue(len(expected_series[time]) == len(series[time]))
+            self.assertTrue(len(expected_series[time]) == len(series[time]), "Unequal length at time %s" % time)
             for var in expected_series[time]:
                 self.assertTrue(var in series[time])
                 self.assertAlmostEqual(
                     series[time][var], expected_series[time][var],
                     msg="Disagreement at time %s, variable %s" % (time, var), places=3)
-
 
 class SimTest(unittest.TestCase):
     def testLunarLander(self):
@@ -248,9 +264,9 @@ class SimTest(unittest.TestCase):
             0: {'z': -1, 'a': 0, 'y': -1},
             1: {'z': 0, 'a': 1, 'y': 0},
             1.5: {'z': 0, 'a': 1, 'y': 1},
-            2: {'z': 2, 'a': 1, 'y': 2},
-            2.5: {'z': 2, 'a': 1, 'y': 3},
-            3: {'z': 4, 'a': 1, 'y': 4}
+            2: {'z': 2, 'a': 3, 'y': 2},
+            2.5: {'z': 2, 'a': 3, 'y': 4},
+            3: {'z': 6, 'a': 3, 'y': 6}
         })
 
     # def testTemporalLogic(self):
@@ -261,12 +277,7 @@ class SimTest(unittest.TestCase):
     def testInputEvent(self):
         run_test(self, "./Examples/Simulink/Input_Event_2018a.xml", 80, {
 
-        }, print_hcsp=False)
-
-    def testMux(self):
-        run_test(self, "/Users/BEAR/Projects/mars/Examples/Simulink/mux.xml", 80, {
-
-        }, print_hcsp=False)
+        })
 
 
 if __name__ == "__main__":

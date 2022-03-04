@@ -44,12 +44,16 @@ def run_test(self, infos, num_events, trace, *, io_filter=None, print_time_serie
                 sim_infos.append(simulator.SimInfo('P' + str(i), hp, procedures=procedures))
 
     elif isinstance(infos, dict):
+        procedures = dict()
         for name, (procs, hp) in infos.items():
-            procedures = dict()
+            
             for proc_name, proc_hp in procs.items():
                 procedures[proc_name] = Procedure(proc_name, proc_hp)
+        for name, (procs, hp) in infos.items():
+            
+            # for proc_name, proc_hp in procs.items():
+            #     procedures[proc_name] = Procedure(proc_name, proc_hp)
             sim_infos.append(simulator.SimInfo(name, hp, procedures=procedures))
-
     else:
         raise TypeError
 

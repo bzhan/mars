@@ -69,3 +69,14 @@
   - en_A1
   - en_A2
   - en_A3
+
+### Messages9
+
+* This example shows sending two messages, with some delay on the receiving side.
+* Expected result (6 iterations)
+  - en_A
+  - en_A0
+  - en_B
+  - en_A1 (wait for 2 iterations)
+  - en_A2
+  - en_A3

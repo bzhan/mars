@@ -10,6 +10,7 @@ from ss2hcsp.sl.sl_diagram import SL_Diagram
 from ss2hcsp.hcsp import module
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.tests.simulator_test import run_test as run_simulator_test
+from ss2hcsp.tests.sim_test import run_test as run_sim_test
 from ss2hcsp.hcsp.pprint import pprint
 
 
@@ -556,9 +557,15 @@ class SFConvertTest(unittest.TestCase):
 
     def testMessages9(self):
         io_filter = lambda s: False
-        run_test(self, "./Examples/Stateflow/tests/Messages/Messages9.xml",40,
-            ['log en_A', 'log en_A0','log en_B', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
-             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'],io_filter=io_filter)
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages9.xml", 40,
+            ['log en_A', 'log en_A0', 'log en_B', 'delay 1', 'delay 1', 'delay 1', 'log en_A1',
+             'delay 1', 'log en_A2', 'delay 1', 'log en_A3', 'delay 1'], io_filter=io_filter)
+
+    def testMessages10(self):
+        io_filter = lambda s: False
+        run_test(self, "./Examples/Stateflow/tests/Messages/Messages10.xml", 4,
+            ['log A', 'log B', 'delay 0.1', 'log B', 'delay 0.1', 'log C',
+             'delay 0.1', 'log D', 'delay 0.1'], io_filter=io_filter)
 
     def testContinuous1(self):
         run_test(self, "./Examples/Stateflow/tests/Continuous/Continuous1.xml", 2,
@@ -594,42 +601,237 @@ class SFConvertTest(unittest.TestCase):
             ['log enA', 'log enA1', 'delay 1.0', 'log enA2', 'delay 0.5',
              'log condA2B', 'log exA', 'log enB', 'delay 1.0'])
 
+    def testTriggerEdge1(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge1.xml", 200, {
+            0: {'y': 0, 'signal': 0.0},
+            0.5: {'y': 1, 'signal': 1.0},
+            1.0: {'y': 1, 'signal': 0.0},
+            1.5: {'y': 2, 'signal': 1.0},
+            2.0: {'y': 2, 'signal': 0.0},
+            2.5: {'y': 3, 'signal': 1.0},
+            3.0: {'y': 3, 'signal': 0.0},
+            3.5: {'y': 4, 'signal': 1.0},
+            4.0: {'y': 4, 'signal': 0.0},
+            4.5: {'y': 5, 'signal': 1.0}
+        })
+
+    def testTriggerEdge2(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge2.xml", 200, {
+            0: {'y': 0, 'signal': 1.0},
+            0.5: {'y': 1, 'signal': 0.0},
+            1.0: {'y': 1, 'signal': 1.0},
+            1.5: {'y': 2, 'signal': 0.0},
+            2.0: {'y': 2, 'signal': 1.0},
+            2.5: {'y': 3, 'signal': 0.0},
+            3.0: {'y': 3, 'signal': 1.0},
+            3.5: {'y': 4, 'signal': 0.0},
+            4.0: {'y': 4, 'signal': 1.0},
+            4.5: {'y': 5, 'signal': 0.0}
+        })
+
+    def testTriggerEdge3(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge3.xml", 300, {
+            0: {'y': 0, 'signal': 0.0},
+            0.3: {'y': 1, 'signal': 1.0},
+            0.8: {'y': 2, 'signal': 0.0},
+            1.3: {'y': 3, 'signal': 1.0},
+            1.8: {'y': 4, 'signal': 0.0},
+            2.3: {'y': 5, 'signal': 1.0}
+        })
+
+    def testTriggerEdge4(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge4.xml", 1000, {
+            0: {'a': 0.0},
+            0.2: {'a': 0.0},
+            0.4: {'a': 2.0},
+            0.6: {'a': 3.0},
+            0.9: {'a': 1.0},
+            1.2: {'a': 0.0},
+            1.4: {'a': 2.0},
+            1.6: {'a': 3.0},
+            1.9: {'a': 1.0}
+        })
+
+    def testTriggerEdge5(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge5.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 1.0},
+            5.9: {'y': 1.0},
+            6.1: {'y': 2.0}
+        })
+
+    def testTriggerEdge6(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge6.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 1.0},
+            5.9: {'y': 1.0},
+            6.1: {'y': 1.0}
+        })
+
+    def testTriggerEdge7(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge7.xml", 60, {
+            0.1: {'y': 0.0},
+            3.9: {'y': 0.0},
+            4.1: {'y': 0.0},
+            5.9: {'y': 0.0},
+            6.1: {'y': 1.0}
+        })
+
+    def testTriggerEdge8(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerEdge8.xml", 100, {
+            0.1: {'y': 0.0},
+            0.9: {'y': 0.0},
+            1.1: {'y': 1.0},
+            3.9: {'y': 1.0},
+            4.1: {'y': 2.0}
+        })
+
+    def testTriggerFun1(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun1.xml", 400, {
+            0: {'y': 1},
+            0.1: {'y': 2},
+            0.2: {'y': 3},
+            0.3: {'y': 4},
+            0.9: {'y': 4},
+            1.0: {'y': 5},
+            1.1: {'y': 6},
+            1.2: {'y': 7},
+            1.3: {'y': 8},
+            1.9: {'y': 8},
+            2.0: {'y': 9}
+        })
+
+    def testTriggerFun2(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/Triggered/TriggerFun2.xml", 100, {
+            0.0: {'y': 4},
+            0.1: {'y': 4},
+            0.2: {'y': 4},
+            0.3: {'y': 4},
+            0.4: {'y': 4}
+        })
+
     def testSettaDemo(self):
         run_test(self, "./Examples/Stateflow/tests/settaDemo.xml", 2,
             ['log B', 'log D', 'log A', 'log D', 'delay 0.1',
              'log B', 'log D', 'log A', 'log D', 'delay 0.1'])
 
-    def testSFNew(self):
+    def testRTPS(self):
         random.seed(0)  # for repeatability
         io_filter = lambda s: s == 'WHC_out'
-        run_test(self, "./Examples/Stateflow/sf_new/sf_new.xml", 95,
+        run_test(self, "./Examples/Stateflow/tests/RTPS.xml", 500,
             ['IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
              'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
-             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1'],
-            io_filter=io_filter, output_to_file="./Examples/Stateflow/sf_new/sf_new.txt")
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [0,0,0,0,0]', 'IO WHC_out [0,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]', 'IO WHC_out [100,0,0,0,0]', 'delay 0.1',
+             'IO WHC_out [100,0,0,0,0]'], io_filter=io_filter)
 
-    def testStopWatch(self):
-        run_test(self, "./Examples/Stateflow/tests/stopWatch.xml", 9,
-            ['IO ch_clock 1', 'log en_StopW 0.000 0.000', 'log en_Reset 0.000 0.000',
-             'log en_RunW 0.000 0.000', 'IO ch_clock 0', 'log cond_TIC 0.000 0.000',
-             'log edu_Running 1.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 1.000 0.000',
-             'log edu_Running 2.000 0.000', 'delay 0.1', 'IO ch_clock 0', 'log cond_TIC 2.000 0.000',
-             'log edu_Running 3.000 0.000', 'delay 0.1', 'IO ch_clock 1', 'log cond_TIC 3.000 0.000',
-             'log edu_Running 4.000 0.000', 'delay 0.1'])
+    def testStopWatch1(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch1.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
+            0.4: {'t': 0.4, 'cent': 36, 'disp_cent': 36},
+            0.5: {'t': 0.5, 'cent': 46, 'disp_cent': 46},
+            0.6: {'t': 0.6, 'cent': 56, 'disp_cent': 56},
+            0.7: {'t': 0.7, 'cent': 66, 'disp_cent': 66},
+            0.8: {'t': 0.8, 'cent': 76, 'disp_cent': 76},
+            0.9: {'t': 0.9, 'cent': 86, 'disp_cent': 86},
+            1.0: {'t': 1.0, 'cent': 96, 'disp_cent': 96},
+            1.1: {'t': 1.1, 'cent': 6, 'disp_cent': 6},
+        })
 
-    def testFunction_call(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/fuc_call_inputEvent_enabling_chart_example.xml",15,
-            ['log en_chart1', 'log en_chart2', 'delay 0.1', 'log du_chart1', 'log du_chart2', 'delay 0.1',
-             'log du_chart1', 'log du_chart2', 'delay 0.1'],io_filter=io_filter,print_res=True)
-    def testFunction_call_mul(self):
-        io_filter = lambda s: False
-        run_test(self, "./Examples/trigger_subsystem/fun_call_outputEvent_mulBrodcast_eg.xml",18,
-            ['log en_ENTRY', 'delay 0.1', 'log en_A', 'log en_AA', 'log du_AA', 'log du_AA',
-             'log du_AA', 'delay 0.1'],io_filter=io_filter,print_res=True)
-    
+    def testStopWatch2(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch2.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.1: {'t': 0.1, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.2: {'t': 0.2, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.3: {'t': 0.3, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            0.4: {'t': 0.4, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+            0.5: {'t': 0.5, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.6: {'t': 0.6, 'cent': 0, 'disp_cent': 0, 'start': 0.0, 'lap': 0.0},
+            0.7: {'t': 0.7, 'cent': 8, 'disp_cent': 2, 'start': 1.0, 'lap': 0.0},
+            0.8: {'t': 0.8, 'cent': 18, 'disp_cent': 18, 'start': 0.0, 'lap': 0.0},
+            0.9: {'t': 0.9, 'cent': 28, 'disp_cent': 22, 'start': 0.0, 'lap': 0.0},
+            1.0: {'t': 1.0, 'cent': 30, 'disp_cent': 22, 'start': 1.0, 'lap': 0.0},
+        })
+
+    def testStopWatch3(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch3.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 5},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 5},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 26},
+            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 35},
+            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 35},
+            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 35},
+            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 36},
+            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
+            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
+            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
+            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+        })
+
+    def testStopWatch4(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch4.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 16},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 26},
+            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 35},
+            0.5: {'t': 0.5, 'cent': 0, 'disp_cent': 0},
+            0.6: {'t': 0.6, 'cent': 0, 'disp_cent': 0},
+            0.7: {'t': 0.7, 'cent': 1, 'disp_cent': 1},
+            0.8: {'t': 0.8, 'cent': 11, 'disp_cent': 11},
+            0.9: {'t': 0.9, 'cent': 21, 'disp_cent': 21},
+            1.0: {'t': 1.0, 'cent': 31, 'disp_cent': 31},
+            1.1: {'t': 1.1, 'cent': 41, 'disp_cent': 41},
+        })
+
+    def testStopWatch5(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch5.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
+            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 15},
+            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 15},
+            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 15},
+            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 15},
+            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
+            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
+            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
+            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+        })
+
+    def testStopWatch6(self):
+        run_sim_test(self, "./Examples/Stateflow/tests/StopWatch6.xml", 6000, {
+            0: {'t': 0.0, 'cent': 0, 'disp_cent': 0},
+            0.1: {'t': 0.1, 'cent': 6, 'disp_cent': 6},
+            0.2: {'t': 0.2, 'cent': 16, 'disp_cent': 15},
+            0.3: {'t': 0.3, 'cent': 26, 'disp_cent': 15},
+            0.4: {'t': 0.4, 'cent': 35, 'disp_cent': 15},
+            0.5: {'t': 0.5, 'cent': 35, 'disp_cent': 15},
+            0.6: {'t': 0.6, 'cent': 35, 'disp_cent': 15},
+            0.7: {'t': 0.7, 'cent': 36, 'disp_cent': 36},
+            0.8: {'t': 0.8, 'cent': 46, 'disp_cent': 46},
+            0.9: {'t': 0.9, 'cent': 56, 'disp_cent': 56},
+            1.0: {'t': 1.0, 'cent': 66, 'disp_cent': 66},
+            1.1: {'t': 1.1, 'cent': 76, 'disp_cent': 76},
+        })
 
 
 if __name__ == "__main__":

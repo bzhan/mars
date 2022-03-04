@@ -8,7 +8,7 @@
       <P Name="NumRootInports">0</P>
       <P Name="NumRootOutports">0</P>
       <P Name="ParameterArgumentNames"/>
-      <P Name="ComputedModelVersion">2.0</P>
+      <P Name="ComputedModelVersion">2.1</P>
       <P Name="NumModelReferences">0</P>
       <P Name="NumTestPointedSignals">0</P>
       <P Name="NumProvidedFunctions">0</P>
@@ -81,6 +81,18 @@
         </Array>
         <Array PropName="DockComponentsInfo" Type="Simulink.DockComponentInfo" Dimension="1*3">
           <Object ObjectID="7">
+            <P Name="Type" Class="char">GLUE2:DDG Component</P>
+            <P Name="ID" Class="char">SymbolManager</P>
+            <P Name="Visible" Class="logical">0</P>
+            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
+            <P Name="UserData" Class="char">0</P>
+            <P Name="Floating" Class="logical">0</P>
+            <P Name="DockPosition" Class="char">Right</P>
+            <P Name="Width" Class="int32">254</P>
+            <P Name="Height" Class="int32">535</P>
+            <P Name="Minimized" Class="char">Unset</P>
+          </Object>
+          <Object ObjectID="8">
             <P Name="Type" Class="char">GLUE2:PropertyInspector</P>
             <P Name="ID" Class="char">Property Inspector</P>
             <P Name="Visible" Class="logical">0</P>
@@ -92,7 +104,7 @@
             <P Name="Height" Class="int32">480</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
-          <Object ObjectID="8">
+          <Object ObjectID="9">
             <P Name="Type" Class="char">Simulink:Editor:ReferencedFiles</P>
             <P Name="ID" Class="char">Referenced Files</P>
             <P Name="Visible" Class="logical">0</P>
@@ -103,18 +115,6 @@
             <P Name="DockPosition" Class="char">Left</P>
             <P Name="Width" Class="int32">640</P>
             <P Name="Height" Class="int32">480</P>
-            <P Name="Minimized" Class="char">Unset</P>
-          </Object>
-          <Object ObjectID="9">
-            <P Name="Type" Class="char">GLUE2:DDG Component</P>
-            <P Name="ID" Class="char">SymbolManager</P>
-            <P Name="Visible" Class="logical">0</P>
-            <P Name="CreateCallback" Class="char">Stateflow.Interface.Panel.createSymbolManagerComponent</P>
-            <P Name="UserData" Class="char">0</P>
-            <P Name="Floating" Class="logical">0</P>
-            <P Name="DockPosition" Class="char">Right</P>
-            <P Name="Width" Class="int32">254</P>
-            <P Name="Height" Class="int32">535</P>
             <P Name="Minimized" Class="char">Unset</P>
           </Object>
         </Array>
@@ -134,9 +134,9 @@
       <P Name="ModifiedByFormat">%&lt;Auto&gt;</P>
       <P Name="LastModifiedBy">apple</P>
       <P Name="ModifiedDateFormat">%&lt;Auto&gt;</P>
-      <P Name="LastModifiedDate">Wed Jan 05 21:55:46 2022</P>
-      <P Name="RTWModifiedTimeStamp">563320135</P>
-      <P Name="ModelVersionFormat">%&lt;AutoIncrement:2.0&gt;</P>
+      <P Name="LastModifiedDate">Sun Feb 27 19:11:09 2022</P>
+      <P Name="RTWModifiedTimeStamp">567889864</P>
+      <P Name="ModelVersionFormat">%&lt;AutoIncrement:2.1&gt;</P>
     </ConfigManagerSettings>
     <EditorSettings>
       <P Name="SampleTimeColors">off</P>
@@ -1181,7 +1181,6 @@
           <P Name="viewLimits">[-6.833 989.167 -52.012 449.988]</P>
           <P Name="screen">[1 1 3200 1200 1.25]</P>
           <P Name="viewObj">34</P>
-          <P Name="visible">1</P>
           <P Name="ssIdHighWaterMark">32</P>
           <P Name="decomposition">CLUSTER_CHART</P>
           <P Name="chartFileNumber">3</P>
@@ -1198,7 +1197,6 @@
               <P Name="subviewer">34</P>
               <P Name="type">OR_STATE</P>
               <P Name="decomposition">SET_STATE</P>
-              <eml/>
               <Children>
                 <state SSID="7">
                   <P Name="labelString">A</P>
@@ -1208,7 +1206,6 @@
                   <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
                   <P Name="executionOrder">1</P>
-                  <eml/>
                   <Children>
                     <state SSID="5">
                       <P Name="labelString">A1
@@ -1219,7 +1216,6 @@ ex: fprintf(&quot;ex_A1&quot;)</P>
                       <P Name="subviewer">34</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <state SSID="9">
                       <P Name="labelString">A2
@@ -1230,7 +1226,6 @@ ex: fprintf(&quot;ex_A2&quot;)</P>
                       <P Name="subviewer">34</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <transition SSID="3">
                       <P Name="labelString"/>
@@ -1306,7 +1301,6 @@ ex: fprintf(&quot;ex_A2&quot;)</P>
                   <P Name="type">AND_STATE</P>
                   <P Name="decomposition">CLUSTER_STATE</P>
                   <P Name="executionOrder">2</P>
-                  <eml/>
                   <Children>
                     <state SSID="13">
                       <P Name="labelString">B1
@@ -1317,7 +1311,6 @@ ex: fprintf(&quot;ex_B1&quot;)</P>
                       <P Name="subviewer">34</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <state SSID="12">
                       <P Name="labelString">B2
@@ -1329,7 +1322,6 @@ ex: fprintf(&quot;ex_B2&quot;)
                       <P Name="subviewer">34</P>
                       <P Name="type">OR_STATE</P>
                       <P Name="decomposition">CLUSTER_STATE</P>
-                      <eml/>
                     </state>
                     <transition SSID="11">
                       <P Name="labelString"/>
@@ -1430,8 +1422,8 @@ ex: fprintf(&quot;ex_B2&quot;)
               <P Name="trigger">FUNCTION_CALL_EVENT</P>
             </event>
             <transition SSID="16">
-              <P Name="labelString"/>
-              <P Name="labelPosition">[125.826 20 0 0]</P>
+              <P Name="labelString">{data = 1;}</P>
+              <P Name="labelPosition">[156.167 8.988 57.234 14]</P>
               <P Name="fontSize">12</P>
               <src>
                 <P Name="intersection">[0 0 1 0 125.8264 5 0 0]</P>

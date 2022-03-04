@@ -4,6 +4,7 @@ import lark
 from decimal import Decimal
 
 from ss2hcsp.sl.sl_line import SL_Line
+from ss2hcsp.sl.sl_block import get_gcd
 from ss2hcsp.matlab import function, convert
 from ss2hcsp.matlab import function
 from ss2hcsp.matlab.parser import expr_parser, function_parser, \
@@ -43,8 +44,6 @@ from ss2hcsp.sl.mux.mux import Mux
 from ss2hcsp.sl.DataStore.DataStore import DataStoreMemory, DataStoreRead
 from xml.dom.minidom import parse, Element
 from xml.dom.minicompat import NodeList
-from functools import reduce
-from math import gcd, pow
 import operator
 
 
@@ -53,7 +52,8 @@ def parse_sample_time(sample_time):
     if sample_time is None or sample_time == 'inf':
         return -1
     elif '.' in sample_time:
-        return Decimal(sample_time)
+        v = Decimal(sample_time)
+        return int(v * 1000) / Decimal(1000)
     else:
         return int(sample_time)
 
@@ -70,44 +70,6 @@ def parse_value(value, default=None):
 def replace_spaces(name):
     """Replace spaces and newlines in name with underscores."""
     return name.strip().replace(' ', '_').replace('\n', '_')
-
-def get_gcd(sample_times):
-    """Return the gcd of a list of sample times.
-
-    If some of the sample times are not integers, first multiply by an
-    appropriate power of 10 before taking gcd.
-
-    """
-    if len(sample_times) == 0:
-        return 0  # continuous
-
-    assert isinstance(sample_times, (list, tuple)) and len(sample_times) >= 1
-    assert all(isinstance(st, (int, Decimal)) for st in sample_times)
-
-    if len(sample_times) == 1:
-        return sample_times[0]
-
-    if 0 in sample_times:
-        return 0
-    elif -2 in sample_times:
-        return -2
-    elif -1 in sample_times:
-        return -1
-
-    scaling_positions = []
-    for st in sample_times:
-        if isinstance(st, int):
-            scaling_positions.append(0)
-        else:  # isinstance(st, Decimal)
-            scaling_positions.append(len(str(st)) - str(st).index(".") - 1)
-    scale = 10 ** max(scaling_positions)
-    scaling_sample_times = [int(st * scale) for st in sample_times]
-    result_gcd = reduce(gcd, scaling_sample_times)
-    if result_gcd % scale == 0:
-        return result_gcd // int(scale)
-    else:
-        return Decimal(result_gcd) / scale
-
 
 def get_attribute_value(block, attribute, name=None):
     for node in block.getElementsByTagName("P"):
@@ -135,6 +97,14 @@ class SL_Diagram:
 
         # Variables that needs to display
         self.outputs = list()
+
+        # Different parts of the diagram
+        self.continuous_blocks = list()
+        self.discrete_blocks = list()
+        self.scopes = list()
+        self.dsms = list()
+
+        self.others = list()
         
         # Parsed model of the XML file
         if location:
@@ -394,7 +364,13 @@ class SL_Diagram:
             assert chart_state.check_children()
            
             chart_st = get_attribute_value(block=chart, attribute="sampleTime")
-            chart_st = eval(chart_st) if chart_st else -1
+            if chart_st:
+                if '.' in chart_st or 'e' in chart_st:
+                    chart_st = Decimal(chart_st)
+                else:
+                    chart_st = int(chart_st)
+            else:
+                chart_st = -1
 
             chart_data = dict()
             message_dict = dict()
@@ -490,9 +466,8 @@ class SL_Diagram:
             # For each type of block, obtain additional parameters
             if block_type == "Mux":
                 inputs = get_attribute_value(block, "Inputs")
-                displayOption = get_attribute_value(block, "DisplayOption")
                 ports = list(arg.value for arg in expr_parser.parse(get_attribute_value(block=block, attribute="Ports")).args)
-                self.add_block(Mux(name=block_name, inputs=inputs, displayOption=displayOption, ports=ports))
+                self.add_block(Mux(name=block_name, inputs=inputs, ports=ports))
             elif block_type == "DataStoreMemory":
                 init_value = get_attribute_value(block=block, attribute="InitialValue")
                 if init_value is not None:
@@ -611,22 +586,14 @@ class SL_Diagram:
                 threshold = eval(threshold) if threshold else 0
                 self.add_block(Switch(name=block_name, relation=relation, threshold=threshold, st=sample_time))
             elif block_type == "DiscretePulseGenerator":
-                amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1        
-                pluseType=get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
-                if pluseType == "Sample based":
-                    period = int(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
-                    pluseWidth=int(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
-                    phaseDelay=int(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
-                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
-                    is_continuous = False
-                else:
-                    period = eval(get_attribute_value(block, "Period")) if get_attribute_value(block, "Period") else 2
-                    pluseWidth=eval(get_attribute_value(block, "PulseWidth")) if get_attribute_value(block, "PulseWidth") else 1
-                    phaseDelay=eval(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else 0
-                    sampleTime=int(get_attribute_value(block,"SampleTime")) if get_attribute_value(block,"SampleTime") else 1
-                    is_continuous = False
-                timeSource=get_attribute_value(block, "TimeSource") if get_attribute_value(block, "TimeSource") else "Use simulation time"
-                self.add_block(DiscretePulseGenerator(name=block_name,amplitude=amplitude,period=period,pluseType=pluseType,pluseWidth=pluseWidth,phaseDelay=phaseDelay,timeSource=timeSource,sampleTime=sampleTime,is_continuous=is_continuous))
+                pulseType = get_attribute_value(block, "PulseType") if get_attribute_value(block, "PulseType") else "Sample based"
+                amplitude = float(get_attribute_value(block, "Amplitude")) if get_attribute_value(block, "Amplitude") else 1.0
+                period = Decimal(get_attribute_value(block, "Period"))
+                pulseWidth = Decimal(get_attribute_value(block, "PulseWidth"))
+                phaseDelay = Decimal(get_attribute_value(block, "PhaseDelay")) if get_attribute_value(block, "PhaseDelay") else Decimal("0.0")
+                self.add_block(DiscretePulseGenerator(
+                    name=block_name, pulseType=pulseType, amplitude=amplitude, period=period,
+                    pulseWidth=pulseWidth, phaseDelay=phaseDelay))
             elif block_type == "Inport":
                 port_number = get_attribute_value(block, "Port")
                 if not port_number:
@@ -647,7 +614,7 @@ class SL_Diagram:
                     if child.nodeName == "Line":
                         if get_attribute_value(block=child, attribute="DstBlock", name=block_name):
                             name = get_attribute_value(block=child, attribute="Name")
-                            # assert name is not None
+                            assert name is not None, "Scope output line is not named"
                             self.outputs.append(name)
                             num_dest += 1
                 self.add_block(Scope(name=block_name, num_dest=num_dest, st=sample_time))
@@ -679,7 +646,7 @@ class SL_Diagram:
                                 assert xData.count('[') == xData.count(']') == 1
                                 start = xData.index('[')
                                 end = xData.index(']')
-                                time_axises.append(tuple(float(e) for e in xData[start+1:end].split(',')))
+                                time_axises.append(tuple(parse_sample_time(e) for e in xData[start+1:end].split(',')))
                                 yData = get_attribute_value(obj, "YData")
                                 # if "\n" in yData:
                                 #     yData = yData.split("\n")[1]
@@ -699,7 +666,7 @@ class SL_Diagram:
                                 assert xData.count('[') == xData.count(']') == 1
                                 start = xData.index('[')
                                 end = xData.index(']')
-                                time_axises.append(tuple(float(e) for e in xData[start + 1:end].split(',')))
+                                time_axises.append(tuple(parse_sample_time(e) for e in xData[start + 1:end].split(',')))
                                 yData = get_attribute_value(node, "YData")
                                 # if "\n" in yData:
                                 #     yData = yData.split("\n")[1]
@@ -724,13 +691,16 @@ class SL_Diagram:
                     elif len(ports) == 1:
                         ports.append(0)
                     num_dest, num_src = ports[:2]
-                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
-                                         num_src=num_src, num_dest=num_dest)
 
                     # Check if it a triggered stateflow chart
                     triggers = [child for child in subsystem.childNodes if child.nodeName == "Block" and
                                 child.getAttribute("BlockType") == "TriggerPort"]
                     assert len(triggers) <= 1
+                    st = -2 if triggers else chart_paras['st']
+
+                    stateflow = SF_Chart(name=block_name, state=chart_paras["state"], data=chart_paras["data"],
+                                         num_src=num_src, num_dest=num_dest, st=st)
+
                     if triggers:  # it is a triggered stateflow chart
                         trigger_type = get_attribute_value(triggers[0], "TriggerType")
                         
@@ -871,8 +841,6 @@ class SL_Diagram:
     def __str__(self):
         result = ""
         result += "\n".join(str(block) for block in self.blocks_dict.values())
-        # if self.charts:
-        #     result += "Charts:\n" + charts
         return result
 
     def check(self):
@@ -1097,66 +1065,24 @@ class SL_Diagram:
             assert block.name not in self.blocks_dict, "Repeated block name %s" % block.name
             self.blocks_dict[block.name] = block
 
-    def new_seperate_diagram(self):
-        discrete_diagram = list()
-        continuous_diagram = list()
-        others = list()
-        for block in self.blocks_dict.values():
-            if hasattr(block, "is_continuous"):
-                if block.is_continuous:
-                    continuous_diagram.append(block)
-                else:
-                    discrete_diagram.append(block)
-            else:
-                others.append(block)
-        # discrete_diagram = [block for block in self.blocks_dict.values() if not block.is_continuous]
-        # continuous_diagram = [block for block in self.blocks_dict.values() if block.is_continuous]
-        return discrete_diagram, continuous_diagram, others, self.outputs
+    def separate_diagram(self):
+        """Separate the diagram into the different parts, and stored in the
+        corresponding variables in self.
 
-    def translate_mux(self):
-        muxes = [block.get_map() for block in self.blocks_dict.values() if block.type == "mux"]
-        # Topological sorting
-        sorted_muxes = list()
-        while muxes:
-            head = muxes.pop()
-            flag = True
-            for mux in muxes:
-                if head[0] in mux[1]:
-                    flag = False
-                    muxes.insert(0, head)
-                    break
-            if flag:
-                sorted_muxes.append(head)
-        # Substitute line names
-        substituted_muxes = list()
-        while sorted_muxes:
-            mux = sorted_muxes.pop()
-            substituted_muxes.append(mux)
-            for _mux in sorted_muxes:
-                if mux[0] in _mux[1]:
-                    index = _mux[1].index(mux[0])
-                    del _mux[1][index]
-                    for sub_mux in mux[1][::-1]:
-                        _mux[1].insert(index, sub_mux)
-        # Substitute the trigger line of triggered subsystems
-        for block in self.blocks_dict.values():
-            if block.type == "triggered_subsystem":
-                trigger_line = block.dest_lines[-1].name
-                for mux in substituted_muxes:
-                    if trigger_line == mux[0]:
-                        assert not block.trigger_lines  # == []
-                        for line in mux[1]:
-                            block.trigger_lines.append((line, block.trigger_type, None))
-                        break
-            elif block.type == "stateflow":
-                trigger_line = block.dest_lines[-1].name
-                for mux in substituted_muxes:
-                    if trigger_line == mux[0]:
-                        assert not block.trigger_lines  # == []
-                        assert len(mux[1]) == len(block.input_events)
-                        for line, (trigger_type, event) in zip(mux[1], block.input_events):
-                            block.trigger_lines.append((line, trigger_type, event))
-                        break
+        """
+        for _, block in self.blocks_dict.items():
+            # Continuous and discrete blocks contain the field is_continuous
+            if hasattr(block, "is_continuous"):
+                if isinstance(block, Scope):
+                    self.scopes.append(block)
+                elif block.is_continuous:
+                    self.continuous_blocks.append(block)
+                else:
+                    self.discrete_blocks.append(block)
+            elif isinstance(block, DataStoreMemory):
+                self.dsms.append(block)
+            else:
+                assert False, "block: %s" % type(block)
 
     def seperate_diagram(self):
         """Seperate a diagram into discrete and continuous subdiagrams."""

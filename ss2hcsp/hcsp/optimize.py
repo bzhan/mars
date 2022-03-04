@@ -1,7 +1,6 @@
 """Optimization of HCSP code."""
 
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp.expr import AConst, true_expr, false_expr,RelExpr,FunExpr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import simulator
 
@@ -11,13 +10,23 @@ def is_atomic(hp):
     return hp.type in ('skip', 'wait', 'assign', 'assert', 'test', 'log',
                        'input_channel', 'output_channel', 'ode')
 
-def simplify_expr(expr):
-    if not expr.get_vars():
-        b = simulator.eval_expr(expr, dict())
+def simplify_expr(e):
+    assert isinstance(e, expr.BExpr)
+    if not e.get_vars():
+        b = simulator.eval_expr(e, dict())
         assert isinstance(b, bool)
-        return true_expr if b else false_expr
+        return expr.true_expr if b else expr.false_expr
+    elif isinstance(e, expr.LogicExpr):
+        if e.op == '&&':
+            return expr.conj(*(simplify_expr(arg) for arg in e.exprs))
+        elif e.op == '||':
+            return expr.disj(*(simplify_expr(arg) for arg in e.exprs))
+        elif e.op == '-->':
+            return expr.imp(simplify_expr(e.exprs[0]), simplify_expr(e.exprs[1]))
+        else:
+            return e
     else:
-        return expr
+        return e
 
 def simplify(hp):
     """Perform immediate simplifications to HCSP process. This includes:
@@ -35,10 +44,15 @@ def simplify(hp):
     elif hp.type == 'condition':
         simp_cond = simplify_expr(hp.cond)
         simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip' or simp_cond == false_expr:
+        if simp_sub_hp.type == 'skip' or simp_cond == expr.false_expr:
             return hcsp.Skip()
-        elif simp_cond == true_expr:
+        elif simp_cond == expr.true_expr:
             return simp_sub_hp
+        elif simp_sub_hp.type == 'condition' and simp_sub_hp.cond == simp_cond:
+            return hcsp.Condition(simp_cond, simp_sub_hp.hp)
+        elif simp_sub_hp.type == 'sequence' and simp_sub_hp.hps[0].type == 'condition' \
+            and simp_sub_hp.hps[0].cond == simp_cond:
+            return hcsp.Condition(simp_cond, hcsp.Sequence(simp_sub_hp.hps[0].hp, *simp_sub_hp.hps[1:]))
         else:
             return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
@@ -56,6 +70,12 @@ def simplify(hp):
         raise NotImplementedError
 
 def get_read_vars_lname(lname):
+    """Return the set of variables that are read in an expression to be
+    assigned to. This does *not* include the variable that is assigned.
+    
+    Example: if lname = a[i+j], then the result is {i, j}.
+    
+    """
     if lname is None:
         return set()
     elif isinstance(lname, expr.AVar):
@@ -64,6 +84,22 @@ def get_read_vars_lname(lname):
         return lname.expr2.get_vars().union(get_read_vars_lname(lname.expr1))
     elif isinstance(lname, expr.FieldNameExpr):
         return get_read_vars_lname(lname.expr)
+    else:
+        raise NotImplementedError
+
+def replace_read_vars_lname(lname, inst):
+    """Replace read variables in an expression to be assigned to. This
+    does *not* replace the variable that is assigned.
+    
+    """
+    if lname is None:
+        return None
+    elif isinstance(lname, expr.AVar):
+        return lname
+    elif isinstance(lname, expr.ArrayIdxExpr):
+        return expr.ArrayIdxExpr(replace_read_vars_lname(lname.expr1, inst), lname.expr2.subst(inst))
+    elif isinstance(lname, expr.FieldNameExpr):
+        return expr.FieldNameExpr(replace_read_vars_lname(lname.expr, inst), lname.field)
     else:
         raise NotImplementedError
 
@@ -86,7 +122,7 @@ def get_read_vars(hp):
     elif hp.type == 'ite':
         return set().union(*(if_cond.get_vars() for if_cond, _ in hp.if_hps))
     elif hp.type == 'ode':
-        return hp.constraint.get_vars().union(*(eq.get_vars() for _, eq in hp.eqs))
+        return hp.constraint.get_vars().union(*(eq.get_vars().union({v}) for v, eq in hp.eqs))
     else:
         raise NotImplementedError
 
@@ -100,7 +136,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'wait':
         return hcsp.Wait(hp.delay.subst(inst))
     elif hp.type == 'assign':
-        return hcsp.Assign(hp.var_name, hp.expr.subst(inst))
+        return hcsp.Assign(replace_read_vars_lname(hp.var_name, inst), hp.expr.subst(inst))
     elif hp.type == 'assert':
         return hcsp.Assert(hp.bexpr.subst(inst), [msg.subst(inst) for msg in hp.msgs])
     elif hp.type == 'test':
@@ -108,7 +144,7 @@ def replace_read_vars(hp, inst):
     elif hp.type == 'log':
         return hcsp.Log(hp.pattern.subst(inst), exprs=[e.subst(inst) for e in hp.exprs])
     elif hp.type == 'input_channel':
-        return hp
+        return hcsp.InputChannel(hp.ch_name, replace_read_vars_lname(hp.var_name, inst))
     elif hp.type == 'output_channel':
         if len(hp.ch_name.args) > 0:
             raise NotImplementedError
@@ -121,18 +157,59 @@ def replace_read_vars(hp, inst):
     else:
         raise NotImplementedError
 
-def get_write_vars(lname):
+def get_write_vars_lname(lname):
     """Given lname of an assignment, return the set of variables written."""
     if lname is None:
         return {}
     elif isinstance(lname, expr.AVar):
         return {lname.name}
     elif isinstance(lname, expr.ArrayIdxExpr):
-        return get_write_vars(lname.expr1)
+        return get_write_vars_lname(lname.expr1)
     elif isinstance(lname, expr.FieldNameExpr):
-        return get_write_vars(lname.expr)
+        return get_write_vars_lname(lname.expr)
     else:
         raise NotImplementedError
+
+def get_write_vars(hp):
+    """Returns the set of written variables for an HCSP program."""
+    if hp.type == 'assign':
+        return get_write_vars_lname(hp.var_name)
+    elif hp.type == 'input_channel':
+        return get_write_vars_lname(hp.var_name)
+    elif hp.type == 'ode':
+        res = set()
+        for var, _ in hp.eqs:
+            res = res.union({var})
+        return res
+    else:
+        return set()
+
+def get_write_vars_pre(hp):
+    """Returns the set of written variables for an HCSP program, that should
+    be considered at the before label of the program.
+    
+    """
+    if hp.type == 'ode':
+        res = set()
+        for var, _ in hp.eqs:
+            res = res.union({var})
+        return res
+    else:
+        return set()
+
+def get_write_vars_val(hp, var):
+    """Returns the value of the written variables in an HCSP program. If the
+    written value is uncertain, return None.
+    
+    """
+    if hp.type == 'assign':
+        if isinstance(hp.var_name, expr.AVar) and isinstance(hp.expr, expr.AConst):
+            assert hp.var_name == expr.AVar(var)
+            return hp.expr
+        else:
+            return None
+    else:
+        return None
 
 def targeted_replace(hp, repls):
     """Make the given list of replacements."""
@@ -353,9 +430,9 @@ class HCSPAnalysis:
         rec(self.hp, tuple())
 
     def init_all_vars(self):
+        """Obtain the list of all variables assigned."""
         for loc, info in self.infos.items():
-            if info.sub_hp.type == 'assign':
-                self.all_vars = self.all_vars.union(get_write_vars(info.sub_hp.var_name))
+            self.all_vars = self.all_vars.union(get_write_vars(info.sub_hp))
 
     def compute_reaching_definition(self):
         """Reaching definition analysis.
@@ -373,10 +450,9 @@ class HCSPAnalysis:
 
         """
         # Propagate from reach_before to reach_after
-        def propagate_before_after(info, var, loc):
-            if (var, loc) not in info.reach_after and \
-                (info.sub_hp.type != "assign" or var not in get_write_vars(info.sub_hp.var_name)):
-                info.reach_after.add((var, loc))
+        def propagate_before_after(info, var, val):
+            if (var, val) not in info.reach_after and var not in get_write_vars(info.sub_hp):
+                info.reach_after.add((var, val))
 
         # Initial definitions
         for var in self.all_vars:
@@ -385,15 +461,10 @@ class HCSPAnalysis:
 
         # Assignments
         for loc, info in self.infos.items():
-            if info.sub_hp.type == 'assign':
-                for write_vars in get_write_vars(info.sub_hp.var_name):
-                    info.reach_after.add((write_vars, loc))
-            elif info.sub_hp.type == 'input_channel':
-                for write_vars in get_write_vars(info.sub_hp.var_name):
-                    info.reach_after.add((write_vars, loc))
-            elif info.sub_hp.type == 'ode':
-                for var, eq in info.sub_hp.eqs:
-                    info.reach_after.add((var, loc))
+            for var in get_write_vars(info.sub_hp):
+                info.reach_after.add((var, get_write_vars_val(info.sub_hp, var)))
+            for var in get_write_vars_pre(info.sub_hp):
+                info.reach_before.add((var, get_write_vars_val(info.sub_hp, var)))
 
         # After procedure calls, anything can happen
         for loc, info in self.infos.items():
@@ -409,12 +480,12 @@ class HCSPAnalysis:
             found = False
             for process_loc in process_order:
                 info = self.infos[process_loc]
-                for var, loc in info.reach_after:
+                for var, val in info.reach_after:
                     for next_loc in info.edges:
-                        if (var, loc) not in self.infos[next_loc].reach_before:
+                        if (var, val) not in self.infos[next_loc].reach_before:
                             found = True
-                            self.infos[next_loc].reach_before.add((var, loc))
-                            propagate_before_after(self.infos[next_loc], var, loc)
+                            self.infos[next_loc].reach_before.add((var, val))
+                            propagate_before_after(self.infos[next_loc], var, val)
 
             if not found:
                 break
@@ -430,35 +501,19 @@ class HCSPAnalysis:
             if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):   
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
-                    reach_defs = [prev_loc for prev_var, prev_loc in info.reach_before
+                    reach_defs = [prev_val for prev_var, prev_val in info.reach_before
                                   if prev_var == var]
                     
-                    if any(prev_loc is None for prev_loc in reach_defs):
-                        continue
-
-                    # Obtain the unique expression assigned to. The replacement
-                    # is valid only if all three of the following conditions hold:
-                    #   1. all assignments are to constant expressions.
-                    #   2. all assignments are the same.
-                    #   3. all assignments are to variable itself, rather than to
-                    #      some array index or field name.
+                    # Obtain the unique expression assigned to.
                     unique_assign = None
-                    for prev_loc in reach_defs:
-                        def_hp = self.infos[prev_loc].sub_hp
-                        if def_hp.type in ('input_channel', 'ode'):
+                    for prev_val in reach_defs:
+                        if prev_val is None:
                             unique_assign = None
                             break
-                        assert def_hp.type == 'assign'
-                        if not isinstance(def_hp.var_name, expr.AVar):
+                        if unique_assign is not None and prev_val != unique_assign:
                             unique_assign = None
                             break
-                        if not isinstance(def_hp.expr, AConst):
-                            unique_assign = None
-                            break
-                        if unique_assign is not None and def_hp.expr != unique_assign:
-                            unique_assign = None
-                            break
-                        unique_assign = def_hp.expr
+                        unique_assign = prev_val
                     # If there is a unique assigned value which is a constant,
                     # add to replacement list.
                     if not unique_assign:
@@ -526,7 +581,7 @@ class HCSPAnalysis:
         dead_code = []
         for loc, info in self.infos.items():
             if info.sub_hp.type == 'assign':
-                if all(name not in info.live_after for name in get_write_vars(info.sub_hp.var_name)):
+                if all(name not in info.live_after for name in get_write_vars(info.sub_hp)):
                     dead_code.append(loc)
         return dead_code
 
