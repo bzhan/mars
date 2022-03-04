@@ -393,7 +393,7 @@ class HPTransformer(Transformer):
         return res
 
     def ode(self, meta, eqs, constraint, inv):
-        return hcsp.ODE(eqs, constraint, meta=meta)
+        return hcsp.ODE(eqs, constraint, meta=meta, inv=inv)
 
     def ode_comm_const(self, meta, constraint, io_comms, inv):
         return hcsp.ODE_Comm([], constraint, io_comms, meta=meta)

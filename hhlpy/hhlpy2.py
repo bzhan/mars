@@ -167,7 +167,6 @@ class CmdInfo:
         # Pre-condition and post-condition are assertions.
         self.pre = None
         self.post = None
-        self.stren_post = None
 
         # List of verification conditions for this command.
         self.vcs = []
@@ -224,8 +223,6 @@ class CmdInfo:
         res = ""
         res += "pre = %s\n" % self.pre
         res += "post = %s\n" % self.post
-        if self.stren_post is not None:
-            res += "stren = %s \n" % self.stren_post
         for vc in self.vcs:
             res += "vc: %s\n" % vc
         if self.inv is not None:
@@ -319,11 +316,6 @@ class CmdVerifier:
             res += "%s:\n%s" % (pos, info)
         return res
 
-    def add_strengthened_post(self, pos, stren_post):
-        if pos not in self.infos:
-            self.infos[pos] = CmdInfo()
-        self.infos[pos].stren_post = stren_post
-
     def use_solution_rule(self, pos, sln_rule):
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
@@ -403,11 +395,7 @@ class CmdVerifier:
         # The post-condition at the given position should already be
         # available.
         assert pos in self.infos and self.infos[pos].post is not None
-        if self.infos[pos].stren_post is not None:
-            self.infos[pos].vcs.append(expr.imp(self.infos[pos].stren_post, self.infos[pos].post))
-            post = self.infos[pos].stren_post
-        else:
-            post = self.infos[pos].post
+        post = self.infos[pos].post
 
         if isinstance(cur_hp, hcsp.Skip):
             # Skip: {P} skip {P}
@@ -536,6 +524,14 @@ class CmdVerifier:
             if not self.infos[pos].eqs_dict:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
+
+            # Strengthen post condition to be the invariant
+            if len(pos[1]) == 0 and cur_hp.inv is not None:
+                post = expr.list_conj(*cur_hp.inv)
+                self.infos[pos].vcs.append(expr.imp(post, self.infos[pos].post))
+                if len(cur_hp.inv) > 1:
+                    self.infos[pos].conj_rule = True 
+                    #TODO: This may cause problems when the last invariant is a conjunction
 
             # Use solution axiom
             # 
@@ -967,23 +963,6 @@ class CmdVerifier:
                     sub_pres.append(self.infos[sub_pos].pre)
 
                 pre = expr.list_conj(*sub_pres)
-
-
-            elif isinstance(post, expr.LogicExpr):
-                
-                # Cases when op == '~'.
-                # Rewrite post or ode_inv and compute wp again.
-                if post.op == '~':
-                    # Cases when ode_inv.op == '~'
-                    if self.infos[pos].ode_inv:
-                        self.infos[pos].ode_inv = expr.neg_expr(self.infos[pos].ode_inv.exprs[0])
-                        self.compute_wp(pos=pos)
-                    else:
-                        self.infos[pos].stren_post = expr.neg_expr(post.exprs[0])
-                        self.compute_wp(pos=pos)                    
-
-                else:
-                    raise NotImplementedError
 
             # # Using the rule below:(proved by Isabelle)
             # #    e > 0 --> e_lie_deriv >= 0

@@ -788,7 +788,7 @@ class ODE(HCSP):
     <F(s',s) = 0 & B> |> Q
 
     """
-    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None):
+    def __init__(self, eqs, constraint, *, out_hp=Skip(), meta=None, inv=None):
         """Each equation is of the form (var_name, expr), where var_name
         is the name of the variable, and expr is its derivative.
 
@@ -808,6 +808,7 @@ class ODE(HCSP):
         self.constraint = constraint  # BExpr
         self.out_hp = out_hp  # None or hcsp
         self.meta = meta
+        self.inv = inv
 
     def __eq__(self, other):
         return self.type == other.type and self.eqs == other.eqs and \
