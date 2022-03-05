@@ -106,16 +106,23 @@ grammar = r"""
         | comm_cmd
         | "(" cmd ")**" maybe_invariant -> repeat_cmd
         | "(" cmd "){" cond "}**" maybe_invariant -> repeat_cond_cmd
-        | "<" ode_seq "&" cond ">" maybe_invariant -> ode
-        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_invariant -> ode_comm_const
-        | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_invariant -> ode_comm
+        | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
+        | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
+        | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
         | "rec" CNAME ".(" cmd ")" maybe_invariant -> rec_cmd
         | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
         | "(" cmd ")" -> paren_cmd
 
     ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
-
     ?invariant: "[" cond "]"
+
+    ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
+    ?ode_invariant: "[" cond "]" ("{" ode_rule "}")? -> ode_invariant
+    ?ode_rule: "di" -> ode_rule_di
+      | "dbx" -> ode_rule_dbx
+      | "bc" -> ode_rule_bc
+      | "dw" -> ode_rule_dw
+      | "sln" -> ode_rule_sln
 
     ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
 
@@ -373,6 +380,24 @@ class HPTransformer(Transformer):
         else:
             return args
 
+    def maybe_ode_invariant(self, meta, *args):
+        if len(args) == 0:
+            return None
+        else:
+            return args
+
+    def ode_invariant(self, meta, *args):
+        if len(args) == 1:
+            return (args[0], None)
+        else:
+            return (args[0], args[1])
+
+    def ode_rule_di(self, meta): return "di"
+    def ode_rule_bc(self, meta): return "bc"
+    def ode_rule_dbx(self, meta): return "dbx"
+    def ode_rule_dw(self, meta): return "dw"
+    def ode_rule_sln(self, meta): return "sln"
+            
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)
 

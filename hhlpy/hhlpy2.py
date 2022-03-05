@@ -525,13 +525,34 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-            # Strengthen post condition to be the invariant
             if len(pos[1]) == 0 and cur_hp.inv is not None:
-                post = expr.list_conj(*cur_hp.inv)
-                self.infos[pos].vcs.append(expr.imp(post, self.infos[pos].post))
                 if len(cur_hp.inv) > 1:
-                    self.infos[pos].conj_rule = True 
-                    #TODO: This may cause problems when the last invariant is a conjunction
+                    # Apply cut if there is more than one invariant
+                    self.infos[pos].diff_cuts = [inv[0] for inv in cur_hp.inv] 
+                elif len(cur_hp.inv) == 1:
+                    # Strengthen post condition to be the invariant
+                    self.infos[pos].vcs.append(expr.imp(post, self.infos[pos].post))
+                else:
+                    raise AssertionError("Expected at least one invariant")
+                # Make note which methods to use for subgoals
+                post = expr.list_conj(*(inv[0] for inv in cur_hp.inv))
+                for i, inv in enumerate(cur_hp.inv):
+                    sub_pos = pos if len(cur_hp.inv) == 1 else (pos[0], pos[1] + (i,))
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
+                    if inv[1] == "di":
+                        self.infos[sub_pos].dI_rule = True 
+                    elif inv[1] == "dbx":
+                        self.infos[sub_pos].dbx_rule = True 
+                    elif inv[1] == "bc":
+                        self.infos[sub_pos].barrier_rule = True 
+                    elif inv[1] == "dw":
+                        self.infos[sub_pos].dw = True 
+                    elif inv[1] == "sln":
+                        self.infos[sub_pos].sln_rule = True 
+                    else:
+                        if inv[1] is not None:
+                            raise NotImplementedError("Unknown ODE method")
 
             # Use solution axiom
             # 
