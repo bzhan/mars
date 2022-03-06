@@ -327,16 +327,14 @@ class HHLPyTest(unittest.TestCase):
         # Basic benchmark, problem12
         # dC Rule
         # {x >= 0 && y >= 0} <x_dot = y> {x >= 0}
-        runVerify(self, pre="x >= 0 && y >= 0", hp="<x_dot = y & x < 10>", post="x >= 0",
-                  diff_cuts={((), ()): ["y >= 0", "x >= 0"]})
+        runVerify(self, pre="x >= 0 && y >= 0", hp="<x_dot = y & x < 10> invariant [y >= 0] [x >= 0]", post="x >= 0")
 
     def testVerify21(self):
         # Basic benchmark, problem13
         # dC Rule
         # {x >= 0 && y >= 0 && z >= 0} <x_dot = y, y_dot = z & x < 10> {x >= 0}
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0", 
-                  hp="<x_dot = y, y_dot = z & x < 10>", post="x >= 0",
-                  diff_cuts={((), ()):["z >= 0", "y >= 0", "x >= 0"]})
+                  hp="<x_dot = y, y_dot = z & x < 10> invariant [z >= 0] [y >= 0] [x >= 0]", post="x >= 0")
 
 
     def testVerify22(self):
@@ -346,8 +344,8 @@ class HHLPyTest(unittest.TestCase):
         # <x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>
         # {x >= 0}
         runVerify(self, pre="x >= 0 && y >= 0 && z >= 0 && j >= 0",
-                  hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10>", post="x >= 0",
-                  diff_cuts={((), ()): ["j >= 0", "z >= 0", "y >= 0", "x >= 0"]})
+                  hp="<x_dot = y, y_dot = z, z_dot = j, j_dot = j * j & x < 10> \
+                      invariant [j >= 0] [z >= 0] [y >= 0] [x >= 0]", post="x >= 0")
 
     # Basic benchmark problem15 is verified in testVerify16
 
@@ -386,8 +384,7 @@ class HHLPyTest(unittest.TestCase):
         # dC Rule
         # {x >= 0 && y >= 0} <x_dot = y, y_dot = y * y & x < 10> {x >= 0}
         runVerify(self, pre="x >= 0 && y >= 0",
-                  hp="<x_dot = y, y_dot = y * y & x < 10>", post="x >= 0", 
-                  diff_cuts={((), ()): ["y >= 0", "x >= 0"]})
+                  hp="<x_dot = y, y_dot = y * y & x < 10> invariant [y >= 0] [x >= 0]", post="x >= 0")
 
     # Basic benchmark, problem 20
 
@@ -414,9 +411,11 @@ class HHLPyTest(unittest.TestCase):
         # t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>
         # {x^2 + y^2 == 1 && e == x}
         runVerify(self, pre="x^2 + y^2 == 1 && e == x",
-                  hp="t:=0; <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10>",
-                  post="x^2 + y^2 == 1 && e == x",
-                  diff_cuts={((1,), ()): ["e == x", "x^2 + y^2 == 1"]})
+                  hp="t:=0; \
+                      <x_dot = -y, y_dot = e, e_dot = -y, t_dot = 1 & t < 10> \
+                      invariant \
+                        [e == x] [x^2 + y^2 == 1]",
+                  post="x^2 + y^2 == 1 && e == x")
 
     def testVerify31(self):
         # Basic benchmark, problem 24
@@ -437,9 +436,10 @@ class HHLPyTest(unittest.TestCase):
         # t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10>
         # {w^2 * x^2 + y^2 <= 9}
         runVerify(self, pre="w >= 0 && x == 0 && y == 3",
-                  hp="t := 0; <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10>",
-                  post="w^2 * x^2 + y^2 <= 9",
-                  diff_cuts={((1,), ()): ["w >= 0", "w^2 * x^2 + y^2 <= 9"]})
+                  hp="t := 0; \
+                      <x_dot = y, y_dot = -w^2 * x - 2 * w * y, t_dot = 1 & t < 10> \
+                      invariant [w >= 0] [w^2 * x^2 + y^2 <= 9]",
+                  post="w^2 * x^2 + y^2 <= 9")
 
     def testVerify33(self):
     # Benchmark, problem 26
@@ -460,10 +460,11 @@ class HHLPyTest(unittest.TestCase):
         # <x_dot = y, y_dot = z + y^2 - y & y > 0>
         # {x >= 1 && y >= 0}
         runVerify(self, pre="x >= 1 && y == 10 && z == -2", 
-                  hp="<x_dot = y, y_dot = z + y^2 - y & y > 0>",
-                  post="x >= 1 && y >= 0",
-                  diff_cuts={((), ()): ["y >= 0", "x >= 1"]},
-                  diff_weakening_rule={((), (0,)): "true"})
+                  hp="<x_dot = y, y_dot = z + y^2 - y & y > 0> \
+                      invariant \
+                        [y >= 0] {dw} \
+                        [x >= 1]",
+                  post="x >= 1 && y >= 0")
 
     def testVerify35(self):
         # Benchmark, problem 28
@@ -527,13 +528,12 @@ class HHLPyTest(unittest.TestCase):
                   pre="w >= 0 && d >= 0 && -2 <= a && a <= 2 && b^2 >= 1/3 && w^2 * x^2 + y^2 <= c",
                   hp="t := 0; \
                       <x_dot = y, y_dot = -w^2 * x - 2 * d * w * y, t_dot = 1 & t < 10> \
-                      invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]; \
+                      invariant [w >= 0 && d >= 0] [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]; \
                       (x == y * a -> (w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2))\
                       ++ x == y * b -> (w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2)) \
                       ++ skip)** \
                       invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]",
-                  post="w^2 * x^2 + y^2 <= c",
-                  diff_cuts={((1,), (0,)): ["w >= 0 && d >= 0", "w^2 * x^2 + y^2 <= c"]})
+                  post="w^2 * x^2 + y^2 <= c")
 
     def testVerify42(self):
         runVerify(self,
@@ -589,17 +589,21 @@ class HHLPyTest(unittest.TestCase):
         # t := 0; <x_dot = (x - 3)^4 + y^5, y_dot = y^2, t_dot = 1 & t < 10> 
         # {x^3 >= -1 && y^5 >= 0}
         runVerify(self, pre="x^3 >= -1 && y^5 >= 0",
-                  hp="t := 0; <x_dot = (x - 3)^4 + y^5, y_dot = y^2, t_dot = 1 & t < 10>",
-                  post="x^3 >= -1 && y^5 >= 0",
-                  diff_cuts={((1,), ()): ["y^5 >= 0", "x^3 >= -1"]})
+                  hp="t := 0; \
+                      <x_dot = (x - 3)^4 + y^5, y_dot = y^2, t_dot = 1 & t < 10> \
+                      invariant \
+                        [y^5 >= 0] \
+                        [x^3 >= -1]",
+                  post="x^3 >= -1 && y^5 >= 0")
 
     def testVerify49(self):
         # Basic benchmark, problem 40
         # A is a constant.
         # {v >= 0 && A > 0} <x_dot = v, v_dot = A & x < 10> {v >= 0}
-        runVerify(self, pre="v >= 0 && A > 0", hp="<x_dot = v, v_dot = A & x < 10>",
-                  post="v >= 0", constants={'A'}, 
-                  diff_cuts={((), ()): ["A > 0", "v >= 0"]})
+        runVerify(self, pre="v >= 0 && A > 0", 
+                  hp="<x_dot = v, v_dot = A & x < 10> \
+                      invariant [A > 0] [v >= 0]",
+                  post="v >= 0", constants={'A'})
 
     def testVerify50(self):
         # Basic bencnmark, problem 41
@@ -642,22 +646,17 @@ class HHLPyTest(unittest.TestCase):
                   hp="(if x + v^2 / (2*B) < S \
                           then (a := A; \
                               <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
-                              invariant [v >= 0] [x+v^2/(2*B) <= S]) \
+                              invariant [v >= 0] {dw} [x+v^2/(2*B) <= S] {dw}) \
                        elif v == 0 \
                           then a := 0 \
                        else (a := -B; \
                            <x_dot = v, v_dot = a & v > 0> \
-                           invariant [v >= 0] [x+v^2/(2*B) <= S]) \
+                           invariant [v >= 0] {dw} [a == -B] [x+v^2/(2*B) <= S]) \
                        endif \
                       )** \
                       invariant [v >= 0] [x+v^2/(2*B) <= S]",
                   post="x <= S",
-                  constants={'A', 'B', 'S'},
-                  diff_weakening_rule={((0, 2, 1), (0,)): "true",
-                                       ((0, 0, 1), (0,)): "true",
-                                       ((0, 0, 1), (1,)): "true"},
-                  diff_cuts={((0, 2, 1), (1,)): ["a == -B", "x+v^2/(2*B) <= S"]},
-        )
+                  constants={'A', 'B', 'S'})
 
     def testVerify53(self):
         # Basic benchmark, problem 43
@@ -713,14 +712,19 @@ class HHLPyTest(unittest.TestCase):
         #     )**@invariant(v <= V)
         # {v <= V}
         runVerify(self, pre="v <= V && A > 0",
-                  hp="(if v == V then a := 0; t := 0; <x_dot = v, v_dot = a & t < 10> \
-                       else a := A; <x_dot = v, v_dot = a & v < V> invariant [v <= V] {dw}\
+                  hp="(if v == V then \
+                           a := 0; t := 0; \
+                           <x_dot = v, v_dot = a & t < 10> \
+                           invariant [a == 0] [v <= V]\
+                       else \
+                           a := A; \
+                           <x_dot = v, v_dot = a & v < V> \
+                           invariant [v <= V] {dw}\
                        endif \
                        )** \
                        invariant [v <= V]",
                   post="v <= V",
-                  constants={'A', 'V'},
-                  diff_cuts={((0, 0, 2), ()): ["a == 0", "v <= V"]},
+                  constants={'A', 'V'}
                 ) 
 
 
@@ -842,14 +846,14 @@ class WLHHLPyTest(unittest.TestCase):
                           a := A; \
                           t := 0; \
                           <x_dot = v, v_dot = a & t < 10> \
+                          invariant [a >= 0] [v >= 0 && A >= 0] \
                       else \
                           a := -b; <x_dot = v, v_dot = a & v > 0> \
                           invariant [v >= 0] {dw} [A >= 0] \
                       endif \
                       )** \
                       invariant [v >= 0] [A >= 0]",
-                  post="v >= 0",
-                  diff_cuts={((0, 0, 2), ()): ["a >= 0", "v >= 0 && A >= 0"]})
+                  post="v >= 0")
 
     def testVerify65(self):
         # Solution Axiom
@@ -942,9 +946,10 @@ class WLHHLPyTest(unittest.TestCase):
         #     <x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10>@invariant(y-x+1<=0 & y<=0)
         # {~(y>0)}
         runVerify(self, pre="x == 1 && y == -1",
-                  hp="t := 0; <x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10>",
+                  hp="t := 0; \
+                      <x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10> \
+                      invariant [y-x+1 <= 0] [y <= 0]",
                   post="~(y>0)",
-                  diff_cuts={((1,), ()): ["y-x+1 <= 0", "y <= 0"]},
                   dbx_cofactors={((1,), (0,)): "1",
                                      ((1,), (1,)): "1"})
 
@@ -994,11 +999,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x > 0)}
         runVerify(self, pre="(2+x)^2 + (-1+y)^2 <= 1/4", 
                   hp="t := 0; \
-                      <x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x + y), t_dot = 1 & t < 10>",
-                  post="~(x > 0)",
-                  diff_cuts={((1,), ()): ["x < y", "x + y < 0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                      <x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x + y), t_dot = 1 & t < 10> \
+                      invariant [x < y] {dbx} [x + y < 0] {dbx}",
+                  post="~(x > 0)")
     
     def testNonlinear8(self):
         # {x^2 + (2+y)^2 <= 1}
@@ -1094,9 +1097,9 @@ class WLHHLPyTest(unittest.TestCase):
                       <x_dot = 1+x+x^2+x^3+2*y+2*x^2*y, \
                       y_dot = -y+2*x*y+x^2*y+2*x*y^2, \
                       t_dot = 1\
-                      & t < 1>",
-                  post="~(y >= 1)",
-                  dbx_invariants={((1,), ()): "y < 0"})
+                      & t < 1> \
+                      invariant [y < 0] {dbx}",
+                  post="~(y >= 1)")
 
     # def testNonlinear14(self):
     #     # Nonlinear benchmark, problem 14
