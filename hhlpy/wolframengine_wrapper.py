@@ -105,6 +105,8 @@ def toHcsp(e):
         if e.head == WLSymbol("Rule"):
             assert len(e.args) == 2
             return hcsp.Assign(toHcsp(e.args[0]), toHcsp(e.args[1]))
+        
+        # Translate to OpExpr in hcsp.
         elif e.head == WLSymbol("Plus"):  # priority: 65
             if len(e.args) == 2:
                 return expr.OpExpr('+', toHcsp(e.args[0]), toHcsp(e.args[1]))
@@ -127,8 +129,57 @@ def toHcsp(e):
         elif e.head == WLSymbol("Rational"):  # priority: 85
             assert len(e.args) == 2
             return expr.OpExpr('/', toHcsp(e.args[0]), toHcsp(e.args[1]))
+
+        # Translate to RelExpr in hcsp.
+        elif e.head == WLSymbol("Equal"):
+            assert len(e.args) == 2
+            return expr.RelExpr('==', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Greater"):
+            assert len(e.args) == 2
+            return expr.RelExpr('>', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("GreaterEqual"):
+            assert len(e.args) == 2
+            return expr.RelExpr('>=', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Less"):
+            assert len(e.args) == 2
+            return expr.RelExpr('<', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("LessEqual"):
+            assert len(e.args) == 2
+            return expr.RelExpr('<=', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("UnEqual"):
+            assert len(e.args) == 2
+            return expr.RelExpr('!=', toHcsp(e.args[0]), toHcsp(e.args[1]))
+
+        # Translate into LogicExpr in hcsp.
+        elif e.head == WLSymbol("And"):
+            if len(e.args) == 2:
+                return expr.LogicExpr('&&', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.LogicExpr("&&", toHcsp(WLFunction(WLSymbol("And"), *e.args[:-1])),
+                                            toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Or"):
+            if len(e.args) == 2:
+                return expr.LogicExpr('||', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            elif len(e.args) > 2:
+                return expr.LogicExpr("||", toHcsp(WLFunction(WLSymbol("Or"), *e.args[:-1])),
+                                            toHcsp(e.args[-1]))
+            else:
+                raise AssertionError
+        elif e.head == WLSymbol("Not"):
+            assert len(e.args) == 1
+            return expr.LogicExpr('~', toHcsp(e.args[0]))
+        elif e.head == WLSymbol("Implies"):
+            assert len(e.args) == 2
+            return expr.LogicExpr('-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+        elif e.head == WLSymbol("Equivalent"):
+            assert len(e.args) == 2
+            return expr.LogicExpr('<-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+
         else:
             return expr.FunExpr(toHcsp(e.head), [toHcsp(arg) for arg in e.args])
+
     elif isinstance(e, WLSymbol):
         str_e = str(e)
         if str_e.startswith("Global`"):
@@ -236,7 +287,7 @@ def Ode2Wlexpr(hp, names, time_var):
     return wlexpr_eqn, init2var
 
 
-def wol_prove(e):
+def wl_prove(e):
     """Attempt to prove the given condition."""
     if not isinstance(e, expr.BExpr):
         raise NotImplementedError
@@ -249,3 +300,15 @@ def wol_prove(e):
         return True
     else:
         return False
+
+def wl_simplify(e):
+    """Simplify the given hcsp expression"""
+    wl_expr = toWLexpr(e)
+    # Use the Simplify function in wolfram.
+    wl_expr = session.evaluate(wl.Simplify(wl_expr))
+
+    hcsp_expr = toHcsp(wl_expr)
+
+    return hcsp_expr
+
+    

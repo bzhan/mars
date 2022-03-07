@@ -8,7 +8,8 @@ HCSP program.
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
 from hhlpy.wolframengine_wrapper import solveODE
-from hhlpy.wolframengine_wrapper import wol_prove
+from hhlpy.wolframengine_wrapper import wl_prove
+from hhlpy.wolframengine_wrapper import wl_simplify
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
@@ -151,15 +152,6 @@ def create_newvar(s, names):
     while (s + str(suffix_n) in names):
         suffix_n = suffix_n + 1
     return expr.AVar(s + str(suffix_n))
-
-# Use sympy to simplify AExpr
-def simplify_aexpr(e):
-    if not isinstance(e, expr.AExpr):
-        raise NotImplementedError
-    e = simplify(sympify(str(e).replace('^', '**')))
-    e = aexpr_parser.parse(str(e).replace('**', '^'))
-
-    return e
 
 class CmdInfo:
     """Information associated to each HCSP program."""
@@ -401,6 +393,20 @@ class CmdVerifier:
         if pos not in self.infos:
             self.infos[pos] = CmdInfo()
         self.infos[pos].conj_rule = conj_rule
+
+    def simplify_expr(self, e):
+        if self.wolfram_engine:
+            e = wl_simplify(e)
+
+        # Use sympy to simplify
+        else:
+            if isinstance(e, expr.AExpr):
+                e = simplify(sympify(str(e).replace('^', '**')))
+                e = aexpr_parser.parse(str(e).replace('**', '^'))
+            else:
+                raise NotImplementedError
+
+        return e           
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -768,7 +774,7 @@ class CmdVerifier:
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
                     # Simplify dy
-                    dy = simplify_aexpr(dy)
+                    dy = self.simplify_expr(dy)
 
                     self.infos[pos].ghost_eqs = {ghost_var: dy}
 
@@ -795,6 +801,16 @@ class CmdVerifier:
                 pre = dG_inv
 
             # Using dbx rule
+            # Cases when dbx_inv is "e == 0".
+                # Use Darboux Equality Rule
+                #          D --> e_lie_deriv == g * e
+                #--------------------------------------------    (g is the cofactor)
+                #   {e == 0} <x_dot = f(x) & D> {e == 0}
+            # Cases when dbx_inv is e >(>=) 0.
+                # Use Darboux Inequality Rule.
+                #           D --> e_lie_deriv >= g * e
+                # ---------------------------------------------
+                #    e >(>=) 0 <x_dot = f(x) & D> e >(>=) 0
             elif self.infos[pos].dbx_rule or \
                 self.infos[pos].dbx_inv is not None or \
                 self.infos[pos].dbx_cofactor is not None:
@@ -824,11 +840,14 @@ class CmdVerifier:
                 # Translate into the form e == 0 or e >(>=) 0
                 if dbx_inv.expr2 != expr.AConst(0):
                     expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
-                    expr1 = simplify_aexpr(expr1)
+                    expr1 = self.simplify_expr(expr1)
                     dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
                 
                 # Compute the lie derivative of e.
                 lie_deriv = compute_diff(dbx_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+
+                # if self.wolfram_engine:
+                    
 
                 # Cases when dbx_inv is "e == 0".
                 # Use Darboux Equality Rule
@@ -841,7 +860,7 @@ class CmdVerifier:
                     # Compute the cofactor g by auto.
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', lie_deriv, dbx_inv.expr1)
-                        g = simplify_aexpr(g)
+                        g = self.simplify_expr(g)
                         self.infos[pos].dbx_cofactor = g
 
                         denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
@@ -879,7 +898,7 @@ class CmdVerifier:
                     # Compute the cofactor automatically.
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', lie_deriv, dbx_inv.expr1)
-                        g = simplify_aexpr(g)
+                        g = self.simplify_expr(g)
                         self.infos[pos].dbx_cofactor = g
 
                         denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
@@ -937,7 +956,7 @@ class CmdVerifier:
                 # Translate 'e >= c' into 'e - c >= 0'
                 if barrier_inv.expr2 != 0:
                     expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
-                    expr1 = simplify_aexpr(expr1)
+                    expr1 = self.simplify_expr(expr1)
                     barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
 
                 e = barrier_inv.expr1
@@ -976,24 +995,7 @@ class CmdVerifier:
 
                     sub_pres.append(self.infos[sub_pos].pre)
 
-                pre = expr.list_conj(*sub_pres)
-
-
-            elif isinstance(post, expr.LogicExpr):
-                
-                # Cases when op == '~'.
-                # Rewrite post or ode_inv and compute wp again.
-                if post.op == '~':
-                    # Cases when ode_inv.op == '~'
-                    if self.infos[pos].ode_inv:
-                        self.infos[pos].ode_inv = expr.neg_expr(self.infos[pos].ode_inv.exprs[0])
-                        self.compute_wp(pos=pos)
-                    else:
-                        self.infos[pos].stren_post = expr.neg_expr(post.exprs[0])
-                        self.compute_wp(pos=pos)                    
-
-                else:
-                    raise NotImplementedError
+                pre = expr.list_conj(*sub_pres)             
 
             # # Using the rule below:(proved by Isabelle)
             # #    e > 0 --> e_lie_deriv >= 0
@@ -1107,7 +1109,7 @@ class CmdVerifier:
         if self.wolfram_engine:
             for pos, vcs in all_vcs.items():
                 for vc in vcs:
-                    if not wol_prove(vc):
+                    if not wl_prove(vc):
                         print("The failed verification condition is :\n", pos, ':', str(vc))
                         return False
             return True
