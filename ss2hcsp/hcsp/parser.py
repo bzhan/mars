@@ -3,6 +3,7 @@
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp import invariant
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
@@ -118,6 +119,7 @@ grammar = r"""
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
     ?ode_invariant: "[" cond "]" ("{" ode_rule "}")? -> ode_invariant
+        | "ghost" CNAME ("=" expr)? -> ghost_intro
     ?ode_rule: "di" -> ode_rule_di
       | "dbx" -> ode_rule_dbx
       | "bc" -> ode_rule_bc
@@ -388,9 +390,16 @@ class HPTransformer(Transformer):
 
     def ode_invariant(self, meta, *args):
         if len(args) == 1:
-            return (args[0], None)
+            return invariant.CutInvariant(inv=args[0], method=None, meta=meta)
         else:
-            return (args[0], args[1])
+            return invariant.CutInvariant(inv=args[0], method=args[1], meta=meta)
+    
+    def ghost_intro(self, meta, *args):
+        if len(args) == 1:
+            return invariant.GhostIntro(var=args[0], diff=None, meta=meta)
+        else:
+            assert args[0].endswith("_dot")
+            return invariant.GhostIntro(var=args[0][:-4], diff=args[1], meta=meta)
 
     def ode_rule_di(self, meta): return "di"
     def ode_rule_bc(self, meta): return "bc"

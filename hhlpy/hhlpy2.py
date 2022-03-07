@@ -10,7 +10,7 @@ from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 from hhlpy.wolframengine_wrapper import solveODE
 from hhlpy.wolframengine_wrapper import wol_prove
 from hhlpy.z3wrapper import z3_prove
-from ss2hcsp.hcsp import hcsp, expr
+from ss2hcsp.hcsp import hcsp, expr, invariant
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
@@ -525,34 +525,63 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
+             # TODO: copy assume for child of ghost
+
+
+
             if len(pos[1]) == 0 and cur_hp.inv is not None:
-                if len(cur_hp.inv) > 1:
-                    # Apply cut if there is more than one invariant
-                    self.infos[pos].diff_cuts = [inv[0] for inv in cur_hp.inv] 
-                elif len(cur_hp.inv) == 1:
-                    # Strengthen post condition to be the invariant
-                    self.infos[pos].vcs.append(expr.imp(post, self.infos[pos].post))
-                else:
-                    raise AssertionError("Expected at least one invariant")
-                # Make note which methods to use for subgoals
-                post = expr.list_conj(*(inv[0] for inv in cur_hp.inv))
-                for i, inv in enumerate(cur_hp.inv):
-                    sub_pos = pos if len(cur_hp.inv) == 1 else (pos[0], pos[1] + (i,))
-                    if sub_pos not in self.infos:
-                        self.infos[sub_pos] = CmdInfo()
-                    if inv[1] == "di":
-                        self.infos[sub_pos].dI_rule = True 
-                    elif inv[1] == "dbx":
-                        self.infos[sub_pos].dbx_rule = True 
-                    elif inv[1] == "bc":
-                        self.infos[sub_pos].barrier_rule = True 
-                    elif inv[1] == "dw":
-                        self.infos[sub_pos].dw = True 
-                    elif inv[1] == "sln":
-                        self.infos[sub_pos].sln_rule = True 
+
+                # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
+                # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
+                subposts = []
+                subpost = None
+                for inv in reversed(cur_hp.inv):
+                    if isinstance(inv, invariant.CutInvariant):
+                        if subpost is None:
+                            subpost = inv.inv
+                        else:
+                            subpost = expr.LogicExpr('&&', inv.inv, subpost)
+                    elif isinstance(inv, invariant.GhostIntro):
+                        if subpost is None:
+                            raise AssertionError("Ghost invariant cannot be last instruction.")
+                        subpost = expr.ExistsExpr(inv.var, subpost)
                     else:
-                        if inv[1] is not None:
+                        raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
+                    subposts.append(subpost)
+                post = subposts[-1]
+
+                sub_pos = pos
+                for i, inv in enumerate(cur_hp.inv):
+
+                    if i == len(cur_hp.inv) - 1:
+                        self.infos[sub_pos].diff_cuts = [inv.inv] #TODO: don't cut and don't create a subpos here.
+                        sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
+                    else:
+                        subpost = subposts[-2-i]
+                        self.infos[sub_pos].diff_cuts = [inv.inv, subpost]
+
+                        sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
+                        sub_pos = (sub_pos[0], sub_pos[1] + (1,))
+                        if sub_pos not in self.infos:
+                            self.infos[sub_pos] = CmdInfo()
+
+                    if sub_pos_left not in self.infos:
+                        self.infos[sub_pos_left] = CmdInfo()
+                    if inv.method == "di":
+                        self.infos[sub_pos_left].dI_rule = True 
+                    elif inv.method == "dbx":
+                        self.infos[sub_pos_left].dbx_rule = True 
+                    elif inv.method == "bc":
+                        self.infos[sub_pos_left].barrier_rule = True 
+                    elif inv.method == "dw":
+                        self.infos[sub_pos_left].dw = True 
+                    elif inv.method == "sln":
+                        self.infos[sub_pos_left].sln_rule = True 
+                    else:
+                        if inv.method is not None:
                             raise NotImplementedError("Unknown ODE method")
+                    
+
 
             # Use solution axiom
             # 
@@ -676,12 +705,14 @@ class CmdVerifier:
 
                     # Post condition of the each subproof is diff_cut.
                     self.infos[sub_pos].post = diff_cut
-                    #  Diff_cut must be an invariant for ODE (for the sake of being added into assume), so diff_cut cannot use dw rule to verify.
-                    assert self.infos[sub_pos].dw is not None
+                    
+
+                    self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
+                    self.infos[sub_pos].assume += self.infos[pos].assume
                     
                     # If i == 0, no update for assume, else, assume is updated by adding diff_cuts[:i].
                     if i != 0:
-                        self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
+                        self.infos[sub_pos].assume += self.infos[sub_pos].assume + diff_cuts[:i]
 
                     self.compute_wp(pos=sub_pos)
 

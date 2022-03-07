@@ -286,8 +286,8 @@ class HHLPyTest(unittest.TestCase):
         # dG Rule
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant [x > 0]", post="x > 0",
-                ghost_invariants={((1,), ()): "x * y * y == 1"},
-                expected_vcs={((1,), ()): ["x > 0 --> (EX y. x * y * y == 1)",
+                ghost_invariants={((1,), (0,)): "x * y * y == 1"},
+                expected_vcs={((1,), (0,)): ["x > 0 --> (EX y. x * y * y == 1)",
                                            "x * y * y == 1 --> x > 0"]})
 
     def testVerify17(self):
@@ -316,7 +316,7 @@ class HHLPyTest(unittest.TestCase):
                       <x_dot = 2 & x < 2> invariant [x > 0]; \
                       <x_dot = x & x < 5> invariant [x > 0]",
                   post="x > 0",
-                  ghost_invariants={((2,), ()): "x * y * y == 1"})
+                  ghost_invariants={((2,), (0,)): "x * y * y == 1"})
 
     def testVerify19(self):
         # Basic benchmark, problem11
@@ -354,16 +354,16 @@ class HHLPyTest(unittest.TestCase):
         # dbx inequality Rule
         # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> invariant [x > 0] {dbx}", post="x > 0",
-                  dbx_cofactors={((1,),()): "-1"})
+                  dbx_cofactors={((1,),(0,)): "-1"})
 
     def testVerify24(self):
         # Basic benchmark, problem17
         # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> invariant [x > 0]", 
                   post="x > 0",
-                  ghost_invariants={((1,), ()): "x * z * z == 1"},
+                  ghost_invariants={((1,), (0,)): "x * z * z == 1"},
                   expected_vcs={((), ()): ["x > 0 && y > 0 --> x > 0"],
-                                ((1,), ()): ["x > 0 --> (EX z. x * z * z == 1)",
+                                ((1,), (0,)): ["x > 0 --> (EX z. x * z * z == 1)",
                                              "x * z * z == 1 --> x > 0"]})
 
     def testVerify25(self):
@@ -951,7 +951,7 @@ class WLHHLPyTest(unittest.TestCase):
                       invariant [y-x+1 <= 0] [y <= 0]",
                   post="~(y>0)",
                   dbx_cofactors={((1,), (0,)): "1",
-                                     ((1,), (1,)): "1"})
+                                     ((1,), (1,0)): "1"})
 
     def testNonlinear4(self):
         # Nonlinear benchmark, problem 4
