@@ -198,6 +198,9 @@ class CmdInfo:
         # Ghost invariants for new ODEs in which ghost equation is added.
         self.ghost_inv = None
 
+        # Name of the ghost variable
+        self.ghost_var = None
+
         # Computed differential equations for ghosts.
         self.ghost_eqs = dict()
 
@@ -548,39 +551,48 @@ class CmdVerifier:
                     else:
                         raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
                     subposts.append(subpost)
-                post = subposts[-1]
 
+                # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
                 for i, inv in enumerate(cur_hp.inv):
+                    if isinstance(inv, invariant.CutInvariant):
+                        if i == len(cur_hp.inv) - 1:
+                            self.infos[sub_pos].diff_cuts = [inv.inv] #TODO: don't cut and don't create a subpos here.
+                            sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
+                        else:
+                            subpost = subposts[-2-i]
+                            self.infos[sub_pos].diff_cuts = [inv.inv, subpost]
 
-                    if i == len(cur_hp.inv) - 1:
-                        self.infos[sub_pos].diff_cuts = [inv.inv] #TODO: don't cut and don't create a subpos here.
-                        sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
-                    else:
-                        subpost = subposts[-2-i]
-                        self.infos[sub_pos].diff_cuts = [inv.inv, subpost]
+                            sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
+                            sub_pos = (sub_pos[0], sub_pos[1] + (1,))
 
-                        sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
-                        sub_pos = (sub_pos[0], sub_pos[1] + (1,))
-                        if sub_pos not in self.infos:
-                            self.infos[sub_pos] = CmdInfo()
-
-                    if sub_pos_left not in self.infos:
-                        self.infos[sub_pos_left] = CmdInfo()
-                    if inv.method == "di":
-                        self.infos[sub_pos_left].dI_rule = True 
-                    elif inv.method == "dbx":
-                        self.infos[sub_pos_left].dbx_rule = True 
-                    elif inv.method == "bc":
-                        self.infos[sub_pos_left].barrier_rule = True 
-                    elif inv.method == "dw":
-                        self.infos[sub_pos_left].dw = True 
-                    elif inv.method == "sln":
-                        self.infos[sub_pos_left].sln_rule = True 
-                    else:
-                        if inv.method is not None:
-                            raise NotImplementedError("Unknown ODE method")
+                        if sub_pos_left not in self.infos:
+                            self.infos[sub_pos_left] = CmdInfo()
+                        if inv.method == "di":
+                            self.infos[sub_pos_left].dI_rule = True 
+                        elif inv.method == "dbx":
+                            self.infos[sub_pos_left].dbx_rule = True 
+                        elif inv.method == "bc":
+                            self.infos[sub_pos_left].barrier_rule = True 
+                        elif inv.method == "dw":
+                            self.infos[sub_pos_left].dw = True 
+                        elif inv.method == "sln":
+                            self.infos[sub_pos_left].sln_rule = True 
+                        else:
+                            if inv.method is not None:
+                                raise NotImplementedError("Unknown ODE method")
                     
+                    elif isinstance(inv, invariant.GhostIntro):
+                        subpost = subposts[-2-i]
+                        self.infos[sub_pos].ghost_inv = subpost
+                        self.infos[sub_pos].ghost_var = inv.var
+                        if inv.diff is not None:
+                            self.infos[sub_pos].ghost_eqs = {inv.var: inv.diff}
+                        sub_pos = (sub_pos[0], sub_pos[1] + (0,))
+                    else:
+                        raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
+                    if sub_pos not in self.infos:
+                        self.infos[sub_pos] = CmdInfo()
 
 
             # Use solution axiom
@@ -743,10 +755,13 @@ class CmdVerifier:
                     self.infos[pos].dG_inv = post
                 dG_inv = self.infos[pos].dG_inv
 
-                ghost_vars = [v for v in ghost_inv.get_vars() if v not in self.names]
-                if len(ghost_vars) != 1:
-                    raise AssertionError("Number of ghost variables is not 1.")
-                ghost_var = ghost_vars[0]
+                if not self.infos[pos].ghost_var:
+                    ghost_vars = [v for v in ghost_inv.get_vars() if v not in self.names]
+                    if len(ghost_vars) != 1:
+                        raise AssertionError("Number of ghost variables is not 1.")
+                    ghost_var = ghost_vars[0]
+                else:
+                    ghost_var = self.infos[pos].ghost_var
                 self.names.add(ghost_var)
 
                 if not self.infos[pos].eqs_dict:
@@ -793,15 +808,23 @@ class CmdVerifier:
                 # Solve for ghost_eqs automatically.
                 # assume y is the ghost variable, and x are the other variables.
                 else:
-                    assert isinstance(ghost_inv, expr.RelExpr) and ghost_inv.op == "==" and \
-                        isinstance(ghost_inv.expr2, expr.AConst),\
+                    if isinstance(ghost_inv, expr.LogicExpr) and ghost_inv.op == "&&" and \
+                        len(ghost_inv.exprs) > 0 and all(i == 0 or not ghost_var in e.get_vars() for i, e in enumerate(ghost_inv.exprs)):
+                        eq = ghost_inv.exprs[0]
+                    else:
+                        eq = ghost_inv
+                    
+                    assert isinstance(eq, expr.RelExpr) and eq.op == "==" and \
+                        isinstance(eq.expr2, expr.AConst),\
                         'Please offer the the differential equation satisfied by the ghost variable.'
 
+                    dg = eq.expr1
+
                     # Obtain dg/dx * dx
-                    dg_x = compute_diff(ghost_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+                    dg_x = compute_diff(dg, eqs_dict=self.infos[pos].eqs_dict)
 
                     # Obtain dg/dy
-                    dgdy = compute_diff(ghost_inv.expr1, eqs_dict={ghost_var: expr.AConst(1)})
+                    dgdy = compute_diff(dg, eqs_dict={ghost_var: expr.AConst(1)})
 
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
@@ -826,6 +849,7 @@ class CmdVerifier:
                 vc3 = expr.imp(ghost_inv, dG_inv)
 
                 self.infos[pos].vcs += [vc1, vc3]
+
                 if dG_inv != post:
                     self.infos[pos].vcs.append(expr.imp(dG_inv, post))
 
