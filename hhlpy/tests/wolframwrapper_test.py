@@ -24,12 +24,15 @@ class WolframWrapperTest(unittest.TestCase):
             "~(~(x > 1))"       :"x > 1",
             "x > 1 || x > 0"    :"x > 0",
             "x > 1 && x > 2"    :"x > 2",
-            "x > 1 && x > 2 && x > 3"   :"x > 3"
+            "x > 1 && x > 2 && x > 3"   :"x > 3",
+            "x > 2 --> 2 < x"   :"true",
+            # "x > 2 <--> 2 < x"  :"true"
         }
         for k, e in test_case_bexpr.items():
             k = bexpr_parser.parse(k)
             e = bexpr_parser.parse(e)
 
+            print(wl_simplify(k))
             self.assertTrue(wl_simplify(k) == e)
 
 if __name__ == "__main__":

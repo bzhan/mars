@@ -27,8 +27,10 @@ def toWLexpr(e):
     elif isinstance(e, expr.FunExpr):
         return WLFunction(WLSymbol(e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
     elif isinstance(e, expr.BConst):
-        return WLSymbol(str(e.value))
-
+        if isinstance(e, expr.true_expr):
+            return wl.True
+        else:
+            return wl.False
     elif isinstance(e, expr.OpExpr):
         if e.op == '+':
             return wl.Plus(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))

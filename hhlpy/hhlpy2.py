@@ -12,6 +12,7 @@ from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.wolframengine_wrapper import wl_simplify
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr
+from ss2hcsp.hcsp.optimize import simplify_expr
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
@@ -611,7 +612,7 @@ class CmdVerifier:
             # Use dW rule
             # Note: remain unproved!
             # When dw is True.
-            #      P --> (~D -> Q) && (D -> (Boundary of D => Q))
+            #      P --> (~D --> Q) && (D --> (Boundary of D => Q))
             #-----------------------------------------------------
             #               {P} <x_dot = f(x) & D> {Q}
             elif self.infos[pos].dw:
@@ -654,7 +655,7 @@ class CmdVerifier:
                     self.infos[pos].vcs.append(expr.imp(dI_inv, post))
 
                 pre = dI_inv
-            
+
             # Use dC rules
             #            {R1} c {R1}    R1 => {R2} c {R2}   P --> R1 && R2   R1 && R2 --> Q
             #--------------------------------------------------------------------------------
@@ -677,7 +678,7 @@ class CmdVerifier:
                     self.infos[sub_pos].post = diff_cut
                     #  Diff_cut must be an invariant for ODE (for the sake of being added into assume), so diff_cut cannot use dw rule to verify.
                     assert self.infos[sub_pos].dw is not None
-                    
+
                     # If i == 0, no update for assume, else, assume is updated by adding diff_cuts[:i].
                     if i != 0:
                         self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
@@ -820,6 +821,7 @@ class CmdVerifier:
                     self.infos[pos].dbx_inv = post
                 dbx_inv = self.infos[pos].dbx_inv
 
+                dbx_inv = simplify_expr(dbx_inv)
                 if not isinstance(dbx_inv, expr.RelExpr): 
                     # Case when dbx_inv is, for example, ~(x > 1). 
                     # Translate the dbx_inv into x <= 1

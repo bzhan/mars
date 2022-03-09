@@ -67,7 +67,9 @@ grammar = r"""
 
     ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 
-    ?imp: disj "-->" imp | disj                  // Implies: priority 25
+    ?equiv: disj "<-->" equiv | disj             // Equivalent: priority 25
+
+    ?imp: equiv "-->" imp | equiv                  // Implies: priority 20
 
     ?quant: "EX" CNAME "." quant                         -> exists_expr  // priority 10
         | "EX" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
@@ -303,6 +305,9 @@ class HPTransformer(Transformer):
 
     def imp(self, meta, b1, b2):
         return expr.LogicExpr("-->", b1, b2, meta=meta)
+
+    def equiv(self, meta, b1, b2):
+        return expr.LogicExpr("<-->", b1, b2, meta=meta)
 
     def var_cmd(self, meta, name):
         return hcsp.Var(str(name), meta=meta)
