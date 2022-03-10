@@ -118,7 +118,7 @@ grammar = r"""
     ?invariant: "[" cond "]"
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
-    ?ode_invariant: "[" cond "]" ("{" ode_rule "}")? -> ode_invariant
+    ?ode_invariant: "[" cond "]" ("{" ode_rule expr? "}")? -> ode_invariant
         | "ghost" CNAME -> ghost_intro
         | "ghost" "<" CNAME "=" expr ">" -> ghost_intro_eq
     ?ode_rule: "di" -> ode_rule_di
@@ -391,9 +391,11 @@ class HPTransformer(Transformer):
 
     def ode_invariant(self, meta, *args):
         if len(args) == 1:
-            return invariant.CutInvariant(inv=args[0], method=None, meta=meta)
-        else:
+            return invariant.CutInvariant(inv=args[0], meta=meta)
+        elif len(args) == 2:
             return invariant.CutInvariant(inv=args[0], method=args[1], meta=meta)
+        else:
+            return invariant.CutInvariant(inv=args[0], method=args[1], method_arg=args[2], meta=meta)
     
     def ghost_intro(self, meta, var):
         return invariant.GhostIntro(var=var, diff=None, meta=meta)

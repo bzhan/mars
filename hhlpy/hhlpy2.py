@@ -569,15 +569,21 @@ class CmdVerifier:
                         if sub_pos_left not in self.infos:
                             self.infos[sub_pos_left] = CmdInfo()
                         if inv.method == "di":
-                            self.infos[sub_pos_left].dI_rule = True 
+                            self.infos[sub_pos_left].dI_rule = True
+                            assert inv.method_arg is None
                         elif inv.method == "dbx":
-                            self.infos[sub_pos_left].dbx_rule = True 
+                            self.infos[sub_pos_left].dbx_rule = True
+                            if inv.method_arg is not None:
+                                self.infos[sub_pos_left].dbx_cofactor = inv.method_arg
                         elif inv.method == "bc":
                             self.infos[sub_pos_left].barrier_rule = True 
-                        elif inv.method == "dw":
+                            assert inv.method_arg is None
+                        elif inv.method == "dw": #TODO: make use of dw automatic
                             self.infos[sub_pos_left].dw = True 
+                            assert inv.method_arg is None
                         elif inv.method == "sln":
                             self.infos[sub_pos_left].sln_rule = True 
+                            assert inv.method_arg is None
                         else:
                             if inv.method is not None:
                                 raise NotImplementedError("Unknown ODE method")

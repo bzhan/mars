@@ -355,8 +355,7 @@ class HHLPyTest(unittest.TestCase):
         # Basic benchmark, problem16
         # dbx inequality Rule
         # {x > 0} t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> {x > 0}
-        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> invariant [x > 0] {dbx}", post="x > 0",
-                  dbx_cofactors={((1,),(0,)): "-1"})
+        runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x + 1, t_dot = 1 & t < 10> invariant [x > 0] {dbx -1}", post="x > 0")
 
     def testVerify24(self):
         # Basic benchmark, problem17
@@ -504,9 +503,8 @@ class HHLPyTest(unittest.TestCase):
         # {x + z >= 0}
         # tag, info, str1 = 
         runVerify(self, pre="x + z >= 0",
-                  hp="<x_dot = x^2, z_dot = z * x + y & y > x^2>",
-                  post="x + z >= 0",
-                  dbx_cofactors={((), ()): "x"})
+                  hp="<x_dot = x^2, z_dot = z * x + y & y > x^2> invariant [x + z >= 0] {dbx x}",
+                  post="x + z >= 0")
 
     def testVerify40(self):
         # Condition rule
@@ -951,10 +949,8 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 1 && y == -1",
                   hp="t := 0; \
                       <x_dot = x^2 + (x+y)/2, y_dot = (-x + 3*y)/2 & t < 10> \
-                      invariant [y-x+1 <= 0] [y <= 0]",
-                  post="~(y>0)",
-                  dbx_cofactors={((1,), (0,)): "1",
-                                     ((1,), (1,0)): "1"})
+                      invariant [y-x+1 <= 0] {dbx 1} [y <= 0] {dbx 1}",
+                  post="~(y>0)")
 
     def testNonlinear4(self):
         # Nonlinear benchmark, problem 4
