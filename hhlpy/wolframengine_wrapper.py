@@ -28,9 +28,9 @@ def toWLexpr(e):
         return WLFunction(WLSymbol(e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
     elif isinstance(e, expr.BConst):
         if isinstance(e, expr.true_expr):
-            return wl.True
+            return True
         else:
-            return wl.False
+            return False
     elif isinstance(e, expr.OpExpr):
         if e.op == '+':
             return wl.Plus(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
@@ -110,21 +110,9 @@ def toHcsp(e):
         
         # Translate to OpExpr in hcsp.
         elif e.head == WLSymbol("Plus"):  # priority: 65
-            if len(e.args) == 2:
-                return expr.OpExpr('+', toHcsp(e.args[0]), toHcsp(e.args[1]))
-            elif len(e.args) > 2:
-                return expr.OpExpr('+', toHcsp(WLFunction(WLSymbol("Plus"), *e.args[:-1])),
-                                        toHcsp(e.args[-1]))
-            else:
-                raise AssertionError
+            return expr.list_add(*(toHcsp(arg) for arg in e.args))
         elif e.head == WLSymbol("Times"):  # priority: 70
-            if len(e.args) == 2:
-                return expr.OpExpr('*', toHcsp(e.args[0]), toHcsp(e.args[1]))
-            elif len(e.args) > 2:
-                return expr.OpExpr('*', toHcsp(WLFunction(WLSymbol("Times"), *e.args[:-1])),
-                                        toHcsp(e.args[-1]))
-            else:
-                raise AssertionError
+            return expr.list_mul(*(toHcsp(arg) for arg in e.args))
         elif e.head == WLSymbol("Power"):  # priority: 85
             assert len(e.args) == 2
             return expr.OpExpr('^', toHcsp(e.args[0]), toHcsp(e.args[1]))
@@ -188,7 +176,10 @@ def toHcsp(e):
             str_e = str_e[7:]
         return expr.AVar(str_e)
     elif isinstance(e, int):
-        return expr.AConst(e)
+        if isinstance(e, bool):
+            return expr.BConst(e)
+        else:
+            return expr.AConst(e)
     else:
         assert False, "Unexpected expression: %s" % str(e)
 
@@ -312,5 +303,25 @@ def wl_simplify(e):
     hcsp_expr = toHcsp(wl_expr)
 
     return hcsp_expr
+
+def wl_polynomial_div(p, q):
+    """Compute the quotient and remainder of polynomial p and q"""
+    vars = p.get_vars().union(q.get_vars())
+    vars = (toWLexpr(expr.AVar(var)) for var in vars)
+    p = toWLexpr(p)
+    q = toWLexpr(q)
+
+    # result is in the form, for example, (x, 1), 
+    # in which x is the quotient, 1 is the remainder.
+    quot_remains = dict()
+    for var in vars:
+        result = session.evaluate(wl.PolynomialQuotientRemainder(p, q, var))
+
+        quot = toHcsp(result[0])
+        remain = toHcsp(result[1])
+
+        quot_remains[quot] = remain
+
+    return quot_remains
 
     

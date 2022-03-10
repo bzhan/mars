@@ -135,4 +135,17 @@ def sp_simplify(e):
     hcsp_expr = toHcsp(sp_expr)
 
     return hcsp_expr
+
+def sp_polynomial_div(p, q):
+    """Compute the quotient and remainder of polynomial p and q"""
+    p = toSpexpr(p)
+    q = toSpexpr(q)
+    quot, remain = sympy.div(p, q)
+
+    quot = toHcsp(quot)
+    remain = toHcsp(remain)
+    quot_remains = dict()
+    quot_remains[quot] = remain
+
+    return quot_remains
     

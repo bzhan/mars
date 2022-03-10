@@ -2,7 +2,7 @@
 import unittest
 
 from ss2hcsp.hcsp.parser import bexpr_parser, aexpr_parser
-from hhlpy.sympy_wrapper import sp_simplify
+from hhlpy.sympy_wrapper import sp_simplify, sp_polynomial_div
 
 class SympyWrapperTest(unittest.TestCase):
     def testSimplifyBexpr(self):
@@ -31,5 +31,19 @@ class SympyWrapperTest(unittest.TestCase):
             k = aexpr_parser.parse(k)
             e = aexpr_parser.parse(e)
 
-            # print(sp_simplify(k))
             self.assertTrue(sp_simplify(k) == e)
+
+    def testSpPolynomialDiv(self):
+        test_case = {
+            ("x^2 + 1", "x")        :("x", "1"),
+            ("x^3 + 1", "x^2 - 1")  :("x", "1 + x")
+        }
+
+        for k, e in test_case.items():
+            p = aexpr_parser.parse(k[0])
+            q = aexpr_parser.parse(k[1])
+            e0 = aexpr_parser.parse(e[0])
+            e1 = aexpr_parser.parse(e[1])
+
+            quot_remains = sp_polynomial_div(p, q)
+            self.assertTrue(quot_remains[e0] == e1)

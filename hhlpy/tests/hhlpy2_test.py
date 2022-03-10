@@ -1137,25 +1137,27 @@ class WLHHLPyTest(unittest.TestCase):
                   post="~(y >= 1)",
                   dbx_invariants={((1,), ()): "y < 0"})
 
-    # def testNonlinear14(self):
-    #     # Nonlinear benchmark, problem 14
-    #     # {x > -1 && x < -3/4 && y <= 3/2 && y >= 1}
-    #     #     t := 0;
-    #     #     <x_dot = -42*x^7+50*x^2*y+156*x^3*y+258*x^4*y-46*x^5*y+68*x^6*y+20*x*y^6-8*y^7,
-    #     #      y_dot = y*(1110*x^6-3182*x^4*y-220*x^5*y+478*x^3*y^3+487*x^2*y^4-102*x*y^5-12*y^6),
-    #     #      t_dot = 1
-    #     #      & t < 10>@invariant(y>0)
-    #     # {~(x > 1 + y)}
-    #     runVerify(self, pre="x > -1 && x < -3/4 && y <= 3/2 && y >= 1",
-    #               hp="t := 0; \
-    #         <x_dot = -42*x^7+50*x^2*y+156*x^3*y+258*x^4*y-46*x^5*y+68*x^6*y+20*x*y^6-8*y^7,\
-    #         y_dot = y*(1110*x^6-3182*x^4*y-220*x^5*y+478*x^3*y^3+487*x^2*y^4-102*x*y^5-12*y^6),\
-    #         t_dot = 1\
-    #         & t < 10>",
-    #               post="~(x > 1 + y)",
-    #               diff_cuts={((1,), ()): ["y > 0", "~(x > 1 + y)"]},
-    #               darboux_rule={((1,), (0,)): "true",
-    #                             ((1,), (1,)): "true"})
+    def testNonlinear14(self):
+        # Nonlinear benchmark, problem 14
+        # {x > -1 && x < -3/4 && y <= 3/2 && y >= 1}
+        #     t := 0;
+        #     <x_dot = -42*x^7+50*x^2*y+156*x^3*y+258*x^4*y-46*x^5*y+68*x^6*y+20*x*y^6-8*y^7,
+        #      y_dot = y*(1110*x^6-3182*x^4*y-220*x^5*y+478*x^3*y^3+487*x^2*y^4-102*x*y^5-12*y^6),
+        #      t_dot = 1
+        #      & t < 10>@invariant(y>0)
+        # {~(x > 1 + y)}
+        runVerify(self, pre="x > -1 && x < -3/4 && y <= 3/2 && y >= 1",
+                  hp="t := 0; \
+            <x_dot = -42*x^7+50*x^2*y+156*x^3*y+258*x^4*y-46*x^5*y+68*x^6*y+20*x*y^6-8*y^7,\
+            y_dot = y*(1110*x^6-3182*x^4*y-220*x^5*y+478*x^3*y^3+487*x^2*y^4-102*x*y^5-12*y^6),\
+            t_dot = 1\
+            & t < 10>",
+                  post="~(x > 1 + y)",
+                  diff_cuts={((1,), ()): ["y > 0", "~(x > 1 + y)"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true"},
+                #   wolfram_engine=True,
+                  print_vcs=True)
 
 if __name__ == "__main__":
     unittest.main()

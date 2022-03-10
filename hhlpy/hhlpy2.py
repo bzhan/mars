@@ -7,12 +7,12 @@ HCSP program.
 """
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
+from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify
 from hhlpy.wolframengine_wrapper import solveODE
 from hhlpy.wolframengine_wrapper import wl_prove
-from hhlpy.wolframengine_wrapper import wl_simplify
+from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr
-from ss2hcsp.hcsp.optimize import simplify_expr
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
 from ss2hcsp.hcsp.simulator import get_pos
 
@@ -395,19 +395,24 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].conj_rule = conj_rule
 
-    def simplify_expr(self, e):
+    def simplify_expression(self, e):
         if self.wolfram_engine:
             e = wl_simplify(e)
 
         # Use sympy to simplify
         else:
-            if isinstance(e, expr.AExpr):
-                e = simplify(sympify(str(e).replace('^', '**')))
-                e = aexpr_parser.parse(str(e).replace('**', '^'))
-            else:
-                raise NotImplementedError
+            e = sp_simplify(e)
 
-        return e           
+        return e
+
+    def polynomial_div(self, p, q):
+        """Compute the quotient and remainder of polynomial p and q"""
+        if self.wolfram_engine:
+            quot_remains = wl_polynomial_div(p, q)
+        else:
+            quot_remains = sp_polynomial_div(p, q)
+
+        return quot_remains
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -821,16 +826,11 @@ class CmdVerifier:
                     self.infos[pos].dbx_inv = post
                 dbx_inv = self.infos[pos].dbx_inv
 
-                dbx_inv = simplify_expr(dbx_inv)
+                # For example, simplify ~(x > 1) to x <= 1
+                dbx_inv = self.simplify_expression(dbx_inv)
                 if not isinstance(dbx_inv, expr.RelExpr): 
-                    # Case when dbx_inv is, for example, ~(x > 1). 
-                    # Translate the dbx_inv into x <= 1
-                    if isinstance(dbx_inv, expr.LogicExpr) and dbx_inv.op == '~' \
-                        and isinstance(dbx_inv.exprs[0], expr.RelExpr):
-                        dbx_inv = expr.neg_expr(dbx_inv.exprs[0])
-                    else:
-                        print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
-                        raise NotImplementedError
+                    print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
+                    raise NotImplementedError
                 
                 assert dbx_inv.op in {'==', '>', '>=', '<', '<='}
 
@@ -842,11 +842,12 @@ class CmdVerifier:
                 # Translate into the form e == 0 or e >(>=) 0
                 if dbx_inv.expr2 != expr.AConst(0):
                     expr1 =  expr.OpExpr('-', dbx_inv.expr1, dbx_inv.expr2)
-                    expr1 = self.simplify_expr(expr1)
+                    expr1 = self.simplify_expression(expr1)
                     dbx_inv = expr.RelExpr(dbx_inv.op, expr1, expr.AConst(0)) 
                 
+                e = dbx_inv.expr1
                 # Compute the lie derivative of e.
-                lie_deriv = compute_diff(dbx_inv.expr1, eqs_dict=self.infos[pos].eqs_dict)
+                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
 
                 # if self.wolfram_engine:
                     
@@ -861,7 +862,7 @@ class CmdVerifier:
                     # Cases when the cofactor g is not offered.
                     # Compute the cofactor g by auto.
                     if self.infos[pos].dbx_cofactor is None:
-                        g = expr.OpExpr('/', lie_deriv, dbx_inv.expr1)
+                        g = expr.OpExpr('/', e_lie_deriv, e)
                         g = self.simplify_expr(g)
                         self.infos[pos].dbx_cofactor = g
 
@@ -885,8 +886,8 @@ class CmdVerifier:
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
 
                         # Boundary of D --> e_lie_deriv == g * e
-                        vc = expr.imp(constraint, expr.RelExpr('==', lie_deriv, 
-                                                                    expr.OpExpr('*'), g, dbx_inv.expr1))
+                        vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
+                                                                    expr.OpExpr('*'), g, e))
 
                         self.infos[pos].vcs.append(vc)
 
@@ -899,16 +900,20 @@ class CmdVerifier:
                     # Cases when the cofactor g is not offered.
                     # Compute the cofactor automatically.
                     if self.infos[pos].dbx_cofactor is None:
-                        g = expr.OpExpr('/', lie_deriv, dbx_inv.expr1)
-                        g = self.simplify_expr(g)
-                        self.infos[pos].dbx_cofactor = g
+                        quot_remains = self.polynomial_div(e_lie_deriv, e)
+                        # print("quot:", quot, "remain:", remain)
+                        # self.infos[pos].dbx_cofactor = quot
 
-                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
-                                          demoninator_not_zero(g))
+                        # Several quot and remain pairs may returned from the polynomial division.
+                        # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
+                        vc_comps = []
+                        for _, remain in quot_remains.items():
+                            # remain (e_lie_deriv - g * e) >= 0.
+                            vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
+                            vc_comps.append(vc_comp)
+                        vc = expr.list_disj(*vc_comps)
 
-                        # If the cofactor computed doesn't satisfy denomi_not_zero, require the users offer cofactor by their own
-                        if not z3_prove(denomi_not_zero):
-                            raise AssertionError("Please offer the cofactor for dbx inequality rule!")
+                        self.infos[pos].vcs.append(vc)
 
                     # Cases when the cofactor g is offered by the user.
                     else:
@@ -919,8 +924,8 @@ class CmdVerifier:
                         if not z3_prove(denomi_not_zero):
                             raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
 
-                        vc = expr.imp(constraint, expr.RelExpr('>=', lie_deriv, 
-                                                                    expr.OpExpr('*', self.infos[pos].dbx_cofactor, dbx_inv.expr1)))
+                        vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
+                                                                    expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
                         
                         self.infos[pos].vcs.append(vc)
 
