@@ -362,7 +362,6 @@ class HHLPyTest(unittest.TestCase):
         # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> invariant ghost z [x * z * z == 1]", 
                   post="x > 0",
-                  ghost_invariants={((1,), (0,)): "x * z * z == 1"},
                   expected_vcs={((), ()): ["x > 0 && y > 0 --> x > 0"],
                                 ((1,), ()): ["x > 0 --> (EX z. x * z * z == 1)",
                                              "x * z * z == 1 --> x > 0"]})
@@ -1057,8 +1056,6 @@ class WLHHLPyTest(unittest.TestCase):
                         [y > 0] {dbx} \
                         [y*((-104420)+(-73565)*x+18407*y) < 44444] {bc}",
                   post="~((5/2 + x)^2 + (-4/5 + y)^2 <= 1/20)",
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"},
                   wolfram_engine=True)
 
     def testNonlinear12(self):
