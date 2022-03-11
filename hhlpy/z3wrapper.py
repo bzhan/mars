@@ -1,6 +1,7 @@
 """Wrapper for Z3 prover."""
 
 from decimal import Decimal
+from fractions import Fraction
 import z3
 
 from ss2hcsp.hcsp import expr
@@ -13,7 +14,7 @@ def convert(e):
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, int):
             return z3.RealVal(e.value)
-        elif isinstance(e.value, Decimal):
+        elif isinstance(e.value, (Decimal, Fraction)):
             return z3.RealVal(str(e.value))
         else:
             print(e.value, type(e.value))

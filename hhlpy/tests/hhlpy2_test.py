@@ -1229,6 +1229,53 @@ class WLHHLPyTest(unittest.TestCase):
                                 ((1,), (1,)): "true",
                                 ((1,), (2,)): "true"})
 
+    # TODO: Nonlinear benchmark, problem 19, 20. The ODE rule is not clear.
+
+    def testNonlinear21(self):
+        # Nonlinear benchmark, problem 21
+        # {-1<=a && a<=-0.5 && 1<=y && y<=1.5}
+        #      t := 0;
+        #     <a_dot = 7/8+a-a^3/3-y, 
+        #      y_dot = (2*(7/10+a-(4*y)/5))/25,
+        #      t_dot = 1 & t < 10>@invariant(0.12152*a^4+0.22807*a^3*y+0.214*a^2*y^2-0.71222*y^4-0.27942*a^3-0.48799*a^2*y-0.2517*a*y^2-0.3366*y^3-0.21526*a^2+0.16728*a*y-0.44613*y^2+0.35541*a-0.21594*y-0.72852<=0)
+        # {~(-2.5<=a && a<=-2 && -2<=y && y<=-1.5)}
+        runVerify(self, pre="-1<=a && a<=-0.5 && 1<=y && y<=1.5",
+                  hp=" t := 0; \
+                       <a_dot = 7/8+a-a^3/3-y, \
+                        y_dot = (2*(7/10+a-(4*y)/5))/25, \
+                        t_dot = 1 & t < 10>",
+                  post="~(-2.5<=a && a<=-2 && -2<=y && y<=-1.5)",
+                  barrier_invariants={((1,), ()): "0.12152*a^4+0.22807*a^3*y+0.214*a^2*y^2-0.71222*y^4-0.27942*a^3-0.48799*a^2*y-0.2517*a*y^2-0.3366*y^3-0.21526*a^2+0.16728*a*y-0.44613*y^2+0.35541*a-0.21594*y-0.72852<=0"},
+                  wolfram_engine=True)
+
+    def testNonlinear22(self):
+        # Nonlinear benchmark, problem 22
+        # {x^2 + (-2 + y)^2 < 1/24}
+        #      t := 0;
+        #     <x_dot = -x+2*x^2*y, y_dot = -y, t_dot = 1 & t < 10>@invariant(y>0, 12299+9595*x>0)
+        # {~(x <= -2 || y <= -1)}
+        runVerify(self, pre="x^2 + (-2 + y)^2 < 1/24",
+                  hp="t := 0; \
+                      <x_dot = -x+2*x^2*y, y_dot = -y, t_dot = 1 & t < 10>",
+                  post="~(x <= -2 || y <= -1)",
+                  diff_cuts={((1,), ()): ["y > 0", "12299+9595*x > 0"]},
+                  darboux_rule={((1,), (0,)): "true"},
+                  barrier_certificate_rule={((1,), (1,)): "true"})
+
+    def testNonlinear23(self):
+        # Nonlinear benchmark, problem 23
+        # {x^2 + (-1 + y)^2 < 1/8}
+        #      t := 0;
+        #     <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10>@invariant(y>0)
+        # {~(y <= -1)}
+        runVerify(self, pre="x^2 + (-1 + y)^2 < 1/8",
+                  hp="t := 0; \
+                     <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10>",
+                  post="~(y <= -1)",
+                  dbx_invariants={((1,), ()): "y > 0"})
+                  
+    # TODO: Nonlinear benchmark, problem 24. ODE rule not clear.
+
 if __name__ == "__main__":
     unittest.main()
 

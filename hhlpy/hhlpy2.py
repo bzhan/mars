@@ -663,7 +663,7 @@ class CmdVerifier:
                 pre = dI_inv
 
             # Use dC rules
-            #            {R1} c {R1}    R1 => {R2} c {R2}   P --> R1 && R2   R1 && R2 --> Q
+            #            {R1} c {R1}    [[R1]] {R2} c {R2}   P --> R1 && R2   R1 && R2 --> Q
             #--------------------------------------------------------------------------------
             #                                       {P} c {Q}
             elif self.infos[pos].diff_cuts:
@@ -671,6 +671,9 @@ class CmdVerifier:
                 
                 # Record the pre of each subproof
                 pre_list =[]
+
+                # Record the assumes.
+                assumes = []
 
                 # Compute wp for each subproof, whose post condition is diff_cut.
                 for i, diff_cut in enumerate(diff_cuts):
@@ -682,14 +685,15 @@ class CmdVerifier:
 
                     # Post condition of the each subproof is diff_cut.
                     self.infos[sub_pos].post = diff_cut
-                    #  Diff_cut must be an invariant for ODE (for the sake of being added into assume), so diff_cut cannot use dw rule to verify.
-                    assert self.infos[sub_pos].dw is not None
 
-                    # If i == 0, no update for assume, else, assume is updated by adding diff_cuts[:i].
-                    if i != 0:
-                        self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
+                    self.infos[sub_pos].assume += self.infos[pos].assume + assumes
 
                     self.compute_wp(pos=sub_pos)
+
+                    # If dw is True, then diff_cuts[i] is verified to be a post condition, but not an invariant, which cannot be added into assumes,
+                    # else, assumes is updated by adding diff_cuts[i].
+                    if self.infos[sub_pos].dw is False:
+                        assumes.append(diff_cuts[i])
 
                     pre_list.append(self.infos[sub_pos].pre)
 
@@ -830,12 +834,14 @@ class CmdVerifier:
                 dbx_inv = self.infos[pos].dbx_inv
 
                 # For example, simplify ~(x > 1) to x <= 1
-                dbx_inv = self.simplify_expression(dbx_inv)
-                if not isinstance(dbx_inv, expr.RelExpr): 
-                    print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
-                    raise NotImplementedError
+                if isinstance(dbx_inv, expr.LogicExpr): 
+                    dbx_inv = self.simplify_expression(dbx_inv)
+                    # print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
+                    # raise NotImplementedError
                 
-                assert dbx_inv.op in {'==', '>', '>=', '<', '<='}
+                assert isinstance(dbx_inv, expr.RelExpr) and \
+                       dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
+                    print("The wrong type of %s is %s" %(dbx_inv, type(dbx_inv)))
 
                 # Tranlate '<' and '<=' into '>' and '>='.
                 if dbx_inv.op == '<':
@@ -952,10 +958,11 @@ class CmdVerifier:
 
                 pre = barrier_inv
 
-                barrier_inv = self.simplify_expression(barrier_inv)
-                # print("AAAA:", barrier_inv)
+                if isinstance(barrier_inv, expr.LogicExpr):
+                    barrier_inv = self.simplify_expression(barrier_inv)
 
-                assert barrier_inv.op in {'<=', '>=', '>', '<'}
+                assert isinstance(barrier_inv, expr.RelExpr) and \
+                       barrier_inv.op in {'<=', '>=', '>', '<'}
 
                 # TODO: e should be continous
 
@@ -968,10 +975,9 @@ class CmdVerifier:
                 # Translate 'e >= c' into 'e - c >= 0'
                 if barrier_inv.expr2 != 0:
                     expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
-                    expr1 = self.simplify_expression(expr1)
+                    # expr1 = self.simplify_expression(expr1)
                     barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
 
-                # print("BBBB:",barrier_inv)
                 e = barrier_inv.expr1
                 e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
 
