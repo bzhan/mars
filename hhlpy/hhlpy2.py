@@ -528,10 +528,6 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-             # TODO: copy assume for child of ghost
-
-
-
             if len(pos[1]) == 0 and cur_hp.inv is not None:
 
                 # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
@@ -557,8 +553,12 @@ class CmdVerifier:
                 for i, inv in enumerate(cur_hp.inv):
                     if isinstance(inv, invariant.CutInvariant):
                         if i == len(cur_hp.inv) - 1:
-                            self.infos[sub_pos].diff_cuts = [inv.inv] #TODO: don't cut and don't create a subpos here.
-                            sub_pos_left = (sub_pos[0], sub_pos[1] + (0,))
+                            if len(cur_hp.inv) == 1:
+                                # if there is only one invariant, we need to strengthen the post condition;
+                                # otherwise this will be done by previous cuts.
+                                self.infos[pos].vcs.append(expr.imp(inv.inv, self.infos[pos].post))
+                                post = inv.inv
+                            sub_pos_left = sub_pos
                         else:
                             subpost = subposts[-2-i]
                             self.infos[sub_pos].diff_cuts = [inv.inv, subpost]
@@ -726,11 +726,7 @@ class CmdVerifier:
                     
 
                     self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
-                    self.infos[sub_pos].assume += self.infos[pos].assume
-                    
-                    # If i == 0, no update for assume, else, assume is updated by adding diff_cuts[:i].
-                    if i != 0:
-                        self.infos[sub_pos].assume += self.infos[sub_pos].assume + diff_cuts[:i]
+                    self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
 
                     self.compute_wp(pos=sub_pos)
 
@@ -807,6 +803,8 @@ class CmdVerifier:
                     if not self.infos[sub_pos].eqs_dict:
                         self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict.copy()
                         self.infos[sub_pos].eqs_dict[ghost_var] = ghost_eqs[ghost_var]
+
+                    self.infos[sub_pos].assume += self.infos[pos].assume
 
                     self.compute_wp(pos=sub_pos)
 
