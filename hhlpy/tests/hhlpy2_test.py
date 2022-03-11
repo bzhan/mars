@@ -14,14 +14,6 @@ path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
 
 
 def runVerify(self, *, pre, hp, post, constants=set(),
-              solution_rule=None, 
-              diff_weakening_rule=None,
-              diff_invariant_rule=None, dI_invariants = None,
-              diff_cuts=None, 
-              dG_invariants=None, ghost_equations=None, ghost_invariants=None, 
-              darboux_rule=None, dbx_invariants=None, dbx_cofactors=None,
-              barrier_certificate_rule=None, barrier_invariants=None, 
-              conjunction_rule=None,
               wolfram_engine = False, z3 = True,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
@@ -33,118 +25,6 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
                            wolfram_engine=wolfram_engine, z3=z3)
             
-    # Set solution rule
-    if solution_rule:
-        for pos, sln_rule in solution_rule.items():
-            if isinstance(sln_rule, str):
-                sln_rule = parse_bexpr_with_meta(sln_rule)
-            verifier.use_solution_rule(pos, sln_rule)
-
-    # Set differential weakening rule
-    if diff_weakening_rule:
-        for pos, dw in diff_weakening_rule.items():
-            if isinstance(dw, str):
-                dw = parse_bexpr_with_meta(dw)
-            verifier.use_diff_weakening_rule(pos, dw)
-            
-    # Set differential invariant rule
-    if diff_invariant_rule:
-        for pos, diff_inv_rule in diff_invariant_rule.items():
-            if isinstance(diff_inv_rule, str):
-                diff_inv_rule = parse_bexpr_with_meta(diff_inv_rule)
-            verifier.use_diff_invariant_rule(pos, diff_inv_rule)
-
-    # Add dI invariants
-    if dI_invariants:
-        for pos, dI_inv in dI_invariants.items():
-            if isinstance(dI_inv, str):
-                dI_inv = parse_bexpr_with_meta(dI_inv)
-            verifier.add_dI_invariant(pos, dI_inv)
-    
-    # Add differential cuts
-    if diff_cuts:
-        for pos, sub_diffcuts_str in diff_cuts.items():
-            sub_diffcuts = []
-            for diff_cut in sub_diffcuts_str:
-                if isinstance(diff_cut, str):
-                    diff_cut = parse_bexpr_with_meta(diff_cut)
-                    sub_diffcuts.append(diff_cut)
-            verifier.add_diff_cuts(pos, sub_diffcuts)
-
-    # Add dG invariants
-    if dG_invariants:
-        for pos, dG_inv in dG_invariants.items():
-            if isinstance(dG_inv, str):
-                dG_inv = parse_bexpr_with_meta(dG_inv)
-            verifier.add_dG_invariant(pos, dG_inv)
-    
-    # Add ghost invariants
-    if ghost_invariants:
-        for pos, ghost_inv in ghost_invariants.items():
-            if isinstance(ghost_inv, str):
-                ghost_inv = parse_bexpr_with_meta(ghost_inv)
-            verifier.add_ghost_invariant(pos, ghost_inv)
-
-    # Add ghost equations：
-    if ghost_equations:
-        for pos, ghost_eqs in ghost_equations.items():
-            if isinstance(ghost_eqs, str):
-                # Remove the blank space.
-                ghost_eqs = "".join(ghost_eqs.split())
-                if ghost_eqs.count("_dot=") == 1:
-                    index = ghost_eqs.index('_dot')
-                    ghost_var = ghost_eqs[:index]
-                    ghost_diff = ghost_eqs[index + 5:]
-                    ghost_diff = parse_aexpr_with_meta(ghost_diff)
-                    
-                    ghost_eqs_dict = dict()
-                    ghost_eqs_dict[ghost_var] = ghost_diff
-                else:
-                    raise AssertionError("Wrong Form of Ghost Equations!")
-            verifier.add_ghost_equation(pos, ghost_eqs_dict)
-
-    # Set darboux rule. 
-    if darboux_rule:
-        for pos, dbx_rule in darboux_rule.items():
-            if isinstance(dbx_rule, str):
-                dbx_rule = parse_bexpr_with_meta(dbx_rule)
-            verifier.use_darboux_rule(pos, dbx_rule)
-
-    # Add dbx invariants.
-    if dbx_invariants:
-        for pos, dbx_inv in dbx_invariants.items():
-            if isinstance(dbx_inv, str):
-                dbx_inv = parse_bexpr_with_meta(dbx_inv)
-            verifier.add_darboux_invariant(pos, dbx_inv)
-
-    # Add dbx cofactors.
-    if dbx_cofactors:
-        for pos, dbx_cofactor in dbx_cofactors.items():
-            if isinstance(dbx_cofactor, str):
-                dbx_cofactor = parse_aexpr_with_meta(dbx_cofactor)
-            verifier.add_darboux_cofactor(pos, dbx_cofactor)
-
-    # Set barrier certificate rule.
-    if barrier_certificate_rule:
-        for pos, barrier_rule in barrier_certificate_rule.items():
-            if isinstance(barrier_rule, str):
-                barrier_rule = parse_bexpr_with_meta(barrier_rule)
-            verifier.use_barrier_certificate_rule(pos, barrier_rule)
-
-    # Add barrier invariant.
-    if barrier_invariants:
-        for pos, barrier_inv in barrier_invariants.items():
-            if isinstance(barrier_inv, str):
-                barrier_inv = parse_bexpr_with_meta(barrier_inv)
-            verifier.add_barrier_invariant(pos, barrier_inv)
-
-    # Set conjunction rule.
-    if conjunction_rule:
-        for pos, conj_rule in conjunction_rule.items():
-            if isinstance(conj_rule, str):
-                conj_rule = parse_bexpr_with_meta(conj_rule)
-            verifier.use_conjunction_rule(pos, conj_rule)
-
     # Compute wp and verify
     #while TODO == True:
     verifier.compute_wp()
