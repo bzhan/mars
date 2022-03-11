@@ -40,6 +40,8 @@ def compute_diff(e, eqs_dict):
                 raise NotImplementedError
         elif isinstance(e, expr.AConst):
             return expr.AConst(0)
+        elif isinstance(e, expr.BConst):
+            return expr.BConst(True)
         elif isinstance(e, expr.FunExpr):
             if len(e.exprs) == 0:
                 return expr.AConst(0)
@@ -528,7 +530,10 @@ class CmdVerifier:
                 for name, deriv in cur_hp.eqs:
                     self.infos[pos].eqs_dict[name] = deriv
 
-            if len(pos[1]) == 0 and cur_hp.inv is not None:
+            pre_dw = None
+
+            if len(pos[1]) == 0 and cur_hp.inv is not None: 
+            # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
 
                 # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
                 # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
@@ -548,10 +553,18 @@ class CmdVerifier:
                         raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
                     subposts.append(subpost)
 
-                # Strengthen post
+                # Apply differential weakening (dW)
                 if post != subposts[-1]:
-                    self.infos[pos].vcs.append(expr.imp(subposts[-1], post))
+
+                    # dW Rule (always applied automatically)
+                    #   {I && P} <x_dot = f(x) & D> { I }      (I && Boundary of D --> Q)  
+                    #-----------------------------------------------------------------------
+                    #              {P && (~D --> Q)} <x_dot = f(x) & D> {Q}
+                    pre_dw = expr.imp(expr.neg_expr(constraint), post)
+                    boundary = compute_boundary(constraint)
+                    self.infos[pos].vcs.append(expr.imp(expr.conj(subposts[-1], boundary), post))
                     post = subposts[-1]
+
 
                 # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
@@ -656,24 +669,6 @@ class CmdVerifier:
                             expr.imp(expr.RelExpr('>=', time_var, expr.AConst(0)),
                                     expr.imp(cond, conclu)))                                           
            
-            # Use dW rule
-            # Note: remain unproved!
-            # When dw is True.
-            #      P --> (~D -> Q) && (D -> (Boundary of D => Q))
-            #-----------------------------------------------------
-            #               {P} <x_dot = f(x) & D> {Q}
-            elif self.infos[pos].dw:
-
-                boundary = compute_boundary(constraint)
-                semi_vc = expr.imp(boundary, post)
-                if z3_prove(semi_vc):
-                    semi_vc_result = expr.true_expr
-                else:
-                    semi_vc_result = expr.false_expr
-
-                pre = expr.LogicExpr('&&', expr.imp(expr.neg_expr(constraint), post),
-                                           expr.imp(constraint, semi_vc_result))
-
             # Use dI rules
             # When dI_inv is set or by default
             elif self.infos[pos].dI_inv or self.infos[pos].dI_rule or \
@@ -1072,6 +1067,9 @@ class CmdVerifier:
 
             else:
                 raise AssertionError("No invariant set at position %s." % str(pos))
+
+            if pre_dw is not None:
+                pre = expr.conj(pre, pre_dw)
 
         elif isinstance(cur_hp, hcsp.Condition):
             # Condition, {P} cond -> c {Q}

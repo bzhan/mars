@@ -493,7 +493,8 @@ class LogicExpr(BExpr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
         assert op in ["&&", "||", "-->", "<-->", "~"]
-        assert all(isinstance(expr, BExpr) for expr in exprs)
+        assert all(isinstance(expr, BExpr) for expr in exprs), \
+            "Expected BExpr: {}".format(exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "LogicExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:

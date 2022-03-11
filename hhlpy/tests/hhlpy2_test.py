@@ -287,7 +287,7 @@ class HHLPyTest(unittest.TestCase):
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1]", post="x > 0",
                 expected_vcs={((1,), ()): ["x * y * y == 1 --> (EX y. x * y * y == 1)",
-                                           "(EX y. x * y * y == 1) --> x > 0"]})
+                                           "(EX y. x * y * y == 1) && t == 1 --> x > 0"]})
 
     def testVerify17(self):
         # Basic benchmark, problem9
@@ -362,8 +362,8 @@ class HHLPyTest(unittest.TestCase):
         # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
         runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> invariant ghost z [x * z * z == 1]", 
                   post="x > 0",
-                  expected_vcs={((), ()): ["x > 0 && y > 0 --> (EX z. x * z * z == 1)"],
-                                ((1,), ()): ["(EX z. x * z * z == 1) --> x > 0", 
+                  expected_vcs={((), ()): ["x > 0 && y > 0 --> (EX z. x * z * z == 1) && (0 >= 10 --> x > 0)"],
+                                ((1,), ()): ["(EX z. x * z * z == 1) && t == 10 --> x > 0", 
                                              "x * z * z == 1 --> (EX z. x * z * z == 1)"]})
     def testVerify25(self):
         # Basic benchmark, problem 18
@@ -463,9 +463,14 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 1 && y == 10 && z == -2", 
                   hp="<x_dot = y, y_dot = z + y^2 - y & y > 0> \
                       invariant \
-                        [y >= 0] {dw} \
                         [x >= 1]",
-                  post="x >= 1 && y >= 0")
+                  post="x >= 1 && y >= 0",
+                  expected_vcs={((),()): ["x >= 1 && y == 0 --> x >= 1 && y >= 0", 
+                                          # `y == 0` comes from implicit dW
+                                          "y > 0 --> y >= 0", 
+                                          # This is from dI (condition implies differential of invariant)
+                                          "x >= 1 && y == 10 && z == -2 --> x >= 1 && (y <= 0 --> x >= 1 && y >= 0)"]}) 
+                                          # `y <= 0 --> x >= 1 && y >= 0` is the dW precondition
 
     def testVerify35(self):
         # Benchmark, problem 28
@@ -615,7 +620,7 @@ class HHLPyTest(unittest.TestCase):
         # )**
         # {v >= 0}
         runVerify(self, pre="v >= 0 && A > 0 && B > 0",
-                  hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0> invariant [v >= 0] {dw})**\
+                  hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0> invariant [true])**\
                       invariant [v >= 0]",
                   post="v >= 0",
                   constants={'A', 'B'})
@@ -646,12 +651,12 @@ class HHLPyTest(unittest.TestCase):
                   hp="(if x + v^2 / (2*B) < S \
                           then (a := A; \
                               <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
-                              invariant [v >= 0] {dw} [x+v^2/(2*B) <= S] {dw}) \
+                              invariant [true]) \
                        elif v == 0 \
                           then a := 0 \
                        else (a := -B; \
                            <x_dot = v, v_dot = a & v > 0> \
-                           invariant [v >= 0] {dw} [a == -B] [x+v^2/(2*B) <= S]) \
+                           invariant [a == -B] [x+v^2/(2*B) <= S]) \
                        endif \
                       )** \
                       invariant [v >= 0] [x+v^2/(2*B) <= S]",
@@ -674,7 +679,7 @@ class HHLPyTest(unittest.TestCase):
                   hp="(   if v == V then a := 0 else a := A endif \
                        ++ if v != V then a := A else a := 0 endif; \
                           <x_dot = v, v_dot = a & v < V> \
-                          invariant [v <= V] {dw} \
+                          invariant [true] \
                       )** \
                       invariant [v <= V]",
                   post="v <= V",
@@ -693,7 +698,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="v <= V && A > 0", 
                   hp="(a := A;\
                       <x_dot = v, v_dot = a & v < V>\
-                      invariant [v <= V] {dw} \
+                      invariant [true] \
                        )**\
                        invariant [v <= V]",
                   post="v <= V",
@@ -719,7 +724,7 @@ class HHLPyTest(unittest.TestCase):
                        else \
                            a := A; \
                            <x_dot = v, v_dot = a & v < V> \
-                           invariant [v <= V] {dw}\
+                           invariant [true]\
                        endif \
                        )** \
                        invariant [v <= V]",
@@ -760,7 +765,7 @@ class WLHHLPyTest(unittest.TestCase):
                        ++ a := -B; \
                         c := 0; \
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
-                        invariant [v >= 0] {dw} [x+v^2/(2*B) <= S] {sln}\
+                        invariant [x+v^2/(2*B) <= S] {sln}\
                      )** \
                      invariant [v >= 0] [x+v^2/(2*B) <= S]",
                   post="x <= S",
@@ -825,7 +830,7 @@ class WLHHLPyTest(unittest.TestCase):
         # <x_dot = v, v_dot = a & v > 0>
         # {v >= 0}
         runVerify(self, pre="v >= 0 && a >= 0",
-                  hp="<x_dot = v, v_dot = a & v > 0> invariant [v >= 0] {dw}",
+                  hp="<x_dot = v, v_dot = a & v > 0> invariant [true]",
                   post="v >= 0")
 
     # Basic benchmark, problem 53, A() or A?
@@ -849,7 +854,7 @@ class WLHHLPyTest(unittest.TestCase):
                           invariant [a >= 0] [v >= 0 && A >= 0] \
                       else \
                           a := -b; <x_dot = v, v_dot = a & v > 0> \
-                          invariant [v >= 0] {dw} [A >= 0] \
+                          invariant [A >= 0] \
                       endif \
                       )** \
                       invariant [v >= 0] [A >= 0]",
@@ -889,7 +894,7 @@ class WLHHLPyTest(unittest.TestCase):
         # stren_post: {x == 2*t && t == 1}
         # {x == 2}
         runVerify(self, pre="x == 0",
-                  hp="t := 0; <x_dot = 2, t_dot = 1 & t < 1> invariant [x == 2 * t] [t == 1] {dw}",
+                  hp="t := 0; <x_dot = 2, t_dot = 1 & t < 1> invariant [x == 2 * t]",
                   post="x == 2")
 
     # def testVerify69(self):
@@ -986,7 +991,7 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x <= -2 || y <= -1)}
         runVerify(self, pre="x^2 + (-1/2 + y)^2 < 1/24",
                   hp="<x_dot = -x + 2*x^3*y^2, y_dot = -y & x^2*y^2 < 1> \
-                      invariant [4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y)] {bc} [x^2*y^2 == 1] {dw}",
+                      invariant [4*x*(1821+5601250*x)+4827750*x*y+125*(76794+(-45619)*x^3)*y^2 < 1375*(4891+3332*y)] {bc}",
                   post="~(x <= -2 || y <= -1)",
                   wolfram_engine=True)
 
