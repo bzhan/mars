@@ -27,7 +27,7 @@ def toWLexpr(e):
     elif isinstance(e, expr.FunExpr):
         return WLFunction(WLSymbol(e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
     elif isinstance(e, expr.BConst):
-        if isinstance(e, expr.true_expr):
+        if e.value is True:
             return True
         else:
             return False
@@ -297,9 +297,10 @@ def wl_prove(e):
 def wl_simplify(e):
     """Simplify the given hcsp expression"""
     wl_expr = toWLexpr(e)
+    # print("before:", wl_expr)
     # Use the Simplify function in wolfram.
     wl_expr = session.evaluate(wl.Simplify(wl_expr))
-
+    # print("after:", wl_expr)
     hcsp_expr = toHcsp(wl_expr)
 
     return hcsp_expr

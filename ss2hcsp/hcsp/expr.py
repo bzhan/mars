@@ -213,7 +213,7 @@ def list_mul(*args):
     elif len(args) == 1:
         return args[0]
     else:
-        return OpExpr('*', args[0], list_add(*args[1:]))
+        return OpExpr('*', args[0], list_mul(*args[1:]))
 
 class FunExpr(AExpr):
     def __init__(self, fun_name, exprs, meta=None):

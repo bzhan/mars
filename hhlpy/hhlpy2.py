@@ -60,7 +60,8 @@ def compute_diff(e, eqs_dict):
             elif e.op == '*':
                 # d(u*v) = u*dv + du*v
                 du, dv = rec(e.exprs[0]), rec(e.exprs[1])
-                return expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), expr.OpExpr("*", du, e.exprs[1]))
+                return expr.OpExpr("+", expr.OpExpr("*", e.exprs[0], dv), 
+                                        expr.OpExpr("*", du, e.exprs[1]))
             elif e.op == '^' and isinstance(e.exprs[1], expr.AConst):
                 # d(u^n) = n * u^(n-1) * du
                 du = rec(e.exprs[0])
@@ -780,7 +781,7 @@ class CmdVerifier:
                     # Since dg/dx * dx + dg/dy * dy == 0, so dy = -(dg/dx * dx) / dg/dy
                     dy = expr.OpExpr("-", expr.OpExpr("/", dg_x, dgdy))
                     # Simplify dy
-                    dy = self.simplify_expr(dy)
+                    dy = self.simplify_expression(dy)
 
                     self.infos[pos].ghost_eqs = {ghost_var: dy}
 
@@ -824,6 +825,8 @@ class CmdVerifier:
                 # By default, dbx_inv is post.
                 if self.infos[pos].dbx_inv is None:
                     self.infos[pos].dbx_inv = post
+                else:
+                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].dbx_inv, post))
                 dbx_inv = self.infos[pos].dbx_inv
 
                 # For example, simplify ~(x > 1) to x <= 1
@@ -863,7 +866,7 @@ class CmdVerifier:
                     # Compute the cofactor g by auto.
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', e_lie_deriv, e)
-                        g = self.simplify_expr(g)
+                        g = self.simplify_expression(g)
                         self.infos[pos].dbx_cofactor = g
 
                         denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
@@ -928,10 +931,6 @@ class CmdVerifier:
                                                                     expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
                         
                         self.infos[pos].vcs.append(vc)
-
-                
-                if dbx_inv != post:
-                    self.infos[pos].vcs.append(expr.imp(dbx_inv, post))
                 
                 pre = dbx_inv   
           
@@ -946,13 +945,19 @@ class CmdVerifier:
                 # Use post as barrier invariant if it's not offered.
                 if self.infos[pos].barrier_inv is None:
                     self.infos[pos].barrier_inv = post
+                else:
+                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].barrier_inv, post))
+
                 barrier_inv = self.infos[pos].barrier_inv
 
-                assert post.op in {'<=', '>=', '>', '<'}
+                pre = barrier_inv
+
+                barrier_inv = self.simplify_expression(barrier_inv)
+                # print("AAAA:", barrier_inv)
+
+                assert barrier_inv.op in {'<=', '>=', '>', '<'}
 
                 # TODO: e should be continous
-
-                pre = barrier_inv
 
                 # Translate '<=' into '>='
                 if barrier_inv.op == '<=':
@@ -963,20 +968,19 @@ class CmdVerifier:
                 # Translate 'e >= c' into 'e - c >= 0'
                 if barrier_inv.expr2 != 0:
                     expr1 = expr.OpExpr('-', barrier_inv.expr1, barrier_inv.expr2)
-                    expr1 = self.simplify_expr(expr1)
+                    expr1 = self.simplify_expression(expr1)
                     barrier_inv = expr.RelExpr(barrier_inv.op, expr1, expr.AConst(0))
 
+                # print("BBBB:",barrier_inv)
                 e = barrier_inv.expr1
                 e_lie = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
+
 
                 vc = expr.imp(expr.LogicExpr('&&', constraint, 
                                                    expr.RelExpr('==', e, expr.AConst(0))),
                               expr.RelExpr('>', e_lie, expr.AConst(0)))
 
                 self.infos[pos].vcs.append(vc)
-
-                if barrier_inv != post:
-                    self.infos[pos].vcs.append(expr.imp(barrier_inv, post))
 
             # Using Conjuntion Rule
                 #  {P1} c {Q1}     {P2} c {Q2}   P --> P1 && P2

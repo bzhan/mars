@@ -1156,8 +1156,78 @@ class WLHHLPyTest(unittest.TestCase):
                   diff_cuts={((1,), ()): ["y > 0", "~(x > 1 + y)"]},
                   darboux_rule={((1,), (0,)): "true",
                                 ((1,), (1,)): "true"},
-                #   wolfram_engine=True,
                   print_vcs=True)
+
+    def testNonlinear15(self):
+        # Nonlinear benchmark, problem 15
+        # {x > -1 && x < -1/2 && y <= -1/10 && y >= -3/10}
+        #     t := 0;
+        #     <x_dot = 315*x^7+477*x^6*y-113*x^5*y^2+301*x^4*y^3-300*x^3*y^4-192*x^2*y^5+128*x*y^6-16*y^7,
+        #      y_dot = y*(2619*x^6-99*x^5*y-3249*x^4*y^2+1085*x^3*y^3+596*x^2*y^4-416*x*y^5+64*y^6)
+        #      t_dot = 1 & t < 10>@invariant(x<y)
+        # {~(x > 1 + y)}
+        runVerify(self, pre="x > -1 && x < -1/2 && y <= -1/10 && y >= -3/10",
+                  hp="t := 0; \
+                      <x_dot = 315*x^7+477*x^6*y-113*x^5*y^2+301*x^4*y^3- \
+                      300*x^3*y^4-192*x^2*y^5+128*x*y^6-16*y^7, \
+                       y_dot = y*(2619*x^6-99*x^5*y-3249*x^4*y^2+1085*x^3*y^3 \
+                      +596*x^2*y^4-416*x*y^5+64*y^6), \
+                       t_dot = 1 & t < 10>",
+                  post="~(x > 1 + y)",
+                  dbx_invariants={((1,), ()): "x < y"})
+
+    def testNonlinear16(self):
+        # Nonlinear benchmark, problem 16
+        # {(-1 + x)^2 + (1 + y)^2 < 1/4}
+        #      t := 0;
+        #     <x_dot = x^4+2*x*y^2-6*x^2*y^2+y^4+x*(x^2-y^2), 
+        #      y_dot = 2*x^2*y-4*x^3*y+4*x*y^3-y*(x^2-y^2),
+        #      t_dot = 1 & t  < 10>@invariant(y < 0)>
+        # {~(y >= 1)}
+        runVerify(self, pre="(-1 + x)^2 + (1 + y)^2 < 1/4",
+                  hp="t := 0; \
+                      <x_dot = x^4+2*x*y^2-6*x^2*y^2+y^4+x*(x^2-y^2), \
+                       y_dot = 2*x^2*y-4*x^3*y+4*x*y^3-y*(x^2-y^2), \
+                       t_dot = 1 & t < 10>",
+                  post="~(y >= 1)",
+                  dbx_invariants={((1,), ()): "y < 0"})
+
+    def testNonlinear17(self):
+        # Nonlinear benchmark, problem 17
+        # {x > -1/2 && x < -1/3 && y < 0 && y >= -1/2}
+        #     t := 0;
+        #     <x_dot = 2*x-x^5-x*y^4, 
+        #      y_dot = y-x^2*y-y^3,
+        #      t_dot = 1 & t < 10>@invariant(x < 0, y < 0)
+        # {~(x + y > 0)}
+        runVerify(self, pre="x > -1/2 && x < -1/3 && y < 0 && y >= -1/2",
+                  hp="t := 0; \
+                      <x_dot = 2*x-x^5-x*y^4, \
+                       y_dot = y-x^2*y-y^3, \
+                       t_dot = 1 & t < 10>",
+                  post="~(x + y > 0)",
+                  diff_cuts={((1,), ()): ["x < 0", "y < 0"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true"})
+
+    def testNonlinear18(self):
+        # Nonlinear benchmark, problem 18
+        # {x>-1/2 && x < -1/3 && y<0 && y>=-1/2}
+        #     t := 0;
+        #     <x_dot = x*(1-x^2-y^2)+y*((-1+x^2)^2+y^2), 
+        #      y_dot = y*(1-x^2-y^2)-y*((-1+x^2)^2+y^2),
+        #      t_dot = 1 & t < 10>@invariant(y < 0, x+y < 0)
+        # {~(x>=0)}
+        runVerify(self, pre="x>-1/2 && x < -1/3 && y<0 && y>=-1/2",
+                  hp="t := 0; \
+                      <x_dot = x*(1-x^2-y^2)+y*((-1+x^2)^2+y^2), \
+                       y_dot = y*(1-x^2-y^2)-y*((-1+x^2)^2+y^2), \
+                       t_dot = 1 & t < 10>",
+                  post="~(x>=0)",
+                  diff_cuts={((1,), ()): ["y < 0", "x + y < 0", "~(x >= 0)"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true",
+                                ((1,), (2,)): "true"})
 
 if __name__ == "__main__":
     unittest.main()
