@@ -548,16 +548,16 @@ class CmdVerifier:
                         raise NotImplementedError("unknown invariant instruction {}".format(type(inv)))
                     subposts.append(subpost)
 
+                # Strengthen post
+                if post != subposts[-1]:
+                    self.infos[pos].vcs.append(expr.imp(subposts[-1], post))
+                    post = subposts[-1]
+
                 # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
                 for i, inv in enumerate(cur_hp.inv):
                     if isinstance(inv, invariant.CutInvariant):
                         if i == len(cur_hp.inv) - 1:
-                            if len(cur_hp.inv) == 1:
-                                # if there is only one invariant, we need to strengthen the post condition;
-                                # otherwise this will be done by previous cuts.
-                                self.infos[pos].vcs.append(expr.imp(inv.inv, self.infos[pos].post))
-                                post = inv.inv
                             sub_pos_left = sub_pos
                         else:
                             subpost = subposts[-2-i]
@@ -743,6 +743,9 @@ class CmdVerifier:
 
                 dC_inv = expr.list_conj(*diff_cuts)
                 self.infos[pos].vcs.append(expr.imp(dC_inv, post))
+                #TODO: Remove this condition? With the new setup, dC_inv == post
+                #assert (dC_inv == post)
+                
                 pre = expr.list_conj(*pre_list)
 
             # Use dG rules
