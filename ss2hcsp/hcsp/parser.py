@@ -51,9 +51,6 @@ grammar = r"""
     ?atom_cond: "true" -> true_cond
         | "false" -> false_cond
         | "(" cond ")"
-    
-    ?neg_cond: "~" neg_cond -> not_cond          // priority 80
-        | atom_cond
 
     ?rel_cond: expr "==" expr -> eq_cond         // priority 50
         | expr "!=" expr -> ineq_cond
@@ -61,9 +58,12 @@ grammar = r"""
         | expr "<" expr -> less_cond
         | expr ">=" expr -> greater_eq_cond
         | expr ">" expr -> greater_cond
-        | neg_cond
+        | atom_cond
 
-    ?conj: rel_cond "&&" conj | rel_cond         // Conjunction: priority 35
+    ?neg_cond: "~" neg_cond -> not_cond          // priority 40
+        | rel_cond
+
+    ?conj: neg_cond "&&" conj | neg_cond         // Conjunction: priority 35
 
     ?disj: conj "||" disj | conj                 // Disjunction: priority 30
 

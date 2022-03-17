@@ -1155,8 +1155,7 @@ class WLHHLPyTest(unittest.TestCase):
                   post="~(x > 1 + y)",
                   diff_cuts={((1,), ()): ["y > 0", "~(x > 1 + y)"]},
                   darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"},
-                  print_vcs=True)
+                                ((1,), (1,)): "true"})
 
     def testNonlinear15(self):
         # Nonlinear benchmark, problem 15
@@ -1330,8 +1329,7 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                   <x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10>",
                   post="~(1-(x-8.2)^2 - (y-4)^2 >= 0)",
-                  dI_invariants={((1,), ()): "3*x^2*(3+x) <= 1181+3*((-3)+y)*y^2"},
-                  print_vcs=True)
+                  dI_invariants={((1,), ()): "3*x^2*(3+x) <= 1181+3*((-3)+y)*y^2"})
 
     def testNonlinear29(self):
         # Nonlinear benckmark, problem29
@@ -1598,6 +1596,837 @@ class WLHHLPyTest(unittest.TestCase):
                      <x_dot = (2+x)*(-((1-x)*x)+y), y_dot = -y, t_dot = 1 & t < 10>",
                   post="~(x <= -5/2)",
                   dbx_invariants={((1,), ()): "2 + x > 0"})
+
+    def testNonlinear47(self):
+        # Nonlinear benchmark, problem 47
+        # {(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16}
+        #      t := 0;
+        #     <x_dot = -x+2*y+x^2*y+x^4*y^5, 
+        #      y_dot = -y-x^4*y^6+x^8*y^9,
+        #      t_dot = 1 & t < 10>@invariant(y>0)
+        # {~(x <= -1 || y <= -1)}
+        runVerify(self, pre="(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16",
+                  hp="t := 0; \
+                     <x_dot = -x+2*y+x^2*y+x^4*y^5, \
+                      y_dot = -y-x^4*y^6+x^8*y^9, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x <= -1 || y <= -1)",
+                  diff_cuts={((1,), ()): ["y > 0", "x > 0"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true"})
+
+    def testNonlinear48(self):
+        # Nonlinear benchmark, problem 48
+        # {4 <= x1 && x1 <= 4.5 && 1 <= x2 && x2 <= 2}
+        #     <x1_dot = -11/2*x2 + x2^2 , 
+        #      x2_dot = 6*x1-x1^2 &
+        #     1 <= x1 && x1 <= 5 && 1 <= x2 && x2 <= 5>
+        #       @invariant(349+4*((-9)+x1)*x1^2+x2^2*((-33)+4*x2)<=0)
+        # {~(1 <= x1 && x1 <= 2 && 2 <= x2 && x2 <= 3)}
+        runVerify(self, pre="4 <= x1 && x1 <= 4.5 && 1 <= x2 && x2 <= 2",
+                  hp="<x1_dot = -11/2*x2 + x2^2, \
+                       x2_dot = 6*x1-x1^2 \
+                       & 1 < x1 && x1 < 5 && 1 < x2 && x2 < 5>",
+                  post="~(1 <= x1 && x1 <= 2 && 2 <= x2 && x2 <= 3)",
+                  diff_cuts={((), ()): ["349+4*((-9)+x1)*x1^2+x2^2*((-33)+4*x2)<=0",
+                                          "1 <= x1 && x1 <= 5 && 1 <= x2 && x2 <= 5"]},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear49(self):
+        # Nonlinear benchmark, problem 49
+        # {-1/5 <= x1 && x1 <= 1/5 && 
+        #  3/10 <= x2 && x2 <= 7/10}
+        #     <x1_dot = -x1 + 2*x1^3*x2^2,
+        #      x2_dot = -x2 &
+        #     -2 < x1 && x1 < 2 &&
+        #     -2 < x2 && x2 < 2>@invariant(x1*x2 < 1)
+        # {~(
+        #     -2 <= x1 && x1 <= -1 &&
+        #     -2 <= x2 && x2 <= -1
+        #   )}
+        runVerify(self, pre="-1/5 <= x1 && x1 <= 1/5 && \
+                             3/10 <= x2 && x2 <= 7/10",
+                  hp="<x1_dot = -x1 + 2*x1^3*x2^2, \
+                       x2_dot = -x2 & \
+                       -2 < x1 && x1 < 2 && \
+                       -2 < x2 && x2 < 2>",
+                  post="~( \
+                            -2 <= x1 && x1 <= -1 && \
+                            -2 <= x2 && x2 <= -1 \
+                        )",
+                  diff_cuts={((), ()): ["x1*x2 < 1", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2"]},
+                  darboux_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear50(self):
+        # Nonlinear benchmark, problem 50
+        #  {-1 <= x1 && x1 <= 0 &&
+        #   -1 <= x2 && x2 <= 0}
+        #     <x1_dot = -1 + x1^2 + x2^2, 
+        #      x2_dot = 5*(-1 + x1*x2) &
+        #     -2 < x1 && x1 < 2 &&
+        #     -2 < x2 && x2 < 2>@invariant(22667*x1^2+x2*(257910+6221*x2)+x1*(141840+15973*x2) < 42786)
+        #  {~(
+        #     1 <= x1 && x1 <= 2 &&
+        #     1 <= x2 && x2 <= 2
+        #   )}
+        runVerify(self, pre="-1 <= x1 && x1 <= 0 && \
+                             -1 <= x2 && x2 <= 0",
+                  hp="<x1_dot = -1 + x1^2 + x2^2, \
+                       x2_dot = 5*(-1 + x1*x2) & \
+                       -2 < x1 && x1 < 2 && \
+                       -2 < x2 && x2 < 2>",
+                  post="~( \
+                            1 <= x1 && x1 <= 2 && \
+                            1 <= x2 && x2 <= 2 \
+                        )",
+                  diff_cuts={((), ()): ["22667*x1^2+x2*(257910+6221*x2)+x1*(141840+15973*x2) \
+                                        < 42786", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear51(self):
+        # Nonlinear benchmark, problem 51
+        #  {-1/10 <= x1 && x1 <= 1/10 &&
+        #   -1/10 <= x2 && x2 <= 1/10}
+        #     <x1_dot = -2*x1 + x1^2 + x2, 
+        #      x2_dot = x1 - 2*x2 + x2^2 &
+        #     -1 < x1 && x1 < 1 &&
+        #     -1 < x2 && x2 < 1>@invariant(x1*(189+111470000*x1)+x2*(189+111470000*x2) < 43801000)
+        #  {~(
+        #     1/2 <= x1 && x1 <= 1 &&
+        #     1/2 <= x2 && x2 <= 1
+        #   )}
+        runVerify(self, pre="-1/10 <= x1 && x1 <= 1/10 && \
+                             -1/10 <= x2 && x2 <= 1/10",
+                  hp="<x1_dot = -2*x1 + x1^2 + x2, \
+                       x2_dot = x1 - 2*x2 + x2^2 & \
+                       -1 < x1 && x1 < 1 && \
+                       -1 < x2 && x2 < 1>",
+                  post="~( \
+                            1/2 <= x1 && x1 <= 1 && \
+                            1/2 <= x2 && x2 <= 1 \
+                        )",
+                  diff_cuts={((), ()): ["x1*(189+111470000*x1)+x2*(189+111470000*x2) < 43801000",
+                                        "-1 <= x1 && x1 <= 1 && \
+                                         -1 <= x2 && x2 <= 1"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"}     
+                )
+    def testNonlinear52(self):
+        # Nonlinear benchmark, problem 52
+        #  {-3/2 <= x1 && x1 <= -1/2 &&
+        #   -3/2 <= x2 && x2 <= -1/2}
+        #     <x1_dot = -x1 + x1*x2, x2_dot = -x2 &
+        #     -2 <= x1 && x1 <= 2 &&
+        #     -2 <= x2 && x2 <= 2>@invariant(x2 < 0)
+        #  {~(
+        #     -1/2 <= x1 && x1 <= 1/2 &&
+        #      1/2 <= x2 && x2 <= 3/2
+        #   )}
+        runVerify(self, pre="-3/2 <= x1 && x1 <= -1/2 && \
+                             -3/2 <= x2 && x2 <= -1/2",
+                  hp="<x1_dot = -x1 + x1*x2, x2_dot = -x2 & \
+                        -2 < x1 && x1 < 2 && \
+                        -2 < x2 && x2 < 2>",
+                  post="~( \
+                           -1/2 <= x1 && x1 <= 1/2 && \
+                            1/2 <= x2 && x2 <= 3/2 \
+                        )",
+                  diff_cuts={((), ()): ["x2 < 0", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2"]},
+                  darboux_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear53(self):
+        # Nonlinear benchmark, problem 53
+        #  {-3/2 <= x1 && x1 <= -1/2 &&
+        #   -3/2 <= x2 && x2 <= -1/2}
+        #     <x1_dot = -x1 + x1*x2, x2_dot = -x2 &
+        #     -2 <= x1 && x1 <= 2 &&
+        #     -2 <= x2 && x2 <= 2>@invariant(x2 < 0)
+        #  {~(
+        #     -1/2 <= x1 && x1 <= 1/2 &&
+        #      1/2 <= x2 && x2 <= 3/2
+        #   )}
+        runVerify(self, pre="-3/2 <= x1 && x1 <= -1/2 && \
+                             -3/2 <= x2 && x2 <= -1/2",
+                  hp="<x1_dot = -x1 + x1*x2, x2_dot = -x2 & \
+                        -2 < x1 && x1 < 2 && \
+                        -2 < x2 && x2 < 2>",
+                  post="~( \
+                            -1/2 <= x1 && x1 <= 1/2 && \
+                            1/2 <= x2 && x2 <= 3/2 \
+                        )",
+                  diff_cuts={((), ()): ["x2 < 0", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2"]},
+                  darboux_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    # TODO: Problem 54, invariant unknown
+
+    def testNonlinear55(self):
+        # Nonlinear benchmark, problem 55
+        # {(-3/2 + x)^2 + y^2 <= 1/4}
+        #      t := 0;
+        #     <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10>
+        #     @invariant(x>=0)
+        # {~((1 + x)^2 + (1 + y)^2 <= 4/25)}
+        runVerify(self, pre="(-3/2 + x)^2 + y^2 <= 1/4",
+                  hp="t := 0; \
+                      <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10>",
+                  post="~((1 + x)^2 + (1 + y)^2 <= 4/25)",
+                  dbx_invariants={((1,), ()): "x >= 0"})
+
+    # TODO: nonlinear problem 56, ODE rule is not clear. Not proved by keymaerax yet.
+    # def testNonlinear56(self):
+    #     # Nonlinear benchmark, problem 56
+    #     # {-3<=x && x<=-2 && -3<=y && y<=-2}
+    #     #      t := 0;
+    #     #     <x_dot = 4 + 21*x - 7*y + 42*x^2 - 24*x*y + 4*y^2 + 27*x^3 - 9*x^2*y + 6*x^4,
+    #     #      y_dot = 12 + 71*x -21*y + 150*x^2 -80*x*y + 12*y^2 + 99*x^3 - 39*x^2*y + 2*x*y^2 + 18*x^4, 
+    #     #      t_dot = 1 & t < 10>
+    #     #     @invariant(3+x>=0, 3+y>=0, 4+3*x*(1+x)*(7+x*(7+2*x))+4*y^2>(7+3*x*(8+3*x))*y, 1+x*(3+x)>y, 1+3*x*(2+x)>2*y, 2+3*x < y, x < 0, y < 0)
+    #     # {~(x >= 0 || y >= 0)}
+    #     runVerify(self, pre="-3<=x && x<=-2 && -3<=y && y<=-2",
+    #               hp="t := 0; \
+    #                 <x_dot = 4 + 21*x - 7*y + 42*x^2 - 24*x*y + 4*y^2 + 27*x^3 - 9*x^2*y + 6*x^4, \
+    #                 y_dot = 12 + 71*x -21*y + 150*x^2 -80*x*y + 12*y^2 + 99*x^3 - 39*x^2*y + 2*x*y^2 + 18*x^4, \
+    #                 t_dot = 1 & t < 10>",
+    #               post="~(x >= 0 || y >= 0)",
+    #               diff_cuts={((1,), ()): ["3+x >= 0", "3+y>=0", "4+3*x*(1+x)*(7+x*(7+2*x))+4*y^2>(7+3*x*(8+3*x))*y", "..."]},
+    #               darboux_rule={((1,), (0,)): "true",
+    #                             ((1,), (1,)): "true",
+    #                             ((1,), (2,)): "true"},
+    #               wolfram_engine=True)
+
+    # TODO: Problem 57. Invariant not known.
+
+    def testNonlinear58(self):
+        # Nonlinear benchmark, problem 58
+        # {(x + 2)^2 + (y + 2)^2 <= 5}
+        #    t := 0;
+        #   <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>
+        #   @invariant(x+y < 0, x < ((-2)+y)*y)
+        # {2*x+y < 0}
+        runVerify(self, pre="(x + 2)^2 + (y + 2)^2 <= 5",
+                  hp="t := 0; \
+                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>",
+                  post="2*x+y < 0",
+                  diff_cuts={((1,), ()): ["x+y < 0", "x < ((-2)+y)*y", "2*x+y < 0"]},
+                  darboux_rule={((1,), (0,)): "true"},
+                  barrier_certificate_rule={((1,), (1,)): "true"},
+                  diff_invariant_rule={((1,), (2,)): "true"})
+
+    def testNonlinear59(self):
+        # Nonlinear benchmark, problem 59
+        # {(x - 4)^2 + y^2 <= 1}
+        #    t := 0;
+        #   <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>
+        #   @invariant(y<=1, 273630+y*((-32671)+81001*y) < 123190*x)
+        # {~(x < 2 || y > 1)}
+        runVerify(self, pre="(x - 4)^2 + y^2 <= 1",
+                  hp="t := 0; \
+                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>",
+                  post="~(x < 2 || y > 1)",
+                  diff_cuts={((1,), ()): ["y<=1", 
+                                          "273630+y*((-32671)+81001*y) < 123190*x"]},
+                  darboux_rule={((1,), (0,)): "true"},
+                  barrier_certificate_rule={((1,), (1,)): "true"})
+
+    def testNonlinear60(self):
+        # Nonlinear benchmark, problem 60
+        # {(x+3)^2+(y+3)^2<=1}
+        #   <x_dot = 3*x+y^2, y_dot = 5*y 
+        #       & -6<=x && x<= 6 && -6 <= y && y<=6>
+        #       @invariant(63232*x^3+x^2*((-66727)+176350*y)+10*x*(42940+y*(55669+25688*y))+10*(808140+y*(289690+9*y*(9466+1595*y))) < 0)
+        # {x + y < -2}
+        runVerify(self, pre="(x+3)^2+(y+3)^2<=1",
+                  hp="<x_dot = 3*x+y^2, y_dot = 5*y \
+                        & -6 < x && x < 6 && -6 < y && y < 6>",
+                  post="x + y < -2",
+                  diff_cuts={((), ()): [" -6<=x && x<= 6 && -6 <= y && y<=6",
+                                        "63232*x^3+x^2*((-66727)+176350*y)+10*x*(42940+y*(55669+25688*y))+10*(808140+y*(289690+9*y*(9466+1595*y))) < 0"]},
+                  diff_weakening_rule={((), (0,)): "true"},
+                  barrier_certificate_rule={((), (1,)): "true"})
+
+    # TODO: Nonlinear problem 61. Invariants unknown.
+
+    def testNonlinear62(self):
+        # Nonlinear benchmark, problem 62
+        # {(x + 3)^2 + (y + 3)^2 <= 1}
+        #    t := 0;
+        #   <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>
+        #   @invariant(1+y < 0, 70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y))]
+        # {x+y < -2}
+        runVerify(self, pre="(x + 3)^2 + (y + 3)^2 <= 1",
+                  hp="t := 0; \
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
+                  post="x+y < -2",
+                  diff_cuts={((1,), ()): ["1+y < 0",
+                                          "70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y)"]},
+                  darboux_rule={((1,), (0,)): "true"},
+                  barrier_certificate_rule={((1,), (1,)): "true"})
+
+    def testNonlinear63(self):
+        # Nonlinear benchmark, problem 63
+        # {(x - 4)^2 + (y - 4)^2 <= 1}
+        #    t := 0;
+        #   <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>
+        #   @invariant(1+y>0, x^2 < y*(x+y), 387150000+426*x^2+85*y < 36465000*x*y)
+        # {(x - 2)^2 + (y - 2)^2 > 3}
+        runVerify(self, pre="(x - 4)^2 + (y - 4)^2 <= 1",
+                  hp="t := 0; \
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
+                  post="(x - 2)^2 + (y - 2)^2 > 3",
+                  diff_cuts={((1,), ()): ["1+y>0", 
+                                          "x^2 < y*(x+y)", 
+                                          "387150000+426*x^2+85*y < 36465000*x*y"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true"},
+                  barrier_certificate_rule={((1,), (2,)): "true"})
+
+    def testNonlinear64(self):
+        # Nonlinear benchmark, problem 64
+        # {(x + 1)^2 + (y - 4)^2 <= 1}
+        #    t := 0;
+        #   <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>
+        #       @invariant(1+y>0, 23921*x+18696*y+2089*x*y>5916)
+        # {(x + 2)^2 + (y + 2)^2 > 2}
+        runVerify(self, pre="(x + 1)^2 + (y - 4)^2 <= 1",
+                  hp="t := 0; \
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
+                  post="(x + 2)^2 + (y + 2)^2 > 2",
+                  diff_cuts={((1,), ()): ["1+y>0", "23921*x+18696*y+2089*x*y>5916"]},
+                  darboux_rule={((1,), (0,)): "true"},
+                  barrier_certificate_rule={((1,), (1,)): "true"})
+
+    # TODO: Nonlinear 65, 66, 67. Invariants unknown.
+
+    def testNonlinear68(self):
+        # Nonlinear benchmark, problem 68
+        # {(x-1)^2+y^2<=0.04 &&
+        #   u1 == -1 && u2 == 3}
+        #   <x_dot = u1*y-3/2*x^2-1/2*x^3, y_dot = u2*x-y 
+        #       & -2<=x && x<=2 && -2<=y && y<=2>
+        #    @invariant(x*((-26090)+x*(34696+12539*x))+38464*y < 61620)
+        # {~((x+1.8)^2+y^2 <= 0.16)}
+        runVerify(self, pre="(x-1)^2+y^2<=0.04 && u1 == -1 && u2 == 3",
+                  hp="<x_dot = u1*y-3/2*x^2-1/2*x^3, y_dot = u2*x-y \
+                      & -2<x && x<2 && -2<y && y<2>",
+                  post="~((x+1.8)^2+y^2 <= 0.16)",
+                  constants={'u1', 'u2'},
+                  diff_cuts={((), ()): ["x*((-26090)+x*(34696+12539*x))+38464*y < 61620",
+                                        "-2<=x && x<=2 && -2<=y && y<=2"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear69(self):
+        # Nonlinear benchmark, problem 69
+        # {(x1+1.125)^2 + (x2-0.625)^2 - 0.0125 <= 0}
+        #    t := 0;
+        #   <x1_dot = -x1+x1*x2, x2_dot = -x2, t_dot = 1 & t < 10>@invariant(x1 < 0)
+        # {~((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)}
+        runVerify(self, pre="(x1+1.125)^2 + (x2-0.625)^2 - 0.0125 <= 0",
+                  hp="t := 0; \
+                     <x1_dot = -x1+x1*x2, x2_dot = -x2, t_dot = 1 & t < 10>",
+                  post="~((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)",
+                  dbx_invariants={((1,), ()): "x1 < 0"})
+
+    # TODO: Nonlinear 70. Invariants unknown.
+
+    def testNonlinear71(self):
+        # Nonlinear benchmark, problem 71
+        # {x == 1 && y == 1 && z == 1}
+        #    t := 1;
+        #   <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
+        #    t_dot = 1 & t < 10>@invariant(x>0, y>0, z>0)
+        # {x + 2*y + z^3 > 0}
+        runVerify(self, pre="x == 1 && y == 1 && z == 1",
+                  hp="t := 1; \
+                    <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
+                     t_dot = 1 & t < 10>",
+                  post="x + 2*y + z^3 > 0",
+                  diff_cuts={((1,), ()): ["x>0", "y>0", "z>0"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true",
+                                ((1,), (2,)): "true"})
+
+    def testNonlinear72(self):
+        # Nonlinear benchmark, problem 72
+        # {x == -1 && y == -1 && z == -1}
+        #    t := 0;
+        #   <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, 
+        #    t_dot = 1 & t < 10>@invariant(x<0, y<0, z<0)
+        # {x^5 + 12*y + z^3 < 0}
+        runVerify(self, pre="x == -1 && y == -1 && z == -1",
+                  hp="t := 0; \
+                     <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
+                      t_dot = 1 & t < 10>",
+                  post="x^5 + 12*y + z^3 < 0",
+                  diff_cuts={((1,), ()): ["x<0", "y<0", "z<0"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true",
+                                ((1,), (2,)): "true"})
+
+    def testNonlinear73(self):
+        # Nonlinear benchmark, problem 73
+        # {x == 1 && y == 1 && z == -1}
+        #    t := 0;
+        #   <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y,
+        #    t_dot = 1 & t < 10>@invariant(x>0, y>0, z<0)
+        # {x + y - z > -2}
+        runVerify(self, pre="x == 1 && y == 1 && z == -1",
+                  hp="t := 0; \
+                     <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
+                      t_dot = 1 & t < 10>",
+                  post="x + y - z > -2",
+                  diff_cuts={((1,), ()): ["x>0", "y>0", "z<0"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true",
+                                ((1,), (2,)): "true"})
+
+    # TODO: Nonlinear benchamark, problem 74: (Constraint)
+    # {x == 1 && y == 0 && z == 0}
+    #   <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & x^2+y^2+z^2 == 1>
+    #   @invariant(x+y>0)
+    # {~((x > -1 -> x^2 > 2) || z > 1)}
+
+    def testNonlinear75(self):
+        # Nonlinear benchmark, problem 75
+        # {x1 == 0 && x2 == 0 && x3 == 0}
+        #    t := 0;
+        #   <x1_dot = 1 - x1 - (x1*x2)/4, 
+        #    x2_dot = x2*(-1 + 2*x3), 
+        #    x3_dot = x1/4 - 2*x3^2,
+        #    t_dot = 1 & t < 10>@invariant(x2==0, x1<=5)
+        # {x1 <= 5 && x2 <= 5 && x3 <= 5}
+        # In this problem, sympy.div cannot compute the right quotient and remainder
+        # for the last cut, so we use wolfram engine or offer the cofactors.
+        runVerify(self, pre="x1 == 0 && x2 == 0 && x3 == 0",
+                  hp="t := 0; \
+                     <x1_dot = 1 - x1 - (x1*x2)/4, \
+                      x2_dot = x2*(-1 + 2*x3), \
+                      x3_dot = x1/4 - 2*x3^2, \
+                      t_dot = 1 & t < 10>",
+                  post="x1 <= 5 && x2 <= 5 && x3 <= 5",
+                  diff_cuts={((1,), ()): ["x2==0", "x1<=5", "x3 <= 5"]},
+                  darboux_rule={((1,), (0,)): "true",
+                                ((1,), (1,)): "true",
+                                ((1,), (2,)): "true"},
+                  dbx_cofactors={((1,), (2,)): "-10 - 2*x3"},   
+                #   wolfram_engine=True,
+                )
+
+    def testNonlinear76(self):
+        # Nonlinear benchmark, problem 76
+        # {x == 1/4 && y == 1/8 && z == 1/10}
+        #      t := 0;
+        #     <x_dot = x^2-x*(x^3+y^3+z^3), 
+        #      y_dot = y^2-y*(x^3+y^3+z^3), 
+        #      z_dot = z^2-z*(x^3+y^3+z^3),
+        #      t_dot = 1 & t < 10>@invariant(x^2+y^2+z^2 < 1)
+        # {~(x > 10 || y > 5 || z <= -20)}
+        runVerify(self, pre="x == 1/4 && y == 1/8 && z == 1/10",
+                  hp="t := 0; \
+                     <x_dot = x^2-x*(x^3+y^3+z^3), \
+                      y_dot = y^2-y*(x^3+y^3+z^3), \
+                      z_dot = z^2-z*(x^3+y^3+z^3), \
+                      t_dot = 1 & t < 10>",
+                  post="~(x > 10 || y > 5 || z <= -20)",
+                  dbx_invariants={((1,), ()): "x^2+y^2+z^2 < 1"})
+
+    def testNonlinear77(self):
+        # Nonlinear benchmark, problem 77
+        # {x == 1 && y == 2 && z == 3} 
+        #      t := 0;
+        #     <x_dot = y*z, y_dot = x*z, z_dot = x*y,
+        #      t_dot = 1 & t < 10>@invariant(5+y^2==z^2)
+        # {~(x==5 && y^2==27 && z^2==34)}
+        runVerify(self, pre="x == 1 && y == 2 && z == 3",
+                  hp="t := 0; \
+                     <x_dot = y*z, y_dot = x*z, z_dot = x*y, \
+                      t_dot = 1 & t < 10>",
+                   post="~(x==5 && y^2==27 && z^2==34)",
+                   dI_invariants={((1,), ()): "5+y^2==z^2"})
+
+    # Nonlinear problem 78 is the same with problem 77.
+
+    def testNonlinear79(self):
+        # Nonlinear benchmark, problem 79
+        # {x == 2 && y == 0 && r == 2}
+        #     t := 0;
+        #    <x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x,
+        #     t_dot = 1 & t < 10>@invariant(x^2+y^2>=4)
+        # {2*x^2+y^2 > 3}
+        runVerify(self, pre="x == 2 && y == 0 && r == 2",
+                  hp="t := 0; \
+                     <x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x, \
+                      t_dot = 1 & t < 10>",
+                  post="2*x^2+y^2 > 3",
+                  dI_invariants={((1,), ()): "x^2+y^2>=4"})
+
+    def testNonlinear80(self):
+        # Nonlinear benchmark, problem 80
+        # {x == 5 && y == 3 && z == -4}
+        #     t := 0;
+        #    <x_dot = y, y_dot = x-y-x*z, z_dot = x^2-z,
+        #     t_dot = 1 & t < 10>@invariant(z>=-5)
+        # {~(z < 0 && z^2 > 26+x^2)}
+        runVerify(self, pre="x == 5 && y == 3 && z == -4",
+                  hp="t := 0; \
+                     <x_dot = y, y_dot = x-y-x*z, z_dot = x^2-z, \
+                      t_dot = 1 & t < 10>",
+                  post="~(z < 0 && z^2 > 26+x^2)",
+                  dbx_invariants={((1,), ()): "z >= -5"},
+                  wolfram_engine=True)
+
+    def testNonlinear81(self):
+        # Nonlinear benchmark, problem 81
+        #  {-0.25 <= x1 && x1 <= 0.75 &&
+        #   -0.25 <= x2 && x2 <= 0.75 &&
+        #   -0.75 <= x3 && x3 <= 0.25}
+        #     <x1_dot = -x2, x2_dot = -x3, x3_dot = -x1 - 2*x2 - x3 + x1^3 &
+        #     -2 <= x1 && x1 <= 2 &&
+        #     -2 <= x2 && x2 <= 2 &&
+        #     -2 <= x3 && x3 <= 2>
+        #       @invariant(7*x1*(425300+3161*x1^2) < 5*(909080+23721*x2+295290*x3))
+        #  {~(
+        #      1 <= x1 && x1 <= 2 &&
+        #     -2 <= x2 && x2 <= -1 &&
+        #     -2 <= x3 && x3 <= -1
+        #   )}
+        runVerify(self, pre="-0.25 <= x1 && x1 <= 0.75 && \
+                             -0.25 <= x2 && x2 <= 0.75 && \
+                             -0.75 <= x3 && x3 <= 0.25",
+                  hp="<x1_dot = -x2, x2_dot = -x3, x3_dot = -x1 - 2*x2 - x3 + x1^3 & \
+                      -2 < x1 && x1 < 2 && \
+                      -2 < x2 && x2 < 2 && \
+                      -2 < x3 && x3 < 2>",
+                  post="~( \
+                            1 <= x1 && x1 <= 2 && \
+                            -2 <= x2 && x2 <= -1 && \
+                            -2 <= x3 && x3 <= -1 \
+                        )",
+                  diff_cuts={((), ()): ["7*x1*(425300+3161*x1^2) < \
+                                           5*(909080+23721*x2+295290*x3)", 
+                                          "-2 <= x1 && x1 <= 2 && \
+                                           -2 <= x2 && x2 <= 2 && \
+                                           -2 <= x3 && x3 <= 2"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    # TODO: Nonlinear problem 82, Proving invariant stuck.
+
+    def testNonlinear83(self):
+        # Nonlinear benchmark, problem 83
+        # {(x-1.5)^2+y^2+z^2 <= 0.0625 &&
+        #   u1 == -1 && u2 == 1 && u3 == 4.75}
+        #   <x_dot = u1*x+y-z, y_dot = -x*(z+1)-u2*y, z_dot = -0.77*x-u3*z 
+        #    & -2<=x && x<=2 && -2<=y && y<=2 && -2<=z && z<=2>
+        #    @invariant(12583*x+97936*z < 60051)
+        # {~(x+1)^2+(y+1)^2+(z-1)^2 <= 0.0625}
+        runVerify(self, pre="(x-1.5)^2+y^2+z^2 <= 0.0625 && \
+                             u1 == -1 && u2 == 1 && u3 == 4.75",
+                  hp="<x_dot = u1*x+y-z, \
+                       y_dot = -x*(z+1)-u2*y, \
+                       z_dot = -0.77*x-u3*z \
+                        & -2<x && x<2 && \
+                          -2<y && y<2 && \
+                          -2<z && z<2>",
+                  post="~(x+1)^2+(y+1)^2+(z-1)^2 <= 0.0625",
+                  constants={"u1", "u2", "u3"},
+                  diff_cuts={((), ()): ["12583*x+97936*z < 60051",
+                                        "-2<=x && x<=2 && -2<=y && y<=2 && -2<=z && z<=2"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    # TODO: Nonlinear problem 84, invariant not implied by precondition
+
+    def testNonlinear85(self):
+        # Nonlinear benchamark, problem 85
+        # {0<=x1 && x1<=0.5 && 0<=x2 && x2<=0.5 && -0.5<=x3 && x3<=0 &&
+        #   u1 == -0.85 && u2 == -1.15 && u3 == -1.16 && u4 == 2.2}
+        #     <x1_dot = u1*x2, x2_dot = u2*x3, x3_dot = u3*x1-u4*x2-x3+x1^3 
+        #       & -2<=x1 && x1<=2 && -2<=x2 && x2<=2 && -2<=x3 && x3<=2>
+        #    @invariant(722620*x1+17021*x1^3 < 890220+33020*x2+318530*x3)
+        # {~(0.5<=x1 && x1<=2 && -2<=x2 && x2<=-1.5 && -2<=x3 && x3<=-1.5)}
+        runVerify(self, pre="0<=x1 && x1<=0.5 && 0<=x2 && x2<=0.5 && -0.5<=x3 && x3<=0 && \
+                             u1 == -0.85 && u2 == -1.15 && u3 == -1.16 && u4 == 2.2",
+                  hp="<x1_dot = u1*x2, x2_dot = u2*x3, x3_dot = u3*x1-u4*x2-x3+x1^3 \
+                     & -2<x1 && x1<2 && -2<x2 && x2<2 && -2<x3 && x3<2>",
+                  post="~(0.5<=x1 && x1<=2 && -2<=x2 && x2<=-1.5 && -2<=x3 && x3<=-1.5)",
+                  constants={"u1", "u2", "u3", "u4"},
+                  diff_cuts={((), ()): ["722620*x1+17021*x1^3 < 890220+33020*x2+318530*x3",
+                                        "-2<=x1 && x1<=2 && -2<=x2 && x2<=2 && -2<=x3 && x3<=2"]},
+                  barrier_certificate_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    def testNonlinear86(self):
+        # Nonlinear benchmark, problem 86
+        # {x1^2 + x2^2 + x3^2 >= 5}
+        #     t := 0;
+        #    <x1_dot = 2*x1+x2,
+        #     x2_dot = x1+3*x2-x3,
+        #     x3_dot = -x1+2*x2+3*x3,
+        #     t_dot = 1 & t < 10>
+        # {~(x1^2+x2^2+x3^2 < 1)}
+        runVerify(self, pre="x1^2 + x2^2 + x3^2 >= 5",
+                  hp="t := 0; \
+                     <x1_dot = 2*x1+x2, \
+                      x2_dot = x1+3*x2-x3, \
+                      x3_dot = -x1+2*x2+3*x3, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x1^2+x2^2+x3^2 < 1)",
+                  darboux_rule={((), ()): "true"})
+
+    def testNonlinear87(self):
+        # Nonlinear benchmark, problem 87
+        # {x2 < x1 && x2 < x3 && x3 > 0 && x3 < 12}
+        #    t := 0;
+        #    <x1_dot=4*x1-5*x2+2*x3,
+        #     x2_dot=5*x1-7*x2+3*x3,
+        #     x3_dot=6*x1-9*x2+4*x3,
+        #     t_dot = 1 & t < 10>@invariant(x1+x3>=2*x2)
+        # {~(x1 < 0.5 && x3 < 0.5 && x2 > 1)}
+        runVerify(self, pre="x2 < x1 && x2 < x3 && x3 > 0 && x3 < 12",
+                  hp="t := 0; \
+                     <x1_dot=4*x1-5*x2+2*x3, \
+                      x2_dot=5*x1-7*x2+3*x3, \
+                      x3_dot=6*x1-9*x2+4*x3, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x1 < 0.5 && x3 < 0.5 && x2 > 1)",
+                  dbx_invariants={((1,), ()): "x1+x3>=2*x2"})
+
+    def testNonlinear88(self):
+        # Nonlinear benchmark, problem 88
+        # {(x2 >= 0 && 2*x2 < x3 && 3*x2 < x1) || 
+        #  (x2 <= 0 && x1 >= -0.4 && x3 > 0.5)}
+        #     t := 0;
+        #    <x1_dot=4*x1-x2,
+        #     x2_dot=3*x1+x2-x3,
+        #     x3_dot=x1+x3>@invariant(x1+x3>x2)
+        # {~(4*x1 < x2 && x3 < x1 && x2 > 0.5)}
+        runVerify(self, pre="(x2 >= 0 && 2*x2 < x3 && 3*x2 < x1) || \
+                             (x2 <= 0 && x1 >= -0.4 && x3 > 0.5)",
+                  hp="t := 0; \
+                     <x1_dot=4*x1-x2, \
+                      x2_dot=3*x1+x2-x3, \
+                      x3_dot=x1+x3, \
+                      t_dot = 1 & t < 10>",
+                  post="~(4*x1 < x2 && x3 < x1 && x2 > 0.5)",
+                  dbx_invariants={((1,), ()): "x1+x3>x2"})
+    
+    def testNonlinear89(self):
+        # Nonlinear benchmark, problem 89
+        # {x3 > 1 && x1 > (x1 - x3)^2 && x3 > x2}
+        #     t := 0;
+        #    <x1_dot=4*x1-x2,
+        #     x2_dot=3*x1+x2-x3,
+        #     x3_dot=x1+x3,
+        #     t_dot = 1 & t < 10>@invariant((x1-x3)^2-2*x3*(x1-x2+x3) < 0)
+        # {~(x3 < 0 && x1 - x2 + x3 > 0)}
+        runVerify(self, pre="x3 > 1 && x1 > (x1 - x3)^2 && x3 > x2",
+                  hp="t := 0; \
+                     <x1_dot=4*x1-x2, \
+                      x2_dot=3*x1+x2-x3, \
+                      x3_dot=x1+x3, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x3 < 0 && x1 - x2 + x3 > 0)",
+                  dbx_invariants={((1,), ()): "(x1-x3)^2-2*x3*(x1-x2+x3) < 0"})
+
+    def testNonlinear90(self):
+        # Nonlinear benchmark, problem 90
+        # {x1 > 0 && x2 > 0 && x3 > 0 && x1 > x2 && x3 > x1}
+        #     t := 0;
+        #    <x1_dot = 4*x1-x2,
+        #     x2_dot = 3*x1+x2-x3,
+        #     x3_dot = x1+x3,
+        #     t_dot = 1 & t < 10>@invariant((x1-x3)^2-2*x3*(x1-x2+x3) < (x1-x2+x3)^2)
+        # {~(x2 == x3 && x3 > 5 && x1 < 1/5)}
+        runVerify(self, pre="x1 > 0 && x2 > 0 && x3 > 0 && x1 > x2 && x3 > x1",
+                  hp="t := 0; \
+                     <x1_dot = 4*x1-x2, \
+                      x2_dot = 3*x1+x2-x3, \
+                      x3_dot = x1+x3, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x2 == x3 && x3 > 5 && x1 < 1/5)",
+                  dbx_invariants={((1,), ()): "(x1-x3)^2-2*x3*(x1-x2+x3) < (x1-x2+x3)^2"})
+
+    # TODO: Nonlinear benchmark, problem 91. Invariants unknown.
+
+    # TODO: Nonlinear benchmark, problem 92, 93, 94, 95. ODE rule unknown.
+
+    def testNonlinear96(self):
+        # Nonlinear benchmark, problem 96
+        # {2*y^2 + z5^2 <= 0.5 && b==1 && r==0}
+        #     t := 0;
+        #    <x_dot = s*(y-x),
+        #     y_dot = r*x-y-x*z5,
+        #     z5_dot = -b*z5+x*y,
+        #     t_dot = 1 & t < 10>@invariant(y^2+z5^2<=1)
+        # {y^2 + 2*z5^2 <= 5}
+        runVerify(self, pre="2*y^2 + z5^2 <= 0.5 && b==1 && r==0",
+                  hp="t := 0; \
+                     <x_dot = s*(y-x), \
+                      y_dot = r*x-y-x*z5, \
+                      z5_dot = -b*z5+x*y, \
+                      t_dot = 1 & t < 10>",
+                  post="y^2 + 2*z5^2 <= 5",
+                  constants={'b', 'r', 's'},
+                  barrier_invariants={((1,), ()): "y^2+z5^2<=1"})
+
+    def testNonlinear97(self):
+        # Nonlinear benchmark, problem 97
+        # {y^2 + 2*z6^2 <= 1 && b==1 && r==0 && s==1}
+        #     t := 0;
+        #    <x_dot=s*(y-x),
+        #     y_dot=r*x-y-x*z6,
+        #     z6_dot=-b*z6+x*y,
+        #     t_dot = 1 & t < 10
+        #    >@invariant(y^2+z6^2 <= 2)
+        # {y^2 + 0.5*z6^2 <= 3}
+        runVerify(self, pre="y^2 + 2*z6^2 <= 1 && b==1 && r==0 && s==1",
+                  hp="t := 0; \
+                     <x_dot=s*(y-x), \
+                      y_dot=r*x-y-x*z6, \
+                      z6_dot=-b*z6+x*y, \
+                      t_dot = 1 & t < 10>",
+                  post="y^2 + 0.5*z6^2 <= 3",
+                  constants={"b", "r", "s"},
+                  barrier_invariants={((1,), ()): "y^2+z6^2 <= 2"})
+
+    # TODO:Nonlinear problem 98. How to define a function.
+
+    # TODO:Nonlinear problem 99. No tactic offered.
+
+    # TODO:Nonlinear problem 100, 101. Don't know how to deal with trigonometric functions.
+
+    def testNonlinear102(self):
+        # Nonlinear benchmark, problem 102
+        # {x1 == 1 && x2 == 1 && x3 == 1 && x4 == 1}
+        #     t := 0;
+        #    <x1_dot=x1 - 2*x2 - x4,
+        #     x2_dot=-x1 + 4*x2 - x3 + 2*x4,
+        #     x3_dot=2*x2 + x3 + x4,
+        #     x4_dot=2*x1 - 4*x2 + 2*x3 - 2*x4,
+        #     t_dot = 1 & t < 10>@invariant(x1+x3 == x2+x4)
+        # {~(x1 == 10 && x2 == 0 && x3 == 2 && x4 == 3)}
+        runVerify(self, pre="x1 == 1 && x2 == 1 && x3 == 1 && x4 == 1",
+                  hp="t := 0; \
+                     <x1_dot=x1 - 2*x2 - x4, \
+                      x2_dot=-x1 + 4*x2 - x3 + 2*x4, \
+                      x3_dot=2*x2 + x3 + x4, \
+                      x4_dot=2*x1 - 4*x2 + 2*x3 - 2*x4, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x1 == 10 && x2 == 0 && x3 == 2 && x4 == 3)",
+                  dbx_invariants={((1,), ()): "x1+x3 == x2+x4"})
+
+    def testNonlinear103(self):
+        # Nonlinear benchmark, problem 103
+        # {0.5*(x1 + x3 + 2*x4)^2 > 3}
+        #     t := 0;
+        #    <x1_dot=-3*x1+x2+4*x3+2*x4,
+        #     x2_dot=8*x1-3*x2-2*x3+6*x4,
+        #     x3_dot=-9*x1+3*x2+4*x3-4*x4,
+        #     x4_dot=6*x1-3*x2-4*x3+2*x4,
+        #     t_dot = 1 & t < 10>@invariant((-x2 + x4)^2 + (x1 + x3 + 2*x4)^2 > 3)
+        # {(-x2 + x4)^2 + 2*(x1 + x3 + 2*x4)^2 > 1}
+        runVerify(self, pre="0.5*(x1 + x3 + 2*x4)^2 > 3",
+                  hp="t := 0; \
+                     <x1_dot=-3*x1+x2+4*x3+2*x4, \
+                      x2_dot=8*x1-3*x2-2*x3+6*x4, \
+                      x3_dot=-9*x1+3*x2+4*x3-4*x4, \
+                      x4_dot=6*x1-3*x2-4*x3+2*x4, \
+                      t_dot = 1 & t < 10>",
+                  post="(-x2 + x4)^2 + 2*(x1 + x3 + 2*x4)^2 > 1",
+                  dbx_invariants={((1,), ()): "(-x2 + x4)^2 + (x1 + x3 + 2*x4)^2 > 3"})
+
+    def testNonlinear104(self):
+        # Nonlinear benchmark, problem 104
+        # {3*(x1 - x2 + 2*x4)^2 + 2*(-x1 + 2*x2 + 2*x3)^2 < 1.5}
+        #     t := 0;
+        #    <x1_dot=-3*x1+x2+4*x3+2*x4,
+        #     x2_dot=8*x1-3*x2-2*x3+6*x4,
+        #     x3_dot=-9*x1+3*x2+4*x3-4*x4,
+        #     x4_dot=6*x1-3*x2-4*x3+2*x4,
+        #     t_dot = 1 & t < 10>@invariant((x1 - x2 + 2*x4)^2 + (-x1 + 2*x2 + 2*x3)^2 < 2)
+        # {~(x2 > 1 && x1 > 4*x2 && x4 > 0)}
+        runVerify(self, pre="3*(x1 - x2 + 2*x4)^2 + 2*(-x1 + 2*x2 + 2*x3)^2 < 1.5",
+                  hp="t := 0; \
+                     <x1_dot=-3*x1+x2+4*x3+2*x4, \
+                      x2_dot=8*x1-3*x2-2*x3+6*x4, \
+                      x3_dot=-9*x1+3*x2+4*x3-4*x4, \
+                      x4_dot=6*x1-3*x2-4*x3+2*x4, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x2 > 1 && x1 > 4*x2 && x4 > 0)",
+                  dbx_invariants={((1,), ()): "(x1 - x2 + 2*x4)^2 + (-x1 + 2*x2 + 2*x3)^2 < 2"})
+
+    # TODO: Nonlinear problem 105, 106, 107. No tactic offered.
+
+    # TODO: Nonlinear problem 108. Auto rule unknown. Too slow to give a result.
+
+    def testNonlinear109(self):
+        # Nonlinear benchmark, problem 109
+        # {x2 > 0 && x2 < 1 && u1 > 0 && u1 < 1 && u2 > -1/2 && u2 < 1 &&
+        #   theta == 1 && lp == 1 && g == 10 &&
+        #   u1^2+u2^2 == 1}
+        #     t := 0;
+        #    <x1_dot = x2,
+        #     x2_dot = theta^2*u1*u2 - g/lp*u1,
+        #     u1_dot = x2*u2,
+        #     u2_dot = -x2*u1,
+        #     t_dot = 1 & t < 10>
+        #    @invariant(((-20)+u2)*u2+x2^2<=45/4)
+        # {~(u2 < -0.75 && x2 == 4)}
+        runVerify(self, pre="x2 > 0 && x2 < 1 && u1 > 0 && u1 < 1 && u2 > -1/2 && u2 < 1 && \
+                             theta == 1 && lp == 1 && g == 10 && \
+                             u1^2+u2^2 == 1",
+                  hp="t := 0; \
+                     <x1_dot = x2, \
+                      x2_dot = theta^2*u1*u2 - g/lp*u1, \
+                      u1_dot = x2*u2, \
+                      u2_dot = -x2*u1, \
+                      t_dot = 1 & t < 10>",
+                  post="~(u2 < -0.75 && x2 == 4)",
+                  constants={"theta", "g", "lp"},
+                  dI_invariants={((1,), ()): "((-20)+u2)*u2+x2^2<=45/4"})
+
+    # TODO: Nonlinear problem 110, 111. Definitions and no tactic.
+
+    def testNonlinear112(self):
+        # Nonlinear benchmark, problem 112
+        # {x1 > 1 && x3 > x1 && x4 > x3}
+        #     t := 0;
+        #    <x1_dot=2*(x1-3*x2+2*x3+x5),
+        #     x2_dot=2*x1-x2+2*x3+2*x4,
+        #     x3_dot=x2-x3,
+        #     x4_dot=-3*x1+5*x2-4*x3-x4-2*x5,
+        #     x5_dot=4*x2-2*x3+x4,
+        #     t_dot = 1 & t < 10>
+        #    /*@invariant(x1 + x3 + x4 > 0)*/
+        # {~(x1 < -5 && x3 == -x4)}
+        runVerify(self, pre="x1 > 1 && x3 > x1 && x4 > x3",
+                  hp="t := 0; \
+                     <x1_dot=2*(x1-3*x2+2*x3+x5), \
+                      x2_dot=2*x1-x2+2*x3+2*x4, \
+                      x3_dot=x2-x3, \
+                      x4_dot=-3*x1+5*x2-4*x3-x4-2*x5, \
+                      x5_dot=4*x2-2*x3+x4, \
+                      t_dot = 1 & t < 10>",
+                  post="~(x1 < -5 && x3 == -x4)",
+                  dbx_invariants={((1,), ()): "x1 + x3 + x4 > 0"})
+
+    # TODO: Nonlinear problem 113. Definitions and no tactic.
+
+
+
 
 
 if __name__ == "__main__":

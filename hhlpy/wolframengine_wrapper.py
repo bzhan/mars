@@ -307,7 +307,7 @@ def wl_simplify(e):
 
 def wl_polynomial_div(p, q):
     """Compute the quotient and remainder of polynomial p and q"""
-    vars = p.get_vars().union(q.get_vars())
+    vars = q.get_vars()
     vars = (toWLexpr(expr.AVar(var)) for var in vars)
     p = toWLexpr(p)
     q = toWLexpr(q)

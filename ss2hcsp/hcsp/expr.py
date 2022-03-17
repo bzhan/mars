@@ -551,7 +551,7 @@ class LogicExpr(BExpr):
         elif self.op == '||':
             return 30
         elif self.op == '~':
-            return 80
+            return 40
         else:
             raise NotImplementedError
 
