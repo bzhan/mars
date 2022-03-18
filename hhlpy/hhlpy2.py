@@ -920,7 +920,7 @@ class CmdVerifier:
                             # remain (e_lie_deriv - g * e) >= 0.
                             vc_comp = expr.RelExpr('>=', remain, expr.AConst(0))
                             vc_comps.append(vc_comp)
-                        vc = expr.list_disj(*vc_comps)
+                        vc = expr.imp(constraint, expr.list_disj(*vc_comps))
 
                         self.infos[pos].vcs.append(vc)
 

@@ -2425,9 +2425,355 @@ class WLHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 113. Definitions and no tactic.
 
+    # TODO: Nonlinear problem 114, 115. No tactic and even inv-->post is too slow to verify.
 
+    # TODO: 
+    # def testNonlinear116(self):
+    #     # Nonlinear benchmark, problem 116
+    #     # {x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1}
+    #     #    <x1_dot=x1-2*x2+x3-2*x6,
+    #     #     x2_dot=3*x2-x3-x5+2*x6,
+    #     #     x3_dot=-x1+x3+2*x4+2*x5,
+    #     #     x4_dot=-x1+x4+x5+x6,
+    #     #     x5_dot=x1+x2+x5,
+    #     #     x6_dot=x1-x2+x3-x4-x6 &
+    #     #     x5 < 0>@invariant(x1+x2+x5 >= 0)
+    #     # {~(x2 < 0 && x1 < x2 && x5 < x2)}
+    #     runVerify(self, pre="x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1",
+    #               hp="<x1_dot=x1-2*x2+x3-2*x6, \
+    #                    x2_dot=3*x2-x3-x5+2*x6, \
+    #                    x3_dot=-x1+x3+2*x4+2*x5, \
+    #                    x4_dot=-x1+x4+x5+x6, \
+    #                    x5_dot=x1+x2+x5, \
+    #                    x6_dot=x1-x2+x3-x4-x6 & \
+    #                    x5 < 0>",
+    #               post="~(x2 < 0 && x1 < x2 && x5 < x2)",
+    #               diff_cuts={((), ()): ["x1+x2+x5 >= 0", "x5 <= 0"]},
+    #               darboux_rule={((), (0,)): "true"},
+    #               diff_weakening_rule={((), (1,)): "true"})
+        # I think this problem is false in hhl.
 
+    # TODO: Nonlinear problem 117. No invariants offered.
 
+    def testNonlinear118(self):
+        # Nonlinear benchmark, problem 118
+        #  {0.99 <= x1 && x1 <= 1.01 &&
+        #   0.99 <= x2 && x2 <= 1.01 &&
+        #   0.99 <= x3 && x3 <= 1.01 &&
+        #   0.99 <= x4 && x4 <= 1.01 &&
+        #   0.99 <= x5 && x5 <= 1.01 &&
+        #   0.99 <= x6 && x6 <= 1.01 &&
+        #   0.99 <= x7 && x7 <= 1.01}
+        #     <
+        #       x1_dot = -0.4*x1 + 5*x3*x4,
+        #       x2_dot = 0.4*x1 - x2,
+        #       x3_dot = x2 - 5*x3*x4,
+        #       x4_dot = 5*x5*x6 - 5*x3*x4,
+        #       x5_dot = -5*x5*x6 + 5*x3*x4,
+        #       x6_dot = 0.5*x7 - 5*x5*x6,
+        #       x7_dot = -0.5*x7 + 5*x5*x6 &
+        #       -2 <= x1 && x1 <= 2 &&
+        #       -2 <= x2 && x2 <= 2 &&
+        #       -2 <= x3 && x3 <= 2 &&
+        #       -2 <= x4 && x4 <= 2 &&
+        #       -2 <= x5 && x5 <= 2 &&
+        #       -2 <= x6 && x6 <= 2 &&
+        #       -2 <= x7 && x7 <= 2
+        #     >@invariant(x1+x2+x3<=706/233)
+        #   {~(
+        #     1.8 <= x1 && x1 <= 2 &&
+        #     1.8 <= x2 && x2 <= 2 &&
+        #     1.8 <= x3 && x3 <= 2 &&
+        #     1.8 <= x4 && x4 <= 2 &&
+        #     1.8 <= x5 && x5 <= 2 &&
+        #     1.8 <= x6 && x6 <= 2 &&
+        #     1.8 <= x7 && x7 <= 2
+        #   )}
+        runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
+                             0.99 <= x2 && x2 <= 1.01 && \
+                             0.99 <= x3 && x3 <= 1.01 && \
+                             0.99 <= x4 && x4 <= 1.01 && \
+                             0.99 <= x5 && x5 <= 1.01 && \
+                             0.99 <= x6 && x6 <= 1.01 && \
+                             0.99 <= x7 && x7 <= 1.01",
+                  hp="<x1_dot = -0.4*x1 + 5*x3*x4, \
+                       x2_dot = 0.4*x1 - x2, \
+                       x3_dot = x2 - 5*x3*x4, \
+                       x4_dot = 5*x5*x6 - 5*x3*x4, \
+                       x5_dot = -5*x5*x6 + 5*x3*x4, \
+                       x6_dot = 0.5*x7 - 5*x5*x6, \
+                       x7_dot = -0.5*x7 + 5*x5*x6 & \
+                       -2 < x1 && x1 < 2 && \
+                       -2 < x2 && x2 < 2 && \
+                       -2 < x3 && x3 < 2 && \
+                       -2 < x4 && x4 < 2 && \
+                       -2 < x5 && x5 < 2 && \
+                       -2 < x6 && x6 < 2 && \
+                       -2 < x7 && x7 < 2>",
+                  post="~( \
+                            1.8 <= x1 && x1 <= 2 && \
+                            1.8 <= x2 && x2 <= 2 && \
+                            1.8 <= x3 && x3 <= 2 && \
+                            1.8 <= x4 && x4 <= 2 && \
+                            1.8 <= x5 && x5 <= 2 && \
+                            1.8 <= x6 && x6 <= 2 && \
+                            1.8 <= x7 && x7 <= 2 \
+                        )",
+                  diff_cuts={((), ()): ["x1+x2+x3<=706/233", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2 && \
+                                         -2 <= x3 && x3 <= 2 && \
+                                         -2 <= x4 && x4 <= 2 && \
+                                         -2 <= x5 && x5 <= 2 && \
+                                         -2 <= x6 && x6 <= 2 && \
+                                         -2 <= x7 && x7 <= 2"]},
+                  diff_weakening_rule={((), (1,)): "true"},
+                  wolfram_engine=True)
+
+    def testNonlinear119(self):
+        # Nonlinear benchmark, problem 119
+        #  {x1==r1 && y1==r1
+        #   && x2==r2 && y2==r2
+        #   && d1==a
+        #   && d2==0
+        #   && e1==0
+        #   && e2==b}
+        #      t := 0;
+        #     <x1_dot=d1, x2_dot=d2, d1_dot=-w*d2, d2_dot=w*d1, 
+        #     y1_dot=e1, y2_dot=e2, e1_dot=-theta*e2, e2_dot=theta*e1, t_dot = 1 & t < 10>
+        #     @invariant(e1^2+e2^2-b^2==0, d1^2+d2^2-a^2==0, e1-r2*theta+theta*y2==0, -a+d1-r2*w+w*x2==0) 
+        #   {(e1 - r2*theta + theta * y2) != e2^2 + 1}
+        runVerify(self, pre="x1==r1 && y1==r1 \
+                            && x2==r2 && y2==r2 \
+                            && d1==a \
+                            && d2==0 \
+                            && e1==0 \
+                            && e2==b",
+                  hp="t := 0; \
+                     <x1_dot=d1, x2_dot=d2, \
+                      d1_dot=-w*d2, d2_dot=w*d1, \
+                      y1_dot=e1, y2_dot=e2, \
+                      e1_dot=-theta*e2, e2_dot=theta*e1, t_dot = 1 & t < 10>",
+                  post="(e1 - r2*theta + theta * y2) != e2^2 + 1",
+                  constants={'a', 'b', 'r1', 'r2', 'w', 'theta'},
+                  diff_cuts={((1,), ()): ["e1^2+e2^2-b^2==0", 
+                                          "d1^2+d2^2-a^2==0", 
+                                          "e1-r2*theta+theta*y2==0", 
+                                          "-a+d1-r2*w+w*x2==0"]})
+
+    # TODO: Nonlinear problem 120. Definitions.
+    
+    def testNonlinear121(self):
+        # Nonlinear benchmark, problem 121
+        #  {x1 == xi1 &&
+        #   x2 == xi2 &&
+        #   d1 == di1 &&
+        #   d2 == di2 &&
+        #   y1 == yi1 &&
+        #   y2 == yi2 &&
+        #   e1 == ei1 &&
+        #   e2 == ei2}
+        #      t := 0;
+        #     <x1_dot=d1, x2_dot=d2, 
+        #      d1_dot=-w1*d2, d2_dot=w1*d1, 
+        #      y1_dot=e1, y2_dot=e2, 
+        #      e1_dot=-w2*e2, e2_dot=w2*e1,
+        #      t_dot = 1 & t < 10>
+        #     @invariant(w1*x2 + d1 - w1*xi2 - di1 == 0, -w1*x1 + d2 + w1*xi1 - di2 == 0, -w1*x1 + w1*x2 + d1 + d2 + w1*xi1 - w1*xi2 - di1 - di2 == 0, d1^2 + d2^2 - di1^2 - di2^2 == 0)
+        # {-w1*x1 + 3*w1*x2 + 3*d1 + d2 + w1*xi1 - 3*w1*xi2 - 3*di1 - di2 >= -d1^2} 
+        runVerify(self, pre="x1 == xi1 && \
+                             x2 == xi2 && \
+                             d1 == di1 && \
+                             d2 == di2 && \
+                             y1 == yi1 && \
+                             y2 == yi2 && \
+                             e1 == ei1 && \
+                             e2 == ei2",
+                  hp="t := 0; \
+                     <x1_dot=d1, x2_dot=d2, \
+                      d1_dot=-w1*d2, d2_dot=w1*d1, \
+                      y1_dot=e1, y2_dot=e2, \
+                      e1_dot=-w2*e2, e2_dot=w2*e1, \
+                      t_dot = 1 & t < 10>",
+                  post="-w1*x1 + 3*w1*x2 + 3*d1 + d2 + w1*xi1 - 3*w1*xi2 - 3*di1 - di2 >= -d1^2",
+                  diff_cuts={((1,), ()): ["w1*x2 + d1 - w1*xi2 - di1 == 0", 
+                                          "-w1*x1 + d2 + w1*xi1 - di2 == 0", 
+                                          "-w1*x1 + w1*x2 + d1 + d2 + w1*xi1 - w1*xi2 - di1 - di2 == 0", 
+                                          "d1^2 + d2^2 - di1^2 - di2^2 == 0"]})
+
+    # TODO: Nonlinear problem 122, 123, 124. No invariants.
+
+    def testNonlinear125(self):
+        # Nonlinear benchmark, problem 125
+        #  {0.99 <= x1 && x1 <= 1.01 && 
+        #   0.99 <= x2 && x2 <= 1.01 && 
+        #   0.99 <= x3 && x3 <= 1.01 &&
+        #   0.99 <= x4 && x4 <= 1.01 &&
+        #   0.99 <= x5 && x5 <= 1.01 &&
+        #   0.99 <= x6 && x6 <= 1.01 &&
+        #   0.99 <= x6 && x6 <= 1.01 &&
+        #   0.99 <= x7 && x7 <= 1.01 &&
+        #   0.99 <= x8 && x8 <= 1.01 &&
+        #   0.99 <= x9 && x9 <= 1.01}
+        #     <
+        #       x1_dot = 3*x3 - x1*x6,
+        #       x2_dot = x4 - x2*x6,
+        #       x3_dot = x1*x6 - 3*x3,
+        #       x4_dot = x2*x6 - x4,
+        #       x5_dot = 3*x3 + 5*x1 - x5,
+        #       x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1),
+        #       x7_dot = 5*x4 + x2 - 0.5*x7,
+        #       x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8,
+        #       x9_dot = 2*x6*x8 - x9 &
+        #       -2 <= x1 && x1 <= 2 &&
+        #       -2 <= x2 && x2 <= 2 &&
+        #       -2 <= x3 && x3 <= 2 &&
+        #       -2 <= x4 && x4 <= 2 &&
+        #       -2 <= x5 && x5 <= 2 &&
+        #       -2 <= x6 && x6 <= 2 &&
+        #       -2 <= x7 && x7 <= 2 &&
+        #       -2 <= x8 && x8 <= 2 &&
+        #       -2 <= x9 && x9 <= 2>
+        #     @invariant(x2+x4<=101/50)
+        #  {~(
+        #     1.8 <= x1 && x1 <= 2 &&
+        #     1.8 <= x2 && x2 <= 2 &&
+        #     1.8 <= x3 && x3 <= 2 &&
+        #     1.8 <= x4 && x4 <= 2 &&
+        #     1.8 <= x5 && x5 <= 2 &&
+        #     1.8 <= x6 && x6 <= 2 &&
+        #     1.8 <= x7 && x7 <= 2 &&
+        #     1.8 <= x8 && x8 <= 2 &&
+        #     1.8 <= x9 && x9 <= 2
+        #   )}
+        runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
+                             0.99 <= x2 && x2 <= 1.01 && \
+                             0.99 <= x3 && x3 <= 1.01 && \
+                             0.99 <= x4 && x4 <= 1.01 && \
+                             0.99 <= x5 && x5 <= 1.01 && \
+                             0.99 <= x6 && x6 <= 1.01 && \
+                             0.99 <= x6 && x6 <= 1.01 && \
+                             0.99 <= x7 && x7 <= 1.01 && \
+                             0.99 <= x8 && x8 <= 1.01 && \
+                             0.99 <= x9 && x9 <= 1.01",
+                  hp="< \
+                        x1_dot = 3*x3 - x1*x6, \
+                        x2_dot = x4 - x2*x6, \
+                        x3_dot = x1*x6 - 3*x3, \
+                        x4_dot = x2*x6 - x4, \
+                        x5_dot = 3*x3 + 5*x1 - x5, \
+                        x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1), \
+                        x7_dot = 5*x4 + x2 - 0.5*x7, \
+                        x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8, \
+                        x9_dot = 2*x6*x8 - x9 & \
+                        -2 < x1 && x1 < 2 && \
+                        -2 < x2 && x2 < 2 && \
+                        -2 < x3 && x3 < 2 && \
+                        -2 < x4 && x4 < 2 && \
+                        -2 < x5 && x5 < 2 && \
+                        -2 < x6 && x6 < 2 && \
+                        -2 < x7 && x7 < 2 && \
+                        -2 < x8 && x8 < 2 && \
+                        -2 < x9 && x9 < 2>",
+                  post="~( \
+                            1.8 <= x1 && x1 <= 2 && \
+                            1.8 <= x2 && x2 <= 2 && \
+                            1.8 <= x3 && x3 <= 2 && \
+                            1.8 <= x4 && x4 <= 2 && \
+                            1.8 <= x5 && x5 <= 2 && \
+                            1.8 <= x6 && x6 <= 2 && \
+                            1.8 <= x7 && x7 <= 2 && \
+                            1.8 <= x8 && x8 <= 2 && \
+                            1.8 <= x9 && x9 <= 2 \
+                        )",
+                  diff_cuts={((), ()): ["x2+x4<=101/50", 
+                                        "-2 <= x1 && x1 <= 2 && \
+                                         -2 <= x2 && x2 <= 2 && \
+                                         -2 <= x3 && x3 <= 2 && \
+                                         -2 <= x4 && x4 <= 2 && \
+                                         -2 <= x5 && x5 <= 2 && \
+                                         -2 <= x6 && x6 <= 2 && \
+                                         -2 <= x7 && x7 <= 2 && \
+                                         -2 <= x8 && x8 <= 2 && \
+                                         -2 <= x9 && x9 <= 2"]},
+                  diff_weakening_rule={((), (1,)): "true"})
+
+    # TODO: Nonlinear 126, 127. Definitions.
+
+    # TODO: Nonlinear 128, 129, 130, 131, 132. No invariants.
+
+    def testNonlinear133(self):
+        # Nonlinear benchmark, problem 133
+        # {xleft^2+(-2+yleft)^2 < 1/24&&
+        # -3/2<=x1right && x1right<=-1/2&&
+        # -3/2<=x2right && x2right<=-1/2}
+        # <xleft_dot = -xleft+2*xleft^2*yleft,
+        #  yleft_dot = -yleft,
+        #  x1right_dot = -x1right+x1right*x2right,
+        #  x2right_dot = -x2right & 
+        #  -2<=x1right && x1right<=2 && -2<=x2right && x2right<=2>
+        # {~(xleft<=-2||yleft<=-1) && 
+        # ~(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)}
+        runVerify(self, pre="xleft^2+(-2+yleft)^2 < 1/24 && \
+                            -3/2<=x1right && x1right<=-1/2 && \
+                            -3/2<=x2right && x2right<=-1/2",
+                  hp="<xleft_dot = -xleft+2*xleft^2*yleft, \
+                       yleft_dot = -yleft, \
+                       x1right_dot = -x1right+x1right*x2right, \
+                       x2right_dot = -x2right &  \
+                       -2< x1right && x1right< 2 && -2< x2right && x2right< 2>",
+                  post="~(xleft<=-2||yleft<=-1) && \
+                        ~(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)",
+                  diff_cuts={((), ()): ["x2right+yleft>0", 
+                                        "x2right^2+x2right*yleft+yleft^2>0", 
+                                        "x1right < 0",
+                                        "x2right < 0",
+                                        "xleft*yleft < 1",
+                                        "xleft > -2",
+                                        "yleft > -1",
+                                        "-2<= x1right && x1right<= 2 && -2<= x2right && x2right<= 2"]},
+                  darboux_rule={((), (0,)): "true",
+                                ((), (1,)): "true",
+                                ((), (2,)): "true",
+                                ((), (3,)): "true",
+                                ((), (4,)): "true",
+                                ((), (5,)): "true",
+                                ((), (6,)): "true"},
+                  diff_weakening_rule={((), (7,)): "true"})
+
+    # TODO: Nonlinear 134. No tactic.
+
+    def testNonlinear135(self):
+        # Nonlinear benchmark, problem 135
+        # {xleft^2+yleft^2<=1/4 && 
+        # 4<=x1right && x1right<=4.5 && 
+        # 1<=x2right && x2right<=2}
+        #   <xleft_dot=-yleft+2*xleft^2*yleft,
+        #    yleft_dot=yleft+2*xleft*yleft^2,
+        #    x1right_dot=-11/2*x2right+x2right^2,
+        #    x2right_dot=6*x1right-x1right^2 & 
+        #   1<=x1right && x1right<=5 && 1<=x2right && x2right<=5>
+        #    @invariant(349+4*((-9)+x1right)*x1right^2+x2right^2*((-33)+4*x2right)<=0, 2*xleft^2 < 1)
+        # {~xleft>3 && ~(1<=x1right && x1right<=2 && 2<=x2right && x2right<=3)}
+        runVerify(self, pre="xleft^2+yleft^2<=1/4 && \
+                             4<=x1right && x1right<=4.5 && \
+                             1<=x2right && x2right<=2",
+                  hp="<xleft_dot=-yleft+2*xleft^2*yleft, \
+                      yleft_dot=yleft+2*xleft*yleft^2, \
+                      x1right_dot=-11/2*x2right+x2right^2, \
+                      x2right_dot=6*x1right-x1right^2 & \
+                        1<x1right && x1right<5 && \
+                        1<x2right && x2right<5>",
+                  post="~xleft>3 && ~(1<=x1right && x1right<=2 && 2<=x2right && x2right<=3)",
+                  diff_cuts={((), ()): ["349+4*((-9)+x1right)*x1right^2+ \
+                                         x2right^2*((-33)+4*x2right)<=0",
+                                         "2*xleft^2 < 1",
+                                         "1<=x1right && x1right<=5 && 1<=x2right && x2right<=5"]},
+                  diff_invariant_rule={((), (0,)): "true"},
+                  darboux_rule={((), (1,)): "true"},
+                  diff_weakening_rule={((), (2,)): "true"})
+
+    # TODO: Nonlinear 136, 137, 138, 139, 140, 141. No tactics.
 
 if __name__ == "__main__":
     unittest.main()
