@@ -285,14 +285,26 @@ def wl_prove(e):
     if not isinstance(e, expr.BExpr):
         raise NotImplementedError
 
+    vars = e.get_vars()
     wl_expr = toWLexpr(e)
+    wl_vars = {toWLexpr(expr.AVar(var)) for var in vars}
 
-    # with WolframLanguageSession(path) as session:
-    result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
-    if str(result) == 'True':
-        return True
+    # wl_vars cannot be empty when using FindInstance function.
+    if wl_vars:
+        result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars))
+        # print(str(result), type(result))
+        # result is an empty tuple, i.e. no instance found for the not expression.
+        if not result:
+            return True
+        else:
+            return False
+    # Cases when the wl_vars is empty. For example, when wl_expr is True.
     else:
-        return False
+        result = session.evaluate(wl.Reduce(wl_expr, wl.Reals))
+        if str(result) == 'True':
+            return True
+        else:
+            return False
 
 def wl_simplify(e):
     """Simplify the given hcsp expression"""

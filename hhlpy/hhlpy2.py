@@ -5,6 +5,8 @@ This version uses data structures that are separate from the main
 HCSP program.
 
 """
+import copy
+
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
 from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify
@@ -217,6 +219,9 @@ class CmdInfo:
         # Use conjunction rule
         self.conj_rule = False
 
+        # Use andR rule
+        self.andR = False
+
     def __str__(self):
         res = ""
         res += "pre = %s\n" % self.pre
@@ -396,6 +401,11 @@ class CmdVerifier:
             self.infos[pos] = CmdInfo()
         self.infos[pos].conj_rule = conj_rule
 
+    def use_andRight_rule(self, pos, andR):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].andR = andR
+
     def simplify_expression(self, e):
         if self.wolfram_engine:
             e = wl_simplify(e)
@@ -448,7 +458,8 @@ class CmdVerifier:
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
-            #               pre: cur_hp.expr(newvar|var_name) --> post(newvar|var_name)
+            #               pre: cur_hp.expr(newvar/var_name) --> post(newvar/var_name)
+            # {(v >= e)[v0/v] --> P[v0/v]} v := {v >= e} {P}
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
             if cur_hp.var_name in self.constants:
@@ -856,10 +867,7 @@ class CmdVerifier:
                 
                 e = dbx_inv.expr1
                 # Compute the lie derivative of e.
-                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)
-
-                # if self.wolfram_engine:
-                    
+                e_lie_deriv = compute_diff(e, eqs_dict=self.infos[pos].eqs_dict)             
 
                 # Cases when dbx_inv is "e == 0".
                 # Use Darboux Equality Rule
@@ -909,6 +917,7 @@ class CmdVerifier:
                     # Cases when the cofactor g is not offered.
                     # Compute the cofactor automatically.
                     if self.infos[pos].dbx_cofactor is None:
+                        # print('e_lie:', e_lie_deriv, 'e:', e)
                         quot_remains = self.polynomial_div(e_lie_deriv, e)
                         # print("quot:", quot, "remain:", remain)
                         # self.infos[pos].dbx_cofactor = quot
@@ -1112,10 +1121,42 @@ class CmdVerifier:
             for i in range(len(self.infos[pos].vcs)):
                 self.infos[pos].vcs[i] = expr.imp(assume, self.infos[pos].vcs[i])
         
-
+    def convert_imp(self, e):
+        """Convert implication from (p --> q --> u) to (p && q) --> u,
+        in which the right expression won't be an implication """
+        if isinstance(e, expr.LogicExpr) and e.op == '-->':
+            if isinstance(e.exprs[1], expr.LogicExpr) and e.exprs[1].op == '-->':
+                l_expr = expr.LogicExpr('&&', e.exprs[0], e.exprs[1].exprs[0])
+                r_expr = e.exprs[1].exprs[1]
+                return self.convert_imp(expr.imp(l_expr, r_expr))
+            # p --> q
+            else:
+                return e
+        else:
+            return e
+ 
     def get_all_vcs(self):
         all_vcs = dict()
         for pos, info in self.infos.items():
+            if info.andR:
+                vcs = copy.copy(info.vcs)
+                for vc in vcs:
+                    # print(vc)
+                    # Translate, for example, [x == 0 --> x > -1 && x < 1], into 
+                    # [x == 0 --> x > -1, x == 0 --> x < 1]
+                    if isinstance(vc, expr.LogicExpr) and vc.op == '-->':
+                        vc_vart = self.convert_imp(vc)
+                        # print("after convertion:", pos, vc_vart)
+                        expr0 = vc_vart.exprs[0]
+                        expr1 = vc_vart.exprs[1]
+                        if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
+                            right_exprs = expr.split_conj(expr1)
+                            for r_expr in right_exprs:
+                                info.vcs.append(expr.imp(expr0, r_expr))
+                            # print('remove:', vc)
+                            info.vcs.remove(vc)
+                # info.vcs.removeAll(add_vcs - remv_vcs
+
             if info.vcs:
                 all_vcs[pos] = info.vcs
         return all_vcs
@@ -1123,6 +1164,7 @@ class CmdVerifier:
     def verify(self):
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
+        # print([str(vc) for pos, vc in all_vcs.items()])
         if self.wolfram_engine:
             for pos, vcs in all_vcs.items():
                 for vc in vcs:

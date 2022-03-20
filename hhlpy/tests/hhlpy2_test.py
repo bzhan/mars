@@ -3,7 +3,6 @@
 import unittest
 from wolframclient.evaluation import WolframLanguageSession
 
-
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from hhlpy.hhlpy2 import CmdVerifier
@@ -24,6 +23,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
               darboux_rule=None, dbx_invariants=None, dbx_cofactors=None,
               barrier_certificate_rule=None, barrier_invariants=None, 
               conjunction_rule=None,
+              andR_rule=None,
               wolfram_engine = False, z3 = True,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
@@ -159,6 +159,13 @@ def runVerify(self, *, pre, hp, post, constants=set(),
             if isinstance(conj_rule, str):
                 conj_rule = parse_bexpr_with_meta(conj_rule)
             verifier.use_conjunction_rule(pos, conj_rule)
+    
+    # Set andR rule.
+    if andR_rule:
+        for pos, andR in andR_rule.items():
+            if isinstance(andR, str):
+                andR = parse_bexpr_with_meta(andR)
+            verifier.use_andRight_rule(pos, andR) 
 
     # Compute wp and verify
     #while TODO == True:
@@ -268,7 +275,7 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0", hp="x := x+1; y := {y >= x}; y := {y >= x+1}", post="y >= 2",
                   expected_vcs={((), ()): ["x >= 0 --> y1 >= x + 1 -->y0 >= x + 1 + 1 --> y0 >= 2"]})
 
-    # Basic benchmark problem 6 is hard to translate into HCSP program.
+    # TODO: Basic benchmark problem 6 is hard to translate into HCSP program.
 
     def testVerify14(self):
         # Basic Benchmark, problem7
@@ -415,7 +422,7 @@ class HHLPyTest(unittest.TestCase):
                   hp="<x_dot = y, y_dot = y * y & x < 10>", post="x >= 0", 
                   diff_cuts={((), ()): ["y >= 0", "x >= 0"]})
 
-    # Basic benchmark, problem 20
+    # TODO: Basic benchmark, problem 20
 
     def testVerify28(self):
         # Basic benchmark, problem 21
@@ -521,7 +528,7 @@ class HHLPyTest(unittest.TestCase):
                   strengthened_posts={((1,), ()): "x + z == 0"},
                   darboux_rule={((1,), ()): "true"})
 
-    # Benchmark, problem 30, 32 are hard to translate into hcsp programs.
+    # TODO: Benchmark, problem 30, 32 are hard to translate into hcsp programs.
 
     def testVerify38(self):
         # Basic benchmark, problem 31
@@ -732,7 +739,6 @@ class HHLPyTest(unittest.TestCase):
                   diff_weakening_rule={((0,1), ()): "true"},
         )
 
-    # Basic benchmark, problem 46-48
     def testVerify55(self):
         # Basic benchmark, problem 45
         # constants = {'A', 'V'}
@@ -773,7 +779,8 @@ class WLHHLPyTest(unittest.TestCase):
         # Basic benchcmark, problem 46
         # constants = {'A', 'B', 'S', 'ep'}
         # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif
+        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
+        #               else a := -B endif
         #         ++ if v == 0 then a := 0 else a := -B endif
         #         ++ a := -B
         #         ;
@@ -795,7 +802,56 @@ class WLHHLPyTest(unittest.TestCase):
                   conjunction_rule={((0, 2), ()): "true"},
                   diff_weakening_rule={((0, 2), (0,)): "true"},
                   solution_rule={((0, 2), (1,)): "true"},
+                #   andR_rule={((), ()): "true"},
+                #   print_vcs=True,
                   wolfram_engine=True)
+
+    # TODO: Basic benchmark, problem 47, 48. The result is false.
+
+    def testVerify56_1(self):
+        # Test the andR Rule
+        # {x >= 1 && y >= 0 && a == 1}
+        #   (x := x + a)**
+        # {x >= 0 && y >= 0}
+        runVerify(self, pre="x >= 1 && y >= 0 && a == 1",
+                  hp="x := x + a",
+                  post="x >= 0 && y >= 0",
+                  constants={'a'},
+                  loop_invariants={((), ()): "x >= 0 && y >= 0"},
+                  andR_rule={((), ()): "true"})
+
+
+    # def testVerify57(self):
+    #     # Basic benchcmark, problem 47
+    #     # constants = {'A', 'B', 'S', 'ep'}
+    #     # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
+    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a && a <= A}
+    #     #              else a := -B endif
+    #     #         ++ if v == 0 then a := 0 else a := -B endif
+    #     #         ++ a := -B
+    #     #         ;
+
+    #     #         c := 0;
+    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
+    #     #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+    #     # {x <= S}
+    #     runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
+    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a &&\
+    #                       a <= A} \
+    #                         else a := -B endif \
+    #                    ++ if v == 0 then a := 0 else a := -B endif \
+    #                    ++ a := -B; \
+    #                     c := 0; \
+    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
+    #                  )**",
+    #               post="x <= S",
+    #               constants={'A', 'B', 'S', 'ep'},
+    #               loop_invariants={((), ()): "v >= 0 && x+v^2/(2*B) <= S"},
+    #               conjunction_rule={((0, 2), ()): "true"},
+    #               diff_weakening_rule={((0, 2), (0,)): "true"},
+    #               solution_rule={((0, 2), (1,)): "true"},
+    #               andR_rule={((), ()): "true"},
+    #               wolfram_engine=True)
 
     def testVerify59(self):
         # Basic benchmark, problem 49
@@ -813,40 +869,40 @@ class WLHHLPyTest(unittest.TestCase):
                   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
-    # def testVerify60(self):
-    #     # Basic benchmark, problem 50
-    #     #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
-    #     #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
-    #     #  -> [ { {  xm := x2;
-    #     #            xr := (xm + S)/2;
-    #     #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
-    #     #         ++ ?true;
-    #     #         };
-    #     #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
-    #     #           @invariant(
-    #     #             xm<=x2,
-    #     #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
-    #     #          )
-    #     #         }
-    #     #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
-    #     #     ] x2 <= S
-    #     runVerify(self, \
-    #               pre="v >= 0 && xm <= x2 && x2 <= S && xr == (xm + S)/2 && Kp == 2 && Kd == 3 \
-    #                 && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
-    #               hp="( \
-    #                     xm := x2; \
-    #                     xr := (xm + S)/2; \
-    #                     <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
-    #                   )**",
-    #               post="x2 <= S",
-    #               constants={'Kp', 'Kd', 'S'},
-    #               loop_invariants={((), ()): "v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
-    #                                           5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2"},
-    #               diff_weakening_rule={((0,3), (0,)): "true"},
-    #               diff_cuts={((0, 3), (3,)): ["xm <= x2", 
-    #                  "5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2"]})
+    def testVerify60(self):
+        # Basic benchmark, problem 50
+        #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
+        #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
+        #  -> [ { {  xm := x2;
+        #            xr := (xm + S)/2;
+        #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
+        #         ++ ?true;
+        #         };
+        #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
+        #           @invariant(
+        #             xm<=x2,
+        #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
+        #          )
+        #         }
+        #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
+        #     ] x2 <= S
+        runVerify(self, \
+                  pre="v >= 0 && xm <= x2 && x2 <= S && xr == (xm + S)/2 && Kp == 2 && Kd == 3 \
+                    && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
+                  hp="( \
+                        xm := x2; \
+                        xr := (xm + S)/2; \
+                        <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
+                      )**",
+                  post="x2 <= S",
+                  constants={'Kp', 'Kd', 'S'},
+                  loop_invariants={((), ()): "v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
+                                              5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2"},
+                  diff_weakening_rule={((0,3), (0,)): "true"},
+                  diff_cuts={((0, 3), (3,)): ["xm <= x2", 
+                     "5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2"]})
 
-    # Basic benchmark, problem 50-51
+    # TODO: Basic benchmark, problem 50-51
 
     def testVerify62(self):
         # Basic benchmark, problem 52
@@ -858,7 +914,7 @@ class WLHHLPyTest(unittest.TestCase):
                   post="v >= 0",
                   diff_weakening_rule={((), ()): "true"})
 
-    # Basic benchmark, problem 53, A() or A?
+    # TODO: Basic benchmark, problem 53, A() or A?
 
     def testVerify64(self):
         # Basic benchmark, problem 54
@@ -926,6 +982,7 @@ class WLHHLPyTest(unittest.TestCase):
                   conjunction_rule={((1,), ()): "true"},
                   diff_weakening_rule={((1,), (1,)): "true"})
 
+    # TODO: 
     # def testVerify69(self):
     #     # Basic benchmark, problem 55
     #     # {v^2 <= 2*b*(m-x) && v >= 0  && A >= 0 && b > 0}
@@ -949,7 +1006,7 @@ class WLHHLPyTest(unittest.TestCase):
     #               solution_rule={((0, 2), ()): "true"},
     #               )
     
-    # Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
+    # TODO: Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
 
     def testNonlinear1(self):
         # Nonlinear benchmark, problem 1
@@ -1031,6 +1088,7 @@ class WLHHLPyTest(unittest.TestCase):
                   wolfram_engine=True)
 
     def testNonlinear7(self):
+        # Nonlinear benchmark, problem 7
         # {(2+x)^2 + (-1+y)^2 <= 1/4}
         #     t := 0;
         #     <x_dot = x^2 + 2*x*y + 3*y^2, y_dot = 2*y*(2*x+y), t_dot = 1 & t < 10>@invariant(x<y, x+y<0)
@@ -1044,6 +1102,7 @@ class WLHHLPyTest(unittest.TestCase):
                                 ((1,), (1,)): "true"})
     
     def testNonlinear8(self):
+        # Nonlinear benchmark, problem 8
         # {x^2 + (2+y)^2 <= 1}
         #     t := 0;
         #     <x_dot = 2 * x - x * y, y_dot = 2 * x^2 - y, t_dot = 1 & t < 10>@invariant(0.0052726*x^10+0.013182*x^8*y^2+0.013181*x^6*y^4+0.0065909*x^4*y^6+0.0016477*x^2*y^8+0.00016477*y^10-0.060426*x^8*y-0.11666*x^6*y^3-0.08401*x^4*y^5-0.02829*x^2*y^7-0.0026618*y^9-0.0093935*x^8+0.25715*x^6*y^2+0.35556*x^4*y^4+0.18385*x^2*y^6+0.017843*y^8-0.22922*x^6*y-0.82409*x^4*y^3-0.6654*x^2*y^5-0.072582*y^7+0.38533*x^6+1.6909*x^4*y^2+1.7759*x^2*y^4+0.20099*y^6+1.8855*x^4*y-0.83113*x^2*y^3-0.10854*y^5-4.9159*x^4-11.581*x^2*y^2-1.9047*y^4+6.644*x^2*y+7.8358*y^3+1.5029*x^2-13.2338*y^2+10.8962*y-3.4708 <= 0
@@ -1062,6 +1121,7 @@ class WLHHLPyTest(unittest.TestCase):
                   wolfram_engine=True)
 
     def testNonlinear9(self):
+        # Nonlinear benchmark, problem 9
         # {(1+x)^2 + (-2+y)^2 <= 4/25}
         #     t := 0;
         #     <x_dot = y, y_dot = 2*x-x^3-y-x^2*y, t_dot = 1 & t < 10>@invariant(0.23942*x^6 + 0.097208*x^5*y + 0.06013*x^4*y^2 - 0.0076888*x^3*y^3 - 0.022097*x^2*y^4 + 0.067444*x*y^5 + 0.063249*y^6 - 0.11511*x^5 - 0.093461*x^4*y - 0.061763*x^3*y^2 + 0.065902*x^2*y^3 + 0.053766*x*y^4 - 0.1151*y^5 - 0.95442*x^4 + 0.38703*x^3*y + 0.46309*x^2*y^2 - 0.14691*x*y^3 + 0.11756*y^4 - 0.021196*x^3 - 0.40047*x^2*y - 0.28433*x*y^2 - 0.028468*y^3 - 0.020192*x^2 - 0.37629*x*y - 0.13713*y^2 + 1.9803*x - 1.4121*y - 0.51895 <= 0)
@@ -1073,8 +1133,8 @@ class WLHHLPyTest(unittest.TestCase):
                   barrier_certificate_rule={((1,), ()): "true"},
                   wolfram_engine=True)
 
-    # Nonlinear benchmark, problem 10.
-    # Invariant unknown.
+    # TODO: Nonlinear benchmark, problem 10.
+    # Cannot proved by keymaera following tactic.
 #     x^2+y^2<=1
 #   ->
 #   [
@@ -2306,7 +2366,27 @@ class WLHHLPyTest(unittest.TestCase):
 
     # TODO:Nonlinear problem 99. No tactic offered.
 
-    # TODO:Nonlinear problem 100, 101. Don't know how to deal with trigonometric functions.
+    # TODO:Nonlinear problem 100, result is false.
+    # def testNonlinear100(self):
+    #     # Nonlinear benchmark, problem 100
+    #     # {x1 == 1/20 && x2 == 1/32 && sint==0 && cost==1} /* t==0 initially */
+    #     #    t := 0;
+    #     #   <x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint,
+    #     #    t_dot = 1 & t < 10>
+    #     #   @invariant(cost^2+sint^2<=100000/99999, cost^2+sint^2>=1)
+    #     # {98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1}
+    #     runVerify(self, pre="x1 == 1/20 && x2 == 1/32 && sint==0 && cost==1",
+    #               hp="t := 0; \
+    #                  <x1_dot=x2, x2_dot=-x2-(2+sint)*x1, sint_dot=cost, cost_dot=-sint, \
+    #                  t_dot = 1 & t < 10>",
+    #               post="98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1",
+    #               diff_cuts={((1,), ()): ["cost^2+sint^2<=100000/99999", 
+    #                                        "cost^2+sint^2>=1",
+    #                                        "98*x1^2 + 24*x1*x2 + 24*x2*x1 + 55*x2^2 < 1"]},
+    #               darboux_rule={((1,), (2,)): "true"},
+    #               wolfram_engine=True)
+
+    # TODO: Nonlinear problem 101. No tactic. Post not implied by inv.
 
     def testNonlinear102(self):
         # Nonlinear benchmark, problem 102
@@ -2428,30 +2508,30 @@ class WLHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear problem 114, 115. No tactic and even inv-->post is too slow to verify.
 
     # TODO: 
-    # def testNonlinear116(self):
-    #     # Nonlinear benchmark, problem 116
-    #     # {x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1}
-    #     #    <x1_dot=x1-2*x2+x3-2*x6,
-    #     #     x2_dot=3*x2-x3-x5+2*x6,
-    #     #     x3_dot=-x1+x3+2*x4+2*x5,
-    #     #     x4_dot=-x1+x4+x5+x6,
-    #     #     x5_dot=x1+x2+x5,
-    #     #     x6_dot=x1-x2+x3-x4-x6 &
-    #     #     x5 < 0>@invariant(x1+x2+x5 >= 0)
-    #     # {~(x2 < 0 && x1 < x2 && x5 < x2)}
-    #     runVerify(self, pre="x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1",
-    #               hp="<x1_dot=x1-2*x2+x3-2*x6, \
-    #                    x2_dot=3*x2-x3-x5+2*x6, \
-    #                    x3_dot=-x1+x3+2*x4+2*x5, \
-    #                    x4_dot=-x1+x4+x5+x6, \
-    #                    x5_dot=x1+x2+x5, \
-    #                    x6_dot=x1-x2+x3-x4-x6 & \
-    #                    x5 < 0>",
-    #               post="~(x2 < 0 && x1 < x2 && x5 < x2)",
-    #               diff_cuts={((), ()): ["x1+x2+x5 >= 0", "x5 <= 0"]},
-    #               darboux_rule={((), (0,)): "true"},
-    #               diff_weakening_rule={((), (1,)): "true"})
-        # I think this problem is false in hhl.
+    def testNonlinear116(self):
+        # Nonlinear benchmark, problem 116
+        # {x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1}
+        #    <x1_dot=x1-2*x2+x3-2*x6,
+        #     x2_dot=3*x2-x3-x5+2*x6,
+        #     x3_dot=-x1+x3+2*x4+2*x5,
+        #     x4_dot=-x1+x4+x5+x6,
+        #     x5_dot=x1+x2+x5,
+        #     x6_dot=x1-x2+x3-x4-x6 &
+        #     x5 < 0>@invariant(x1+x2+x5 >= 0)
+        # {~(x2 < 0 && x1 < x2 && x5 < x2)} //{x2 >= 0 || x1 >= x2 || x5 >= x2}
+        runVerify(self, pre="x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1",
+                  hp="<x1_dot=x1-2*x2+x3-2*x6, \
+                       x2_dot=3*x2-x3-x5+2*x6, \
+                       x3_dot=-x1+x3+2*x4+2*x5, \
+                       x4_dot=-x1+x4+x5+x6, \
+                       x5_dot=x1+x2+x5, \
+                       x6_dot=x1-x2+x3-x4-x6 & \
+                       x5 < 0>",
+                  post="~(x2 < 0 && x1 < x2 && x5 < x2)",
+                #   diff_cuts={((), ()): ["x1+x2+x5 >= 0", "~(x2 < 0 && x1 < x2 && x5 < x2)"]},
+                #   darboux_rule={((), (0,)): "true"},
+                  diff_weakening_rule={((), ()): "true"})
+        # I think this problem is different in hhl.
 
     # TODO: Nonlinear problem 117. No invariants offered.
 
@@ -2701,6 +2781,7 @@ class WLHHLPyTest(unittest.TestCase):
     # TODO: Nonlinear 126, 127. Definitions.
 
     # TODO: Nonlinear 128, 129, 130, 131, 132. No invariants.
+    # 128: Automation in keymaera doesn't work.
 
     def testNonlinear133(self):
         # Nonlinear benchmark, problem 133
