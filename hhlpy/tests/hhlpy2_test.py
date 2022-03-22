@@ -996,11 +996,9 @@ class WLHHLPyTest(unittest.TestCase):
             <x_dot = -42*x^7+50*x^2*y+156*x^3*y+258*x^4*y-46*x^5*y+68*x^6*y+20*x*y^6-8*y^7,\
             y_dot = y*(1110*x^6-3182*x^4*y-220*x^5*y+478*x^3*y^3+487*x^2*y^4-102*x*y^5-12*y^6),\
             t_dot = 1\
-            & t < 10>",
-                  post="~(x > 1 + y)",
-                  diff_cuts={((1,), ()): ["y > 0", "~(x > 1 + y)"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+            & t < 10> \
+            invariant [y > 0] {dbx} [~(x > 1 + y)] {dbx}",
+                  post="~(x > 1 + y)")
 
     def testNonlinear15(self):
         # Nonlinear benchmark, problem 15
@@ -1016,9 +1014,9 @@ class WLHHLPyTest(unittest.TestCase):
                       300*x^3*y^4-192*x^2*y^5+128*x*y^6-16*y^7, \
                        y_dot = y*(2619*x^6-99*x^5*y-3249*x^4*y^2+1085*x^3*y^3 \
                       +596*x^2*y^4-416*x*y^5+64*y^6), \
-                       t_dot = 1 & t < 10>",
-                  post="~(x > 1 + y)",
-                  dbx_invariants={((1,), ()): "x < y"})
+                       t_dot = 1 & t < 10> \
+                        invariant [x < y] {dbx}",
+                  post="~(x > 1 + y)")
 
     def testNonlinear16(self):
         # Nonlinear benchmark, problem 16
@@ -1032,9 +1030,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = x^4+2*x*y^2-6*x^2*y^2+y^4+x*(x^2-y^2), \
                        y_dot = 2*x^2*y-4*x^3*y+4*x*y^3-y*(x^2-y^2), \
-                       t_dot = 1 & t < 10>",
-                  post="~(y >= 1)",
-                  dbx_invariants={((1,), ()): "y < 0"})
+                       t_dot = 1 & t < 10> \
+                        invariant [y < 0] {dbx}",
+                  post="~(y >= 1)")
 
     def testNonlinear17(self):
         # Nonlinear benchmark, problem 17
@@ -1048,11 +1046,11 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = 2*x-x^5-x*y^4, \
                        y_dot = y-x^2*y-y^3, \
-                       t_dot = 1 & t < 10>",
-                  post="~(x + y > 0)",
-                  diff_cuts={((1,), ()): ["x < 0", "y < 0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                       t_dot = 1 & t < 10> \
+                        invariant \
+                          [x < 0] {dbx} \
+                          [y < 0] {dbx}",
+                  post="~(x + y > 0)")
 
     def testNonlinear18(self):
         # Nonlinear benchmark, problem 18
@@ -1066,12 +1064,12 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = x*(1-x^2-y^2)+y*((-1+x^2)^2+y^2), \
                        y_dot = y*(1-x^2-y^2)-y*((-1+x^2)^2+y^2), \
-                       t_dot = 1 & t < 10>",
-                  post="~(x>=0)",
-                  diff_cuts={((1,), ()): ["y < 0", "x + y < 0", "~(x >= 0)"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true",
-                                ((1,), (2,)): "true"})
+                       t_dot = 1 & t < 10> \
+                        invariant \
+                        [y < 0] {dbx} \
+                        [x + y < 0] {dbx} \
+                        [~(x >= 0)] {dbx}",
+                  post="~(x>=0)")
 
     # TODO: Nonlinear benchmark, problem 19, 20. The ODE rule is not clear.
 
@@ -1087,9 +1085,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp=" t := 0; \
                        <a_dot = 7/8+a-a^3/3-y, \
                         y_dot = (2*(7/10+a-(4*y)/5))/25, \
-                        t_dot = 1 & t < 10>",
+                        t_dot = 1 & t < 10> \
+                            invariant [0.12152*a^4+0.22807*a^3*y+0.214*a^2*y^2-0.71222*y^4-0.27942*a^3-0.48799*a^2*y-0.2517*a*y^2-0.3366*y^3-0.21526*a^2+0.16728*a*y-0.44613*y^2+0.35541*a-0.21594*y-0.72852<=0] {bc}",
                   post="~(-2.5<=a && a<=-2 && -2<=y && y<=-1.5)",
-                  barrier_invariants={((1,), ()): "0.12152*a^4+0.22807*a^3*y+0.214*a^2*y^2-0.71222*y^4-0.27942*a^3-0.48799*a^2*y-0.2517*a*y^2-0.3366*y^3-0.21526*a^2+0.16728*a*y-0.44613*y^2+0.35541*a-0.21594*y-0.72852<=0"},
                   wolfram_engine=True)
 
     def testNonlinear22(self):
@@ -1100,11 +1098,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x <= -2 || y <= -1)}
         runVerify(self, pre="x^2 + (-2 + y)^2 < 1/24",
                   hp="t := 0; \
-                      <x_dot = -x+2*x^2*y, y_dot = -y, t_dot = 1 & t < 10>",
-                  post="~(x <= -2 || y <= -1)",
-                  diff_cuts={((1,), ()): ["y > 0", "12299+9595*x > 0"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                      <x_dot = -x+2*x^2*y, y_dot = -y, t_dot = 1 & t < 10> \
+                      invariant \
+                          [y > 0] {dbx} \
+                          [12299+9595*x > 0] {bc}",
+                  post="~(x <= -2 || y <= -1)")
 
     def testNonlinear23(self):
         # Nonlinear benchmark, problem 23
@@ -1114,9 +1112,10 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(y <= -1)}
         runVerify(self, pre="x^2 + (-1 + y)^2 < 1/8",
                   hp="t := 0; \
-                     <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10>",
-                  post="~(y <= -1)",
-                  dbx_invariants={((1,), ()): "y > 0"})
+                     <x_dot = -2*x+y^4, y_dot = -y+3*x*y^3, t_dot = 1 & t < 10> \
+                      invariant \
+                          [y > 0] {dbx}",
+                  post="~(y <= -1)")
                   
     # TODO: Nonlinear benchmark, problem 24. ODE rule not clear.
 
@@ -1130,11 +1129,10 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="(x-9)^2+(y-20)^20 <= 4",
                   hp="<x_dot = y^2+10*y+25, \
                        y_dot = 2*x*y+10*x-40*y-200 \
-                       & 5<x && x<35>",
-                  post="y <= 48",
-                  diff_cuts={((), ()): ["5133+8*((-40)+x)*x>=4*y*(10+y)","5<=x && x<=35"]},
-                  diff_weakening_rule={((), (1,)): "true"},
-                  diff_invariant_rule={((), (0,)): "true"})
+                       & 5<x && x<35> \
+                      invariant \
+                          [5133+8*((-40)+x)*x>=4*y*(10+y)]",
+                  post="y <= 48")
 
     def testNonlinear26(self):
         # Nonlinear benchmark, problem 26
@@ -1146,11 +1144,10 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="(x-9)^2+(y-20)^20 <= 4",
                   hp="<x_dot = -y^2-10*y-25, \
                        y_dot = 8*x*y+40*x-160*y-800 \
-                       & 5<x && x<35>",
-                  post="y <= 48",
-                  diff_cuts={((), ()): ["1961/13+x^2+1/8*y*(10+y)<=40*x", "5<=x && x<=35"]},
-                  diff_invariant_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                       & 5<x && x<35> \
+                      invariant \
+                          [1961/13+x^2+1/8*y*(10+y)<=40*x]",
+                  post="y <= 48")
 
     def testNonlinear27(self):
         # Nonlinear benchmark, problem 27
@@ -1160,9 +1157,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((x-11)^2+(y-16.5)^2-1 <= 0)}
         runVerify(self, pre="(x+15)^2+(y-17)^2-1 <= 0",
                   hp="t := 0; \
-                      <x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10>",
-                  post="~((x-11)^2+(y-16.5)^2-1 <= 0)",
-                  dI_invariants={((1,), ()): "4490/41+x^2>=y^2"})
+                      <x_dot = y^2, y_dot = x*y, t_dot = 1 & t < 10> \
+                      invariant [4490/41+x^2>=y^2]",
+                  post="~((x-11)^2+(y-16.5)^2-1 <= 0)")
 
     def testNonlinear28(self):
         # Nonlinear benchmark, problem 28
@@ -1172,9 +1169,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(1-(x-8.2)^2 - (y-4)^2 >= 0)}
         runVerify(self, pre="1-(x+6)^2 - (y+6)^2 >= 0",
                   hp="t := 0; \
-                  <x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10>",
-                  post="~(1-(x-8.2)^2 - (y-4)^2 >= 0)",
-                  dI_invariants={((1,), ()): "3*x^2*(3+x) <= 1181+3*((-3)+y)*y^2"})
+                  <x_dot = y^2-2*y, y_dot = x^2+2*x, t_dot = 1 & t < 10> \
+                  invariant [3*x^2*(3+x) <= 1181+3*((-3)+y)*y^2]",
+                  post="~(1-(x-8.2)^2 - (y-4)^2 >= 0)")
 
     def testNonlinear29(self):
         # Nonlinear benckmark, problem29
@@ -1188,9 +1185,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0;\
                       <x_dot = -x + y - x^3, \
                        y_dot = -x - y + y^2, \
-                       t_dot = 1 & t < 10>",
-                  post="((-1 + x)^2 + (-3/2 + y)^2 > 1/4)",
-                  barrier_invariants={((1,), ()): "2*x^2+(y+3/2)^2-4 <= 0"})
+                       t_dot = 1 & t < 10> \
+                      invariant [2*x^2+(y+3/2)^2-4 <= 0] {bc}",
+                  post="((-1 + x)^2 + (-3/2 + y)^2 > 1/4)")
 
     def testNonlinear30(self):
         # Nonlinear benchmark, problem 30
@@ -1205,9 +1202,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x_dot = y - x^7*(x^4 + 2*y^2 - 10), \
                       y_dot = -x^3 - 3*(y^5)*(x^4 + 2*y^2 - 10), \
-                      t_dot = 1 & t < 10>",
-                  post="((-2 + x)^2 + (-3 + y)^2 > 1/4)",
-                  dbx_invariants={((1,), ()): "x^4 + 2*y^2 <= 10"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x^4 + 2*y^2 <= 10] {dbx}",
+                  post="((-2 + x)^2 + (-3 + y)^2 > 1/4)")
 
     def testNonlinear31(self):
         # Nonlinear benchmark, problem 31
@@ -1218,9 +1215,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x > 3)}
         runVerify(self, pre="x^2 + y^2 <= 1/4",
                   hp="t := 0; \
-                      <x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = 1 & t < 10>",
-                  post="~(x > 3)",
-                  dbx_invariants={((1,), ()): "2*x^2 < 1"})
+                      <x_dot = -y+2*x^2*y, y_dot = y+2*x*y^2, t_dot = 1 & t < 10> \
+                      invariant [2*x^2 < 1] {dbx}",
+                  post="~(x > 3)")
 
     def testNonlinear32(self):
         # Nonlinear benchmark, problem 32
@@ -1231,10 +1228,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {x1 >= 1}
         runVerify(self, pre="x1>=2 && x2^2<=1",
                   hp="t := 0; \
-                      <x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10>",
-                  post="x1 >= 1",
-                  diff_cuts={((1,), ()): ["x1^4 >= 50000/7143+2*x1^2+x2^4", "x1 >= 1"]},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                      <x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10> \
+                      invariant \
+                          [x1^4 >= 50000/7143+2*x1^2+x2^4] \
+                          [x1 >= 1] {bc} ",
+                  post="x1 >= 1")
 
     def testNonlinear33(self):
         # Nonlinear benchmark, problem 33
@@ -1245,11 +1243,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {x1^2+x2-3 < 0}
         runVerify(self, pre="1.1<=x1 && x1 <= -0.7 && 0.5<=x2 && x2<=0.9",
                   hp="t := 0; \
-                      <x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10>",
-                  post="x1^2+x2-3 < 0",
-                  diff_cuts={((1,), ()): ["1-x1^2-x2^2 >= 0", "1-x1^2+x2^2 >= 0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                      <x1_dot = -x2^3, x2_dot = x1-x1^3, t_dot = 1 & t < 10> \
+                      invariant \
+                          [1-x1^2-x2^2 >= 0] {dbx} \
+                          [1-x1^2+x2^2 >= 0] {dbx}",
+                  post="x1^2+x2-3 < 0")
 
     def testNonlinear34(self):
         # Nonlinear benchmark, problem 34
@@ -1261,10 +1259,10 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="Il == 1 && Vc == 1",
                   hp="t := 0; \
                       <Il_dot = -Vc-1/5*Vc^2, Vc_dot = -2*Il-Il^2+Il^3, \
-                      t_dot = 1 & t < 10>",
-                  post="Vc <= 3",
-                  dI_invariants={((1,), ()): 
-                  "4993/2416+Il^4+2*Vc^2+4/15*Vc^3 <= 4/3*Il^2*(3+Il)"})
+                      t_dot = 1 & t < 10> \
+                      invariant \
+                          [4993/2416+Il^4+2*Vc^2+4/15*Vc^3 <= 4/3*Il^2*(3+Il)]",
+                  post="Vc <= 3")
 
     def testNonlinear35(self):
         # Nonlinear benchmark, problem 35
@@ -1274,9 +1272,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((1 + x)^2 + (1 + y)^2 <= 4/25)}
         runVerify(self, pre="(-3/2 + x)^2 + y^2 <= 1/4",
                   hp="t := 0; \
-                      <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10>",
-                  post="~((1 + x)^2 + (1 + y)^2 <= 4/25)",
-                  dbx_invariants={((1,), ()): "x > 0"})
+                      <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10> \
+                      invariant [x > 0] {dbx}",
+                  post="~((1 + x)^2 + (1 + y)^2 <= 4/25)")
 
     def testNonlinear36(self):
         # Nonlinear benchmark, problem 36
@@ -1290,9 +1288,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <a_dot = a-a^3+y-a*y^2, \
                        y_dot = -a+y-a^2*y-y^3, \
-                       t_dot = 1 & t < 10>",
-                  post="~(a < -1 || y < -1 || a > 1 || y > 1)",
-                  dbx_invariants={((1,), ()): "a^2+y^2 <= 1"})
+                       t_dot = 1 & t < 10> \
+                      invariant [a^2+y^2 <= 1] {dbx}",
+                  post="~(a < -1 || y < -1 || a > 1 || y > 1)")
 
     def testNonlinear37(self):
         # Nonlinear benchmark, problem 37
@@ -1306,9 +1304,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x_dot = -x+x*(x^2+y^2), \
                       y_dot = x+y*(x^2+y^2), \
-                      t_dot = 1 & t < 10>",
-                  post="~(x < -1/3 && y >= 0 && 2*y < 1 && x > -4/5)",
-                  barrier_invariants={((1,), ()): "3305*(x+y) > 596"})
+                      t_dot = 1 & t < 10> \
+                      invariant [3305*(x+y) > 596] {bc}",
+                  post="~(x < -1/3 && y >= 0 && 2*y < 1 && x > -4/5)")
 
     def testNonlinear38(self):
         # Nonlinear benchmark, problem 38
@@ -1318,9 +1316,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x <= -2)}
         runVerify(self, pre="2*(-1/3 + x)^2 + y^2 < 1/16",
                   hp="t := 0; \
-                     <x_dot = x^2*y, y_dot = x^2-y^2, t_dot = 1 & t < 10>",
-                  post="~(x <= -2)",
-                  dbx_invariants={((1,), ()): "x > 0"})
+                     <x_dot = x^2*y, y_dot = x^2-y^2, t_dot = 1 & t < 10> \
+                      invariant [x > 0] {dbx}",
+                  post="~(x <= -2)")
 
     def testNonlinear39(self):
         # Nonlinear benckmark, problem 39
@@ -1331,12 +1329,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x >= 2 || x <= -2)}
         runVerify(self, pre="(-1/3 + x)^2 + 2*(-1/3 + y)^2 < 1/25",
                   hp="t := 0; \
-                      <x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10>",
-                  post="~(x >= 2 || x <= -2)",
-                  diff_cuts={((1,), ()): ["x > 0", 
-                            "19801*x^2+10*y*((-22888)+11079*y)+x*(64611+33500*y) < 97121"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                      <x_dot = x*(2-x-y), y_dot = x-y, t_dot = 1 & t < 10> \
+                      invariant \
+                          [x > 0] {dbx}\
+                          [19801*x^2+10*y*((-22888)+11079*y)+x*(64611+33500*y) < 97121] {bc}",
+                  post="~(x >= 2 || x <= -2)")
 
     def testNonlinear40(self):
         # Nonlinear benchmark, problem 40
@@ -1346,9 +1343,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x <= -2)}
         runVerify(self, pre="(-1/3 + x)^2 + y^2 < 1/25",
                   hp="t := 0; \
-                     <x_dot = 2*x*y, y_dot = -x^2+y^2, t_dot = 1 & t < 10>",
-                  post="~(x <= -2)",
-                  dbx_invariants={((1,), ()): "x > 0"})
+                     <x_dot = 2*x*y, y_dot = -x^2+y^2, t_dot = 1 & t < 10> \
+                         invariant [x > 0] {dbx}",
+                  post="~(x <= -2)")
 
     def testNonlinear41(self):
         # Nonlinear benchmark, problem 41
@@ -1358,11 +1355,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x >= 2 || x <= -2)}
         runVerify(self, pre="(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16",
                   hp="t := 0; \
-                     <x_dot = (1-x^2)*y, y_dot = 1-y^2, t_dot = 1 & t < 10>",
-                  post="~(x >= 2 || x <= -2)",
-                  diff_cuts={((1,), ()): ["1 + x > 0", "x < 1"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                     <x_dot = (1-x^2)*y, y_dot = 1-y^2, t_dot = 1 & t < 10> \
+                      invariant \
+                          [1 + x > 0] {dbx}\
+                          [x < 1] {dbx}",
+                  post="~(x >= 2 || x <= -2)",)
 
     def testNonlinear42(self):
         # Nonlinear benchmark, problem 42
@@ -1373,11 +1370,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x^2 + y^2 == 0 || x >= 2 || x <= -2)}
         runVerify(self, pre="(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16",
                   hp="t := 0; \
-                     <x_dot = y, y_dot = -x+y*(1-x^2-y^2), t_dot = 1 & t < 10>",
-                  post="~(x^2 + y^2 == 0 || x >= 2 || x <= -2)",
-                  diff_cuts={((1,), ()): ["x^2+y^2 < 1", "346400*(x^2+y^2)>8503"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                     <x_dot = y, y_dot = -x+y*(1-x^2-y^2), t_dot = 1 & t < 10> \
+                      invariant \
+                          [x^2+y^2 < 1] {dbx}\
+                          [346400*(x^2+y^2)>8503] {dbx}",
+                  post="~(x^2 + y^2 == 0 || x >= 2 || x <= -2)")
 
     def testNonlinear43(self):
         # Nonlinear benchmark, problem 43
@@ -1391,11 +1388,11 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x_dot = -x-y+x*(x^2+2*y^2), \
                       y_dot = x-y+y*(x^2+2*y^2), \
-                      t_dot = 1 & t < 10>",
-                  post="~((x == 0 && y == 0) || x <= -2 ||y <= -1)",
-                  diff_cuts={((1,), ()): ["x^2+y^2 > 0", "5*x^2+2*x*y+7*y^2 < 4"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                      t_dot = 1 & t < 10> \
+                      invariant \
+                          [x^2+y^2 > 0] {dbx} \
+                          [5*x^2+2*x*y+7*y^2 < 4] {dbx}",
+                  post="~((x == 0 && y == 0) || x <= -2 ||y <= -1)")
 
     def testNonlinear44(self):
         # Nonlinear benchmark, problem 44
@@ -1409,9 +1406,9 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <b_dot = -b+b^3-y+b*y^2, \
                       y_dot = b-y+b^2*y+y^3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(b^2 + y^2 > 2)",
-                  dbx_invariants={((1,), ()): "b^2+y^2 < 1"})
+                      t_dot = 1 & t < 10> \
+                      invariant [b^2+y^2 < 1] {dbx}",
+                  post="~(b^2 + y^2 > 2)")
 
     def testNonlinear45(self):
         # Nonlinear benchmark, problem 45
@@ -1426,9 +1423,10 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x_dot = -x - (1117*y)/500 + (439*y^3)/200 - (333*y^5)/500, \
                       y_dot = x + (617*y)/500 - (439*y^3)/200 + (333*y^5)/500, \
-                      t_dot = 1 & t < 10>",
-                  post="x - 4*y < 8",
-                  barrier_invariants={((1,), ()): "x^2 + x*y + y^2 - 111/59 <= 0"})
+                      t_dot = 1 & t < 10> \
+                      invariant \
+                          [x^2 + x*y + y^2 - 111/59 <= 0] {bc}",
+                  post="x - 4*y < 8")
 
     def testNonlinear46(self):
         # Nonlinear benchmark, problem 46
@@ -1438,9 +1436,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x <= -5/2)}
         runVerify(self, pre="(-1/3 + x)^2 + (-1/3 + y)^2 < 1/16",
                   hp="t := 0; \
-                     <x_dot = (2+x)*(-((1-x)*x)+y), y_dot = -y, t_dot = 1 & t < 10>",
-                  post="~(x <= -5/2)",
-                  dbx_invariants={((1,), ()): "2 + x > 0"})
+                     <x_dot = (2+x)*(-((1-x)*x)+y), y_dot = -y, t_dot = 1 & t < 10> \
+                      invariant [2 + x > 0] {dbx}",
+                  post="~(x <= -5/2)")
 
     def testNonlinear47(self):
         # Nonlinear benchmark, problem 47
@@ -1454,11 +1452,11 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x_dot = -x+2*y+x^2*y+x^4*y^5, \
                       y_dot = -y-x^4*y^6+x^8*y^9, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x <= -1 || y <= -1)",
-                  diff_cuts={((1,), ()): ["y > 0", "x > 0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"})
+                      t_dot = 1 & t < 10> \
+                      invariant \
+                          [y > 0] {dbx} \
+                          [x > 0] {dbx}",
+                  post="~(x <= -1 || y <= -1)")
 
     def testNonlinear48(self):
         # Nonlinear benchmark, problem 48
@@ -1471,11 +1469,10 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="4 <= x1 && x1 <= 4.5 && 1 <= x2 && x2 <= 2",
                   hp="<x1_dot = -11/2*x2 + x2^2, \
                        x2_dot = 6*x1-x1^2 \
-                       & 1 < x1 && x1 < 5 && 1 < x2 && x2 < 5>",
-                  post="~(1 <= x1 && x1 <= 2 && 2 <= x2 && x2 <= 3)",
-                  diff_cuts={((), ()): ["349+4*((-9)+x1)*x1^2+x2^2*((-33)+4*x2)<=0",
-                                          "1 <= x1 && x1 <= 5 && 1 <= x2 && x2 <= 5"]},
-                  diff_weakening_rule={((), (1,)): "true"})
+                       & 1 < x1 && x1 < 5 && 1 < x2 && x2 < 5> \
+                      invariant \
+                          [349+4*((-9)+x1)*x1^2+x2^2*((-33)+4*x2)<=0]",
+                  post="~(1 <= x1 && x1 <= 2 && 2 <= x2 && x2 <= 3)")
 
     def testNonlinear49(self):
         # Nonlinear benchmark, problem 49
@@ -1494,16 +1491,13 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="<x1_dot = -x1 + 2*x1^3*x2^2, \
                        x2_dot = -x2 & \
                        -2 < x1 && x1 < 2 && \
-                       -2 < x2 && x2 < 2>",
+                       -2 < x2 && x2 < 2> \
+                      invariant \
+                        [x1*x2 < 1] {dbx}",
                   post="~( \
                             -2 <= x1 && x1 <= -1 && \
                             -2 <= x2 && x2 <= -1 \
-                        )",
-                  diff_cuts={((), ()): ["x1*x2 < 1", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2"]},
-                  darboux_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     def testNonlinear50(self):
         # Nonlinear benchmark, problem 50
@@ -1522,17 +1516,12 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="<x1_dot = -1 + x1^2 + x2^2, \
                        x2_dot = 5*(-1 + x1*x2) & \
                        -2 < x1 && x1 < 2 && \
-                       -2 < x2 && x2 < 2>",
+                       -2 < x2 && x2 < 2> \
+                      invariant [22667*x1^2+x2*(257910+6221*x2)+x1*(141840+15973*x2) < 42786] {bc}",
                   post="~( \
                             1 <= x1 && x1 <= 2 && \
                             1 <= x2 && x2 <= 2 \
-                        )",
-                  diff_cuts={((), ()): ["22667*x1^2+x2*(257910+6221*x2)+x1*(141840+15973*x2) \
-                                        < 42786", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     def testNonlinear51(self):
         # Nonlinear benchmark, problem 51
@@ -1551,16 +1540,12 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="<x1_dot = -2*x1 + x1^2 + x2, \
                        x2_dot = x1 - 2*x2 + x2^2 & \
                        -1 < x1 && x1 < 1 && \
-                       -1 < x2 && x2 < 1>",
+                       -1 < x2 && x2 < 1> \
+                      invariant [x1*(189+111470000*x1)+x2*(189+111470000*x2) < 43801000] {bc}",
                   post="~( \
                             1/2 <= x1 && x1 <= 1 && \
                             1/2 <= x2 && x2 <= 1 \
-                        )",
-                  diff_cuts={((), ()): ["x1*(189+111470000*x1)+x2*(189+111470000*x2) < 43801000",
-                                        "-1 <= x1 && x1 <= 1 && \
-                                         -1 <= x2 && x2 <= 1"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"}     
+                        )"   
                 )
     def testNonlinear52(self):
         # Nonlinear benchmark, problem 52
@@ -1577,16 +1562,13 @@ class WLHHLPyTest(unittest.TestCase):
                              -3/2 <= x2 && x2 <= -1/2",
                   hp="<x1_dot = -x1 + x1*x2, x2_dot = -x2 & \
                         -2 < x1 && x1 < 2 && \
-                        -2 < x2 && x2 < 2>",
+                        -2 < x2 && x2 < 2> \
+                      invariant \
+                          [x2 < 0] {dbx}",
                   post="~( \
                            -1/2 <= x1 && x1 <= 1/2 && \
                             1/2 <= x2 && x2 <= 3/2 \
-                        )",
-                  diff_cuts={((), ()): ["x2 < 0", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2"]},
-                  darboux_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     def testNonlinear53(self):
         # Nonlinear benchmark, problem 53
@@ -1603,16 +1585,12 @@ class WLHHLPyTest(unittest.TestCase):
                              -3/2 <= x2 && x2 <= -1/2",
                   hp="<x1_dot = -x1 + x1*x2, x2_dot = -x2 & \
                         -2 < x1 && x1 < 2 && \
-                        -2 < x2 && x2 < 2>",
+                        -2 < x2 && x2 < 2> \
+                      invariant [x2 < 0] {dbx}",
                   post="~( \
                             -1/2 <= x1 && x1 <= 1/2 && \
                             1/2 <= x2 && x2 <= 3/2 \
-                        )",
-                  diff_cuts={((), ()): ["x2 < 0", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2"]},
-                  darboux_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     # TODO: Problem 54, invariant unknown
 
@@ -1625,9 +1603,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((1 + x)^2 + (1 + y)^2 <= 4/25)}
         runVerify(self, pre="(-3/2 + x)^2 + y^2 <= 1/4",
                   hp="t := 0; \
-                      <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10>",
-                  post="~((1 + x)^2 + (1 + y)^2 <= 4/25)",
-                  dbx_invariants={((1,), ()): "x >= 0"})
+                      <x_dot = x, y_dot = -x+x^3/3-y, t_dot = 1 & t < 10> \
+                      invariant [x >= 0] {dbx}",
+                  post="~((1 + x)^2 + (1 + y)^2 <= 4/25)")
 
     # TODO: nonlinear problem 56, ODE rule is not clear. Not proved by keymaerax yet.
     # def testNonlinear56(self):
@@ -1662,12 +1640,12 @@ class WLHHLPyTest(unittest.TestCase):
         # {2*x+y < 0}
         runVerify(self, pre="(x + 2)^2 + (y + 2)^2 <= 5",
                   hp="t := 0; \
-                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>",
-                  post="2*x+y < 0",
-                  diff_cuts={((1,), ()): ["x+y < 0", "x < ((-2)+y)*y", "2*x+y < 0"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"},
-                  diff_invariant_rule={((1,), (2,)): "true"})
+                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10> \
+                      invariant \
+                          [x+y < 0] {dbx} \
+                          [x < ((-2)+y)*y] {bc} \
+                          [2*x+y < 0]",
+                  post="2*x+y < 0")
 
     def testNonlinear59(self):
         # Nonlinear benchmark, problem 59
@@ -1678,12 +1656,11 @@ class WLHHLPyTest(unittest.TestCase):
         # {~(x < 2 || y > 1)}
         runVerify(self, pre="(x - 4)^2 + y^2 <= 1",
                   hp="t := 0; \
-                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10>",
-                  post="~(x < 2 || y > 1)",
-                  diff_cuts={((1,), ()): ["y<=1", 
-                                          "273630+y*((-32671)+81001*y) < 123190*x"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                      <x_dot = x+2*y-y^2, y_dot = -y+y^2, t_dot = 1 & t < 10> \
+                      invariant \
+                        [y<=1] {dbx} \
+                        [273630+y*((-32671)+81001*y) < 123190*x] {bc}",
+                  post="~(x < 2 || y > 1)")
 
     def testNonlinear60(self):
         # Nonlinear benchmark, problem 60
@@ -1694,12 +1671,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {x + y < -2}
         runVerify(self, pre="(x+3)^2+(y+3)^2<=1",
                   hp="<x_dot = 3*x+y^2, y_dot = 5*y \
-                        & -6 < x && x < 6 && -6 < y && y < 6>",
-                  post="x + y < -2",
-                  diff_cuts={((), ()): [" -6<=x && x<= 6 && -6 <= y && y<=6",
-                                        "63232*x^3+x^2*((-66727)+176350*y)+10*x*(42940+y*(55669+25688*y))+10*(808140+y*(289690+9*y*(9466+1595*y))) < 0"]},
-                  diff_weakening_rule={((), (0,)): "true"},
-                  barrier_certificate_rule={((), (1,)): "true"})
+                        & -6 < x && x < 6 && -6 < y && y < 6> \
+                      invariant [63232*x^3+x^2*((-66727)+176350*y)+10*x*(42940+y*(55669+25688*y))+10*(808140+y*(289690+9*y*(9466+1595*y))) < 0] {bc}",
+                  post="x + y < -2")
 
     # TODO: Nonlinear problem 61. Invariants unknown.
 
@@ -1712,12 +1686,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {x+y < -2}
         runVerify(self, pre="(x + 3)^2 + (y + 3)^2 <= 1",
                   hp="t := 0; \
-                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
-                  post="x+y < -2",
-                  diff_cuts={((1,), ()): ["1+y < 0",
-                                          "70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y)"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10> \
+                      invariant [1+y < 0] {dbx} [70030000+331*x^2+5*y*(4429100+61943*y) < 50*x*((-629110)+27787*y)] {bc}",
+                  post="x+y < -2")
 
     def testNonlinear63(self):
         # Nonlinear benchmark, problem 63
@@ -1728,14 +1699,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {(x - 2)^2 + (y - 2)^2 > 3}
         runVerify(self, pre="(x - 4)^2 + (y - 4)^2 <= 1",
                   hp="t := 0; \
-                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
-                  post="(x - 2)^2 + (y - 2)^2 > 3",
-                  diff_cuts={((1,), ()): ["1+y>0", 
-                                          "x^2 < y*(x+y)", 
-                                          "387150000+426*x^2+85*y < 36465000*x*y"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true"},
-                  barrier_certificate_rule={((1,), (2,)): "true"})
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10> \
+                      invariant [1+y>0] {dbx} [x^2 < y*(x+y)] {dbx} [387150000+426*x^2+85*y < 36465000*x*y] {bc}",
+                  post="(x - 2)^2 + (y - 2)^2 > 3")
 
     def testNonlinear64(self):
         # Nonlinear benchmark, problem 64
@@ -1746,11 +1712,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {(x + 2)^2 + (y + 2)^2 > 2}
         runVerify(self, pre="(x + 1)^2 + (y - 4)^2 <= 1",
                   hp="t := 0; \
-                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10>",
-                  post="(x + 2)^2 + (y + 2)^2 > 2",
-                  diff_cuts={((1,), ()): ["1+y>0", "23921*x+18696*y+2089*x*y>5916"]},
-                  darboux_rule={((1,), (0,)): "true"},
-                  barrier_certificate_rule={((1,), (1,)): "true"})
+                     <x_dot = x+y+x^2, y_dot = x*(1+y), t_dot = 1 & t < 10> \
+                      invariant [1+y>0] {dbx} [23921*x+18696*y+2089*x*y>5916] {bc}",
+                  post="(x + 2)^2 + (y + 2)^2 > 2")
 
     # TODO: Nonlinear 65, 66, 67. Invariants unknown.
 
@@ -1764,13 +1728,10 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((x+1.8)^2+y^2 <= 0.16)}
         runVerify(self, pre="(x-1)^2+y^2<=0.04 && u1 == -1 && u2 == 3",
                   hp="<x_dot = u1*y-3/2*x^2-1/2*x^3, y_dot = u2*x-y \
-                      & -2<x && x<2 && -2<y && y<2>",
+                      & -2<x && x<2 && -2<y && y<2> \
+                      invariant [x*((-26090)+x*(34696+12539*x))+38464*y < 61620] {bc}",
                   post="~((x+1.8)^2+y^2 <= 0.16)",
-                  constants={'u1', 'u2'},
-                  diff_cuts={((), ()): ["x*((-26090)+x*(34696+12539*x))+38464*y < 61620",
-                                        "-2<=x && x<=2 && -2<=y && y<=2"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                  constants={'u1', 'u2'})
 
     def testNonlinear69(self):
         # Nonlinear benchmark, problem 69
@@ -1780,9 +1741,9 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)}
         runVerify(self, pre="(x1+1.125)^2 + (x2-0.625)^2 - 0.0125 <= 0",
                   hp="t := 0; \
-                     <x1_dot = -x1+x1*x2, x2_dot = -x2, t_dot = 1 & t < 10>",
-                  post="~((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)",
-                  dbx_invariants={((1,), ()): "x1 < 0"})
+                     <x1_dot = -x1+x1*x2, x2_dot = -x2, t_dot = 1 & t < 10> \
+                      invariant [x1 < 0] {dbx}",
+                  post="~((x1-0.875)^2 + (x2-0.125)^2 - 0.0125 <= 0)")
 
     # TODO: Nonlinear 70. Invariants unknown.
 
@@ -1796,12 +1757,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 1 && y == 1 && z == 1",
                   hp="t := 1; \
                     <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
-                     t_dot = 1 & t < 10>",
-                  post="x + 2*y + z^3 > 0",
-                  diff_cuts={((1,), ()): ["x>0", "y>0", "z>0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true",
-                                ((1,), (2,)): "true"})
+                     t_dot = 1 & t < 10> \
+                      invariant [x>0] {dbx} [y>0] {dbx} [z>0] {dbx}",
+                  post="x + 2*y + z^3 > 0")
 
     def testNonlinear72(self):
         # Nonlinear benchmark, problem 72
@@ -1813,12 +1771,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == -1 && y == -1 && z == -1",
                   hp="t := 0; \
                      <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
-                      t_dot = 1 & t < 10>",
-                  post="x^5 + 12*y + z^3 < 0",
-                  diff_cuts={((1,), ()): ["x<0", "y<0", "z<0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true",
-                                ((1,), (2,)): "true"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x<0] {dbx} [y<0] {dbx} [z<0] {dbx}",
+                  post="x^5 + 12*y + z^3 < 0")
 
     def testNonlinear73(self):
         # Nonlinear benchmark, problem 73
@@ -1830,12 +1785,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 1 && y == 1 && z == -1",
                   hp="t := 0; \
                      <x_dot = x*y-x*z, y_dot = y*z-y*x, z_dot = z*x-z*y, \
-                      t_dot = 1 & t < 10>",
-                  post="x + y - z > -2",
-                  diff_cuts={((1,), ()): ["x>0", "y>0", "z<0"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true",
-                                ((1,), (2,)): "true"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x>0] {dbx} [y>0] {dbx} [z<0] {dbx}",
+                  post="x + y - z > -2")
 
     # TODO: Nonlinear benchamark, problem 74: (Constraint)
     # {x == 1 && y == 0 && z == 0}
@@ -1859,13 +1811,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot = 1 - x1 - (x1*x2)/4, \
                       x2_dot = x2*(-1 + 2*x3), \
                       x3_dot = x1/4 - 2*x3^2, \
-                      t_dot = 1 & t < 10>",
-                  post="x1 <= 5 && x2 <= 5 && x3 <= 5",
-                  diff_cuts={((1,), ()): ["x2==0", "x1<=5", "x3 <= 5"]},
-                  darboux_rule={((1,), (0,)): "true",
-                                ((1,), (1,)): "true",
-                                ((1,), (2,)): "true"},
-                  dbx_cofactors={((1,), (2,)): "-10 - 2*x3"},   
+                      t_dot = 1 & t < 10> \
+                      invariant [x2==0] {dbx} [x1<=5] {dbx} [x3 <= 5] {dbx -10 - 2*x3}",
+                  post="x1 <= 5 && x2 <= 5 && x3 <= 5" 
                 #   wolfram_engine=True,
                 )
 
@@ -1883,9 +1831,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x_dot = x^2-x*(x^3+y^3+z^3), \
                       y_dot = y^2-y*(x^3+y^3+z^3), \
                       z_dot = z^2-z*(x^3+y^3+z^3), \
-                      t_dot = 1 & t < 10>",
-                  post="~(x > 10 || y > 5 || z <= -20)",
-                  dbx_invariants={((1,), ()): "x^2+y^2+z^2 < 1"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x^2+y^2+z^2 < 1] {dbx}",
+                  post="~(x > 10 || y > 5 || z <= -20)")
 
     def testNonlinear77(self):
         # Nonlinear benchmark, problem 77
@@ -1897,9 +1845,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 1 && y == 2 && z == 3",
                   hp="t := 0; \
                      <x_dot = y*z, y_dot = x*z, z_dot = x*y, \
-                      t_dot = 1 & t < 10>",
-                   post="~(x==5 && y^2==27 && z^2==34)",
-                   dI_invariants={((1,), ()): "5+y^2==z^2"})
+                      t_dot = 1 & t < 10> \
+                      invariant [5+y^2==z^2]",
+                   post="~(x==5 && y^2==27 && z^2==34)")
 
     # Nonlinear problem 78 is the same with problem 77.
 
@@ -1913,9 +1861,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 2 && y == 0 && r == 2",
                   hp="t := 0; \
                      <x_dot = -y*omega, y_dot = x*omega, omega_dot = -g/r^2*x, \
-                      t_dot = 1 & t < 10>",
-                  post="2*x^2+y^2 > 3",
-                  dI_invariants={((1,), ()): "x^2+y^2>=4"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x^2+y^2>=4]",
+                  post="2*x^2+y^2 > 3")
 
     def testNonlinear80(self):
         # Nonlinear benchmark, problem 80
@@ -1927,9 +1875,9 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x == 5 && y == 3 && z == -4",
                   hp="t := 0; \
                      <x_dot = y, y_dot = x-y-x*z, z_dot = x^2-z, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                      invariant [z >= -5] {dbx}",
                   post="~(z < 0 && z^2 > 26+x^2)",
-                  dbx_invariants={((1,), ()): "z >= -5"},
                   wolfram_engine=True)
 
     def testNonlinear81(self):
@@ -1953,19 +1901,13 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="<x1_dot = -x2, x2_dot = -x3, x3_dot = -x1 - 2*x2 - x3 + x1^3 & \
                       -2 < x1 && x1 < 2 && \
                       -2 < x2 && x2 < 2 && \
-                      -2 < x3 && x3 < 2>",
+                      -2 < x3 && x3 < 2> \
+                      invariant [7*x1*(425300+3161*x1^2) < 5*(909080+23721*x2+295290*x3)] {bc}",
                   post="~( \
                             1 <= x1 && x1 <= 2 && \
                             -2 <= x2 && x2 <= -1 && \
                             -2 <= x3 && x3 <= -1 \
-                        )",
-                  diff_cuts={((), ()): ["7*x1*(425300+3161*x1^2) < \
-                                           5*(909080+23721*x2+295290*x3)", 
-                                          "-2 <= x1 && x1 <= 2 && \
-                                           -2 <= x2 && x2 <= 2 && \
-                                           -2 <= x3 && x3 <= 2"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     # TODO: Nonlinear problem 82, Proving invariant stuck.
 
@@ -1984,13 +1926,10 @@ class WLHHLPyTest(unittest.TestCase):
                        z_dot = -0.77*x-u3*z \
                         & -2<x && x<2 && \
                           -2<y && y<2 && \
-                          -2<z && z<2>",
+                          -2<z && z<2> \
+                      invariant [12583*x+97936*z < 60051] {bc}",
                   post="~(x+1)^2+(y+1)^2+(z-1)^2 <= 0.0625",
-                  constants={"u1", "u2", "u3"},
-                  diff_cuts={((), ()): ["12583*x+97936*z < 60051",
-                                        "-2<=x && x<=2 && -2<=y && y<=2 && -2<=z && z<=2"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                  constants={"u1", "u2", "u3"})
 
     # TODO: Nonlinear problem 84, invariant not implied by precondition
 
@@ -2005,13 +1944,10 @@ class WLHHLPyTest(unittest.TestCase):
         runVerify(self, pre="0<=x1 && x1<=0.5 && 0<=x2 && x2<=0.5 && -0.5<=x3 && x3<=0 && \
                              u1 == -0.85 && u2 == -1.15 && u3 == -1.16 && u4 == 2.2",
                   hp="<x1_dot = u1*x2, x2_dot = u2*x3, x3_dot = u3*x1-u4*x2-x3+x1^3 \
-                     & -2<x1 && x1<2 && -2<x2 && x2<2 && -2<x3 && x3<2>",
+                     & -2<x1 && x1<2 && -2<x2 && x2<2 && -2<x3 && x3<2> \
+                      invariant [722620*x1+17021*x1^3 < 890220+33020*x2+318530*x3] {bc}",
                   post="~(0.5<=x1 && x1<=2 && -2<=x2 && x2<=-1.5 && -2<=x3 && x3<=-1.5)",
-                  constants={"u1", "u2", "u3", "u4"},
-                  diff_cuts={((), ()): ["722620*x1+17021*x1^3 < 890220+33020*x2+318530*x3",
-                                        "-2<=x1 && x1<=2 && -2<=x2 && x2<=2 && -2<=x3 && x3<=2"]},
-                  barrier_certificate_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), (1,)): "true"})
+                  constants={"u1", "u2", "u3", "u4"})
 
     def testNonlinear86(self):
         # Nonlinear benchmark, problem 86
@@ -2028,8 +1964,7 @@ class WLHHLPyTest(unittest.TestCase):
                       x2_dot = x1+3*x2-x3, \
                       x3_dot = -x1+2*x2+3*x3, \
                       t_dot = 1 & t < 10>",
-                  post="~(x1^2+x2^2+x3^2 < 1)",
-                  darboux_rule={((), ()): "true"})
+                  post="~(x1^2+x2^2+x3^2 < 1)")
 
     def testNonlinear87(self):
         # Nonlinear benchmark, problem 87
@@ -2045,9 +1980,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot=4*x1-5*x2+2*x3, \
                       x2_dot=5*x1-7*x2+3*x3, \
                       x3_dot=6*x1-9*x2+4*x3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x1 < 0.5 && x3 < 0.5 && x2 > 1)",
-                  dbx_invariants={((1,), ()): "x1+x3>=2*x2"})
+                      t_dot = 1 & t < 10> \
+                    invariant [x1+x3>=2*x2] {dbx}",
+                  post="~(x1 < 0.5 && x3 < 0.5 && x2 > 1)")
 
     def testNonlinear88(self):
         # Nonlinear benchmark, problem 88
@@ -2064,9 +1999,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot=4*x1-x2, \
                       x2_dot=3*x1+x2-x3, \
                       x3_dot=x1+x3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(4*x1 < x2 && x3 < x1 && x2 > 0.5)",
-                  dbx_invariants={((1,), ()): "x1+x3>x2"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x1+x3>x2] {dbx}",
+                  post="~(4*x1 < x2 && x3 < x1 && x2 > 0.5)")
     
     def testNonlinear89(self):
         # Nonlinear benchmark, problem 89
@@ -2082,9 +2017,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot=4*x1-x2, \
                       x2_dot=3*x1+x2-x3, \
                       x3_dot=x1+x3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x3 < 0 && x1 - x2 + x3 > 0)",
-                  dbx_invariants={((1,), ()): "(x1-x3)^2-2*x3*(x1-x2+x3) < 0"})
+                      t_dot = 1 & t < 10> \
+                    invariant [(x1-x3)^2-2*x3*(x1-x2+x3) < 0] {dbx}",
+                  post="~(x3 < 0 && x1 - x2 + x3 > 0)")
 
     def testNonlinear90(self):
         # Nonlinear benchmark, problem 90
@@ -2100,9 +2035,9 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot = 4*x1-x2, \
                       x2_dot = 3*x1+x2-x3, \
                       x3_dot = x1+x3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x2 == x3 && x3 > 5 && x1 < 1/5)",
-                  dbx_invariants={((1,), ()): "(x1-x3)^2-2*x3*(x1-x2+x3) < (x1-x2+x3)^2"})
+                      t_dot = 1 & t < 10> \
+                      invariant [(x1-x3)^2-2*x3*(x1-x2+x3) < (x1-x2+x3)^2] {dbx}",
+                  post="~(x2 == x3 && x3 > 5 && x1 < 1/5)")
 
     # TODO: Nonlinear benchmark, problem 91. Invariants unknown.
 
@@ -2122,10 +2057,10 @@ class WLHHLPyTest(unittest.TestCase):
                      <x_dot = s*(y-x), \
                       y_dot = r*x-y-x*z5, \
                       z5_dot = -b*z5+x*y, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                      invariant [y^2+z5^2<=1] {bc}",
                   post="y^2 + 2*z5^2 <= 5",
-                  constants={'b', 'r', 's'},
-                  barrier_invariants={((1,), ()): "y^2+z5^2<=1"})
+                  constants={'b', 'r', 's'})
 
     def testNonlinear97(self):
         # Nonlinear benchmark, problem 97
@@ -2142,10 +2077,10 @@ class WLHHLPyTest(unittest.TestCase):
                      <x_dot=s*(y-x), \
                       y_dot=r*x-y-x*z6, \
                       z6_dot=-b*z6+x*y, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                    invariant [y^2+z6^2 <= 2] {bc}",
                   post="y^2 + 0.5*z6^2 <= 3",
-                  constants={"b", "r", "s"},
-                  barrier_invariants={((1,), ()): "y^2+z6^2 <= 2"})
+                  constants={"b", "r", "s"})
 
     # TODO:Nonlinear problem 98. How to define a function.
 
@@ -2169,9 +2104,9 @@ class WLHHLPyTest(unittest.TestCase):
                       x2_dot=-x1 + 4*x2 - x3 + 2*x4, \
                       x3_dot=2*x2 + x3 + x4, \
                       x4_dot=2*x1 - 4*x2 + 2*x3 - 2*x4, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x1 == 10 && x2 == 0 && x3 == 2 && x4 == 3)",
-                  dbx_invariants={((1,), ()): "x1+x3 == x2+x4"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x1+x3 == x2+x4] {dbx}",
+                  post="~(x1 == 10 && x2 == 0 && x3 == 2 && x4 == 3)")
 
     def testNonlinear103(self):
         # Nonlinear benchmark, problem 103
@@ -2189,9 +2124,9 @@ class WLHHLPyTest(unittest.TestCase):
                       x2_dot=8*x1-3*x2-2*x3+6*x4, \
                       x3_dot=-9*x1+3*x2+4*x3-4*x4, \
                       x4_dot=6*x1-3*x2-4*x3+2*x4, \
-                      t_dot = 1 & t < 10>",
-                  post="(-x2 + x4)^2 + 2*(x1 + x3 + 2*x4)^2 > 1",
-                  dbx_invariants={((1,), ()): "(-x2 + x4)^2 + (x1 + x3 + 2*x4)^2 > 3"})
+                      t_dot = 1 & t < 10> \
+                      invariant [(-x2 + x4)^2 + (x1 + x3 + 2*x4)^2 > 3] {dbx}",
+                  post="(-x2 + x4)^2 + 2*(x1 + x3 + 2*x4)^2 > 1")
 
     def testNonlinear104(self):
         # Nonlinear benchmark, problem 104
@@ -2209,9 +2144,9 @@ class WLHHLPyTest(unittest.TestCase):
                       x2_dot=8*x1-3*x2-2*x3+6*x4, \
                       x3_dot=-9*x1+3*x2+4*x3-4*x4, \
                       x4_dot=6*x1-3*x2-4*x3+2*x4, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x2 > 1 && x1 > 4*x2 && x4 > 0)",
-                  dbx_invariants={((1,), ()): "(x1 - x2 + 2*x4)^2 + (-x1 + 2*x2 + 2*x3)^2 < 2"})
+                      t_dot = 1 & t < 10> \
+                      invariant [(x1 - x2 + 2*x4)^2 + (-x1 + 2*x2 + 2*x3)^2 < 2] {dbx}",
+                  post="~(x2 > 1 && x1 > 4*x2 && x4 > 0)")
 
     # TODO: Nonlinear problem 105, 106, 107. No tactic offered.
 
@@ -2238,10 +2173,10 @@ class WLHHLPyTest(unittest.TestCase):
                       x2_dot = theta^2*u1*u2 - g/lp*u1, \
                       u1_dot = x2*u2, \
                       u2_dot = -x2*u1, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                    invariant [((-20)+u2)*u2+x2^2<=45/4]",
                   post="~(u2 < -0.75 && x2 == 4)",
-                  constants={"theta", "g", "lp"},
-                  dI_invariants={((1,), ()): "((-20)+u2)*u2+x2^2<=45/4"})
+                  constants={"theta", "g", "lp"})
 
     # TODO: Nonlinear problem 110, 111. Definitions and no tactic.
 
@@ -2264,9 +2199,9 @@ class WLHHLPyTest(unittest.TestCase):
                       x3_dot=x2-x3, \
                       x4_dot=-3*x1+5*x2-4*x3-x4-2*x5, \
                       x5_dot=4*x2-2*x3+x4, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x1 < -5 && x3 == -x4)",
-                  dbx_invariants={((1,), ()): "x1 + x3 + x4 > 0"})
+                      t_dot = 1 & t < 10> \
+                      invariant [x1 + x3 + x4 > 0] {dbx}",
+                  post="~(x1 < -5 && x3 == -x4)")
 
     # TODO: Nonlinear problem 113. Definitions and no tactic.
 
@@ -2354,7 +2289,8 @@ class WLHHLPyTest(unittest.TestCase):
                        -2 < x4 && x4 < 2 && \
                        -2 < x5 && x5 < 2 && \
                        -2 < x6 && x6 < 2 && \
-                       -2 < x7 && x7 < 2>",
+                       -2 < x7 && x7 < 2> \
+                      invariant [x1+x2+x3<=706/233]",
                   post="~( \
                             1.8 <= x1 && x1 <= 2 && \
                             1.8 <= x2 && x2 <= 2 && \
@@ -2364,15 +2300,6 @@ class WLHHLPyTest(unittest.TestCase):
                             1.8 <= x6 && x6 <= 2 && \
                             1.8 <= x7 && x7 <= 2 \
                         )",
-                  diff_cuts={((), ()): ["x1+x2+x3<=706/233", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2 && \
-                                         -2 <= x3 && x3 <= 2 && \
-                                         -2 <= x4 && x4 <= 2 && \
-                                         -2 <= x5 && x5 <= 2 && \
-                                         -2 <= x6 && x6 <= 2 && \
-                                         -2 <= x7 && x7 <= 2"]},
-                  diff_weakening_rule={((), (1,)): "true"},
                   wolfram_engine=True)
 
     def testNonlinear119(self):
@@ -2398,13 +2325,10 @@ class WLHHLPyTest(unittest.TestCase):
                      <x1_dot=d1, x2_dot=d2, \
                       d1_dot=-w*d2, d2_dot=w*d1, \
                       y1_dot=e1, y2_dot=e2, \
-                      e1_dot=-theta*e2, e2_dot=theta*e1, t_dot = 1 & t < 10>",
+                      e1_dot=-theta*e2, e2_dot=theta*e1, t_dot = 1 & t < 10> \
+                      invariant [e1^2+e2^2-b^2==0] [d1^2+d2^2-a^2==0] [e1-r2*theta+theta*y2==0] [-a+d1-r2*w+w*x2==0]",
                   post="(e1 - r2*theta + theta * y2) != e2^2 + 1",
-                  constants={'a', 'b', 'r1', 'r2', 'w', 'theta'},
-                  diff_cuts={((1,), ()): ["e1^2+e2^2-b^2==0", 
-                                          "d1^2+d2^2-a^2==0", 
-                                          "e1-r2*theta+theta*y2==0", 
-                                          "-a+d1-r2*w+w*x2==0"]})
+                  constants={'a', 'b', 'r1', 'r2', 'w', 'theta'})
 
     # TODO: Nonlinear problem 120. Definitions.
     
@@ -2439,12 +2363,13 @@ class WLHHLPyTest(unittest.TestCase):
                       d1_dot=-w1*d2, d2_dot=w1*d1, \
                       y1_dot=e1, y2_dot=e2, \
                       e1_dot=-w2*e2, e2_dot=w2*e1, \
-                      t_dot = 1 & t < 10>",
-                  post="-w1*x1 + 3*w1*x2 + 3*d1 + d2 + w1*xi1 - 3*w1*xi2 - 3*di1 - di2 >= -d1^2",
-                  diff_cuts={((1,), ()): ["w1*x2 + d1 - w1*xi2 - di1 == 0", 
-                                          "-w1*x1 + d2 + w1*xi1 - di2 == 0", 
-                                          "-w1*x1 + w1*x2 + d1 + d2 + w1*xi1 - w1*xi2 - di1 - di2 == 0", 
-                                          "d1^2 + d2^2 - di1^2 - di2^2 == 0"]})
+                      t_dot = 1 & t < 10> \
+                      invariant \
+                          [w1*x2 + d1 - w1*xi2 - di1 == 0] \
+                          [-w1*x1 + d2 + w1*xi1 - di2 == 0] \
+                          [-w1*x1 + w1*x2 + d1 + d2 + w1*xi1 - w1*xi2 - di1 - di2 == 0] \
+                          [d1^2 + d2^2 - di1^2 - di2^2 == 0]",
+                  post="-w1*x1 + 3*w1*x2 + 3*d1 + d2 + w1*xi1 - 3*w1*xi2 - 3*di1 - di2 >= -d1^2")
 
     # TODO: Nonlinear problem 122, 123, 124. No invariants.
 
@@ -2519,7 +2444,8 @@ class WLHHLPyTest(unittest.TestCase):
                         -2 < x6 && x6 < 2 && \
                         -2 < x7 && x7 < 2 && \
                         -2 < x8 && x8 < 2 && \
-                        -2 < x9 && x9 < 2>",
+                        -2 < x9 && x9 < 2> \
+                      invariant [x2+x4<=101/50]",
                   post="~( \
                             1.8 <= x1 && x1 <= 2 && \
                             1.8 <= x2 && x2 <= 2 && \
@@ -2530,18 +2456,7 @@ class WLHHLPyTest(unittest.TestCase):
                             1.8 <= x7 && x7 <= 2 && \
                             1.8 <= x8 && x8 <= 2 && \
                             1.8 <= x9 && x9 <= 2 \
-                        )",
-                  diff_cuts={((), ()): ["x2+x4<=101/50", 
-                                        "-2 <= x1 && x1 <= 2 && \
-                                         -2 <= x2 && x2 <= 2 && \
-                                         -2 <= x3 && x3 <= 2 && \
-                                         -2 <= x4 && x4 <= 2 && \
-                                         -2 <= x5 && x5 <= 2 && \
-                                         -2 <= x6 && x6 <= 2 && \
-                                         -2 <= x7 && x7 <= 2 && \
-                                         -2 <= x8 && x8 <= 2 && \
-                                         -2 <= x9 && x9 <= 2"]},
-                  diff_weakening_rule={((), (1,)): "true"})
+                        )")
 
     # TODO: Nonlinear 126, 127. Definitions.
 
@@ -2566,25 +2481,17 @@ class WLHHLPyTest(unittest.TestCase):
                        yleft_dot = -yleft, \
                        x1right_dot = -x1right+x1right*x2right, \
                        x2right_dot = -x2right &  \
-                       -2< x1right && x1right< 2 && -2< x2right && x2right< 2>",
+                       -2< x1right && x1right< 2 && -2< x2right && x2right< 2> \
+                      invariant \
+                          [x2right+yleft>0] {dbx} \
+                          [x2right^2+x2right*yleft+yleft^2>0] {dbx} \
+                          [x1right < 0] {dbx} \
+                          [x2right < 0] {dbx} \
+                          [xleft*yleft < 1] {dbx} \
+                          [xleft > -2] {dbx} \
+                          [yleft > -1] {dbx}",
                   post="~(xleft<=-2||yleft<=-1) && \
-                        ~(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)",
-                  diff_cuts={((), ()): ["x2right+yleft>0", 
-                                        "x2right^2+x2right*yleft+yleft^2>0", 
-                                        "x1right < 0",
-                                        "x2right < 0",
-                                        "xleft*yleft < 1",
-                                        "xleft > -2",
-                                        "yleft > -1",
-                                        "-2<= x1right && x1right<= 2 && -2<= x2right && x2right<= 2"]},
-                  darboux_rule={((), (0,)): "true",
-                                ((), (1,)): "true",
-                                ((), (2,)): "true",
-                                ((), (3,)): "true",
-                                ((), (4,)): "true",
-                                ((), (5,)): "true",
-                                ((), (6,)): "true"},
-                  diff_weakening_rule={((), (7,)): "true"})
+                        ~(-1/2<=x1right && x1right<=1/2 && 1/2<=x2right && x2right<=3/2)")
 
     # TODO: Nonlinear 134. No tactic.
 
@@ -2608,15 +2515,12 @@ class WLHHLPyTest(unittest.TestCase):
                       x1right_dot=-11/2*x2right+x2right^2, \
                       x2right_dot=6*x1right-x1right^2 & \
                         1<x1right && x1right<5 && \
-                        1<x2right && x2right<5>",
-                  post="~xleft>3 && ~(1<=x1right && x1right<=2 && 2<=x2right && x2right<=3)",
-                  diff_cuts={((), ()): ["349+4*((-9)+x1right)*x1right^2+ \
-                                         x2right^2*((-33)+4*x2right)<=0",
-                                         "2*xleft^2 < 1",
-                                         "1<=x1right && x1right<=5 && 1<=x2right && x2right<=5"]},
-                  diff_invariant_rule={((), (0,)): "true"},
-                  darboux_rule={((), (1,)): "true"},
-                  diff_weakening_rule={((), (2,)): "true"})
+                        1<x2right && x2right<5> \
+                      invariant \
+                        [349+4*((-9)+x1right)*x1right^2+ \
+                          x2right^2*((-33)+4*x2right)<=0] \
+                        [2*xleft^2 < 1] {dbx}",
+                  post="~xleft>3 && ~(1<=x1right && x1right<=2 && 2<=x2right && x2right<=3)")
 
     # TODO: Nonlinear 136, 137, 138, 139, 140, 141. No tactics.
 
