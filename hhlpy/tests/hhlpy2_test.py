@@ -2052,11 +2052,20 @@ class WLHHLPyTest(unittest.TestCase):
                                 ((1,), (1,)): "true",
                                 ((1,), (2,)): "true"})
 
-    # TODO: Nonlinear benchamark, problem 74: (Constraint)
-    # {x == 1 && y == 0 && z == 0}
-    #   <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & x^2+y^2+z^2 == 1>
-    #   @invariant(x+y>0)
-    # {~((x > -1 -> x^2 > 2) || z > 1)}
+    def testNonlinear74(self):
+        # Nonlinear benchmark, problem 74
+        # {x == 1 && y == 0 && z == 0}
+        #    t := 0;
+        #   <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & t < 10>
+        #   @invariant(x^2+y^2+z^2 == 1, x+y>0)
+        # {~((x > -1 --> x^2 > 2) || z > 1)}
+        runVerify(self, pre="x == 1 && y == 0 && z == 0",
+                  hp="t := 0; \
+                     <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & t < 10>",
+                  post="~((x > -1 --> x^2 > 2) || z > 1)",
+                  diff_cuts={((1,), ()): ["x^2+y^2+z^2 == 1", "x+y>0"]},
+                  diff_invariant_rule={((1,), (0,)): "true"},
+                  darboux_rule={((1,), (1,)): "true"})
 
     def testNonlinear75(self):
         # Nonlinear benchmark, problem 75
@@ -2363,6 +2372,52 @@ class WLHHLPyTest(unittest.TestCase):
                   barrier_invariants={((1,), ()): "y^2+z6^2 <= 2"})
 
     # TODO:Nonlinear problem 98. How to define a function.
+    def testNonlinear98(self):
+        # Nonlinear benchmark, problem 98
+        #     {x1==0
+        #   && v1==0
+        #   && x2==7/8
+        #   && v2==0
+        #   && k1==-1
+        #   && k2==-1
+        #   && k==-1
+        #   && m1==5
+        #   && m2==1
+        #   && u10==0
+        #   && u1==0
+        #   && u8==320/49}
+        #     t := 0;
+        #     <x1_dot=v1, v1_dot=-k1/m1*x1-k2/m1*(x1-x2), 
+        #     x2_dot=v2, v2_dot=-k2/m2*(x2-x1),
+        #     t_dot = 1 & t < 10>
+        #       @invariant(v1*v2+(-3)/10*v2^2+1/2*x1^2+(-1)*x1*x2+2/5*x2^2>=358/1169)
+        # {~u8*v1*v2+k2*x1*x2*(m1*u8-2*m2*u10)/(m1*m2) + u10*v1^2+u1
+        # + 1/2*v2^2*(k1*m2*u8-k2*m1*u8+k2*m2*u8+2*k2*m2*u10)/(k2*m1)
+        # + 1/2*(2*k1*m2*u10-k2*m1*u8+2*k2*m2*u10)*x1^2/(m1*m2)
+        # + 1/2*(k1*m2*u8-k2*m1*u8+2*k2*m2*u10)*x2^2/(m1*m2) < -v1^2}
+        runVerify(self, pre="x1==0 \
+                          && v1==0 \
+                          && x2==7/8 \
+                          && v2==0 \
+                          && k1==-1 \
+                          && k2==-1 \
+                          && k==-1 \
+                          && m1==5 \
+                          && m2==1 \
+                          && u10==0 \
+                          && u1==0 \
+                          && u8==320/49",
+                  hp="t := 0; \
+                     <x1_dot=v1, v1_dot=-k1/m1*x1-k2/m1*(x1-x2), \
+                      x2_dot=v2, v2_dot=-k2/m2*(x2-x1), \
+                      t_dot = 1 & t < 10>",
+                  post="~u8*v1*v2+k2*x1*x2*(m1*u8-2*m2*u10)/(m1*m2) + u10*v1^2+u1 \
+                        + 1/2*v2^2*(k1*m2*u8-k2*m1*u8+k2*m2*u8+2*k2*m2*u10)/(k2*m1) \
+                        + 1/2*(2*k1*m2*u10-k2*m1*u8+2*k2*m2*u10)*x1^2/(m1*m2) \
+                        + 1/2*(k1*m2*u8-k2*m1*u8+2*k2*m2*u10)*x2^2/(m1*m2) < -v1^2",
+                  constants={'m1', 'm2', 'k1', 'k2', 'k', 'u1', 'u8', 'u10'},
+                  dI_invariants={((1,), ()): "v1*v2+(-3)/10*v2^2+1/2*x1^2+(-1)*x1*x2+2/5*x2^2 \
+                                              >=358/1169"})
 
     # TODO:Nonlinear problem 99. No tactic offered.
 
@@ -2503,7 +2558,7 @@ class WLHHLPyTest(unittest.TestCase):
                   post="~(x1 < -5 && x3 == -x4)",
                   dbx_invariants={((1,), ()): "x1 + x3 + x4 > 0"})
 
-    # TODO: Nonlinear problem 113. Definitions and no tactic.
+    # TODO: Nonlinear problem 113. Definitions of constants value and no tactic.
 
     # TODO: Nonlinear problem 114, 115. No tactic and even inv-->post is too slow to verify.
 
@@ -2642,6 +2697,30 @@ class WLHHLPyTest(unittest.TestCase):
                                           "-a+d1-r2*w+w*x2==0"]})
 
     # TODO: Nonlinear problem 120. Definitions.
+    def testNonlinear120(self):
+        # Nonlinear benchmark, problem 120
+        # {(x1-y1)^2 + (x2-y2)^2 >= p^2
+        #   && d1 =-om*(x2-c2) && d2=om*(x1-c1)
+        #   && e1 =-om*(y2-c2) && e2=om*(y1-c1)}
+        #     t := 0;
+        #    <x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1,
+        #     y1_dot=e1, y2_dot=e2, e1_dot=-om*e2, e2_dot=om*e1,
+        #     t_dot = 1 & t < 10>
+        #     @invariant(d1-e1=-om*(x2-y2)&&d2-e2=om*(x1-y1))
+        # {(x1-y1)^2 + (x2-y2)^2 >= p^2}
+        runVerify(self, pre="(x1-y1)^2 + (x2-y2)^2 >= p^2 \
+                           && d1 ==-om*(x2-c2) && d2==om*(x1-c1) \
+                           && e1 ==-om*(y2-c2) && e2==om*(y1-c1)",
+                  hp="t := 0; \
+                     <x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1, \
+                      y1_dot=e1, y2_dot=e2, e1_dot=-om*e2, e2_dot=om*e1, \
+                      t_dot = 1 & t < 10>",
+                  post="(x1-y1)^2 + (x2-y2)^2 >= p^2",
+                  constants={'p', 'om', 'omy', 'c1', 'c2'},
+                  diff_cuts={((1,), ()): ["d1-e1 == -om*(x2-y2) && d2-e2 == om*(x1-y1)",
+                                          "(x1-y1)^2 + (x2-y2)^2 >= p^2"]},
+                  diff_invariant_rule={((1,), (0,)): "true",
+                                       ((1,), (1,)): "true"})
     
     def testNonlinear121(self):
         # Nonlinear benchmark, problem 121
