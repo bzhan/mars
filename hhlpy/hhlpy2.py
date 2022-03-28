@@ -306,6 +306,10 @@ class CmdVerifier:
 
             else:
                 raise NotImplementedError
+    def set_andR_rule(self, pos, andR):
+        if pos not in self.infos:
+            self.infos[pos] = CmdInfo()
+        self.infos[pos].andR = andR
 
     def __str__(self):
         res = ""

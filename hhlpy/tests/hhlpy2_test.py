@@ -14,6 +14,7 @@ path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
 
 def runVerify(self, *, pre, hp, post, constants=set(),
               wolfram_engine = False, z3 = True,
+              andR_rule=None,
               print_vcs=False, expected_vcs=None):
     # Parse pre-condition, HCSP program, and post-condition
     pre = parse_bexpr_with_meta(pre)
@@ -23,9 +24,13 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     # Initialize the verifier
     verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
                            wolfram_engine=wolfram_engine, z3=z3)
-            
+    
+    if andR_rule:
+        for pos, andR in andR_rule.items():
+            if isinstance(andR, str):
+                andR = parse_bexpr_with_meta(andR)
+            verifier.set_andR_rule(pos, andR)
     # Compute wp and verify
-    #while TODO == True:
     verifier.compute_wp()
 
     # Optional: Print verification conditions
@@ -736,17 +741,24 @@ class WLHHLPyTest(unittest.TestCase):
                   pre="v >= 0 && xm <= x2 && x2 <= S && xr == (xm + S)/2 && Kp == 2 && Kd == 3 \
                     && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
                   hp="( \
-                        xm := x2; \
-                        xr := (xm + S)/2; \
+                        if 5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2 \
+                        then \
+                            xm := x2; \
+                            xr := (xm + S)/2 \
+                        else \
+                            skip \
+                        endif \
+                        ++ \
+                        skip; \
                         <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
-                      )**",
+                        invariant [xm <= x2] \
+                                  [xr == (xm + S)/2] \
+                                  [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2] \
+                      )** \
+                      invariant [v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
+                                 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2]",
                   post="x2 <= S",
-                  constants={'Kp', 'Kd', 'S'},
-                  loop_invariants={((), ()): "v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
-                                              5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2"},
-                  diff_weakening_rule={((0,3), (0,)): "true"},
-                  diff_cuts={((0, 3), (3,)): ["xm <= x2", 
-                     "5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2"]})
+                  constants={'Kp', 'Kd', 'S'})
 
     # TODO: Basic benchmark, problem 50-51
 
@@ -858,7 +870,8 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10> \
                       invariant [x >= 0] {dbx} [y >= 0] {dbx}",
-                  post="~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)")
+                  post="~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)",
+                  print_vcs=True)
     
     def testNonlinear2(self):
         # Nonlinear benchmark, problem 2
@@ -1848,11 +1861,10 @@ class WLHHLPyTest(unittest.TestCase):
         # {~((x > -1 --> x^2 > 2) || z > 1)}
         runVerify(self, pre="x == 1 && y == 0 && z == 0",
                   hp="t := 0; \
-                     <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & t < 10>",
-                  post="~((x > -1 --> x^2 > 2) || z > 1)",
-                  diff_cuts={((1,), ()): ["x^2+y^2+z^2 == 1", "x+y>0"]},
-                  diff_invariant_rule={((1,), (0,)): "true"},
-                  darboux_rule={((1,), (1,)): "true"})
+                     <x_dot = x*z , y_dot = y*z , z_dot = -x^2-y^2 & t < 10> \
+                      invariant [x^2+y^2+z^2 == 1] \
+                                [x + y > 0] {dbx}",
+                  post="~((x > -1 --> x^2 > 2) || z > 1)")
 
     def testNonlinear75(self):
         # Nonlinear benchmark, problem 75
@@ -2180,14 +2192,14 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x1_dot=v1, v1_dot=-k1/m1*x1-k2/m1*(x1-x2), \
                       x2_dot=v2, v2_dot=-k2/m2*(x2-x1), \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                      invariant [v1*v2+(-3)/10*v2^2+1/2*x1^2+(-1)*x1*x2+2/5*x2^2 \
+                                 >=358/1169]",
                   post="~u8*v1*v2+k2*x1*x2*(m1*u8-2*m2*u10)/(m1*m2) + u10*v1^2+u1 \
                         + 1/2*v2^2*(k1*m2*u8-k2*m1*u8+k2*m2*u8+2*k2*m2*u10)/(k2*m1) \
                         + 1/2*(2*k1*m2*u10-k2*m1*u8+2*k2*m2*u10)*x1^2/(m1*m2) \
                         + 1/2*(k1*m2*u8-k2*m1*u8+2*k2*m2*u10)*x2^2/(m1*m2) < -v1^2",
-                  constants={'m1', 'm2', 'k1', 'k2', 'k', 'u1', 'u8', 'u10'},
-                  dI_invariants={((1,), ()): "v1*v2+(-3)/10*v2^2+1/2*x1^2+(-1)*x1*x2+2/5*x2^2 \
-                                              >=358/1169"})
+                  constants={'m1', 'm2', 'k1', 'k2', 'k', 'u1', 'u8', 'u10'})
 
     # TODO:Nonlinear problem 99. No tactic offered.
 
@@ -2332,7 +2344,17 @@ class WLHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 114, 115. No tactic and even inv-->post is too slow to verify.
 
+    def testNonlinear116_0(self):
+        # {x > 10}<x_dot = 1 & x < 5>{x > 8}
+        runVerify(self, pre="x > 10",
+                  hp="<x_dot = 1 & x < 5> \
+                       invariant [false]",
+                  post="x > 8",
+                  print_vcs=True)
     # TODO: 
+    # When not sure that ODE is executed or not, set invariant as true, 
+    # because both cases should hold: 
+    # Boundary of D --> Q and (P && ~D) --> Q
     def testNonlinear116(self):
         # Nonlinear benchmark, problem 116
         # {x5 > -5 && x5 < x1 && x2 > x1 + 8 && x1 >= -1}
@@ -2351,17 +2373,20 @@ class WLHHLPyTest(unittest.TestCase):
                        x4_dot=-x1+x4+x5+x6, \
                        x5_dot=x1+x2+x5, \
                        x6_dot=x1-x2+x3-x4-x6 & \
-                       x5 < 0>",
+                       x5 < 0> \
+                       invariant [true]",
                   post="~(x2 < 0 && x1 < x2 && x5 < x2)",
-                #   diff_cuts={((), ()): ["x1+x2+x5 >= 0", "~(x2 < 0 && x1 < x2 && x5 < x2)"]},
-                #   darboux_rule={((), (0,)): "true"},
-                  diff_weakening_rule={((), ()): "true"})
+                  print_vcs=True)
+                # #   diff_cuts={((), ()): ["x1+x2+x5 >= 0", "~(x2 < 0 && x1 < x2 && x5 < x2)"]},
+                # #   darboux_rule={((), (0,)): "true"},
+                #   diff_weakening_rule={((), ()): "true"})
         # I think this problem is different in hhl.
 
     # TODO: Nonlinear problem 117. No invariants offered.
 
     def testNonlinear118(self):
         # Nonlinear benchmark, problem 118
+        # It takes a very long time to prove.
         #  {0.99 <= x1 && x1 <= 1.01 &&
         #   0.99 <= x2 && x2 <= 1.01 &&
         #   0.99 <= x3 && x3 <= 1.01 &&
@@ -2473,13 +2498,11 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                      <x1_dot=d1, x2_dot=d2, d1_dot=-om*d2, d2_dot=om*d1, \
                       y1_dot=e1, y2_dot=e2, e1_dot=-om*e2, e2_dot=om*e1, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                      invariant [d1-e1 == -om*(x2-y2) && d2-e2 == om*(x1-y1)] \
+                                [(x1-y1)^2 + (x2-y2)^2 >= p^2]",
                   post="(x1-y1)^2 + (x2-y2)^2 >= p^2",
-                  constants={'p', 'om', 'omy', 'c1', 'c2'},
-                  diff_cuts={((1,), ()): ["d1-e1 == -om*(x2-y2) && d2-e2 == om*(x1-y1)",
-                                          "(x1-y1)^2 + (x2-y2)^2 >= p^2"]},
-                  diff_invariant_rule={((1,), (0,)): "true",
-                                       ((1,), (1,)): "true"})
+                  constants={'p', 'om', 'omy', 'c1', 'c2'})
     
     def testNonlinear121(self):
         # Nonlinear benchmark, problem 121
