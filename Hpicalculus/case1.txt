@@ -1,0 +1,64 @@
+S ::= (new a)(@P1 || @P3 || @Q)
+
+P1 ::= 
+    v1 := 1;
+    v2 := 2;
+    (new s)(
+        a!<s[q]>;
+        <v1_dot=-1, v2_dot=1&true>|>OPLUS(s[p][q]
+        {
+            plus-<[v1, v2]>;@P2
+        }, end)
+    )
+P2 ::= 
+    t1 := 0;
+    <t1_dot=1&t1<1>;
+    <t1_dot=1&true>|>AND(s[p][q]
+    {
+        result-(v1);end,
+        error-(v2);end
+    }, end)
+
+P3 ::= 
+    v3:=1;
+    (new s)(
+        a!<s[q]>;
+        <v3_dot=-2&true>|>OPLUS(s[p][q]
+        {
+            sqrt-<v3>;@P4
+        }, end)
+    )
+P4 ::= 
+    <v3_dot=0&true>|>AND(s[p][q]
+    {
+        result-(v3);end, 
+        error-(v3);end
+    }, end)
+
+Q ::= 
+    !a(x);
+    t2:=0;
+    <t2_dot=1&t2<1>;
+    <t2_dot=1&true>|>AND(x[p]
+    {
+        plus-([v1, v2]);@Q1,
+        sqrt-(v3);(if v3>=0 then @Q2 else @Q3 endif)
+    }, end)
+
+Q1 ::= 
+    <v1_dot=0, v2_dot=0&true>|>OPLUS(x[p]
+    {
+        result-<v1+v2>;end
+    }, end)
+
+Q2 ::= 
+    <v3_dot=0&true>|>OPLUS(x[p]
+    {
+        result-<sqrt(v3)>;end
+    }, end)
+
+Q3 ::= 
+    <v3_dot=0&true>|>OPLUS(x[p]
+    {
+        error-<-1>;end
+    }, end)
