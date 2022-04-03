@@ -148,7 +148,7 @@ dynamic status after execution; con; is_send = True to pause the clock\<close>
 | On1: " tval1 temporal_logic (get_vals s1) src_p = True
   \<Longrightarrow> act_exec env c e src_p s1 s2 b
   \<Longrightarrow> act_exec env (on1 temporal_logic :: c) e src_p s1 s2 b"
-| On2: " tval1 temporal_logic (get_vals s1) src_p = False
+| On2: " tval1 temporal_logic (get_vals s) src_p = False
   \<Longrightarrow> act_exec env (on1 temporal_logic :: c) e src_p s s True"
 
 | On3: "e = event
@@ -679,12 +679,15 @@ CASE: send will increase the temporal count but remain the state "time"\<close>
    \<Longrightarrow> pathlist_exec env strl f e is_send s1 s2 b
    \<Longrightarrow> comp_exec env C name e is_send s1 s2 b"
 
+
 inductive Root_Exec_for_times :: "env \<Rightarrow> string \<Rightarrow> int \<Rightarrow> status \<Rightarrow> status \<Rightarrow> bool" where
 Root_Exec_for_Times1: "Root_Exec_for_times env e 0 s s"
 | Root_Exec_for_Times2: "n > 0
   \<Longrightarrow> comp_exec env (get_root env) [] e False s1 s2 b
   \<Longrightarrow> Root_Exec_for_times env e (n-1) s2 s3
   \<Longrightarrow> Root_Exec_for_times env e n s1 s3"
+
+
 
 
 end
