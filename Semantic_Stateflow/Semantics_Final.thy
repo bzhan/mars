@@ -485,7 +485,7 @@ And here we set "n = 0"\<close>
 
 
 \<comment> \<open>An And diagram is entered by entering all the parallel states.\<close>
-| And_Entry:"C = (And sl f1)
+| And_Entry:"C = (And sl f)
   \<Longrightarrow> pathlist_entry env sl f e p s1 s2 b
   \<Longrightarrow> comp_entry env C name e p s1 s2 b"
 
