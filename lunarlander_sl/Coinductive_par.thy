@@ -19,6 +19,8 @@ type_synonym fform = "state \<Rightarrow> bool"
 text \<open>States as a vector\<close>
 type_synonym vec = "real^(var)"
 
+type_synonym tid = real
+
 text \<open>Conversion between state and vector\<close>
 definition state2vec :: "state \<Rightarrow> vec" where
   "state2vec s = (\<chi> x. s x)"
@@ -38,12 +40,29 @@ type_synonym cname = string
 
 type_synonym rdy_info = "cname set \<times> cname set"
 
-
+(*
 datatype 'a gstate =
   EmptyState
 | EState "'a ext_state"
 | ParState "'a gstate"  "'a gstate"
+*)
 
+type_synonym 'a gstate = "tid \<Rightarrow> 'a ext_state"
+
+definition Estate :: "tid \<Rightarrow> 'a ext_state \<Rightarrow> 'a gstate" where
+"Estate i s = (\<lambda> id . if id = i then s else undefined)"
+
+definition supp_gstate :: "'a gstate \<Rightarrow> tid set" where
+"supp_gstate a = {i. a i \<noteq> undefined}"
+
+definition supp_gstateb :: "'a gstate set \<Rightarrow> bool" where
+"supp_gstateb S = (\<forall> a b. a\<in>S \<longrightarrow> b\<in>S \<longrightarrow> a\<noteq> b \<longrightarrow>supp_gstate a \<inter> supp_gstate b = {})"
+
+definition supp_gstate_set :: "'a gstate set \<Rightarrow> tid \<Rightarrow> 'a gstate set" where
+"supp_gstate_set S i = {s. i \<in> supp_gstate s}"
+
+definition ParState :: "'a gstate set \<Rightarrow> 'a gstate" where
+"ParState S = (if supp_gstateb S then undefined else (\<lambda> i. undefined)) "
 
 
 datatype comm_type = In | Out | IO
@@ -407,7 +426,6 @@ lemma combine_blocks_unpairE2:
   by (induct rule: combine_blocks.cases, auto simp add:assms)
 *)
 
-type_synonym tid = real
 
 
 fun compat_rdy_set :: "rdy_info set \<Rightarrow> bool" where

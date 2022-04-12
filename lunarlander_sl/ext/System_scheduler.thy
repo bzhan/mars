@@ -160,9 +160,6 @@ inductive task_assn :: "tid \<Rightarrow> estate \<Rightarrow> state \<Rightarro
    blk1 = WaitBlk (ereal d) (\<lambda>_. EState (start_es, start_s)) ({}, {dispatch_ch t}) \<Longrightarrow>
    task_assn t start_es start_s rest \<Longrightarrow>
    task_assn t start_es start_s (blk1 # rest)"
-| "start_es = Task WAIT ent tp \<Longrightarrow>
-   blk1 = InBlock (dispatch_ch t) 0 \<Longrightarrow>
-   task_assn t (Task READY 0 tp) (start_s(CHR ''t'' := 0)) (blk1 # rest)"
 *)
 | "start_es = Task READY ent tp \<Longrightarrow>
    init_t = start_s (CHR ''t'') \<Longrightarrow>
@@ -242,7 +239,7 @@ inductive task_dis_assn :: "tid \<Rightarrow> state \<Rightarrow> estate \<Right
    wt = 0.045 - dis_t \<Longrightarrow>
    Wait\<^sub>t wt (\<lambda>t. ParState (EState (task_es, task_s))
                           (EState (None, dis_s(CHR ''t'' := dis_t + t))))
-         ({}, {}) blk1 \<Longrightarrow>
+         ({}, {dispatch_ch t}) blk1 \<Longrightarrow>
    IO\<^sub>t (dispatch_ch t) 0 blk2 \<Longrightarrow>
    task_dis_assn t (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0))
                  rest \<Longrightarrow>
@@ -251,7 +248,7 @@ inductive task_dis_assn :: "tid \<Rightarrow> state \<Rightarrow> estate \<Right
    init_task_t = task_s (CHR ''t'') \<Longrightarrow>
    dis_t = dis_s (CHR ''t'') \<Longrightarrow>
    wt \<le> 0.045 - init_task_t \<Longrightarrow>
-   Out\<^sub>t (EState (task_es, task_s)) (req_ch t) tp blk1 \<Longrightarrow>
+   Out\<^sub>t (ParState (EState (task_es, task_s))(EState (None,dis_s))) (req_ch t) tp blk1 \<Longrightarrow>
    Waitin\<^sub>t wt (\<lambda>t. ParState (EState (task_es,task_s(CHR ''t'' := init_t + t))) (EState (None, dis_s(CHR ''t'' := dis_t + t)))) (run_ch t) 0 ({run_ch t}, {}) blk2 \<Longrightarrow>
    task_dis_assn t (dis_s(CHR ''t'' := dis_t + wt)) (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
    task_dis_assn t dis_s task_es task_s (blk1 @ blk2 @ rest)"
@@ -327,18 +324,141 @@ next
       apply(auto elim!: in_assn.cases)
       by(auto elim!: sync_elims)
   next
-    case (2 init_t start_s wt blk1' t' blk2 rest')
+    case (2 init_t start_s wt blk1' t' blk2' rest')
     note b2 = 2
     show ?case 
       thm b2
       thm a2
       using a2(2)
       using b2(2,3,4,5) using b2(8,9,10)
-      apply (auto elim!:in_assn.cases wait_assn.cases out_assn.cases sync_elims)
-      
-        
-      using b2(6) 
-      sorry
+      apply (auto elim!:in_assn.cases wait_assn.cases out_assn.cases)
+      subgoal apply (auto elim!: sync_elims) done
+      subgoal premises pre for d
+      proof(cases "(9 / 200 - init_t) > d")
+        case True
+        then have "ereal (9 / 200 - init_t) > ereal d"
+          by auto
+        thm pre
+        then obtain tr' where "tr = WaitBlk (ereal d)
+            (\<lambda>t. ParState (EState (task_es, task_s))
+                  (EState (estate.None, start_s(CHR ''t'' := init_t + t))))
+            ({}, {dispatch_ch t'}) # tr' "
+           "combine_blocks {dispatch_ch t'} (InBlock (dispatch_ch t') 0 # rest)
+            (WaitBlk (ereal (9 / 200 - init_t - d))
+              (\<lambda>t. EState (estate.None, start_s(CHR ''t'' := init_t + (t + d)))) ({}, {}) #
+             OutBlock (dispatch_ch t') 0 # rest')
+            tr'"
+          using pre
+          apply(elim combine_blocks_waitE3) by auto
+        then show ?thesis by (auto elim!: sync_elims)
+      next
+        case False
+        note false1 = False
+        show ?thesis 
+        proof (cases "d = 9 / 200 - init_t")
+          case True
+          then obtain tr' where tr':"tr = WaitBlk (ereal d)
+            (\<lambda>t. ParState (EState (task_es, task_s))
+                  (EState (estate.None, start_s(CHR ''t'' := init_t + t))))
+            ({}, {dispatch_ch t'}) # tr' "
+           "combine_blocks {dispatch_ch t'} (InBlock (dispatch_ch t') 0 # rest)
+            (OutBlock (dispatch_ch t') 0 # rest')
+            tr'"
+          using pre
+          by(auto elim!: combine_blocks_waitE2) 
+        then obtain tr'' where tr'':"tr' = IOBlock (dispatch_ch t') 0 # tr'' "
+                               "combine_blocks {dispatch_ch t'} rest rest' tr''"
+          apply(elim combine_blocks_pairE) by auto
+        have 1:"Wait\<^sub>t (9 / 200 - start_s CHR ''t'')
+      (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
+            (EState (estate.None, start_s(CHR ''t'' := start_s CHR ''t'' + t))))
+      ({}, {dispatch_ch t'})
+      [WaitBlk (ereal (9 / 200 - start_s CHR ''t''))
+        (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
+              (EState (estate.None, start_s(CHR ''t'' := start_s CHR ''t'' + t))))
+        ({}, {dispatch_ch t'})]"
+          using b2 
+          using True pre(9) wait_assn.intros(1) by blast
+        have 2:"IO\<^sub>t (dispatch_ch t') 0 [IOBlock (dispatch_ch t') 0]"
+          by (simp add: io_assn.intros)
+        have 3:"task_dis_assn t' (start_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0))
+      tr''"
+          using a2(4)[of "(start_s(CHR ''t'' := 0))" rest' tr'']
+          using a2(6,7) b2(6,9) tr'' 
+          by fastforce
+        show ?thesis 
+          using task_dis_assn.intros(2)[OF a2(1),of init_t start_s wt task_s t' "[WaitBlk (ereal d)
+        (\<lambda>t. ParState (EState (task_es, task_s))
+              (EState (estate.None, start_s(CHR ''t'' := init_t + t)))) 
+        ({}, {dispatch_ch t'})]" "[IOBlock (dispatch_ch t') 0]" tr'' ]
+          apply(simp add:a2 b2 True 1 2 3)
+          using tr' tr'' 
+          using True a2(1) b2(1) by force
+        next
+          case False
+          then have "(9 / 200 - init_t) < d"
+            using false1 by auto
+          then obtain tr' where "tr = WaitBlk (ereal (9 / 200 - init_t))
+            (\<lambda>t. ParState (EState (task_es, task_s))
+                  (EState (estate.None, start_s(CHR ''t'' := init_t + t))))
+            ({}, {dispatch_ch t'}) # tr' "
+           "combine_blocks {dispatch_ch t'} (WaitBlk (ereal (9 / 200 - init_t - d))
+              (\<lambda>t. EState (task_es, task_s)) ({}, {dispatch_ch t'}) # InBlock (dispatch_ch t') 0 # rest)
+            (OutBlock (dispatch_ch t') 0 # rest')
+            tr'"
+          using pre
+          apply(elim combine_blocks_waitE4) apply auto 
+          by (meson combine_blocks_pairE2' insertI1)
+        then show ?thesis 
+          by (auto elim!: sync_elims)
+        qed
+      qed
+      subgoal
+        by (auto elim!: sync_elims)
+      subgoal premises pre for d db
+      proof (cases "db > 9 / 200 - init_t")
+        case True
+        thm pre
+        then obtain tr' where "combine_blocks {dispatch_ch t'}
+     (WaitBlk (ereal db-(9 / 200 - init_t)) (\<lambda>_. EState (task_es, task_s)) ({}, {dispatch_ch t'}) #
+      InBlock (dispatch_ch t') 0 # rest)
+     (WaitBlk (ereal d) (\<lambda>_. EState (estate.None, start_s(CHR ''t'' := 0)))
+       ({dispatch_ch t'}, {}) #
+      OutBlock (dispatch_ch t') 0 # rest') tr'"
+          using pre(4,6,8,10) by(auto elim: combine_blocks_waitE4)
+        then show ?thesis 
+          by(auto elim!: sync_elims) 
+      next
+        case False
+        note false1 = False
+        show ?thesis 
+        proof (cases "9 / 200 - init_t = db")
+          case True
+          then obtain tr' where "combine_blocks {dispatch_ch t'}
+     (InBlock (dispatch_ch t') 0 # rest)
+     (WaitBlk (ereal d) (\<lambda>_. EState (estate.None, start_s(CHR ''t'' := 0)))
+       ({dispatch_ch t'}, {}) #
+      OutBlock (dispatch_ch t') 0 # rest') tr'"
+          using pre(4,6,8,10) by(auto elim: combine_blocks_waitE2)
+        then show ?thesis 
+          by(auto elim!: sync_elims) 
+        next
+          case False
+          then have "9 / 200 - init_t > db" 
+            using false1 by auto
+          then obtain tr' where "combine_blocks {dispatch_ch t'}
+        (InBlock (dispatch_ch t') 0 # rest)
+        (WaitBlk (ereal (9 / 200 - init_t) - ereal db)
+          (\<lambda>t. EState (estate.None, start_s(CHR ''t'' := init_t + (t + db)))) ({}, {}) #
+         WaitBlk (ereal d) (\<lambda>_. EState (estate.None, start_s(CHR ''t'' := 0)))
+          ({dispatch_ch t'}, {}) #
+         OutBlock (dispatch_ch t') 0 # rest') tr'"
+            using pre(4,6,8,10) by(auto elim: combine_blocks_waitE3)
+          then show ?thesis 
+            by(auto elim!: sync_elims)
+        qed
+      qed
+      done
   qed
 next
   case (3 task_es ent tp init_t task_s wt t blk1 blk2 rest)
@@ -363,32 +483,33 @@ next
         using pre by blast
       obtain start_t where startt:"start_t = start_s CHR ''t''"
         by auto
-      have 2:"task_dis_assn t' start_s task_es task_s (OutBlock (req_ch t') tp # InBlock (run_ch t') 0 # tra)"
+      have 2:"wt \<le> 9 / 200 - task_s CHR ''t''"
+        using a3 by auto
+      have 3:"task_dis_assn t' start_s task_es task_s (OutBlock (req_ch t') tp # InBlock (run_ch t') 0 # tra)"
         using task_dis_assn.intros(3)[of task_es ent tp init_t task_s start_t start_s wt t blk1 init_t blk2 tra]
-        using a3(1,2,3) startt apply auto
-        using a3(1,4) apply auto
-        using pre(4,5)
+        apply(simp add: a3(1,2,3) startt 2) 
+        using out_assn.intros(1)[of "(ParState (EState (Task READY ent tp, task_s)) (EState (estate.None, start_s)))"
+                                     "(req_ch t)" tp]
         using waitin_assn.intros(2)[of wt "(\<lambda>t. ParState
             (EState (Task READY ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t)))
             (EState (estate.None, start_s(CHR ''t'' := start_s CHR ''t'' + t))))" "(run_ch t)"
-            0 "({run_ch t}, {})"] pre(2,3) apply auto
+            0 "({run_ch t}, {})"] pre(2,3,4,5) apply auto
         using 1 pre(2,4) a3(2) by auto
       then show ?thesis using pre by auto
     qed
-    subgoal sorry
-    subgoal sorry
-    subgoal sorry
     done
   next
-    case (2 init_t' start_s wt blk1 t' blk2 rest)
+    case (2 init_t' start_s wt' blk1' t' blk2' rest')
     note b2 = 2
     show ?case 
       thm b2
       thm a3
+      thm task_dis_assn.intros(3)
       using b2(4,5,8,9,10) a3(4,5)
       apply(auto elim!:wait_assn.cases wait_in_assn.cases out_assn.cases)
-                     apply (auto elim!: sync_elims)
-      apply(auto simp add: ch_dist)
+      
+
+      
   qed
 next
   case (4 start_es ent tp init_t start_s wt t blk1 blk2 blk3 rest)

@@ -656,7 +656,7 @@ inductive waitout_assn :: "real \<Rightarrow> (real \<Rightarrow> 'a gstate) \<R
   "d > 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy, InBlock ch v]"
 | "d \<le> 0 \<Longrightarrow> Waitout\<^sub>t d p ch v rdy [InBlock ch v]"
 
-
+(*
 theorem Valid_interrupt_sol:
   assumes "b ss"
     and "((\<lambda>t. state2vec (p t)) has_vderiv_on (\<lambda>t. ODE2Vec ode (p t))) UNIV"
@@ -725,5 +725,6 @@ proof -
     show ?thesis using s8 s10 by auto
   qed
 
+*)
 
 end

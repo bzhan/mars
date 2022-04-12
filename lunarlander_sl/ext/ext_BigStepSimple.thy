@@ -37,8 +37,7 @@ datatype 'a proc =
 
 
 datatype 'a gstate =
-  EmptyState
-| EState "'a ext_state"
+  EState "'a ext_state"
 | ParState "'a gstate"  "'a gstate"
 
 

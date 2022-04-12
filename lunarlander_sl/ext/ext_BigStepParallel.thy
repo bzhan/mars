@@ -113,18 +113,7 @@ inductive combine_blocks :: "cname set \<Rightarrow> 'a trace \<Rightarrow> 'a t
    combine_blocks comms (WaitBlk t1 (\<lambda>x::real. hist1 x) rdy1 # blks1)
                         (WaitBlk t2 (\<lambda>x::real. hist2 x) rdy2 # blks2)
                         (WaitBlk t2 hist rdy # blks)"
-| combine_blocks_emp1:
-  "combine_blocks comms blks1 [] blks \<Longrightarrow>
-   hist = (\<lambda>\<tau>. ParState ((\<lambda>x::real. hist1 x) \<tau>) EmptyState) \<Longrightarrow>
-   combine_blocks comms (WaitBlk t (\<lambda>x::real. hist1 x) rdy1 # blks1)
-                        []
-                        (WaitBlk t hist rdy1 # blks)"
-| combine_blocks_emp2:
-  "combine_blocks comms [] blks2 blks \<Longrightarrow>
-   hist = (\<lambda>\<tau>. ParState EmptyState ((\<lambda>x::real. hist2 x) \<tau>)) \<Longrightarrow>
-   combine_blocks comms []
-                        (WaitBlk t (\<lambda>x::real. hist2 x) rdy2 # blks2)
-                        (WaitBlk t hist rdy2 # blks)"
+
 
 subsection \<open>Basic elimination rules\<close>
 
@@ -312,54 +301,12 @@ lemma combine_blocks_emptyE1 [sync_elims]:
   by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_emptyE2 [sync_elims]:
-  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) [] tr \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlk d1 (\<lambda>t. ParState (p1 t) EmptyState) rdy1 # tr' \<Longrightarrow>
-           combine_blocks comms tr1 [] tr' \<Longrightarrow> P) \<Longrightarrow> P"
-proof (induct rule: combine_blocks.cases)
-  case (combine_blocks_emp1 comms1 blks1 blks hist hist1 t rdy1')
-  have a: "tr1 = blks1" "d1 = t" "rdy1 = rdy1'"
-    using combine_blocks_emp1(2)
-    by (auto simp add: WaitBlk_cong)
-  have b: "p1 \<tau> = hist1 \<tau>" if "0 \<le> \<tau>" and "ereal \<tau> \<le> d1" for \<tau>
-    using a combine_blocks_emp1(2)
-    using WaitBlk_cong2 that by blast
-  have c: "combine_blocks comms tr1 [] blks"
-    using combine_blocks_emp1(1,5) a(1) by auto
-  have d: "tr = WaitBlk d1 (\<lambda>t. ParState (p1 t) EmptyState) rdy1 # blks"
-    unfolding combine_blocks_emp1(4)
-    apply auto
-    apply (rule WaitBlk_ext)
-    unfolding combine_blocks_emp1(6)
-    using a b by auto
-  show ?case
-    apply (rule combine_blocks_emp1)
-    apply (rule d) by (rule c)
-qed (auto)
+  "combine_blocks comms (WaitBlk d1 p1 rdy1 # tr1) [] tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_emptyE2' [sync_elims]:
-  "combine_blocks comms [] (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow>
-   (\<And>tr'. tr = WaitBlk d2 (\<lambda>t. ParState EmptyState (p2 t)) rdy2 # tr' \<Longrightarrow>
-           combine_blocks comms [] tr2 tr' \<Longrightarrow> P) \<Longrightarrow> P"
-proof (induct rule: combine_blocks.cases)
-  case (combine_blocks_emp2 comms' blks2 blks hist hist2 t rdy2')
-  have a: "tr2 = blks2" "d2 = t" "rdy2 = rdy2'"
-    using combine_blocks_emp2(3)
-    by (auto simp add: WaitBlk_cong)
-  have b: "p2 \<tau> = hist2 \<tau>" if "0 \<le> \<tau>" and "ereal \<tau> \<le> d2" for \<tau>
-    using a combine_blocks_emp2(3)
-    using WaitBlk_cong2 that by blast
-  have c: "combine_blocks comms [] tr2 blks"
-    using combine_blocks_emp2(1,5) a(1) by auto
-  have d: "tr = WaitBlk d2 (\<lambda>t. ParState EmptyState (p2 t)) rdy2 # blks"
-    unfolding combine_blocks_emp2(4)
-    apply auto
-    apply (rule WaitBlk_ext)
-    unfolding combine_blocks_emp2(6)
-    using a b by auto
-  show ?case
-    apply (rule combine_blocks_emp2)
-    apply (rule d) by (rule c)
-qed (auto)
+  "combine_blocks comms [] (WaitBlk d2 p2 rdy2 # tr2) tr \<Longrightarrow> P"
+  by (induct rule: combine_blocks.cases, auto)
 
 lemma combine_blocks_emptyE3 [sync_elims]:
   "combine_blocks comms (CommBlock ch_type1 ch1 v1 # tr1) [] tr \<Longrightarrow>
@@ -394,17 +341,14 @@ type_synonym 'a gassn = "'a gstate \<Rightarrow> 'a trace \<Rightarrow> bool"
 
 fun par_assn :: "'a gs_assn \<Rightarrow> 'a gs_assn \<Rightarrow> 'a gs_assn" where
   "par_assn P Q (EState s) \<longleftrightarrow> False"
-| "par_assn P Q EmptyState \<longleftrightarrow> False"
 | "par_assn P Q (ParState l r) \<longleftrightarrow> P l \<and> Q r"
 
 fun sing_assn :: "'a ext_fform \<Rightarrow> 'a gs_assn" where
   "sing_assn P (EState s) = P s"
-| "sing_assn P EmptyState \<longleftrightarrow> False"
 | "sing_assn P (ParState _ _) = False"
 
 fun sing_gassn :: "'a assn \<Rightarrow> 'a gassn" where
   "sing_gassn Q (EState s) tr = Q s tr"
-| "sing_gassn Q EmptyState tr \<longleftrightarrow> False"
 | "sing_gassn Q (ParState _ _) tr = False"
 
 definition pair_assn :: "'a ext_fform \<Rightarrow> 'a ext_fform \<Rightarrow> 'a gs_assn" where
@@ -412,7 +356,6 @@ definition pair_assn :: "'a ext_fform \<Rightarrow> 'a ext_fform \<Rightarrow> '
 
 fun sync_gassn :: "cname set \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn \<Rightarrow> 'a gassn" where
   "sync_gassn chs P Q (EState s) tr = False"
-| "sync_gassn chs P Q EmptyState tr = False"
 | "sync_gassn chs P Q (ParState l r) tr \<longleftrightarrow> (\<exists>tr1 tr2. P l tr1 \<and> Q r tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
 definition ParValid :: "'a gs_assn \<Rightarrow> 'a pproc \<Rightarrow> 'a gassn \<Rightarrow> bool" ("\<Turnstile>\<^sub>p ({(1_)}/ (_)/ {(1_)})" 50) where
@@ -892,12 +835,10 @@ definition state_gassn :: "'a gs_assn \<Rightarrow> 'a gassn" where
 
 fun left_gassn :: "'a gs_assn \<Rightarrow> 'a gassn" where
   "left_gassn P (EState s) tr = False"
-| "left_gassn P (EmptyState) tr = False"
 | "left_gassn P (ParState s1 s2) tr = P s1"
 
 fun right_gassn :: "'a gs_assn \<Rightarrow> 'a gassn" where
   "right_gassn P (EState s) tr = False"
-| "right_gassn P (EmptyState) tr = False"
 | "right_gassn P (ParState s1 s2) tr = P s2"
 
 definition trace_gassn :: "'a tassn \<Rightarrow> 'a gassn" where
@@ -924,7 +865,7 @@ lemma sync_gassn_ex_pre_left:
     apply (cases s) apply auto
     unfolding ex_gassn_def apply auto
     using assms entails_gassn_def 
-    by (smt (z3) sync_gassn.simps(3))
+    by (smt (z3) sync_gassn.simps(2))
   done
 
 lemma sync_gassn_ex_pre_right:
@@ -935,7 +876,7 @@ lemma sync_gassn_ex_pre_right:
     apply (cases s) apply auto
     unfolding ex_gassn_def apply auto
     using assms entails_gassn_def 
-    by (smt (z3) sync_gassn.simps(3))
+    by (smt (z3) sync_gassn.simps(2))
   done
 
 lemma entails_ex_gassn:
@@ -1002,12 +943,11 @@ lemma sync_gassn_expand:
   "sync_gassn chs (sing_gassn P) (sing_gassn Q) s tr \<Longrightarrow>
     (\<And>s1 s2. s = ParState (EState s1) (EState s2) \<Longrightarrow> combine_assn chs (P s1) (Q s2) tr \<Longrightarrow> R) \<Longrightarrow> R"
   apply (cases s)
-  subgoal by simp
   subgoal for s' by auto
   subgoal for s1 s2
-    apply (cases s1) prefer 2 
+    apply (cases s1) 
     subgoal for s1'
-      apply (cases s2) prefer 2
+      apply (cases s2) 
       subgoal for s2'
         by (auto simp add: combine_assn_def)
       by auto
