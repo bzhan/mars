@@ -63,7 +63,7 @@ public
 			actual_connection_binding => (reference (bus08)) applies to tran_event;
 	end cruise_control_system.imp;
 	
-	system vehicle
+	abstract vehicle
 		features
 			veh_a: in data port;
 			veh_s: out data port;
@@ -71,7 +71,7 @@ public
 			veh_w_v: out data port;
 	end vehicle;
 	
-	system implementation vehicle.imp
+	abstract implementation vehicle.imp
 		annex Simulink{** ./Examples/AADL/CCS/Simulink/vehicle_imp.xml **};
 	end vehicle.imp;
 end joint_model;
