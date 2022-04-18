@@ -515,17 +515,21 @@ lemma combine_assn_in_out':
 
 lemma combine_assn_wait_emp:
   assumes "d > 0"
-  shows "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t \<Longrightarrow>\<^sub>t (Wait\<^sub>t d (\<lambda>t. ParState (p t) EmptyState) rdy @\<^sub>t combine_assn chs P emp\<^sub>t)"
+  shows "combine_assn chs (Wait\<^sub>t d p rdy @\<^sub>t P) emp\<^sub>t = false\<^sub>A"
   unfolding combine_assn_def
-  apply (simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def )
-  using assms by (auto elim!: sync_elims)
+  apply (rule ext)
+  apply (simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def)
+  using assms apply(auto simp add: false_assn_def)
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_emp_wait:
   assumes "d > 0"
-  shows "combine_assn chs emp\<^sub>t (Wait\<^sub>t d p rdy @\<^sub>t P) \<Longrightarrow>\<^sub>t (Wait\<^sub>t d (\<lambda>t. ParState EmptyState (p t)) rdy @\<^sub>t combine_assn chs emp\<^sub>t P)"
+  shows "combine_assn chs emp\<^sub>t (Wait\<^sub>t d p rdy @\<^sub>t P) = false\<^sub>A"
   unfolding combine_assn_def
+  apply (rule ext)
   apply (simp add: entails_tassn_def wait_assn.simps emp_assn_def join_assn_def)
-  using assms by (auto elim!: sync_elims)
+  using assms apply(auto simp add: false_assn_def)
+  by (auto elim!: sync_elims)
 
 lemma combine_assn_wait:
   "compat_rdy rdy1 rdy2 \<Longrightarrow>
