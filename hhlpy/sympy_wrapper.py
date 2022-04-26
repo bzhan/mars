@@ -22,8 +22,8 @@ def toSpexpr(e):
     elif isinstance(e, expr.BConst):
         return sympy.sympify(e.value) 
     elif isinstance(e, expr.FunExpr):
-        if len(e.exprs) == 0:
-            return sympy.symbols(e.fun_name)
+        if len(e.exprs) == 0:          
+            return sympy.symbols(str(e))
         else:
             raise NotImplementedError
     elif isinstance(e, expr.OpExpr):
@@ -148,4 +148,14 @@ def sp_polynomial_div(p, q):
     quot_remains[quot] = remain
 
     return quot_remains
-    
+
+def sp_is_polynomial(e, constants=set()):
+    """Return True if the given expression is a polynomial and False otherwise"""
+    vars = e.get_vars().difference(constants)
+    vars = {sympy.Symbol(var) for var in vars}
+
+    e = toSpexpr(e)
+
+    result = e.is_polynomial(*vars)
+
+    return result

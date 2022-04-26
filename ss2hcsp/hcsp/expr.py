@@ -223,6 +223,7 @@ class FunExpr(AExpr):
         #     "push", "pop", "top", "get", "bottom", "len", "get_max", "pop_max","get_min", "pop_min",
         #     "bernoulli", "uniform"]
         self.fun_name = fun_name
+        assert isinstance(self.fun_name, str)
         exprs = tuple(exprs)
         assert all(isinstance(expr, AExpr) for expr in exprs)
         self.exprs = exprs

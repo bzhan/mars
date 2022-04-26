@@ -9,10 +9,10 @@ import copy
 
 from sympy import sympify, degree, symbols, factor_list, fraction, simplify
 
-from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify
+from hhlpy.sympy_wrapper import sp_polynomial_div, sp_simplify, sp_is_polynomial
 from hhlpy.wolframengine_wrapper import solveODE
 from hhlpy.wolframengine_wrapper import wl_prove
-from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div
+from hhlpy.wolframengine_wrapper import wl_simplify, wl_polynomial_div, wl_is_polynomial
 from hhlpy.z3wrapper import z3_prove
 from ss2hcsp.hcsp import hcsp, expr, invariant
 from ss2hcsp.hcsp.parser import aexpr_parser, bexpr_parser
@@ -158,6 +158,7 @@ def create_newvar(s, names):
     while (s + str(suffix_n) in names):
         suffix_n = suffix_n + 1
     return expr.AVar(s + str(suffix_n))
+
 
 class CmdInfo:
     """Information associated to each HCSP program."""
@@ -342,6 +343,15 @@ class CmdVerifier:
             quot_remains = sp_polynomial_div(p, q)
 
         return quot_remains
+
+    def is_polynomial(self, e, constants=set()): 
+        """Return True if the given expression is a polynomial, and False otherwise."""
+        if self.wolfram_engine:
+            result = wl_is_polynomial(e, constants)
+        else:
+            result = sp_is_polynomial(e, constants)
+
+        return result
 
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
@@ -835,8 +845,6 @@ class CmdVerifier:
                 # For example, simplify ~(x > 1) to x <= 1
                 if isinstance(dbx_inv, expr.LogicExpr): 
                     dbx_inv = self.simplify_expression(dbx_inv)
-                    # print('dbx_inv:', dbx_inv, 'type:', type(dbx_inv))
-                    # raise NotImplementedError
                 
                 assert isinstance(dbx_inv, expr.RelExpr) and \
                        dbx_inv.op in {'==', '>', '>=', '<', '<='}, \
@@ -864,31 +872,19 @@ class CmdVerifier:
                 #   {e == 0} <x_dot = f(x) & D> {e == 0}
                 if dbx_inv.op == "==" :
 
-                    # Cases when the cofactor g is not offered.
+                    # Case when the cofactor g is not offered.
                     # Compute the cofactor g by auto.
                     if self.infos[pos].dbx_cofactor is None:
                         g = expr.OpExpr('/', e_lie_deriv, e)
                         g = self.simplify_expression(g)
+
+                        assert self.is_polynomial(g, self.constants) is True
                         self.infos[pos].dbx_cofactor = g
 
-                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
-                                                   demoninator_not_zero(g))
-
-                        # G_sym is supposed to be a reasonable expression.
-                        if not z3_prove(denomi_not_zero):
-                            raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
-                        else:
-                            self.infos[pos].dbx_cofactor = g
-
-                    # Cases when cofactor g is offered by the user.
+                    # Case when cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
-                        
-                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
-                                          demoninator_not_zero(g))
-
-                        if not z3_prove(denomi_not_zero):
-                            raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
+                        assert self.is_polynomial(g, self.constants) is True
 
                         # Boundary of D --> e_lie_deriv == g * e
                         vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
@@ -905,11 +901,8 @@ class CmdVerifier:
                     # Cases when the cofactor g is not offered.
                     # Compute the cofactor automatically.
                     if self.infos[pos].dbx_cofactor is None:
-                        # print('e_lie:', e_lie_deriv, 'e:', e)
                         quot_remains = self.polynomial_div(e_lie_deriv, e)
-                        # print("quot:", quot, "remain:", remain)
-                        # self.infos[pos].dbx_cofactor = quot
-
+                        
                         # Several quot and remain pairs may returned from the polynomial division.
                         # If there is a remain >= 0, there exists a quot satisfying g in dbx_rule.
                         vc_comps = []
@@ -924,11 +917,13 @@ class CmdVerifier:
                     # Cases when the cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
-                        denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
-                                        demoninator_not_zero(g))
+                        assert self.is_polynomial(g, self.constants) is True
+                        
+                        # denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
+                        #                 demoninator_not_zero(g))
 
-                        if not z3_prove(denomi_not_zero):
-                            raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
+                        # if not z3_prove(denomi_not_zero):
+                        #     raise AssertionError("The denominator of the cofactor cannot be equal to zero!")
 
                         vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
                                                                     expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
@@ -1132,21 +1127,17 @@ class CmdVerifier:
             if info.andR:
                 vcs = copy.copy(info.vcs)
                 for vc in vcs:
-                    # print(vc)
                     # Translate, for example, [x == 0 --> x > -1 && x < 1], into 
                     # [x == 0 --> x > -1, x == 0 --> x < 1]
                     if isinstance(vc, expr.LogicExpr) and vc.op == '-->':
                         vc_vart = self.convert_imp(vc)
-                        # print("after convertion:", pos, vc_vart)
                         expr0 = vc_vart.exprs[0]
                         expr1 = vc_vart.exprs[1]
                         if isinstance(expr1, expr.LogicExpr) and expr1.op == '&&':
                             right_exprs = expr.split_conj(expr1)
                             for r_expr in right_exprs:
                                 info.vcs.append(expr.imp(expr0, r_expr))
-                            # print('remove:', vc)
                             info.vcs.remove(vc)
-                # info.vcs.removeAll(add_vcs - remv_vcs
 
             if info.vcs:
                 all_vcs[pos] = info.vcs
@@ -1168,14 +1159,12 @@ class CmdVerifier:
     def verify_vc(self, vc):
         """Verify one verfication condition"""
         if self.wolfram_engine:
-            print("wolfram engine!")
             if wl_prove(vc):
                 return True
             else:
                 return False
 
         elif self.z3:
-            print("Z3!")
             if z3_prove(vc):
                 return True
             else:
