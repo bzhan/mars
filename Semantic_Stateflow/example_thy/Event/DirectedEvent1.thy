@@ -1,5 +1,5 @@
 theory DirectedEvent1
-  imports "../../Final_ML"
+  imports "../Final_ML" 
 begin
 
 definition Chart_AM_A_A1 :: state where " Chart_AM_A_A1 = State [''AM'', ''A'', ''A1'']
@@ -7,7 +7,7 @@ definition Chart_AM_A_A1 :: state where " Chart_AM_A_A1 = State [''AM'', ''A'', 
   (SKIP)
   (print1 ''ex_A1'' )
   []
-  [Trans (P [''AM'', ''A'', ''A1'']) (S []) ((V ''data'') [==] (N 1)) (send2 ''E_one'' False [''AM'', ''B'']) (SKIP) (P [''AM'', ''A'', ''A2''])]
+  [Trans (P [''AM'', ''A'', ''A1'']) (S []) ((V ''data'') [==] (N 1)) (send2 ''E_one'' False [''AM'', ''B''] ) (SKIP) (P [''AM'', ''A'', ''A2''])]
   (No_Composition)"
 
 definition Chart_AM_A_A2 :: state where " Chart_AM_A_A2 = State [''AM'', ''A'', ''A2'']
@@ -38,7 +38,7 @@ definition Chart_AM_B_B1 :: state where " Chart_AM_B_B1 = State [''AM'', ''B'', 
   (SKIP)
   (print1 ''ex_B1'' )
   []
-  [Trans (P [''AM'', ''B'', ''B1'']) (S [''E_one'']) (Bc True) (send2 ''E_one'' False [''AM'',''C'']) (SKIP) (P [''AM'', ''B'', ''B2''])]
+  [Trans (P [''AM'', ''B'', ''B1'']) (S [''E_one'']) (Bc True) (send2 ''E_one'' False [''AM'', ''C''] ) (SKIP) (P [''AM'', ''B'', ''B2''])]
   (No_Composition)"
 
 definition Chart_AM_B_B2 :: state where " Chart_AM_B_B2 = State [''AM'', ''B'', ''B2'']
@@ -46,7 +46,7 @@ definition Chart_AM_B_B2 :: state where " Chart_AM_B_B2 = State [''AM'', ''B'', 
   (SKIP)
   (print1 ''ex_B2'' )
   []
-  [Trans (P [''AM'', ''B'', ''B2'']) (S [''E_two'']) (Bc True) (send2 ''E_two'' False [''AM'', ''A'']) (SKIP) (P [''AM'', ''B'', ''B1''])]
+  [Trans (P [''AM'', ''B'', ''B2'']) (S [''E_two'']) (Bc True) (send2 ''E_two'' False [''AM'', ''A''] ) (SKIP) (P [''AM'', ''B'', ''B1''])]
   (No_Composition)"
 
 definition f_Chart_AM_B :: string2state where 
@@ -77,7 +77,7 @@ definition Chart_AM_C_C2 :: state where " Chart_AM_C_C2 = State [''AM'', ''C'', 
   (SKIP)
   (print1 ''ex_C2'' )
   []
-  [Trans (P [''AM'', ''C'', ''C2'']) (S []) ((V ''data'') [==] (N 1)) (send2 ''E_two'' False [''AM'', ''B'']) (SKIP) (P [''AM'', ''C'', ''C1''])]
+  [Trans (P [''AM'', ''C'', ''C2'']) (S []) ((V ''data'') [==] (N 1)) (send2 ''E_two'' False [''AM'', ''B''] ) (SKIP) (P [''AM'', ''C'', ''C1''])]
   (No_Composition)"
 
 definition f_Chart_AM_C :: string2state where 
@@ -122,7 +122,7 @@ definition Root :: comp where " Root = Or ([Trans (NONE) (S []) (Bc True) (''dat
 definition g :: juncs where 
 " g = (λ str. [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -134,8 +134,9 @@ ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 
 definition env::env where "env = Env Root fe ge g" 
 definition s::status where " s = Status v I" 
-text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env '''' (2::int) s ?s"
+text\<open>EXECUTION PROOF\<close>
+schematic_goal "Root_Exec_for_times env ['''', ''''] (2::int) s
+ (Status (Vals ?v1 ?v2 ?v3 ?v4 ([''en_A1'', ''en_B1'', ''en_C1'', ''ex_C1'', ''en_C2'', ''ex_B1'', ''en_B2'', ''ex_A1'', ''en_A2'', ''ex_A2'', ''en_A1'', ''ex_B2'', ''en_B1'', ''ex_C2'', ''en_C1''], ?o2)) (?I))"
   unfolding Chart_AM_A_A1_def Chart_AM_A_A2_def f_Chart_AM_A_def Chart_AM_A_def Chart_AM_B_B1_def 
 Chart_AM_B_B2_def f_Chart_AM_B_def Chart_AM_B_def Chart_AM_C_C1_def Chart_AM_C_C2_def 
 f_Chart_AM_C_def Chart_AM_C_def f_Chart_AM_def Chart_AM_def f_Chart_def Root_def 

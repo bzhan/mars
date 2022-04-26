@@ -1,5 +1,5 @@
 {
-"inputEvent" : "E",   //inputEvent of the chart
+"Event Sequence" : "[''E'', ''E'']",   //inputEvent of the chart
 "output1" : "[''enA'', ''enA1'', ''duA'', ''exA1'', ''enA2'']", //the output string of you chart
 "n" : 2   //the iteration of the chart
 }

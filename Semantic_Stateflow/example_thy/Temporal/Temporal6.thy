@@ -1,5 +1,5 @@
 theory Temporal6
-  imports "../../Final_ML"
+  imports "../Final_ML" 
 begin
 
 definition Chart_A :: state where " Chart_A = State [''A'']
@@ -30,7 +30,7 @@ definition Root :: comp where " Root = Or ([Trans (NONE) (S []) (Bc True) (SKIP)
 definition g :: juncs where 
 " g = (λ str. [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -45,8 +45,9 @@ ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 
 definition env::env where "env = Env Root fe ge g" 
 definition s::status where " s = Status v I" 
-text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env '''' (5::int) s ?s"
+text\<open>EXECUTION PROOF\<close>
+schematic_goal "Root_Exec_for_times env ['''', ''''] (6::int) s
+ (Status (Vals ?v1 ?v2 ?v3 ?v4 ([''en_A'', ''en_A'', ''en_A'', ''en_A'', ''en_A'', ''en_A''], ?o2)) (?I))"
   unfolding Chart_A_def Chart_B_def f_Chart_def Root_def g_def v_def I_def fe_def 
 ge_def env_def s_def 
   by stateflow_execution2

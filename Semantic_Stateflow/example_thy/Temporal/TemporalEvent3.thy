@@ -1,5 +1,5 @@
 theory TemporalEvent3
-  imports Final_ML 
+  imports "../Final_ML" 
 begin
 
 definition Chart_A_A1 :: state where " Chart_A_A1 = State [''A'', ''A1'']
@@ -49,7 +49,7 @@ definition g :: juncs where
 " g = (λ str. if str = [''B'', ''6''] then [Trans (J [''B'', ''6'']) (S []) (Bc True) (SKIP) (SKIP) (P [''A'', ''A1''])] else 
 [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -61,8 +61,9 @@ ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 
 definition env::env where "env = Env Root fe ge g" 
 definition s::status where " s = Status v I" 
-text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env '''' (4::int) s ?s"
+text\<open>EXECUTION PROOF\<close>
+schematic_goal "Root_Exec_for_times env [''E'', ''E'', ''E'', ''E''] (4::int) s
+ (Status (Vals ?v1 ?v2 ?v3 ?v4 ([''Entry A'', ''Entry A1'', ''During A'', ''Exit A1'', ''Exit A'', ''Entry A'', ''Entry A1'', ''During A'', ''Exit A1'', ''Exit A'', ''Entry A'', ''Entry A1'', ''During A'', ''Exit A1'', ''Exit A'', ''Entry A'', ''Entry A1''], ?o2)) (?I))"
   unfolding Chart_A_A1_def f_Chart_A_def Chart_A_def f_Chart_B_def Chart_B_def f_Chart_def 
 Root_def g_def v_def I_def fe_def ge_def env_def s_def 
   by stateflow_execution2

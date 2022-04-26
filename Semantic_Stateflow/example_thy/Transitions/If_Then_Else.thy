@@ -1,5 +1,5 @@
 theory If_Then_Else
-  imports "../../Final_ML"
+  imports "../Final_ML" 
 begin
 
 definition Chart_C :: state where " Chart_C = State [''C'']
@@ -51,25 +51,23 @@ Trans (J [''9'']) (S []) ((V ''x'') [>] (N (-1))) (print1 ''Condition Action3'' 
 Trans (J [''9'']) (S []) (Bc True) (SKIP) (SKIP) (P [''D''])] else 
 [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
-definition Chart :: ctxt where 
-"Chart str = (Info False [] [])"
+definition I :: ctxt where 
+"I str = (Info False [] [])"
+definition fe::fenv where " 
+fe str = ((SKIP, No_Expr, No_Expr)) "
 
-definition fe::fenv where
-"fe str = (SKIP, No_Expr, No_Expr)"
+definition ge::genv where " 
+ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 
-definition ge::genv where
-"ge str = ((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)"
-
-definition env::env where "env = Env Root fe ge g"
-definition s::status where "s = Status v Chart"
-
-text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env ''E_one'' (2::int) s ?s2"
-  unfolding env_def s_def fe_def ge_def 
-Chart_C_def Chart_A_def Chart_B_def Chart_D_def f_Chart_def Root_def 
-g_def v_def Chart_def
+definition env::env where "env = Env Root fe ge g" 
+definition s::status where " s = Status v I" 
+text\<open>EXECUTION PROOF\<close>
+schematic_goal "Root_Exec_for_times env [''E_one'', ''E_one''] (2::int) s
+ (Status (Vals ?v1 ?v2 ?v3 ?v4 ([''Entry A'', ''Condition Action3'', ''Exit A'', ''Transition Action1'', ''Entry B''], ?o2)) (?I))"
+  unfolding Chart_C_def Chart_A_def Chart_B_def Chart_D_def f_Chart_def Root_def 
+g_def v_def I_def fe_def ge_def env_def s_def 
   by stateflow_execution2
 
 end
