@@ -168,7 +168,7 @@ def toHcsp(e):
             return expr.LogicExpr('<-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
 
         else:
-            return expr.FunExpr(toHcsp(e.head), [toHcsp(arg) for arg in e.args])
+            return expr.FunExpr(str(e.head), [toHcsp(arg) for arg in e.args])
 
     elif isinstance(e, WLSymbol):
         str_e = str(e)
@@ -292,7 +292,6 @@ def wl_prove(e):
     # wl_vars cannot be empty when using FindInstance function.
     if wl_vars:
         result = session.evaluate(wl.FindInstance(wl.Not(wl_expr), wl_vars))
-        # print(str(result), type(result))
         # result is an empty tuple, i.e. no instance found for the not expression.
         if not result:
             return True
@@ -309,10 +308,8 @@ def wl_prove(e):
 def wl_simplify(e):
     """Simplify the given hcsp expression"""
     wl_expr = toWLexpr(e)
-    # print("before:", wl_expr)
     # Use the Simplify function in wolfram.
     wl_expr = session.evaluate(wl.Simplify(wl_expr))
-    # print("after:", wl_expr)
     hcsp_expr = toHcsp(wl_expr)
 
     return hcsp_expr
@@ -320,7 +317,7 @@ def wl_simplify(e):
 def wl_polynomial_div(p, q):
     """Compute the quotient and remainder of polynomial p and q"""
     vars = q.get_vars()
-    vars = (toWLexpr(expr.AVar(var)) for var in vars)
+    vars = {toWLexpr(expr.AVar(var)) for var in vars}
     p = toWLexpr(p)
     q = toWLexpr(q)
 
@@ -336,5 +333,19 @@ def wl_polynomial_div(p, q):
         quot_remains[quot] = remain
 
     return quot_remains
+
+def wl_is_polynomial(e, constants=set()):
+    """Verify whether the given expression is a polynomial"""
+    vars = e.get_vars().difference(constants)
+    vars = {toWLexpr(expr.AVar(var)) for var in vars}
+
+    e = toWLexpr(e)
+
+    result = session.evaluate(wl.PolynomialQ(e, vars))
+
+    if str(result) == 'True':
+        return True
+    else:
+        return False
 
     

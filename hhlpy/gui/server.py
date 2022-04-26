@@ -11,14 +11,18 @@ from hhlpy.hhlpy2 import CmdVerifier
 import json
 
 
-def runVerify(pre, hp, post, constants=set()):
+def runVerify(pre, hp, post, z3, wolfram_engine, constants=set()):
     pre = parse_bexpr_with_meta(pre)
 
     hp = parse_hp_with_meta(hp)
     post = parse_bexpr_with_meta(post)
 
+    z3 = parse_bexpr_with_meta(z3)
+    wolfram_engine = parse_bexpr_with_meta(wolfram_engine)
+
     # Initialize the verifier
-    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants)
+    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants, 
+                           z3=z3, wolfram_engine=wolfram_engine)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -28,6 +32,7 @@ def runVerify(pre, hp, post, constants=set()):
     for pos, vcs in verifier.get_all_vcs().items():
         meta = get_pos(hp, pos[0]).meta
         for vc in vcs:
+            vc_result = verifier.verify_vc(vc)
             verificationConditions.append({
                 "line": meta.line,
                 "column": meta.column,
@@ -35,7 +40,8 @@ def runVerify(pre, hp, post, constants=set()):
                 "end_line": meta.end_line,
                 "end_column": meta.end_column,
                 "end_pos": meta.end_pos,
-                "vc": str(vc)
+                "vc": str(vc),
+                "vc_result": vc_result
             })
 
     return json.dumps(verificationConditions)
@@ -48,7 +54,8 @@ class HHLPyApplication(WebSocketApplication):
         if message != None:
             msg = json.loads(message)
             print(msg, flush=True)
-            vcs = runVerify(msg["pre"], msg["hp"], msg["post"]);
+            vcs = runVerify(pre=msg["pre"], hp=msg["hp"], post=msg["post"], 
+                            z3=msg["z3"], wolfram_engine=msg["wolfram_engine"])
             self.ws.send(vcs)
 
     def on_close(self, reason):

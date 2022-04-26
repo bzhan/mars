@@ -2,7 +2,7 @@
 import unittest
 
 from ss2hcsp.hcsp.parser import bexpr_parser, aexpr_parser
-from hhlpy.sympy_wrapper import sp_simplify, sp_polynomial_div
+from hhlpy.sympy_wrapper import sp_simplify, sp_polynomial_div, sp_is_polynomial
 
 class SympyWrapperTest(unittest.TestCase):
     def testSimplifyBexpr(self):
@@ -19,7 +19,6 @@ class SympyWrapperTest(unittest.TestCase):
             k = bexpr_parser.parse(k)
             e = bexpr_parser.parse(e)
 
-            # print(sp_simplify(k))
             self.assertTrue(sp_simplify(k) == e)
 
     def testSimplifyAexpr(self):
@@ -47,3 +46,20 @@ class SympyWrapperTest(unittest.TestCase):
 
             quot_remains = sp_polynomial_div(p, q)
             self.assertTrue(quot_remains[e0] == e1)
+
+    def testSpIsPolynomial(self):
+        test_cases = [
+            ("x^3 - 2*x/y + 3*x*z", {"y"}, True),
+            ("x^3 - 2*x/y + 3*x*z", set(), False),
+            # ("x^2 + a*x*y^2 - b*Sin[c]", {"a", "b", "c"}): True,
+            # ("x^2 + a*x*y^2 - b*Sin[c]", {"a", "b"}): False
+        ]
+
+        for case in test_cases:
+            e = case[0]
+            constants = case[1]
+            result = case[2]
+
+            e = aexpr_parser.parse(e)
+           
+            self.assertTrue(sp_is_polynomial(e, constants) == result)

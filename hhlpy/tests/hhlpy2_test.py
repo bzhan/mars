@@ -629,6 +629,18 @@ class WLHHLPyTest(unittest.TestCase):
     def tearDownClass(cls):
         session.terminate()
 
+    def testVerify36_1(self):
+        # Benchmark, problem 29
+        # constants: {"B()"}
+        # {x + z == 0} 
+        # t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> 
+        # {0 == -x - z}
+        runVerify(self, pre="x + z == 0", 
+                  hp="t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> invariant [x + z == 0] {dbx}",
+                  post="0 == -x - z",
+                  constants={"B()"},
+                  wolfram_engine=True)
+
     def testVerify56(self):
         # Basic benchcmark, problem 46
         # constants = {'A', 'B', 'S', 'ep'}
@@ -870,8 +882,7 @@ class WLHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = -x + x * y , y_dot = -y, t_dot = 1 & t < 10> \
                       invariant [x >= 0] {dbx} [y >= 0] {dbx}",
-                  post="~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)",
-                  print_vcs=True)
+                  post="~(-0.8 >= x && x >= -1 && -0.7 >= y && y >= -1)")
     
     def testNonlinear2(self):
         # Nonlinear benchmark, problem 2

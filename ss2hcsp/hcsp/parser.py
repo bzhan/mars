@@ -280,7 +280,7 @@ class HPTransformer(Transformer):
         return expr.FunExpr(fun_name="gcd", exprs=exprs, meta=meta)
 
     def fun_expr(self, meta, fun_name, *exprs):
-        return expr.FunExpr(fun_name, exprs, meta=meta)
+        return expr.FunExpr(str(fun_name), exprs, meta=meta)
 
     def eq_cond(self, meta, e1, e2):
         return expr.RelExpr("==", e1, e2, meta=meta)
