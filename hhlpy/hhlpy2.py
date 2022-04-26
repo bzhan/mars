@@ -244,7 +244,7 @@ class CmdInfo:
 
 class CmdVerifier:
     """Contains current state of verification of an HCSP program."""
-    def __init__(self, *, pre, hp, post, constants=set(), wolfram_engine = False, z3 = True):
+    def __init__(self, *, pre, hp, post, constants=set(), z3 = True, wolfram_engine = False):
         # The HCSP program to be verified.
         self.hp = hp
 
@@ -1155,21 +1155,31 @@ class CmdVerifier:
     def verify(self):
         """Verify all VCs in self."""
         all_vcs = self.get_all_vcs()
-        # print([str(vc) for pos, vc in all_vcs.items()])
+        
+        for pos, vcs in all_vcs.items():
+            for vc in vcs:
+                if not self.verify_vc(vc):
+                    print("The failed verification condition is :\n", pos, ':', str(vc))
+                    return False
+        return True
+
+
+
+    def verify_vc(self, vc):
+        """Verify one verfication condition"""
         if self.wolfram_engine:
-            for pos, vcs in all_vcs.items():
-                for vc in vcs:
-                    if not wl_prove(vc):
-                        print("The failed verification condition is :\n", pos, ':', str(vc))
-                        return False
-            return True
+            print("wolfram engine!")
+            if wl_prove(vc):
+                return True
+            else:
+                return False
 
         elif self.z3:
-            for pos, vcs in all_vcs.items():
-                for vc in vcs:
-                    if not z3_prove(vc):
-                        print("The failed verification condition is :\n", pos, ':', str(vc))
-                        return False
-                    # else:
-                        # print("The successful verificaiton condition is:", str(vc))
-            return True
+            print("Z3!")
+            if z3_prove(vc):
+                return True
+            else:
+                return False
+
+        else:
+            raise AssertionError("Please choose an arithmetic solver. ")

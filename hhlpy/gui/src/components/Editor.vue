@@ -1,6 +1,14 @@
 <template>
   <div class="editor">
     <h1>HHLPy</h1>
+    <div>
+      <label for="z3">
+      <input type="radio" id="z3" value="z3" v-model="solver">Z3
+      </label>
+      <label for="wol">
+        <input type="radio" id="wol" value="wolfram_engine" v-model="solver">Wolfram Engine
+      </label>
+    </div>
     <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
@@ -20,7 +28,7 @@ import {keymap} from "@codemirror/view"
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif;\n( x := x + 1 )**",
+      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif",
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
@@ -33,8 +41,27 @@ export default {
   data: () => { return {
     pre : "x >= 0.12345",
     post : "x >= 1",
-    vcs: ""
+    vcs: "",
+    solver: "z3"
   }},
+  computed:{
+    z3() {
+      if (this.solver === "z3"){
+        return true
+      }
+      else{
+        return false
+      }
+    },
+    wolfram_engine() {
+      if (this.solver === "wolfram_engine"){
+        return true
+      }
+      else{
+        return false
+      }
+    }
+  },
   mounted: function () {
 
     this.editorView = initEditor();
@@ -54,8 +81,11 @@ export default {
       let pre = this.pre
       let post = this.post
       let hp = this.editorView.state.doc.toString();
-      this.socket.send(JSON.stringify({pre: pre, hp: hp, post:post}));
-      console.log({pre: pre, hp: hp, post:post});
+      let z3 = this.z3.toString()
+      let wolfram_engine = this.wolfram_engine.toString()
+      this.socket.send(JSON.stringify({pre: pre, hp: hp, post:post, 
+                                       z3: z3, wolfram_engine: wolfram_engine}));
+      console.log({pre: pre, hp: hp, post:post, z3: z3, wolfram_engine: wolfram_engine});
     },
     parse: function () {
       console.log(parser)
