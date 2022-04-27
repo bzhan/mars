@@ -15,7 +15,7 @@ from ss2hcsp.matlab.parser import expr_parser, cond_parser, cmd_parser, event_pa
 file = []
 dir = []
 dir_res = []
-give_path = 'Semantic_Stateflow/example_xml/EarlyReturn'
+give_path = 'Semantic_Stateflow/example_xml'
 
 def list_dir(start_dir):
     dir_res = os.listdir(start_dir)
