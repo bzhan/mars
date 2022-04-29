@@ -1,0 +1,143 @@
+%type: module
+module water_tank():
+output h, v;
+begin
+Qmax := 0.007; g := 9.8; pi := 3.14; r := 0.0254; u:= 1; h := 31; v := 1;
+(<h_dot = v*Qmax-pi*r*r*sqrt(2*g*d)*u&true>|>[](wl!h --> vc?v))**
+end
+endmodule
+
+module ACT_periodic(tid, period):
+begin
+(t := 0; dis[tid]!; <t_dot = 1 & t < period>|>[](complete_exec? --> complete_comp?); <t_dot = 1 & t < period>)**
+end
+endmodule
+
+module set_valve():
+output h, v;
+begin
+lb := 30; ub := 60; v := 1;
+state := "wait"; prior := 2;
+(
+if state == "wait" then
+    dis["set_valve"]?; cip?h;
+    t := 0; c := 0; computed := 0; state := "ready"
+elif state == "ready" then
+    reqProcessor[0]["set_valve"]!prior;
+    <t_dot = 1 & t < 0.03> |> [] (run[0]["set_valve"]? --> state := "running");
+    state == "ready" ->
+        (
+        exit[0]["set_valve"]! --> state := "wait"
+        $
+        run[0]["set_valve"]? --> state := "running"
+        )
+else
+    computed == 0 ->
+    (
+        if h >= ub then v := 0 elif h <= lb then v := 1 else skip end;
+        computed := 1
+    );
+    computed == 1 ->
+    (
+        <t_dot = 1, c_dot = 1 & c < 0.025 && t < 0.03> |> []
+          (
+          preempt[0]["set_valve"]? --> state := "ready"
+          $
+          complete_exec! --> cop!v; complete_comp!; <t_dot = 1, c_dot = 1 & c < 0.025>; free[0]["set_valve"]!; state := "wait"
+          );
+        state == "running" ->
+            (
+            preempt[0]["set_valve"]? --> exit[0]["set_valve"]!; state := "wait"
+            $
+            free[0]["set_valve"]! --> state := "wait"
+            )
+    )
+endif
+)**
+end
+endmodule
+
+module get_waterlevel():
+output h, v;
+begin
+state := "wait"; prior := 1;
+(
+if state == "wait" then
+    dis["get_waterlevel"]?; rip?h;
+    t := 0; c := 0; computed := 0; state := "ready"
+elif state == "ready" then
+    reqProcessor[0]["get_waterlevel"]!prior;
+    <t_dot = 1 & t < 0.03> |> [] (run[0]["get_waterlevel"]? --> state := "running");
+    state == "ready" ->
+        (
+        exit[0]["get_waterlevel"]! --> state := "wait"
+        $
+        run[0]["get_waterlevel"]? --> state := "running"
+        )
+else
+    computed == 0 ->
+    (
+        skip;
+        computed := 1
+    );
+    computed == 1 ->
+    (
+        <t_dot = 1, c_dot = 1 & c < 0.025 && t < 0.03> |> []
+          (
+          preempt[0]["get_waterlevel"]? --> state := "ready"
+          $
+          complete_exec! --> cop!v; complete_comp!; <t_dot = 1, c_dot = 1 & c < 0.025>; free[0]["get_waterlevel"]!; state := "wait"
+          );
+        state == "running" ->
+            (
+            preempt[0]["get_waterlevel"]? --> exit[0]["get_waterlevel"]!; state := "wait"
+            $
+            free[0]["get_waterlevel"]! --> state := "wait"
+            )
+    )
+endif
+)**
+end
+endmodule
+
+module sensor():
+begin
+(w?h; s!h)**
+end
+endmodule
+
+module actuator():
+begin
+(c?v; ch_v!v)**
+end
+endmodule
+
+module s2c():
+begin
+(s?h; rip!h)**
+end
+endmodule
+
+module c2a():
+begin
+(cop?v; c!v)**
+end
+endmodule
+
+module w2s():
+begin
+(wl?h; w!h)**
+end
+endmodule
+
+module a2w():
+begin
+(ch_v?v; vc!v)**
+end
+endmodule
+
+module conn():
+begin
+(rop?h; cip!h)**
+end
+endmodule
