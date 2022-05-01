@@ -73,6 +73,7 @@ class Channel:
 class HPiCal:
     def __init__(self):
         self.type = None
+        self.ses_in = list()
 
     def sc_str(self):
         """
@@ -107,7 +108,7 @@ class HPiCal:
     def size(self):
         """Returns size of HPiCal program."""
         if isinstance(self, (Var, Skip, Wait, Assign, Assert, Test, Log,
-                             InputChannel, OutputChannel)):
+                             )):
             return 1
         elif isinstance(self, (Sequence, Parallel)):
             return 1 + sum([hp.size() for hp in self.hps])
@@ -228,7 +229,7 @@ class Restriction(HPiCal):
         super(Restriction, self).__init__()
         self.type = "Restriction"
         assert isinstance(name, str)
-        self.name = name
+        self.name = str(name)
         self.expr = expr
         self.meta = meta
 
@@ -239,7 +240,7 @@ class Restriction(HPiCal):
         return "Retriction %s<%s>" % (self.name, self.expr)
 
     def __str__(self):
-        return "%s!<%s>" + self.name
+        return "%s!<%s>" % (self.name, self.expr)
 
     def __hash__(self):
         return hash(("Restricion", self.name, self.expr))
@@ -250,7 +251,7 @@ class Replication(HPiCal):
         super(Replication, self).__init__()
         self.type = "Replication"
         assert isinstance(name, str)
-        self.name = name
+        self.name = str(name)
         self.expr = expr
         self.meta = meta
 
@@ -261,7 +262,7 @@ class Replication(HPiCal):
         return "Replication %s(%s)" % (self.name, self.expr)
 
     def __str__(self):
-        return "!%s(%s)" + self.name
+        return "!%s(%s)" % (self.name, self.expr)
 
     def __hash__(self):
         return hash(("Replication", self.name, self.expr))
@@ -301,7 +302,8 @@ class Oplus(HPiCal):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr)
                             for var_name, expr in self.eqs)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + \
-            "| > OPLUS(" + self.name + "{" + self.c1 + "}, " + self.c2 + ")"
+            "|>OPLUS(" + str(self.name) + \
+            "{" + str(self.c1) + "}, " + str(self.c2) + ")"
 
     def __repr__(self):
         return "OPLUS<%s, %s>(%s{%s}%s)" % (repr(self.eqs), repr(self.constraint), repr(self.name), repr(self.c1), repr(self.c2))
@@ -345,13 +347,14 @@ class And(HPiCal):
         str_eqs = ", ".join(var_name + "_dot = " + str(expr)
                             for var_name, expr in self.eqs)
         return "<" + str_eqs + " & " + str(self.constraint) + ">" + \
-            "| > And(" + self.name + "{" + self.c1 + "," + self.c2 + "}, " + self.c3 + ")"
+            "|>AND(" + str(self.name) + "{" + str(self.c1) + \
+            "," + str(self.c2) + "}, " + str(self.c3) + ")"
 
     def __repr__(self):
-        return "And<%s, %s>(%s{%s,%s}%s)" % (repr(self.eqs), repr(self.constraint), repr(self.name), repr(self.c1), repr(self.c2), repr(self.c3))
+        return "AND<%s, %s>(%s{%s,%s}%s)" % (repr(self.eqs), repr(self.constraint), repr(self.name), repr(self.c1), repr(self.c2), repr(self.c3))
 
     def __hash__(self):
-        return hash(("And", self.eqs, self.constraint, self.name, self.c1, self.c2,self.c3))
+        return hash(("AND", self.eqs, self.constraint, self.name, self.c1, self.c2, self.c3))
 
 
 class Var(HPiCal):
@@ -736,6 +739,7 @@ class Outputmsg(HPiCal):
     def __hash__(self):
         return hash(("Outputmsg", self.ouput_name, self.exprs))
 
+
 class Inputmsg(HPiCal):
     def __init__(self, input_name, *, exprs=None, meta=None):
         super(Inputmsg, self).__init__()
@@ -767,6 +771,7 @@ class Inputmsg(HPiCal):
 
     def __hash__(self):
         return hash(("Inputmsg", self.input_name, self.exprs))
+
 
 class Sequence(HPiCal):
     def __init__(self, *hps, meta=None):
@@ -1399,10 +1404,47 @@ def get_comm_chs(hp):
     return list(OrderedDict.fromkeys(collect))
 
 
+def ses_handlesub(hp, name, change_name):
+    if str(name) in hp.ses_in:
+        change_name = True
+    if hasattr(hp, 'hp'):
+        ses_handlesub(hp.hp, name, change_name)
+    if hasattr(hp, 'hps'):
+        for next_hp in hp.hps:
+            ses_handlesub(next_hp, name, change_name)
+    if hasattr(hp, 'c1'):
+        ses_handlesub(hp.c1, name, change_name)
+    if hasattr(hp, 'c2'):
+        ses_handlesub(hp.c2, name, change_name)
+    if hasattr(hp, 'c3'):
+        ses_handlesub(hp.c3, name, change_name)
+    if hasattr(hp, 'hp1'):
+        ses_handlesub(hp.hp1, name, change_name)
+    if hasattr(hp, 'hp2'):
+        ses_handlesub(hp.hp2, name, change_name)
+    if hasattr(hp, 'out_hp'):
+        ses_handlesub(hp.out_hp, name, change_name)
+    if hasattr(hp, 'if_hps'):
+        for p in hp.if_hps:
+            ses_handlesub(p, name, change_name)
+    if hasattr(hp, 'else_hp'):
+        ses_handlesub(hp.else_hp, name, change_name)
+
+    if change_name :
+        if hp.type == 'Restriction':
+            hp.name = hp.name + '.1'
+        if hp.type == 'Replication':
+            hp.name = hp.name + '.1'
+    else:
+        hp.ses_in.append(str(name))
+    return hp
+
+
 class Session(HPiCal):
     def __init__(self, name, hp, meta=None):
         self.type = "Session"
         self.name = name
+        hp = ses_handlesub(hp, name, False)
         self.hp = hp
         self.meta = meta
 
@@ -1431,6 +1473,7 @@ class parallelSession(Session):
         self.name = name
         self.hps = []
         for hp in hps:
+            hp = ses_handlesub(hp, name, False)
             if hp.type == "parallel":
                 self.hps.extend(hp.hps)
             else:
