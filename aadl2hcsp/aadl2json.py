@@ -11,23 +11,25 @@ grammar = r"""
 
     ?port_feature_cmd: CNAME ":" CNAME CNAME "port" ";"
 
-    ?prop_cmd: CNAME "=>" PROP_STRING ";"
+    ?prop_value: UNITED_NUM | UNITED_NUM ".." UNITED_NUM
+
+    ?prop_cmd: CNAME "=>" prop_value ";"
 
     ?device_cmd: "features" (port_feature_cmd)* "properties" (prop_cmd)*
 
-    ?deviceimp_cmd: ("annex" STRING ";")*
+    ?deviceimp_cmd: ("annex" ANNEX_STRING ";")*
 
     ?bus_cmd: "properties" (prop_cmd)*
 
-    ?access_feature_cmd: CNAME ":" STRING ";"
+    ?access_feature_cmd: CNAME ":" "requires" CNAME "access" CNAME ";"
 
     ?processor_cmd: "features" (access_feature_cmd)* "properties" (prop_cmd)*
     
     ?process_cmd: "features" (port_feature_cmd)*
 
-    ?comp_cmd: CNAME ":" CNAME STRING";"
+    ?comp_cmd: CNAME ":" CNAME CNAME";"
 
-    ?conn_cmd: CNAME ":" CNAME STRING "->" STRING ";"
+    ?conn_cmd: CNAME ":" CNAME CNAME "->" CNAME ";"
 
     ?processimp_cmd: "subcomponents" (comp_cmd)* "connections" (conn_cmd)*
 
@@ -38,6 +40,10 @@ grammar = r"""
     ?system_cmd: "fetures" (port_feature_cmd)*
 
     ?systemimp_cmd: "subcomponents" (comp_cmd)* "connections" (conn_cmd)*
+
+    ?abstract_cmd: "fetures" (port_feature_cmd)*
+
+    ?abstractimp_cmd: ("annex" ANNEX_STRING ";")*
 
     ?atom_cmd:  "with" CNAME ";"->with_cmd
             | "device" CNAME device_cmd "end" CNAME ";" ->handle_device
@@ -51,11 +57,17 @@ grammar = r"""
             | "thread implementation" CNAME threadimp_cmd "end" CNAME ";"->handle_threadimp
             | "system" CNAME system_cmd "end" CNAME ";"->handle_system
             | "system implementation" CNAME system_cmd "end" CNAME ";"->handle_systemimp
+            | "abstract" CNAME abstract_cmd "end" CNAME ";" ->handle_abstarct
+            | "abstract implementation" CNAME abstractimp_cmd "end" CNAME ";" ->handle_abstarctimp
 
     %import common.CNAME
+    %import common.DIGIT
+    %import common.LETTER
     %import common.WS
-
-    PROP_STRING: /^[;]+/
+    
+    
+    
+    UNITED_NUM : (DIGIT|LETTER)+
     ANNEX_STRING: /^[**]+/
     %ignore WS
 """
@@ -101,14 +113,26 @@ class HPTransformer(Transformer):
                     error_str += " " * (e.column-1) + "^" + '\n'
             raise ParseFileException(error_str)
 
-    def feature_cmd(self, meta, name, val):
-        return {name: val}
+    def port_feature_cmd(self, meta, name, direction, type):
+        return ['feat', {str(name): str(name)}, str(direction)]
 
-    def properties_cmd(self, meta, name, val):
-        return {name: val}
+    def prop_value(self, *args):
+        return str(args[1])+".."+str(args[2])
+
+    def prop_cmd(self, meta, name, val):
+        return ['prop', {str(name): str(val)}]
 
     def device_cmd(self, meta, *args):
-        return 0
+        text = {}
+        for arg in args:
+            if arg[0] == 'feat':
+                if arg[2] == 'out':
+                    text["ouput"].update(arg[1])
+                if arg[2] == 'in':
+                    text["input"].update(arg[1])
+            if arg[0] =='prop':
+                text.update(arg[1])
+        return text
 
 
 aadl_transformer = HPTransformer()

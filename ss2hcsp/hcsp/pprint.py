@@ -99,7 +99,7 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
         elif hp.type == 'loop':
             new_line(indent),
             add_str("(")
-            rec(hp.hp, indent+2, pos)
+            rec(hp.hp, indent+2, pos+(0,))
             new_line(indent)
             if hp.constraint == true_expr:
                 add_str(")**")
