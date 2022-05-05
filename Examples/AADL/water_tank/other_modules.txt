@@ -1,0 +1,22 @@
+%type: module
+
+module P():
+output x;
+begin
+(x := 1; wait(1))**
+end
+endmodule
+
+module Q():
+output x;
+begin
+(wait(0.5); x := 2)**
+end
+endmodule
+
+system
+
+P = P() ||
+Q = Q()
+
+endsystem

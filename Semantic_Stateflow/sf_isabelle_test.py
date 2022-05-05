@@ -44,9 +44,9 @@ class SFIsabelleTest(unittest.TestCase):
             self.assertEqual(translate_event(event), res)
     '''
     def testTranslate1(self):
-        filename = "./Examples/Stateflow/translate/Transitions/LabeledDefaultTransition.xml"
+        filename = "Semantic_Stateflow/example_xml/Messages/Messages2.xml"
         n = 2
-        input_enent = ""
+        input_enent = "[\'\'\'\', \'\'\'\']"
         output_str = ""
         try:
             jsonname  = "./Semantic_Stateflow/LabeledDefaultTransition.json"
@@ -57,8 +57,8 @@ class SFIsabelleTest(unittest.TestCase):
                         output_str = json_data['output1']
                     elif key == 'n':
                         n = json_data['n']
-                    elif key == 'inputEvent':
-                        input_enent = json_data['inputEvent']
+                    elif key == 'Event Sequence':
+                        input_enent = json_data['Event Sequence']
         except:
             pass
         
@@ -79,7 +79,7 @@ class SFIsabelleTest(unittest.TestCase):
         str += junc_str + '\n\n'
         def_list.append('g_def')
 
-        v_str = 'definition v :: vals where \" v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) \"\n'
+        v_str = 'definition v :: vals where \" v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) \"\n'
         str += v_str + '\n'
         def_list.append('v_def')
         
@@ -114,7 +114,8 @@ class SFIsabelleTest(unittest.TestCase):
 
         str += 'text\<open>EXECUTION PROOF\<close>\n'
 
-        str += 'schematic_goal \"Root_Exec_for_times env \'\'%s\'\' (%s::int) s' %(input_enent, n)
+
+        str += 'schematic_goal \"Root_Exec_for_times env %s (%s::int) s' %(input_enent, n)
         if output_str == "":
             str += ' ?s\"\n'
         else:

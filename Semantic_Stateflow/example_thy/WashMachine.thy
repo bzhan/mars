@@ -89,7 +89,7 @@ definition g :: juncs where
 " g = (λ str. if str = [''ON'', ''13''] then [] else 
 [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -102,7 +102,7 @@ ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 definition env::env where "env = Env Root fe ge g" 
 definition s::status where " s = Status v I" 
 text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env ''ON'' (2::int) s ?s"
+schematic_goal "Root_Exec_for_times env ['''',''ON''] (2::int) s ?s"
   unfolding Washing_machine_OFF_Initial_State_def Washing_machine_OFF_off_def Washing_machine_OFF_Pending_State_def 
 f_Washing_machine_OFF_def Washing_machine_OFF_def Washing_machine_ON_Add_Water_def 
 Washing_machine_ON_Washing_def f_Washing_machine_ON_def Washing_machine_ON_def f_Washing_machine_def 
@@ -117,12 +117,12 @@ definition s2::status where "s2 = Status
      [''OFF'', ''off''] := (λstr. 0)(''ON'' := 1, ''tick'' := 1),
      [''OFF'', ''Initial_State''] := λstr. 0))
    ((λp. 0)([] := 0, [''OFF''] := 1, [''OFF'', ''off''] := 1, [''OFF'', ''Initial_State''] := 0))
-   ([], []))
+   (λx. []) ([], []))
  ((λstr. Info False [] [])
   ([] := Info True ''OFF'' [], [''OFF'', ''off''] := Info False [] [],
    [''OFF'', ''Initial_State''] := Info True [] [], [''OFF''] := Info True ''Initial_State'' []))"
 
-schematic_goal "Root_Exec_for_times env ''SWITCH'' (1::int) s2 ?s2"
+schematic_goal "Root_Exec_for_times env [''SWITCH''] (1::int) s2 ?s2"
   unfolding Washing_machine_OFF_Initial_State_def Washing_machine_OFF_off_def Washing_machine_OFF_Pending_State_def 
 f_Washing_machine_OFF_def Washing_machine_OFF_def Washing_machine_ON_Add_Water_def 
 Washing_machine_ON_Washing_def f_Washing_machine_ON_def Washing_machine_ON_def f_Washing_machine_def 
@@ -140,7 +140,7 @@ definition s3::status where "s3 = Status
    ((λp. 0)
     ([] := 0, [''OFF'', ''off''] := 1, [''OFF''] := 2, [''OFF'', ''Initial_State''] := 1,
      [''ON''] := 0, [''ON'', ''Add_Water''] := 0))
-   ([], []))
+   (λx. []) ([], []))
  ((λstr. Info False [] [])
   ([''OFF'', ''off''] := Info False [] [], [''OFF'', ''Initial_State''] := Info False [] [],
    [''OFF''] := Info False [] [], [] := Info True ''ON'' [],
@@ -166,14 +166,14 @@ definition s4::status where "s4 = Status
    ((λp. 0)
     ([] := 0, [''OFF'', ''off''] := 1, [''OFF''] := 2, [''OFF'', ''Initial_State''] := 1,
      [''ON'', ''Add_Water''] := 6, [''ON''] := 15, [''ON'', ''Washing''] := 9))
-   ([], []))
+   (λx. []) ([], []))
  ((λstr. Info False [] [])
   ([''OFF'', ''off''] := Info False [] [], [''OFF'', ''Initial_State''] := Info False [] [],
    [''OFF''] := Info False [] [], [] := Info True ''ON'' [],
    [''ON'', ''Add_Water''] := Info False [] [], [''ON'', ''Washing''] := Info True [] [],
    [''ON''] := Info True ''Washing'' ''Add_Water''))"
 
-schematic_goal "Root_Exec_for_times env ''SWITCH'' (1::int) s4 ?s4"
+schematic_goal "Root_Exec_for_times env [''SWITCH''] (1::int) s4 ?s4"
   unfolding Washing_machine_OFF_Initial_State_def Washing_machine_OFF_off_def Washing_machine_OFF_Pending_State_def 
 f_Washing_machine_OFF_def Washing_machine_OFF_def Washing_machine_ON_Add_Water_def 
 Washing_machine_ON_Washing_def f_Washing_machine_ON_def Washing_machine_ON_def f_Washing_machine_def 
@@ -193,14 +193,14 @@ definition s5::status where "s5 = Status
    ((λp. 0)
     ([] := 0, [''OFF'', ''off''] := 1, [''OFF'', ''Initial_State''] := 1, [''ON'', ''Add_Water''] := 6,
      [''ON'', ''Washing''] := 9, [''ON''] := 16, [''OFF''] := 0, [''OFF'', ''Pending_State''] := 0))
-   ([], []))
+   (λx. []) ([], []))
  ((λstr. Info False [] [])
   ([''OFF'', ''off''] := Info False [] [], [''OFF'', ''Initial_State''] := Info False [] [],
    [''ON'', ''Add_Water''] := Info False [] [], [''ON'', ''Washing''] := Info False [] [],
    [''ON''] := Info False [] ''Washing'', [] := Info True ''OFF'' [],
    [''OFF'', ''Pending_State''] := Info True [] [], [''OFF''] := Info True ''Pending_State'' []))"
 
-schematic_goal "Root_Exec_for_times env ''SWITCH'' (1::int) s5 ?s5"
+schematic_goal "Root_Exec_for_times env [''SWITCH''] (1::int) s5 ?s5"
   unfolding Washing_machine_OFF_Initial_State_def Washing_machine_OFF_off_def Washing_machine_OFF_Pending_State_def 
 f_Washing_machine_OFF_def Washing_machine_OFF_def Washing_machine_ON_Add_Water_def 
 Washing_machine_ON_Washing_def f_Washing_machine_ON_def Washing_machine_ON_def f_Washing_machine_def 
@@ -220,14 +220,14 @@ definition s6::status where "s6 = Status
    ((λp. 0)
     ([] := 0, [''OFF'', ''off''] := 1, [''OFF'', ''Initial_State''] := 1, [''ON'', ''Add_Water''] := 6,
      [''OFF''] := 1, [''OFF'', ''Pending_State''] := 1, [''ON''] := 0, [''ON'', ''Washing''] := 0))
-   ([], []))
+   (λx. []) ([], []))
  ((λstr. Info False [] [])
   ([''OFF'', ''off''] := Info False [] [], [''OFF'', ''Initial_State''] := Info False [] [],
    [''ON'', ''Add_Water''] := Info False [] [], [''OFF'', ''Pending_State''] := Info False [] [],
    [''OFF''] := Info False [] [], [] := Info True ''ON'' [], [''ON'', ''Washing''] := Info True [] [],
    [''ON''] := Info True ''Washing'' ''Washing''))"
 
-schematic_goal "Root_Exec_for_times env ''OFF'' (1::int) s6 ?s6"
+schematic_goal "Root_Exec_for_times env [''OFF''] (1::int) s6 ?s6"
   unfolding Washing_machine_OFF_Initial_State_def Washing_machine_OFF_off_def Washing_machine_OFF_Pending_State_def 
 f_Washing_machine_OFF_def Washing_machine_OFF_def Washing_machine_ON_Add_Water_def 
 Washing_machine_ON_Washing_def f_Washing_machine_ON_def Washing_machine_ON_def f_Washing_machine_def 

@@ -90,7 +90,7 @@ definition Root :: comp where " Root = Or ([Trans (NONE) (S []) (Bc True) (SKIP)
 definition g :: juncs where 
 " g = (\<lambda> str. [])"
 
-definition v :: vals where " v = Vals (\<lambda>str. 0) (\<lambda>p str. 0) (\<lambda>p. 0) ([],[]) "
+definition v :: vals where " v = Vals (\<lambda>str. 0) (\<lambda>p str. 0) (\<lambda>p. 0) (\<lambda>x. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -100,10 +100,11 @@ fe str = ((SKIP, No_Expr, No_Expr)) "
 definition ge::genv where " 
 ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 
+
 definition env::env where "env = Env Root fe ge g" 
-definition s::status where " s = Status v I" 
+definition s::status where " s = Status v I"  
 text\<open>EXECUTION PROOF\<close>
-schematic_goal "Root_Exec_for_times env ''E_one'' (2::int) s ?s"
+schematic_goal "Root_Exec_for_times env [''E_one'', ''E_one''] (2::int) s ?s"
   unfolding Chart_A_A1_A1a_def Chart_A_A1_A1b_def f_Chart_A_A1_def Chart_A_A1_def 
 Chart_A_A2_A2a_def Chart_A_A2_A1b_def f_Chart_A_A2_def Chart_A_A2_def f_Chart_A_def 
 Chart_A_def f_Chart_def Root_def g_def v_def I_def fe_def ge_def env_def s_def 

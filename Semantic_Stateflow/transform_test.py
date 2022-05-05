@@ -61,7 +61,7 @@ class TransformAllExamples(unittest.TestCase):
                         continue    #These three example has a feature that cannot be tranformed so that we transformed it manually
                     
                     n = 2
-                    input_enent = ""
+                    input_enent = "[\'\'\'\', \'\'\'\']"
                     output_str = ""
                     try:
                         jsonname = filename.split('.')[0] + '.json'
@@ -72,8 +72,8 @@ class TransformAllExamples(unittest.TestCase):
                                     output_str = json_data['output1']
                                 elif key == 'n':
                                     n = json_data['n']
-                                elif key == 'inputEvent':
-                                    input_enent = json_data['inputEvent']
+                                elif key == 'Event Sequence':
+                                    input_enent = json_data['Event Sequence']
                     except:
                         print(jsonname)
                     diagram = SL_Diagram(location=filename)
@@ -94,7 +94,7 @@ class TransformAllExamples(unittest.TestCase):
                     content += junc_str + '\n\n'
                     def_list.append('g_def')
 
-                    v_str = 'definition v :: vals where \" v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) \"\n'
+                    v_str = 'definition v :: vals where \" v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) \"\n'
                     content += v_str + '\n'
                     def_list.append('v_def')
                     
@@ -131,11 +131,11 @@ class TransformAllExamples(unittest.TestCase):
 
                     #note that the default n is 2
                     #content += 'schematic_goal \"Root_Exec_for_times env \'\'\'\' (%s::int) s ?s\"\n' %'2'
-                    content += 'schematic_goal \"Root_Exec_for_times env \'\'%s\'\' (%s::int) s' %(input_enent, n)
+                    content += 'schematic_goal \"Root_Exec_for_times env %s (%s::int) s' %(input_enent, n)
                     if output_str == "":
                         content += ' ?s\"\n'
                     else:
-                        content += '\n (Status (Vals ?v1 ?v2 ?v3 (%s, ?o2)) (?I))\"\n' %output_str
+                        content += '\n (Status (Vals ?v1 ?v2 ?v3 ?v4 (%s, ?o2)) (?I))\"\n' %output_str
 
                     content += '  unfolding '
                     cnt = len('  unfolding ')

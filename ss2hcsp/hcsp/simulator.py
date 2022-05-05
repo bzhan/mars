@@ -1407,13 +1407,11 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
     for _ in range(num_io_events):
         # Iterate over the processes, apply exec_step to each until
         # stuck, find the stopping reasons.
-        states={}
         for info in infos:
             while info.callstack.top_pos() is not None and not num_event >= start_id + num_steps:
                 ori_pos = {info.name: disp_of_callstack(info)}
                 try:
                     info.exec_step(infos)
-                    states.update(info.state)
                 except SimulatorAssertionException as e:
                     if 'warning' not in res:
                         info.reason = {'warning': str(e)}
@@ -1437,8 +1435,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
 
             if info.callstack.top_pos() is None:
                 info.reason = {'end': None}
-        for info in infos:
-            info.state=states
         if num_event >= start_id + num_steps:
             break
 

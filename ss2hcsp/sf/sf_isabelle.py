@@ -68,6 +68,8 @@ def translate_expr(e):
             str_end += ']])'
         ret_str += ('No_Expr' + str_end)
         return ret_str
+    elif isinstance(e, function.DirectName):
+        return "V ''%s''" % str(e).split('.')[0]
     else:
         print(e)
         print(type(e))
@@ -105,17 +107,24 @@ def translate_action(c, diagram, is_tran_act=False):
                 ret_str += '>>'
             return ret_str
         else:
-            return "\'\'%s\'\' ::= %s" % (c.lname, translate_expr(c.expr))
+            if str(c.lname).split('.')[-1] == "data":
+                vname = str(c.lname).split('.')[0]
+            else:
+                vname = c.lname
+            return "\'\'%s\'\' ::= %s" % (vname, translate_expr(c.expr))
     elif isinstance(c, function.Sequence):
         return "(%s); (%s)" %(translate_action(c.cmd1, diagram, is_tran_act), translate_action(c.cmd2, diagram, is_tran_act))
     elif isinstance(c, function.FunctionCall):
         if c.func_name == "send":
             args = c.args
             if len(args) == 1 and len(str(args[0]).split('.')) == 1:
-                if is_tran_act:
-                    return "send1 ''%s'' True" % c.args[0]
+                if str(c.args[0]).startswith('M'):
+                    return "send3 ''%s'' " % c.args[0]
                 else:
-                    return "send1 ''%s'' False" % c.args[0]
+                    if is_tran_act:
+                        return "send1 ''%s'' True" % c.args[0]
+                    else:
+                        return "send1 ''%s'' False" % c.args[0]
             #The following two conditions are directed send
             elif len(args) == 2:
                 event,direct_name=args[0],args[1]
@@ -218,7 +227,10 @@ def translate_event(event):
     if event is None:
         return "S []"
     elif isinstance(event, function.BroadcastEvent):
-        return "S [\'\'%s\'\']" % event.name
+        if event.name.startswith('M'):
+            return "M \'\'%s\'\'" % event.name
+        else:
+            return "S [\'\'%s\'\']" % event.name
     elif isinstance(event, function.TemporalEvent):
         temporal_name = event.temp_op.title()
         now_event = str(event.event)

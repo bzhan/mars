@@ -1,0 +1,21 @@
+%type: module
+import modules
+import SCHEDULLER_HPF
+
+system
+
+scheduler = SCHEDULLER_HPF($0) ||
+water_tank = water_tank() ||
+ACT_set_valve = ACT_periodic($"set_valve", $0.01) ||
+COM_set_valve = set_valve() ||
+ACT_get_waterlevel = ACT_periodic($"get_waterlevel", $0.01) ||
+COM_get_waterlevel = get_waterlevel() ||
+DEVICE_sensor = sensor() ||
+DEVICE_actuator = actuator() ||
+CONNECTION_s2c = s2c() ||
+CONNECTION_c2a = c2a() ||
+CONNECTION_w2s = w2s() ||
+CONNECTION_a2w = a2w() ||
+CONNECTION_conn = conn()
+
+endsystem

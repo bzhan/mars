@@ -86,7 +86,7 @@ if str = [''RunW'', ''31''] then [] else
 if str = [''StopW'', ''Reset'', ''16''] then [] else 
 [])"
 
-definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) ([],[]) "
+definition v :: vals where " v = Vals (λstr. 0) (λp str. 0) (λp. 0) (λx. []) ([],[]) "
 
 definition I :: ctxt where 
 "I str = (Info False [] [])"
@@ -99,7 +99,7 @@ ge str = (((Trans NONE (S []) (Bc True) SKIP SKIP NONE), No_Expr, No_Expr)) "
 definition env::env where "env = Env Root fe ge g" 
 definition s::status where " s = Status v I" 
 text‹EXECUTION PROOF›
-schematic_goal "Root_Exec_for_times env ''TIC'' (11::int) s ?s"
+schematic_goal "Root_Exec_for_times env [''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC'',''TIC''] (11::int) s ?s"
   unfolding Chart_RunW_Running_def Chart_RunW_Lap_def f_Chart_RunW_def Chart_RunW_def 
 f_Chart_StopW_Reset_def Chart_StopW_Reset_def Chart_StopW_LapStop_def f_Chart_StopW_def 
 Chart_StopW_def f_Chart_def Root_def g_def v_def I_def fe_def ge_def env_def s_def 
@@ -118,13 +118,13 @@ definition s2::status where "s2 = Status
    ((λp. 0)
     ([] := 0, [''StopW''] := 0, [''StopW'', ''Reset''] := 0, [''RunW''] := 1,
      [''RunW'', ''Running''] := 1))
-   ([''en_StopW'', ''en_Reset'', ''en_RunW'', ''edu_Running''], []))
+   (λx. []) ([''en_StopW'', ''en_Reset'', ''en_RunW'', ''edu_Running''], []))
  ((λstr. Info False [] [])
   ([''StopW'', ''Reset''] := Info False [] [], [''StopW''] := Info False [] [],
    [] := Info True ''RunW'' [], [''RunW'', ''Running''] := Info True [] [],
    [''RunW''] := Info True ''Running'' []))"
 
-schematic_goal "Root_Exec_for_times env ''LAP'' (1::int) s2 ?s2"
+schematic_goal "Root_Exec_for_times env [''LAP''] (1::int) s2 ?s2"
   unfolding Chart_RunW_Running_def Chart_RunW_Lap_def f_Chart_RunW_def Chart_RunW_def 
 f_Chart_StopW_Reset_def Chart_StopW_Reset_def Chart_StopW_LapStop_def f_Chart_StopW_def 
 Chart_StopW_def f_Chart_def Root_def g_def v_def I_def fe_def ge_def env_def s2_def 

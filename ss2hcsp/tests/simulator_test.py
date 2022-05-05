@@ -162,7 +162,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, pos2, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            info.exec_step()
+            info.exec_step([])
             self.assertEqual(info.reason, None)
             self.assertEqual(info.callstack.top_pos(), pos2)
             self.assertEqual(info.state, state2)
@@ -187,7 +187,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, reason in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            info.exec_step()
+            info.exec_step([])
             self.assertEqual(info.reason, reason)
             self.assertEqual(info.callstack.top_pos(), pos)
             self.assertEqual(info.state, state)
@@ -208,7 +208,7 @@ class SimulatorTest(unittest.TestCase):
         for cmd, pos, state, pos2, state2, reason in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
             while info.callstack.top_pos() is not None:
-                info.exec_step()
+                info.exec_step([])
                 if info.reason is not None:
                     break
             if info.callstack.top_pos() is None:
@@ -265,7 +265,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, pos=pos, state=state)
-            info.exec_step()  # obtain delay value
+            info.exec_step([])  # obtain delay value
             info.exec_delay(delay)
             self.assertEqual(info.callstack.top_pos(), pos2)
             self.assertEqual(info.state, state2)
@@ -295,7 +295,7 @@ class SimulatorTest(unittest.TestCase):
 
         for cmd, state, delay, state2 in test_data:
             info = simulator.SimInfo('P0', cmd, state=state)
-            info.exec_step()  # obtain delay value
+            info.exec_step([])  # obtain delay value
             info.exec_delay(delay)
             self.assertAlmostEqualState(info.state, state2)
 
