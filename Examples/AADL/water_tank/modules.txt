@@ -1,15 +1,17 @@
 %type: module
 
 module water_tank():
-output h, v;
+output h, v, lb, ub;
 begin
-# Qmax := 0.007; g := 9.8; pi := 3.14; r := 0.0254; u:= 1; h := 31; v := 1;
-Qmax := 2; g := 9.8; pi := 3.14; r := 0.18; u:= 1; h := 4.5; v := 1;
-(<h_dot = v*Qmax-pi*r*r*sqrt(2*g*d)*u&true>|>[](wl!h --> vc?v))**
+# Qmax := 0.007;r := 0.0254; h := 31; lb := 30; ub := 60;
+Qmax := 2; r := 0.18; h := 4.5; lb := 4; ub := 6;
+g := 9.8; pi := 3.14;
+u:= 1; v := 1;
+(<h_dot = v*Qmax-pi*r*r*sqrt(2*g*h)*u&true>|>[](wl!h --> skip, vc?v --> skip))**
 end
 endmodule
 
-module ACT_periodic(tid, period):
+module DIS_periodic(tid, period):
 begin
 (t := 0; dis[tid]!; <t_dot = 1 & t < period>|>[](complete_exec[tid]? --> complete_comp[tid]?); <t_dot = 1 & t < period>)**
 end
@@ -19,7 +21,7 @@ module set_valve():
 output h, v, prior;
 begin
 # lb := 30; ub := 60; v := 1;
-lb := 4.1; ub := 5.9; v := 1;
+lb := 4; ub := 6; v := 1;
 state := "wait"; prior := 2;
 (
 if state == "wait" then
@@ -45,7 +47,7 @@ else
         <t_dot = 1, c_dot = 1 & c < 0.025 && t < 0.03> |> []
           (
           preempt[0]["set_valve"]? --> state := "ready",
-          complete_exec["set_valve"]! --> cop!v; complete_comp["set_valve"]!; <t_dot = 1, c_dot = 1 & c < 0.025>; free[0]["set_valve"]!; state := "wait"
+          complete_exec["set_valve"]! --> cop!v; complete_comp["set_valve"]!; <t_dot = 1, c_dot = 1 & c < 0.025>; (free[0]["set_valve"]! --> state := "wait" $ preempt[0]["set_valve"]? --> exit[0]["set_valve"]!; state := "wait")
           );
         state == "running" ->
             (
@@ -87,7 +89,7 @@ else
         <t_dot = 1, c_dot = 1 & c < 0.025 && t < 0.03> |> []
           (
           preempt[0]["get_waterlevel"]? --> state := "ready",
-          complete_exec["get_waterlevel"]! --> rop!h; complete_comp["get_waterlevel"]!; <t_dot = 1, c_dot = 1 & c < 0.025>; free[0]["get_waterlevel"]!; state := "wait"
+          complete_exec["get_waterlevel"]! --> rop!h; complete_comp["get_waterlevel"]!; <t_dot = 1, c_dot = 1 & c < 0.025>; (free[0]["get_waterlevel"]! --> state := "wait" $ preempt[0]["get_waterlevel"]? --> exit[0]["get_waterlevel"]!; state := "wait")
           );
         state == "running" ->
             (
