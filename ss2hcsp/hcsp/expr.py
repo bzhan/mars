@@ -185,7 +185,7 @@ class OpExpr(AExpr):
             return 80
         elif self.op == '^':
             return 85
-        elif self.op == '*' or self.op == '/':
+        elif self.op == '*' or self.op == '/' or self.op == '%':
             return 70
         else:
             return 65
