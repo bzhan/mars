@@ -61,7 +61,7 @@ class MatlabTest(unittest.TestCase):
         test_data = [
             ("after(5, sec)", "TemporalEvent('after',AConst(5),AbsoluteTimeEvent('sec'))"),
             ("before(3, tick)", "TemporalEvent('before',AConst(3),ImplicitEvent('tick'))"),
-            ("at(m+3, E)", "TemporalEvent('at',OpExpr('+',Var('m'),AConst(3)),BroadcastEvent('E'))"),
+            ("at(m+3, E)", "TemporalEvent('at',OpExpr('+',Var(m),AConst(3)),BroadcastEvent('E'))"),
             ("every(f(2), E)", "TemporalEvent('every',FunExpr('f',AConst(2)),BroadcastEvent('E'))"),
         ]
 
@@ -87,11 +87,11 @@ class MatlabTest(unittest.TestCase):
 
     def testConvertExpression(self):
         test_data = [
-            ("a + b", "a+b"),
-            ("a * b", "a*b"),
-            ("-a * b", "-a*b"),
-            ("-(a + b)", "-(a+b)"),
-            ("a % 2", "a%2"),
+            ("a + b", "a + b"),
+            ("a * b", "a * b"),
+            ("-a * b", "-(a * b)"),
+            ("-(a + b)", "-(a + b)"),
+            ("a % 2", "a % 2"),
             ("min(a,b)", "min(a,b)"),
             ("rand()", "uniform(0,1)"),
         ]
@@ -118,7 +118,7 @@ class MatlabTest(unittest.TestCase):
             ("x = 0", "x := 0"),
             ("fprintf(\"abc\")", "log(\"abc\")"),
             ("z = min(x,y)", "z := min(x,y)"),
-            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x+1 else x := x-1 endif"),
+            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x + 1 else x := x - 1 endif"),
             ("x = 1; y = 1", "x := 1; y := 1"),
             ("a(1) = b(1)", "a[0] := b[0]"),
             ("a(1) = f(1)", "a[0] := f(1)"),
@@ -155,7 +155,7 @@ class MatlabTest(unittest.TestCase):
     def testConvertFunctionCall(self):
         s = "x = 0; f()"
         procedures = {'f': parser.function_parser.parse("function f\n  x = x + 1;")}
-        res = "x := 0; x := x+1"
+        res = "x := 0; x := x + 1"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, procedures=procedures)

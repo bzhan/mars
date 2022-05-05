@@ -378,7 +378,7 @@ class Assign(Command):
         self.expr = expr
 
     def __str__(self):
-        return "%s := %s" % (self.lname, self.expr)
+        return "%s = %s" % (self.lname, self.expr)
 
     def __repr__(self):
         return "Assign(%s,%s)" % (repr(self.lname), repr(self.expr))
@@ -769,8 +769,8 @@ class TransitionLabel:
     def __str__(self):
         event_str = str(self.event) if self.event else ""
         cond_str = '[' + str(self.cond) + ']' if self.cond else ""
-        cond_act_str = '{' + str(self.cond_act) + '}' if self.cond_act else ""
-        tran_act_str = '/{' + str(self.tran_act) + '}' if self.tran_act else ""
+        cond_act_str = '{' + str(self.cond_act) + '}' if self.cond_act != Skip() else ""
+        tran_act_str = '/{' + str(self.tran_act) + '}' if self.tran_act != Skip() else ""
         return event_str + cond_str + cond_act_str + tran_act_str
 
     def __repr__(self):
