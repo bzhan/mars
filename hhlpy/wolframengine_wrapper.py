@@ -15,7 +15,7 @@ session = WolframLanguageSession(path)
 def toWLexpr(e):
     """Convert a hcsp expression to WolframLanguage expression"""
     if isinstance(e, expr.AVar):
-        return WLSymbol(e.name)
+        return WLSymbol("Global`" + e.name)
     elif isinstance(e, expr.AConst):
         if isinstance(e.value, int):
             return e.value
@@ -25,7 +25,7 @@ def toWLexpr(e):
             print(e, type(e))
             raise NotImplementedError
     elif isinstance(e, expr.FunExpr):
-        return WLFunction(WLSymbol(e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
+        return WLFunction(WLSymbol("Global`" + e.fun_name), *(toWLexpr(expr) for expr in e.exprs))
     elif isinstance(e, expr.BConst):
         if e.value is True:
             return True
