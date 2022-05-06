@@ -25,7 +25,7 @@ public
 			img: in data port;
 			proc_img: out data port;
 		properties
-			dispatch_protocol => periodic;
+			dispatch_protocol => (periodic);
 			period => 45ms;
 			deadline => 45ms;
 			compute_execution_time => 10ms;
@@ -43,7 +43,7 @@ public
 			obs_pos_radar: in data port;
 			obs_pos: out data port;
 		properties
-			dispatch_protocol => periodic;
+			dispatch_protocol => (periodic);
 			period => 97ms;
 			deadline => 97ms;
 			compute_execution_time => 20ms;
@@ -144,7 +144,7 @@ public
 			event: in event port;
 			des_v: out data port;
 		properties
-			dispatch_protocol => aperiodic;
+			dispatch_protocol => (aperiodic);
 			compute_execution_time => 10ms..10ms;
 			deadline => 100ms;
 	end pan_ctr_th;
