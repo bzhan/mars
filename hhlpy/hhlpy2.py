@@ -260,19 +260,26 @@ class CmdVerifier:
         self.infos = dict()
 
         # Set of function names that are used
-        funs = hp.get_funs().union(pre.get_funs(), post.get_funs())
+        fun_names = hp.get_fun_names().union(pre.get_fun_names(), post.get_fun_names())
 
         # Set of var_names that are used, the names of AVar expression 
-        vars = hp.get_vars().union(pre.get_vars(), post.get_vars())
+        var_names = hp.get_vars().union(pre.get_vars(), post.get_vars())
 
-        # Set of funtion names and varnames that are used
-        self.names = funs.union(vars)
-
-        # Set of constants that are appointed
-        self.constants = constants
+        # Set of names(function names and var_names) that are used
+        self.names = fun_names.union(var_names)
 
         # Set of program variables that are used
-        self.variables = vars - self.constants
+        self.variable_names = set()
+        self.compute_variable_set()
+
+        # Set of functions with zero arity that are used, which can be treated as constants
+        zero_arity_funcs = hp.get_zero_arity_funcs().union(pre.get_zero_arity_funcs(), post.get_zero_arity_funcs())
+
+        # Set of constants that are appointed
+        if constants:
+            self.constant_names = constants
+        else:
+            self.constant_names = zero_arity_funcs.union(var_names - self.variable_names)
 
         # Initialize info for the root object. Place pre-condition and post-condition.
         # pos is a pair of two tuples. 
@@ -289,9 +296,9 @@ class CmdVerifier:
         # Add this kind of pre-conditions into assumptions in HCSPs.
 
         # There are constants in pre.
-        if not self.constants.isdisjoint(pre.get_vars().union(pre.get_funs())):
+        if not self.constant_names.isdisjoint(pre.get_vars().union(pre.get_zero_arity_funcs())):
             if isinstance(pre, expr.RelExpr):
-                if pre.get_vars().isdisjoint(self.variables):
+                if pre.get_vars().isdisjoint(self.variable_names):
                     self.infos[root_pos].assume.append(pre)
 
             elif isinstance(pre, expr.LogicExpr):
@@ -300,7 +307,7 @@ class CmdVerifier:
                     pre_list = expr.split_conj(pre)
                     for sub_pre in pre_list:
                         # No variables in sub_pre.
-                        if sub_pre.get_vars().isdisjoint(self.variables):
+                        if sub_pre.get_vars().isdisjoint(self.variable_names):
                             self.infos[root_pos].assume.append(sub_pre)
                 else:
                     raise NotImplementedError
@@ -353,6 +360,53 @@ class CmdVerifier:
 
         return result
 
+    def compute_variable_set(self, pos=tuple()):
+        """Compute variable name set for hcsp program, in which names can be changed by Assign, RandomAssign and ODE"""
+        cur_hp = get_pos(self.hp, pos)
+
+        if isinstance(cur_hp, hcsp.Skip):
+            pass
+
+        elif isinstance(cur_hp, hcsp.Assign):
+            if not isinstance(cur_hp.var_name, expr.AVar):
+                raise NotImplementedError
+            self.variable_names.add(cur_hp.var_name.name)
+
+        elif isinstance(cur_hp, hcsp.RandomAssign):
+            if not isinstance(cur_hp.var_name, expr.AVar):
+                raise NotImplementedError
+            self.variable_names.add(cur_hp.var_name.name)
+
+        elif isinstance(cur_hp, hcsp.IChoice):
+            pos0 = pos + (0,)
+            pos1 = pos + (1,)
+
+            self.compute_variable_set(pos=pos0)
+            self.compute_variable_set(pos=pos1)
+
+        elif isinstance(cur_hp, hcsp.Sequence):
+            for i in range(len(cur_hp.hps)):
+                sub_pos = pos + (i,)
+                self.compute_variable_set(pos=sub_pos)
+
+        elif isinstance(cur_hp, hcsp.Loop):
+            sub_pos = pos + (0,)
+            self.compute_variable_set(pos=sub_pos)
+
+        elif isinstance(cur_hp, hcsp.ODE):
+            for name, _ in cur_hp.eqs:
+                self.variable_names.add(name)
+
+        elif isinstance(cur_hp, hcsp.Condition):
+            sub_pos = pos + (0,)
+            self.compute_variable_set(sub_pos)
+
+        elif isinstance(cur_hp, hcsp.ITE):
+            for i in range(len(cur_hp.if_hps) + 1):
+                sub_pos = pos + (i,)
+                self.compute_variable_set(sub_pos)
+
+
     def compute_wp(self, *, pos=((),())):
         """Compute weakest-preconditions using the given information."""
 
@@ -374,7 +428,7 @@ class CmdVerifier:
             # post-condition.
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
-            if cur_hp.var_name in self.constants:
+            if cur_hp.var_name.name in self.constant_names:
                 raise NotImplementedError("Constants can not be assigned")
 
             var = cur_hp.var_name.name
@@ -386,7 +440,7 @@ class CmdVerifier:
             # {(v >= e)[v0/v] --> P[v0/v]} v := {v >= e} {P}
             if not isinstance(cur_hp.var_name, expr.AVar):
                 raise NotImplementedError
-            if cur_hp.var_name in self.constants:
+            if cur_hp.var_name.name in self.constant_names:
                 raise NotImplementedError("Constants can not be assigned")
 
             var_str = cur_hp.var_name.name
@@ -482,7 +536,7 @@ class CmdVerifier:
             if cur_hp.out_hp != hcsp.Skip():
                 raise NotImplementedError
             for name, _ in cur_hp.eqs:
-                if name in self.constants:
+                if name in self.constant_names:
                     raise NotImplementedError("Constants cannot be changed in ODEs!")
 
             if not constraint_examination(constraint):
@@ -878,13 +932,13 @@ class CmdVerifier:
                         g = expr.OpExpr('/', e_lie_deriv, e)
                         g = self.simplify_expression(g)
 
-                        assert self.is_polynomial(g, self.constants) is True
+                        assert self.is_polynomial(g, self.constant_names) is True
                         self.infos[pos].dbx_cofactor = g
 
                     # Case when cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
-                        assert self.is_polynomial(g, self.constants) is True
+                        assert self.is_polynomial(g, self.constant_names) is True
 
                         # Boundary of D --> e_lie_deriv == g * e
                         vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
@@ -917,7 +971,7 @@ class CmdVerifier:
                     # Cases when the cofactor g is offered by the user.
                     else:
                         g = self.infos[pos].dbx_cofactor
-                        assert self.is_polynomial(g, self.constants) is True
+                        assert self.is_polynomial(g, self.constant_names) is True
                         
                         # denomi_not_zero = expr.imp(expr.list_conj(*self.infos[pos].assume),
                         #                 demoninator_not_zero(g))

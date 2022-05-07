@@ -57,7 +57,19 @@ def runVerify(self, *, pre, hp, post, constants=set(),
             self.assertEqual(set(vcs), set(actual_vcs), "\nActual: {}".format([str(vc) for vc in actual_vcs]))
 
 
-class HHLPyTest(unittest.TestCase):
+class BasicHHLPyTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            session.start()
+        except Exception as e:
+            session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        session.terminate()
+
     def testVerify1(self):
         # Baisc benchmark, problem 1 
         # {x >= 0} x := x + 1 {x >= 1}
@@ -379,8 +391,8 @@ class HHLPyTest(unittest.TestCase):
         # {0 == -x - z}
         runVerify(self, pre="x + z == 0", 
                   hp="t := 0; <x_dot = (A * x^2 + B() * x), z_dot = A * z * x + B() * z, t_dot = 1 & t < 10> invariant [x + z == 0] {dbx}",
-                  post="0 == -x - z",
-                  constants={"B()"})
+                  post="0 == -x - z",)
+                #   constants={"B()"})
 
     # TODO: Benchmark, problem 30, 32 are hard to translate into hcsp programs.
 
@@ -492,7 +504,8 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="v >= 0 && A > 0", 
                   hp="<x_dot = v, v_dot = A & x < 10> \
                       invariant [A > 0] [v >= 0]",
-                  post="v >= 0", constants={'A'})
+                  post="v >= 0", )
+                #   constants={'A'})
 
     def testVerify50(self):
         # Basic bencnmark, problem 41
@@ -506,8 +519,8 @@ class HHLPyTest(unittest.TestCase):
         runVerify(self, pre="v >= 0 && A > 0 && B > 0",
                   hp="(a := A ++ a := 0 ++ a := -B; <x_dot = v, v_dot = a & v > 0> invariant [true])**\
                       invariant [v >= 0]",
-                  post="v >= 0",
-                  constants={'A', 'B'})
+                  post="v >= 0",)
+                #   constants={'A', 'B'})
 
     def testVerify51(self):
         # ITE
@@ -544,8 +557,8 @@ class HHLPyTest(unittest.TestCase):
                        endif \
                       )** \
                       invariant [v >= 0] [x+v^2/(2*B) <= S]",
-                  post="x <= S",
-                  constants={'A', 'B', 'S'})
+                  post="x <= S",)
+                #   constants={'A', 'B', 'S'})
 
     def testVerify53(self):
         # Basic benchmark, problem 43
@@ -566,8 +579,8 @@ class HHLPyTest(unittest.TestCase):
                           invariant [true] \
                       )** \
                       invariant [v <= V]",
-                  post="v <= V",
-                  constants={'A', 'V'})
+                  post="v <= V",)
+                #   constants={'A', 'V'})
 
     def testVerify54(self):
         # Basic benchmark, problem 44
@@ -585,9 +598,8 @@ class HHLPyTest(unittest.TestCase):
                       invariant [true] \
                        )**\
                        invariant [v <= V]",
-                  post="v <= V",
-                  constants={'A', 'V'},
-        )
+                  post="v <= V",)
+                #   constants={'A', 'V'})
 
     def testVerify55(self):
         # Basic benchmark, problem 45
@@ -614,20 +626,6 @@ class HHLPyTest(unittest.TestCase):
                   post="v <= V",
                   constants={'A', 'V'}
                 ) 
-
-
-class WLHHLPyTest(unittest.TestCase):
-    
-    @classmethod
-    def setUpClass(cls):
-        try:
-            session.start()
-        except Exception as e:
-            session.start()
-
-    @classmethod
-    def tearDownClass(cls):
-        session.terminate()
 
     def testVerify36_1(self):
         # Benchmark, problem 29
@@ -665,7 +663,7 @@ class WLHHLPyTest(unittest.TestCase):
                      )** \
                      invariant [v >= 0] [x+v^2/(2*B) <= S]",
                   post="x <= S",
-                  constants={'A', 'B', 'S', 'ep'},
+                #   constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
 
     def testVerify56_1(self):
@@ -737,7 +735,7 @@ class WLHHLPyTest(unittest.TestCase):
                       )** \
                       invariant [v >= 0] [x+v^2/(2*b) <= S]",
                   post="x <= S",
-                  constants={'A', 'B', 'b', 'S', 'ep'},
+                #   constants={'A', 'B', 'b', 'S', 'ep'},
                   andR_rule={((), ()): "true"},
                   wolfram_engine=True
         )
@@ -756,7 +754,7 @@ class WLHHLPyTest(unittest.TestCase):
                       <x1_dot = v, v_dot = -Kp()*(x1-xr()) - Kd()*v, t_dot = 1 & t < 10> \
                       invariant [5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()]",
                   post="5/4*(x1-xr())^2 + (x1-xr())*v/2 + v^2/4 < c()",
-                  constants={'Kp()', 'Kd()', 'xr()', 'c()'}
+                #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
     def testVerify60(self):
@@ -976,6 +974,20 @@ class WLHHLPyTest(unittest.TestCase):
     
     # TODO: Basic benchmark, problem 56 - 60, cannot be written into hcsp program.
 
+
+class NonlinearHHLPyTest(unittest.TestCase):
+    
+    @classmethod
+    def setUpClass(cls):
+        try:
+            session.start()
+        except Exception as e:
+            session.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        session.terminate()
+  
     def testNonlinear1(self):
         # Nonlinear benchmark, problem 1
         #  {0.5 <= x && x <= 0.7 && 0 <= y && y <= 0.3}

@@ -82,7 +82,10 @@ class HCSP:
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def get_chs(self):
@@ -342,8 +345,11 @@ class Assign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
-    def get_funs(self):
-        return set().union(self.expr.get_funs())
+    def get_fun_names(self):
+        return set().union(self.expr.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return set().union(self.expr.get_zero_arity_funcs())
 
     def sc_str(self):
         return re.sub(pattern=":=", repl="=", string=str(self))
@@ -409,8 +415,11 @@ class RandomAssign(HCSP):
             var_set = set(str(n) for n in self.var_name)
         return var_set.union(self.expr.get_vars())
 
-    def get_funs(self):
-        return set.union(self.expr.get_funs())
+    def get_fun_names(self):
+        return set.union(self.expr.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return set.union(self.expr.get_zero_arity_funcs())
 
     def priority(self):
         return 100
@@ -450,10 +459,16 @@ class Assert(HCSP):
             var_set.update(msg.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.bexpr.get_funs()
+    def get_fun_names(self):
+        fun_set = self.bexpr.get_fun_names()
         for msg in self.msgs:
-            fun_set.update(msg.get_funs())
+            fun_set.update(msg.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.bexpr.get_zero_arity_funcs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_zero_arity_funcs())
         return fun_set
 
 
@@ -492,10 +507,16 @@ class Test(HCSP):
             var_set.update(msg.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.bexpr.get_funs()
+    def get_fun_names(self):
+        fun_set = self.bexpr.get_fun_names()
         for msg in self.msgs:
-            fun_set.update(msg.get_funs())
+            fun_set.update(msg.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.bexpr.get_zero_arity_funcs()
+        for msg in self.msgs:
+            fun_set.update(msg.get_zero_arity_funcs())
         return fun_set
 
 
@@ -537,10 +558,16 @@ class Log(HCSP):
             var_set.update(expr.get_vars())
         return var_set
 
-    def get_funs(self):
-        fun_set = self.pattern.get_funs()
+    def get_fun_names(self):
+        fun_set = self.pattern.get_fun_names()
         for expr in self.exprs:
-            fun_set.update(expr.get_funs())
+            fun_set.update(expr.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = self.pattern.get_zero_arity_funcs()
+        for expr in self.exprs:
+            fun_set.update(expr.get_zero_arity_funcs())
         return fun_set
     
 class InputChannel(HCSP):
@@ -581,7 +608,10 @@ class InputChannel(HCSP):
             return {str(self.var_name)}
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def get_chs(self):
@@ -646,9 +676,14 @@ class OutputChannel(HCSP):
             return self.expr.get_vars()
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
         if self.expr:
-            return self.expr.get_funs()
+            return self.expr.get_fun_names()
+        return set()
+
+    def get_zero_arity_funcs(self):
+        if self.expr:
+            return self.expr.get_zero_arity_funcs()
         return set()
 
     def get_chs(self):
@@ -725,10 +760,16 @@ class Sequence(HCSP):
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for hp in self.hps:
-            fun_set.update(hp.get_funs())
+            fun_set.update(hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -778,9 +819,11 @@ class IChoice(HCSP):
     def get_vars(self):
         return self.hp1.get_vars().union(self.hp2.get_vars())
 
-    def get_funs(self):
-        return self.hp1.get_funs().union(self.hp2.get_funs())
+    def get_fun_names(self):
+        return self.hp1.get_fun_names().union(self.hp2.get_fun_names())
 
+    def get_zero_arity_funcs(self):
+        return self.hp1.get_zero_arity_funcs().union(self.hp2.get_zero_arity_funcs())
 
 class ODE(HCSP):
     """Represents an ODE program of the form
@@ -837,12 +880,20 @@ class ODE(HCSP):
         var_set.update(self.out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, expression in self.eqs:
-            fun_set.update(expression.get_funs())
-        fun_set.update(self.constraint.get_funs())
-        fun_set.update(self.out_hp.get_funs())
+            fun_set.update(expression.get_fun_names())
+        fun_set.update(self.constraint.get_fun_names())
+        fun_set.update(self.out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_zero_arity_funcs())
+        fun_set.update(self.constraint.get_zero_arity_funcs())
+        fun_set.update(self.out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -918,14 +969,24 @@ class ODE_Comm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, expression in self.eqs:
-            fun_set.update(expression.get_funs())
-        fun_set.update(self.constraint.get_funs())
+            fun_set.update(expression.get_fun_names())
+        fun_set.update(self.constraint.get_fun_names())
         for ch, out_hp in self.io_comms:
-            fun_set.update(ch.get_funs())
-            fun_set.update(out_hp.get_funs())
+            fun_set.update(ch.get_fun_names())
+            fun_set.update(out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, expression in self.eqs:
+            fun_set.update(expression.get_zero_arity_funcs())
+        fun_set.update(self.constraint.get_zero_arity_funcs())
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_zero_arity_funcs())
+            fun_set.update(out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -979,8 +1040,11 @@ class Loop(HCSP):
     def get_vars(self):
         return self.hp.get_vars()
 
-    def get_funs(self):
-        return self.hp.get_funs()
+    def get_fun_names(self):
+        return self.hp.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.hp.get_zero_arity_funcs()
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -1021,8 +1085,11 @@ class Condition(HCSP):
     def get_vars(self):
         return self.cond.get_vars().union(self.hp.get_vars())
 
-    def get_funs(self):
-        return self.cond.get_funs().union(self.hp.get_funs())
+    def get_fun_names(self):
+        return self.cond.get_fun_names().union(self.hp.get_fun_names())
+    
+    def get_zero_arity_funcs(self):
+        return self.cond.get_zero_arity_funcs().union(self.hp.get_zero_arity_funcs())
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -1070,11 +1137,18 @@ class Parallel(HCSP):
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for hp in self.hps:
-            fun_set.update(hp.get_vars())
+            fun_set.update(hp.get_fun_names())
         return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
+        return fun_set
+
 
     def get_chs(self):
         ch_set = set()
@@ -1126,11 +1200,18 @@ class SelectComm(HCSP):
             var_set.update(out_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for ch, out_hp in self.io_comms:
-            fun_set.update(ch.get_funs())
-            fun_set.update(out_hp.get_funs())
+            fun_set.update(ch.get_fun_names())
+            fun_set.update(out_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for ch, out_hp in self.io_comms:
+            fun_set.update(ch.get_zero_arity_funcs())
+            fun_set.update(out_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -1165,8 +1246,11 @@ class Recursion(HCSP):
     def get_vars(self):
         return self.hp.get_vars()
 
-    def get_funs(self):
-        return self.hp.get_funs()
+    def get_fun_names(self):
+        return self.hp.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.hp.get_zero_arity_funcs()
 
     def get_chs(self):
         return self.hp.get_chs()
@@ -1225,12 +1309,20 @@ class ITE(HCSP):
         var_set.update(self.else_hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for cond, hp in self.if_hps:
-            fun_set.update(cond.get_funs())
-            fun_set.update(hp.get_funs())
-        fun_set.update(self.else_hp.get_funs())
+            fun_set.update(cond.get_fun_names())
+            fun_set.update(hp.get_fun_names())
+        fun_set.update(self.else_hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for cond, hp in self.if_hps:
+            fun_set.update(cond.get_zero_arity_funcs())
+            fun_set.update(hp.get_zero_arity_funcs())
+        fun_set.update(self.else_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
@@ -1570,10 +1662,16 @@ class HCSPProcess:
             var_set.update(hp.get_vars())
         return var_set
 
-    def get_funs(self):
+    def get_fun_names(self):
         fun_set = set()
         for _, hp in self.hps:
-            fun_set.update(hp.get_funs())
+            fun_set.update(hp.get_fun_names())
+        return fun_set
+
+    def get_zero_arity_funcs(self):
+        fun_set = set()
+        for _, hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
