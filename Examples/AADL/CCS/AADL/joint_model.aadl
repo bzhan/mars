@@ -24,8 +24,7 @@ public
 			velo_ctr: process software::velo_ctr.imp;
 			pan_ctr: process software::pan_ctr.imp;
 			-- cpus
-			cpu0: processor platform::cpu0;
-			cpu1: processor platform::cpu1;
+			cpu: processor platform::cpu;
 			--buses
 			bus00: bus platform::bus0.imp0;
 			bus01: bus platform::bus0.imp1;
