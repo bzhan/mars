@@ -133,7 +133,7 @@ def eval_expr(expr, state):
             if len(a) == 0:
                 raise SimulatorException('When evaluating %s: argument is empty' % expr)
             return a[1:]
-        elif expr.fun_name == "del_proc":
+        elif expr.fun_name == "del0":
             a, b = args
             assert isinstance(a, list)
             assert isinstance(b, str)
@@ -196,22 +196,22 @@ def eval_expr(expr, state):
         elif expr.fun_name == "zeros":
             if len(args) == 3:
                 return np.zeros((args[0],args[1],args[2]),dtype=int).tolist()
-        elif expr.fun_name == "protected_curve":
-            # assert len(args) == 4
-            # obs_pos, veh_pos, max_v, min_a = args
-            a, = args
-            assert len(a) == 4
-            obs_pos, veh_pos, max_v, min_a = a
-            if obs_pos <= 0:
-                return max_v
-            assert min_a < 0
-            distance = obs_pos - veh_pos
-            if distance > max_v * max_v / (-2 * min_a):
-                return max_v
-            elif distance >= 0:
-                return math.sqrt(-2 * min_a * distance)
-            else:
-                return 0
+        # elif expr.fun_name == "protected_curve":
+        #     # assert len(args) == 4
+        #     # obs_pos, veh_pos, max_v, min_a = args
+        #     a, = args
+        #     assert len(a) == 4
+        #     obs_pos, veh_pos, max_v, min_a = a
+        #     if obs_pos <= 0:
+        #         return max_v
+        #     assert min_a < 0
+        #     distance = obs_pos - veh_pos
+        #     if distance > max_v * max_v / (-2 * min_a):
+        #         return max_v
+        #     elif distance >= 0:
+        #         return math.sqrt(-2 * min_a * distance)
+        #     else:
+        #         return 0
         else:
             raise SimulatorException("When evaluating %s: unrecognized function" % expr)
 

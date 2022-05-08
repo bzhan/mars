@@ -59,8 +59,12 @@ class AExpr:
         """Returns set of variables in the expression."""
         raise NotImplementedError
 
-    def get_funs(self):
+    def get_fun_names(self):
         """Return set of function names in the expression"""
+        return NotImplementedError
+
+    def get_zero_arity_funcs(self):
+        """Return set of functions with zero arity in the expression"""
         return NotImplementedError
 
     def subst(self, inst):
@@ -93,7 +97,10 @@ class AVar(AExpr):
     def get_vars(self):
         return {self.name}
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -130,7 +137,10 @@ class AConst(AExpr):
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -193,8 +203,11 @@ class OpExpr(AExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        return set().union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        return set().union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return OpExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
@@ -248,9 +261,14 @@ class FunExpr(AExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        fun_names = {str(self.fun_name)+'('+')', str(self.fun_name)}
-        return fun_names.union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        func_names = set((self.fun_name,))
+        return func_names.union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        if len(self.exprs) == 0:
+            zero_arity_funcs = set((self.fun_name + '(' + ')',))
+        return zero_arity_funcs.union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return FunExpr(self.fun_name, [expr.subst(inst) for expr in self.exprs])
@@ -285,8 +303,11 @@ class IfExpr(AExpr):
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in [self.cond, self.expr1, self.expr2]))
 
-    def get_funs(self):
-        return set().union(*(arg.get_funs() for arg in [self.cond, self.expr1, self.expr2]))
+    def get_fun_names(self):
+        return set().union(*(arg.get_fun_names() for arg in [self.cond, self.expr1, self.expr2]))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(arg.get_zero_arity_funcs() for arg in [self.cond, self.expr1, self.expr2]))
     
     def subst(self, inst):
         return IfExpr(self.cond.subst(inst), self.expr1.subst(inst), self.expr2.subst(inst))
@@ -320,8 +341,11 @@ class ListExpr(AExpr):
     def get_vars(self):
         return set().union(*(arg.get_vars() for arg in self.args))
 
-    def get_funs(self):
-        return set().union(*(arg.get_funs() for arg in self.args))
+    def get_fun_names(self):
+        return set().union(*(arg.get_fun_names() for arg in self.args))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(arg.get_zero_arity_funcs() for arg in self.args))
 
     def subst(self, inst):
         return ListExpr(*(expr.subst(inst) for expr in self.args))
@@ -357,8 +381,11 @@ class DictExpr(AExpr):
     def get_vars(self):
         return set().union(*(v.get_vars() for k, v in self.dict.items()))
 
-    def get_funs(self):
-        return set().union(*(v.get_funs() for k, v in self.dict.items()))
+    def get_fun_names(self):
+        return set().union(*(v.get_fun_names() for k, v in self.dict.items()))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(v.get_zero_arity_funcs() for k, v in self.dict.items()))
 
     def subst(self, inst):
         return DictExpr(*((k, v.subst(inst)) for k, v in self.dict.items()))
@@ -406,8 +433,11 @@ class ArrayIdxExpr(AExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
-    def get_funs(self):
-        return self.expr1.get_funs().union(self.expr2.get_funs())
+    def get_fun_names(self):
+        return self.expr1.get_fun_names().union(self.expr2.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return self.expr1.get_zero_arity_funcs().union(self.expr2.get_zero_arity_funcs())
 
     def subst(self, inst):
         return ArrayIdxExpr(expr1=self.expr1.subst(inst), expr2=self.expr2.subst(inst))
@@ -444,8 +474,11 @@ class FieldNameExpr(AExpr):
     def get_vars(self):
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
 
     def subst(self, inst):
         return FieldNameExpr(expr=self.expr.subst(inst), field=self.field)
@@ -462,7 +495,10 @@ class BExpr:
     def get_vars(self):
         raise NotImplementedError
 
-    def get_funs(self):
+    def get_fun_names(self):
+        raise NotImplementedError
+
+    def get_zero_arity_funcs(self):
         raise NotImplementedError   
 
     def subst(self, inst):
@@ -494,7 +530,10 @@ class BConst(BExpr):  # Boolean expression
     def get_vars(self):
         return set()
 
-    def get_funs(self):
+    def get_fun_names(self):
+        return set()
+
+    def get_zero_arity_funcs(self):
         return set()
 
     def subst(self, inst):
@@ -560,8 +599,11 @@ class LogicExpr(BExpr):
     def get_vars(self):
         return set().union(*(expr.get_vars() for expr in self.exprs))
 
-    def get_funs(self):
-        return set().union(*(expr.get_funs() for expr in self.exprs))
+    def get_fun_names(self):
+        return set().union(*(expr.get_fun_names() for expr in self.exprs))
+
+    def get_zero_arity_funcs(self):
+        return set().union(*(expr.get_zero_arity_funcs() for expr in self.exprs))
 
     def subst(self, inst):
         return LogicExpr(self.op, *(expr.subst(inst) for expr in self.exprs))
@@ -667,8 +709,11 @@ class RelExpr(BExpr):
     def get_vars(self):
         return self.expr1.get_vars().union(self.expr2.get_vars())
 
-    def get_funs(self):
-        return self.expr1.get_funs().union(self.expr2.get_funs())
+    def get_fun_names(self):
+        return self.expr1.get_fun_names().union(self.expr2.get_fun_names())
+
+    def get_zero_arity_funcs(self):
+        return self.expr1.get_zero_arity_funcs().union(self.expr2.get_zero_arity_funcs())
 
     def subst(self, inst):
         return RelExpr(self.op, self.expr1.subst(inst), self.expr2.subst(inst))
@@ -713,8 +758,11 @@ class ExistsExpr(BExpr):
         # Currently also include the bound variable.
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
 
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
@@ -761,8 +809,11 @@ class ForAllExpr(BExpr):
         # Currently also include the bound variable.
         return self.expr.get_vars()
 
-    def get_funs(self):
-        return self.expr.get_funs()
+    def get_fun_names(self):
+        return self.expr.get_fun_names()
+    
+    def get_zero_arity_funcs(self):
+        return self.expr.get_zero_arity_funcs()
     
     def subst(self, inst):
         # Currently assume the bound variable cannot be substituded.
