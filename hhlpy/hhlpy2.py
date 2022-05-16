@@ -571,6 +571,8 @@ class CmdVerifier:
                     subposts.append(subpost)
 
                 # Apply differential weakening (dW)
+
+                # Elements in subposts are invariants, so if post == subposts[-1], post is an invariant of ODE. In this case, we don't need dW rule to prove.
                 if post != subposts[-1]:
 
                     # dW Rule (always applied automatically)
@@ -766,11 +768,6 @@ class CmdVerifier:
             elif self.infos[pos].ghost_inv is not None:
                 ghost_inv = self.infos[pos].ghost_inv
 
-                # By default, dG_inv is post.
-                if self.infos[pos].dG_inv is None:
-                    self.infos[pos].dG_inv = post
-                dG_inv = self.infos[pos].dG_inv
-
                 if not self.infos[pos].ghost_var:
                     ghost_vars = [v for v in ghost_inv.get_vars() if v not in self.names]
                     if len(ghost_vars) != 1:
@@ -784,9 +781,12 @@ class CmdVerifier:
                     for name, deriv in cur_hp.eqs:
                         self.infos[pos].eqs_dict[name] = deriv
 
-                # The first condition is: dG_inv implies there exists a value of ghost_var
-                # that satisfies ghost_inv.
-                vc1 = expr.imp(dG_inv, expr.ExistsExpr(ghost_var, ghost_inv))
+                # I <--> EX y. G
+                # I represents dG_inv, y represents ghost, G represents ghost_inv.
+                # So if dG_inv is not offered, we can compute it from ghost and ghost_inv.
+                if self.infos[pos].dG_inv is None:
+                    self.infos[pos].dG_inv = expr.ExistsExpr(ghost_var, ghost_inv)
+                dG_inv = self.infos[pos].dG_inv
 
                 # Second condition: 
                 # If the differential equation satisfied by the ghost variable is offered, verify its soundness.
@@ -862,11 +862,6 @@ class CmdVerifier:
                 vc2 = denomi_not_zero
                 if not z3_prove(vc2):
                     raise AssertionError("The denominator in the ghost equations cannot be equal be zero!")
-                        
-                # Third condition
-                vc3 = expr.imp(ghost_inv, dG_inv)
-
-                self.infos[pos].vcs += [vc1, vc3]
 
                 if dG_inv != post:
                     self.infos[pos].vcs.append(expr.imp(dG_inv, post))

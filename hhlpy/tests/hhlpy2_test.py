@@ -132,7 +132,7 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify11(self):
         # {x0 >= 0} x := x+1; x := {x >= 1} {x >= 1}
         runVerify(self, pre="x0 >= 0", hp="x := x+1; x := {x >= 1}", post="x >= 1",
-                  expected_vcs={((), ()): ["x0 >= 0 --> x1 >= 1 --> x1 >= 1"]})
+                  expected_vcs={((), ()): ["x0 >= 0 --> x0 >= 0 --> x1 >= 1 --> x1 >= 1"]})
 
     def testVerify12(self):
         # {x >= 0} x := x+1; y := {y >= x} {y >= 1}
@@ -182,8 +182,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # dG Rule
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1]", post="x > 0",
-                expected_vcs={((1,), ()): ["x * y * y == 1 --> (EX y. x * y * y == 1)",
-                                           "(EX y. x * y * y == 1) && t == 1 --> x > 0"]})
+                expected_vcs={((), ()): ["x > 0 --> (EX y. x * y * y == 1) && (0 >= 1 --> x > 0)"],
+                              ((1,), ()): ["(EX y. x * y * y == 1) && t == 1 --> x > 0"]})
 
     def testVerify17(self):
         # Basic benchmark, problem9
@@ -256,11 +256,16 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify24(self):
         # Basic benchmark, problem17
         # {x > 0 && y > 0} t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> {x > 0}
-        runVerify(self, pre="x > 0 && y > 0", hp="t := 0; <x_dot = -y * x, t_dot = 1 & t < 10> invariant ghost z [x * z * z == 1]", 
+        runVerify(self, pre="x > 0 && y > 0", 
+                  hp="t := 0; \
+                      <x_dot = -y * x, t_dot = 1 & t < 10> \
+                      invariant ghost z [x * z * z == 1]", 
                   post="x > 0",
-                  expected_vcs={((), ()): ["x > 0 && y > 0 --> (EX z. x * z * z == 1) && (0 >= 10 --> x > 0)"],
-                                ((1,), ()): ["(EX z. x * z * z == 1) && t == 10 --> x > 0", 
-                                             "x * z * z == 1 --> (EX z. x * z * z == 1)"]})
+                  expected_vcs={((), ()): ["y > 0 --> x > 0 && y > 0 --> \
+                                           (EX z. x * z * z == 1) && (0 >= 10 --> x > 0)"],
+                                ((1,), ()): ["y > 0 --> (EX z. x * z * z == 1) && t == 10 \
+                                              --> x > 0"]})
+
     def testVerify25(self):
         # Basic benchmark, problem 18
         # {x >= 0} <x_dot = x & x < 10> {x >= 0}
@@ -361,11 +366,11 @@ class BasicHHLPyTest(unittest.TestCase):
                       invariant \
                         [x >= 1]",
                   post="x >= 1 && y >= 0",
-                  expected_vcs={((),()): ["x >= 1 && y == 0 --> x >= 1 && y >= 0", 
+                  expected_vcs={((),()): ["z == -2 --> x >= 1 && y == 0 --> x >= 1 && y >= 0", 
                                           # `y == 0` comes from implicit dW
-                                          "y > 0 --> y >= 0", 
+                                          "z == -2 --> y > 0 --> y >= 0", 
                                           # This is from dI (condition implies differential of invariant)
-                                          "x >= 1 && y == 10 && z == -2 --> x >= 1 && (y <= 0 --> x >= 1 && y >= 0)"]}) 
+                                          "z == -2 --> x >= 1 && y == 10 && z == -2 --> x >= 1 && (y <= 0 --> x >= 1 && y >= 0)"]}) 
                                           # `y <= 0 --> x >= 1 && y >= 0` is the dW precondition
 
     def testVerify35(self):
@@ -672,10 +677,8 @@ class BasicHHLPyTest(unittest.TestCase):
         #   (x := x + a)**
         # {x >= 0 && y >= 0}
         runVerify(self, pre="x >= 1 && y >= 0 && a == 1",
-                  hp="x := x + a",
+                  hp="(x := x + a)** invariant[x >= 0 && y >= 0]",
                   post="x >= 0 && y >= 0",
-                  constants={'a'},
-                  loop_invariants={((), ()): "x >= 0 && y >= 0"},
                   andR_rule={((), ()): "true"})
 
 
@@ -707,7 +710,6 @@ class BasicHHLPyTest(unittest.TestCase):
                   post="x <= S",
                   constants={'A', 'B', 'S', 'ep'},
                   andR_rule={((), ()): "true"},
-                  print_vcs=True,
                   wolfram_engine=True)
 
     def testVerify58(self):
@@ -795,72 +797,71 @@ class BasicHHLPyTest(unittest.TestCase):
                       invariant [v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
                                  5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2]",
                   post="x2 <= S",
-                  constants={'Kp', 'Kd', 'S'},
-                  print_vcs=True)
+                  constants={'Kp', 'Kd', 'S'})
 
     # TODO: Basic benchmark, problem 51. The ODE invariant cannot imply loop invariant.
-    def testVerify61(self):
-        # Basic benchmark, problem 51
-        # TODO: to implement abs, old(v)
-        #         v >= 0 & A > 0 & B >= b & b > 0 & ep > 0 & lw > 0 & y = ly & r != 0 & dx^2 + dy^2 = 1
-        #            & abs(y-ly) + v^2/(2*b) < lw
-        #  -> [
-        #       { {   ?abs(y-ly) + v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v) < lw;
-        #             a :=*; ?-B <= a & a <= A;
-        #             w :=*; r :=*; ?r != 0 & w*r = v;
-        #          ++ ?v=0; a := 0; w := 0;
-        #          ++ a :=*; ?-B <=a & a <= -b;
-        #         }
+    # def testVerify61(self):
+    #     # Basic benchmark, problem 51
+    #     # TODO: to implement abs, old(v)
+    #     #         v >= 0 & A > 0 & B >= b & b > 0 & ep > 0 & lw > 0 & y = ly & r != 0 & dx^2 + dy^2 = 1
+    #     #            & abs(y-ly) + v^2/(2*b) < lw
+    #     #  -> [
+    #     #       { {   ?abs(y-ly) + v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v) < lw;
+    #     #             a :=*; ?-B <= a & a <= A;
+    #     #             w :=*; r :=*; ?r != 0 & w*r = v;
+    #     #          ++ ?v=0; a := 0; w := 0;
+    #     #          ++ a :=*; ?-B <=a & a <= -b;
+    #     #         }
 
-        #         c := 0;
-        #         {
-        #         { x' = v*dx, y' = v*dy, v' = a, dx' = -dy*w, dy' = dx*w, w'=a/r, c' = 1 & v >= 0 & c <= ep }
-        #         @invariant(
-        #           c>=0,
-        #           dx^2+dy^2=1,
-        #           (v'=0 -> v=old(v)),
-        #           (v'=0 -> -c*v <= y - old(y) & y - old(y) <= c*v),
-        #           (v'=a -> v=old(v)+a*c),
-        #           (v'=a -> -c*(v-a/2*c) <= y - old(y) & y - old(y) <= c*(v-a/2*c))
-        #         )
-        #         }
-        #       }*@invariant(v >= 0 & dx^2+dy^2 = 1 & r != 0 & abs(y-ly) + v^2/(2*b) < lw)
-        #     ] abs(y-ly) < lw
-        runVerify(self, pre="v >= 0 && A > 0 && B >= b && b > 0 && ep > 0 && lw > 0 && \
-                  y == ly && r != 0 && dx^2 + dy^2 == 1 && \
-                  y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)",
-                  hp="( \
-                            if y-ly < - (v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v)) + lw &&\
-                               y-ly > (v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v)) - lw \
-                            then \
-                                a := {-B <= a && a <= A}; \
-                                r := {r != 0}; \
-                                w := v/r \
-                            else \
-                                a := {-B <=a && a <= -b} \
-                            endif \
-                        ++  if v == 0 \
-                            then a := 0; w := 0 \
-                            else a := {-B <=a && a <= -b} \
-                            endif \
-                        ++  a := {-B <=a && a <= -b}; \
-                        c := 0; \
-                        v0 := v; \
-                        y0 := y; \
-                        <x_dot = v*dx, y_dot = v*dy, v_dot = a, dx_dot = -dy*w, dy_dot = dx*w, w_dot=a/r, c_dot = 1 & v > 0 && c < ep> \
-                        invariant \
-                            [c >= 0] \
-                            [dx^2+dy^2 == 1] \
-                            [r != 0] \
-                            [v == v0 + a*c] \
-                            [-c*(v-a/2*c) <= y - y0] \
-                            [y - y0 <= c*(v-a/2*c)] \
-                    )** invariant \
-                            [v >= 0 && dx^2+dy^2 == 1 && r != 0 && \
-                            y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)]",
-                    post="y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)",
-                    constants={'A', 'B', 'b', 'ep', 'lw', 'ly'},
-                    wolfram_engine=True)
+    #     #         c := 0;
+    #     #         {
+    #     #         { x' = v*dx, y' = v*dy, v' = a, dx' = -dy*w, dy' = dx*w, w'=a/r, c' = 1 & v >= 0 & c <= ep }
+    #     #         @invariant(
+    #     #           c>=0,
+    #     #           dx^2+dy^2=1,
+    #     #           (v'=0 -> v=old(v)),
+    #     #           (v'=0 -> -c*v <= y - old(y) & y - old(y) <= c*v),
+    #     #           (v'=a -> v=old(v)+a*c),
+    #     #           (v'=a -> -c*(v-a/2*c) <= y - old(y) & y - old(y) <= c*(v-a/2*c))
+    #     #         )
+    #     #         }
+    #     #       }*@invariant(v >= 0 & dx^2+dy^2 = 1 & r != 0 & abs(y-ly) + v^2/(2*b) < lw)
+    #     #     ] abs(y-ly) < lw
+    #     runVerify(self, pre="v >= 0 && A > 0 && B >= b && b > 0 && ep > 0 && lw > 0 && \
+    #               y == ly && r != 0 && dx^2 + dy^2 == 1 && \
+    #               y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)",
+    #               hp="( \
+    #                         if y-ly < - (v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v)) + lw &&\
+    #                            y-ly > (v^2/(2*b) + (A/b+1)*(A/2*ep^2+ep*v)) - lw \
+    #                         then \
+    #                             a := {-B <= a && a <= A}; \
+    #                             r := {r != 0}; \
+    #                             w := v/r \
+    #                         else \
+    #                             a := {-B <=a && a <= -b} \
+    #                         endif \
+    #                     ++  if v == 0 \
+    #                         then a := 0; w := 0 \
+    #                         else a := {-B <=a && a <= -b} \
+    #                         endif \
+    #                     ++  a := {-B <=a && a <= -b}; \
+    #                     c := 0; \
+    #                     v0 := v; \
+    #                     y0 := y; \
+    #                     <x_dot = v*dx, y_dot = v*dy, v_dot = a, dx_dot = -dy*w, dy_dot = dx*w, w_dot=a/r, c_dot = 1 & v > 0 && c < ep> \
+    #                     invariant \
+    #                         [c >= 0] \
+    #                         [dx^2+dy^2 == 1] \
+    #                         [r != 0] \
+    #                         [v == v0 + a*c] \
+    #                         [-c*(v-a/2*c) <= y - y0] \
+    #                         [y - y0 <= c*(v-a/2*c)] \
+    #                 )** invariant \
+    #                         [v >= 0 && dx^2+dy^2 == 1 && r != 0 && \
+    #                         y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)]",
+    #                 post="y-ly < lw - v^2/(2*b) && y-ly > -lw + v^2/(2*b)",
+    #                 constants={'A', 'B', 'b', 'ep', 'lw', 'ly'},
+    #                 wolfram_engine=True)
 
     def testVerify62(self):
         # Basic benchmark, problem 52
@@ -2475,8 +2476,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x > 10",
                   hp="<x_dot = 1 & x < 5> \
                        invariant [false]",
-                  post="x > 8",
-                  print_vcs=True)
+                  post="x > 8")
     # TODO: 
     # When not sure that ODE is executed or not, set invariant as true, 
     # because both cases should hold: 
@@ -2501,8 +2501,7 @@ class NonlinearHHLPyTest(unittest.TestCase):
                        x6_dot=x1-x2+x3-x4-x6 & \
                        x5 < 0> \
                        invariant [true]",
-                  post="~(x2 < 0 && x1 < x2 && x5 < x2)",
-                  print_vcs=True)
+                  post="~(x2 < 0 && x1 < x2 && x5 < x2)")
                 # #   diff_cuts={((), ()): ["x1+x2+x5 >= 0", "~(x2 < 0 && x1 < x2 && x5 < x2)"]},
                 # #   darboux_rule={((), (0,)): "true"},
                 #   diff_weakening_rule={((), ()): "true"})
