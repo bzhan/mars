@@ -182,10 +182,12 @@ Invariant { "[" cond "]"}
 maybe_ode_invariant{ ("invariant " Ode_invariant+)?}
 
 //TODO: Do we need 'expr?' after 'ode_rule'?
-Ode_invariant { "[" cond "]" ("{" ode_rule "}")?
+Ode_invariant { InvariantWithRule
               | "ghost" CNAME
               | "ghost" "<" CNAME "=" expr ">"
 }
+
+InvariantWithRule { Invariant ("{" ode_rule "}")? }
 
 OdeNoInv { "<" ode_seq "&" cond ">" }
 

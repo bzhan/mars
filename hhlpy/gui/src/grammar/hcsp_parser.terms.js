@@ -6,4 +6,5 @@ export const
   SIGNED_NUMBER = 54,
   Invariant = 91,
   OdeNoInv = 98,
-  Ode_invariant = 101
+  Ode_invariant = 101,
+  InvariantWithRule = 102

@@ -1,30 +1,38 @@
 <template>
 <span>
-<span class="annotation-button" v-on:click="OpenMenu">
-  {{ buttonName }}
-</span>
-<span v-if="menuOpen" v-on:click="add">dI</span>
-<span></span>
+  <!-- <span class="annotation-button" v-on:click="openMenu">
+    {{ buttonName }}
+  </span> -->
+  <select name="ruleSelected" class="annotation-button" v-model="ruleSelected" @change="selectRule">
+    <option v-for="odeRule in odeRules" :key="odeRule" class="annotation-button" :value="odeRule"> 
+      {{ odeRule }}
+    </option>
+  </select>
 </span>
 </template>
 
 <script>
 export default {
-  name: 'AnnotationButton',
+  name: 'MenuButton',
   props: [],
   data() {
     return {
-      buttonName: '',
-      menuOpen: false
+      buttonName: 'Select Verification Rule',
+      odeRules: ["Differential Invariant Rule(di)", "Darboux Rule(dbx)", 
+                 "Barrier Certificate Rule(bc)", "Solution Rule(sln)"],
+      ruleSelected: "Differential Invariant Rule(di)"
+      // menuOpen: false
     }
   },
   methods: {
-    addAnnotation: function () {
-      this.$emit("addAnnotation")
+    selectRule: function () {
+      let startPos = this.ruleSelected.indexOf("(")
+      let endPos = this.ruleSelected.indexOf(")")
+      this.$emit("selectRule", this.ruleSelected.slice(startPos + 1, endPos))
     },
-    openMenu: function(){
-      this.menuOpen = true
-    },
+    // openMenu: function(){
+    //   this.menuOpen = true
+    // },
   }
 }
 </script>

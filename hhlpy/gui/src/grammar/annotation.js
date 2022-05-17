@@ -2,6 +2,7 @@ import {WidgetType,ViewPlugin,Decoration} from "@codemirror/view"
 import {parser} from "./hcsp_parser"
 import {RangeSetBuilder} from "@codemirror/rangeset"
 import AnnotationButton from "../components/AnnotationButton"
+import MenuButton from "../components/MenuButton"
 import Vue from "vue"
 
 export class AnnotationButtonWidget extends WidgetType {
@@ -23,6 +24,27 @@ export class AnnotationButtonWidget extends WidgetType {
       propsData: { },
       data: {buttonName: this.annotationName}
     }).$mount().$on('addAnnotation', this.addAnnotationCallback).$el;
+  }
+
+  ignoreEvent() { return true }
+}
+
+export class MenuButtonWidget extends WidgetType {
+
+  selectRuleCallback
+
+  constructor(selectRuleCallback) {
+    super();
+    this.selectRuleCallback = selectRuleCallback;
+  }
+
+  // eq(other) { } TODO: Need eq method?
+
+  toDOM() {
+    return new Vue({ 
+      ...MenuButton,
+      propsData: { }
+    }).$mount().$on('selectRule', this.selectRuleCallback).$el;
   }
 
   ignoreEvent() { return true }
@@ -65,7 +87,6 @@ function addAnnotationButtons(view) {
     }
 
     else if (cursor.name == "Ode") {
-      console.log("lastChild1:", cursor.node.lastChild.cursor.name)
       if (!includeError(cursor.node)){
         // Button for adding invariant for ODE.
         // Insert "invariant " description when no ode_invariant is injected before.
@@ -122,6 +143,29 @@ function addAnnotationButtons(view) {
         builder.add(cursor.node.firstChild.cursor.to, cursor.node.firstChild.cursor.to, inv_deco)
         builder.add(cursor.node.firstChild.cursor.to, cursor.node.firstChild.cursor.to, ghost_deco)
       }
+    }
+
+    else if (cursor.name == "InvariantWithRule"){
+      // Grammar: InvariantWithRule { Invariant ("{" ode_rule "}")? }
+      let ruleFrom = to
+
+      // When the node is already with a selected rule, if we want to change the rule, 
+      // we need to replace the old rule with the new one.
+      if (cursor.node.lastChild.cursor.name == "}") {
+        // Position of the new rule starts at the end of Invariant(firstChild)
+        ruleFrom = cursor.node.firstChild.cursor.to
+      }
+      let deco = Decoration.widget({
+        widget: new MenuButtonWidget(
+          (odeRule) => {
+            console.log(odeRule)
+            view.dispatch(view.state.update({
+              changes: {from: ruleFrom, to: to, insert: "{" + odeRule + "}"}
+            }))
+          }
+        )
+      })
+      builder.add(cursor.to, cursor.to, deco)
     }
   } while (cursor.next())
   return builder.finish()
