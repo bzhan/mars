@@ -4,7 +4,7 @@ import {styleTags, tags as t} from "@codemirror/highlight"
 import {completeFromList} from "@codemirror/autocomplete"
 import {snippets} from "./snippets"
 import {linter} from "@codemirror/lint"
-import {annotationPlugin, annotationField} from "./annotation"
+import {annotationPlugin} from "./annotation"
 
 export const HCSPLanguage = LRLanguage.define({
   parser: parser.configure({
@@ -76,5 +76,5 @@ export const HCSPLinter = linter((editorView) =>{
 })
 
 export function HCSP() {
-  return new LanguageSupport(HCSPLanguage, [HCSPCompletion, HCSPLinter, annotationPlugin, annotationField])
+  return new LanguageSupport(HCSPLanguage, [HCSPCompletion, HCSPLinter, annotationPlugin])
 }

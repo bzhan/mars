@@ -3,4 +3,7 @@ export const
   parallel_cmd = 1,
   SeqCmd = 2,
   CNAME = 4,
-  SIGNED_NUMBER = 54
+  SIGNED_NUMBER = 54,
+  Invariant = 91,
+  OdeNoInv = 98,
+  Ode_invariant = 101

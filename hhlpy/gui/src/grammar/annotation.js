@@ -1,39 +1,18 @@
-import {WidgetType,ViewPlugin,Decoration,EditorView} from "@codemirror/view"
+import {WidgetType,ViewPlugin,Decoration} from "@codemirror/view"
 import {parser} from "./hcsp_parser"
 import {RangeSetBuilder} from "@codemirror/rangeset"
-import Annotation from "../components/Annotation"
 import AnnotationButton from "../components/AnnotationButton"
 import Vue from "vue"
-import {StateField, EditorState, EditorSelection, ChangeSet} from "@codemirror/state"
-
-export class AnnotationWidget extends WidgetType {
-
-  changeCallback
-
-  constructor(changeCallback) {
-    super();
-    this.changeCallback = changeCallback;
-  }
-
-  // eq(other) { } TODO: Need eq method?
-
-  toDOM() {
-    return new Vue({ 
-      ...Annotation,
-      propsData: { }
-    }).$mount().$on('changed', this.changeCallback).$el;
-  }
-
-  ignoreEvent() { return true }
-}
 
 export class AnnotationButtonWidget extends WidgetType {
 
   addAnnotationCallback
+  annotationName
 
-  constructor(addAnnotationCallback) {
+  constructor(addAnnotationCallback, annotationName) {
     super();
     this.addAnnotationCallback = addAnnotationCallback;
+    this.annotationName = annotationName
   }
 
   // eq(other) { } TODO: Need eq method?
@@ -41,84 +20,14 @@ export class AnnotationButtonWidget extends WidgetType {
   toDOM() {
     return new Vue({ 
       ...AnnotationButton,
-      propsData: { }
+      propsData: { },
+      data: {buttonName: this.annotationName}
     }).$mount().$on('addAnnotation', this.addAnnotationCallback).$el;
   }
 
   ignoreEvent() { return true }
 }
 
-
-
-var marker = "###"
-var re = new RegExp("^###.*$","mg");
-
-export const annotationField = StateField.define({
-  create() {
-    return Decoration.none
-  },
-  update(annotations, tr) {
-    if (!tr.docChanged) return annotations;
-    let text = tr.state.doc.toString()
-    annotations = [];
-    // Find annotation markers and replace them by annotation blocks
-    const matches = text.matchAll(re);
-    for (const match of matches) {
-      var from = match.index;
-      var to = from + match[0].length;
-      const widget = new AnnotationWidget((val) => {
-        console.log(val);
-        //TODO: Insert changes into editor
-      })
-      const annotationDeco = Decoration.replace({widget: widget, block: true})
-      annotations.push(annotationDeco.range(from, to));
-    }
-    return Decoration.set(annotations);
-  },
-  provide: f => {
-    return [
-      EditorView.decorations.from(f),
-      EditorState.transactionFilter.from(f, (annotations) => {
-        return (tr) => {
-          let selection;
-          // Keep selection out of annotations:
-          if (tr.selection) {
-            selection = tr.selection;
-            let ann = annotations.iter();
-            do {
-              let from = ann.from;
-              let to = ann.to;
-              for (let i in selection.ranges) {
-                let selRange = selection.ranges[i]
-                if (selRange.from >= from && selRange.from < to || selRange.to >= from && selRange.to < to) {
-                  selection = selection.replaceRange(EditorSelection.range(to,to), i)
-                }
-              }
-            } while (ann.next())
-          }
-          // Delete whole block if part is deleted
-          let changes = ChangeSet.empty(tr.startState.doc.length);
-          tr.changes.iterChanges((fromA, toA, fromB, toB) => {
-            let ann = annotations.iter();
-            do {
-              let from = ann.from;
-              let to = ann.to + 1; //Also include the final linebreak
-              if (fromB >= from && fromB < to || toB > from && toB <= to) {
-                const delAnn = ChangeSet.of({from, to}, tr.startState.doc.length);
-                changes = changes.compose(delAnn.map(tr.changes).map(changes));
-                selection = EditorSelection.single(from);
-              }
-            } while (ann.next())
-          });
-          if (selection)
-            return [tr, {changes: changes, selection: selection, sequential: true}]
-          else 
-            return tr
-        }
-      })
-    ];
-  }
-})
 
 //TODO: Use viewport / visible ranges to determine where we need to actually do the replacement? 
 function addAnnotationButtons(view) {
@@ -127,19 +36,109 @@ function addAnnotationButtons(view) {
   let builder = new RangeSetBuilder()
   let tree = parser.parse(text)
   let cursor = tree.cursor()
+
+  let inv_desc = "invariant "
+  let inv_desc_len = inv_desc.length
+  let space_len = 4
+  let ghost_desc = "ghost "
+  let ghost_desc_len = ghost_desc.length
+
   do {
-    if (cursor.name == "RepeatCmd" && text.substr(cursor.to, ("\n" + marker).length) != "\n" + marker) {
-      let to = cursor.to
-      let deco = Decoration.widget({
-        widget: new AnnotationButtonWidget(() => { 
-          view.dispatch(view.state.update({changes: {from: to, insert: "\n" + marker + "\n"}}));
-        }),
-        side: 1
-      })
-      builder.add(cursor.to,cursor.to,deco)
+    let to = cursor.to
+
+    if (cursor.name == "RepeatCmd") {
+      // If RepeatCmd is not with an invariant, show the "Add Invariant" button.
+      // Otherwise, no button shows.
+      if (cursor.node.lastChild.cursor.name != "Invariant") {
+        let deco = Decoration.widget({
+          widget: new AnnotationButtonWidget(() => { 
+            // console.log('clickButton')
+            view.dispatch(view.state.update({
+              changes: {from: to, insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "]"}, 
+              selection: {anchor: to + inv_desc_len + 3, head: to + inv_desc_len + 3 + space_len}}))
+          },
+          "Add Invariant"),
+          side: 1
+        })
+        builder.add(cursor.to, cursor.to, deco)
+      }
+    }
+
+    else if (cursor.name == "Ode") {
+      console.log("lastChild1:", cursor.node.lastChild.cursor.name)
+      if (!includeError(cursor.node)){
+        // Button for adding invariant for ODE.
+        // Insert "invariant " description when no ode_invariant is injected before.
+        let inv_changes = {}
+        let inv_selection = {}
+        let ghost_changes = {}
+        let ghost_selection = {}
+        if (cursor.node.lastChild.cursor.name != "Ode_invariant"){  
+          inv_changes = {from: to, 
+                         insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "]"} 
+          inv_selection = {anchor: to + inv_desc_len + 3, 
+                           head: to + inv_desc_len + 3 + space_len}
+          ghost_changes = {from: to, 
+                           insert: "\n\t" + inv_desc + ghost_desc} 
+          ghost_selection = {anchor: to + inv_desc_len + ghost_desc_len + 2}    
+        }
+
+        // Do not need "invariant " description if there is already one invariant above.
+        else{
+          inv_changes = {from: to, 
+                         insert: "\n\t" + " ".repeat(inv_desc_len) + 
+                                     "[" + " ".repeat(space_len) + "]"}
+          inv_selection = {anchor: to + inv_desc_len + 3, 
+                       head: to + inv_desc_len + 3 + space_len}
+          ghost_changes = {from: to, 
+                           insert: "\n\t" + " ".repeat(inv_desc_len) + ghost_desc}
+          ghost_selection = {anchor: to + inv_desc_len + ghost_desc_len + 2}
+        }
+
+        let inv_deco = Decoration.widget({
+          widget: new AnnotationButtonWidget(
+            () => {
+              view.dispatch(view.state.update({
+                changes: inv_changes,
+                selection: inv_selection
+              }))
+              },
+            "Add Invariant"),
+          side: 1    
+        })
+
+        // Button for adding ghost for ODE.
+        let ghost_deco = Decoration.widget({
+          widget: new AnnotationButtonWidget(
+            () => {
+              view.dispatch(view.state.update({
+                changes: ghost_changes,
+                selection: ghost_selection
+              }))
+              },
+            "Add Ghost"),
+          side: 2
+        })
+        builder.add(cursor.node.firstChild.cursor.to, cursor.node.firstChild.cursor.to, inv_deco)
+        builder.add(cursor.node.firstChild.cursor.to, cursor.node.firstChild.cursor.to, ghost_deco)
+      }
     }
   } while (cursor.next())
   return builder.finish()
+}
+
+/** Check whether the sub-tree of the node includes errors.
+ * Return true if it includes errors.
+ * Return false if the node sub-tree is completely correct.*/ 
+function includeError(node){
+  let cursor = node.cursor
+  do {
+    if (cursor.type.isError) {
+      return true
+    }
+  }while(cursor.next())
+
+  return false
 }
 
 export const annotationPlugin = ViewPlugin.fromClass(class {
@@ -153,6 +152,7 @@ export const annotationPlugin = ViewPlugin.fromClass(class {
     //TODO: Maybe run together with linter? (So we don't slow down anything and we don't need to reparse)
     if (update.docChanged)
       this.decorations = addAnnotationButtons(update.view)
+      console.log('Hello')
   }
 }, {
   decorations: v => v.decorations,

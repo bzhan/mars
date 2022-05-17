@@ -140,13 +140,13 @@ atom_cmd {
   | TestCmd { "test" "(" cond ("," expr)* ")" }
   | LogCmd { "log" "(" expr ("," expr)* ")" }
   | comm_cmd
-  | RepeatCmd { "(" cmd ")**" }
-  | RepeatCondCmd { "(" cmd "){" cond "}**" }
+  | RepeatCmd { "(" cmd ")**" maybe_invariant }
+  | RepeatCondCmd { "(" cmd "){" cond "}**"  maybe_invariant}
   | RepeatCmdInv { "(" cmd ")**@invariant(" cond ")" }
   | RepeatCondCmdInv { "(" cmd "){" cond "}**@invariant(" cond ")" }
-  | Ode { "<" ode_seq "&" cond ">" }
-  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" }
-  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" } 
+  | Ode { OdeNoInv maybe_ode_invariant }
+  | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
+  | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME ".(" cmd ")" }
   | IteCmd { "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" }
   | ParenCmd { "(" cmd ")" }
@@ -174,6 +174,24 @@ select_cmd {
 cmd { select_cmd }
 
 procedure { "procedure" CNAME "begin" cmd "end" }
+
+maybe_invariant { ("invariant " Invariant)?}
+
+Invariant { "[" cond "]"}
+
+maybe_ode_invariant{ ("invariant " Ode_invariant+)?}
+
+//TODO: Do we need 'expr?' after 'ode_rule'?
+Ode_invariant { "[" cond "]" ("{" ode_rule "}")?
+              | "ghost" CNAME
+              | "ghost" "<" CNAME "=" expr ">"
+}
+
+OdeNoInv { "<" ode_seq "&" cond ">" }
+
+ode_rule {
+  "di" | "dbx" | "bc" | "dw" | "sln"
+}
 
 @top parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 

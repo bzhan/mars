@@ -18,3 +18,4 @@ class GhostIntro(Invariant):
         self.meta = meta
         self.var = var
         self.diff = diff
+        

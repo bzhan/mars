@@ -1,6 +1,10 @@
 <template>
-<span class="annotation-button" v-on:click="addAnnotation">
+<span>
+<span class="annotation-button" v-on:click="OpenMenu">
   {{ buttonName }}
+</span>
+<span v-if="menuOpen" v-on:click="add">dI</span>
+<span></span>
 </span>
 </template>
 
@@ -10,13 +14,17 @@ export default {
   props: [],
   data() {
     return {
-      buttonName: ''
+      buttonName: '',
+      menuOpen: false
     }
   },
   methods: {
     addAnnotation: function () {
       this.$emit("addAnnotation")
-    }
+    },
+    openMenu: function(){
+      this.menuOpen = true
+    },
   }
 }
 </script>
