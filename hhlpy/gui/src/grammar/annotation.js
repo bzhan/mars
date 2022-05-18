@@ -158,7 +158,6 @@ function addAnnotationButtons(view) {
       let deco = Decoration.widget({
         widget: new MenuButtonWidget(
           (odeRule) => {
-            console.log(odeRule)
             view.dispatch(view.state.update({
               changes: {from: ruleFrom, to: to, insert: "{" + odeRule + "}"}
             }))

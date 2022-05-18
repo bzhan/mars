@@ -1,13 +1,18 @@
 <template>
 <span>
-  <!-- <span class="annotation-button" v-on:click="openMenu">
-    {{ buttonName }}
-  </span> -->
-  <select name="ruleSelected" class="annotation-button" v-model="ruleSelected" @change="selectRule">
-    <option v-for="odeRule in odeRules" :key="odeRule" class="annotation-button" :value="odeRule"> 
+  <select class="annotation-button" v-model="ruleSelected" @change="selectRule">
+    <option disabled value="" class="annotation-button">Select Verification Rule</option>
+    <option v-for="odeRule in odeRules" :key="odeRule" class="annotation-button"> 
       {{ odeRule }}
     </option>
   </select>
+  <!-- <select v-model="ruleSelected" class="annotation-button" @change="selectRule">
+    <option disabled value="" class="annotation-button">Select Verification Rule</option>
+    <option class="annotation-button">Differential Invariant Rule(di)</option>
+    <option class="annotation-button">Darboux Rule(dbx)</option>
+    <option class="annotation-button">Barrier Certificate Rule(bc)</option>
+    <option class="annotation-button">Solution Rule(sln)</option>
+  </select> -->
 </span>
 </template>
 
@@ -17,22 +22,17 @@ export default {
   props: [],
   data() {
     return {
-      buttonName: 'Select Verification Rule',
       odeRules: ["Differential Invariant Rule(di)", "Darboux Rule(dbx)", 
                  "Barrier Certificate Rule(bc)", "Solution Rule(sln)"],
-      ruleSelected: "Differential Invariant Rule(di)"
-      // menuOpen: false
+      ruleSelected: ''
     }
   },
   methods: {
-    selectRule: function () {
+    selectRule: function(){
       let startPos = this.ruleSelected.indexOf("(")
       let endPos = this.ruleSelected.indexOf(")")
       this.$emit("selectRule", this.ruleSelected.slice(startPos + 1, endPos))
-    },
-    // openMenu: function(){
-    //   this.menuOpen = true
-    // },
+    }
   }
 }
 </script>
