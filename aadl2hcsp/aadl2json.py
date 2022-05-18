@@ -121,6 +121,14 @@ def simplize(info):
                 if 'connmap_rv' not in info[key].keys():
                     info[key]['connmap_rv'] = {}
                 info[key]['connmap_rv'] .update(connmap_rv)
+            pop_list=[]
+            temp = deepcopy(info)
+            for k, v in value["components"].items():
+                pop_list.append(k)
+                temp[key]["components"][v] = info[v]
+            for k in pop_list:
+                temp[key]["components"].pop(k)
+            info = temp
         if value["category"] == "system":
             output = {}
             if "components" in value.keys():
@@ -130,11 +138,17 @@ def simplize(info):
                         vars[k]['refered_name'] = v[1]
                         if info[v[0]][v[1]]["category"] != "process":
                             output[v[1]] = info[v[0]][v[1]]
+                        else:
+                            for threadk,threadv in info[v[0]][v[1]]["components"].items():
+                                output[threadk] = threadv
                     if type(v) == str:
                         vars[k] = deepcopy(info[v])
                         vars[k]['refered_name'] = v
                         if info[v]["category"] != "process":
                             output[k] = info[v]
+                        else:
+                            for threadk,threadv in info[v]["components"].items():
+                                output[threadk] = threadv
             if "connections" in value.keys():
                 for k, v in value["connections"].items():
                     output[k] = {}
