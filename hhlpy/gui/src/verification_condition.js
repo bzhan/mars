@@ -1,8 +1,7 @@
 import {EditorView, Decoration, WidgetType} from "@codemirror/view"
 import {StateField, StateEffect} from "@codemirror/state"
-// import {VerificationCondition} from "./components/VerificationCondition"
+import VerificationCondition from "./components/VerificationCondition"
 import Vue from "vue"
-import { AnnotationButton } from "./components/AnnotationButton"
 
 export class VCWidget extends WidgetType {
 
@@ -19,7 +18,7 @@ export class VCWidget extends WidgetType {
   
     toDOM() {
       return new Vue({ 
-        ...AnnotationButton,
+        ...VerificationCondition,
         propsData: { },
         data: {verifCond: this.vcFormula}
       }).$mount().$on('addAnnotation', this.addVCCallback).$el;
