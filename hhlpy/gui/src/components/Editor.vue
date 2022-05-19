@@ -24,6 +24,7 @@ import {HCSP} from "../grammar/hcsp"
 import {parser} from "../grammar/hcsp_parser"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
+import { displayVerificationCondition } from "../verification_condition"
 
 function initEditor(){
   const editorView = new EditorView({
@@ -74,6 +75,9 @@ export default {
 
     this.socket.onmessage = (event) => {
       this.vcs = event.data;
+      for (let vcData of event.data){
+        displayVerificationCondition(this.editorView, vcData.vc, 0)
+      }
     };
   },
   methods: {
