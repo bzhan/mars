@@ -1,6 +1,6 @@
 <template>
 <span class="annotation-button" >
-  {{ verifCond }}
+  {{ vcFormula }}
 </span>
 </template>
 
@@ -10,7 +10,7 @@ export default {
   props: [],
   data() {
     return {
-      verifCond: ''
+      vcFormula: ''
     }
   }
 }
@@ -20,7 +20,7 @@ export default {
 <style scoped>
 .annotation-button {
   border-radius: 20px;
-  background: #60911b;
+  background: #1b6a91;
   padding: 0 5px;
   color:white;
   font-weight: bold;

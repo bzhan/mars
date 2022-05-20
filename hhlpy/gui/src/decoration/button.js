@@ -1,5 +1,5 @@
 import {WidgetType,ViewPlugin,Decoration} from "@codemirror/view"
-import {parser} from "./hcsp_parser"
+import {parser} from "../grammar/hcsp_parser"
 import {RangeSetBuilder} from "@codemirror/rangeset"
 import AnnotationButton from "../components/AnnotationButton"
 import MenuButton from "../components/MenuButton"

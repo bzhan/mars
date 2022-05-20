@@ -4,7 +4,7 @@ import {styleTags, tags as t} from "@codemirror/highlight"
 import {completeFromList} from "@codemirror/autocomplete"
 import {snippets} from "./snippets"
 import {linter} from "@codemirror/lint"
-import {annotationPlugin} from "./annotation"
+import {annotationPlugin} from "../decoration/button"
 
 export const HCSPLanguage = LRLanguage.define({
   parser: parser.configure({

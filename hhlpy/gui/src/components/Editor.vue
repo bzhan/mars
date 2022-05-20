@@ -24,12 +24,13 @@ import {HCSP} from "../grammar/hcsp"
 import {parser} from "../grammar/hcsp_parser"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
-import { displayVerificationCondition } from "../verification_condition"
+import { displayVerificationCondition } from "../decoration/verification_condition"
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif;\n<x_dot=1 & x < 5>",
+      doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif; \
+            \n<x_dot=1 & x < 5>\ninvariant [x >= 1]",
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
@@ -74,8 +75,11 @@ export default {
     };
 
     this.socket.onmessage = (event) => {
-      this.vcs = event.data;
-      for (let vcData of event.data){
+      this.vcs = JSON.parse(event.data);
+      console.log("vcs:", this.vcs)
+      for (let i in this.vcs){
+        let vcData = this.vcs[i]
+        let lineNumber = vcData.line
         displayVerificationCondition(this.editorView, vcData.vc, 0)
       }
     };

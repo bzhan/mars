@@ -1,6 +1,6 @@
 import {EditorView, Decoration, WidgetType} from "@codemirror/view"
 import {StateField, StateEffect} from "@codemirror/state"
-import VerificationCondition from "./components/VerificationCondition"
+import VerificationCondition from "../components/VerificationCondition"
 import Vue from "vue"
 
 export class VCWidget extends WidgetType {
@@ -20,8 +20,8 @@ export class VCWidget extends WidgetType {
       return new Vue({ 
         ...VerificationCondition,
         propsData: { },
-        data: {verifCond: this.vcFormula}
-      }).$mount().$on('addAnnotation', this.addVCCallback).$el;
+        data: {vcFormula: this.vcFormula}
+      }).$mount().$on().$el;
     }
   
     ignoreEvent() { return true }
@@ -37,7 +37,8 @@ const verificationConditionField = StateField.define({
     vc = vc.map(tr.changes)
     for (let e of tr.effects) if (e.is(addVerificationCondition)) {
       let vcWidget = Decoration.widget({
-        widget: new VCWidget(()=>{}, e.value.formula)
+        widget: new VCWidget(()=>{}, e.value.formula),
+        block: true
       })
       vc = vc.update({
         add: [vcWidget.range(e.value.position, e.value.position)]
@@ -57,4 +58,9 @@ export function displayVerificationCondition(view, formula, position) {
     view.dispatch({effects})
     return true
   }
+
+/**Get postion for a given line */
+export function getPosition(view, lineNumber) {
+  
+}
   
