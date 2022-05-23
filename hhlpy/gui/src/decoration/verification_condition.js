@@ -20,7 +20,9 @@ export class VCWidget extends WidgetType {
       return new Vue({ 
         ...VerificationCondition,
         propsData: { },
-        data: {vcFormula: this.vcFormula}
+        data: {
+          vcFormula: this.vcFormula
+        }
       }).$mount().$on().$el;
     }
   
@@ -61,6 +63,6 @@ export function displayVerificationCondition(view, formula, position) {
 
 /**Get postion for a given line */
 export function getPosition(view, lineNumber) {
-  
+   return view.state.doc.line(lineNumber).from
 }
   

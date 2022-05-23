@@ -24,7 +24,7 @@ import {HCSP} from "../grammar/hcsp"
 import {parser} from "../grammar/hcsp_parser"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
-import { displayVerificationCondition } from "../decoration/verification_condition"
+import { displayVerificationCondition, getPosition } from "../decoration/verification_condition"
 
 function initEditor(){
   const editorView = new EditorView({
@@ -80,7 +80,8 @@ export default {
       for (let i in this.vcs){
         let vcData = this.vcs[i]
         let lineNumber = vcData.line
-        displayVerificationCondition(this.editorView, vcData.vc, 0)
+        let linePos = getPosition(this.editorView, lineNumber)
+        displayVerificationCondition(this.editorView, vcData.vc, linePos)
       }
     };
   },

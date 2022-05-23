@@ -1,7 +1,7 @@
 <template>
-<span class="annotation-button" >
-  {{ vcFormula }}
-</span>
+  <span class="verification-condition" >
+    {{ vcFormula }}
+  </span>
 </template>
 
 <script>
@@ -18,7 +18,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.annotation-button {
+.verification-condition {
   border-radius: 20px;
   background: #1b6a91;
   padding: 0 5px;
