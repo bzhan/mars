@@ -56,8 +56,9 @@ export function displayVerificationCondition(view, formula, position) {
       
     if (!view.state.field(verificationConditionField, false))
       effects.push(StateEffect.appendConfig.of([verificationConditionField]))
-
+    
     view.dispatch({effects})
+  
     return true
   }
 

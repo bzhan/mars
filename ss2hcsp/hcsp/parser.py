@@ -116,7 +116,7 @@ grammar = r"""
         | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
         | "(" cmd ")" -> paren_cmd
 
-    ?maybe_invariant: ("invariant" invariant)? -> maybe_invariant
+    ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
     ?invariant: "[" cond "]"
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant

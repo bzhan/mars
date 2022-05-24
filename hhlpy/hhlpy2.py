@@ -549,9 +549,11 @@ class CmdVerifier:
 
             pre_dw = None
 
-            if len(pos[1]) == 0 and cur_hp.inv is not None: 
+            if len(pos[1]) == 0: 
             # TODO: also run if no invariants are specified? testVerify62 testVerify54 testVerify53 testVerify52 testVerify50 testVerify55
 
+                if cur_hp.inv is None:
+                    cur_hp.inv = (invariant.CutInvariant(inv=expr.true_expr),)
                 # Construct partial post conditions, e.g., for `[A] ghost x [B] [C]`, 
                 # they would be `C`, `B && C`, `EX x. B && C`, and `A && EX x. B && C``
                 subposts = []
@@ -711,7 +713,10 @@ class CmdVerifier:
                 differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict)
                 vc = expr.imp(constraint, differential)
 
-                self.infos[pos].vcs.append(vc)
+                # If vc is true_expr(when dI_inv is set "true"), we don't need to append the vc. 
+                if vc is not expr.true_expr:
+                    self.infos[pos].vcs.append(vc)
+
                 if dI_inv != post:
                     self.infos[pos].vcs.append(expr.imp(dI_inv, post))
 
@@ -1220,4 +1225,30 @@ class CmdVerifier:
                 return False
 
         else:
-            raise AssertionError("Please choose an arithmetic solver. ")
+            raise AssertionError("Please choose an arithmetic solver.")
+
+
+class VcsInfo:
+    """Infomation for each verification condition"""
+    def __init__(self, vc, solver='z3'):
+        self.vc = vc
+        self.solver = solver
+
+    def verify_vc(self):
+        if self.solver == 'z3':
+            if z3_prove(self.vc):
+                return True
+            else:
+                return False
+
+        elif self.solver == 'wolfram_engine':
+            if wl_prove(self.vc):
+                return True
+            else:
+                return False
+
+        else:
+            raise AssertionError("Please choose an arithmetic solver.")
+            
+
+

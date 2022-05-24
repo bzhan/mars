@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
+from ss2hcsp.hcsp.invariant import Invariant
 from ss2hcsp.matlab import function
 from ss2hcsp.util.topsort import topological_sort
 import re
@@ -844,6 +845,10 @@ class ODE(HCSP):
             assert isinstance(eq, tuple) and len(eq) == 2
             assert isinstance(eq[0], str) and isinstance(eq[1], AExpr)
         assert isinstance(constraint, BExpr)
+        assert inv is None or isinstance(inv, tuple)
+        if isinstance(inv, tuple):
+            for sub_inv in inv:
+                assert isinstance(sub_inv, Invariant)
         assert not out_hp or isinstance(out_hp, HCSP)
 
         self.type = "ode"

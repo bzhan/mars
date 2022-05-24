@@ -107,8 +107,20 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify7(self):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
-        # Invariant for ODE is x >= 0.
-        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0")
+        # Use the boundary x == 10 to imply the post x >= 0.
+        # No invariant attached.
+        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=True)
+
+    def testVerify7_1(self):
+        # {true} <x_dot = 2 & x < 10> {true}
+        runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
+
+    def testVerify7_2(self):
+        # {x > 2} <x_dot = 1 & x < 1> {x > 2}
+        runVerify(self, pre="x > 2",    
+                  hp="<x_dot = 1 & x < 1> invariant [false]", 
+                  post="x > 2", 
+                  print_vcs=True)
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -911,7 +923,7 @@ class BasicHHLPyTest(unittest.TestCase):
                           invariant [A >= 0] \
                       endif \
                       )** \
-                      invariant [v >= 0] [A >= 0]",
+                      invariant [v >= 0 && A >= 0]",
                   post="v >= 0")
 
     def testVerify65(self):
