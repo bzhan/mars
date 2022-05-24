@@ -115,6 +115,7 @@ class BasicHHLPyTest(unittest.TestCase):
         # {true} <x_dot = 2 & x < 10> {true}
         runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
 
+    # TODO: false as invariant doesn't work.
     def testVerify7_2(self):
         # {x > 2} <x_dot = 1 & x < 1> {x > 2}
         runVerify(self, pre="x > 2",    

@@ -5,13 +5,17 @@ import Vue from "vue"
 
 export class VCWidget extends WidgetType {
 
-    addVCCallback
+    changeSolverCallback
     vcFormula
+    vcSolver
+    vcResult
   
-    constructor(addVCCallback, vcFormula) {
+    constructor(changeSolverCallback, vcFormula, vcSolver, vcResult) {
       super();
-      this.addVCCallback = addVCCallback;
+      this.changeSolverCallback = changeSolverCallback;
       this.vcFormula = vcFormula
+      this.vcSolver = vcSolver
+      this.vcResult = vcResult
     }
   
     // eq(other) { } TODO: Need eq method?
@@ -21,9 +25,11 @@ export class VCWidget extends WidgetType {
         ...VerificationCondition,
         propsData: { },
         data: {
-          vcFormula: this.vcFormula
+          vcFormula: this.vcFormula,
+          vcSolver: this.vcSolver,
+          vcResult: this.vcResult
         }
-      }).$mount().$on().$el;
+      }).$mount().$on("changeSolver", this.changeSolverCallback).$el;
     }
   
     ignoreEvent() { return true }
@@ -37,22 +43,31 @@ const verificationConditionField = StateField.define({
   },
   update(vc, tr) {
     vc = vc.map(tr.changes)
-    for (let e of tr.effects) if (e.is(addVerificationCondition)) {
-      let vcWidget = Decoration.widget({
-        widget: new VCWidget(()=>{}, e.value.formula),
-        block: true
-      })
-      vc = vc.update({
-        add: [vcWidget.range(e.value.position, e.value.position)]
-      })
+    for (let e of tr.effects) {
+      if (e.is(addVerificationCondition)) {
+        let vcWidget = Decoration.widget({
+          widget: new VCWidget(
+              e.value.changeSolverCallback, 
+              e.value.formula, 
+              e.value.solver,
+              e.value.result),
+          block: true
+        })
+        vc = vc.update({
+          add: [vcWidget.range(e.value.position, e.value.position)]
+        })
+      }
+      else if (e.is(clearVerificationCondition)) {
+        vc = Decoration.none
+      }
     }
     return vc
   },
   provide: f => EditorView.decorations.from(f)
 })
 
-export function displayVerificationCondition(view, formula, position) {
-    let effects = [addVerificationCondition.of({formula, position})]
+export function displayVerificationCondition(view, formula, position, changeSolverCallback, solver, result) {
+    let effects = [addVerificationCondition.of({formula, position, changeSolverCallback, solver, result})]
       
     if (!view.state.field(verificationConditionField, false))
       effects.push(StateEffect.appendConfig.of([verificationConditionField]))
@@ -66,4 +81,17 @@ export function displayVerificationCondition(view, formula, position) {
 export function getPosition(view, lineNumber) {
    return view.state.doc.line(lineNumber).from
 }
+
+const clearVerificationCondition = StateEffect.define()
+
+export function removeVerificationCondition(view){
+  let effects = [clearVerificationCondition.of({})]
+      
+  if (!view.state.field(verificationConditionField, false))
+    effects.push(StateEffect.appendConfig.of([verificationConditionField]))
   
+  view.dispatch({effects})
+
+  return true
+}
+

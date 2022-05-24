@@ -1227,28 +1227,6 @@ class CmdVerifier:
         else:
             raise AssertionError("Please choose an arithmetic solver.")
 
-
-class VcsInfo:
-    """Infomation for each verification condition"""
-    def __init__(self, vc, solver='z3'):
-        self.vc = vc
-        self.solver = solver
-
-    def verify_vc(self):
-        if self.solver == 'z3':
-            if z3_prove(self.vc):
-                return True
-            else:
-                return False
-
-        elif self.solver == 'wolfram_engine':
-            if wl_prove(self.vc):
-                return True
-            else:
-                return False
-
-        else:
-            raise AssertionError("Please choose an arithmetic solver.")
             
 
 
