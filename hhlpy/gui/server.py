@@ -63,7 +63,6 @@ def runVerify(vc, solver):
 class HHLPyApplication(WebSocketApplication):
     def on_open(self):
         print("Connection opened")
-        session.start()
 
 
     def on_message(self, message):
@@ -87,13 +86,21 @@ class HHLPyApplication(WebSocketApplication):
 
     def on_close(self, reason):
         print(reason)
-        session.terminate()
 
 if __name__ == "__main__":
     port = 8000
-    print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
-
-    WebSocketServer(
+    server = WebSocketServer(
         ('', port),
         Resource(OrderedDict([('/', HHLPyApplication)]))
-    ).serve_forever()
+    )
+    try:
+        print("Starting Wolfram Engine")
+        session.start()
+        print("Running python websocket server on ws://localhost:{0}".format(port), flush=True)
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        print("Closing python websocket server")
+        server.close()
+        print("Terminating Wolfram Engine")
+        session.terminate()
