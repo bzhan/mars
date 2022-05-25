@@ -4,8 +4,7 @@
       {{ vcFormula }}
     </span> 
 
-    <select v-model="vcSolver" @change="changeSolver">
-      <option disabled>Select One Verification Tool</option>
+    <select v-model="vcSolver" @change="changeSolver" class="vc-button">
       <option>Z3</option>
       <option>Wolfram Engine</option>
     </select>
@@ -13,10 +12,25 @@
     <span>
       {{ vcResult }}
     </span>
+
+    <v-icon name="check" style="color:green"></v-icon>
+
+    <span>
+      <v-icon name="check-circle" style="color:green"></v-icon>
+    </span>
+    <span>
+      <v-icon name="times" style="color:red"></v-icon>
+    </span>
+    <span>
+      <v-icon name="times-circle" style="color:red"></v-icon>
+    </span>
   </div>
 </template>
 
 <script>
+import 'vue-awesome/icons'
+import Icon from 'vue-awesome/components/Icon'
+
 export default {
   name: 'VerificationCondition',
   props: [],
@@ -31,6 +45,9 @@ export default {
     changeSolver() {
       this.$emit("changeSolver", this.vcSolver)
     }
+  },
+  components: {
+    'v-icon': Icon
   }
 }
 </script>
@@ -51,4 +68,24 @@ export default {
   font-size: smaller;
   display: inline-block;
 }
+
+.vc-button {
+  border-radius: 20px;
+  background: #60911b;
+  padding: 0 5px;
+  color:white;
+  font-weight: bold;
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-size: smaller;
+  cursor: pointer;
+}
+
+.vc-check {
+  color: green
+}
+
+.fa-icon {
+color: green;  
+}
+
 </style>
