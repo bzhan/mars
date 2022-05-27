@@ -4,9 +4,8 @@
     <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
-    <button v-on:click="run">Run</button>
+    <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
-    <div class="vcs">{{vcs}}</div>
   </div>
 </template>
 
@@ -70,8 +69,8 @@ export default {
 
     };
   },
-  methods: {
-    run: function () {
+  methods: { 
+    compute: function () {
       let pre = this.pre
       let post = this.post
       let hp = this.editorView.state.doc.toString();

@@ -9,21 +9,11 @@
       <option>Wolfram Engine</option>
     </select>
 
-    <span>
-      {{ vcResult }}
+    <span class="vc-icon">
+      <v-icon name="check-circle" style="fill:green" v-show="vcResult === true" scale="1.5"></v-icon>
+      <v-icon name="times-circle" style="fill:red" v-show="vcResult === false" scale="1.5"></v-icon>
     </span>
 
-    <v-icon name="check" style="color:green"></v-icon>
-
-    <span>
-      <v-icon name="check-circle" style="color:green"></v-icon>
-    </span>
-    <span>
-      <v-icon name="times" style="color:red"></v-icon>
-    </span>
-    <span>
-      <v-icon name="times-circle" style="color:red"></v-icon>
-    </span>
   </div>
 </template>
 
@@ -66,7 +56,7 @@ export default {
   font-weight: bold;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   font-size: smaller;
-  display: inline-block;
+  /* display: inline-block; */
 }
 
 .vc-button {
@@ -80,12 +70,9 @@ export default {
   cursor: pointer;
 }
 
-.vc-check {
-  color: green
-}
-
-.fa-icon {
-color: green;  
+.vc-icon {
+  vertical-align: middle;
+  margin: 0 20px
 }
 
 </style>
