@@ -109,19 +109,18 @@ class BasicHHLPyTest(unittest.TestCase):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
         # Use the boundary x == 10 to imply the post x >= 0.
         # No invariant attached.
-        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=True)
+        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0")
 
-    def testVerify7_1(self):
-        # {true} <x_dot = 2 & x < 10> {true}
-        runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
+    # TODO: 
+    # def testVerify7_1(self):
+    #     # {true} <x_dot = 2 & x < 10> {true}
+    #     runVerify(self, pre="true", hp="<x_dot = 2 & x < 10>", post="true", print_vcs=True)
 
-    # TODO: false as invariant doesn't work.
     def testVerify7_2(self):
         # {x > 2} <x_dot = 1 & x < 1> {x > 2}
         runVerify(self, pre="x > 2",    
                   hp="<x_dot = 1 & x < 1> invariant [false]", 
-                  post="x > 2", 
-                  print_vcs=True)
+                  post="x > 2")
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -195,7 +194,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # dG Rule
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1]", post="x > 0",
-                expected_vcs={((), ()): ["x > 0 --> (EX y. x * y * y == 1) && (0 >= 1 --> x > 0)"],
+                expected_vcs={((), ()): ["x > 0 --> (0 < 1 --> (EX y. x * y * y == 1))\
+                                                    && (0 >= 1 --> x > 0)"],
                               ((1,), ()): ["(EX y. x * y * y == 1) && t == 1 --> x > 0"]})
 
     def testVerify17(self):
@@ -238,7 +238,14 @@ class BasicHHLPyTest(unittest.TestCase):
         # Basic benchmark, problem12
         # dC Rule
         # {x >= 0 && y >= 0} <x_dot = y> {x >= 0}
-        runVerify(self, pre="x >= 0 && y >= 0", hp="<x_dot = y & x < 10> invariant [y >= 0] [x >= 0]", post="x >= 0")
+        runVerify(self, pre="x >= 0 && y >= 0", 
+                  hp="<x_dot = y & x < 10> invariant [y >= 0] [x >= 0]", 
+                  post="x >= 0",
+                  expected_vcs={((), ()): ["y >= 0 --> x >= 0 && y >= 0 --> \
+                                           (x < 10 --> y >= 0 && x >= 0) && \
+                                           (x >= 10 --> x >= 0)",
+                                           "y >= 0 --> (y >= 0 && x >= 0) && x == 10 -->\
+                                            x >= 0"]})
 
     def testVerify21(self):
         # Basic benchmark, problem13
@@ -275,7 +282,8 @@ class BasicHHLPyTest(unittest.TestCase):
                       invariant ghost z [x * z * z == 1]", 
                   post="x > 0",
                   expected_vcs={((), ()): ["y > 0 --> x > 0 && y > 0 --> \
-                                           (EX z. x * z * z == 1) && (0 >= 10 --> x > 0)"],
+                                            (0 < 10 --> (EX z. x * z * z == 1)) && \
+                                            (0 >= 10 --> x > 0)"],
                                 ((1,), ()): ["y > 0 --> (EX z. x * z * z == 1) && t == 10 \
                                               --> x > 0"]})
 
@@ -383,7 +391,8 @@ class BasicHHLPyTest(unittest.TestCase):
                                           # `y == 0` comes from implicit dW
                                           "z == -2 --> y > 0 --> y >= 0", 
                                           # This is from dI (condition implies differential of invariant)
-                                          "z == -2 --> x >= 1 && y == 10 && z == -2 --> x >= 1 && (y <= 0 --> x >= 1 && y >= 0)"]}) 
+                                          "z == -2 --> x >= 1 && y == 10 && z == -2 -->\
+                                          (y > 0 --> x >= 1) && (y <= 0 --> x >= 1 && y >= 0)"]}) 
                                           # `y <= 0 --> x >= 1 && y >= 0` is the dW precondition
 
     def testVerify35(self):
@@ -398,7 +407,8 @@ class BasicHHLPyTest(unittest.TestCase):
                   hp="t := 0;\
                   <x1_dot = 2 * x1^4 * x2 + 4 * x1^2 * x2^3 - 6 * x1^2 * x2, \
                    x2_dot = -4 * x1^3 * x2^2 - 2 * x1 * x2^4 + 6 * x1 * x2^2, \
-                   t_dot = 1 & t < 10>",
+                   t_dot = 1 & t < 10> \
+                       invariant [x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c]",
                   post="x1^4 * x2^2 + x1^2 * x2^4 - 3 * x1^2 * x2^2 + 1 <= c")
 
     def testVerify36(self):
@@ -475,7 +485,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # t := 0; <x1_dot = x1 * x2 , x2_dot = -x1, t_dot = 1 & t < 10> 
         # {x1 + x2^2 / 2 == a}
         runVerify(self, pre="x1 + x2^2 / 2 == a",
-                  hp="t := 0; <x1_dot = x1 * x2 , x2_dot = -x1, t_dot = 1 & t < 10>",
+                  hp="t := 0; <x1_dot = x1 * x2 , x2_dot = -x1, t_dot = 1 & t < 10>\
+                        invariant [x1 + x2^2 / 2 == a]",
                   post="x1 + x2^2 / 2 == a")
 
     def testVerify45(self):
@@ -484,7 +495,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # <x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 && x2 > 0>
         # {x1^2 / 2 - x2^2 / 2 >= a}
         runVerify(self, pre="x1^2 / 2 - x2^2 / 2 >= a", 
-                  hp="<x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 && x2 > 0>",
+                  hp="<x1_dot = x2 + x1 * x2^2, x2_dot = -x1 + x1^2 * x2 & x1 > 0 && x2 > 0>\
+                        invariant [x1^2 / 2 - x2^2 / 2 >= a]",
                   post="x1^2 / 2 - x2^2 / 2 >= a")
 
     def testVerify46(self):
@@ -493,13 +505,16 @@ class BasicHHLPyTest(unittest.TestCase):
         # t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10>
         # {-x1 * x2 >= a}
         runVerify(self, pre="-x1 * x2 >= a", 
-                  hp="t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10>",
+                  hp="t := 0; <x1_dot = x1 - x2 + x1 * x2, x2_dot = -x2 - x2^2, t_dot = 1 & t < 10> \
+                      invariant [-x1 * x2 >= a]",
                   post="-x1 * x2 >= a")
 
     def testVerify47(self):
         # Basic benchmark, problem 38
         # {2 * x^3 >= 1/4} t := 0; <x_dot = x^2 + x^4, t_dot = 1 & t < 10> {2 * x^3 >= 1/4}
-        runVerify(self, pre="2 * x^3 >= 1/4", hp="t := 0; <x_dot = x^2 + x^4, t_dot = 1 & t < 10>",
+        runVerify(self, pre="2 * x^3 >= 1/4",
+                  hp="t := 0; <x_dot = x^2 + x^4, t_dot = 1 & t < 10> \
+                        invariant [2 * x^3 >= 1/4]",
                   post="2 * x^3 >= 1/4")
 
     def testVerify48(self):

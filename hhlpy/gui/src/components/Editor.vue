@@ -15,15 +15,12 @@ import {HCSP} from "../grammar/hcsp"
 import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
 import { displayVerificationCondition, getPosition, removeVerificationCondition } from "../decoration/verification_condition"
+import { test_examples } from "../test_examples/examples"
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      // doc: "x := x+1.23456;\nif true\nthen skip\nelse y := 1\nendif; \
-      //       \n<x_dot=1 & x < 5>\ninvariant [x >= 1]",
-      doc: "<x_dot = y, y_dot = z + y^2 - y & y > 0> \n \
-                      invariant \n \
-                        [x >= 1]",
+      doc: test_examples.e3.hp,
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
@@ -34,10 +31,8 @@ function initEditor(){
 export default {
   name: 'Editor',
   data: () => { return {
-    // pre : "x >= 0.12345",
-    // post : "x >= 1",
-    pre : "x >= 1 && y == 10 && z == -2", 
-    post : "x >= 1 && y >= 0",
+    pre : test_examples.e3.pre,
+    post : test_examples.e3.post,
     vcs: "",
     vc_infos: {}
   }},
