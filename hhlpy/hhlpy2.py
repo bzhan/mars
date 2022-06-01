@@ -248,6 +248,10 @@ class CmdVerifier:
     def __init__(self, *, pre, hp, post, constants=set(), z3 = True, wolfram_engine = False):
         # The HCSP program to be verified.
         self.hp = hp
+        
+        # Map postion to hcsp program, only counting ITE and IChoice
+        self.pos2i_hp = dict()
+        self.get_i_pos(hp)
 
         # The prover used to verify conditions.
         # Use z3 by default.
@@ -501,7 +505,10 @@ class CmdVerifier:
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            inv = expr.list_conj(*cur_hp.inv)
+            sub_invs = []
+            for sub_inv in cur_hp.inv:
+                sub_invs.append(sub_inv.inv)
+            inv = expr.list_conj(*sub_invs)
 
             # Compute wp for loop body with respect to invariant
             sub_pos = (pos[0] + (0,), pos[1])
@@ -608,25 +615,25 @@ class CmdVerifier:
 
                         if sub_pos_left not in self.infos:
                             self.infos[sub_pos_left] = CmdInfo()
-                        if inv.method is None and inv.inv in (expr.true_expr, expr.false_expr):
+                        if inv.rule is None and inv.inv in (expr.true_expr, expr.false_expr):
                             self.infos[sub_pos_left].tv = True #TODO: Use the name "tv"(trival)?
-                            assert inv.method_arg is None
-                        elif inv.method == "di" or \
-                        (inv.method is None and inv.inv not in (expr.true_expr, expr.false_expr)):
+                            assert inv.rule_arg is None
+                        elif inv.rule == "di" or \
+                        (inv.rule is None and inv.inv not in (expr.true_expr, expr.false_expr)):
                             self.infos[sub_pos_left].dI_rule = True
-                            assert inv.method_arg is None
-                        elif inv.method == "dbx":
+                            assert inv.rule_arg is None
+                        elif inv.rule == "dbx":
                             self.infos[sub_pos_left].dbx_rule = True
-                            if inv.method_arg is not None:
-                                self.infos[sub_pos_left].dbx_cofactor = inv.method_arg
-                        elif inv.method == "bc":
+                            if inv.rule_arg is not None:
+                                self.infos[sub_pos_left].dbx_cofactor = inv.rule_arg
+                        elif inv.rule == "bc":
                             self.infos[sub_pos_left].barrier_rule = True 
-                            assert inv.method_arg is None              
-                        elif inv.method == "sln":
+                            assert inv.rule_arg is None              
+                        elif inv.rule == "sln":
                             self.infos[sub_pos_left].sln_rule = True 
-                            assert inv.method_arg is None
+                            assert inv.rule_arg is None
                         else:
-                            if inv.method is not None:
+                            if inv.rule is not None:
                                 raise NotImplementedError("Unknown ODE method")
                     
                     elif isinstance(inv, invariant.GhostIntro):
@@ -1207,6 +1214,56 @@ class CmdVerifier:
 
         else:
             raise AssertionError("Please choose an arithmetic solver.")
+
+    def get_i_pos(self, hp, pos=()):
+        """Obtain a dictory, only ITE and IChoice are counted:
+            key: position
+            value: hcsp program
+        hp: the given hcsp program
+        pos: the postion of hp
+        """
+        if isinstance(hp, hcsp.ITE):
+            for i, (_, if_hp) in enumerate(hp.if_hps):
+                sub_pos = pos + (i,)
+                if not isinstance(if_hp, (hcsp.ITE, hcsp.IChoice)):
+                    self.pos2i_hp[sub_pos] = if_hp.meta
+                else:
+                    self.get_i_pos(if_hp, sub_pos)
+
+            # else_hp:
+            sub_pos = pos + (i + 1, )
+            if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
+                self.pos2i_hp[sub_pos] = hp.else_hp.meta
+            else:
+                self.get_i_pos(hp.else_hp, sub_pos)
+
+        elif isinstance(hp, hcsp.IChoice):
+            sub_hps = [hp.hp1, hp.hp2]
+            for i, sub_hp in enumerate(sub_hps):
+                sub_pos = pos + (i,)
+                if not isinstance(sub_hp, (hcsp.ITE, hcsp.IChoice)):
+                    self.pos2i_hp[sub_pos] = sub_hp.meta
+                else:
+                    self.get_i_pos(sub_hp, sub_pos)
+
+        elif isinstance(hp, hcsp.Sequence):
+            i = 0
+            for sub_hp in hp.hps:
+                if isinstance(sub_hp, (hcsp.ITE, hcsp.IChoice)):
+                    sub_pos = pos + (i,)
+                    self.get_i_pos(sub_hp, sub_pos)
+                    i = i + 1
+
+
+        else:
+            pass
+
+    def f(self, hp):
+        assert isinstance(hp, hcsp.Loop)
+        self.get_i_pos(hp.hp)
+
+
+
 
             
 

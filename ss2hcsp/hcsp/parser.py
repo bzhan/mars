@@ -107,8 +107,8 @@ grammar = r"""
         | "test" "(" cond ("," expr)* ")" -> test_cmd
         | "log" "(" expr ("," expr)* ")" -> log_cmd
         | comm_cmd
-        | "(" cmd ")**" maybe_invariant -> repeat_cmd
-        | "(" cmd "){" cond "}**" maybe_invariant -> repeat_cond_cmd
+        | "(" cmd ")**" maybe_loop_invariant -> repeat_cmd
+        | "(" cmd "){" cond "}**" maybe_loop_invariant -> repeat_cond_cmd
         | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
@@ -118,6 +118,13 @@ grammar = r"""
 
     ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
     ?invariant: "[" cond "]"
+    
+    ?maybe_loop_invariant: ("invariant" loop_invariant+)? -> maybe_loop_invariant
+    ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
+    ?proof_method: (label ":")? method   -> proof_method
+    ?label: CNAME? SIGNED_NUMBER?        -> label
+    ?method: "z3"        -> method_z3
+      | "wolfram_engine" -> method_wolfram_engine
 
     ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
     ?ode_invariant: "[" cond "]" ("{" ode_rule expr? "}")? -> ode_invariant
@@ -388,6 +395,18 @@ class HPTransformer(Transformer):
         else:
             return args
 
+    def maybe_loop_invariant(self, meta, *args):
+        if len(args) == 0:
+            return None
+        else:
+            return args
+
+    def loop_invariant(self, meta, inv, *args):
+        if len(args) == 0:
+            return invariant.LoopInvariant(inv=inv, meta=meta)
+        else:
+            return invariant.LoopInvariant(inv=inv, proof_methods=args, meta=meta)
+
     def maybe_ode_invariant(self, meta, *args):
         if len(args) == 0:
             return None
@@ -398,9 +417,9 @@ class HPTransformer(Transformer):
         if len(args) == 1:
             return invariant.CutInvariant(inv=args[0], meta=meta)
         elif len(args) == 2:
-            return invariant.CutInvariant(inv=args[0], method=args[1], meta=meta)
+            return invariant.CutInvariant(inv=args[0], rule=args[1], meta=meta)
         else:
-            return invariant.CutInvariant(inv=args[0], method=args[1], method_arg=args[2], meta=meta)
+            return invariant.CutInvariant(inv=args[0], rule=args[1], rule_arg=args[2], meta=meta)
     
     def ghost_intro(self, meta, var):
         return invariant.GhostIntro(var=var, diff=None, meta=meta)
@@ -414,6 +433,20 @@ class HPTransformer(Transformer):
     def ode_rule_dbx(self, meta): return "dbx"
     def ode_rule_dw(self, meta): return "dw"
     def ode_rule_sln(self, meta): return "sln"
+
+    def method_z3(self, meta): return "z3"
+    def method_wolfram_engine(self, meta): return "wolfram_engine"
+
+    def proof_method(self, meta, *args):
+        if len(args) == 1:
+            return args[0]
+        elif len(args) == 2:
+            return args
+        else:
+            raise AssertionError("Wrong Number of args.")
+
+    def label(self, meta, *args):
+        return "".join(str(arg) for arg in args)
             
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)
