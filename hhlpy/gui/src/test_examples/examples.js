@@ -16,5 +16,10 @@ export const test_examples = {
             pre: "v <= V && A > 0", 
             hp: "a := A;\n <x_dot = v, v_dot = a & v < V>",
             post: "v <= V",
+    },
+    e4: {
+            pre: "x >= 0 && y >= 0",
+            hp: "(x := x + 1; y := y + 1)**",
+            post: "x >= 0 && y >= 0"
     }
 }

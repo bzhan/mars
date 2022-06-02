@@ -20,7 +20,7 @@ import { test_examples } from "../test_examples/examples"
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: test_examples.e3.hp,
+      doc: test_examples.e4.hp,
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
     }),
     parent: document.getElementById("code")
@@ -31,8 +31,8 @@ function initEditor(){
 export default {
   name: 'Editor',
   data: () => { return {
-    pre : test_examples.e3.pre,
-    post : test_examples.e3.post,
+    pre : test_examples.e4.pre,
+    post : test_examples.e4.post,
     vcs: "",
     vc_infos: {}
   }},

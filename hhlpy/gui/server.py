@@ -3,7 +3,7 @@ from collections import OrderedDict
 
 from operator import pos
 
-from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp import expr, hcsp
 from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.hhlpy2 import CmdVerifier
@@ -32,6 +32,11 @@ def runCompute(pre, hp, post, constants=set()):
     verificationConditions = []
     for pos, vcs in verifier.get_all_vcs().items():
         meta = get_pos(hp, pos[0]).meta
+        sub_hp = get_pos(hp, pos[0])
+        print('sub_hp:', sub_hp)
+        if isinstance(sub_hp, hcsp.Loop):
+            for sub_inv in get_pos(hp, pos[0]).inv:
+                print('inv_meta:', sub_inv.meta)
         for vc in vcs:
             verificationConditions.append({
                 "line": meta.line,
