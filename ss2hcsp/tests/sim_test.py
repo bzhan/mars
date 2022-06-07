@@ -23,7 +23,7 @@ def print_module(path, m):
 
 def run_test(self, location, num_steps, expected_series, *,
              print_diagrams=False, print_hcsp_raw=False, print_hcsp=False,
-             print_time_series=False, print_module_path=None, debug_name=True):
+             print_time_series=False, output_to_file=None, debug_name=True):
     # First, parse and process diagram
     diagram = SL_Diagram(location=location)
     diagram.parse_xml()
@@ -78,9 +78,9 @@ def run_test(self, location, num_steps, expected_series, *,
         print(result_hp.export())
 
     # Optional: export HCSP to file
-    if print_module_path:
-        assert isinstance(print_module_path, str)
-        print_module(print_module_path, result_hp)
+    if output_to_file:
+        assert isinstance(output_to_file, str)
+        print_module(output_to_file, result_hp)
 
     # Perform simulation
     proc_dict = dict()

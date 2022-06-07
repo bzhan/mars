@@ -1,0 +1,73 @@
+%type: module
+
+module Chart1():
+procedure during_Chart1_A begin
+  Chart1_A_done := 0;
+  data == 1 -> (
+    data := 2;
+    s := "a";
+    log("a" + "\n");
+    Chart1EL := push(Chart1EL,"F");
+    @during_Chart1_A;
+    Chart1EL := pop(Chart1EL);
+    Chart1_st == "Chart1_A" -> (
+      s := "b";
+      log("b" + "\n")
+    );
+    Chart1_st == "Chart1_A" -> (
+      Chart1_st := "Chart1_B";
+      Chart1_A_done := 1
+    )
+  );
+  Chart1_st == "Chart1_A" && Chart1_A_done == 0 && Chart1EL != [] && top(Chart1EL) == "F" -> (
+    s := "c";
+    log("c" + "\n");
+    Chart1_st == "Chart1_A" -> (
+      Chart1_st := "Chart1_C";
+      Chart1_C_st := "Chart1_C_C1";
+      Chart1_A_done := 1
+    )
+  );
+  Chart1_ret := Chart1_A_done
+end
+
+begin
+  Chart1EL := [];
+  data := 1;
+  Chart1_C_st := "";
+  Chart1_st := "Chart1_A";
+  (
+    Chart1_ret := 0;
+    if Chart1_st == "Chart1_A" then
+      @during_Chart1_A
+    elif Chart1_st == "Chart1_B" then
+      Chart1_ret := 0
+    elif Chart1_st == "Chart1_C" then
+      Chart1_ret := 0;
+      if Chart1_C_st == "Chart1_C_C1" then
+        Chart1_C_C1_done := 0;
+        Chart1EL != [] && top(Chart1EL) == "F" -> (
+          s := "d";
+          log("d" + "\n");
+          Chart1_C_st == "Chart1_C_C1" -> (
+            Chart1_C_st := "";
+            Chart1_st == "Chart1_C" -> Chart1_C_st := "Chart1_C_C2";
+            Chart1_C_C1_done := 1
+          )
+        );
+        Chart1_ret := Chart1_C_C1_done
+      elif Chart1_C_st == "Chart1_C_C2" then
+        Chart1_ret := 0
+      else
+        skip
+      endif
+    else
+      skip
+    endif;
+    wait(0.1)
+  )**
+end
+endmodule
+system
+Chart1 = Chart1()
+endsystem

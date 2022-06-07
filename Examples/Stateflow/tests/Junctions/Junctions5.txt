@@ -1,0 +1,45 @@
+%type: module
+
+module Chart():
+begin
+  ChartEL := [];
+  Chart_C_st := "";
+  x := 1;
+  Chart_st := "Chart_A";
+  log("enA" + "\n");
+  Chart_A_st := "Chart_A_A1";
+  log("enA1" + "\n");
+  (
+    s := "duA";
+    log("duA" + "\n");
+    Chart_ret := 0;
+    if Chart_A_st == "Chart_A_A1" then
+      Chart_A_A1_done := 0;
+      Chart_A_st == "Chart_A_A1" -> (
+        s := "ca";
+        log("ca" + "\n");
+        Chart_A_st == "Chart_A_A1" -> (
+          s := "exA1";
+          log("exA1" + "\n");
+          Chart_A_st == "Chart_A_A1" -> Chart_A_st := ""
+        );
+        Chart_A_st == "" -> (
+          Chart_A_st := "Chart_A_A2";
+          s := "enA2";
+          log("enA2" + "\n")
+        );
+        Chart_A_A1_done := 1
+      );
+      Chart_ret := Chart_A_A1_done
+    elif Chart_A_st == "Chart_A_A2" then
+      Chart_ret := 0
+    else
+      skip
+    endif;
+    wait(0.1)
+  )**
+end
+endmodule
+system
+Chart = Chart()
+endsystem

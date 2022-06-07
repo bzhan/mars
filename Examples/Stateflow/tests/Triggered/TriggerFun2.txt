@@ -1,0 +1,58 @@
+%type: module
+
+module P():
+output y;
+begin
+  t := 0;
+  _tick := 0;
+  ChartEL := [];
+  Chart_st := "Chart_ENTRY";
+  s := "en_ENTRY";
+  log("en_ENTRY" + "\n");
+  Chart1EL := [];
+  Chart1_st := "Chart1_AA";
+  x0 := 0;
+  y := 0;
+  tt := 0;
+  (
+    Chart_done := 0;
+    Chart_ret := 0;
+    if Chart_st == "Chart_ENTRY" then
+      Chart_ENTRY_done := 0;
+      Chart_st == "Chart_ENTRY" -> (
+        Chart_st := "Chart_A";
+        s := "en_A";
+        log("en_A" + "\n");
+        y := y + 1;
+        y := y + 1;
+        y := y + 1;
+        Chart1_done := 0;
+        Chart1_AA_done := 0;
+        y := y + 1;
+        Chart1_ret := 0;
+        Chart_ENTRY_done := 1
+      );
+      Chart_ret := Chart_ENTRY_done
+    elif Chart_st == "Chart_A" then
+      Chart_A_done := 0;
+      Chart_st == "Chart_A" -> (
+        Chart_st := "Chart_B";
+        Chart_A_done := 1
+      );
+      Chart_ret := Chart_A_done
+    elif Chart_st == "Chart_B" then
+      Chart_B_done := 0;
+      Chart_ret := 0
+    else
+      skip
+    endif;
+    <tt_dot = 1 & tt < 0.1>;
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0
+  )**
+end
+endmodule
+system
+  P=P()
+endsystem

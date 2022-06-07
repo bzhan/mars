@@ -1,0 +1,39 @@
+%type: module
+
+module P():
+output signal, y;
+begin
+  t := 0;
+  _tick := 0;
+  Chart1EL := [];
+  Chart1_st := "Chart1_AA";
+  pre_signal := 0;
+  y := 0;
+  Pulse_Generator_tick := 0;
+  tt := 0;
+  (
+    if Pulse_Generator_tick % 10 >= 2 && Pulse_Generator_tick % 10 < 7 then
+      signal := 1.0
+    else
+      signal := 0.0
+    endif;
+    Pulse_Generator_tick := Pulse_Generator_tick + 1;
+    pre_signal <= 0 && signal > 0 || pre_signal > 0 && signal <= 0 -> (
+      Chart1EL := push(Chart1EL,"out_cmd");
+      Chart1_done := 0;
+      Chart1_AA_done := 0;
+      y := y + 1;
+      Chart1_ret := 0;
+      Chart1EL := pop(Chart1EL)
+    );
+    pre_signal := signal;
+    <tt_dot = 1 & tt < 0.1>;
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0
+  )**
+end
+endmodule
+system
+  P=P()
+endsystem
