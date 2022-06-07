@@ -152,25 +152,42 @@ class HCSP:
         else:
             raise NotImplementedError
 
+    def get_contain_hps_count(self):
+        """Returns the dictionary mapping contained hps to number
+        of appearances.
+        
+        """
+        res = dict()
+
+        def rec(hp):
+            if isinstance(hp, Var):
+                if hp.name not in res:
+                    res[hp.name] = 0
+                res[hp.name] += 1
+            elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
+                pass
+            elif isinstance(hp, (Sequence, Parallel)):
+                for sub_hp in hp.hps:
+                    rec(sub_hp)
+            elif isinstance(hp, (Loop, Condition, Recursion)):
+                rec(hp.hp)
+            elif isinstance(hp, ODE):
+                rec(hp.out_hp)
+            elif isinstance(hp, (ODE_Comm, SelectComm)):
+                for _, out_hp in hp.io_comms:
+                    rec(out_hp)
+            elif isinstance(hp, ITE):
+                for _, sub_hp in hp.if_hps:
+                    rec(sub_hp)
+                rec(hp.else_hp)
+            else:
+                raise NotImplementedError
+        rec(self)
+        return res
+
     def get_contain_hps(self):
         """Returns the set of Var calls contained in self."""
-        if isinstance(self, Var):
-            return {self.name}
-        elif isinstance(self, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
-            return set()
-        elif isinstance(self, (Sequence, Parallel)):
-            return set().union(*(hp.get_contain_hps() for hp in self.hps))
-        elif isinstance(self, (Loop, Condition, Recursion)):
-            # Note the test for Recursion is imprecise.
-            return self.hp.get_contain_hps()
-        elif isinstance(self, ODE):
-            return self.out_hp.get_contain_hps()
-        elif isinstance(self, (ODE_Comm, SelectComm)):
-            return set().union(*(io_comm[1].get_contain_hps() for io_comm in self.io_comms))
-        elif isinstance(self, ITE):
-            return self.else_hp.get_contain_hps().union(*(hp.get_contain_hps() for cond, hp in self.if_hps))
-        else:
-            raise NotImplementedError
+        return set(self.get_contain_hps_count())
 
     def subst_comm(self, inst):
         def subst_io_comm(io_comm):
@@ -1517,14 +1534,15 @@ def reduce_procedures(hp, procs, strict_protect=None):
         dep_relation[name] = proc.get_contain_hps()
 
     # Construct reverse dependency relation, for heuristic selection of
-    # inlined functions
-    rev_dep_relation = dict()
-    rev_dep_relation[""] = 0
+    # inlined functions. For each hp
+    rev_dep_count = dict()
     for name in procs:
-        rev_dep_relation[name] = 0
-    for name, contains in dep_relation.items():
-        for contain in contains:
-            rev_dep_relation[contain] += 1
+        rev_dep_count[name] = 0
+    for name, count in hp.get_contain_hps_count().items():
+        rev_dep_count[name] += count
+    for _, proc in procs.items():
+        for name, count in proc.get_contain_hps_count().items():
+            rev_dep_count[name] += count
 
     # Set of procedures to be inlined, in order of removal
     inline_order = []
@@ -1535,7 +1553,7 @@ def reduce_procedures(hp, procs, strict_protect=None):
 
     # Also protect procedures that are too large and invoked too many times
     for name, proc in procs.items():
-        if rev_dep_relation[name] >= 2 and proc.size() > 2:
+        if rev_dep_count[name] >= 2 and proc.size() > 8:
             fixed.add(name)
 
     # Get the order of inlining
