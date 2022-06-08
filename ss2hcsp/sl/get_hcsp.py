@@ -11,6 +11,7 @@ from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.hcsp.optimize import full_optimize_module
+from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
 def translate_continuous(diagram):
@@ -682,3 +683,32 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
             processes.insert(n=0, name=model_name, hp=main_process)
 
     return processes
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python sf_convert.py filename")
+    else:
+        filename = sys.argv[1]
+        diagram = SL_Diagram(filename)
+        diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        diagram.separate_diagram()
+
+        # Convert to HCSP
+        result_hp = new_get_hcsp(
+            diagram.discrete_blocks, diagram.continuous_blocks,
+            diagram.chart_parameters, diagram.outputs)
+
+        # Optimize module
+        hp = result_hp.code
+        procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
+        procs, hp = full_optimize_module(procs, hp)
+        result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+        result_hp.code = hp
+
+        print(result_hp.export())
