@@ -412,6 +412,15 @@ subsection \<open>Combination on assertions\<close>
 definition combine_assn :: "cname set \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn" where
   "combine_assn chs P Q = (\<lambda>tr. \<exists>tr1 tr2. P tr1 \<and> Q tr2 \<and> combine_blocks chs tr1 tr2 tr)"
 
+lemma combine_blocks_assn:
+  assumes "P tr1"
+    and "Q tr2"
+    and "combine_blocks chs tr1 tr2 tr"
+    and "combine_assn chs P Q \<Longrightarrow>\<^sub>t R"
+  shows "R tr"
+  using assms 
+  by(auto simp add: entails_tassn_def combine_assn_def)
+
 lemma combine_assn_ex_pre_left:
   assumes "\<And>x. combine_assn chs (P x) Q \<Longrightarrow>\<^sub>t R"
   shows "combine_assn chs (\<lambda>tr. \<exists>x. P x tr) Q \<Longrightarrow>\<^sub>t R"
