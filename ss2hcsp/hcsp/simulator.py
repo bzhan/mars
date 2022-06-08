@@ -1501,38 +1501,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
     res['statemap'] = statemap
     return res
 
-def graph(res, proc_name, tkplot=False, separate=True, variables=None):
-    DataState = {}
-    temp = res.get("time_series")
-    lst = temp.get(proc_name)
-    for t in lst:
-        state = t.get("state")
-        for key in state.keys():
-            if variables is not None and key not in variables:
-                continue
-            if key not in DataState.keys():
-                DataState.update({key:([],[])})
-            DataState.get(key)[0].append(state.get(key))
-            DataState.get(key)[1].append(t.get('time'))
-                
-    if tkplot:
-        app = graph_plot.Graphapp(res)
-        app.mainloop()
-    else:
-        if separate:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.show()
-        else:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.legend()
-
-
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of
     communication channels.
