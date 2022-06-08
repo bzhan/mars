@@ -40,6 +40,11 @@ datatype 'a gstate =
   EState "'a ext_state"
 | ParState "'a gstate"  "'a gstate"
 
+type_synonym 'a g_exp = "'a gstate \<Rightarrow> real"
+
+fun exp_lift :: "'a ext_exp \<Rightarrow> 'a g_exp" where
+  "exp_lift e (EState s) = e s"
+| "exp_lift e (ParState s s') = undefined"
 
 datatype 'a pproc =
   Single "'a proc"

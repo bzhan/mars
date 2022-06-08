@@ -1,5 +1,5 @@
 theory System_scheduler
-  imports ext_Complementlemma
+  imports ext_Complementlemma AssumeGuarantee
 begin
 
 type_synonym tid = real
@@ -142,10 +142,14 @@ definition dispatch_ch :: "tid \<Rightarrow> string" where
 definition tid_set :: "tid set" where "tid_set = {1,2,3}"
 
 lemma ch_dist:"dispatch_ch t \<noteq> run_ch t" "dispatch_ch t \<noteq> req_ch t" 
-              "run_ch t \<noteq> dispatch_ch t" "req_ch t \<noteq> dispatch_ch t"
+              "dispatch_ch t \<noteq> exit_ch t" "dispatch_ch t \<noteq> preempt_ch t"
+              "dispatch_ch t \<noteq> free_ch t"
+              "run_ch t \<noteq> dispatch_ch t" "req_ch t \<noteq> dispatch_ch t" 
+              "exit_ch t \<noteq> dispatch_ch t" "preempt_ch t \<noteq> dispatch_ch t"
+              "free_ch t \<noteq> dispatch_ch t"
               if cond:"t\<in>tid_set"
   using cond
-  unfolding dispatch_ch_def run_ch_def req_ch_def tid_set_def
+  unfolding dispatch_ch_def run_ch_def req_ch_def exit_ch_def preempt_ch_def free_ch_def tid_set_def 
   by auto
 
 inductive task_assn :: "tid \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
@@ -161,12 +165,21 @@ inductive task_assn :: "tid \<Rightarrow> estate \<Rightarrow> state \<Rightarro
    task_assn t start_es start_s rest \<Longrightarrow>
    task_assn t start_es start_s (blk1 # rest)"
 *)
+(*
 | "start_es = Task READY ent tp \<Longrightarrow>
    init_t = start_s (CHR ''t'') \<Longrightarrow>
    wt \<le> 0.045 - init_t \<Longrightarrow>
    Out\<^sub>t (EState (start_es, start_s)) (req_ch t) tp blk1 \<Longrightarrow>
-   WaitIn\<^sub>t wt start_es (\<lambda>t. start_s(CHR ''t'' := init_t + t)) (run_ch t) 0 ({run_ch t}, {}) blk2 \<Longrightarrow>
+   WaitIn\<^sub>t wt start_es (\<lambda>t. start_s(CHR ''t'' := init_t + t)) (run_ch t) 0 ({}, {run_ch t}) blk2 \<Longrightarrow>
    task_assn t (Task RUNNING ent tp) (start_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
+   task_assn t start_es start_s (blk1 @ blk2 @ rest)"
+*)
+| "start_es = Task READY ent tp \<Longrightarrow>
+   init_t = start_s (CHR ''t'') \<Longrightarrow>
+   wt \<le> 0.045 - init_t \<Longrightarrow>
+   Waitout\<^sub>t d (\<lambda>_ . EState (start_es, start_s)) (req_ch t) tp ({req_ch t}, {}) blk1 \<Longrightarrow>
+   d = 0 \<longrightarrow> Waitin\<^sub>t wt (\<lambda>_ . EState (start_es, start_s(CHR ''t'' := init_t + t))) (run_ch t) 0 ({}, {run_ch t}) blk2 \<Longrightarrow>
+   d = 0 \<longrightarrow> task_assn t (Task RUNNING ent tp) (start_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
    task_assn t start_es start_s (blk1 @ blk2 @ rest)"
 | "start_es = Task READY ent tp \<Longrightarrow>
    init_t = start_s (CHR ''t'') \<Longrightarrow>
@@ -248,9 +261,9 @@ inductive task_dis_assn :: "tid \<Rightarrow> state \<Rightarrow> estate \<Right
    init_task_t = task_s (CHR ''t'') \<Longrightarrow>
    dis_t = dis_s (CHR ''t'') \<Longrightarrow>
    wt \<le> 0.045 - init_task_t \<Longrightarrow>
-   Out\<^sub>t (ParState (EState (task_es, task_s))(EState (None,dis_s))) (req_ch t) tp blk1 \<Longrightarrow>
-   Waitin\<^sub>t wt (\<lambda>t. ParState (EState (task_es,task_s(CHR ''t'' := init_t + t))) (EState (None, dis_s(CHR ''t'' := dis_t + t)))) (run_ch t) 0 ({run_ch t}, {}) blk2 \<Longrightarrow>
-   task_dis_assn t (dis_s(CHR ''t'' := dis_t + wt)) (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
+   Waitout\<^sub>t d (\<lambda>_. ParState (EState (task_es, task_s))(EState (None,dis_s(CHR ''t'' := dis_t + t)))) (req_ch t) tp ({req_ch t}, {}) blk1 \<Longrightarrow>
+   d=0 \<longrightarrow> Waitin\<^sub>t wt (\<lambda>t. ParState (EState (task_es,task_s(CHR ''t'' := init_t + t))) (EState (None, dis_s(CHR ''t'' := dis_t + t)))) (run_ch t) 0 ({}, {run_ch t}) blk2 \<Longrightarrow>
+   d=0 \<longrightarrow> task_dis_assn t (dis_s(CHR ''t'' := dis_t + wt)) (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) rest \<Longrightarrow>
    task_dis_assn t dis_s task_es task_s (blk1 @ blk2 @ rest)"
 | "task_es = Task READY ent tp \<Longrightarrow>
    init_task_t = task_s (CHR ''t'') \<Longrightarrow>
@@ -461,9 +474,9 @@ next
       done
   qed
 next
-  case (3 task_es ent tp init_t task_s wt t blk1 blk2 rest)
+  case (3 task_es ent tp init_t task_s wt d t blk1 blk2 rest)
   note a3 = 3
-  from a3(8,9,10,11,7) show ?case 
+  from a3(7,8,9,10) show ?case 
   proof (induction arbitrary: tr  rule: dispatch_assn.induct)
     case (1 t' start_s)
     note b1 = 1
@@ -472,29 +485,33 @@ next
       thm b1
       using b1(1,2,3)
       using a3(4,5)
-      apply (auto elim!:in_assn.cases wait_in_assn.cases out_assn.cases)
+      apply (auto elim!:in_assn.cases waitin_assn.cases waitout_assn.cases)
                  apply (auto elim!: sync_elims)
-         apply (auto simp add: ch_dist) 
-      subgoal premises pre for tra
+      apply (auto simp add: ch_dist) 
+      subgoal premises pre for tra 
       proof-
-        have 1:"task_dis_assn t start_s (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) tra"
-        using b1(4)[of start_s "[]" tra]
-        using dispatch_assn.intros(1)[of t' start_s]
-        using pre by blast
+        thm pre
+        have 1:"task_dis_assn t' start_s (Task RUNNING ent tp) (task_s(CHR ''t'' := init_t + wt)) tra"
+          using a3(6,8,9) 
+          apply(simp add: pre)
+          using dispatch_assn.intros(1)[of t' start_s]
+          using pre(8)
+          by (smt (verit, best) "3.IH" a3(9) b1(1) pre(4) pre(6))
       obtain start_t where startt:"start_t = start_s CHR ''t''"
         by auto
       have 2:"wt \<le> 9 / 200 - task_s CHR ''t''"
         using a3 by auto
-      have 3:"task_dis_assn t' start_s task_es task_s (OutBlock (req_ch t') tp # InBlock (run_ch t') 0 # tra)"
-        using task_dis_assn.intros(3)[of task_es ent tp init_t task_s start_t start_s wt t blk1 init_t blk2 tra]
-        apply(simp add: a3(1,2,3) startt 2) 
-        using out_assn.intros(1)[of "(ParState (EState (Task READY ent tp, task_s)) (EState (estate.None, start_s)))"
-                                     "(req_ch t)" tp]
-        using waitin_assn.intros(2)[of wt "(\<lambda>t. ParState
-            (EState (Task READY ent tp, task_s(CHR ''t'' := task_s CHR ''t'' + t)))
-            (EState (estate.None, start_s(CHR ''t'' := start_s CHR ''t'' + t))))" "(run_ch t)"
-            0 "({run_ch t}, {})"] pre(2,3,4,5) apply auto
-        using 1 pre(2,4) a3(2) by auto
+      have 3:"task_dis_assn t' start_s task_es task_s (blk1 @ blk2 @ tra)"
+        apply(rule task_dis_assn.intros(3)[where d=0])
+              apply(rule a3(1))
+             apply(rule a3(2))
+            apply(rule startt)
+           apply(rule a3(3))
+          apply auto
+          prefer 3
+        apply(simp add:pre(6) startt)
+        apply(rule 1)
+        sorry
       then show ?thesis using pre by auto
     qed
     done
@@ -506,9 +523,15 @@ next
       thm a3
       thm task_dis_assn.intros(3)
       using b2(4,5,8,9,10) a3(4,5)
-      apply(auto elim!:wait_assn.cases wait_in_assn.cases out_assn.cases)
-      
-
+      apply auto
+      subgoal premises pre 
+        thm pre
+        using pre(6,7)
+        apply(auto elim!:waitout_assn.cases)
+        using task_dis_assn.intros(3)[of task_es ent tp init_t task_s init_t' start_s wt d t]
+        apply(auto simp add: a3(1,2,3) b2(1))
+        sorry
+      sorry
       
   qed
 next
@@ -525,7 +548,7 @@ qed
 
 
 
-
+(*
 
 inductive sch_task_assn :: "estate \<Rightarrow> state \<Rightarrow> tid \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> state \<Rightarrow> estate tassn" where
   "sch_task_assn (Sch p rn rp) sch_s t (Task st ent tp) task_s dis_s []"
@@ -571,3 +594,430 @@ inductive sch_task_assn :: "estate \<Rightarrow> state \<Rightarrow> tid \<Right
    sch_task_assn sch_es sch_s  t  task_es task_s dis_s (blk1 @ blk2 @blk3 @ rest)"
 
 
+
+*)
+
+fun dispatch_assn' :: "tid \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "dispatch_assn' t 0 start_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+  (* Case for finishing a period *)
+| "dispatch_assn' t (Suc k) start_s tr \<longleftrightarrow> 
+   wait_orig_assn (0.045-start_s (CHR ''t''))
+                  (\<lambda>t. EState (None, start_s(CHR ''t'' := start_s (CHR ''t'') + t))) ({}, {})
+   (out_orig_assn (dispatch_ch t) 0 (EState (None, start_s(CHR ''t'' := 0))) 
+   (dispatch_assn' t k (start_s(CHR ''t'' := 0)))) tr"
+
+
+
+fun task_assn' :: "tid \<Rightarrow> nat \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "task_assn' t 0 (Task st ent tp) start_s tr \<longleftrightarrow> (emp\<^sub>t tr) "
+| "task_assn' t (Suc k) (Task WAIT ent tp) start_s tr \<longleftrightarrow>
+   in_vassm_assn (dispatch_ch t) {0} (EState (Task WAIT ent tp, start_s))
+   (\<lambda>_ . task_assn' t k (Task READY 0 tp) (start_s(CHR ''t'' := 0))) tr"
+| "task_assn' t (Suc k) (Task READY ent tp) start_s tr \<longleftrightarrow>
+   out_0assm_assn (req_ch t) tp 
+     (waitin_assms'_assn {0..<0.045-start_s (CHR ''t'')}
+          (\<lambda>t . EState (Task READY ent tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t)))
+          ({}, {run_ch t}) (run_ch t) {0}
+     (\<lambda> v d'. task_assn' t k (Task RUNNING 1 tp)
+          (start_s(CHR ''t'' := start_s (CHR ''t'') + d',CHR ''c'' := 0)))) tr \<or> 
+   out_0assm_assn (req_ch t) tp 
+     (wait_orig_assn (0.045 - start_s (CHR ''t''))
+          (\<lambda>t. EState (Task READY ent tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t)))
+          ({}, {run_ch t}) 
+     (out_0assm_assn (exit_ch t) 0  
+     (task_assn' t k (Task WAIT ent tp) (start_s(CHR ''t'' := 0.45))))) tr"
+| "task_assn' t (Suc k) (Task RUNNING ent tp) start_s tr \<longleftrightarrow>
+   (if ent = 1 then
+   waitin_assms'_assn ({0.. 0.045 - start_s (CHR ''t'')} \<inter> {0.. 0.01 - start_s (CHR ''c'')})
+     (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
+                                             CHR ''c'' := start_s (CHR ''c'') + t)))
+     ({preempt_ch t}, {}) (preempt_ch t) {0} 
+   (\<lambda> v d. task_assn' t k (Task READY 1 tp)
+     (start_s(CHR ''t'' := start_s (CHR ''t'') + d,
+              CHR ''c'' := start_s (CHR ''c'') + d))) tr
+   \<or>
+   wait_guar'_assn {min (0.045-start_s (CHR ''t'')) (0.01-start_s (CHR ''c''))}
+     (\<lambda>t. EState (Task RUNNING 1 tp, start_s(CHR ''t'' := start_s (CHR ''t'') + t,
+                                             CHR ''c'' := start_s (CHR ''c'') + t)))
+     ({preempt_ch t}, {}) 
+   (\<lambda> d. out_0assm_assn (free_ch t) 0 
+      (task_assn' t k (Task WAIT 1 tp) (start_s(CHR ''t'' := start_s (CHR ''t'') + d,
+                                                CHR ''c'' := start_s (CHR ''c'') + d)))) tr
+   else False)"
+| "task_assn' t n (Sch v va vb) start_s tr \<longleftrightarrow> False"
+| "task_assn' t n None start_s tr \<longleftrightarrow> False"
+
+
+fun task_dis_assn' :: "tid \<Rightarrow> nat \<Rightarrow> state \<Rightarrow> estate \<Rightarrow> state \<Rightarrow> estate tassn" where
+  "task_dis_assn' t 0 dis_s task_es task_s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "task_dis_assn' t (Suc k) dis_s (Task WAIT ent tp) task_s tr \<longleftrightarrow>
+   wait_orig_assn (0.045 - dis_s (CHR ''t'')) 
+            (\<lambda>t. ParState (EState (Task WAIT ent tp, task_s))
+                          (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) ({}, {dispatch_ch t})
+   (io_orig_assn (dispatch_ch t) 0 
+   (task_dis_assn' t k (dis_s(CHR ''t'' := 0)) (Task READY 0 tp) (task_s(CHR ''t'' := 0))))tr"
+| "task_dis_assn' t (Suc k) dis_s (Task READY ent tp) task_s tr \<longleftrightarrow>
+   out_0assm_assn (req_ch t) tp  
+   (waitin_assms'_assn {0..<0.045-task_s (CHR ''t'')} 
+           (\<lambda>t. ParState (EState (Task READY ent tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t))) 
+                         (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) ({}, {run_ch t}) (run_ch t) {0}
+   (\<lambda> v d'. task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d')) (Task RUNNING 1 tp) (task_s(CHR ''t'' := task_s (CHR ''t'') + d',CHR ''c'' := 0)))) tr \<or> 
+   out_0assm_assn (req_ch t) tp  
+   (wait_orig_assn (0.045 - task_s (CHR ''t'')) 
+           (\<lambda>t. ParState (EState (Task READY ent tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t)))
+                         (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t)))) ({}, {run_ch t}) 
+   (out_0assm_assn (exit_ch t) 0 
+   (task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + 0.45-task_s (CHR ''t''))) (Task WAIT ent tp) (task_s(CHR ''t'' := 0.45))))) tr"
+| "task_dis_assn' t (Suc k) dis_s (Task RUNNING ent tp) task_s tr \<longleftrightarrow>
+   (if ent = 1 then
+   waitin_assms'_assn ({0.. 0.045 - task_s (CHR ''t'')} \<inter> {0.. 0.01 - task_s (CHR ''c'')})
+     (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
+                                             CHR ''c'' := task_s (CHR ''c'') + t)))
+                   (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
+     ({preempt_ch t}, {}) (preempt_ch t) {0} 
+   (\<lambda> v d. task_dis_assn' t k (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d)) (Task READY 1 tp)
+     (task_s(CHR ''t'' := task_s (CHR ''t'') + d,
+              CHR ''c'' := task_s (CHR ''c'') + d))) tr
+   \<or>
+   wait_guar'_assn {min (0.045-task_s (CHR ''t'')) (0.01-task_s (CHR ''c''))}
+     (\<lambda>t. ParState (EState (Task RUNNING 1 tp, task_s(CHR ''t'' := task_s (CHR ''t'') + t,
+                                             CHR ''c'' := task_s (CHR ''c'') + t)))
+                   (EState (None, dis_s(CHR ''t'' := dis_s (CHR ''t'') + t))))
+     ({preempt_ch t}, {}) 
+   (\<lambda> d. out_0assm_assn (free_ch t) 0
+      (task_dis_assn' t k  (dis_s(CHR ''t'' := dis_s (CHR ''t'') + d)) (Task WAIT 1 tp)
+    (task_s(CHR ''t'' := task_s (CHR ''t'') + d, CHR ''c'' := task_s (CHR ''c'') + d)))) tr
+   else False)"
+
+thm task_assn'.induct
+thm task_assn'.simps
+
+
+lemma combine_out_tassm0_wait_orig_out_orig:
+  assumes "dh \<notin> chs"
+   and "ch \<in> chs"
+ shows "combine_assn chs (out_0assm_assn dh v P) (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))
+        \<Longrightarrow>\<^sub>t (out_0assm_assn dh v  
+            (combine_assn chs P (wait_orig_assn d p rdy (out_orig_assn ch v' s Q))))"
+  apply(auto simp add:entails_tassn_def combine_assn_def)
+  subgoal for tr tr1 tr2
+    apply(cases rule: out_0assm_assn.cases[of dh v P tr1])
+      apply auto
+    subgoal for tr1'
+      apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+        apply auto
+      subgoal
+        apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+          apply auto
+        subgoal for tr2'
+          using assms
+          apply(elim combine_blocks_unpairE1)
+            apply auto
+          apply(rule out_0assm_assn.intros(1))
+          by auto
+        subgoal for tr2' d
+          using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_assn.intros(1))
+          by auto
+        done
+      subgoal for tr2'
+        using assms
+          apply(elim combine_blocks_unpairE3)
+           apply auto
+          apply(rule out_0assm_assn.intros(1))
+          by auto
+        done
+      subgoal for d1 p1 a b tr1'
+        apply(cases rule: wait_orig_assn.cases[of d p rdy "(out_orig_assn ch v' s Q)" tr2])
+          apply auto
+        subgoal
+          apply(cases rule: out_orig_assn.cases[of ch v' s Q tr2])
+            apply auto
+          subgoal for tr2'
+            using assms
+            apply(auto elim:sync_elims)
+            done
+          subgoal for tr2' d2
+            apply(cases "\<not>compat_rdy (a,b) ({ch}, {})")
+            subgoal
+             by(auto elim:sync_elims)
+           apply(cases "d1>d2")
+           subgoal 
+             apply auto
+             thm combine_blocks_waitE4
+             apply(rule combine_blocks_waitE4[of chs ])
+
+
+
+
+
+lemma combine_task_dis':
+  "task_assn' t k task_es task_s tr1 \<Longrightarrow>
+   dispatch_assn' t' kk dis_s tr2 \<Longrightarrow>
+   t \<in> tid_set \<Longrightarrow>
+   t = t' \<Longrightarrow>
+   combine_blocks {dispatch_ch t} tr1 tr2 tr \<Longrightarrow>
+   task_dis_assn' t k dis_s task_es task_s tr"
+proof(induction k arbitrary: kk task_es task_s dis_s tr1 tr2 tr)
+  case 0
+  note 0 = 0
+  then show ?case 
+    apply(cases task_es)
+      apply auto
+    subgoal for st ent tp
+  proof(induction kk)
+    case 0
+    then show ?case 
+      apply auto 
+      subgoal premises pre
+        apply (rule combine_blocks_assn)
+           apply (rule pre(1))
+        apply(rule pre(2))
+         apply(rule pre(5))
+        by (auto elim!: sync_elims)
+      done
+  next
+    case (Suc kk)
+    then show ?case 
+      apply auto 
+      subgoal premises pre
+        thm pre
+        apply(rule combine_blocks_assn)
+           apply(rule pre (2))
+          apply(rule pre (3))
+         apply(rule pre (6))
+        apply(rule entails_tassn_trans)
+         apply(rule combine_emp_wait_orig5)
+        apply(rule combine_emp_out_orig1)
+        by auto
+      done
+  qed
+  done
+next
+  case (Suc k)
+  note suc1 = Suc
+  then show ?case 
+  proof(induction kk)
+    case 0
+    then show ?case 
+      apply(cases task_es)
+      apply auto
+      subgoal for st ent tp
+        apply(cases st) apply simp
+        subgoal premises pre
+          thm pre
+          apply(rule combine_blocks_assn)
+             apply(rule pre(2))
+            apply(rule pre(3))
+           apply(rule pre(6))
+          apply(rule combine_in_vassm_emp1)
+          by auto
+         apply simp
+        subgoal apply(erule disjE)
+          subgoal premises pre
+            thm pre
+            apply(rule disjI1)
+            apply(rule combine_blocks_assn)
+               apply(rule pre(8))
+              apply(rule pre(2))
+             apply(rule pre(5))
+            apply(rule entails_tassn_trans)
+             apply(rule combine_out_0assm_emp2)
+            subgoal using ch_dist pre(3) by auto
+            apply(rule out_0assm_assn_tran)
+            subgoal 
+              apply(rule entails_tassn_trans)
+             apply(rule combine_waitin_assms'_emp2)
+              subgoal using ch_dist pre(3) by auto
+              apply(rule waitin_assms'_assn_tran)
+              unfolding entails_tassn_def combine_assn_def
+              apply clarify
+              subgoal for v d tr tr1 tr2
+                using pre(1)[of "(Task RUNNING (Suc 0) tp)"
+                                "(task_s(CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := 0))"
+                                tr1 0 
+                                "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))" tr2 tr]
+                apply(subgoal_tac"dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
+                subgoal by blast
+                by auto
+              done
+            done
+          subgoal premises pre
+            thm pre
+            apply(rule disjI2)
+            apply(rule combine_blocks_assn)
+              apply(rule pre(8))
+              apply(rule pre(2))
+             apply(rule pre(5))
+            apply(rule entails_tassn_trans)
+             apply(rule combine_out_0assm_emp2)
+            subgoal using ch_dist pre(3) by auto
+            apply(rule out_0assm_assn_tran)
+            subgoal 
+              apply(rule entails_tassn_trans)
+               apply(rule combine_wait_orig_emp2)
+              apply(rule wait_orig_assn_tran)
+              apply(rule entails_tassn_trans)
+               apply(rule combine_out_0assm_emp2)
+              subgoal using ch_dist pre(3) by auto
+              apply(rule out_0assm_assn_tran)
+              subgoal 
+                unfolding entails_tassn_def combine_assn_def
+                apply clarify
+                subgoal for tr tr1 tr2
+                  using pre(1)[of "(Task WAIT ent tp)" "(task_s(CHR ''t'' := 9 / 20))" tr1 0
+                              "(dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 20 - task_s CHR ''t''))"
+                               tr2 tr]
+                  apply(subgoal_tac "dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + 9 / 20 - task_s CHR ''t''))tr2")
+                   apply blast
+                  by auto
+                done
+              done
+            done
+          done
+        subgoal apply simp
+          apply(cases "ent = Suc 0")
+          subgoal 
+            apply simp
+            apply(erule disjE)
+            subgoal apply(rule disjI1)
+              subgoal premises pre
+                thm pre
+                apply(rule combine_blocks_assn)
+                   apply(rule pre(9))
+                  apply(rule pre(2))
+                apply(rule pre(5))
+                apply(rule entails_tassn_trans)
+                 apply(rule combine_waitin_assms'_emp2)
+                subgoal using ch_dist pre(3) by auto
+                apply(rule waitin_assms'_assn_tran)
+                apply clarify
+                subgoal for v d
+                  unfolding entails_tassn_def combine_assn_def
+                  apply clarify
+                  subgoal for tr tr1 tr2
+                    using pre(1)[of "(Task READY (Suc 0) tp)" 
+                                    "(task_s(CHR ''t'' := task_s CHR ''t'' + d, CHR ''c'' := task_s CHR ''c'' + d))" 
+                                    tr1 0 "(dis_s(CHR ''t'' := dis_s CHR ''t'' + d))"
+                                    tr2 tr]
+                    apply(subgoal_tac "dispatch_assn' t' 0 (dis_s(CHR ''t'' := dis_s CHR ''t'' + d)) tr2")
+                     apply blast
+                    by auto
+                  done
+                done
+              done
+            subgoal apply(rule disjI2)
+              subgoal premises pre
+                thm pre
+                apply(rule combine_blocks_assn)
+                   apply(rule pre(9))
+                  apply(rule pre(2))
+                 apply(rule pre(5))
+                apply(rule entails_tassn_trans)
+                 apply(rule combine_wait_guar'_emp2)
+                apply(rule wait_guar'_assn_tran)
+                apply clarify
+                subgoal for v
+                  apply(rule entails_tassn_trans)
+                   apply(rule combine_out_0assm_emp2)
+                  subgoal using ch_dist pre(3) by auto
+                  apply(rule out_0assm_assn_tran)
+                  unfolding entails_tassn_def combine_assn_def
+                  apply clarify
+                  subgoal for tr tr1 tr2
+                    using pre(1)[of "(Task WAIT (Suc 0) tp)" 
+                     "(task_s(CHR ''t'' :=task_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''),
+                              CHR ''c'' :=task_s CHR ''c'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                     tr1 0 "(dis_s (CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c'')))"
+                        tr2 tr]
+                    apply(subgoal_tac "dispatch_assn' t' 0
+                       (dis_s (CHR ''t'' := dis_s CHR ''t'' + min (9 / 200 - task_s CHR ''t'') (1 / 100 - task_s CHR ''c''))) tr2")
+                     apply blast
+                    by auto
+                  done
+                done
+              done
+            done
+          subgoal by auto
+          done
+        done
+      done
+  next
+    case (Suc kk)
+    note suc2 = Suc
+    then show ?case 
+      apply auto
+      apply(cases task_es)
+        apply auto
+      subgoal for st ent tp
+        apply(cases st) apply simp
+        subgoal premises pre
+          thm pre
+          apply(rule combine_blocks_assn)
+             apply(rule pre(3))
+            apply(rule pre(4))
+           apply(rule pre(7))
+          apply(rule entails_tassn_trans)
+           apply(rule combine_in_vassm_wait_orig1)
+            apply simp
+           apply simp
+          apply auto
+          apply(rule wait_orig_assn_tran)
+          apply(rule entails_tassn_trans)
+           apply(rule combine_in_vassm_out_orig1)
+            apply auto
+          apply(rule io_orig_assn_tran)
+          unfolding entails_tassn_def combine_assn_def
+          apply clarify
+          subgoal for tr tr1 tr2
+            using pre(2)[of "(Task READY 0 tp)" "(\<lambda>a. if a = CHR ''t'' then 0 else task_s a)" tr1
+                            kk "(\<lambda>a. if a = CHR ''t'' then 0 else dis_s a)" tr2 tr]
+            by auto
+          done
+        subgoal apply simp
+          apply(erule disjE)
+          subgoal apply(rule disjI1)
+            subgoal premises pre
+              thm pre
+              apply(rule combine_blocks_assn)
+                 apply(rule pre(9))
+                apply(rule pre(3))
+               apply(rule pre(6))
+              apply(rule combine_out_tassm_wait_orig2)
+          
+        
+  qed
+  
+      
+
+  
+qed
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+end

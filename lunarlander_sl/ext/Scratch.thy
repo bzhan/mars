@@ -1,5 +1,5 @@
 theory Scratch
-  imports ext_Complementlemma
+  imports AssumeGuarantee
 begin
 
 datatype n = None
@@ -245,21 +245,78 @@ next
 qed
 
 
+fun p1_assn' :: "nat \<Rightarrow> state \<Rightarrow> n tassn" where
+  "p1_assn' 0 s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "p1_assn' (Suc k) s tr \<longleftrightarrow>
+   waitout_assm_assn {1} (\<lambda>t. EState(None, s(X := s X + t))) ({''ch1''},{}) ''ch1'' (\<lambda>_ .1)
+   (in_orig_assn ''ch2'' 0 (EState(None,s(X := s X + 1))) (p1_assn' k (s(X:=0)))) tr"
 
-inductive p1_assn' :: "state \<Rightarrow>  n tassn" where
-  "p1_assn' s []"
-| "(d = 1 \<and> x = s X) \<longrightarrow>p1_assn' s tr3 \<Longrightarrow>
-   (WaitOut\<^sub>t d1 None (\<lambda> t. s(X := s X + t)) (''ch1'') (\<lambda> (a,s). s X) ({''ch1''},{}) tr1 \<and>
-   In\<^sub>t (EState (None,s(X := s X + d))) (''ch2'') x tr2) \<Longrightarrow>
-   p1_assn' s (tr1@tr2@tr3)"
+fun p2_assn' :: "nat \<Rightarrow> state \<Rightarrow> n tassn" where
+  "p2_assn' 0 s tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "p2_assn' (Suc k) s tr \<longleftrightarrow>
+   wait_orig_assn 1 (\<lambda> _ . EState (None,s)) ({},{}) 
+   (in_orig_assn ''ch1'' 1 (EState (None,s)) (out_orig_assn ''ch2'' 0 (EState (None,s(X:=1))) (p2_assn' k (s(X:=1))))) tr
+   "
 
-inductive p2_assn' :: "state \<Rightarrow>  n tassn" where
-  "p2_assn' s []"
-| "p2_assn' (s(X:=x)) tr4 \<Longrightarrow>
-   Wait\<^sub>t 1 (\<lambda> _ . EState (None,s)) ({},{}) tr1 \<and> 
-   In\<^sub>t (EState (None,s)) (''ch1'') x tr2 \<and>
-   Out\<^sub>t (EState (None,s(X:=x))) (''ch2'') (x-1) tr3 \<Longrightarrow>
-   p2_assn' s (tr1@tr2@tr3@tr4)"
+fun t_assn' :: "nat \<Rightarrow> state \<Rightarrow> state \<Rightarrow> n tassn" where
+  "t_assn' 0 s s' tr \<longleftrightarrow> (emp\<^sub>t tr)"
+| "t_assn' (Suc k) s s' tr \<longleftrightarrow>
+   wait_orig_assn 1 (\<lambda> t . ParState (EState(None, s(X := s X + t))) (EState (None,s'))) ({''ch1''},{}) 
+   (io_orig_assn ''ch1'' 1  
+   (io_orig_assn ''ch2'' 0 (t_assn' k (s(X:=0)) (s'(X:=1))))) tr
+   "
+
+
+
+lemma combine':
+"combine_assn {''ch1'',''ch2''} (p1_assn' m1 s1) (p2_assn' m2 s2) \<Longrightarrow>\<^sub>t t_assn' m1 s1 s2"
+proof(induction m1 arbitrary: s1 s2 m2)
+  case 0
+  then show ?case 
+  proof(cases m2)
+    case 0
+    then show ?thesis 
+      by auto 
+  next
+    case (Suc nat)
+    then show ?thesis 
+      apply auto 
+      apply(rule combine_emp_wait_orig1)
+      by auto
+  qed
+next
+  case (Suc m1)
+  note suc = Suc
+  then show ?case
+  proof(cases m2)
+    case 0
+    then show ?thesis
+      apply auto
+      apply(rule combine_waitout_assm_emp1)
+      by auto
+  next
+    case (Suc nat)
+    then show ?thesis 
+      apply auto 
+      apply(subst wait_orig_to_guard)
+      apply(rule entails_tassn_trans)
+       apply(rule combine_waitout_assm_wait_guar1)
+        apply auto
+      apply(subst wait_orig_to_guard')
+      apply(rule wait_guar'_assn_tran)
+      apply auto
+      apply(rule entails_tassn_trans)
+       apply(rule combine_waitout_assm_in_orig1)
+      apply(auto simp add:wait_set_minus_def)
+      apply(rule io_orig_assn_tran)
+      apply(rule entails_tassn_trans)
+       apply(rule combine_in_orig_out_orig1)
+      apply auto
+      apply(rule io_orig_assn_tran)
+      using suc by auto
+  qed
+qed
+
 
 
 end
