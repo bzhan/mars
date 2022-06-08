@@ -10,14 +10,12 @@ import math
 import random
 from decimal import Decimal
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
-from ss2hcsp.hcsp import graph_plot
 import numpy as np
 from ss2hcsp.matlab import function
 
