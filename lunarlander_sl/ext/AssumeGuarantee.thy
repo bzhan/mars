@@ -31,7 +31,7 @@ inductive out_tassm_assn :: "cname \<Rightarrow> real \<Rightarrow> 'a gstate \<
 
 inductive out_0assm_assn :: "cname \<Rightarrow> real \<Rightarrow> 'a tassn \<Rightarrow> 'a tassn" where
   "P tr \<Longrightarrow> (out_0assm_assn ch v P) (OutBlock ch v # tr)"
-| "d > 0 \<Longrightarrow> (out_0assm_assn ch v P) (WaitBlk d p rdy # tr)"
+| "d > 0 \<Longrightarrow> ch \<in> fst rdy \<Longrightarrow> (out_0assm_assn ch v P) (WaitBlk d p rdy # tr)"
 
 lemma out_orig_assn_tran:
   assumes "P \<Longrightarrow>\<^sub>t Q"
@@ -424,7 +424,11 @@ lemma combine_out_guar_in_tassm1':
       subgoal for tr2' by (auto elim!: sync_elims)
       subgoal for d tr2' 
         apply (cases "d1 < d")
-        subgoal apply auto apply (elim combine_blocks_waitE3)
+        subgoal apply auto 
+          apply (rule combine_blocks_waitE3
+                            [of chs d1 "(\<lambda>\<tau>. s1)"" ({}, {})" 
+                                "WaitBlk d2 (\<lambda>\<tau>. s1) ({ch}, {}) # OutBlock ch v # tr1'"
+                                d "(\<lambda>\<tau>. s2)""({}, {ch})" "InBlock ch v # tr2'" tr])
           by (auto elim!: sync_elims)
         apply (cases "d < d1")
         subgoal apply auto apply (elim combine_blocks_waitE4)
@@ -437,7 +441,11 @@ lemma combine_out_guar_in_tassm1':
       subgoal for w tr2' by (auto elim!: sync_elims)
       subgoal for d w tr2'
         apply (cases "d1 < d")
-        subgoal apply auto apply (elim combine_blocks_waitE3)
+        subgoal apply auto 
+          apply (rule combine_blocks_waitE3
+                            [of chs d1 "(\<lambda>\<tau>. s1)"" ({}, {})" 
+                                "WaitBlk d2 (\<lambda>\<tau>. s1) ({ch}, {}) # OutBlock ch v # tr1'"
+                                d "(\<lambda>\<tau>. s2)""({}, {ch})" "InBlock ch w # tr2'" tr])
           by (auto elim!: sync_elims)
         apply (cases "d < d1")
         subgoal apply auto apply (elim combine_blocks_waitE4)
@@ -589,6 +597,13 @@ inductive waitin_assms'_inv_assn :: "real set \<Rightarrow> ('a gstate \<Rightar
 | "d \<notin> S \<or> w \<notin> V \<Longrightarrow> d > 0 \<Longrightarrow> (waitin_assms'_inv_assn S Inv rdy ch V P)
       (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch w # tr)"
 
+inductive waitin_tguar'_vassm'_assn :: "real set \<Rightarrow> (real \<Rightarrow> 'a gstate) \<Rightarrow> rdy_info \<Rightarrow> cname \<Rightarrow> real set \<Rightarrow> (real \<Rightarrow> real \<Rightarrow> 'a tassn) \<Rightarrow> 'a tassn" where
+  "0 \<in> S \<Longrightarrow> v \<in> V \<Longrightarrow> (P v 0) tr \<Longrightarrow> (waitin_tguar'_vassm'_assn S p rdy ch V P) (InBlock ch v # tr)"
+| "d \<in> S \<Longrightarrow> d > 0 \<Longrightarrow> v \<in> V \<Longrightarrow> (P v d) tr \<Longrightarrow> (waitin_tguar'_vassm'_assn S p rdy ch V P)
+      (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch v # tr)"
+| "0 \<in> S \<Longrightarrow> w \<notin> V \<Longrightarrow> (waitin_tguar'_vassm'_assn S p rdy ch V P) (InBlock ch w # tr)"
+| "d \<in> S \<Longrightarrow> d > 0 \<Longrightarrow> w \<notin> V \<Longrightarrow> (waitin_tguar'_vassm'_assn S p rdy ch V P)
+      (WaitBlk d (\<lambda>\<tau>. p \<tau>) rdy # InBlock ch w # tr)"
 
 lemma waitin_assms'_assn_tran:
   assumes"\<And> v d. v \<in> V \<and> d \<in> S \<Longrightarrow> P v d \<Longrightarrow>\<^sub>t Q v d"
@@ -620,6 +635,33 @@ lemma waitin_assms'_assn_tran:
       by(auto simp add:entails_tassn_def)
     subgoal for d w tr'
       apply(rule waitin_assms'_assn.intros(4))
+      using assms
+      by(auto simp add:entails_tassn_def)
+    done
+  done
+
+lemma waitin_tguar'_vassm'_assn_tran:
+  assumes"\<And> v d. v \<in> V \<and> d \<in> S \<Longrightarrow> P v d \<Longrightarrow>\<^sub>t Q v d"
+  shows "waitin_tguar'_vassm'_assn S p rdy ch V P \<Longrightarrow>\<^sub>t waitin_tguar'_vassm'_assn S p rdy ch V Q"
+  unfolding entails_tassn_def
+  apply auto
+  subgoal for tr
+    apply(cases rule: waitin_tguar'_vassm'_assn.cases[of S p rdy ch V P tr])
+      apply auto
+    subgoal
+      apply(rule waitin_tguar'_vassm'_assn.intros(1))
+      using assms 
+      by(auto simp add:entails_tassn_def)
+    subgoal for d v tr'
+      apply(rule waitin_tguar'_vassm'_assn.intros(2))
+      using assms
+      by(auto simp add:entails_tassn_def)
+    subgoal for w tr'
+      apply(rule waitin_tguar'_vassm'_assn.intros(3))
+      using assms
+      by(auto simp add:entails_tassn_def)
+    subgoal for d w tr'
+      apply(rule waitin_tguar'_vassm'_assn.intros(4))
       using assms
       by(auto simp add:entails_tassn_def)
     done
@@ -695,7 +737,7 @@ assumes "ch \<in> chs "
         subgoal for tr'
           apply(rule wait_guar'_assn.intros(2))
             apply auto
-          apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. p (t + d2)) rdy1 # OutBlock ch (e (p d1)) # tr1')"])
+          apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. p (t + d2)) rdy1 # OutBlock ch (e (p d1)) # tr1')"])
           apply auto
           using waitout_assm_assn.intros(2) 
           using waitout_assm_assn.intros(4)
@@ -722,7 +764,7 @@ assumes "ch \<in> chs "
       subgoal
         apply(rule wait_guar'_assn.intros(1))
          apply auto
-        apply(rule exI[where x="(WaitBlk (ereal d1) p rdy1 # OutBlock ch w # tr1')"])
+        apply(rule exI[where x="(WaitBlk d1 p rdy1 # OutBlock ch w # tr1')"])
         apply auto
         apply(rule waitout_assm_assn.intros(4))
          apply(auto simp add:wait_set_minus_def)
@@ -753,7 +795,7 @@ assumes "ch \<in> chs "
           subgoal for tr'
             apply(rule wait_guar'_assn.intros(2))
               apply auto
-            apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. p (t + d2)) rdy1 # OutBlock ch w # tr1')"])
+            apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. p (t + d2)) rdy1 # OutBlock ch w # tr1')"])
             apply auto
             apply(rule waitout_assm_assn.intros(4))
              apply(simp add:wait_set_minus_def)
@@ -1113,7 +1155,7 @@ assumes "ch \<in> chs "
       subgoal for tr'
         apply(rule wait_guar'_assn.intros(2))
           apply auto
-        apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({ch}, {}) # OutBlock ch v # tr1')"])
+        apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. s) ({ch}, {}) # OutBlock ch v # tr1')"])
         apply auto
         apply(cases "(d1 - d2)\<in>wait_set_minus S1 S2")
          apply(rule out_tassm_assn.intros(2)) 
@@ -1174,7 +1216,7 @@ assumes "ch \<in> chs "
       subgoal for tr'
         apply(rule wait_guar'_assn.intros(2))
           apply auto
-        apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({ch}, {}) # OutBlock ch w # tr1')"])
+        apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. s) ({ch}, {}) # OutBlock ch w # tr1')"])
         apply auto
         apply(rule out_tassm_assn.intros(4))
          apply(auto simp add:wait_set_minus_def)
@@ -1256,7 +1298,7 @@ assumes "ch \<in> chs "
       subgoal for tr'
         apply(rule wait_guar'_assn.intros(2))
           apply auto
-        apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
+        apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
         apply auto
         apply(cases "(d1 - d2)\<in>wait_set_minus S1 S2")
          apply(rule in_tassm_assn.intros(2)) 
@@ -1317,7 +1359,7 @@ assumes "ch \<in> chs "
       subgoal for tr'
         apply(rule wait_guar'_assn.intros(2))
           apply auto
-        apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1')"])
+        apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1')"])
         apply auto
         apply(rule in_tassm_assn.intros(4))
          apply(auto simp add:wait_set_minus_def)
@@ -1397,7 +1439,7 @@ assumes "ch \<in> chs "
         subgoal for tr'
           apply(rule wait_guar_assn.intros(2))
             apply auto
-          apply(rule exI[where x="(WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
+          apply(rule exI[where x="(WaitBlk ((d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
           apply auto
           apply(rule in_vassm_assn.intros(2))
           by auto
@@ -1447,7 +1489,7 @@ assumes "ch \<in> chs "
         subgoal for tr'
           apply(rule wait_guar_assn.intros(2))
             apply auto
-          apply(rule exI[where x="WaitBlk (ereal (d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1'"])
+          apply(rule exI[where x="WaitBlk ((d1 - d2)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1'"])
           apply auto
           apply(rule in_vassm_assn.intros(4))
           by auto
@@ -1521,7 +1563,7 @@ assumes "ch \<in> chs "
         subgoal for tr'
           apply(rule wait_orig_assn.intros(2))
             apply auto
-          apply(rule exI[where x="(WaitBlk (ereal (d1 - T)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
+          apply(rule exI[where x="(WaitBlk ((d1 - T)) (\<lambda>t. s) ({}, {ch}) # InBlock ch v # tr1')"])
           apply auto
           apply(rule in_vassm_assn.intros(2))
           by auto
@@ -1571,7 +1613,7 @@ assumes "ch \<in> chs "
         subgoal for tr'
           apply(rule wait_orig_assn.intros(2))
             apply auto
-          apply(rule exI[where x="WaitBlk (ereal (d1 - T)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1'"])
+          apply(rule exI[where x="WaitBlk ((d1 - T)) (\<lambda>t. s) ({}, {ch}) # InBlock ch w # tr1'"])
           apply auto
           apply(rule in_vassm_assn.intros(4))
           by auto
@@ -1665,6 +1707,21 @@ lemma combine_waitin_assms'_emp2:
   done
   done
 
+lemma combine_waitin_tguar'_vassm'_emp2:
+"ch\<notin>chs \<Longrightarrow> combine_assn chs (waitin_tguar'_vassm'_assn S p rdy ch V P) emp\<^sub>t \<Longrightarrow>\<^sub>t (waitin_tguar'_vassm'_assn S q rdy ch V (\<lambda> v t . combine_assn chs (P v t) emp\<^sub>t))"
+  apply(auto simp add:entails_tassn_def combine_assn_def emp_assn_def)
+  subgoal for tr tr1 
+    apply(cases rule:waitin_tguar'_vassm'_assn.cases[of S p rdy ch V P tr1])
+        apply (auto elim!: sync_elims)
+    subgoal for v tr1' tr'
+      apply(rule waitin_tguar'_vassm'_assn.intros(1))
+      by auto
+    subgoal for w tr1' tr'
+      apply(rule waitin_tguar'_vassm'_assn.intros(3))
+      by auto
+  done
+  done
+
 
 lemma combine_wait_orig_emp2:
 "combine_assn chs (wait_orig_assn d p rdy P) emp\<^sub>t \<Longrightarrow>\<^sub>t (wait_orig_assn d q rdy (combine_assn chs P emp\<^sub>t))"
@@ -1699,6 +1756,124 @@ lemma combine_out_orig_emp2:
     by auto
   done
 
+lemma combine_wait_orig_wait_orig2:
+  assumes "compat_rdy rdy1 rdy2"
+  shows "combine_assn chs (wait_orig_assn d p1 rdy1 P) (wait_orig_assn d p2 rdy2 Q) \<Longrightarrow>\<^sub>t
+         wait_orig_assn d (\<lambda> t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) (combine_assn chs P Q)"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply (cases rule:wait_orig_assn.cases[of d p1 rdy1 P tr1])
+      apply auto
+    subgoal 
+      apply (cases rule:wait_orig_assn.cases[of d p2 rdy2 Q tr2])
+        apply auto
+      apply(rule wait_orig_assn.intros(1))
+      by auto
+    subgoal for tr1'
+      apply (cases rule:wait_orig_assn.cases[of d p2 rdy2 Q tr2])
+        apply auto
+      subgoal for tr2'
+        apply(elim combine_blocks_waitE2)
+        using assms apply auto
+      apply(rule wait_orig_assn.intros(2))
+        by auto
+      done
+    done
+  done
 
+lemma combine_wait_orig_wait_orig3:
+  assumes "compat_rdy rdy1 rdy2"
+    and "d1<d2"
+  shows "combine_assn chs (wait_orig_assn d1 p1 rdy1 P) (wait_orig_assn d2 p2 rdy2 Q) \<Longrightarrow>\<^sub>t
+         wait_orig_assn d1 (\<lambda> t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) (combine_assn chs P (wait_orig_assn (d2-d1) (\<lambda> t. p2(t+d1)) rdy2 Q))"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply (cases rule:wait_orig_assn.cases[of d1 p1 rdy1 P tr1])
+      apply auto
+    subgoal 
+      apply (cases rule:wait_orig_assn.cases[of d2 p2 rdy2 Q tr2])
+        apply auto
+      subgoal
+      apply(rule wait_orig_assn.intros(1))
+        by auto
+      subgoal for tr2'
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+      done
+    subgoal for tr1'
+      apply (cases rule:wait_orig_assn.cases[of d2 p2 rdy2 Q tr2])
+      using assms
+        apply auto
+      subgoal for tr2'
+        apply(elim combine_blocks_waitE3)
+        using assms apply auto
+        apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x="tr1'"])
+        apply auto
+        apply(rule exI[where x="(WaitBlk (d2 - d1) (\<lambda>t. p2 (t + d1)) rdy2 # tr2')"])
+        apply auto
+        apply(rule  wait_orig_assn.intros(2))
+        by auto
+      done
+    done
+  done
+
+
+lemma combine_wait_orig_wait_orig5:
+  assumes "compat_rdy rdy1 rdy2"
+    and "d1\<le>d2"
+  shows "combine_assn chs (wait_orig_assn d1 p1 rdy1 P) (wait_orig_assn d2 p2 rdy2 Q) \<Longrightarrow>\<^sub>t
+         wait_orig_assn d1 (\<lambda> t. ParState (p1 t) (p2 t)) (merge_rdy rdy1 rdy2) (combine_assn chs P (wait_orig_assn (d2-d1) (\<lambda> t. p2(t+d1)) rdy2 Q))"
+  unfolding combine_assn_def entails_tassn_def
+  apply auto
+  subgoal for tr tr1 tr2
+    apply (cases rule:wait_orig_assn.cases[of d1 p1 rdy1 P tr1])
+      apply auto
+    subgoal 
+      apply (cases rule:wait_orig_assn.cases[of d2 p2 rdy2 Q tr2])
+        apply auto
+      subgoal
+      apply(rule wait_orig_assn.intros(1))
+        by auto
+      subgoal for tr2'
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+      done
+    subgoal for tr1'
+      apply (cases rule:wait_orig_assn.cases[of d2 p2 rdy2 Q tr2])
+      using assms
+        apply auto
+      subgoal for tr2'
+        apply(cases "d1<d2")
+        subgoal
+        apply(elim combine_blocks_waitE3)
+        using assms apply auto
+        apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x="tr1'"])
+        apply auto
+        apply(rule exI[where x="(WaitBlk (d2 - d1) (\<lambda>t. p2 (t + d1)) rdy2 # tr2')"])
+        apply auto
+        apply(rule  wait_orig_assn.intros(2))
+        by auto
+      subgoal apply(cases "d1=d2")
+         apply auto
+        apply(elim combine_blocks_waitE2)
+        using assms apply auto
+      apply(rule wait_orig_assn.intros(2))
+         apply auto
+        apply(rule exI[where x="tr1'"])
+        apply auto
+        apply(rule exI[where x="tr2'"])
+        apply auto
+        apply(rule wait_orig_assn.intros(1))
+        by auto
+      done
+    done
+  done
+  done
 
 end
