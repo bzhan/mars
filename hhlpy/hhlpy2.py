@@ -263,6 +263,9 @@ class CmdVerifier:
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
 
+        # Mapping from assertion postion to verification condition infomation.
+        self.vcs_infos = dict()
+
         # Set of function names that are used
         fun_names = hp.get_fun_names().union(pre.get_fun_names(), post.get_fun_names())
 
@@ -499,103 +502,84 @@ class CmdVerifier:
 
         elif isinstance(cur_hp, hcsp.Loop):
             # Loop, currently use the invariant that users offered.
+            # if cur_hp.constraint != expr.true_expr:
+            #     raise NotImplementedError
+
+            # if cur_hp.inv is None:
+            #     raise AssertionError("Loop invariant at position %s is not set." % str(pos))
+
+            # sub_invs = []
+            # for sub_inv in cur_hp.inv:
+            #     sub_invs.append(sub_inv.inv)
+            # inv = expr.list_conj(*sub_invs)
+
+            # # Compute wp for loop body with respect to invariant
+            # sub_pos = (pos[0] + (0,), pos[1])
+            # if sub_pos not in self.infos:
+            #     self.infos[sub_pos] = CmdInfo()
+            # sub_info = self.infos[sub_pos]
+            # sub_info.post = inv
+            # sub_info.assume += self.infos[pos].assume
+            # self.compute_wp(pos=sub_pos)
+            # pre_loopbody = sub_info.pre
+
+            # # pre is also set to be the invariant
+            # pre = inv
+
+            # # The 1st verification condition is invariant --> pre_loopbody.
+            # # If the pre condition of loop body is a conjunction expression, split it.
+            # if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
+            #     sub_pres = expr.split_conj(pre_loopbody)
+            #     self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
+            #                                     for sub_pre in sub_pres)
+            # else:
+            #     self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
+
+            # # The 2nd verification condition is invariant --> post.
+            # self.infos[pos].vcs.append(expr.imp(inv, post))
+
+            # Loop, currently use the invariant that users offered.
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
+            body_pos = (pos[0] + (0,), pos[1])
+            if body_pos not in self.infos:
+                self.infos[body_pos] = CmdInfo()
+            self.infos[body_pos].assume += self.infos[pos].assume
             sub_invs = []
-            for sub_inv in cur_hp.inv:
+            for i, sub_inv in enumerate(cur_hp.inv, 1):
+                sub_pos = (body_pos[0], body_pos[1] + (i,))
+                if sub_pos not in self.infos:
+                    self.infos[sub_pos] = CmdInfo()
+                sub_info = self.infos[sub_pos]
+                sub_info.post = sub_inv.inv
+                sub_info.assume += self.infos[body_pos].assume
+
+                self.compute_wp(pos=sub_pos)
+                sub_pre = sub_info.pre
+     
+                # invariant --> sub_pre
+                sub_vc = expr.imp(sub_inv.inv, sub_pre)
+                # Position of invariant assertion
+                ast_pos = (pos[0], pos[1], (i,)) 
+                if ast_pos not in self.vcs_infos:
+                    self.vcs_infos[ast_pos] = []
+                self.vcs_infos[ast_pos].append(sub_vc)
+
                 sub_invs.append(sub_inv.inv)
+
             inv = expr.list_conj(*sub_invs)
+            self.vcs_infos[(pos[0], pos[1], (0,))] = [expr.imp(inv, post)]
 
-            # Compute wp for loop body with respect to invariant
-            sub_pos = (pos[0] + (0,), pos[1])
-            if sub_pos not in self.infos:
-                self.infos[sub_pos] = CmdInfo()
-            sub_info = self.infos[sub_pos]
-            sub_info.post = inv
-            sub_info.assume += self.infos[pos].assume
-            self.compute_wp(pos=sub_pos)
-            pre_loopbody = sub_info.pre
+            print(self.vcs_infos)
 
-            # pre is also set to be the invariant
             pre = inv
 
-            # The 1st verification condition is invariant --> pre_loopbody.
-            # If the pre condition of loop body is a conjunction expression, split it.
-            if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
-                sub_pres = expr.split_conj(pre_loopbody)
-                self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
-                                                for sub_pre in sub_pres)
-            else:
-                self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
 
-            # The 2nd verification condition is invariant --> post.
-            self.infos[pos].vcs.append(expr.imp(inv, post))
 
-            #  elif isinstance(cur_hp, hcsp.Loop):
-            #             # Loop, currently use the invariant that users offered.
-            #             if cur_hp.constraint != expr.true_expr:
-            #                 raise NotImplementedError
-
-            #             if cur_hp.inv is None:
-            #                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
-
-            #             body_pos = (pos[0] + (0,), pos[1])
-            #             if body_pos not in self.infos:
-            #                 self.infos[body_pos] = CmdInfo()
-            #             self.infos[body_pos].assume += self.infos[pos].assume
-
-            #             sub_invs = []
-            #             for i, sub_inv in enumerate(cur_hp.inv, 1):
-            #                 sub_pos = (body_pos[0], body_pos[1] + (i,))
-            #                 if sub_pos not in self.infos:
-            #                     self.infos[sub_pos] = CmdInfo()
-            #                 sub_info = self.infos[sub_pos]
-            #                 sub_info.post = sub_inv.inv
-            #                 sub_info.assume += self.infos[body_pos].assume
-            #                 print(i, ':', sub_inv.inv)
-            #                 self.compute_wp(pos=sub_pos)
-            #                 sub_pre = sub_info.pre
-            #                 print('sub_pre:', sub_pre)
-            #                 # invariant --> sub_pre
-            #                 sub_vc = expr.imp(sub_inv.inv, sub_pre)
-            #                 # Position of invariant assertion
-            #                 # ast_pos = (sub_pos, i)
-            #                 if sub_pos not in self.vcs_infos:
-            #                     self.vcs_infos[sub_pos] = []
-            #                 self.vcs_infos[sub_pos].append(sub_vc)
-
-            #                 sub_invs.append(sub_inv.inv)
-
-            #             inv = expr.list_conj(*sub_invs)
-            #             self.vcs_infos[(body_pos[0], body_pos[1] + (0,))] = [expr.imp(inv, post)]
-
-            #             print(self.vcs_infos)
-
-            #             # # Compute wp for loop body with respect to invariant
-                    
-            #             # sub_info.post = inv
-                        
-            #             # self.compute_wp(pos=sub_pos)
-            #             # pre_loopbody = sub_info.pre
-
-            #             # pre is also set to be the invariant
-            #             pre = inv
-
-            #             # # The 1st verification condition is invariant --> pre_loopbody.
-            #             # # If the pre condition of loop body is a conjunction expression, split it.
-            #             # if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
-            #             #     sub_pres = expr.split_conj(pre_loopbody)
-            #             #     self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
-            #             #                                     for sub_pre in sub_pres)
-            #             # else:
-            #             #     self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
-
-            #             # The 2nd verification condition is invariant --> post.
-            #             # self.infos[pos].vcs.append(expr.imp(inv, post))
         elif isinstance(cur_hp, hcsp.ODE):
             # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
             # Currently assume out_hp is Skip.

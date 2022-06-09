@@ -30,13 +30,26 @@ def runCompute(pre, hp, post, constants=set()):
 
     # Return verification conditions
     verificationConditions = []
-    for pos, vcs in verifier.get_all_vcs().items():
-        meta = get_pos(hp, pos[0]).meta
+    # for pos, vcs in verifier.get_all_vcs().items():
+    for pos, vcs in verifier.vcs_infos.items():
+        # meta = get_pos(hp, pos[0]).meta
         sub_hp = get_pos(hp, pos[0])
-        print('sub_hp:', sub_hp)
+        meta = sub_hp.meta
+
         if isinstance(sub_hp, hcsp.Loop):
-            for sub_inv in get_pos(hp, pos[0]).inv:
-                print('inv_meta:', sub_inv.meta)
+            # For loop, vc with pos[2] = (0,) is: conjunction of sub_invariants --> post
+            # vc with pos[2] = (i,) is: sub_inv --> sub_pre
+            print('pos[2][0]', pos[2][0])
+            if pos[2][0] == 0:
+                # vc is stored in the loop cmd
+                ast_meta = meta
+            else:
+                # Loop inv attribute is a tuple, so index starts from 0.
+                index = pos[2][0] - 1
+                ast_meta = sub_hp.inv[index].meta
+        else:
+            pass
+
         for vc in vcs:
             verificationConditions.append({
                 "line": meta.line,
@@ -45,6 +58,12 @@ def runCompute(pre, hp, post, constants=set()):
                 "end_line": meta.end_line,
                 "end_column": meta.end_column,
                 "end_pos": meta.end_pos,
+                "ast_line": ast_meta.line,
+                "ast_column": ast_meta.column,
+                "ast_start_pos": ast_meta.start_pos,
+                "ast_end_line": ast_meta.end_line,
+                "ast_end_column": ast_meta.end_column,
+                "ast_end_pos": ast_meta.end_pos,
                 "vc": str(vc),
             })
 
@@ -91,6 +110,9 @@ class HHLPyApplication(WebSocketApplication):
 
     def on_close(self, reason):
         print(reason)
+
+    def on_error(self, ):
+        print("Server Error")
 
 if __name__ == "__main__":
     port = 8000

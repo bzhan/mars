@@ -4,8 +4,11 @@
     <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
+
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
+
+    <div>{{ vcs }}</div>
   </div>
 </template>
 
@@ -61,8 +64,11 @@ export default {
 
         this.display_vc_infos()
       }
-
     };
+
+    this.socket.onerror = () => {
+      console.log("Error here")
+    }
   },
   methods: { 
     compute: function () {
@@ -79,13 +85,14 @@ export default {
       }
     },
     display_vc_infos : function() {
+      // Remove the old verification condition
       removeVerificationCondition(this.editorView)
-      console.log("vc_infos1:", this.vc_infos)
 
       for (let i in this.vcs){
         let vcData = this.vcs[i]
         let lineNumber = vcData.line
         let linePos = getPosition(this.editorView, lineNumber)
+
         let solver = 'Z3'
         let result
         if (this.vc_infos[vcData.vc]){

@@ -181,7 +181,7 @@ Invariant { "[" cond "]"}
 
 maybe_loop_invariant { ("invariant" Loop_invariant+)? }
 Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
-proof_method { method }
+proof_method { label ":" method }
 label { CNAME? SIGNED_NUMBER? }    
 method { "Z3"       
       | "Wolfram Engine" }
