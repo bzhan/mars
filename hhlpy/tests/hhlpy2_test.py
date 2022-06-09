@@ -53,8 +53,9 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
             vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
-            actual_vcs = [vc for vc in verifier.infos[pos].vcs if not is_trivial(vc)]
-            self.assertEqual(set(vcs), set(actual_vcs), "\nActual: {}".format([str(vc) for vc in actual_vcs]))
+            actual_vcs = [vc[0] for vc in verifier.infos[pos].vcs if not is_trivial(vc[0])]
+            self.assertEqual(set(vcs), set(actual_vcs), 
+            "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
 
 
 class BasicHHLPyTest(unittest.TestCase):
@@ -79,7 +80,7 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify2(self):
         # {x >= 0} x := x+1 ++ x := x+2 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1 ++ x := x+2", post="x >= 1",
-                  expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1 && x + 2 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1", "x >= 0 --> x + 2 >= 1"]})
 
     def testVerify3(self):
         # {x >= 0} x := x+1; y := x+2 {x >= 1 && y >= 3}
@@ -90,7 +91,7 @@ class BasicHHLPyTest(unittest.TestCase):
         # Basic benchmark, problem 2
         # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1 ++ y := x+1", post="x >= 1",
-                  expected_vcs={((), ()): ["x >= 0 --> x + 1 + 1 >= 1 && x + 1 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 --> x + 1 + 1 >= 1", "x >= 0 --> x + 1 >= 1"]})
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}

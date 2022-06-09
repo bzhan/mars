@@ -292,7 +292,8 @@ class CmdVerifier:
         root_pos = ((),())
         self.infos[root_pos] = CmdInfo()
         self.infos[root_pos].pre = pre
-        self.infos[root_pos].post = post
+        # The post conditions are annotated with the position that they originate from.
+        self.infos[root_pos].post = [(post, root_pos)]
 
         # If there are pre-conditions of constants in the form: A op c, 
         # in which A is a constant symbol, c doesn't include variable symbols, op is in RelExpr.op
@@ -436,7 +437,7 @@ class CmdVerifier:
                 raise NotImplementedError("Constants can not be assigned")
 
             var = cur_hp.var_name.name
-            pre = post.subst({var: cur_hp.expr})
+            pre = [(e.subst({var: cur_hp.expr}), p) for (e, p) in post]
         
         elif isinstance(cur_hp, hcsp.RandomAssign):
             # RandomAssign: replace var_name by var_name_new in post and in cur_hp.expr
@@ -454,8 +455,9 @@ class CmdVerifier:
             self.names.add(newvar.name)
 
             #Compute the pre: hp.expr(newvar|var) --> post(newvar|var)
-            pre = expr.imp(cur_hp.expr.subst({var_str: newvar}), post.subst({var_str: newvar}))
-
+            pre = []
+            for (e, p) in post:
+                pre.append((expr.imp(cur_hp.expr.subst({var_str: newvar}), e.subst({var_str: newvar})), p))
 
         elif isinstance(cur_hp, hcsp.IChoice):
             # IChoice: 
@@ -479,9 +481,7 @@ class CmdVerifier:
             info2.assume += self.infos[pos].assume
             self.compute_wp(pos=pos0)
             self.compute_wp(pos=pos1)
-            pre = expr.conj(self.infos[pos0].pre, self.infos[pos1].pre)
-            # if self.infos[pos].split:
-            #     pre = expr.split_conj(pre)
+            pre = self.infos[pos0].pre + self.infos[pos1].pre
         
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
@@ -515,25 +515,25 @@ class CmdVerifier:
             if sub_pos not in self.infos:
                 self.infos[sub_pos] = CmdInfo()
             sub_info = self.infos[sub_pos]
-            sub_info.post = inv
+            sub_info.post = [(sub_inv, pos) for sub_inv in sub_invs]
             sub_info.assume += self.infos[pos].assume
             self.compute_wp(pos=sub_pos)
             pre_loopbody = sub_info.pre
 
             # pre is also set to be the invariant
-            pre = inv
+            pre = [(inv, pos)]
 
             # The 1st verification condition is invariant --> pre_loopbody.
-            # If the pre condition of loop body is a conjunction expression, split it.
-            if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
-                sub_pres = expr.split_conj(pre_loopbody)
-                self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
-                                                for sub_pre in sub_pres)
-            else:
-                self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
+            for (e, p) in pre_loopbody:
+                # If the pre condition of loop body is a conjunction expression, split it.
+                es = expr.split_conj(e)
+                for e in es:
+                    self.infos[pos].vcs.append((expr.imp(inv, e), p))
 
             # The 2nd verification condition is invariant --> post.
-            self.infos[pos].vcs.append(expr.imp(inv, post))
+            # It is associated with the position that the post condition originated from.
+            for (e, p) in post:
+                self.infos[pos].vcs.append((expr.imp(inv, e), p))
 
             #  elif isinstance(cur_hp, hcsp.Loop):
             #             # Loop, currently use the invariant that users offered.
@@ -651,15 +651,19 @@ class CmdVerifier:
                 #   {I && P} <x_dot = f(x) & D> { I }      (I && Boundary of D --> Q)  
                 #-----------------------------------------------------------------------
                 #           {P && (D --> I) && (~D --> Q)} <x_dot = f(x) & D> {Q}
+                post_conj = expr.conj(*[e for (e, p) in post])
                 pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
-                                   expr.imp(expr.neg_expr(constraint), post)
+                                   expr.imp(expr.neg_expr(constraint), post_conj)
                                     )
                 boundary = compute_boundary(constraint)
-                vc = expr.imp(expr.conj(subposts[-1], boundary), post)
                 # When I is false_expr, (I && Boundary of D --> Q) is true_expr, which can be omitted. 
-                if vc is not expr.true_expr:
-                    self.infos[pos].vcs.append(vc)
-                post = subposts[-1]
+                if subposts[-1] is not expr.false_expr:
+                    for (e, p) in post:
+                        vc = expr.imp(expr.conj(subposts[-1], boundary), e)
+                        # This verification condition is associated with the position that the post
+                        # condition originated from.
+                        self.infos[pos].vcs.append((vc, p))
+                post = [(subposts[-1], pos)]
 
                 # Add ghost variables and cuts to self.infos:
                 sub_pos = pos
@@ -709,10 +713,12 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
 
+            post_conj = expr.conj(*[e for (e, p) in post])
+
             # Only use the boundary.
             if self.infos[pos].tv:
 
-                assert post in (expr.false_expr, expr.true_expr), \
+                assert post_conj in (expr.false_expr, expr.true_expr), \
                     "Invariant should be true or false!"
 
             # Use solution axiom
@@ -746,7 +752,7 @@ class CmdVerifier:
 
                 D_y_t = constraint.subst(solution_dict)
                 D_y_s = constraint.subst(y_s)
-                Q_y_s = post.subst(y_s)
+                Q_y_s = post_conj.subst(y_s)
 
                 # Compute the hypothesis of implication
                 # ForAll (s, 0 <= s < t --> D(y(s)) && not D(y(t))
@@ -774,9 +780,9 @@ class CmdVerifier:
             # When dI_inv is set or by default
             elif self.infos[pos].dI_inv or self.infos[pos].dI_rule: 
 
-                # By default, dI_inv is post.
+                # By default, dI_inv is post_conj.
                 if self.infos[pos].dI_inv is None:
-                    self.infos[pos].dI_inv = post
+                    self.infos[pos].dI_inv = post_conj
 
                 dI_inv = self.infos[pos].dI_inv           
                 # Compute the differential of inv.
@@ -785,10 +791,10 @@ class CmdVerifier:
                 differential = compute_diff(dI_inv, eqs_dict=self.infos[pos].eqs_dict)
                 vc = expr.imp(constraint, differential)
      
-                self.infos[pos].vcs.append(vc)
+                self.infos[pos].vcs.append((vc, pos))
 
-                if dI_inv != post:
-                    self.infos[pos].vcs.append(expr.imp(dI_inv, post))
+                if dI_inv != post_conj:
+                    self.infos[pos].vcs.append((expr.imp(dI_inv, post_conj), pos))
 
 
             # Use dC rules
@@ -808,7 +814,7 @@ class CmdVerifier:
                         self.infos[sub_pos] = CmdInfo()
 
                     # Post condition of the each subproof is diff_cut.
-                    self.infos[sub_pos].post = diff_cut 
+                    self.infos[sub_pos].post = [(diff_cut, pos)] 
 
                     self.infos[sub_pos].eqs_dict = self.infos[pos].eqs_dict
                     self.infos[sub_pos].assume += self.infos[pos].assume + diff_cuts[:i]
@@ -866,7 +872,7 @@ class CmdVerifier:
                     if sub_pos not in self.infos:
                         self.infos[sub_pos] = CmdInfo()
 
-                    self.infos[sub_pos].post = ghost_inv
+                    self.infos[sub_pos].post = [(ghost_inv, pos)]
 
                     # The eqs_dict in sub_pos is eqs_dict in pos with ghost_eqs.
                     if not self.infos[sub_pos].eqs_dict:
@@ -918,8 +924,8 @@ class CmdVerifier:
                 if not z3_prove(vc2):
                     raise AssertionError("The denominator in the ghost equations cannot be equal be zero!")
 
-                if dG_inv != post:
-                    self.infos[pos].vcs.append(expr.imp(dG_inv, post))
+                if dG_inv != post_conj:
+                    self.infos[pos].vcs.append((expr.imp(dG_inv, post_conj), pos))
 
 
             # Using dbx rule
@@ -937,11 +943,11 @@ class CmdVerifier:
                 self.infos[pos].dbx_inv is not None or \
                 self.infos[pos].dbx_cofactor is not None:
 
-                # By default, dbx_inv is post.
+                # By default, dbx_inv is post_conj.
                 if self.infos[pos].dbx_inv is None:
-                    self.infos[pos].dbx_inv = post
+                    self.infos[pos].dbx_inv = post_conj
                 else:
-                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].dbx_inv, post))
+                    self.infos[pos].vcs.append((expr.imp(self.infos[pos].dbx_inv, post_conj), pos))
                 dbx_inv = self.infos[pos].dbx_inv
 
                 # For example, simplify ~(x > 1) to x <= 1
@@ -992,7 +998,7 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('==', e_lie_deriv, 
                                                                     expr.OpExpr('*'), g, e))
 
-                        self.infos[pos].vcs.append(vc)
+                        self.infos[pos].vcs.append((vc, pos))
 
                 # Cases when dbx_inv is e >(>=) 0.
                 # Use Darboux Inequality Rule.
@@ -1014,7 +1020,7 @@ class CmdVerifier:
                             vc_comps.append(vc_comp)
                         vc = expr.imp(constraint, expr.list_disj(*vc_comps))
 
-                        self.infos[pos].vcs.append(vc)
+                        self.infos[pos].vcs.append((vc, pos))
 
                     # Cases when the cofactor g is offered by the user.
                     else:
@@ -1030,7 +1036,7 @@ class CmdVerifier:
                         vc = expr.imp(constraint, expr.RelExpr('>=', e_lie_deriv, 
                                                                     expr.OpExpr('*', self.infos[pos].dbx_cofactor, e)))
                         
-                        self.infos[pos].vcs.append(vc)
+                        self.infos[pos].vcs.append((vc, pos))
                 
           
 
@@ -1041,11 +1047,11 @@ class CmdVerifier:
             elif self.infos[pos].barrier_rule or\
                 self.infos[pos].barrier_inv:
 
-                # Use post as barrier invariant if it's not offered.
+                # Use post_conj as barrier invariant if it's not offered.
                 if self.infos[pos].barrier_inv is None:
-                    self.infos[pos].barrier_inv = post
+                    self.infos[pos].barrier_inv = post_conj
                 else:
-                    self.infos[pos].vcs.append(expr.imp(self.infos[pos].barrier_inv, post))
+                    self.infos[pos].vcs.append((expr.imp(self.infos[pos].barrier_inv, post_conj), pos))
 
                 barrier_inv = self.infos[pos].barrier_inv
 
@@ -1078,7 +1084,7 @@ class CmdVerifier:
                                                    expr.RelExpr('==', e, expr.AConst(0))),
                               expr.RelExpr('>', e_lie, expr.AConst(0)))
 
-                self.infos[pos].vcs.append(vc)
+                self.infos[pos].vcs.append((vc, pos))
 
             # # Using Conjuntion Rule
             #     #  {P1} c {Q1}     {P2} c {Q2}   P --> P1 && P2
@@ -1133,9 +1139,9 @@ class CmdVerifier:
                 raise AssertionError("No invariant set at position %s." % str(pos))
 
             if pre is not None and pre_dw is not None:
-                pre = expr.conj(pre, pre_dw)
+                pre = [(pre, pos), (pre_dw, pos)]
             elif pre_dw is not None:
-                pre = pre_dw
+                pre = [(pre_dw, pos)]
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
 
         elif isinstance(cur_hp, hcsp.Condition):
@@ -1151,7 +1157,7 @@ class CmdVerifier:
             self.infos[sub_pos].post = post
             self.compute_wp(pos=sub_pos)
 
-            pre = expr.imp(cond, self.infos[sub_pos].pre)
+            pre = [(expr.imp(cond, e), p) for (e, p) in self.infos[sub_pos].pre]
 
         elif isinstance(cur_hp, hcsp.ITE):
             # ITE, if b then c1 else c2 endif
@@ -1162,7 +1168,7 @@ class CmdVerifier:
             #                                         {Q}
             if_hps = cur_hp.if_hps
 
-            sub_imp_list = []
+            sub_imp = []
             if_cond_list = []
             for i in range(len(if_hps) + 1):
                 sub_pos = (pos[0] + (i,), pos[1])
@@ -1186,13 +1192,13 @@ class CmdVerifier:
                 elif i < len(if_hps):
                     sub_cond = expr.LogicExpr('&&', expr.neg_expr(expr.list_disj(*if_cond_list[:i])), if_cond_list[i])
                 else:
-                    sub_cond =  expr.neg_expr(expr.list_disj(*if_cond_list[:]))
+                    sub_cond = expr.neg_expr(expr.list_disj(*if_cond_list[:]))
 
                 # Compute the implicaiton for each if_hp or else_hp
-                sub_imp = expr.imp(sub_cond, sub_pre)
-                sub_imp_list.append(sub_imp)
+                for (e, p) in sub_pre:
+                    sub_imp.append((expr.imp(sub_cond, e), p))
 
-            pre = expr.list_conj(*sub_imp_list)
+            pre = sub_imp
 
         else:
             raise NotImplementedError
@@ -1202,13 +1208,15 @@ class CmdVerifier:
         if self.infos[pos].pre is None:
             self.infos[pos].pre = pre
         else:
-            self.infos[pos].vcs.append(expr.imp(self.infos[pos].pre, pre))
+            for (e, p) in pre:
+                self.infos[pos].vcs.append((expr.imp(self.infos[pos].pre, e), p))
 
         # Add assume into the hypothesis of every verification condition.
         if self.infos[pos].assume:
             assume = expr.list_conj(*self.infos[pos].assume)
             for i in range(len(self.infos[pos].vcs)):
-                self.infos[pos].vcs[i] = expr.imp(assume, self.infos[pos].vcs[i])
+                vc = self.infos[pos].vcs[i]
+                self.infos[pos].vcs[i] = (expr.imp(assume, vc[0]), vc[1])
         
     def convert_imp(self, e):
         """Convert implication from (p --> q --> u) to (p && q) --> u,
@@ -1251,7 +1259,7 @@ class CmdVerifier:
         all_vcs = self.get_all_vcs()
         
         for pos, vcs in all_vcs.items():
-            for vc in vcs:
+            for (vc, _) in vcs:
                 if not self.verify_vc(vc):
                     print("The failed verification condition is :\n", pos, ':', str(vc))
                     return False
