@@ -32,6 +32,7 @@ def runCompute(pre, hp, post, constants=set()):
     verificationConditions = []
     for pos, vcs in verifier.get_all_vcs().items():
         for vc in vcs:
+            # Use the bottom-most position `vc.pos[0]` to attach the VC to
             meta = get_pos(hp, vc.pos[0][0]).meta
             verificationConditions.append({
                 "line": meta.end_line,
