@@ -1,5 +1,6 @@
 from geventwebsocket import WebSocketServer, WebSocketApplication, Resource
 from collections import OrderedDict
+import sys
 
 from operator import pos
 
@@ -10,6 +11,7 @@ from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
 from hhlpy.z3wrapper import z3_prove
 from hhlpy.wolframengine_wrapper import session
+
 
 
 import json
@@ -67,23 +69,27 @@ class HHLPyApplication(WebSocketApplication):
 
 
     def on_message(self, message):
-        if message != None:
-            msg = json.loads(message)
-            print(msg, flush=True)
-            if msg["type"] == "compute":
-                vcs = runCompute(pre=msg["pre"], hp=msg["hp"], post=msg["post"])
-                vcs_dict = {"vcs": vcs, "type": "computed"}
-                self.ws.send(json.dumps(vcs_dict))
+        try:
+            if message != None:
+                msg = json.loads(message)
+                print(msg, flush=True)
+                if msg["type"] == "compute":
+                    vcs = runCompute(pre=msg["pre"], hp=msg["hp"], post=msg["post"])
+                    vcs_dict = {"vcs": vcs, "type": "computed"}
+                    self.ws.send(json.dumps(vcs_dict))
 
-            elif msg["type"] == "verify":
-                vc_result = runVerify(vc=msg["vc"], solver=msg["solver"])
-                print("vc_result:", vc_result)
-                vc_result_dict = {"vc": msg["vc"], "vc_result": vc_result, "type": "verified"}  
-                self.ws.send(json.dumps(vc_result_dict)) 
+                elif msg["type"] == "verify":
+                    vc_result = runVerify(vc=msg["vc"], solver=msg["solver"])
+                    print("vc_result:", vc_result)
+                    vc_result_dict = {"vc": msg["vc"], "vc_result": vc_result, "type": "verified"}  
+                    self.ws.send(json.dumps(vc_result_dict)) 
 
-            else:
-                raise NotImplementedError    
-            
+                else:
+                    raise NotImplementedError    
+        except Exception as e:
+            print(str(e), file=sys.stderr)
+            result_dict = {"error": str(e), "type": "error"}  
+            self.ws.send(json.dumps(result_dict)) 
 
     def on_close(self, reason):
         print(reason)

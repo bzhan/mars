@@ -60,8 +60,11 @@ export default {
         this.vc_infos[vc].result = result
 
         this.display_vc_infos()
+      } else if(eventData.type === 'error'){ 
+        console.error("Server side error:", eventData.error)
+      } else {
+        console.error("Unknown message type:", eventData.type);
       }
-
     };
   },
   methods: { 
