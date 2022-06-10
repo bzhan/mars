@@ -36,13 +36,21 @@ def runCompute(pre, hp, post, constants=set()):
         for vc in vcs:
             # Use the bottom-most position `vc.pos[0]` to attach the VC to
             meta = get_pos(hp, vc.pos[0][0]).meta
+
+            # Map origin positions in syntax tree to positions on the character level
+            origin = []
+            for originPos in vc.pos:
+                if originPos[0] != ():
+                    originMeta = get_pos(hp, originPos[0]).meta
+                    origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
+
             verificationConditions.append({
                 "line": meta.end_line,
                 "column": meta.column,
                 "start_pos": meta.start_pos,
                 "end_pos": meta.end_pos,
                 "vc": str(vc.expr),
-                "origin": str(vc.pos),
+                "origin": origin,
                 "path": vc.path,
             })
 

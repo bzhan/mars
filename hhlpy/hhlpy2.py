@@ -497,9 +497,9 @@ class CmdVerifier:
             info2.assume += self.infos[pos].assume
             self.compute_wp(pos=pos0)
             self.compute_wp(pos=pos1)
-            pre = [VerificationCondition(vc.expr, vc.pos + [pos], vc.path + [0]) 
+            pre = [VerificationCondition(vc.expr, vc.pos, vc.path + [0]) 
                     for vc in self.infos[pos0].pre] + \
-                  [VerificationCondition(vc.expr, vc.pos + [pos], vc.path + [1]) 
+                  [VerificationCondition(vc.expr, vc.pos, vc.path + [1]) 
                     for vc in self.infos[pos1].pre]
         
         elif isinstance(cur_hp, hcsp.Sequence):
@@ -1222,7 +1222,7 @@ class CmdVerifier:
                 # Compute the implicaiton for each if_hp or else_hp
                 for vc in sub_pre:
                     sub_imp.append(
-                        VerificationCondition(expr.imp(sub_cond, vc.expr), vc.pos + [pos], vc.path + [i]))
+                        VerificationCondition(expr.imp(sub_cond, vc.expr), vc.pos, vc.path + [i]))
 
             pre = sub_imp
 

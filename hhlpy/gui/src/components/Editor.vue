@@ -16,12 +16,13 @@ import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
 import { displayVerificationCondition, getPosition, removeVerificationCondition } from "../decoration/verification_condition"
 import { test_examples } from "../test_examples/examples"
+import { originTheme, originField } from '../decoration/origin'
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
       doc: test_examples.e4.hp,
-      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
+      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
     }),
     parent: document.getElementById("code")
   });
@@ -106,6 +107,7 @@ export default {
         let lineNumber = vcData.line
         let linePos = getPosition(this.editorView, lineNumber)
         let solver = 'Z3'
+        let origin = vcData.origin
         let result
         if (this.vc_infos[vcData.vc]){
           solver = this.vc_infos[vcData.vc].solver
@@ -117,7 +119,7 @@ export default {
         let changeSolverCallBack = (solver) => {
           this.vc_infos[vcData.vc].solver = solver
         }
-        displayVerificationCondition(this.editorView, vcData.vc, linePos, changeSolverCallBack, solver, result)
+        displayVerificationCondition(this.editorView, vcData.vc, linePos, changeSolverCallBack, solver, result, origin)
         console.log("vc_infos:", this.vc_infos)
       }
     }

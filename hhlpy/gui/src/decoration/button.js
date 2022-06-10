@@ -209,7 +209,6 @@ export const annotationPlugin = ViewPlugin.fromClass(class {
     //TODO: Maybe run together with linter? (So we don't slow down anything and we don't need to reparse)
     if (update.docChanged)
       this.decorations = addAnnotationButtons(update.view)
-      console.log('Hello')
   }
 }, {
   decorations: v => v.decorations,
