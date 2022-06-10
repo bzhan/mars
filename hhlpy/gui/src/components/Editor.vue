@@ -40,32 +40,48 @@ export default {
 
     this.editorView = initEditor();
 
-    this.socket = new WebSocket("ws://localhost:8000");
-    
-    this.socket.onopen = () => {
-      console.log("Connection opened")
-    };
-    this.socket.onmessage = (event) => {
-      let eventData = JSON.parse(event.data)
-      if (eventData.type === "computed"){
-        this.vcs = eventData.vcs;
-        console.log("vcs:", this.vcs)
+    const wsPath = "ws://localhost:8000"
 
-        this.display_vc_infos()
-      }
-      else if(eventData.type === 'verified'){
-        console.log("eventData:", eventData)
-        let vc = eventData.vc
-        let result = eventData.vc_result
-        this.vc_infos[vc].result = result
+    const openConnection = () => {
+      this.socket = new WebSocket(wsPath);
+      
+      this.socket.onopen = () => {
+        console.log("Connection opened")
+      };
 
-        this.display_vc_infos()
-      } else if(eventData.type === 'error'){ 
-        console.error("Server side error:", eventData.error)
-      } else {
-        console.error("Unknown message type:", eventData.type);
+      this.socket.onmessage = (event) => {
+        let eventData = JSON.parse(event.data)
+        if (eventData.type === "computed"){
+          this.vcs = eventData.vcs;
+          console.log("vcs:", this.vcs)
+
+          this.display_vc_infos()
+        }
+        else if(eventData.type === 'verified'){
+          console.log("eventData:", eventData)
+          let vc = eventData.vc
+          let result = eventData.vc_result
+          this.vc_infos[vc].result = result
+
+          this.display_vc_infos()
+        } else if(eventData.type === 'error'){ 
+          console.error("Server side error:", eventData.error)
+        } else {
+          console.error("Unknown message type:", eventData.type);
+        }
+      };
+    }
+
+    openConnection();
+
+    // Regularly check if connection is still open. Otherwise, reconnect.
+    setInterval(() => {
+      if (this.socket.readyState !== 1) {
+        console.log("Websocket not open. Attempting to reconnect.")
+        openConnection();
       }
-    };
+    }, 5000);
+
   },
   methods: { 
     compute: function () {
