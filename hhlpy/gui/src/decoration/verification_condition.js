@@ -51,7 +51,8 @@ const verificationConditionField = StateField.define({
               e.value.formula, 
               e.value.solver,
               e.value.result),
-          block: true
+          block: true,
+          side: 1
         })
         vc = vc.update({
           add: [vcWidget.range(e.value.position, e.value.position)]
@@ -79,7 +80,7 @@ export function displayVerificationCondition(view, formula, position, changeSolv
 
 /**Get postion for a given line */
 export function getPosition(view, lineNumber) {
-   return view.state.doc.line(lineNumber).from
+   return view.state.doc.line(lineNumber).to
 }
 
 const clearVerificationCondition = StateEffect.define()

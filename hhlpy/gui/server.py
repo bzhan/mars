@@ -31,19 +31,12 @@ def runCompute(pre, hp, post, constants=set()):
     # Return verification conditions
     verificationConditions = []
     for pos, vcs in verifier.get_all_vcs().items():
-        meta = get_pos(hp, pos[0]).meta
-        sub_hp = get_pos(hp, pos[0])
-        print('sub_hp:', sub_hp)
-        if isinstance(sub_hp, hcsp.Loop):
-            for sub_inv in get_pos(hp, pos[0]).inv:
-                print('inv_meta:', sub_inv.meta)
         for vc in vcs:
+            meta = get_pos(hp, vc.pos[0][0]).meta
             verificationConditions.append({
-                "line": meta.line,
+                "line": meta.end_line,
                 "column": meta.column,
                 "start_pos": meta.start_pos,
-                "end_line": meta.end_line,
-                "end_column": meta.end_column,
                 "end_pos": meta.end_pos,
                 "vc": str(vc.expr),
                 "origin": str(vc.pos),

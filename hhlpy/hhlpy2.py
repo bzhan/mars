@@ -549,7 +549,7 @@ class CmdVerifier:
                 es = expr.split_conj(vc.expr)
                 for e in es:
                     self.infos[pos].vcs.append(
-                        VerificationCondition(expr.imp(inv, e), [vc.pos], vc.path))
+                        VerificationCondition(expr.imp(inv, e), vc.pos, vc.path))
 
             # The 2nd verification condition is invariant --> post.
             for vc in post:
