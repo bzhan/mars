@@ -45,7 +45,8 @@ def runCompute(pre, hp, post, constants=set()):
                 "end_line": meta.end_line,
                 "end_column": meta.end_column,
                 "end_pos": meta.end_pos,
-                "vc": str(vc),
+                "vc": str(vc.expr),
+                "origin": str(vc.pos),
             })
 
     return verificationConditions

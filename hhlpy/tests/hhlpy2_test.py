@@ -53,7 +53,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
             vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
-            actual_vcs = [vc[0] for vc in verifier.infos[pos].vcs if not is_trivial(vc[0])]
+            actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
             self.assertEqual(set(vcs), set(actual_vcs), 
             "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
 
