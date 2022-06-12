@@ -95,7 +95,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0] {{z3}}", post="x >= 0",
+        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]{{inv: z3}}", post="x >= 0",
                   expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 0"]})
 
     def testVerify5_1(self):

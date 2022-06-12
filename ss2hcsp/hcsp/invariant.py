@@ -9,15 +9,13 @@ class LoopInvariant(Invariant):
     """Represents an invariant of a loop program.
     inv : BExpr - invariant
     proof_methods: tuple - methods used for proof. 
-                           For example, ('z3', (1.1, 'wolfram_engine'))
-
     """
     def __init__(self, inv, proof_methods = tuple(), meta=None):
         super(Invariant, self).__init__()
         assert isinstance(inv, expr.BExpr)
         assert isinstance(proof_methods, tuple)
         for proof_method in proof_methods:
-            assert isinstance(proof_method, (str, tuple))
+            assert isinstance(proof_method, ProofMethod)
         self.meta = meta
         self.inv = inv
         self.proof_methods = proof_methods
@@ -36,4 +34,16 @@ class GhostIntro(Invariant):
         self.meta = meta
         self.var = var
         self.diff = diff
+
+class ProofMethod:
+    """Represents the label and corresponding proof method.
+    For example, label: 1.1
+                 method: z3            
+    """
+    def __init__(self, label, method, meta=None):
+        self.meta = meta
+        assert isinstance(label, str)
+        assert isinstance(method, str)
+        self.label = label
+        self.method = method
         

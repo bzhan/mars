@@ -6,6 +6,8 @@
     <div><input type="text" v-model="post"></div>
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
+
+    <div>{{ vcs }}</div>
   </div>
 </template>
 
@@ -54,7 +56,6 @@ export default {
         let eventData = JSON.parse(event.data)
         if (eventData.type === "computed"){
           this.vcs = eventData.vcs;
-          console.log("vcs:", this.vcs)
 
           this.display_vc_infos()
         }

@@ -437,13 +437,8 @@ class HPTransformer(Transformer):
     def method_z3(self, meta): return "z3"
     def method_wolfram_engine(self, meta): return "wolfram_engine"
 
-    def proof_method(self, meta, *args):
-        if len(args) == 1:
-            return args[0]
-        elif len(args) == 2:
-            return args
-        else:
-            raise AssertionError("Wrong Number of args.")
+    def proof_method(self, meta, label, method):
+        return invariant.ProofMethod(label=label, method=method, meta=meta)
 
     def label(self, meta, *args):
         return "".join(str(arg) for arg in args)
