@@ -38,7 +38,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
         for pos, vcs in verifier.get_all_vcs().items():
             print("%s:" % str(pos))
             for vc in vcs:
-                print(vc.expr, vc.pos)
+                print(vc.expr, "pos:", vc.pos, "path:", vc.path, "annot_pos:", vc.annot_pos)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())

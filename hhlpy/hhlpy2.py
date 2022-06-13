@@ -244,7 +244,7 @@ class CmdInfo:
 
 class VerificationCondition:
     """Stores a verification condition and the parts of the program that it originates from."""
-    def __init__(self, expr, pos, path):
+    def __init__(self, expr, pos, path, annot_pos=None):
         assert isinstance(pos, list)
         # The expression stating the condition itself
         self.expr = expr
@@ -252,6 +252,8 @@ class VerificationCondition:
         self.pos = pos
         # The path through the program where the condition originates from
         self.path = path
+        # The positions of annotations from which the verification condition originates from
+        self.annot_pos = annot_pos
 
     def __str__(self):
         return str(self.expr)
@@ -525,98 +527,93 @@ class CmdVerifier:
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
+            for sub_inv in cur_hp.inv:
+                if isinstance(sub_inv, expr.LogicExpr):
+                    raise NotImplementedError("Logic expression should be split into several relational expressions")
+
+            # sub_invs = []
+            # for sub_inv in cur_hp.inv:
+            #     sub_invs.append(sub_inv.inv)
+            # inv = expr.list_conj(*sub_invs)
+
+            # # Compute wp for loop body with respect to invariant
+            # sub_pos = (pos[0] + (0,), pos[1])
+            # if sub_pos not in self.infos:
+            #     self.infos[sub_pos] = CmdInfo()
+            # sub_info = self.infos[sub_pos]
+            # sub_info.post = [VerificationCondition(sub_inv, [pos], []) for sub_inv in sub_invs]
+            # sub_info.assume += self.infos[pos].assume
+            # self.compute_wp(pos=sub_pos)
+            # pre_loopbody = sub_info.pre
+
+            # # pre is also set to be the invariant
+            # pre = [VerificationCondition(inv, [pos], [])]
+
+            # # The 1st verification condition is invariant --> pre_loopbody.
+            # for vc in pre_loopbody:
+            #     # If the pre condition of loop body is a conjunction expression, split it.
+            #     es = expr.split_conj(vc.expr)
+            #     for e in es:
+            #         self.infos[pos].vcs.append(
+            #             VerificationCondition(expr.imp(inv, e), vc.pos, vc.path))
+
+            # # The 2nd verification condition is invariant --> post.
+            # for vc in post:
+            #     self.infos[pos].vcs.append(
+            #         VerificationCondition(expr.imp(inv, vc.expr), vc.pos + [pos], vc.path))
+
+            # Position of loop body.
+            body_pos = (pos[0] + (0,), pos[1])
+            if body_pos not in self.infos:
+                self.infos[body_pos] = CmdInfo()
+            body_info = self.infos[body_pos]
+            self.infos[body_pos].assume += self.infos[pos].assume
+
+            # Create a branch for each sub_inv, 
+            # in which hp is loop body program, post is sub_inv.inv.
+            pre = []
+            for i, sub_inv in enumerate(cur_hp.inv):
+                pre.append(VerificationCondition(sub_inv.inv, [pos], []))
+
+                sub_pos = (body_pos[0], body_pos[1] + (i,))
+                if sub_pos not in self.infos:
+                    self.infos[sub_pos] = CmdInfo()
+                sub_info = self.infos[sub_pos]
+                sub_info.post = [VerificationCondition(sub_inv.inv, [pos], [])]
+                sub_info.assume += self.infos[body_pos].assume
+                self.compute_wp(pos=sub_pos)
+                sub_pres = sub_info.pre
+                
+                # The 1st verification condition for loop invariant:
+                # sub_inv --> sub_pre for sub_pre in sub_pres
+                # Several sub_precondition can be generated if the loop body is IChoice or ITE.
+                for sub_pre in sub_pres:
+                    # annot_pos add one more tuple to pos to record the annotation index, i.e. invariant index for loop.
+                    sub_vc = VerificationCondition(expr=expr.imp(sub_inv.inv, sub_pre.expr),                              pos=sub_pre.pos, 
+                                                   path=sub_pre.path, 
+                                                   annot_pos=(i,))
+
+                    self.infos[pos].vcs.append(sub_vc)
+
+            # The 2nd verification condition is invariant --> post.
             sub_invs = []
             for sub_inv in cur_hp.inv:
                 sub_invs.append(sub_inv.inv)
             inv = expr.list_conj(*sub_invs)
 
-            # Compute wp for loop body with respect to invariant
-            sub_pos = (pos[0] + (0,), pos[1])
-            if sub_pos not in self.infos:
-                self.infos[sub_pos] = CmdInfo()
-            sub_info = self.infos[sub_pos]
-            sub_info.post = [VerificationCondition(sub_inv, [pos], []) for sub_inv in sub_invs]
-            sub_info.assume += self.infos[pos].assume
-            self.compute_wp(pos=sub_pos)
-            pre_loopbody = sub_info.pre
+            for i, vc in enumerate(post):
+                last_hp = get_pos(self.hp, vc.pos[0][0])
+                if isinstance(last_hp, hcsp.Loop):
+                    annot_pos = (i,)
+                else:
+                    annot_pos = None
 
-            # pre is also set to be the invariant
-            pre = [VerificationCondition(inv, [pos], [])]
-
-            # The 1st verification condition is invariant --> pre_loopbody.
-            for vc in pre_loopbody:
-                # If the pre condition of loop body is a conjunction expression, split it.
-                es = expr.split_conj(vc.expr)
-                for e in es:
-                    self.infos[pos].vcs.append(
-                        VerificationCondition(expr.imp(inv, e), vc.pos, vc.path))
-
-            # The 2nd verification condition is invariant --> post.
-            for vc in post:
                 self.infos[pos].vcs.append(
-                    VerificationCondition(expr.imp(inv, vc.expr), vc.pos + [pos], vc.path))
-
-            #  elif isinstance(cur_hp, hcsp.Loop):
-            #             # Loop, currently use the invariant that users offered.
-            #             if cur_hp.constraint != expr.true_expr:
-            #                 raise NotImplementedError
-
-            #             if cur_hp.inv is None:
-            #                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
-
-            #             body_pos = (pos[0] + (0,), pos[1])
-            #             if body_pos not in self.infos:
-            #                 self.infos[body_pos] = CmdInfo()
-            #             self.infos[body_pos].assume += self.infos[pos].assume
-
-            #             sub_invs = []
-            #             for i, sub_inv in enumerate(cur_hp.inv, 1):
-            #                 sub_pos = (body_pos[0], body_pos[1] + (i,))
-            #                 if sub_pos not in self.infos:
-            #                     self.infos[sub_pos] = CmdInfo()
-            #                 sub_info = self.infos[sub_pos]
-            #                 sub_info.post = sub_inv.inv
-            #                 sub_info.assume += self.infos[body_pos].assume
-            #                 print(i, ':', sub_inv.inv)
-            #                 self.compute_wp(pos=sub_pos)
-            #                 sub_pre = sub_info.pre
-            #                 print('sub_pre:', sub_pre)
-            #                 # invariant --> sub_pre
-            #                 sub_vc = expr.imp(sub_inv.inv, sub_pre)
-            #                 # Position of invariant assertion
-            #                 # ast_pos = (sub_pos, i)
-            #                 if sub_pos not in self.vcs_infos:
-            #                     self.vcs_infos[sub_pos] = []
-            #                 self.vcs_infos[sub_pos].append(sub_vc)
-
-            #                 sub_invs.append(sub_inv.inv)
-
-            #             inv = expr.list_conj(*sub_invs)
-            #             self.vcs_infos[(body_pos[0], body_pos[1] + (0,))] = [expr.imp(inv, post)]
-
-            #             print(self.vcs_infos)
-
-            #             # # Compute wp for loop body with respect to invariant
-                    
-            #             # sub_info.post = inv
-                        
-            #             # self.compute_wp(pos=sub_pos)
-            #             # pre_loopbody = sub_info.pre
-
-            #             # pre is also set to be the invariant
-            #             pre = inv
-
-            #             # # The 1st verification condition is invariant --> pre_loopbody.
-            #             # # If the pre condition of loop body is a conjunction expression, split it.
-            #             # if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
-            #             #     sub_pres = expr.split_conj(pre_loopbody)
-            #             #     self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
-            #             #                                     for sub_pre in sub_pres)
-            #             # else:
-            #             #     self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
-
-            #             # The 2nd verification condition is invariant --> post.
-            #             # self.infos[pos].vcs.append(expr.imp(inv, post))
+                    VerificationCondition(expr=expr.imp(inv, vc.expr), 
+                                          pos=vc.pos + [pos], 
+                                          path=vc.path, 
+                                          annot_pos=annot_pos))
+            
         elif isinstance(cur_hp, hcsp.ODE):
             # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
             # Currently assume out_hp is Skip.
@@ -1234,9 +1231,14 @@ class CmdVerifier:
         if self.infos[pos].pre is None:
             self.infos[pos].pre = pre
         else:
-            for vc in pre:
+            for i, vc in enumerate(pre):
+                last_hp = get_pos(self.hp, vc.pos[0][0])
+                if isinstance(last_hp, hcsp.Loop):
+                    annot_pos = (i,)
+                else:
+                    annot_pos = None
                 self.infos[pos].vcs.append(
-                    VerificationCondition(expr.imp(self.infos[pos].pre, vc.expr), vc.pos, vc.path))
+                    VerificationCondition(expr.imp(self.infos[pos].pre, vc.expr), vc.pos, vc.path, annot_pos=annot_pos))
 
         # Add assume into the hypothesis of every verification condition.
         if self.infos[pos].assume:
