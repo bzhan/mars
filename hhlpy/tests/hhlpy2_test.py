@@ -38,7 +38,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
         for pos, vcs in verifier.get_all_vcs().items():
             print("%s:" % str(pos))
             for vc in vcs:
-                print(vc)
+                print(vc.expr, vc.pos)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -103,6 +103,22 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0",
                   hp="(x := x + 1; y := y + 1)** invariant[x >= 0] [y >= 0]",
                   post="x >= 0 && y >= 0")
+
+    def testVerify5_2(self):
+        # {x >= 0} (x := x + 1)**;  x := x + 1; (x := x + 2)** {x >= 0}
+        runVerify(self, pre="x >= 0",
+                  hp="(x := x + 1)** invariant[x >= 0]; x := x + 1; (x := x + 2)** invariant[x >= 1]",
+                  post="x >= 1",
+                  print_vcs=True)
+
+    def testVerify5_3(self):
+         runVerify(self, pre="x >= 0 && y >= 0",
+                  hp="(x := x + 1; y := y + 1)** invariant[x >= 0][y >= 0]; \
+                      x := x + 1; \
+                      y := y + 1; \
+                      (x := x + 2; y := y + 2)** invariant[x >= 1] [y >= 1]",
+                  post="x >= 1 && y >= 1",
+                  print_vcs=True)
 
     def testVerify6(self):
         # Basic benchmark, problem 3
