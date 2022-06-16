@@ -286,6 +286,9 @@ class CmdVerifier:
         # Mapping from program position to CmdInfo objects.
         self.infos = dict()
 
+        # Mapping from assertion postion to verification condition infomation.
+        self.vcs_infos = dict()
+
         # Set of function names that are used
         fun_names = hp.get_fun_names().union(pre.get_fun_names(), post.get_fun_names())
 
@@ -531,6 +534,43 @@ class CmdVerifier:
 
         elif isinstance(cur_hp, hcsp.Loop):
             # Loop, currently use the invariant that users offered.
+            # if cur_hp.constraint != expr.true_expr:
+            #     raise NotImplementedError
+
+            # if cur_hp.inv is None:
+            #     raise AssertionError("Loop invariant at position %s is not set." % str(pos))
+
+            # sub_invs = []
+            # for sub_inv in cur_hp.inv:
+            #     sub_invs.append(sub_inv.inv)
+            # inv = expr.list_conj(*sub_invs)
+
+            # # Compute wp for loop body with respect to invariant
+            # sub_pos = (pos[0] + (0,), pos[1])
+            # if sub_pos not in self.infos:
+            #     self.infos[sub_pos] = CmdInfo()
+            # sub_info = self.infos[sub_pos]
+            # sub_info.post = inv
+            # sub_info.assume += self.infos[pos].assume
+            # self.compute_wp(pos=sub_pos)
+            # pre_loopbody = sub_info.pre
+
+            # # pre is also set to be the invariant
+            # pre = inv
+
+            # # The 1st verification condition is invariant --> pre_loopbody.
+            # # If the pre condition of loop body is a conjunction expression, split it.
+            # if isinstance(pre_loopbody, expr.LogicExpr) and pre_loopbody.op == '&&':
+            #     sub_pres = expr.split_conj(pre_loopbody)
+            #     self.infos[pos].vcs += list(expr.imp(inv, sub_pre) \
+            #                                     for sub_pre in sub_pres)
+            # else:
+            #     self.infos[pos].vcs.append(expr.imp(inv, pre_loopbody))
+
+            # # The 2nd verification condition is invariant --> post.
+            # self.infos[pos].vcs.append(expr.imp(inv, post))
+
+            # Loop, currently use the invariant that users offered.
             if cur_hp.constraint != expr.true_expr:
                 raise NotImplementedError
 
@@ -607,8 +647,6 @@ class CmdVerifier:
 
                 pre = self.infos[pos].inv
 
-            
-            
         elif isinstance(cur_hp, hcsp.ODE):
             # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
             # Currently assume out_hp is Skip.

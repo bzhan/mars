@@ -4,6 +4,7 @@
     <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
+
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
 
@@ -100,13 +101,14 @@ export default {
       }
     },
     display_vc_infos : function() {
+      // Remove the old verification condition
       removeVerificationCondition(this.editorView)
-      console.log("vc_infos1:", this.vc_infos)
 
       for (let i in this.vcs){
         let vcData = this.vcs[i]
         let lineNumber = vcData.line
         let linePos = getPosition(this.editorView, lineNumber)
+
         let solver = 'Z3'
         let origin = vcData.origin
         let result
