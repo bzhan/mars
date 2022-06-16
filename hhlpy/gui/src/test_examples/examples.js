@@ -19,7 +19,7 @@ export const test_examples = {
     },
     e4: {
             pre: "x >= 0 && y >= 0",
-            hp: "(x := x + 1; y := y + 1)**",
+            hp: "(x := x + 1; y := y + 1)**;\n x := x + 1 ++ y := y + 1",
             post: "x >= 0 && y >= 0"
     }
 }
