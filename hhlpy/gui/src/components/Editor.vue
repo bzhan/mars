@@ -8,6 +8,13 @@
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
 
+    <br/>
+    <br/>
+    <form class="open_file">
+      <label for="open_file">Open file</label>
+      <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
+    </form>
+
     <div>{{ vcs }}</div>
   </div>
 </template>
@@ -21,12 +28,19 @@ import { displayVerificationCondition, getPosition, removeVerificationCondition 
 import { test_examples } from "../test_examples/examples"
 import { originTheme, originField } from '../decoration/origin'
 
-function initEditor(){
+function initEditorState(doc){
+  return EditorState.create({
+    doc: doc,
+    extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
+  })
+}
+
+function initEditor(doc){
+  if (!doc){
+    doc = test_examples.e4.hp
+  }
   const editorView = new EditorView({
-    state: EditorState.create({
-      doc: test_examples.e4.hp,
-      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
-    }),
+    state: initEditorState(doc),
     parent: document.getElementById("code")
   });
   return editorView;
@@ -87,6 +101,11 @@ export default {
 
   },
   methods: { 
+    openFile: function (e) {
+      e.target.files[0].text().then(t => 
+        this.editorView.setState(initEditorState(t))
+      )
+    },
     compute: function () {
       let pre = this.pre
       let post = this.post
@@ -152,5 +171,17 @@ button {
 .vcs {
   margin-top: 20px;
   font-family: monospace;
+}
+
+.open_file input {
+  opacity: 0;
+}
+
+.open_file label {
+  background-color: #bcbcbc;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: 1px ridge black;
+  height: auto;
 }
 </style>

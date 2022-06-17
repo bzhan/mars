@@ -1,0 +1,7 @@
+x := x+1.23456;
+if true
+then skip
+else y := 1
+endif;
+<x_dot=1 & x < 5>
+  invariant [x >= 1]

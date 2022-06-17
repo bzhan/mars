@@ -1,0 +1,2 @@
+<x_dot = y, y_dot = z + y^2 - y & y > 0>
+invariant [x >= 1]
