@@ -1,16 +1,25 @@
 <template>
   <div id="app">
+
+    <file-browser v-on:change="changePath" :axiosConfig="{baseURL: 'http://localhost:8081'}" />
     <Editor/>
   </div>
 </template>
 
 <script>
+import FileBrowser from "vuetify-file-browser";
 import Editor from './components/Editor.vue'
 
 export default {
   name: 'App',
   components: {
-    Editor
+    Editor,
+    FileBrowser
+  },
+  methods: {
+    changePath: function (e) {
+      console.log(e)
+    }
   }
 }
 </script>

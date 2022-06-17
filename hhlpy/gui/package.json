@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "concurrently -c green,blue -n pythonserver,vueserver \"npx nodemon --exec \\\"python\\\" ./server.py\" \"vue-cli-service serve\"",
+    "serve": "concurrently -c green,blue -n pythonserver,vueserver,fileserver \"npx nodemon --exec \\\"python\\\" ./server.py\" \"vue-cli-service serve\" \"node fileserver.js\"",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
   },
@@ -15,7 +15,10 @@
     "concurrently": "^7.0.0",
     "core-js": "^3.6.5",
     "vue": "^2.6.11",
-    "vue-awesome": "^4.5.0"
+    "vue-awesome": "^4.5.0",
+    "vuetify": "^2.6.0",
+    "vuetify-file-browser": "^1.0.2",
+    "vuetify-file-browser-server": "^1.0.2"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
@@ -26,7 +29,11 @@
     "eslint-plugin-vue": "^6.2.2",
     "lezer-generator": "^0.13.4",
     "nodemon": "^2.0.16",
-    "vue-template-compiler": "^2.6.11"
+    "sass": "~1.32.0",
+    "sass-loader": "^10.2.1",
+    "vue-cli-plugin-vuetify": "~2.5.1",
+    "vue-template-compiler": "^2.6.11",
+    "vuetify-loader": "^1.7.0"
   },
   "eslintConfig": {
     "root": true,
