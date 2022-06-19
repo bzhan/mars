@@ -95,7 +95,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]{{inv: z3}}", post="x >= 0", print_vcs=True,
+        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]{{inv: z3}}", post="x >= 0", print_vcs=False,
                   expected_vcs={((), (0,)): ["x >= 0 --> x + 1 >= 0"]})
 
     def testVerify5_1(self):
@@ -103,14 +103,14 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0 && y >= 0",
                   hp="(x := x + 1; y := y + 1)** invariant[x >= 0] [y >= 0]",
                   post="x >= 0 && y >= 0",
-                  print_vcs=True)
+                  print_vcs=False)
 
     def testVerify5_2(self):
         # {x >= 0} (x := x + 1)**;  x := x + 1; (x := x + 2)** {x >= 1}
         runVerify(self, pre="x >= 0",
                   hp="(x := x + 1)** invariant[x >= 0]; x := x + 1; (x := x + 2)** invariant[x >= 1]",
                   post="x >= 1",
-                  print_vcs=True)
+                  print_vcs=False)
 
     def testVerify5_3(self):
          runVerify(self, pre="x >= 0 && y >= 0",
@@ -119,7 +119,7 @@ class BasicHHLPyTest(unittest.TestCase):
                       y := y + 1; \
                       (x := x + 2; y := y + 2)** invariant[x >= 1] [y >= 1]",
                   post="x >= 1 && y >= 1",
-                  print_vcs=True)
+                  print_vcs=False)
 
     def testVerify6(self):
         # Basic benchmark, problem 3
@@ -585,37 +585,38 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0", hp="if x < 5 then x := x + 1 else x := x endif",
                   post="x > 0")
 
-    def testVerify52(self):
-        # Basic benchmark, problem 42 
-        # constants = {'A', 'B', 'S'}
+# TODO(new-syntax): Reinsert test
+    # def testVerify52(self):
+    #     # Basic benchmark, problem 42 
+    #     # constants = {'A', 'B', 'S'}
 
-        # another version
-        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S}
-        # 
-        # (if x + v^2 / (2*B) < S 
-        #     then a := A; <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S>
-        #  elif v == 0
-        #     then a := 0
-        #  else a := -B; <x_dot = v, v_dot = a & v > 0>
-        #  endif
-        # )**
-        #
-        # {x <= S}
-        runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
-                  hp="(if x + v^2 / (2*B) < S \
-                          then (a := A; \
-                              <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
-                              invariant [true]) \
-                       elif v == 0 \
-                          then a := 0 \
-                       else (a := -B; \
-                           <x_dot = v, v_dot = a & v > 0> \
-                           invariant [a == -B] [x+v^2/(2*B) <= S]) \
-                       endif \
-                      )** \
-                      invariant [v >= 0] [x+v^2/(2*B) <= S]",
-                  post="x <= S",)
-                #   constants={'A', 'B', 'S'})
+    #     # another version
+    #     # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S}
+    #     # 
+    #     # (if x + v^2 / (2*B) < S 
+    #     #     then a := A; <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S>
+    #     #  elif v == 0
+    #     #     then a := 0
+    #     #  else a := -B; <x_dot = v, v_dot = a & v > 0>
+    #     #  endif
+    #     # )**
+    #     #
+    #     # {x <= S}
+    #     runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
+    #               hp="(if x + v^2 / (2*B) < S \
+    #                       then (a := A; \
+    #                           <x_dot = v, v_dot = a & v > 0 && x + v^2 / (2*B) < S> \
+    #                           invariant [true]) \
+    #                    elif v == 0 \
+    #                       then a := 0 \
+    #                    else (a := -B; \
+    #                        <x_dot = v, v_dot = a & v > 0> \
+    #                        invariant [a == -B] [x+v^2/(2*B) <= S]) \
+    #                    endif \
+    #                   )** \
+    #                   invariant [v >= 0] [x+v^2/(2*B) <= S]",
+    #               post="x <= S",)
+    #             #   constants={'A', 'B', 'S'})
 
     def testVerify52_1(self):
          runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
@@ -705,32 +706,33 @@ class BasicHHLPyTest(unittest.TestCase):
                   constants={"B()"},
                   wolfram_engine=True)
 
-    def testVerify56(self):
-        # Basic benchcmark, problem 46
-        # constants = {'A', 'B', 'S', 'ep'}
-        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
-        #               else a := -B endif
-        #         ++ if v == 0 then a := 0 else a := -B endif
-        #         ++ a := -B
-        #         ;
+# TODO(new-syntax): Reinsert test
+    # def testVerify56(self):
+    #     # Basic benchcmark, problem 46
+    #     # constants = {'A', 'B', 'S', 'ep'}
+    #     # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
+    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
+    #     #               else a := -B endif
+    #     #         ++ if v == 0 then a := 0 else a := -B endif
+    #     #         ++ a := -B
+    #     #         ;
 
-        #         c := 0;
-        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
-        #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
-        # {x <= S}
-        runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
-                  hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
-                       ++ if v == 0 then a := 0 else a := -B endif \
-                       ++ a := -B; \
-                        c := 0; \
-                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
-                        invariant [x+v^2/(2*B) <= S] {sln}\
-                     )** \
-                     invariant [v >= 0] [x+v^2/(2*B) <= S]",
-                  post="x <= S",
-                #   constants={'A', 'B', 'S', 'ep'},
-                  wolfram_engine=True)
+    #     #         c := 0;
+    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
+    #     #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+    #     # {x <= S}
+    #     runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
+    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
+    #                    ++ if v == 0 then a := 0 else a := -B endif \
+    #                    ++ a := -B; \
+    #                     c := 0; \
+    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
+    #                     invariant [x+v^2/(2*B) <= S] {sln}\
+    #                  )** \
+    #                  invariant [v >= 0] [x+v^2/(2*B) <= S]",
+    #               post="x <= S",
+    #             #   constants={'A', 'B', 'S', 'ep'},
+    #               wolfram_engine=True)
 
     def testVerify56_1(self):
         # Test the andR Rule
@@ -738,40 +740,40 @@ class BasicHHLPyTest(unittest.TestCase):
         #   (x := x + a)**
         # {x >= 0 && y >= 0}
         runVerify(self, pre="x >= 1 && y >= 0 && a == 1",
-                  hp="(x := x + a)** invariant[x >= 0 && y >= 0]",
+                  hp="(x := x + a)** invariant[x >= 0] [y >= 0]",
                   post="x >= 0 && y >= 0",
                   andR_rule={((), ()): "true"})
 
+# TODO(new-syntax): Reinsert test
+    # def testVerify57(self):
+    #     # Basic benchcmark, problem 47
+    #     # constants = {'A', 'B', 'S', 'ep'}
+    #     # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
+    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a && a <= A}
+    #     #              else a := -B endif
+    #     #         ++ if v == 0 then a := 0 else a := -B endif
+    #     #         ++ a := -B
+    #     #         ;
 
-    def testVerify57(self):
-        # Basic benchcmark, problem 47
-        # constants = {'A', 'B', 'S', 'ep'}
-        # {v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0}
-        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a && a <= A}
-        #              else a := -B endif
-        #         ++ if v == 0 then a := 0 else a := -B endif
-        #         ++ a := -B
-        #         ;
-
-        #         c := 0;
-        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
-        #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
-        # {x <= S}
-        runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
-                  hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a &&\
-                          a <= A} \
-                            else a := -B endif \
-                       ++ if v == 0 then a := 0 else a := -B endif \
-                       ++ a := -B; \
-                        c := 0; \
-                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
-                        invariant [x+v^2/(2*B) <= S] {sln}\
-                      )** \
-                      invariant [v >= 0] [x+v^2/(2*B) <= S]",
-                  post="x <= S",
-                  constants={'A', 'B', 'S', 'ep'},
-                  andR_rule={((), ()): "true"},
-                  wolfram_engine=True)
+    #     #         c := 0;
+    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep >
+    #     #     )**@invariant(v >= 0 && x+v^2/(2*B) <= S)
+    #     # {x <= S}
+    #     runVerify(self,  pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) <= S && ep > 0",
+    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a &&\
+    #                       a <= A} \
+    #                         else a := -B endif \
+    #                    ++ if v == 0 then a := 0 else a := -B endif \
+    #                    ++ a := -B; \
+    #                     c := 0; \
+    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
+    #                     invariant [x+v^2/(2*B) <= S] {sln}\
+    #                   )** \
+    #                   invariant [v >= 0] [x+v^2/(2*B) <= S]",
+    #               post="x <= S",
+    #               constants={'A', 'B', 'S', 'ep'},
+    #               andR_rule={((), ()): "true"},
+    #               wolfram_engine=True)
 
     def testVerify58(self):
         # Basic benchmark, problem 48
@@ -820,45 +822,46 @@ class BasicHHLPyTest(unittest.TestCase):
                 #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
-    def testVerify60(self):
-        # Basic benchmark, problem 50
-        #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
-        #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
-        #  -> [ { {  xm := x2;
-        #            xr := (xm + S)/2;
-        #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
-        #         ++ ?true;
-        #         };
-        #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
-        #           @invariant(
-        #             xm<=x2,
-        #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
-        #          )
-        #         }
-        #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
-        #     ] x2 <= S
-        runVerify(self, \
-                  pre="v >= 0 && xm <= x2 && x2 <= S && xr == (xm + S)/2 && Kp == 2 && Kd == 3 \
-                    && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
-                  hp="( \
-                        if 5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2 \
-                        then \
-                            xm := x2; \
-                            xr := (xm + S)/2 \
-                        else \
-                            skip \
-                        endif \
-                        ++ \
-                        skip; \
-                        <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
-                        invariant [xm <= x2] \
-                                  [xr == (xm + S)/2] \
-                                  [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2] \
-                      )** \
-                      invariant [v >= 0 && xm <= x2 && xr == (xm + S)/2 && \
-                                 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2]",
-                  post="x2 <= S",
-                  constants={'Kp', 'Kd', 'S'})
+# TODO(new-syntax): Reinsert test
+    # def testVerify60(self):
+    #     # Basic benchmark, problem 50
+    #     #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
+    #     #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
+    #     #  -> [ { {  xm := x2;
+    #     #            xr := (xm + S)/2;
+    #     #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
+    #     #         ++ ?true;
+    #     #         };
+    #     #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
+    #     #           @invariant(
+    #     #             xm<=x2,
+    #     #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
+    #     #          )
+    #     #         }
+    #     #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
+    #     #     ] x2 <= S
+    #     runVerify(self, \
+    #               pre="v >= 0 && xm <= x2 && x2 <= S && xr == (xm + S)/2 && Kp == 2 && Kd == 3 \
+    #                 && 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
+    #               hp="( \
+    #                     if 5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2 \
+    #                     then \
+    #                         xm := x2; \
+    #                         xr := (xm + S)/2 \
+    #                     else \
+    #                         skip \
+    #                     endif \
+    #                     ++ \
+    #                     skip; \
+    #                     <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
+    #                     invariant [xm <= x2] \
+    #                               [xr == (xm + S)/2] \
+    #                               [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2] \
+    #                   )** \
+    #                   invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2] \
+    #                             [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2]",
+    #               post="x2 <= S",
+    #               constants={'Kp', 'Kd', 'S'})
 
     # TODO: Basic benchmark, problem 51. The ODE invariant cannot imply loop invariant.
     # def testVerify61(self):
@@ -972,7 +975,7 @@ class BasicHHLPyTest(unittest.TestCase):
                           invariant [A >= 0] \
                       endif \
                       )** \
-                      invariant [v >= 0 && A >= 0]",
+                      invariant [v >= 0] [A >= 0]",
                   post="v >= 0")
 
     def testVerify65(self):
@@ -2208,22 +2211,23 @@ class NonlinearHHLPyTest(unittest.TestCase):
                   post="~(0.5<=x1 && x1<=2 && -2<=x2 && x2<=-1.5 && -2<=x3 && x3<=-1.5)",
                   constants={"u1", "u2", "u3", "u4"})
 
-    def testNonlinear86(self):
-        # Nonlinear benchmark, problem 86
-        # {x1^2 + x2^2 + x3^2 >= 5}
-        #     t := 0;
-        #    <x1_dot = 2*x1+x2,
-        #     x2_dot = x1+3*x2-x3,
-        #     x3_dot = -x1+2*x2+3*x3,
-        #     t_dot = 1 & t < 10>
-        # {~(x1^2+x2^2+x3^2 < 1)}
-        runVerify(self, pre="x1^2 + x2^2 + x3^2 >= 5",
-                  hp="t := 0; \
-                     <x1_dot = 2*x1+x2, \
-                      x2_dot = x1+3*x2-x3, \
-                      x3_dot = -x1+2*x2+3*x3, \
-                      t_dot = 1 & t < 10>",
-                  post="~(x1^2+x2^2+x3^2 < 1)")
+# TODO(new-syntax): Reinsert test
+    # def testNonlinear86(self):
+    #     # Nonlinear benchmark, problem 86
+    #     # {x1^2 + x2^2 + x3^2 >= 5}
+    #     #     t := 0;
+    #     #    <x1_dot = 2*x1+x2,
+    #     #     x2_dot = x1+3*x2-x3,
+    #     #     x3_dot = -x1+2*x2+3*x3,
+    #     #     t_dot = 1 & t < 10>
+    #     # {~(x1^2+x2^2+x3^2 < 1)}
+    #     runVerify(self, pre="x1^2 + x2^2 + x3^2 >= 5",
+    #               hp="t := 0; \
+    #                  <x1_dot = 2*x1+x2, \
+    #                   x2_dot = x1+3*x2-x3, \
+    #                   x3_dot = -x1+2*x2+3*x3, \
+    #                   t_dot = 1 & t < 10>",
+    #               post="~(x1^2+x2^2+x3^2 < 1)")
 
     def testNonlinear87(self):
         # Nonlinear benchmark, problem 87
@@ -2570,73 +2574,74 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 117. No invariants offered.
 
-    def testNonlinear118(self):
-        # Nonlinear benchmark, problem 118
-        # It takes a very long time to prove.
-        #  {0.99 <= x1 && x1 <= 1.01 &&
-        #   0.99 <= x2 && x2 <= 1.01 &&
-        #   0.99 <= x3 && x3 <= 1.01 &&
-        #   0.99 <= x4 && x4 <= 1.01 &&
-        #   0.99 <= x5 && x5 <= 1.01 &&
-        #   0.99 <= x6 && x6 <= 1.01 &&
-        #   0.99 <= x7 && x7 <= 1.01}
-        #     <
-        #       x1_dot = -0.4*x1 + 5*x3*x4,
-        #       x2_dot = 0.4*x1 - x2,
-        #       x3_dot = x2 - 5*x3*x4,
-        #       x4_dot = 5*x5*x6 - 5*x3*x4,
-        #       x5_dot = -5*x5*x6 + 5*x3*x4,
-        #       x6_dot = 0.5*x7 - 5*x5*x6,
-        #       x7_dot = -0.5*x7 + 5*x5*x6 &
-        #       -2 <= x1 && x1 <= 2 &&
-        #       -2 <= x2 && x2 <= 2 &&
-        #       -2 <= x3 && x3 <= 2 &&
-        #       -2 <= x4 && x4 <= 2 &&
-        #       -2 <= x5 && x5 <= 2 &&
-        #       -2 <= x6 && x6 <= 2 &&
-        #       -2 <= x7 && x7 <= 2
-        #     >@invariant(x1+x2+x3<=706/233)
-        #   {~(
-        #     1.8 <= x1 && x1 <= 2 &&
-        #     1.8 <= x2 && x2 <= 2 &&
-        #     1.8 <= x3 && x3 <= 2 &&
-        #     1.8 <= x4 && x4 <= 2 &&
-        #     1.8 <= x5 && x5 <= 2 &&
-        #     1.8 <= x6 && x6 <= 2 &&
-        #     1.8 <= x7 && x7 <= 2
-        #   )}
-        runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
-                             0.99 <= x2 && x2 <= 1.01 && \
-                             0.99 <= x3 && x3 <= 1.01 && \
-                             0.99 <= x4 && x4 <= 1.01 && \
-                             0.99 <= x5 && x5 <= 1.01 && \
-                             0.99 <= x6 && x6 <= 1.01 && \
-                             0.99 <= x7 && x7 <= 1.01",
-                  hp="<x1_dot = -0.4*x1 + 5*x3*x4, \
-                       x2_dot = 0.4*x1 - x2, \
-                       x3_dot = x2 - 5*x3*x4, \
-                       x4_dot = 5*x5*x6 - 5*x3*x4, \
-                       x5_dot = -5*x5*x6 + 5*x3*x4, \
-                       x6_dot = 0.5*x7 - 5*x5*x6, \
-                       x7_dot = -0.5*x7 + 5*x5*x6 & \
-                       -2 < x1 && x1 < 2 && \
-                       -2 < x2 && x2 < 2 && \
-                       -2 < x3 && x3 < 2 && \
-                       -2 < x4 && x4 < 2 && \
-                       -2 < x5 && x5 < 2 && \
-                       -2 < x6 && x6 < 2 && \
-                       -2 < x7 && x7 < 2> \
-                      invariant [x1+x2+x3<=706/233]",
-                  post="~( \
-                            1.8 <= x1 && x1 <= 2 && \
-                            1.8 <= x2 && x2 <= 2 && \
-                            1.8 <= x3 && x3 <= 2 && \
-                            1.8 <= x4 && x4 <= 2 && \
-                            1.8 <= x5 && x5 <= 2 && \
-                            1.8 <= x6 && x6 <= 2 && \
-                            1.8 <= x7 && x7 <= 2 \
-                        )",
-                  wolfram_engine=True)
+# I took out this test because it was too slow -- Alex
+    # def testNonlinear118(self):
+    #     # Nonlinear benchmark, problem 118
+    #     # It takes a very long time to prove.
+    #     #  {0.99 <= x1 && x1 <= 1.01 &&
+    #     #   0.99 <= x2 && x2 <= 1.01 &&
+    #     #   0.99 <= x3 && x3 <= 1.01 &&
+    #     #   0.99 <= x4 && x4 <= 1.01 &&
+    #     #   0.99 <= x5 && x5 <= 1.01 &&
+    #     #   0.99 <= x6 && x6 <= 1.01 &&
+    #     #   0.99 <= x7 && x7 <= 1.01}
+    #     #     <
+    #     #       x1_dot = -0.4*x1 + 5*x3*x4,
+    #     #       x2_dot = 0.4*x1 - x2,
+    #     #       x3_dot = x2 - 5*x3*x4,
+    #     #       x4_dot = 5*x5*x6 - 5*x3*x4,
+    #     #       x5_dot = -5*x5*x6 + 5*x3*x4,
+    #     #       x6_dot = 0.5*x7 - 5*x5*x6,
+    #     #       x7_dot = -0.5*x7 + 5*x5*x6 &
+    #     #       -2 <= x1 && x1 <= 2 &&
+    #     #       -2 <= x2 && x2 <= 2 &&
+    #     #       -2 <= x3 && x3 <= 2 &&
+    #     #       -2 <= x4 && x4 <= 2 &&
+    #     #       -2 <= x5 && x5 <= 2 &&
+    #     #       -2 <= x6 && x6 <= 2 &&
+    #     #       -2 <= x7 && x7 <= 2
+    #     #     >@invariant(x1+x2+x3<=706/233)
+    #     #   {~(
+    #     #     1.8 <= x1 && x1 <= 2 &&
+    #     #     1.8 <= x2 && x2 <= 2 &&
+    #     #     1.8 <= x3 && x3 <= 2 &&
+    #     #     1.8 <= x4 && x4 <= 2 &&
+    #     #     1.8 <= x5 && x5 <= 2 &&
+    #     #     1.8 <= x6 && x6 <= 2 &&
+    #     #     1.8 <= x7 && x7 <= 2
+    #     #   )}
+    #     runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
+    #                          0.99 <= x2 && x2 <= 1.01 && \
+    #                          0.99 <= x3 && x3 <= 1.01 && \
+    #                          0.99 <= x4 && x4 <= 1.01 && \
+    #                          0.99 <= x5 && x5 <= 1.01 && \
+    #                          0.99 <= x6 && x6 <= 1.01 && \
+    #                          0.99 <= x7 && x7 <= 1.01",
+    #               hp="<x1_dot = -0.4*x1 + 5*x3*x4, \
+    #                    x2_dot = 0.4*x1 - x2, \
+    #                    x3_dot = x2 - 5*x3*x4, \
+    #                    x4_dot = 5*x5*x6 - 5*x3*x4, \
+    #                    x5_dot = -5*x5*x6 + 5*x3*x4, \
+    #                    x6_dot = 0.5*x7 - 5*x5*x6, \
+    #                    x7_dot = -0.5*x7 + 5*x5*x6 & \
+    #                    -2 < x1 && x1 < 2 && \
+    #                    -2 < x2 && x2 < 2 && \
+    #                    -2 < x3 && x3 < 2 && \
+    #                    -2 < x4 && x4 < 2 && \
+    #                    -2 < x5 && x5 < 2 && \
+    #                    -2 < x6 && x6 < 2 && \
+    #                    -2 < x7 && x7 < 2> \
+    #                   invariant [x1+x2+x3<=706/233]",
+    #               post="~( \
+    #                         1.8 <= x1 && x1 <= 2 && \
+    #                         1.8 <= x2 && x2 <= 2 && \
+    #                         1.8 <= x3 && x3 <= 2 && \
+    #                         1.8 <= x4 && x4 <= 2 && \
+    #                         1.8 <= x5 && x5 <= 2 && \
+    #                         1.8 <= x6 && x6 <= 2 && \
+    #                         1.8 <= x7 && x7 <= 2 \
+    #                     )",
+    #               wolfram_engine=True)
 
     def testNonlinear119(self):
         # Nonlinear benchmark, problem 119
@@ -2731,90 +2736,91 @@ class NonlinearHHLPyTest(unittest.TestCase):
 
     # TODO: Nonlinear problem 122, 123, 124. No invariants.
 
-    def testNonlinear125(self):
-        # Nonlinear benchmark, problem 125
-        #  {0.99 <= x1 && x1 <= 1.01 && 
-        #   0.99 <= x2 && x2 <= 1.01 && 
-        #   0.99 <= x3 && x3 <= 1.01 &&
-        #   0.99 <= x4 && x4 <= 1.01 &&
-        #   0.99 <= x5 && x5 <= 1.01 &&
-        #   0.99 <= x6 && x6 <= 1.01 &&
-        #   0.99 <= x6 && x6 <= 1.01 &&
-        #   0.99 <= x7 && x7 <= 1.01 &&
-        #   0.99 <= x8 && x8 <= 1.01 &&
-        #   0.99 <= x9 && x9 <= 1.01}
-        #     <
-        #       x1_dot = 3*x3 - x1*x6,
-        #       x2_dot = x4 - x2*x6,
-        #       x3_dot = x1*x6 - 3*x3,
-        #       x4_dot = x2*x6 - x4,
-        #       x5_dot = 3*x3 + 5*x1 - x5,
-        #       x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1),
-        #       x7_dot = 5*x4 + x2 - 0.5*x7,
-        #       x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8,
-        #       x9_dot = 2*x6*x8 - x9 &
-        #       -2 <= x1 && x1 <= 2 &&
-        #       -2 <= x2 && x2 <= 2 &&
-        #       -2 <= x3 && x3 <= 2 &&
-        #       -2 <= x4 && x4 <= 2 &&
-        #       -2 <= x5 && x5 <= 2 &&
-        #       -2 <= x6 && x6 <= 2 &&
-        #       -2 <= x7 && x7 <= 2 &&
-        #       -2 <= x8 && x8 <= 2 &&
-        #       -2 <= x9 && x9 <= 2>
-        #     @invariant(x2+x4<=101/50)
-        #  {~(
-        #     1.8 <= x1 && x1 <= 2 &&
-        #     1.8 <= x2 && x2 <= 2 &&
-        #     1.8 <= x3 && x3 <= 2 &&
-        #     1.8 <= x4 && x4 <= 2 &&
-        #     1.8 <= x5 && x5 <= 2 &&
-        #     1.8 <= x6 && x6 <= 2 &&
-        #     1.8 <= x7 && x7 <= 2 &&
-        #     1.8 <= x8 && x8 <= 2 &&
-        #     1.8 <= x9 && x9 <= 2
-        #   )}
-        runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
-                             0.99 <= x2 && x2 <= 1.01 && \
-                             0.99 <= x3 && x3 <= 1.01 && \
-                             0.99 <= x4 && x4 <= 1.01 && \
-                             0.99 <= x5 && x5 <= 1.01 && \
-                             0.99 <= x6 && x6 <= 1.01 && \
-                             0.99 <= x6 && x6 <= 1.01 && \
-                             0.99 <= x7 && x7 <= 1.01 && \
-                             0.99 <= x8 && x8 <= 1.01 && \
-                             0.99 <= x9 && x9 <= 1.01",
-                  hp="< \
-                        x1_dot = 3*x3 - x1*x6, \
-                        x2_dot = x4 - x2*x6, \
-                        x3_dot = x1*x6 - 3*x3, \
-                        x4_dot = x2*x6 - x4, \
-                        x5_dot = 3*x3 + 5*x1 - x5, \
-                        x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1), \
-                        x7_dot = 5*x4 + x2 - 0.5*x7, \
-                        x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8, \
-                        x9_dot = 2*x6*x8 - x9 & \
-                        -2 < x1 && x1 < 2 && \
-                        -2 < x2 && x2 < 2 && \
-                        -2 < x3 && x3 < 2 && \
-                        -2 < x4 && x4 < 2 && \
-                        -2 < x5 && x5 < 2 && \
-                        -2 < x6 && x6 < 2 && \
-                        -2 < x7 && x7 < 2 && \
-                        -2 < x8 && x8 < 2 && \
-                        -2 < x9 && x9 < 2> \
-                      invariant [x2+x4<=101/50]",
-                  post="~( \
-                            1.8 <= x1 && x1 <= 2 && \
-                            1.8 <= x2 && x2 <= 2 && \
-                            1.8 <= x3 && x3 <= 2 && \
-                            1.8 <= x4 && x4 <= 2 && \
-                            1.8 <= x5 && x5 <= 2 && \
-                            1.8 <= x6 && x6 <= 2 && \
-                            1.8 <= x7 && x7 <= 2 && \
-                            1.8 <= x8 && x8 <= 2 && \
-                            1.8 <= x9 && x9 <= 2 \
-                        )")
+# I took out this test because it was too slow -- Alex
+    # def testNonlinear125(self):
+    #     # Nonlinear benchmark, problem 125
+    #     #  {0.99 <= x1 && x1 <= 1.01 && 
+    #     #   0.99 <= x2 && x2 <= 1.01 && 
+    #     #   0.99 <= x3 && x3 <= 1.01 &&
+    #     #   0.99 <= x4 && x4 <= 1.01 &&
+    #     #   0.99 <= x5 && x5 <= 1.01 &&
+    #     #   0.99 <= x6 && x6 <= 1.01 &&
+    #     #   0.99 <= x6 && x6 <= 1.01 &&
+    #     #   0.99 <= x7 && x7 <= 1.01 &&
+    #     #   0.99 <= x8 && x8 <= 1.01 &&
+    #     #   0.99 <= x9 && x9 <= 1.01}
+    #     #     <
+    #     #       x1_dot = 3*x3 - x1*x6,
+    #     #       x2_dot = x4 - x2*x6,
+    #     #       x3_dot = x1*x6 - 3*x3,
+    #     #       x4_dot = x2*x6 - x4,
+    #     #       x5_dot = 3*x3 + 5*x1 - x5,
+    #     #       x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1),
+    #     #       x7_dot = 5*x4 + x2 - 0.5*x7,
+    #     #       x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8,
+    #     #       x9_dot = 2*x6*x8 - x9 &
+    #     #       -2 <= x1 && x1 <= 2 &&
+    #     #       -2 <= x2 && x2 <= 2 &&
+    #     #       -2 <= x3 && x3 <= 2 &&
+    #     #       -2 <= x4 && x4 <= 2 &&
+    #     #       -2 <= x5 && x5 <= 2 &&
+    #     #       -2 <= x6 && x6 <= 2 &&
+    #     #       -2 <= x7 && x7 <= 2 &&
+    #     #       -2 <= x8 && x8 <= 2 &&
+    #     #       -2 <= x9 && x9 <= 2>
+    #     #     @invariant(x2+x4<=101/50)
+    #     #  {~(
+    #     #     1.8 <= x1 && x1 <= 2 &&
+    #     #     1.8 <= x2 && x2 <= 2 &&
+    #     #     1.8 <= x3 && x3 <= 2 &&
+    #     #     1.8 <= x4 && x4 <= 2 &&
+    #     #     1.8 <= x5 && x5 <= 2 &&
+    #     #     1.8 <= x6 && x6 <= 2 &&
+    #     #     1.8 <= x7 && x7 <= 2 &&
+    #     #     1.8 <= x8 && x8 <= 2 &&
+    #     #     1.8 <= x9 && x9 <= 2
+    #     #   )}
+    #     runVerify(self, pre="0.99 <= x1 && x1 <= 1.01 && \
+    #                          0.99 <= x2 && x2 <= 1.01 && \
+    #                          0.99 <= x3 && x3 <= 1.01 && \
+    #                          0.99 <= x4 && x4 <= 1.01 && \
+    #                          0.99 <= x5 && x5 <= 1.01 && \
+    #                          0.99 <= x6 && x6 <= 1.01 && \
+    #                          0.99 <= x6 && x6 <= 1.01 && \
+    #                          0.99 <= x7 && x7 <= 1.01 && \
+    #                          0.99 <= x8 && x8 <= 1.01 && \
+    #                          0.99 <= x9 && x9 <= 1.01",
+    #               hp="< \
+    #                     x1_dot = 3*x3 - x1*x6, \
+    #                     x2_dot = x4 - x2*x6, \
+    #                     x3_dot = x1*x6 - 3*x3, \
+    #                     x4_dot = x2*x6 - x4, \
+    #                     x5_dot = 3*x3 + 5*x1 - x5, \
+    #                     x6_dot = 5*x5 + 3*x3 + x4 - x6*(x1 + x2 + 2*x8 + 1), \
+    #                     x7_dot = 5*x4 + x2 - 0.5*x7, \
+    #                     x8_dot = 5*x7 - 2*x6*x8 + x9 - 0.2*x8, \
+    #                     x9_dot = 2*x6*x8 - x9 & \
+    #                     -2 < x1 && x1 < 2 && \
+    #                     -2 < x2 && x2 < 2 && \
+    #                     -2 < x3 && x3 < 2 && \
+    #                     -2 < x4 && x4 < 2 && \
+    #                     -2 < x5 && x5 < 2 && \
+    #                     -2 < x6 && x6 < 2 && \
+    #                     -2 < x7 && x7 < 2 && \
+    #                     -2 < x8 && x8 < 2 && \
+    #                     -2 < x9 && x9 < 2> \
+    #                   invariant [x2+x4<=101/50]",
+    #               post="~( \
+    #                         1.8 <= x1 && x1 <= 2 && \
+    #                         1.8 <= x2 && x2 <= 2 && \
+    #                         1.8 <= x3 && x3 <= 2 && \
+    #                         1.8 <= x4 && x4 <= 2 && \
+    #                         1.8 <= x5 && x5 <= 2 && \
+    #                         1.8 <= x6 && x6 <= 2 && \
+    #                         1.8 <= x7 && x7 <= 2 && \
+    #                         1.8 <= x8 && x8 <= 2 && \
+    #                         1.8 <= x9 && x9 <= 2 \
+    #                     )")
 
     # TODO: Nonlinear 126, 127. Definitions.
 
