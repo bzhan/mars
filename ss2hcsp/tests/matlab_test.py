@@ -119,13 +119,13 @@ class MatlabTest(unittest.TestCase):
 
     def testConvertCommand(self):
         test_data = [
-            ("x = 0", "x := 0"),
-            ("fprintf(\"abc\")", "log(\"abc\")"),
-            ("z = min(x,y)", "z := min(x,y)"),
-            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if x == 1 then x := x + 1 else x := x - 1 endif"),
-            ("x = 1; y = 1", "x := 1; y := 1"),
-            ("a(1) = b(1)", "a[0] := b[0]"),
-            ("a(1) = f(1)", "a[0] := f(1)"),
+            ("x = 0", "x := 0;"),
+            ("fprintf(\"abc\")", "log(\"abc\");"),
+            ("z = min(x,y)", "z := min(x,y);"),
+            ("if x == 1\n  x = x + 1\nelse\n  x = x - 1", "if (x == 1) { x := x + 1; } else { x := x - 1; }"),
+            ("x = 1; y = 1", "x := 1; y := 1;"),
+            ("a(1) = b(1)", "a[0] := b[0];"),
+            ("a(1) = f(1)", "a[0] := f(1);"),
         ]
 
         for s, res in test_data:
@@ -151,7 +151,7 @@ class MatlabTest(unittest.TestCase):
         s = "x = 0; E; x = 1"
         def raise_event(e):
             return hcsp.Log(expr.AConst(e.name))
-        res = "x := 0; log(\"E\"); x := 1"
+        res = "x := 0; log(\"E\"); x := 1;"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, raise_event=raise_event)
@@ -160,7 +160,7 @@ class MatlabTest(unittest.TestCase):
     def testConvertFunctionCall(self):
         s = "x = 0; f()"
         procedures = {'f': parser.function_parser.parse("function f\n  x = x + 1;")}
-        res = "x := 0; x := x + 1"
+        res = "x := 0; x := x + 1;"
 
         cmd = parser.cmd_parser.parse(s)
         hp = convert.convert_cmd(cmd, procedures=procedures)
