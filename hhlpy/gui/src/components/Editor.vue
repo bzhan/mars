@@ -24,7 +24,7 @@ import { originTheme, originField } from '../decoration/origin'
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
-      doc: test_examples.e4.hp,
+      doc: test_examples.e3.hp,
       extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
     }),
     parent: document.getElementById("code")
