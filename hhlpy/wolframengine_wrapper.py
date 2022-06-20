@@ -7,10 +7,13 @@ from wolframclient.language.expression import WLFunction, WLSymbol
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import aexpr_parser
+import platform
 
 # logging.basicConfig(level=logging.DEBUG)
-path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
-# path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
+if platform.system() == "Darwin":
+    path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
+else:
+    path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
 session = WolframLanguageSession(path)
 
 def toWLexpr(e):
