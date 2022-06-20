@@ -1058,7 +1058,7 @@ class Loop(HCSP):
     def get_chs(self):
         return self.hp.get_chs()
 
-
+# TODO(new-syntax): Remove
 class Condition(HCSP):
     """The alternative cond -> hp behaves as hp if cond is true, otherwise,
     it terminates immediately.

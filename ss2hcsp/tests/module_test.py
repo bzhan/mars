@@ -15,7 +15,7 @@ class ModuleTest(unittest.TestCase):
                 output x;
                 begin
                     x := 0;
-                    (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**
+                    { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
                 end
             endmodule
         """)
@@ -27,7 +27,7 @@ class ModuleTest(unittest.TestCase):
         mod = module_parser.parse("""
             module P1():
                 begin
-                    (wait(2); p2c?x; c2p!x-1)**
+                    { wait(2); p2c?x; c2p!x-1; }*
                 end
             endmodule
         """)
@@ -81,7 +81,7 @@ class ModuleTest(unittest.TestCase):
             output x;
             begin
                 x := 0;
-                (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**
+                { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*
             end
             endmodule
         """)

@@ -128,10 +128,9 @@ def convert_expr(e, *, procedures=None, arrays=None, messages=None,states=None):
             else:
                 return expr.AConst("0")
         elif isinstance(e, function.LogicExpr):
-            if e.op_name == '~':
-                return expr.NegExpr(rec(e.exprs[0]))
-            else:
-                return expr.LogicExpr(e.op_name, rec(e.exprs[0]), rec(e.exprs[1]))
+            exprs = [rec(ex) for ex in e.exprs]
+            op_name = {"&&":"&", "||":"|", "-->":"->", "<-->":"<->", "~":"!"}[e.op_name]
+            return expr.LogicExpr(op_name, *exprs)
         elif isinstance(e, function.RelExpr):
                 return expr.RelExpr(e.op, rec(e.expr1), rec(e.expr2))
         else:

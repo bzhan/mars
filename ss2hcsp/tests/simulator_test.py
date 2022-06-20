@@ -107,10 +107,10 @@ class SimulatorTest(unittest.TestCase):
         test_data = [
             ("x >= y", {"x": 3, "y": 2}, True),
             ("x >= y", {"x": 2, "y": 3}, False),
-            ("x > y || x < y", {"x": 2, "y": 2}, False),
-            ("x == 2 --> y == 3", {"x": 2, "y": 3}, True),
-            ("x == 2 --> y == 3", {"x": 2, "y": 4}, False),
-            ("x == 2 --> y == 3", {"x": 3, "y": 4}, True),
+            ("x > y | x < y", {"x": 2, "y": 2}, False),
+            ("x == 2 -> y == 3", {"x": 2, "y": 3}, True),
+            ("x == 2 -> y == 3", {"x": 2, "y": 4}, False),
+            ("x == 2 -> y == 3", {"x": 3, "y": 4}, True),
         ]
 
         for expr, state, res in test_data:
@@ -135,29 +135,29 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep(self):
         test_data = [
-            ("skip", (), {}, None, {}),
-            ("x := 2", (), {}, None, {"x": 2}),
-            ("x := x + 1", (), {"x": 2}, None, {"x": 3}),
-            ("x := 2; x := x + 1", (0,), {}, (1,), {"x": 2}),
-            ("skip; x := x + 1", (0,), {"x": 2}, (1,), {"x": 2}),
-            ("(x := x + 1)**", (0,), {"x": 2}, (0,), {"x": 3}),
-            ("(x := 2; x := x + 1)**", (0, 0), {"x": 1}, (0, 1), {"x": 2}),
-            ("(x := 2; x := x + 1)**", (0, 1), {"x": 2}, (0, 0), {"x": 3}),
-            ("(<x_dot = 1 & true> |> [] (p2c!x --> skip); c2p?x)**", (0, 0, 0), {}, (0, 1), {}),
-            ("x == 0 -> x := 2; x := 3", (0,), {"x": 0}, (0, 0), {"x": 0}),
-            ("x == 0 -> x := 2; x := 3", (0,), {"x": 1}, (1,), {"x": 1}),
-            ("x == 0 -> x := 2", (), {"x": 0}, (0,), {"x": 0}),
-            ("x == 0 -> x := 2", (), {"x": 1}, None, {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (), {"x": 1}, (0, 0), {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2), {"x": 1}, (0, 2, 0), {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0), {"x": 1}, (0, 2, 0, 0, 0), {"x": 1}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 2, 0, 0, 0), {"x": 1}, (0, 2, 0, 0, 1, 0), {"x": 1}),
-            ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 0}, (0,), {"x": 0}),
-            ("if x == 0 then x := 1 else x := 0 endif", (), {"x": 1}, (1,), {"x": 1}),
-            ("if x == 0 then x := 1 else x := 0 endif", (0,), {"x": 0}, None, {"x": 1}),
-            ("if x == 0 then x := 1 else x := 0 endif", (1,), {"x": 1}, None, {"x": 0}),
-            ("if x == 0 then x := 1; skip else skip endif", (0, 0), {"x": 0}, (0, 1), {"x": 1}),
+            ("skip;", (), {}, None, {}),
+            ("x := 2;", (), {}, None, {"x": 2}),
+            ("x := x + 1;", (), {"x": 2}, None, {"x": 3}),
+            ("x := 2; x := x + 1;", (0,), {}, (1,), {"x": 2}),
+            ("skip; x := x + 1;", (0,), {"x": 2}, (1,), {"x": 2}),
+            ("{ x := x + 1; }*", (0,), {"x": 2}, (0,), {"x": 3}),
+            ("{ x := 2; x := x + 1; }*", (0, 0), {"x": 1}, (0, 1), {"x": 2}),
+            ("{ x := 2; x := x + 1; }*", (0, 1), {"x": 2}, (0, 0), {"x": 3}),
+            ("{ <x_dot = 1 & true> |> [] (p2c!x --> skip;) c2p?x; }*", (0, 0, 0), {}, (0, 1), {}),
+            ("x == 0 --> { x := 2; } x := 3;", (0,), {"x": 0}, (0, 0), {"x": 0}),
+            ("x == 0 --> { x := 2; } x := 3;", (0,), {"x": 1}, (1,), {"x": 1}),
+            ("x == 0 --> { x := 2; }", (), {"x": 0}, (0,), {"x": 0}),
+            ("x == 0 --> { x := 2; }", (), {"x": 1}, None, {"x": 1}),
+            ("rec X { x := 1; wait(1); @X; }", (), {"x": 1}, (0, 0), {"x": 1}),
+            ("rec X { x := 1; wait(1); @X; }", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
+            ("rec X { x := 1; wait(1); @X; }", (0, 2), {"x": 1}, (0, 2, 0), {"x": 1}),
+            ("rec X { x := 1; wait(1); @X; }", (0, 2, 0), {"x": 1}, (0, 2, 0, 0, 0), {"x": 1}),
+            ("rec X { x := 1; wait(1); @X; }", (0, 2, 0, 0, 0), {"x": 1}, (0, 2, 0, 0, 1, 0), {"x": 1}),
+            ("if (x == 0) { x := 1; } else { x := 0; }", (), {"x": 0}, (0,), {"x": 0}),
+            ("if (x == 0) { x := 1; } else { x := 0; }", (), {"x": 1}, (1,), {"x": 1}),
+            ("if (x == 0) { x := 1; } else { x := 0; }", (0,), {"x": 0}, None, {"x": 1}),
+            ("if (x == 0) { x := 1; } else { x := 0; }", (1,), {"x": 1}, None, {"x": 0}),
+            ("if (x == 0) { x := 1; skip; } else { skip; }", (0, 0), {"x": 0}, (0, 1), {"x": 1}),
         ]
 
         for cmd, pos, state, pos2, state2 in test_data:
@@ -169,19 +169,19 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecStep2(self):
         test_data = [
-            ("c?x", (), {}, {"comm": [(Channel("c"), "?")]}),
-            ("c!x", (), {}, {"comm": [(Channel("c"), "!")]}),
-            ("wait(3)", (0,), {}, {"delay": 3}),
-            ("wait(3)", (1,), {}, {"delay": 2}),
-            ("<x_dot = 1 & true> |> [](c1?x --> skip, c2!y --> skip)", (), {},
+            ("c?x;", (), {}, {"comm": [(Channel("c"), "?")]}),
+            ("c!x;", (), {}, {"comm": [(Channel("c"), "!")]}),
+            ("wait(3);", (0,), {}, {"delay": 3}),
+            ("wait(3);", (1,), {}, {"delay": 2}),
+            ("<x_dot = 1 & true> |> [](c1?x --> skip;, c2!y --> skip;)", (), {},
              {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")]}),
-            ("x := 1; wait(3)", (1, 0), {}, {"delay": 3}),
-            ("(x := 1; wait(3))**", (0, 1, 0), {}, {"delay": 3}),
-            ("(x := 1; wait(3))**", (0, 1, 1), {}, {"delay": 2}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {}, {"delay": 1}),
-            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0},
+            ("x := 1; wait(3);", (1, 0), {}, {"delay": 3}),
+            ("{x := 1; wait(3);}*", (0, 1, 0), {}, {"delay": 3}),
+            ("{x := 1; wait(3);}*", (0, 1, 1), {}, {"delay": 2}),
+            ("rec X { x := 1; wait(1); @X; }", (0, 1, 0), {}, {"delay": 1}),
+            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip;, c2!y --> skip;)", (), {"x": 0},
              {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 1.0}),
-            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip, c2!y --> skip)", (), {"x": 0.5},
+            ("<x_dot = 1 & x < 1> |> [](c1?x --> skip;, c2!y --> skip;)", (), {"x": 0.5},
              {"comm": [(Channel("c1"), "?"), (Channel("c2"), "!")], "delay": 0.5}),
         ]
 
@@ -194,15 +194,15 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecProcess(self):
         test_data = [
-            ("skip", (), {}, None, {}, "end"),
-            ("x := 2", (), {}, None, {"x": 2}, "end"),
-            ("x := 2; x := x + 1", (0,), {}, None, {"x": 3}, "end"),
-            ("x := x + 1; c!x", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [(Channel("c"), "!")]}),
-            ("wait(3)", (0,), {}, (0,), {}, {"delay": 3}),
-            ("(x := x + 1; wait(3))**", (0, 0), {"x": 2}, (0, 1, 0), {"x": 3}, {"delay": 3}),
-            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 0}, None, {"x": 0}, "end"),
-            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": 2}, None, {"x": 1}, "end"),
-            ("x > 0 -> x := 1; x < 0 -> x := -1", (0,), {"x": -2}, None, {"x": -1}, "end"),
+            ("skip;", (), {}, None, {}, "end"),
+            ("x := 2;", (), {}, None, {"x": 2}, "end"),
+            ("x := 2; x := x + 1;", (0,), {}, None, {"x": 3}, "end"),
+            ("x := x + 1; c!x;", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [(Channel("c"), "!")]}),
+            ("wait(3);", (0,), {}, (0,), {}, {"delay": 3}),
+            ("{ x := x + 1; wait(3); }*", (0, 0), {"x": 2}, (0, 1, 0), {"x": 3}, {"delay": 3}),
+            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": 0}, None, {"x": 0}, "end"),
+            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": 2}, None, {"x": 1}, "end"),
+            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": -2}, None, {"x": -1}, "end"),
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
@@ -219,11 +219,11 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecInputComm(self):
         test_data = [
-            ("c?x", (), {}, "c", 2, None, {"x": 2}),
-            ("c?x; x := x + 1", (0,), {}, "c", 2, (1,), {"x": 2}),
-            ("c?x; x := x + 1; y := 2", (0,), {}, "c", 2, (1,), {"x": 2}),
-            ("<x_dot = 1 & true> |> [](c?x --> x := x + 1)", (), {}, "c", 2, (0,), {"x": 2}),
-            ("<x_dot = 1 & true> |> [](c?x --> skip); x := x + 2", (0,), {}, "c", 2, (0, 0), {"x": 2})
+            ("c?x;", (), {}, "c", 2, None, {"x": 2}),
+            ("c?x; x := x + 1;", (0,), {}, "c", 2, (1,), {"x": 2}),
+            ("c?x; x := x + 1; y := 2;", (0,), {}, "c", 2, (1,), {"x": 2}),
+            ("<x_dot = 1 & true> |> [](c?x --> x := x + 1;)", (), {}, "c", 2, (0,), {"x": 2}),
+            ("<x_dot = 1 & true> |> [](c?x --> skip;) x := x + 2;", (0,), {}, "c", 2, (0, 0), {"x": 2})
         ]
 
         for cmd, pos, state, ch_name, val, pos2, state2 in test_data:
@@ -234,12 +234,12 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecOutputComm(self):
         test_data = [
-            ("c!x", (), {"x": 2}, "c", None, 2, {"x": 2}),
-            ("c!x+1", (), {"x": 2}, "c", None, 3, {"x": 2}),
-            ("c!x+y; x := 3", (0,), {"x": 2, "y": 3}, "c", (1,), 5, {"x": 2, "y": 3}),
-            ("c!x*y; x := 3; y := 0", (0,), {"x": 2, "y": 3}, "c", (1,), 6, {"x": 2, "y": 3}),
-            ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, "c", (0,), 2, {"x": 2}),
-            ("<x_dot = 1 & true> |> [](c!x+1 --> skip); x := x + 1", (0,), {"x": 2}, "c", (0, 0), 3, {"x": 2}),
+            ("c!x;", (), {"x": 2}, "c", None, 2, {"x": 2}),
+            ("c!x+1;", (), {"x": 2}, "c", None, 3, {"x": 2}),
+            ("c!x+y; x := 3;", (0,), {"x": 2, "y": 3}, "c", (1,), 5, {"x": 2, "y": 3}),
+            ("c!x*y; x := 3; y := 0;", (0,), {"x": 2, "y": 3}, "c", (1,), 6, {"x": 2, "y": 3}),
+            ("<x_dot = 1 & true> |> [](c!x --> skip;)", (), {"x": 2}, "c", (0,), 2, {"x": 2}),
+            ("<x_dot = 1 & true> |> [](c!x+1 --> skip;) x := x + 1;", (0,), {"x": 2}, "c", (0, 0), 3, {"x": 2}),
         ]
 
         for cmd, pos, state, ch_name, pos2, val, state2 in test_data:
@@ -251,16 +251,16 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecDelay(self):
         test_data = [
-            ("wait(3)", (0,), {}, 3, None, {}),
-            ("wait(3)", (0,), {}, 2, (2,), {}),
-            ("wait(3)", (1,), {}, 1, (2,), {}),
-            ("wait(3)", (1,), {}, 2, None, {}),
-            ("wait(3); x := x + 1", (0, 0), {"x": 2}, 3, (1,), {"x": 2}),
-            ("wait(3); x := x + 1", (0, 0), {"x": 2}, 2, (0, 2), {"x": 2}),
-            ("wait(3); x := x + 1", (0, 1), {"x": 2}, 2, (1,), {"x": 2}),
-            ("<x_dot = 1 & true> |> [](c!x --> skip)", (), {"x": 2}, 3, (), {"x": 5}),
-            ("<x_dot = 1 & true> |> [](c!x --> skip); x := x + 1", (0,), {"x": 2}, 3, (0,), {"x": 5}),
-            ("rec X.(x := 1; wait(1); @X)", (0, 1, 0), {"x": 1}, 1, (0, 2), {"x": 1}),
+            ("wait(3);", (0,), {}, 3, None, {}),
+            ("wait(3);", (0,), {}, 2, (2,), {}),
+            ("wait(3);", (1,), {}, 1, (2,), {}),
+            ("wait(3);", (1,), {}, 2, None, {}),
+            ("wait(3); x := x + 1;", (0, 0), {"x": 2}, 3, (1,), {"x": 2}),
+            ("wait(3); x := x + 1;", (0, 0), {"x": 2}, 2, (0, 2), {"x": 2}),
+            ("wait(3); x := x + 1;", (0, 1), {"x": 2}, 2, (1,), {"x": 2}),
+            ("<x_dot = 1 & true> |> [](c!x --> skip;)", (), {"x": 2}, 3, (), {"x": 5}),
+            ("<x_dot = 1 & true> |> [](c!x --> skip;) x := x + 1;", (0,), {"x": 2}, 3, (0,), {"x": 5}),
+            ("rec X {x := 1; wait(1); @X; }", (0, 1, 0), {"x": 1}, 1, (0, 2), {"x": 1}),
         ]
 
         for cmd, pos, state, delay, pos2, state2 in test_data:
@@ -278,18 +278,18 @@ class SimulatorTest(unittest.TestCase):
     def testODEComm(self):
         test_data = [
             # Acceleration
-            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
+            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip;)",
              {"a": 1, "v": 0, "x": 0}, 3, {"a": 1, "v": 3, "x": 4.5}),
 
             # Acceleration with floating point numbers
-            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
+            ("<x_dot = v, v_dot = a & true> |> [](c!x --> skip;)",
              {"a": 1.1, "v": 0, "x": 0}, 3, {"a": 1.1, "v": 3.3, "x": 4.95}),
 
             # Exponential growth
-            ("<x_dot = x & true> |> [](c!x --> skip)", {"x": 1}, 3, {"x": math.exp(3)}),
+            ("<x_dot = x & true> |> [](c!x --> skip;)", {"x": 1}, 3, {"x": math.exp(3)}),
 
             # Circular motion
-            ("<x_dot = -1 * y, y_dot = x & true> |> [](c!x --> skip)",
+            ("<x_dot = -1 * y, y_dot = x & true> |> [](c!x --> skip;)",
              {"x": 1, "y": 0}, 3, {"x": math.cos(3), "y": math.sin(3)}),
         ]
 
@@ -320,8 +320,8 @@ class SimulatorTest(unittest.TestCase):
             ("<x_dot = -1 * y, y_dot = x & x > -2>", {"x": 1, "y": 0}, 100),
 
             # Conjunction
-            ("<x_dot = 1, y_dot = 1 & x < 3 && y < 2>", {"x": 0, "y": 0}, 2.0),
-            ("<x_dot = 1, y_dot = -1 & x < 3 && y >= 0>", {"x": 0, "y": 1}, 1.0),
+            ("<x_dot = 1, y_dot = 1 & x < 3 & y < 2>", {"x": 0, "y": 0}, 2.0),
+            ("<x_dot = 1, y_dot = -1 & x < 3 & y >= 0>", {"x": 0, "y": 1}, 1.0),
         ]
 
         for cmd, state, delay in test_data:
@@ -331,176 +331,176 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel1(self):
         run_test(self, [
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*",
+            "{ wait(2); p2c?x; c2p!x-1; }*",
         ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0"])
 
     def testExecParallel2(self):
         run_test(self, [
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "wait(2); p2c?x; c2p!x-1",
+            "x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*",
+            "wait(2); p2c?x; c2p!x-1;",
         ], 6, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "deadlock"])
 
     def testExecParallel3(self):
         run_test(self, [
-            "x := 0; x := x + 1",
-            "y := 2",
+            "x := 0; x := x + 1;",
+            "y := 2;",
         ], 6, ['deadlock'])
 
     def testExecParallel4(self):
         run_test(self, [
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
+            "x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*",
+            "x := 0; { <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x; }*",
         ], 6, ['deadlock'])
 
     def testExecParallel5(self):
         run_test(self, [
-            "z := 1; (x?x --> skip $ z!z --> skip $ y?y --> skip)",
-            "y := 2; y!y",
+            "z := 1; {x?x --> skip; $ z!z --> skip; $ y?y --> skip;}",
+            "y := 2; y!y;",
         ], 3, ["IO y 2", "deadlock"])
 
     def testExecParallel6(self):
         run_test(self, [
-            "z := 1; (x?x --> skip $ z!z --> skip $ y?y --> skip)",
-            "z?z",
+            "z := 1; {x?x --> skip; $ z!z --> skip; $ y?y --> skip;}",
+            "z?z;",
         ], 3, ["IO z 1", "deadlock"])
 
     def testExecParallel7(self):
         run_test(self, [
-            "x := 1; y := 2; z := 3; wait(3); w := 4",
-            "x := 11; y := 12; wait(2); z := 3"
+            "x := 1; y := 2; z := 3; wait(3); w := 4;",
+            "x := 11; y := 12; wait(2); z := 3;"
         ], 6, ["delay 2", "delay 1", "deadlock"])
 
     def testExecParallel8(self):
         run_test(self, [
-            "(x?x --> x!x+1 $ y?y --> skip); x!x+2",
-            "x!3; x?x; x?x"
+            "{x?x --> x!x+1; $ y?y --> skip;} x!x+2;",
+            "x!3; x?x; x?x;"
         ], 3, ["IO x 3", "IO x 4", "IO x 5"])
 
     def testExecParallel9(self):
         run_test(self, [
-            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & true> |> [](c!x --> skip)",
-            "wait(3); c?x"
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & true> |> [](c!x --> skip;)",
+            "wait(3); c?x;"
         ], 3, ["delay 3", "IO c 4.5", "deadlock"])
 
     def testExecParallel10(self):
         run_test(self, [
-            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
-            "c?x"
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3> c!x;",
+            "c?x;"
         ], 3, ["delay 2.449", "IO c 3.0", "deadlock"])
 
     def testExecParallel11(self):
         run_test(self, [
-            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3>; c!x",
-            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 5>; c!x",
-            "c?x; c?x"
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 3> c!x;",
+            "x := 0; v := 0; a := 1; <x_dot = v, v_dot = a & x < 5> c!x;",
+            "c?x; c?x;"
         ], 5, ["delay 2.449", "IO c 3.0", "delay 0.713", "IO c 5.0", "deadlock"])
 
     def testExecParallel12(self):
         run_test(self, [
-            "x := 0; v := 1; a := -1; (<x_dot = v, v_dot = a & x >= 0>; v := -0.8 * v)**",
+            "x := 0; v := 1; a := -1; { <x_dot = v, v_dot = a & x >= 0> v := -0.8 * v; }*",
         ], 3, ["delay 2.0", "delay 1.6", "delay 1.28"])
 
     def testExecParallel13(self):
         run_test(self, [
-            "x := 0; rec X.(x := x + 1; wait(1); @X)"
+            "x := 0; rec X {x := x + 1; wait(1); @X; }"
         ], 4, ["delay 1", "delay 1", "delay 1", "delay 1"])
 
     def testExecParallel14(self):
         run_test(self, [
-            "x := 0; rec X.(x := x + 1; wait(1); x < 3 -> @X); c!x",
-            "c?x"
+            "x := 0; rec X {x := x + 1; wait(1); x < 3 --> { @X; } } c!x;",
+            "c?x;"
         ], 5, ["delay 1", "delay 1", "delay 1", "IO c 3", "deadlock"])
 
     def testExecParallel15(self):
         run_test(self, [
-            "x := 1; (<x_dot = x & true> |> [](c!x --> skip))**",
-            "(wait(10); c?x)**"
+            "x := 1; {<x_dot = x & true> |> [](c!x --> skip;)}*",
+            "{ wait(10); c?x; }*"
         ], 100, ['delay 10', 'IO c 22026.814', 'delay 10', 'IO c 485180534.947', 'delay 10', 'overflow'])
 
     def testExecParallel16(self):
         run_test(self, [
-            "EL := []; EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x",
-            "ch?x"
+            "EL := []; EL := push(EL, \"a\"); EL := push(EL, \"b\"); EL := pop(EL); x := top(EL); ch!x;",
+            "ch?x;"
         ], 2, ['IO ch "a"', "deadlock"])
 
     def testExecParallel17(self):
         run_test(self, [
-            "EL := []; (in?e --> EL := push(EL, e) $ out? --> e := top(EL); outval!e; EL := pop(EL))**",
-            "in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e",
+            "EL := []; { in?e --> EL := push(EL, e); $ out? --> e := top(EL); outval!e; EL := pop(EL); }*",
+            "in!\"a\"; in!\"b\"; out!; outval?e; out!; outval?e;",
         ], 7, ['IO in "a"', 'IO in "b"', 'IO out', 'IO outval "b"', 'IO out', 'IO outval "a"', 'deadlock'])
 
     def testExecParallel18(self):
         run_test(self, [
-            "num := 0; num == 0 -> (E := \"e\"; num := 1); ch!E",
-            "ch?E"
+            "num := 0; num == 0 --> { E := \"e\"; num := 1; } ch!E;",
+            "ch?E;"
         ], 2, ['IO ch "e"', 'deadlock'])
 
     def testExecParallel9(self):
         run_test(self, [
-            "num := 0; (ch_a!0 --> skip $ ch_b?x --> skip)**",
-            "ch_a?y; ch_b!y"
+            "num := 0; {ch_a!0 --> skip; $ ch_b?x --> skip;}*",
+            "ch_a?y; ch_b!y;"
         ], 3, ['IO ch_a 0', 'IO ch_b 0', 'deadlock'])
 
     def testExecParallel20(self):
         run_test(self, [
-            "x := 0; y := 0; (<x_dot = 1, y_dot = 1 & true> |> [](cx!x --> cy!y; x := x - 1, cy!y --> cx!x; y := y - 1))**",
-            "wait(1); cx?x; cy?y; wait(1); cy?y; cx?x; wait(1); cx?x; cy?y"
+            "x := 0; y := 0; {<x_dot = 1, y_dot = 1 & true> |> [](cx!x --> cy!y; x := x - 1;, cy!y --> cx!x; y := y - 1;)}*",
+            "wait(1); cx?x; cy?y; wait(1); cy?y; cx?x; wait(1); cx?x; cy?y;"
         ], 10, ['delay 1', 'IO cx 1.0', 'IO cy 1.0', 'delay 1', 'IO cy 2.0', 'IO cx 1.0', 'delay 1', 'IO cx 2.0', 'IO cy 2.0', 'deadlock'])
 
     def testExecParallel21(self):
         run_test(self, [
-            "x := 0; (if x == 0 then x := 1 elif x == 1 then x := 2 else x := 0 endif; c!x)**",
-            "(c?x)**"
+            "x := 0; {if (x == 0) { x := 1; } else if (x == 1) { x := 2; } else { x := 0; } c!x; }*",
+            "{ c?x; }*"
         ], 6, ['IO c 1', 'IO c 2', 'IO c 0', 'IO c 1', 'IO c 2', 'IO c 0'])
 
     def testExecParallel22(self):
         run_test(self, [
-            "rec X.(ch_a?x; x == 0 -> (@X); ch_b!x)",
-            "ch_a!0; ch_a!1; ch_b?y; ch_b?y"
+            "rec X {ch_a?x; x == 0 --> { @X; } ch_b!x;}",
+            "ch_a!0; ch_a!1; ch_b?y; ch_b?y;"
         ], 5, ['IO ch_a 0', 'IO ch_a 1', 'IO ch_b 1', 'IO ch_b 1', 'deadlock'])
 
     def testExecParallel23(self):
         run_test(self, [
-            'num := 0; (num == 0 -> (E := "e"; EL := ["e"]; NL := [1]; num := 1); num == 1 -> (BC1!E --> skip $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1 $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1)); num == 2 -> (EL := pop(EL); NL := pop(NL); EL == [] -> num := 0; EL != [] -> (E := top(EL); num := top(NL))))**',
-            'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X.(BC1?E; if a_A == 1 then done := 0; done == 0 -> (BR1!"e"; @X; a_S1 == 1 -> (a_A := 0; BR1!"e"; @X; a_S1 == 1 -> (a_B := 1; done := 1))); done == 0 -> skip elif a_B == 1 then skip else skip endif; BO1!)'
+            'num := 0; {num == 0 --> { E := "e"; EL := ["e"]; NL := [1]; num := 1; } num == 1 --> { BC1!E --> skip; $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1; $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1);} num == 2 --> {EL := pop(EL); NL := pop(NL); EL == [] --> { num := 0; } EL != [] --> {E := top(EL); num := top(NL);}}}*',
+            'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X {BC1?E; if (a_A == 1) { done := 0; done == 0 --> {BR1!"e"; @X; a_S1 == 1 --> {a_A := 0; BR1!"e"; @X; (a_S1 == 1) --> {a_B := 1; done := 1;}}} done == 0 --> { skip; } } else if (a_B == 1) { skip; } else { skip; } BO1!;}'
         ], 5, ['IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"'])
 
     def testExecParallel24(self):
         run_test(self, [
-            'x := 0; <x_dot = 1 & x < 1> |> [](c!x --> skip); <x_dot = 1 & x < 1> |> [](c!x --> skip); c!x',
-            'wait(0.2); c?x; wait(1.3); c?x'
+            'x := 0; <x_dot = 1 & x < 1> |> [](c!x --> skip;) <x_dot = 1 & x < 1> |> [](c!x --> skip;) c!x;',
+            'wait(0.2); c?x; wait(1.3); c?x;'
         ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
 
     def testExecParallel25(self):
         run_test(self, [
-            'x := 0; (<x_dot = 1 & x < 1> |> [](c!x --> skip)){x < 1}**; c!x',
-            'wait(0.2); c?x; wait(1.3); c?x'
+            'x := 0; {<x_dot = 1 & x < 1> |> [](c!x --> skip;)}*(x < 1) c!x;',
+            'wait(0.2); c?x; wait(1.3); c?x;'
         ], 10, ['delay 0.2', 'IO c 0.2', 'delay 0.8', 'delay 0.5', 'IO c 1.0', 'deadlock'])
 
     def testExecParallel26(self):
         run_test(self, [
-            'x := 0; y := 0; <x_dot = 1, y_dot = 2 & x < 2 && y < 3>; c!x; c!y',
-            'c?x; c?x'
+            'x := 0; y := 0; <x_dot = 1, y_dot = 2 & x < 2 & y < 3> c!x; c!y;',
+            'c?x; c?x;'
         ], 4, ['delay 1.5', 'IO c 1.5', 'IO c 3.0', 'deadlock'])
 
     def testExecParallel27(self):
         run_test(self, [
-            'xs := []; (ch_new?new; xs := push(xs, new); x := get_max(xs); ch_max!x; xs := pop_max(xs))**',
-            'ch_new![1,2]; ch_max?x; ch_new!3; ch_max?x; ch_new![]; ch_max?x'
+            'xs := []; {ch_new?new; xs := push(xs, new); x := get_max(xs); ch_max!x; xs := pop_max(xs);}*',
+            'ch_new![1,2]; ch_max?x; ch_new!3; ch_max?x; ch_new![]; ch_max?x;'
         ], 10, ['IO ch_new [1,2]', 'IO ch_max 2', 'IO ch_new 3', 'IO ch_max 3', 'IO ch_new []', 'IO ch_max 1', 'deadlock'])
 
     def testExecParallel28(self):
         run_test(self, [
-            'b := 10; xs := [b, 1]; a := xs[0]; ch!a; b := xs[1]; ch!b',
-            'ch?a; ch?b'
+            'b := 10; xs := [b, 1]; a := xs[0]; ch!a; b := xs[1]; ch!b;',
+            'ch?a; ch?b;'
         ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
 
     def testExecParallel29(self):
         """Test multiple assignment."""
         run_test(self, [
-            'b := 10; xs := [b, 1]; (a, b) := xs; ch!a; ch!b',
-            'ch?a; ch?b'
+            'b := 10; xs := [b, 1]; (a, b) := xs; ch!a; ch!b;',
+            'ch?a; ch?b;'
         ], 3, ['IO ch 10', 'IO ch 1', 'deadlock'])
 
     def testExecParallel30(self):
@@ -520,141 +520,141 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel33(self):
         run_test(self, [
-            'x := 2; assert(x == 2)'
+            'x := 2; assert(x == 2);'
         ], 2, ['deadlock'])
 
     def testExecParallel34(self):
         run_test(self, [
-            'x := 2; test(x == 3, "x should equal 3")'
+            'x := 2; test(x == 3, "x should equal 3");'
         ], 3, ['warning: Test x == 3 failed (x should equal 3)', 'deadlock'],
         warning=(0, "Test x == 3 failed (x should equal 3)"))
 
     def testExecParallel35(self):
         run_test(self, [
-            'x := 2; log("start")'
+            'x := 2; log("start");'
         ], 1, ['log start', 'deadlock'])
 
     def testExecParallel36(self):
         run_test(self, [
-            'x := 0; (<x_dot = 1 & true> |> [](p2c[0]!x --> skip); c2p[0]?x)**',
-            '(wait(2); p2c[0]?x; c2p[0]!x-1)**'
+            'x := 0; {<x_dot = 1 & true> |> [](p2c[0]!x --> skip;) c2p[0]?x;}*',
+            '{wait(2); p2c[0]?x; c2p[0]!x-1;}*'
         ], 6, ['delay 2', 'IO p2c[0] 2.0', 'IO c2p[0] 1.0', 'delay 2', 'IO p2c[0] 3.0', 'IO c2p[0] 2.0'])
 
     def testExecParallel37(self):
         run_test(self, [
-            'x := 0; i := 0; (i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip); c2p[i]?x)**',
-            'i := 0; (i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1)**'
+            'x := 0; i := 0; {i := i + 1; <x_dot = 1 & true> |> [](p2c[i]!x --> skip;) c2p[i]?x;}*',
+            'i := 0; {i := i + 1; wait(2); p2c[i]?x; c2p[i]!x-1;}*'
         ], 6, ['delay 2', 'IO p2c[1] 2.0', 'IO c2p[1] 1.0', 'delay 2', 'IO p2c[2] 3.0', 'IO c2p[2] 2.0'])
 
     def testExecParallel38(self):
         run_test(self, [
-            'pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt',
-            'ch?x; ch?x'
+            'pt := {x:1, y:2}; pt.x := pt.y + 1; ch!pt.x; ch!pt;',
+            'ch?x; ch?x;'
         ], 3, ['IO ch 3', 'IO ch {x:3,y:2}', 'deadlock'])
 
     def testExecParallel39(self):
         run_test(self, [
-            'pt := [1, 2]; pt[0] := pt[1] + 1; ch!pt[0]; ch!pt',
-            'ch?x; ch?x'
+            'pt := [1, 2]; pt[0] := pt[1] + 1; ch!pt[0]; ch!pt;',
+            'ch?x; ch?x;'
         ], 3, ['IO ch 3', 'IO ch [3,2]', 'deadlock'])
 
     def testExecParallel40(self):
         run_test(self, [
-            'pt := {x:1, y:2}; pt2 := pt; pt2.y := 3; ch!pt2.y; ch!pt.y',
-            'ch?x; ch?x'
+            'pt := {x:1, y:2}; pt2 := pt; pt2.y := 3; ch!pt2.y; ch!pt.y;',
+            'ch?x; ch?x;'
         ], 3, ['IO ch 3', 'IO ch 2', 'deadlock'])
 
     def testExecParallel41(self):
         run_test(self, [
-            'pt := {x:1, y:2}; ch!pt; ch!pt.y',
-            'ch?pt; pt.y := 3; ch?y'
+            'pt := {x:1, y:2}; ch!pt; ch!pt.y;',
+            'ch?pt; pt.y := 3; ch?y;'
         ], 3, ['IO ch {x:1,y:2}', 'IO ch 2', 'deadlock'])
 
     def testExecParallel42(self):
         run_test(self, [
-            'pt := {x:1, y:2}; ch!pt.x; ch!pt.y; ch?z; ch?z',
-            'pt := {x:2, y:3}; ch?pt.x; ch?pt.y; ch!pt.x; ch!pt.y'
+            'pt := {x:1, y:2}; ch!pt.x; ch!pt.y; ch?z; ch?z;',
+            'pt := {x:2, y:3}; ch?pt.x; ch?pt.y; ch!pt.x; ch!pt.y;'
         ], 5, ['IO ch 1', 'IO ch 2', 'IO ch 1', 'IO ch 2', 'deadlock'])
 
     def testExecParallel43(self):
         run_test(self, [
-            "x := 0; (test(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; {test(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            "{wait(2); p2c?x; c2p!x-1;}*",
         ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "warning: Test x <= 2 failed (x is too big)", "delay 2", "IO p2c 5.0", "IO c2p 4.0"],
         warning=(6, "Test x <= 2 failed (x is too big)"))
 
     def testExecParallel44(self):
         run_test(self, [
-            "status := [1]; status[0] := {x:1, y:2}; ch!status[0].x; ch!status[0].y",
-            "ch?z; ch?x"
+            "status := [1]; status[0] := {x:1, y:2}; ch!status[0].x; ch!status[0].y;",
+            "ch?z; ch?x;"
         ], 3, ['IO ch 1', 'IO ch 2', 'deadlock'])
 
     def testExecParallel45(self):
         run_test(self, [
-            "a := [[1,2],[3,4]]; ch!a[1][0]; ch!a[0][1]",
-            "ch?x; ch?x"
+            "a := [[1,2],[3,4]]; ch!a[1][0]; ch!a[0][1];",
+            "ch?x; ch?x;"
         ], 3, ['IO ch 3', 'IO ch 2', 'deadlock'])
 
     def testExecParallel46(self):
         run_test(self, [
-            "pt := {xs: [1, 2], ys: [3, 4]}; ch!pt.xs[1]; ch!pt.ys[0]",
-            "ch?x; ch?x"
+            "pt := {xs: [1, 2], ys: [3, 4]}; ch!pt.xs[1]; ch!pt.ys[0];",
+            "ch?x; ch?x;"
         ], 3, ['IO ch 2', 'IO ch 3', 'deadlock'])
 
     def testExecParallel47(self):
         run_test(self, [
-            "x := 0; (assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; {assert(x <= 2, \"x is too big\"); <x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            "{wait(2); p2c?x; c2p!x-1;}*",
         ], 12, ["delay 2", "IO p2c 2.0", "IO c2p 1.0", "delay 2", "IO p2c 3.0", "IO c2p 2.0",
                 "delay 2", "IO p2c 4.0", "IO c2p 3.0", "error: x is too big"],
         warning=(6, "x is too big"))
 
     def testExecParallel48(self):
         run_test(self, [
-            "(x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread))**",
-            "ch[0]!; out?x; ch[1]!; out?x"
+            "{x := 0; <x_dot = 1 & true> |> [](ch[_thread]? --> out!_thread;)}*",
+            "ch[0]!; out?x; ch[1]!; out?x;"
         ], 4, ['IO ch[0]', 'IO out 0', 'IO ch[1]', 'IO out 1'])
 
     def testExecParallel49(self):
         run_test(self, [
-            "a := [[0,1],[2,3]]; b := [0,1,2]; a[0][1] := 4; a[1][0] := 5; b[1] := a[1][1]; ch!a; ch!b",
-            "ch?x; ch?y"
+            "a := [[0,1],[2,3]]; b := [0,1,2]; a[0][1] := 4; a[1][0] := 5; b[1] := a[1][1]; ch!a; ch!b;",
+            "ch?x; ch?y;"
         ], 3, ['IO ch [[0,4],[5,3]]', 'IO ch [0,3,2]', 'deadlock'])
 
     def testProcedure1(self):
         run_test(self, [
-            ({"incr": "x := x + 1"},
-             "x := 0; @incr; @incr; ch!x"),
-            "ch?x"
+            ({"incr": "x := x + 1;"},
+             "x := 0; @incr; @incr; ch!x;"),
+            "ch?x;"
         ], 2, ['IO ch 2', 'deadlock'])
 
     def testProcedure2(self):
         run_test(self, [
-            ({"fact": "if a > 0 then x := a * x; a := a - 1; @fact else skip endif"},
-             "x := 1; a := 5; @fact; ch!x"),
-            "ch?x"
+            ({"fact": "if (a > 0) { x := a * x; a := a - 1; @fact; } else { skip; }"},
+             "x := 1; a := 5; @fact; ch!x;"),
+            "ch?x;"
         ], 2, ['IO ch 120', 'deadlock'])
 
     def testProcedure3(self):
         run_test(self, [
-            ({"output": "if a > 0 then a := a - 1; ch!a; @output else skip endif"},
-             "a := 5; @output"),
-            "(ch?x)**"
+            ({"output": "if (a > 0) { a := a - 1; ch!a; @output; } else { skip; }"},
+             "a := 5; @output;"),
+            "{ch?x;}*"
         ], 10, ['IO ch 4', 'IO ch 3', 'IO ch 2', 'IO ch 1', 'IO ch 0', 'deadlock'])
 
     def testProcedure4(self):
         run_test(self, [
-            ({"delay": "if a > 0 then a := a - 1; wait(2); @delay else skip endif"},
-             "a := 5; @delay")
+            ({"delay": "if (a > 0) { a := a - 1; wait(2); @delay; } else { skip; }"},
+             "a := 5; @delay;")
         ], 10, ['delay 2', 'delay 2', 'delay 2', 'delay 2', 'delay 2', 'deadlock'])
 
     def testProcedure5(self):
         run_test(self, [
-            ({"pa": "if x > 0 then x := x - 1; cha!x; @pb else skip endif",
-              "pb": "if x > 0 then x := x - 1; chb!x; @pa else skip endif"},
-             "x := 5; @pa"),
-            "(cha?x --> skip $ chb?x --> skip)**"
+            ({"pa": "if (x > 0) { x := x - 1; cha!x; @pb; } else { skip; }",
+              "pb": "if (x > 0) { x := x - 1; chb!x; @pa; } else { skip; }"},
+             "x := 5; @pa;"),
+            "{cha?x --> { skip; } $ chb?x --> { skip; }}*"
         ], 10, ['IO cha 4', 'IO chb 3', 'IO cha 2', 'IO chb 1', 'IO cha 0', 'deadlock'])
         
     def run_test_trace(self, infos, *, num_steps, num_show, ids=None,
@@ -672,20 +672,20 @@ class SimulatorTest(unittest.TestCase):
 
     def testTrace1(self):
         self.run_test_trace([
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; {<x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            "{wait(2); p2c?x; c2p!x-1;}*",
         ], num_steps=10, num_show=5, ids=[0,1,2,3,4,5])
 
     def testTrace2(self):
         self.run_test_trace([
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; {<x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            "{wait(2); p2c?x; c2p!x-1;}*",
         ], num_steps=10, num_show=5, show_interval=2, ids=[0,2,4,6,8,10])
 
     def testTrace3(self):
         self.run_test_trace([
-            "x := 0; (<x_dot = 1 & true> |> [](p2c!x --> skip); c2p?x)**",
-            "(wait(2); p2c?x; c2p!x-1)**",
+            "x := 0; {<x_dot = 1 & true> |> [](p2c!x --> skip;) c2p?x;}*",
+            "{wait(2); p2c?x; c2p!x-1;}*",
         ], num_steps=10, num_show=3,
         start_event = {
             'id': 4,

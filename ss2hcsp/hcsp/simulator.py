@@ -247,15 +247,15 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        if expr.op == "&&":
+        if expr.op == "&":
             return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
-        elif expr.op == "||":
+        elif expr.op == "|":
             return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "-->":
+        elif expr.op == "->":
             return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "<-->":
+        elif expr.op == "<->":
             return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
-        elif expr.op == "~":
+        elif expr.op == "!":
             return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
@@ -391,12 +391,12 @@ def get_ode_delay(hp, state):
         return all(not occur_var(e, var_name) for var_name in changed_vars)
 
     def test_cond(e):
-        if isinstance(e, LogicExpr) and e.op == '||':
+        if isinstance(e, LogicExpr) and e.op == '|':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
-        if isinstance(e, LogicExpr) and e.op == '&&':
+        if isinstance(e, LogicExpr) and e.op == '&':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)

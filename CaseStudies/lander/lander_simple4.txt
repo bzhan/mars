@@ -1,39 +1,39 @@
 P0 ::=
-(
+{
     ch_Fc_a?Fc;
     ch_v?v;
     ch_m?m;
     Fc := (-(Fc/m-3.732)*0.01+3.732-(v-(-1.5))*0.6)*m;
     ch_Fc_b!Fc;
     ch_Fc!Fc;
-    wait(0.128)
-)**
+    wait(0.128);
+}*
 
 P1 ::=
 v := -1.5;
 m := 759.5;
 Fc := 2835;
-(
-    if Fc <= 4000 then
+{
+    if (Fc <= 4000) {
         <v_dot = Fc/m - 3.732, m_dot = Fc/2500*(-1) & Fc <= 4000> |> [] (
-            ch_v!v --> skip,
-            ch_m!m --> skip,
-            ch_Fc?Fc --> skip
+            ch_v!v --> skip;,
+            ch_m!m --> skip;,
+            ch_Fc?Fc --> skip;
         )
-    else
+    } else {
         <v_dot = Fc/m - 3.732, m_dot = Fc/2695*(-1) & Fc > 4000> |> [] (
-            ch_v!v --> skip,
-            ch_m!m --> skip,
-            ch_Fc?Fc --> skip
+            ch_v!v --> skip;,
+            ch_m!m --> skip;,
+            ch_Fc?Fc --> skip;
         )
-    endif
-)**
+    }
+}*
 
 P2 ::=
 Fc := 2835;
 ch_Fc_a!Fc;
-(
+{
     ch_Fc_b?Fc;
     wait(0.128);
-    ch_Fc_a!Fc
-)**
+    ch_Fc_a!Fc;
+}*
