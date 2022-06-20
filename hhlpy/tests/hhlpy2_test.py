@@ -585,38 +585,39 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x >= 0", hp="if (x < 5) { x := x + 1; } else { x := x; }",
                   post="x > 0")
 
-# TODO(new-syntax): Reinsert test
-    # def testVerify52(self):
-    #     # Basic benchmark, problem 42 
-    #     # constants = {'A', 'B', 'S'}
+    def testVerify52(self):
+        # Basic benchmark, problem 42 
+        # constants = {'A', 'B', 'S'}
 
-    #     # another version
-    #     # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S}
-    #     # 
-    #     # (if x + v^2 / (2*B) < S 
-    #     #     then a := A; <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S>
-    #     #  elif v == 0
-    #     #     then a := 0
-    #     #  else a := -B; <x_dot = v, v_dot = a & v > 0>
-    #     #  endif
-    #     # )**
-    #     #
-    #     # {x <= S}
-    #     runVerify(self, pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S",
-    #               hp="(if x + v^2 / (2*B) < S \
-    #                       then (a := A; \
-    #                           <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S> \
-    #                           invariant [true]) \
-    #                    elif v == 0 \
-    #                       then a := 0 \
-    #                    else (a := -B; \
-    #                        <x_dot = v, v_dot = a & v > 0> \
-    #                        invariant [a == -B] [x+v^2/(2*B) <= S]) \
-    #                    endif \
-    #                   )** \
-    #                   invariant [v >= 0] [x+v^2/(2*B) <= S]",
-    #               post="x <= S",)
-    #             #   constants={'A', 'B', 'S'})
+        # another version
+        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S}
+        # 
+        # (if x + v^2 / (2*B) < S 
+        #     then a := A; <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S>
+        #  elif v == 0
+        #     then a := 0
+        #  else a := -B; <x_dot = v, v_dot = a & v > 0>
+        #  endif
+        # )**
+        #
+        # {x <= S}
+        runVerify(self, pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S",
+                  hp="{\
+                        if (x + v^2 / (2*B) < S) {\
+                            a := A; \
+                            <x_dot = v, v_dot = a & v > 0 & x + v^2 / (2*B) < S> \
+                                invariant [true]; \
+                        } else if (v == 0) { \
+                            a := 0; \
+                        } else {\
+                            a := -B; \
+                            <x_dot = v, v_dot = a & v > 0> \
+                            invariant [a == -B] [x+v^2/(2*B) <= S]; \
+                        } \
+                      }* \
+                      invariant [v >= 0 & x+v^2/(2*B) <= S];",
+                  post="x <= S", print_vcs=True)
+                #   constants={'A', 'B', 'S'})
 
     def testVerify52_1(self):
          runVerify(self, pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) < S",
@@ -706,33 +707,32 @@ class BasicHHLPyTest(unittest.TestCase):
                   constants={"B()"},
                   wolfram_engine=True)
 
-# TODO(new-syntax): Reinsert test
-    # def testVerify56(self):
-    #     # Basic benchcmark, problem 46
-    #     # constants = {'A', 'B', 'S', 'ep'}
-    #     # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
-    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
-    #     #               else a := -B endif
-    #     #         ++ if v == 0 then a := 0 else a := -B endif
-    #     #         ++ a := -B
-    #     #         ;
+    def testVerify56(self):
+        # Basic benchcmark, problem 46
+        # constants = {'A', 'B', 'S', 'ep'}
+        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
+        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A 
+        #               else a := -B endif
+        #         ++ if v == 0 then a := 0 else a := -B endif
+        #         ++ a := -B
+        #         ;
 
-    #     #         c := 0;
-    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
-    #     #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
-    #     # {x <= S}
-    #     runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
-    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := A else a := -B endif \
-    #                    ++ if v == 0 then a := 0 else a := -B endif \
-    #                    ++ a := -B; \
-    #                     c := 0; \
-    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
-    #                     invariant [x+v^2/(2*B) <= S] {sln}\
-    #                  )** \
-    #                  invariant [v >= 0] [x+v^2/(2*B) <= S]",
-    #               post="x <= S",
-    #             #   constants={'A', 'B', 'S', 'ep'},
-    #               wolfram_engine=True)
+        #         c := 0;
+        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
+        #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
+        # {x <= S}
+        runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
+                  hp="{   if (x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S) { a := A; } else { a := -B; } \
+                       ++ if (v == 0) { a := 0; } else { a := -B; } \
+                       ++ a := -B; \
+                        c := 0; \
+                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
+                        invariant [x+v^2/(2*B) <= S] {sln};\
+                     }* \
+                     invariant [v >= 0 & x+v^2/(2*B) <= S];",
+                  post="x <= S",
+                #   constants={'A', 'B', 'S', 'ep'},
+                  wolfram_engine=True)
 
     def testVerify56_1(self):
         # Test the andR Rule
@@ -744,36 +744,35 @@ class BasicHHLPyTest(unittest.TestCase):
                   post="x >= 0 & y >= 0",
                   andR_rule={((), ()): "true"})
 
-# TODO(new-syntax): Reinsert test
-    # def testVerify57(self):
-    #     # Basic benchcmark, problem 47
-    #     # constants = {'A', 'B', 'S', 'ep'}
-    #     # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
-    #     #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a & a <= A}
-    #     #              else a := -B endif
-    #     #         ++ if v == 0 then a := 0 else a := -B endif
-    #     #         ++ a := -B
-    #     #         ;
+    def testVerify57(self):
+        # Basic benchcmark, problem 47
+        # constants = {'A', 'B', 'S', 'ep'}
+        # {v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0}
+        #     (      if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a & a <= A}
+        #              else a := -B endif
+        #         ++ if v == 0 then a := 0 else a := -B endif
+        #         ++ a := -B
+        #         ;
 
-    #     #         c := 0;
-    #     #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
-    #     #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
-    #     # {x <= S}
-    #     runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
-    #               hp="(   if x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S then a := {-B <= a &\
-    #                       a <= A} \
-    #                         else a := -B endif \
-    #                    ++ if v == 0 then a := 0 else a := -B endif \
-    #                    ++ a := -B; \
-    #                     c := 0; \
-    #                     < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
-    #                     invariant [x+v^2/(2*B) <= S] {sln}\
-    #                   )** \
-    #                   invariant [v >= 0] [x+v^2/(2*B) <= S]",
-    #               post="x <= S",
-    #               constants={'A', 'B', 'S', 'ep'},
-    #               andR_rule={((), ()): "true"},
-    #               wolfram_engine=True)
+        #         c := 0;
+        #         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep >
+        #     )**@invariant(v >= 0 & x+v^2/(2*B) <= S)
+        # {x <= S}
+        runVerify(self,  pre="v >= 0 & A > 0 & B > 0 & x + v^2 / (2*B) <= S & ep > 0",
+                  hp="{   if (x+v^2/(2*B) + (A/B+1)*(A/2*ep^2+ep*v) <= S) {\
+                            a := *(-B <= a & a <= A); \
+                          } else { a := -B; } \
+                       ++ if (v == 0) { a := 0; } else { a := -B; } \
+                       ++ a := -B; \
+                        c := 0; \
+                        < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
+                        invariant [x+v^2/(2*B) <= S] {sln};\
+                      }* \
+                      invariant [v >= 0 & x+v^2/(2*B) <= S];",
+                  post="x <= S",
+                  constants={'A', 'B', 'S', 'ep'},
+                  andR_rule={((), ()): "true"},
+                  wolfram_engine=True)
 
     def testVerify58(self):
         # Basic benchmark, problem 48
@@ -824,46 +823,44 @@ class BasicHHLPyTest(unittest.TestCase):
                 #   constants={'Kp()', 'Kd()', 'xr()', 'c()'}
                   )
 
-# TODO(new-syntax): Reinsert test
-    # def testVerify60(self):
-    #     # Basic benchmark, problem 50
-    #     #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
-    #     #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
-    #     #  -> [ { {  xm := x2;
-    #     #            xr := (xm + S)/2;
-    #     #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
-    #     #         ++ ?true;
-    #     #         };
-    #     #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
-    #     #           @invariant(
-    #     #             xm<=x2,
-    #     #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
-    #     #          )
-    #     #         }
-    #     #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
-    #     #     ] x2 <= S
-    #     runVerify(self, \
-    #               pre="v >= 0 & xm <= x2 & x2 <= S & xr == (xm + S)/2 & Kp == 2 & Kd == 3 \
-    #                 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
-    #               hp="( \
-    #                     if 5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2 \
-    #                     then \
-    #                         xm := x2; \
-    #                         xr := (xm + S)/2 \
-    #                     else \
-    #                         skip \
-    #                     endif \
-    #                     ++ \
-    #                     skip; \
-    #                     <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
-    #                     invariant [xm <= x2] \
-    #                               [xr == (xm + S)/2] \
-    #                               [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2] \
-    #                   )** \
-    #                   invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2] \
-    #                             [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2]",
-    #               post="x2 <= S",
-    #               constants={'Kp', 'Kd', 'S'})
+    def testVerify60(self):
+        # Basic benchmark, problem 50
+        #         v >= 0 & xm <= x2 & x2 <= S & xr = (xm + S)/2 & Kp = 2 & Kd = 3
+        #            & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2
+        #  -> [ { {  xm := x2;
+        #            xr := (xm + S)/2;
+        #            ?5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2;
+        #         ++ ?true;
+        #         };
+        #         {{ x2' = v, v' = -Kp*(x2-xr) - Kd*v & v >= 0 }
+        #           @invariant(
+        #             xm<=x2,
+        #             5/4*(x2-(xm+S())/2)^2 + (x2-(xm+S())/2)*v/2 + v^2/4 < ((S()-xm)/2)^2
+        #          )
+        #         }
+        #       }*@invariant(v >= 0 & xm <= x2 & xr = (xm + S)/2 & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2)
+        #     ] x2 <= S
+        runVerify(self, \
+                  pre="v >= 0 & xm <= x2 & x2 <= S & xr == (xm + S)/2 & Kp == 2 & Kd == 3 \
+                    & 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2",\
+                  hp="{ \
+                        if (5/4*(x2-(x2 + S)/2)^2 + (x2-(x2 + S)/2)*v/2 + v^2/4 < ((S - x2)/2)^2) {\
+                            xm := x2; \
+                            xr := (xm + S)/2; \
+                        } else {\
+                            skip; \
+                        } \
+                        ++ \
+                        skip; \
+                        <x2_dot = v, v_dot = -Kp * (x2 - xr) - Kd * v & v > 0> \
+                        invariant [xm <= x2] \
+                                  [xr == (xm + S)/2] \
+                                  [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2]; \
+                      }* \
+                      invariant [v >= 0 & xm <= x2 & xr == (xm + S)/2 &\
+                                 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];",
+                  post="x2 <= S",
+                  constants={'Kp', 'Kd', 'S'})
 
     # TODO: Basic benchmark, problem 51. The ODE invariant cannot imply loop invariant.
     # def testVerify61(self):
@@ -2213,23 +2210,22 @@ class NonlinearHHLPyTest(unittest.TestCase):
                   post="!(0.5<=x1 & x1<=2 & -2<=x2 & x2<=-1.5 & -2<=x3 & x3<=-1.5)",
                   constants={"u1", "u2", "u3", "u4"})
 
-# TODO(new-syntax): Reinsert test
-    # def testNonlinear86(self):
-    #     # Nonlinear benchmark, problem 86
-    #     # {x1^2 + x2^2 + x3^2 >= 5}
-    #     #     t := 0;
-    #     #    <x1_dot = 2*x1+x2,
-    #     #     x2_dot = x1+3*x2-x3,
-    #     #     x3_dot = -x1+2*x2+3*x3,
-    #     #     t_dot = 1 & t < 10>
-    #     # {!(x1^2+x2^2+x3^2 < 1)}
-    #     runVerify(self, pre="x1^2 + x2^2 + x3^2 >= 5",
-    #               hp="t := 0; \
-    #                  <x1_dot = 2*x1+x2, \
-    #                   x2_dot = x1+3*x2-x3, \
-    #                   x3_dot = -x1+2*x2+3*x3, \
-    #                   t_dot = 1 & t < 10>",
-    #               post="!(x1^2+x2^2+x3^2 < 1)")
+    def testNonlinear86(self):
+        # Nonlinear benchmark, problem 86
+        # {x1^2 + x2^2 + x3^2 >= 5}
+        #     t := 0;
+        #    <x1_dot = 2*x1+x2,
+        #     x2_dot = x1+3*x2-x3,
+        #     x3_dot = -x1+2*x2+3*x3,
+        #     t_dot = 1 & t < 10>
+        # {!(x1^2+x2^2+x3^2 < 1)}
+        runVerify(self, pre="x1^2 + x2^2 + x3^2 >= 5",
+                  hp="t := 0; \
+                     <x1_dot = 2*x1+x2, \
+                      x2_dot = x1+3*x2-x3, \
+                      x3_dot = -x1+2*x2+3*x3, \
+                      t_dot = 1 & t < 10>",
+                  post="!(x1^2+x2^2+x3^2 < 1)")
 
     def testNonlinear87(self):
         # Nonlinear benchmark, problem 87
