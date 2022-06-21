@@ -38,7 +38,7 @@ def runVerify(self, *, pre, hp, post, constants=set(),
         for pos, vcs in verifier.get_all_vcs().items():
             print("%s:" % str(pos))
             for vc in vcs:
-                print(vc)
+                print(vc.expr, "pos:", vc.pos, "path:", vc.path, "annot_pos:", vc.annot_pos)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -53,8 +53,9 @@ def runVerify(self, *, pre, hp, post, constants=set(),
     if expected_vcs:
         for pos, vcs in expected_vcs.items():
             vcs = [parse_bexpr_with_meta(vc) for vc in vcs]
-            actual_vcs = [vc for vc in verifier.infos[pos].vcs if not is_trivial(vc)]
-            self.assertEqual(set(vcs), set(actual_vcs), "\nActual: {}".format([str(vc) for vc in actual_vcs]))
+            actual_vcs = [vc.expr for vc in verifier.infos[pos].vcs if not is_trivial(vc.expr)]
+            self.assertEqual(set(vcs), set(actual_vcs), 
+            "\nExpect: {}\nActual: {}".format([str(vc) for vc in vcs],[str(vc) for vc in actual_vcs]))
 
 
 class BasicHHLPyTest(unittest.TestCase):
@@ -79,7 +80,7 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify2(self):
         # {x >= 0} x := x+1 ++ x := x+2 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1 ++ x := x+2", post="x >= 1",
-                  expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1 && x + 2 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1", "x >= 0 --> x + 2 >= 1"]})
 
     def testVerify3(self):
         # {x >= 0} x := x+1; y := x+2 {x >= 1 && y >= 3}
@@ -90,12 +91,35 @@ class BasicHHLPyTest(unittest.TestCase):
         # Basic benchmark, problem 2
         # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1 ++ y := x+1", post="x >= 1",
-                  expected_vcs={((), ()): ["x >= 0 --> x + 1 + 1 >= 1 && x + 1 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 --> x + 1 + 1 >= 1", "x >= 0 --> x + 1 >= 1"]})
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]", post="x >= 0",
-                  expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 0"]})
+        runVerify(self, pre="x >= 0", hp="(x := x+1)** invariant [x >= 0]{{inv: z3}}", post="x >= 0", print_vcs=True,
+                  expected_vcs={((), (0,)): ["x >= 0 --> x + 1 >= 0"]})
+
+    def testVerify5_1(self):
+        # {x >= 0 && y >= 0} (x := x + 1; y := y + 1)** {x >= 0 && y >= 0}
+        runVerify(self, pre="x >= 0 && y >= 0",
+                  hp="(x := x + 1; y := y + 1)** invariant[x >= 0] [y >= 0]",
+                  post="x >= 0 && y >= 0",
+                  print_vcs=True)
+
+    def testVerify5_2(self):
+        # {x >= 0} (x := x + 1)**;  x := x + 1; (x := x + 2)** {x >= 1}
+        runVerify(self, pre="x >= 0",
+                  hp="(x := x + 1)** invariant[x >= 0]; x := x + 1; (x := x + 2)** invariant[x >= 1]",
+                  post="x >= 1",
+                  print_vcs=True)
+
+    def testVerify5_3(self):
+         runVerify(self, pre="x >= 0 && y >= 0",
+                  hp="(x := x + 1; y := y + 1)** invariant[x >= 0][y >= 0]; \
+                      x := x + 1; \
+                      y := y + 1; \
+                      (x := x + 2; y := y + 2)** invariant[x >= 1] [y >= 1]",
+                  post="x >= 1 && y >= 1",
+                  print_vcs=True)
 
     def testVerify6(self):
         # Basic benchmark, problem 3
@@ -103,7 +127,7 @@ class BasicHHLPyTest(unittest.TestCase):
         # Invariant for loop is x >= 1.
         runVerify(self, pre="x >= 0", hp="x := x+1; (x := x+1)** invariant [x >= 1]", post="x >= 1",
                   expected_vcs={((), ()): ["x >= 0 --> x + 1 >= 1"],
-                                ((1,), ()): ["x >= 1 --> x + 1 >= 1"]})
+                                ((1,), (0,)): ["x >= 1 --> x + 1 >= 1"]})
 
     def testVerify7(self):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
@@ -593,6 +617,15 @@ class BasicHHLPyTest(unittest.TestCase):
                   post="x <= S",)
                 #   constants={'A', 'B', 'S'})
 
+    def testVerify52_1(self):
+         runVerify(self, pre="v >= 0 && A > 0 && B > 0 && x + v^2 / (2*B) < S",
+                  hp="(a := -B; \
+                       <x_dot = v, v_dot = a & v > 0> \
+                           invariant [a == -B] [x+v^2/(2*B) <= S] \
+                      )** \
+                      invariant [x+v^2/(2*B) <= S] [v >= 0]",
+                  post="x <= S")
+
     def testVerify53(self):
         # Basic benchmark, problem 43
         # contants = {'A', 'V'}
@@ -763,7 +796,7 @@ class BasicHHLPyTest(unittest.TestCase):
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 && c < ep > \
                         invariant [x+v^2/(2*b) <= S] {sln}\
                       )** \
-                      invariant [v >= 0] [x+v^2/(2*b) <= S]",
+                      invariant [x+v^2/(2*b) <= S] [v >= 0]",
                   post="x <= S",
                 #   constants={'A', 'B', 'b', 'S', 'ep'},
                   andR_rule={((), ()): "true"},

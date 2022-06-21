@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, BExpr, true_expr, false_expr, RelExpr, LogicExpr
-from ss2hcsp.hcsp.invariant import Invariant
+from ss2hcsp.hcsp.invariant import Invariant, LoopInvariant
 from ss2hcsp.matlab import function
 from ss2hcsp.util.topsort import topological_sort
 import re
@@ -1007,13 +1007,17 @@ class Loop(HCSP):
     
     hp : HCSP - body of the loop.
     constraint : BExpr - loop condition, default to true.
-    inv : list of BExpr - invariants
+    inv : tuple of LoopInvariants - invariants
 
     """
     def __init__(self, hp, *, inv=None, constraint=true_expr, meta=None):
         super(Loop, self).__init__()
         self.type = 'loop'
         assert isinstance(hp, HCSP)
+        if inv is not None:
+            assert isinstance(inv, tuple)
+            for sub_inv in inv:
+                assert isinstance(sub_inv, LoopInvariant)
         self.hp = hp
         self.inv = inv
         self.constraint = constraint

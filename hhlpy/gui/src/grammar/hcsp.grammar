@@ -140,8 +140,8 @@ atom_cmd {
   | TestCmd { "test" "(" cond ("," expr)* ")" }
   | LogCmd { "log" "(" expr ("," expr)* ")" }
   | comm_cmd
-  | RepeatCmd { "(" cmd ")**" maybe_invariant }
-  | RepeatCondCmd { "(" cmd "){" cond "}**"  maybe_invariant}
+  | RepeatCmd { "(" cmd ")**" maybe_loop_invariant }
+  | RepeatCondCmd { "(" cmd "){" cond "}**"  maybe_loop_invariant}
   | RepeatCmdInv { "(" cmd ")**@invariant(" cond ")" }
   | RepeatCondCmdInv { "(" cmd "){" cond "}**@invariant(" cond ")" }
   | Ode { OdeNoInv maybe_ode_invariant }
@@ -178,6 +178,13 @@ procedure { "procedure" CNAME "begin" cmd "end" }
 maybe_invariant { ("invariant " Invariant)?}
 
 Invariant { "[" cond "]"}
+
+maybe_loop_invariant { ("invariant" Loop_invariant+)? }
+Loop_invariant { Invariant ("{{" proof_method ("," proof_method)* "}}")? }
+proof_method { label ":" method }
+label { CNAME? SIGNED_NUMBER? }    
+method { "Z3"       
+      | "Wolfram Engine" }
 
 maybe_ode_invariant{ ("invariant " Ode_invariant+)?}
 
