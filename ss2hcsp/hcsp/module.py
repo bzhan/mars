@@ -125,10 +125,15 @@ class HCSPModuleInst:
                 else:
                     return "$" + str(arg.value)
             else:
-                return arg.value
-                
-        return "%s = %s(%s)" % (self.name, self.module_name,
-            ', '.join(print_arg(arg) for arg in self.args))
+                return str(arg)
+        
+        
+        if self.name == self.module_name:
+            return "%s(%s)" % (self.name,
+                ', '.join(print_arg(arg) for arg in self.args))
+        else:
+            return "%s = %s(%s)" % (self.name, self.module_name,
+                ', '.join(print_arg(arg) for arg in self.args))
 
     def generateInst(self, module):
         """Given the module, construct the corresponding HCSP info."""
@@ -193,7 +198,7 @@ def read_file(filename):
             return text
         except FileNotFoundError:
             pass
-    
+        
     return None
 
 

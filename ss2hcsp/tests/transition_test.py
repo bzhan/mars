@@ -16,7 +16,7 @@ class MatlabTest(unittest.TestCase):
         func = parser.transition_parser.parse(html.unescape(s))
         
         print(func.cond)
-        print(func.cond_act.hps[0].exprs)
+        print(func.cond_act.cmd1)
 
 if __name__ == "__main__":
     unittest.main()

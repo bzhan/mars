@@ -4,7 +4,8 @@ export const
   SeqCmd = 2,
   CNAME = 4,
   SIGNED_NUMBER = 54,
-  Invariant = 91,
-  OdeNoInv = 98,
-  Ode_invariant = 101,
-  InvariantWithRule = 102
+  Loop_invariant = 91,
+  Invariant = 92,
+  OdeNoInv = 99,
+  Ode_invariant = 102,
+  InvariantWithRule = 103

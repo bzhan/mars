@@ -149,9 +149,9 @@ def translate_continuous(diagram):
         if isinstance(ode_hp, hp.ODE_Comm):
             for io_comm in ode_hp.io_comms:
                 if isinstance(io_comm[0], hp.OutputChannel):
-                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 elif isinstance(io_comm[0], hp.InputChannel):
-                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 else:
                     raise RuntimeError("It must be a channel operation!")
 
@@ -159,14 +159,14 @@ def translate_continuous(diagram):
     if len(out_comms) == 1:
         send_out_vars = out_comms[0][0]
     elif len(out_comms) >= 2:
-        send_out_vars = hp.Sequence(hp_parser.parse("num := %s" % len(out_comms)),
+        send_out_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(out_comms)),
                                     hp.Loop(hp=hp.SelectComm(*out_comms), constraint=bexpr_parser.parse("num > 0")))
 
     receive_in_vars = hp.Skip()  # no input channel operations
     if len(in_comms) == 1:
         receive_in_vars = in_comms[0][0]
     elif len(in_comms) >= 2:
-        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s" % len(in_comms)),
+        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(in_comms)),
                                       hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
 
     init_hps.extend([send_out_vars, receive_in_vars])

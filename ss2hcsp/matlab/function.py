@@ -246,7 +246,8 @@ class LogicExpr(BExpr):
         self.op_name = op_name
         self.exprs = tuple(exprs)
         self.expr1=self.exprs[0]
-        self.expr2=self.exprs[1]
+        if len(exprs) != 1:
+            self.expr2=self.exprs[1]
         
 
     def __repr__(self):

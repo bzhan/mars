@@ -22,7 +22,7 @@ class Subsystem(SL_Block):
         en_line = self.dest_lines[-1]
         en_cond = RelExpr(">", AVar(en_line.name), AConst(0))
         if init_en_cond != true_expr:
-            en_cond = LogicExpr("&&", init_en_cond, en_cond)
+            en_cond = LogicExpr("&", init_en_cond, en_cond)
         for block in self.diagram.blocks:
             if hasattr(block, "enable"):
                 block.enable = en_cond
@@ -159,8 +159,8 @@ class Triggered_Subsystem(Subsystem):
             raise NotImplementedError("Unknown trigger type: %s" % trigger_type)
 
         return LogicExpr(
-            "||", LogicExpr("&&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
-                  LogicExpr("&&", RelExpr(op2, pre_sig, AConst(0)), RelExpr(op3, cur_sig, AConst(0))))
+            "|", LogicExpr("&", RelExpr(op0, pre_sig, AConst(0)), RelExpr(op1, cur_sig, AConst(0))),
+                 LogicExpr("&", RelExpr(op2, pre_sig, AConst(0)), RelExpr(op3, cur_sig, AConst(0))))
 
     def get_continuous_triggered_condition(self):
         """Obtain the continuous trigger condition.

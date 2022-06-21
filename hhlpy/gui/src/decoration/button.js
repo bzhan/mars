@@ -69,21 +69,35 @@ function addAnnotationButtons(view) {
     let to = cursor.to
 
     if (cursor.name == "RepeatCmd") {
-      // If RepeatCmd is not with an invariant, show the "Add Invariant" button.
-      // Otherwise, no button shows.
-      if (cursor.node.lastChild.cursor.name != "Invariant") {
-        let deco = Decoration.widget({
-          widget: new AnnotationButtonWidget(() => { 
-            // console.log('clickButton')
-            view.dispatch(view.state.update({
-              changes: {from: to, insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "]"}, 
-              selection: {anchor: to + inv_desc_len + 3, head: to + inv_desc_len + 3 + space_len}}))
-          },
-          "Add Invariant"),
-          side: 1
-        })
-        builder.add(cursor.to, cursor.to, deco)
+      let inv_changes = {}
+      let inv_selection = {}
+      console.log("cursor name:", cursor.name)
+      console.log("last child name:", cursor.node.lastChild.cursor.name)
+      if (cursor.node.lastChild.cursor.name != ";") {
+        inv_changes = {from: to, insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "];"}
+        inv_selection = {anchor: to + inv_desc_len + 3, head: to + inv_desc_len + 3 + space_len}
       }
+      else {
+        inv_changes = {from: to-1, 
+          insert: "\n\t" + " ".repeat(inv_desc_len) + 
+                  "[" + " ".repeat(space_len) + "]"}
+          inv_selection = {anchor: to-1 + inv_desc_len + 3, 
+                           head: to-1 + inv_desc_len + 3 + space_len}
+      }
+
+      let deco = Decoration.widget({
+        widget: new AnnotationButtonWidget(() => { 
+          view.dispatch(view.state.update({
+            changes: inv_changes, 
+            selection: inv_selection}))
+        },
+        "Add Invariant"),
+        side: 1
+      })
+      // Place the button after { cmd }*, i.e. after the forth child.
+      builder.add(cursor.node.firstChild.nextSibling.nextSibling.nextSibling.cursor.to, 
+                  cursor.node.firstChild.nextSibling.nextSibling.nextSibling.cursor.to, 
+                  deco)
     }
 
     else if (cursor.name == "Ode") {
@@ -94,9 +108,9 @@ function addAnnotationButtons(view) {
         let inv_selection = {}
         let ghost_changes = {}
         let ghost_selection = {}
-        if (cursor.node.lastChild.cursor.name != "Ode_invariant"){  
+        if (cursor.node.lastChild.cursor.name != ";"){  
           inv_changes = {from: to, 
-                         insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "]"} 
+                         insert: "\n\t" + inv_desc + "[" + " ".repeat(space_len) + "];"} 
           inv_selection = {anchor: to + inv_desc_len + 3, 
                            head: to + inv_desc_len + 3 + space_len}
           ghost_changes = {from: to, 
@@ -106,14 +120,14 @@ function addAnnotationButtons(view) {
 
         // Do not need "invariant " description if there is already one invariant above.
         else{
-          inv_changes = {from: to, 
+          inv_changes = {from: to-1, 
                          insert: "\n\t" + " ".repeat(inv_desc_len) + 
                                      "[" + " ".repeat(space_len) + "]"}
-          inv_selection = {anchor: to + inv_desc_len + 3, 
-                       head: to + inv_desc_len + 3 + space_len}
-          ghost_changes = {from: to, 
+          inv_selection = {anchor: to-1 + inv_desc_len + 3, 
+                       head: to-1 + inv_desc_len + 3 + space_len}
+          ghost_changes = {from: to-1, 
                            insert: "\n\t" + " ".repeat(inv_desc_len) + ghost_desc}
-          ghost_selection = {anchor: to + inv_desc_len + ghost_desc_len + 2}
+          ghost_selection = {anchor: to-1 + inv_desc_len + ghost_desc_len + 2}
         }
 
         let inv_deco = Decoration.widget({
@@ -195,7 +209,6 @@ export const annotationPlugin = ViewPlugin.fromClass(class {
     //TODO: Maybe run together with linter? (So we don't slow down anything and we don't need to reparse)
     if (update.docChanged)
       this.decorations = addAnnotationButtons(update.view)
-      console.log('Hello')
   }
 }, {
   decorations: v => v.decorations,

@@ -2,9 +2,9 @@
 
 module asyncChannel(ch_out, ch_in):
   begin
-  (
-    ch_out?x --> skip $
-    ch_in!x --> skip
-  )**
+  {
+    ch_out?x --> skip; $
+    ch_in!x --> skip;
+  }*
   end
 endmodule

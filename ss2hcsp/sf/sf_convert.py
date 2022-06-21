@@ -335,7 +335,7 @@ class SFConvert:
         else:
             still_there = expr.BConst(True)
 
-        return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
+        return expr.LogicExpr("&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
         # For entry procedure, the early return logic is that the state that

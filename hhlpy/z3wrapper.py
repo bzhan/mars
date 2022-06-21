@@ -27,15 +27,15 @@ def convert(e):
         else:
             raise NotImplementedError
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '-->':
+        if e.op == '->':
             return z3.Implies(convert(e.exprs[0]), convert(e.exprs[1]))
-        elif e.op == '&&':
+        elif e.op == '&':
             return z3.And(convert(e.exprs[0]), convert(e.exprs[1]))
-        elif e.op == '||':
+        elif e.op == '|':
             return z3.Or(convert(e.exprs[0]), convert(e.exprs[1]))
-        elif e.op == '<-->':
+        elif e.op == '<->':
             return convert(e.exprs[0]) == convert(e.exprs[1])
-        elif e.op == '~':
+        elif e.op == '!':
             return z3.Not(convert(e.exprs[0]))
         else:
             raise TypeError

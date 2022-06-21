@@ -4,8 +4,11 @@
     <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
     <div><input type="text" v-model="post"></div>
+
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
+
+    <div>{{ vcs }}</div>
   </div>
 </template>
 
@@ -16,12 +19,13 @@ import {indentWithTab} from "@codemirror/commands"
 import {keymap} from "@codemirror/view"
 import { displayVerificationCondition, getPosition, removeVerificationCondition } from "../decoration/verification_condition"
 import { test_examples } from "../test_examples/examples"
+import { originTheme, originField } from '../decoration/origin'
 
 function initEditor(){
   const editorView = new EditorView({
     state: EditorState.create({
       doc: test_examples.e3.hp,
-      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP()]
+      extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
     }),
     parent: document.getElementById("code")
   });
@@ -31,8 +35,8 @@ function initEditor(){
 export default {
   name: 'Editor',
   data: () => { return {
-    pre : test_examples.e3.pre,
-    post : test_examples.e3.post,
+    pre : test_examples.e4.pre,
+    post : test_examples.e4.post,
     vcs: "",
     vc_infos: {}
   }},
@@ -40,29 +44,47 @@ export default {
 
     this.editorView = initEditor();
 
-    this.socket = new WebSocket("ws://localhost:8000");
-    
-    this.socket.onopen = () => {
-      console.log("Connection opened")
-    };
-    this.socket.onmessage = (event) => {
-      let eventData = JSON.parse(event.data)
-      if (eventData.type === "computed"){
-        this.vcs = eventData.vcs;
-        console.log("vcs:", this.vcs)
+    const wsPath = "ws://localhost:8000"
 
-        this.display_vc_infos()
+    const openConnection = () => {
+      this.socket = new WebSocket(wsPath);
+      
+      this.socket.onopen = () => {
+        console.log("Connection opened")
+      };
+
+      this.socket.onmessage = (event) => {
+        let eventData = JSON.parse(event.data)
+        if (eventData.type === "computed"){
+          this.vcs = eventData.vcs;
+
+          this.display_vc_infos()
+        }
+        else if(eventData.type === 'verified'){
+          console.log("eventData:", eventData)
+          let vc = eventData.vc
+          let result = eventData.vc_result
+          this.vc_infos[vc].result = result
+
+          this.display_vc_infos()
+        } else if(eventData.type === 'error'){ 
+          console.error("Server side error:", eventData.error)
+        } else {
+          console.error("Unknown message type:", eventData.type);
+        }
+      };
+    }
+
+    openConnection();
+
+    // Regularly check if connection is still open. Otherwise, reconnect.
+    setInterval(() => {
+      if (this.socket.readyState !== 1) {
+        console.log("Websocket not open. Attempting to reconnect.")
+        openConnection();
       }
-      else if(eventData.type === 'verified'){
-        console.log("eventData:", eventData)
-        let vc = eventData.vc
-        let result = eventData.vc_result
-        this.vc_infos[vc].result = result
+    }, 5000);
 
-        this.display_vc_infos()
-      }
-
-    };
   },
   methods: { 
     compute: function () {
@@ -79,14 +101,16 @@ export default {
       }
     },
     display_vc_infos : function() {
+      // Remove the old verification condition
       removeVerificationCondition(this.editorView)
-      console.log("vc_infos1:", this.vc_infos)
 
       for (let i in this.vcs){
         let vcData = this.vcs[i]
         let lineNumber = vcData.line
         let linePos = getPosition(this.editorView, lineNumber)
+
         let solver = 'Z3'
+        let origin = vcData.origin
         let result
         if (this.vc_infos[vcData.vc]){
           solver = this.vc_infos[vcData.vc].solver
@@ -98,7 +122,7 @@ export default {
         let changeSolverCallBack = (solver) => {
           this.vc_infos[vcData.vc].solver = solver
         }
-        displayVerificationCondition(this.editorView, vcData.vc, linePos, changeSolverCallBack, solver, result)
+        displayVerificationCondition(this.editorView, vcData.vc, linePos, changeSolverCallBack, solver, result, origin)
         console.log("vc_infos:", this.vc_infos)
       }
     }

@@ -1,6 +1,6 @@
 <template>
   <div class="verification-condition" >
-    <span class="vc-formula">
+    <span class="vc-formula" @mouseover="showOrigin" @mouseleave="hideOrigin">
       {{ vcFormula }}
     </span> 
 
@@ -20,20 +20,33 @@
 <script>
 import 'vue-awesome/icons'
 import Icon from 'vue-awesome/components/Icon'
+import { EditorView } from '@codemirror/view'
+import { showOrigin, hideOrigin } from '../decoration/origin'
 
 export default {
   name: 'VerificationCondition',
-  props: [],
+  props: {
+    view: EditorView
+  },
   data() {
     return {
       vcFormula: '',
       vcSolver: "Z3",
-      vcResult: ''
+      vcResult: '',
+      vcOrigin: []
     }
   },
   methods: {
     changeSolver() {
       this.$emit("changeSolver", this.vcSolver)
+    },
+    showOrigin() {
+      let effects = this.vcOrigin.map((range) => showOrigin.of(range));
+      this.view.dispatch({effects});
+    },
+    hideOrigin() {
+      let effects = [hideOrigin.of({})];
+      this.view.dispatch({effects});
     }
   },
   components: {
