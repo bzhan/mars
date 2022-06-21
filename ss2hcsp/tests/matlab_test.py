@@ -20,44 +20,42 @@ class MatlabTest(unittest.TestCase):
             expr = parser.expr_parser.parse(s)
             self.assertEqual(str(expr), s)
 
-# TODO(new-syntax): Reinsert test
-    # def testParseCmd(self):
-    #     test_data = [
-    #         "x = 1",
-    #         "x = -1",
-    #         "z = x + y",
-    #         "st = \"a\"",
-    #         "msg = \"a\" + \"b\"",
-    #         "z = min(x,y)",
-    #         "fprintf(\"abc\")",
-    #         "fprintf(\"abc\" + \"\\n\")",
-    #         "x = 1;\ny = 1",
-    #         "if x == 1\n  x = x + 1\nelse\n  x = x - 1",
-    #         "if x == 1\n  if y == 1\n    z = 1\n  else\n    z = 2\nelse\n  z = 3",
-    #         "if x == 1\n  y = 1;\n  z = 2\nelse\n  y = 2;\n  z = 1",
-    #         "a(1) = b(1)",
-    #         "[a,b] = [b,a]",
-    #         "[a(1),a(2)] = [a(2),a(1)]",
-    #         'a(1,2) = a(2,1)',
-    #     ]
+    def testParseCmd(self):
+        test_data = [
+            "x = 1",
+            "x = -1",
+            "z = x + y",
+            "st = \"a\"",
+            "msg = \"a\" + \"b\"",
+            "z = min(x,y)",
+            "fprintf(\"abc\")",
+            "fprintf(\"abc\" + \"\\n\")",
+            "x = 1; y = 1",
+            "if x == 1  x = x + 1 else x = x - 1",
+            "if x == 1  if y == 1  z = 1 else z = 2 else z = 3",
+            "if x == 1  y = 1; z = 2 else y = 2; z = 1",
+            "a(1) = b(1)",
+            "[a,b] = [b,a]",
+            "[a(1),a(2)] = [a(2),a(1)]",
+            'a(1,2) = a(2,1)',
+        ]
 
-    #     for s in test_data:
-    #         cmd = parser.cmd_parser.parse(s)
-    #         self.assertEqual(str(cmd), s)
+        for s in test_data:
+            cmd = parser.cmd_parser.parse(s)
+            self.assertEqual(str(cmd), s)
 
-# TODO(new-syntax): Reinsert test
-    # def testParseFunction(self):
-    #     test_data = [
-    #         "function bar()\n  x = 0",
-    #         "function y=bar()\n  y = 0",
-    #         "function [x,y]=bar()\n  x = 0;\n  y = 0",
-    #         "function y=bar(x)\n  y = x",
-    #         "function [x,y]=bar(z)\n  x = z;\n  y = 2 * z",
-    #     ]
+    def testParseFunction(self):
+        test_data = [
+            "function bar()\n  x = 0",
+            "function y=bar()\n  y = 0",
+            "function [x,y]=bar()\n  x = 0; y = 0",
+            "function y=bar(x)\n  y = x",
+            "function [x,y]=bar(z)\n  x = z; y = 2 * z",
+        ]
 
-    #     for s in test_data:
-    #         func = parser.function_parser.parse(s)
-    #         self.assertEqual(str(func), s)
+        for s in test_data:
+            func = parser.function_parser.parse(s)
+            self.assertEqual(str(func), s)
 
     def testParseEvent(self):
         test_data = [
@@ -77,11 +75,10 @@ class MatlabTest(unittest.TestCase):
         func = parser.function_parser.parse(s)
         self.assertEqual(str(func), s2)
 
-# TODO(new-syntax): Reinsert test
-    # def testParseFunctionPrint(self):
-    #     s = "function enA()\n  x = 0;\n  x = x + 1;\n  fprintf(\"enA is executing\" + x)"
-    #     func = parser.function_parser.parse(s)
-    #     self.assertEqual(str(func), s)
+    def testParseFunctionPrint(self):
+        s = "function enA()\n  x = 0; x = x + 1; fprintf(\"enA is executing\" + x)"
+        func = parser.function_parser.parse(s)
+        self.assertEqual(str(func), s)
 
     def testParseFunctionRecursive(self):
         s = "function y=enA()\n  y = en(A)"
@@ -104,18 +101,17 @@ class MatlabTest(unittest.TestCase):
             _, expr = convert.convert_expr(e)
             self.assertEqual(str(expr), res)
 
-# TODO(new-syntax): Reinsert test
-    # def testConvertCondition(self):
-    #     test_data = [
-    #         ("a < b", "a < b"),
-    #         ("a < 1 && b < 1", "a < 1 && b < 1"),
-    #         ("~(a < 1)", "~(a < 1)")
-    #     ]
+    def testConvertCondition(self):
+        test_data = [
+            ("a < b", "a < b"),
+            ("a < 1 && b < 1", "a < 1 & b < 1"),
+            ("~(a < 1)", "!a < 1")
+        ]
 
-    #     for s, res in test_data:
-    #         cond = parser.cond_parser.parse(s)
-    #         _, cond_expr = convert.convert_expr(cond)
-    #         self.assertEqual(str(cond_expr), res)
+        for s, res in test_data:
+            cond = parser.cond_parser.parse(s)
+            _, cond_expr = convert.convert_expr(cond)
+            self.assertEqual(str(cond_expr), res)
 
     def testConvertCommand(self):
         test_data = [
@@ -133,19 +129,18 @@ class MatlabTest(unittest.TestCase):
             hp = convert.convert_cmd(cmd, arrays={'a', 'b'})
             self.assertEqual(str(hp), res)
 
-# TODO(new-syntax): Reinsert test
-    # def testConvertPrint(self):
-    #     s = """
-    #     function enA
-    #       x=0;
-    #       x=x+1;
-    #       fprintf("enA is executing"+x);
-    #     """
-    #     res = "x := 0; x := x+1; log(\"enA is executing\"+x)"
+    def testConvertPrint(self):
+        s = """
+        function enA
+          x=0;
+          x=x+1;
+          fprintf("enA is executing"+x);
+        """
+        res = "x := 0; x := x + 1; log(\"enA is executing\" + x);"
 
-    #     func = parser.function_parser.parse(s)
-    #     hp = convert.convert_cmd(func.instantiate())
-    #     self.assertEqual(str(hp), res)
+        func = parser.function_parser.parse(s)
+        hp = convert.convert_cmd(func.instantiate()[0])
+        self.assertEqual(str(hp), res)
 
     def testConvertEvent(self):
         s = "x = 0; E; x = 1"
@@ -166,46 +161,44 @@ class MatlabTest(unittest.TestCase):
         hp = convert.convert_cmd(cmd, procedures=procedures)
         self.assertEqual(str(hp), res)
 
-# TODO(new-syntax): Reinsert test
-    # def testConvertFunctionCallWithParam(self):
-    #     s = "f(\"A\")"
-    #     procedures = {'f': parser.function_parser.parse("function f(x)\n  fprintf(x+\"\\n\");")}
-    #     res = "log(\"A\"+\"\\n\")"
+    def testConvertFunctionCallWithParam(self):
+        s = "f(\"A\")"
+        procedures = {'f': parser.function_parser.parse("function f(x)\n  fprintf(x+\"\\n\");")}
+        res = "x := \"A\"; log(x + \"\\n\");"
 
-    #     cmd = parser.cmd_parser.parse(s)
-    #     hp = convert.convert_cmd(cmd, procedures=procedures)
-    #     self.assertEqual(str(hp), res)
+        cmd = parser.cmd_parser.parse(s)
+        hp = convert.convert_cmd(cmd, procedures=procedures)
+        self.assertEqual(str(hp), res)
 
-# TODO(new-syntax): Reinsert test
-    # def testConvertFunction(self):
-    #     s = """
-    #     function y=enA()
-    #       y=rand();
-    #       if x>0.6
-    #         if x>0.6
-    #           y=1;
-    #         else
-    #           y=0; 
-    #         end 
-    #       else
-    #         y=0; 
-    #       end 
-    #     """
-    #     res = "y := uniform(0,1); if x > 0.6 then if x > 0.6 then y := 1 else y := 0 endif else y := 0 endif"
-    #     func = parser.function_parser.parse(s)
-    #     hp = convert.convert_cmd(func.instantiate())
-    #     self.assertEqual(str(hp), res)
+    def testConvertFunction(self):
+        s = """
+        function y=enA()
+          y=rand();
+          if x>0.6
+            if x>0.6
+              y=1;
+            else
+              y=0; 
+            end 
+          else
+            y=0; 
+          end 
+        """
+        res = "y := uniform(0,1); if (x > 0.6) { if (x > 0.6) { y := 1; } else { y := 0; } } else { y := 0; }"
+        func = parser.function_parser.parse(s)
+        hp = convert.convert_cmd(func.instantiate()[0])
+        self.assertEqual(str(hp), res)
 
-# TODO(new-syntax): Reinsert test
-    # def testConvertFunctionWithParam(self):
-    #     s = """
-    #     function f(s)
-    #       fprintf(s + "\\n");
-    #     """
-    #     res = "log(\"A1\"+\"\\n\")"
-    #     func = parser.function_parser.parse(s)
-    #     hp = convert.convert_cmd(func.instantiate([function.AConst("A1")]))
-    #     self.assertEqual(str(hp), res)
+    def testConvertFunctionWithParam(self):
+        s = """
+        function f(s)
+          fprintf(s + "\\n");
+        """
+        res = 's := "A1"; log(s + "\\n");'
+        func = parser.function_parser.parse(s)
+        cmd, params = func.instantiate([function.AConst("A1")])
+        hp = hcsp.seq([convert.convert_cmd(params),convert.convert_cmd(cmd)])
+        self.assertEqual(str(hp), res)
 
     def testParseTransition(self):
         test_data = [
@@ -231,20 +224,19 @@ class MatlabTest(unittest.TestCase):
             tran = parser.transition_parser.parse(s)
             self.assertEqual(str(tran), s)
 
-# TODO(new-syntax): Reinsert test
-    # def testParseTransitionEvent(self):
-    #     test_data = [
-    #         "E{E}",
-    #         "E/{E}",
-    #         "E{E}/{E}",
-    #         "E{E;\nx = x + 1}",
-    #         "E{x = x + 1;\nE}",
-    #         "E{if x == 0\n  E\nelse\n  F}",
-    #     ]
+    def testParseTransitionEvent(self):
+        test_data = [
+            "E{E}",
+            "E/{E}",
+            "E{E}/{E}",
+            "E{E; x = x + 1}",
+            "E{x = x + 1; E}",
+            "E{if x == 0  E else F}",
+        ]
 
-    #     for s in test_data:
-    #         tran = parser.transition_parser.parse(s)
-    #         self.assertEqual(str(tran), s)
+        for s in test_data:
+            tran = parser.transition_parser.parse(s)
+            self.assertEqual(str(tran), s)
 
 
 if __name__ == "__main__":
