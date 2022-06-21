@@ -615,8 +615,8 @@ class BasicHHLPyTest(unittest.TestCase):
                             invariant [a == -B] [x+v^2/(2*B) <= S]; \
                         } \
                       }* \
-                      invariant [v >= 0 & x+v^2/(2*B) <= S];",
-                  post="x <= S", print_vcs=True)
+                      invariant [v >= 0] [x+v^2/(2*B) <= S];",
+                  post="x <= S",)
                 #   constants={'A', 'B', 'S'})
 
     def testVerify52_1(self):
@@ -729,7 +729,7 @@ class BasicHHLPyTest(unittest.TestCase):
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
                         invariant [x+v^2/(2*B) <= S] {sln};\
                      }* \
-                     invariant [v >= 0 & x+v^2/(2*B) <= S];",
+                     invariant [v >= 0] [x+v^2/(2*B) <= S];",
                   post="x <= S",
                 #   constants={'A', 'B', 'S', 'ep'},
                   wolfram_engine=True)
@@ -768,7 +768,7 @@ class BasicHHLPyTest(unittest.TestCase):
                         < x_dot = v, v_dot = a, c_dot = 1 & v > 0 & c < ep > \
                         invariant [x+v^2/(2*B) <= S] {sln};\
                       }* \
-                      invariant [v >= 0 & x+v^2/(2*B) <= S];",
+                      invariant [v >= 0] [x+v^2/(2*B) <= S];",
                   post="x <= S",
                   constants={'A', 'B', 'S', 'ep'},
                   andR_rule={((), ()): "true"},
@@ -857,8 +857,8 @@ class BasicHHLPyTest(unittest.TestCase):
                                   [xr == (xm + S)/2] \
                                   [5/4*(x2-(xm+S)/2)^2 + (x2-(xm+S)/2)*v/2 + v^2/4 < ((S-xm)/2)^2]; \
                       }* \
-                      invariant [v >= 0 & xm <= x2 & xr == (xm + S)/2 &\
-                                 5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];",
+                      invariant [v >= 0] [xm <= x2] [xr == (xm + S)/2]\
+                                [5/4*(x2-xr)^2 + (x2-xr)*v/2 + v^2/4 < ((S - xm)/2)^2];",
                   post="x2 <= S",
                   constants={'Kp', 'Kd', 'S'})
 

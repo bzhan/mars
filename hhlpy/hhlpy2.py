@@ -577,10 +577,9 @@ class CmdVerifier:
             if cur_hp.inv is None:
                 raise AssertionError("Loop invariant at position %s is not set." % str(pos))
 
-            # @Huanhuan: I commented this out to make the tests work.
-            # for sub_inv in cur_hp.inv:
-            #     if isinstance(sub_inv.inv, expr.LogicExpr):
-            #         raise NotImplementedError("Logic expression should be split into several relational expressions")
+            for sub_inv in cur_hp.inv:
+                if isinstance(sub_inv.inv, expr.LogicExpr):
+                    raise NotImplementedError("Logic expression should be split into several relational expressions")
             
             # The first time visiting loop program.
             # self.infos[pos].inv is empty by default.
@@ -638,9 +637,10 @@ class CmdVerifier:
 
                 for sub_pre in body_pre:
                     # annot_pos add one more tuple to pos to record the annotation index, i.e. invariant index for loop.
-                    # Another verification condition is that the sub_inv is maintained by loop,
-                    # i.e. sub_inv -> pre_loopbody
-                    sub_vc = VerificationCondition(expr=expr.imp(inv.expr, sub_pre.expr),
+                    # Another verification condition is that all invariants together imply the weakest precondition of 
+                    # sub_inv w.r.t the loop body
+                    all_invs = [sub_inv.inv for sub_inv in cur_hp.inv]
+                    sub_vc = VerificationCondition(expr=expr.imp(expr.list_conj(*all_invs), sub_pre.expr),
                                                    pos=sub_pre.pos, 
                                                    path=sub_pre.path, 
                                                    annot_pos=inv.annot_pos)
