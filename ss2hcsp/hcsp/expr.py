@@ -547,13 +547,13 @@ false_expr = BConst(False)
 class LogicExpr(BExpr):
     def __init__(self, op, *exprs, meta=None):
         super(LogicExpr, self).__init__()
-        assert op in ["&&", "||", "-->", "<-->", "~"]
+        assert op in ["&", "|", "->", "<->", "!"]
         assert all(isinstance(expr, BExpr) for expr in exprs), \
             "Expected BExpr: {}".format(exprs)
         assert len(exprs) > 0 and len(exprs) <= 2, \
             "LogicExpr: wrong number of arguments for %s" % op
         if len(exprs) == 1:
-            assert op == '~', "LogicExpr: wrong number of arguments for %s" % op
+            assert op == '!', "LogicExpr: wrong number of arguments for %s" % op
         self.op = op
         self.exprs = tuple(exprs)
         self.meta = meta
@@ -563,11 +563,11 @@ class LogicExpr(BExpr):
 
     def __str__(self):
         if len(self.exprs) == 1:
-            assert self.op == '~'
+            assert self.op == '!'
             s = str(self.exprs[0])
             if self.exprs[0].priority() < self.priority():
                 s = '(' + s + ')'
-            return '~' + s
+            return '!' + s
         else:
             s1, s2 = str(self.exprs[0]), str(self.exprs[1])
             if self.exprs[0].priority() <= self.priority():
@@ -583,15 +583,15 @@ class LogicExpr(BExpr):
         return hash(("Logic", self.op, self.exprs))
 
     def priority(self):
-        if self.op == '<-->':
+        if self.op == '<->':
             return 25
-        elif self.op == '-->':
+        elif self.op == '->':
             return 20
-        elif self.op == '&&':
+        elif self.op == '&':
             return 35
-        elif self.op == '||':
+        elif self.op == '|':
             return 30
-        elif self.op == '~':
+        elif self.op == '!':
             return 40
         else:
             raise NotImplementedError
@@ -614,12 +614,12 @@ def list_conj(*args):
         return true_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("&&", args[0], list_conj(*args[1:]))
+    return LogicExpr("&", args[0], list_conj(*args[1:]))
 
 def conj(*args):
     """Form the conjunction of the list of arguments.
     
-    Example: conj("x > 1", "x < 3") forms "x > 1 && x < 3"
+    Example: conj("x > 1", "x < 3") forms "x > 1 & x < 3"
 
     """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -632,7 +632,7 @@ def conj(*args):
     return list_conj(*new_args)
 
 def split_conj(e):
-    if isinstance(e, LogicExpr) and e.op == '&&':
+    if isinstance(e, LogicExpr) and e.op == '&':
         return split_conj(e.exprs[0]) + split_conj(e.exprs[1])
     else:
         return [e]
@@ -642,12 +642,12 @@ def list_disj(*args):
         return false_expr
     if len(args) == 1:
         return args[0]
-    return LogicExpr("||", args[0], list_disj(*args[1:]))
+    return LogicExpr("|", args[0], list_disj(*args[1:]))
 
 def disj(*args):
     """Form the disjunction of the list of arguments.
     
-    Example: disj("x > 1", "x < 3") forms "x > 1 || x < 3"
+    Example: disj("x > 1", "x < 3") forms "x > 1 | x < 3"
 
     """
     assert isinstance(args, tuple) and all(isinstance(arg, BExpr) for arg in args)
@@ -660,7 +660,7 @@ def disj(*args):
     return list_disj(*new_args)
 
 def split_disj(e):
-    if isinstance(e, LogicExpr) and e.op == '||':
+    if isinstance(e, LogicExpr) and e.op == '|':
         return [e.exprs[0]] + split_disj(e.exprs[1])
     else:
         return [e]
@@ -670,7 +670,7 @@ def imp(b1, b2):
         return true_expr
     if b1 == true_expr:
         return b2
-    return LogicExpr("-->", b1, b2)
+    return LogicExpr("->", b1, b2)
     
 
 class RelExpr(BExpr):
@@ -830,15 +830,15 @@ def neg_expr(e):
     elif e == false_expr:
         return true_expr
     elif isinstance(e, LogicExpr):
-        if e.op == '&&':
-            return LogicExpr('||', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '||':
-            return LogicExpr('&&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
-        elif e.op == '-->':
-            return LogicExpr('&&', e.exprs[0], neg_expr(e.exprs[1]))
-        elif e.op == '<-->':
-            return LogicExpr('<-->', e.exprs[0], neg_expr(e.exprs[1]))
-        elif e.op == '~':
+        if e.op == '&':
+            return LogicExpr('|', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '|':
+            return LogicExpr('&', neg_expr(e.exprs[0]), neg_expr(e.exprs[1]))
+        elif e.op == '->':
+            return LogicExpr('&', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '<->':
+            return LogicExpr('<->', e.exprs[0], neg_expr(e.exprs[1]))
+        elif e.op == '!':
             return e.exprs[0]
         else:
             raise NotImplementedError
@@ -920,7 +920,7 @@ class Conditional_Inst:
                     for cond_var, expr_var in self.data[var]:
                         new_cond = cond.subst({var: expr_var})
                         if self.conflicting({new_cond, cond_var}) or conj(new_cond, cond_var) == false_expr:
-                            continue  # because new_cond && cond_var is False
+                            continue  # because new_cond & cond_var is False
                         else:
                             new_cond = conj(new_cond, cond_var)
                         new_expr = expr.subst({var: expr_var})

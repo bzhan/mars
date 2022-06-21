@@ -61,21 +61,21 @@ grammar = r"""
         | expr ">" expr -> greater_cond
         | atom_cond
 
-    ?neg_cond: "~" neg_cond -> not_cond          // priority 40
+    ?neg_cond: "!" neg_cond -> not_cond          // priority 40
         | rel_cond
 
-    ?conj: neg_cond "&&" conj | neg_cond         // Conjunction: priority 35
+    ?conj: neg_cond "&" conj | neg_cond         // Conjunction: priority 35
 
-    ?disj: conj "||" disj | conj                 // Disjunction: priority 30
+    ?disj: conj "|" disj | conj                 // Disjunction: priority 30
 
-    ?equiv: disj "<-->" equiv | disj             // Equivalent: priority 25
+    ?equiv: disj "<->" equiv | disj             // Equivalent: priority 25
 
-    ?imp: equiv "-->" imp | equiv                  // Implies: priority 20
+    ?imp: equiv "->" imp | equiv                  // Implies: priority 20
 
-    ?quant: "EX" CNAME "." quant                         -> exists_expr  // priority 10
-        | "EX" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
-        | "ForAll" CNAME "." quant                       -> forall_expr
-        | "ForAll" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
+    ?quant: "\\exists" CNAME "." quant                         -> exists_expr  // priority 10
+        | "\\exists" "{" CNAME ("," CNAME)+ "}" "." quant      -> exists_expr
+        | "\\forall" CNAME "." quant                       -> forall_expr
+        | "\\forall" "{" CNAME ("," CNAME)+ "}" "." quant  -> forall_expr
         | imp
 
     ?cond: quant
@@ -97,29 +97,29 @@ grammar = r"""
 
     ?interrupt: comm_cmd "-->" cmd ("," comm_cmd "-->" cmd)*
 
-    ?atom_cmd: "@" CNAME -> var_cmd
-        | "skip" -> skip_cmd
-        | "wait" "(" expr ")" -> wait_cmd
-        | atom_expr ":=" expr -> assign_cmd
-        | "(" lname ("," lname)* ")" ":=" expr -> multi_assign_cmd
-        | atom_expr ":=" "{" cond "}" -> random_assign_cmd
-        | "assert" "(" cond ("," expr)* ")" -> assert_cmd
-        | "test" "(" cond ("," expr)* ")" -> test_cmd
-        | "log" "(" expr ("," expr)* ")" -> log_cmd
-        | comm_cmd
-        | "(" cmd ")**" maybe_loop_invariant -> repeat_cmd
-        | "(" cmd "){" cond "}**" maybe_loop_invariant -> repeat_cond_cmd
+    ?atom_cmd: "@" CNAME ";" -> var_cmd
+        | "skip" ";" -> skip_cmd
+        | "wait" "(" expr ")" ";" -> wait_cmd
+        | atom_expr ":=" expr ";" -> assign_cmd
+        | "(" lname ("," lname)* ")" ":=" expr ";" -> multi_assign_cmd
+        | atom_expr ":=" "*" "(" cond ")" ";" -> random_assign_cmd
+        | "assert" "(" cond ("," expr)* ")" ";" -> assert_cmd
+        | "test" "(" cond ("," expr)* ")" ";" -> test_cmd
+        | "log" "(" expr ("," expr)* ")" ";" -> log_cmd
+        | comm_cmd ";"
+        | "{" cmd "}" "*" maybe_loop_invariant -> repeat_cmd
+        | "{" cmd "}" "*" "(" cond ")" maybe_loop_invariant -> repeat_cond_cmd
         | "<" ode_seq "&" cond ">" maybe_ode_invariant -> ode
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
-        | "rec" CNAME ".(" cmd ")" maybe_invariant -> rec_cmd
-        | "if" cond "then" cmd ("elif" cond "then" cmd)* "else" cmd "endif" -> ite_cmd 
-        | "(" cmd ")" -> paren_cmd
+        | "rec" CNAME "{" cmd "}" maybe_invariant -> rec_cmd
+        | "if" "(" cond ")" atom_cmd ("else" atom_cmd)? -> ite_cmd
+        | "{" cmd "}" -> paren_cmd
 
-    ?maybe_invariant: ("invariant" invariant+)? -> maybe_invariant
+    ?maybe_invariant: ("invariant" invariant+ ";")? -> maybe_invariant
     ?invariant: "[" cond "]"
     
-    ?maybe_loop_invariant: ("invariant" loop_invariant+)? -> maybe_loop_invariant
+    ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
     ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
     ?proof_method: (label ":")? method   -> proof_method
     ?atom_label: CNAME | NUMBER
@@ -130,7 +130,7 @@ grammar = r"""
     ?method: "z3"        -> method_z3
       | "wolfram_engine" -> method_wolfram_engine
 
-    ?maybe_ode_invariant: ("invariant" ode_invariant+)? -> maybe_ode_invariant
+    ?maybe_ode_invariant: ("invariant" ode_invariant+ ";")? -> maybe_ode_invariant
     ?ode_invariant: "[" cond "]" ("{" ode_rule expr? "}")? -> ode_invariant
         | "ghost" CNAME -> ghost_intro
         | "ghost" "<" CNAME "=" expr ">" -> ghost_intro_eq
@@ -140,15 +140,17 @@ grammar = r"""
       | "dw" -> ode_rule_dw
       | "sln" -> ode_rule_sln
 
-    ?cond_cmd: atom_cmd | cond "->" atom_cmd       // Priority: 90
+    ?cond_cmd: atom_cmd | cond "-->" atom_cmd       // Priority: 90
 
     ?ichoice_cmd: cond_cmd | ichoice_cmd "++" cond_cmd   // Priority: 80
 
-    ?seq_cmd: ichoice_cmd (";" ichoice_cmd)*  // Priority: 70
+    ?seq_cmd: ichoice_cmd+  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
     ?cmd: select_cmd
+
+    ?hoare_triple: "PRE" ("[" cond "]")* cmd "POST" ("[" cond "]")*
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -312,7 +314,7 @@ class HPTransformer(Transformer):
         return expr.RelExpr(">", e1, e2, meta=meta)
 
     def not_cond(self, meta, e):
-        return expr.LogicExpr("~", e, meta=meta)
+        return expr.LogicExpr("!", e, meta=meta)
 
     def true_cond(self, meta):
         return expr.BConst(True, meta=meta)
@@ -321,16 +323,16 @@ class HPTransformer(Transformer):
         return expr.BConst(False, meta=meta)
 
     def conj(self, meta, b1, b2):
-        return expr.LogicExpr("&&", b1, b2, meta=meta)
+        return expr.LogicExpr("&", b1, b2, meta=meta)
 
     def disj(self, meta, b1, b2):
-        return expr.LogicExpr("||", b1, b2, meta=meta)
+        return expr.LogicExpr("|", b1, b2, meta=meta)
 
     def imp(self, meta, b1, b2):
-        return expr.LogicExpr("-->", b1, b2, meta=meta)
+        return expr.LogicExpr("->", b1, b2, meta=meta)
 
     def equiv(self, meta, b1, b2):
-        return expr.LogicExpr("<-->", b1, b2, meta=meta)
+        return expr.LogicExpr("<->", b1, b2, meta=meta)
 
     def var_cmd(self, meta, name):
         return hcsp.Var(str(name), meta=meta)

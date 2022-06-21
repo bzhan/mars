@@ -56,15 +56,15 @@ def toSpexpr(e):
         elif e.op == '!=':
             return sympy.Rel(toSpexpr(e.expr1), toSpexpr(e.expr2), '!=')
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&&':
+        if e.op == '&':
             return sympy.And(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '||':
+        elif e.op == '|':
             return sympy.Or(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '~':
+        elif e.op == '!':
             return sympy.Not(toSpexpr(e.exprs[0]))
-        elif e.op == '-->':
+        elif e.op == '->':
             return sympy.Implies(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
-        elif e.op == '<-->':
+        elif e.op == '<->':
             return sympy.Equivalent(toSpexpr(e.exprs[0]), toSpexpr(e.exprs[1]))
     else:
         raise NotImplementedError
@@ -118,13 +118,13 @@ def toHcsp(e):
             return expr.list_disj(*(toHcsp(arg) for arg in e.args))
         elif isinstance(e, sympy.Not):
             assert len(e.args) == 1
-            return expr.LogicExpr('~', toHcsp(e.args[0]))
+            return expr.LogicExpr('!', toHcsp(e.args[0]))
         elif isinstance(e, sympy.Implies):
             assert len(e.args) == 2
-            return expr.LogicExpr('-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            return expr.LogicExpr('->', toHcsp(e.args[0]), toHcsp(e.args[1]))
         elif isinstance(e, sympy.Equivalent):
             assert len(e.args) == 2
-            return expr.LogicExpr('<-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            return expr.LogicExpr('<->', toHcsp(e.args[0]), toHcsp(e.args[1]))
         else:
             raise NotImplementedError
 

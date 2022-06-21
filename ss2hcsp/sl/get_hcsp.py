@@ -11,6 +11,7 @@ from ss2hcsp.hcsp.module import HCSPModule
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.sf import sf_convert
 from ss2hcsp.hcsp.optimize import full_optimize_module
+from ss2hcsp.sl.sl_diagram import SL_Diagram
 
 
 def translate_continuous(diagram):
@@ -148,9 +149,9 @@ def translate_continuous(diagram):
         if isinstance(ode_hp, hp.ODE_Comm):
             for io_comm in ode_hp.io_comms:
                 if isinstance(io_comm[0], hp.OutputChannel):
-                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    out_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 elif isinstance(io_comm[0], hp.InputChannel):
-                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1")))
+                    in_comms.append((io_comm[0], hp_parser.parse("num := num - 1;")))
                 else:
                     raise RuntimeError("It must be a channel operation!")
 
@@ -158,14 +159,14 @@ def translate_continuous(diagram):
     if len(out_comms) == 1:
         send_out_vars = out_comms[0][0]
     elif len(out_comms) >= 2:
-        send_out_vars = hp.Sequence(hp_parser.parse("num := %s" % len(out_comms)),
+        send_out_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(out_comms)),
                                     hp.Loop(hp=hp.SelectComm(*out_comms), constraint=bexpr_parser.parse("num > 0")))
 
     receive_in_vars = hp.Skip()  # no input channel operations
     if len(in_comms) == 1:
         receive_in_vars = in_comms[0][0]
     elif len(in_comms) >= 2:
-        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s" % len(in_comms)),
+        receive_in_vars = hp.Sequence(hp_parser.parse("num := %s;" % len(in_comms)),
                                       hp.Loop(hp=hp.SelectComm(*in_comms), constraint=bexpr_parser.parse("num > 0")))
 
     init_hps.extend([send_out_vars, receive_in_vars])
@@ -682,3 +683,32 @@ def get_hcsp(dis_subdiag_with_chs, con_subdiag_with_chs, sf_charts, buffers,
             processes.insert(n=0, name=model_name, hp=main_process)
 
     return processes
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python sf_convert.py filename")
+    else:
+        filename = sys.argv[1]
+        diagram = SL_Diagram(filename)
+        diagram.parse_xml()
+        diagram.delete_subsystems()
+        diagram.add_line_name()
+        diagram.comp_inher_st()
+        diagram.inherit_to_continuous()
+        diagram.separate_diagram()
+
+        # Convert to HCSP
+        result_hp = new_get_hcsp(
+            diagram.discrete_blocks, diagram.continuous_blocks,
+            diagram.chart_parameters, diagram.outputs)
+
+        # Optimize module
+        hp = result_hp.code
+        procs = dict((proc.name, proc.hp) for proc in result_hp.procedures)
+        procs, hp = full_optimize_module(procs, hp)
+        result_hp.procedures = [hcsp.Procedure(name, hp) for name, hp in procs.items()]
+        result_hp.code = hp
+
+        print(result_hp.export())

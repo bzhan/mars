@@ -335,7 +335,7 @@ class SFConvert:
         else:
             still_there = expr.BConst(True)
 
-        return expr.LogicExpr("&&", still_there, self.get_still_there_cond(ancestor))
+        return expr.LogicExpr("&", still_there, self.get_still_there_cond(ancestor))
 
     def get_en_proc(self, state):
         # For entry procedure, the early return logic is that the state that
@@ -1295,3 +1295,27 @@ def convert_diagram(diagram, print_chart=False, print_before_simp=False, print_f
         print(diagram.name, before_size, after_size)
 
     return proc_map
+
+
+if __name__ == "__main__":
+    import sys
+    from ss2hcsp.sl.sl_diagram import SL_Diagram
+    from ss2hcsp.hcsp import module
+
+    if len(sys.argv) != 2:
+        print("Usage: python sf_convert.py filename")
+    else:
+        filename = sys.argv[1]
+        diagram = SL_Diagram(filename)
+        proc_map = convert_diagram(diagram)
+
+        # Output to file
+        modules = []
+        module_insts = []
+        for name, (procs, hp) in proc_map.items():
+            procs_lst = [hcsp.Procedure(proc_name, hp) for proc_name, hp in procs.items()]
+            modules.append(module.HCSPModule(name, code=hp, procedures=procs_lst))
+            module_insts.append(module.HCSPModuleInst(name, name, []))
+        system = module.HCSPSystem(module_insts)
+        declarations = module.HCSPDeclarations(modules + [system])
+        print(declarations.export())

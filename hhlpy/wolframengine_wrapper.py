@@ -7,9 +7,13 @@ from wolframclient.language.expression import WLFunction, WLSymbol
 from ss2hcsp.hcsp import expr
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp.parser import aexpr_parser
+import platform
 
 # logging.basicConfig(level=logging.DEBUG)
-path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
+if platform.system() == "Darwin":
+    path = "/Applications/Wolfram Engine.app/Contents/Resources/Wolfram Player.app/Contents/MacOS/WolframKernel"
+else:
+    path = "D:\Program Files\Wolfram Research\Wolfram Engine\\13.0\MathKernel.exe"
 session = WolframLanguageSession(path)
 
 def toWLexpr(e):
@@ -65,15 +69,15 @@ def toWLexpr(e):
             raise AssertionError
 
     elif isinstance(e, expr.LogicExpr):
-        if e.op == '&&':
+        if e.op == '&':
             return wl.And(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '||':
+        elif e.op == '|':
             return wl.Or(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op == '~':
+        elif e.op == '!':
             return wl.Not(toWLexpr(e.exprs[0]))
-        elif e.op == '-->':
+        elif e.op == '->':
             return wl.Implies(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
-        elif e.op =='<-->':
+        elif e.op =='<->':
             return wl.Equivalent(toWLexpr(e.exprs[0]), toWLexpr(e.exprs[1]))
         else:
             raise AssertionError
@@ -143,29 +147,29 @@ def toHcsp(e):
         # Translate into LogicExpr in hcsp.
         elif e.head == WLSymbol("And"):
             if len(e.args) == 2:
-                return expr.LogicExpr('&&', toHcsp(e.args[0]), toHcsp(e.args[1]))
+                return expr.LogicExpr('&', toHcsp(e.args[0]), toHcsp(e.args[1]))
             elif len(e.args) > 2:
-                return expr.LogicExpr("&&", toHcsp(WLFunction(WLSymbol("And"), *e.args[:-1])),
+                return expr.LogicExpr("&", toHcsp(WLFunction(WLSymbol("And"), *e.args[:-1])),
                                             toHcsp(e.args[-1]))
             else:
                 raise AssertionError
         elif e.head == WLSymbol("Or"):
             if len(e.args) == 2:
-                return expr.LogicExpr('||', toHcsp(e.args[0]), toHcsp(e.args[1]))
+                return expr.LogicExpr('|', toHcsp(e.args[0]), toHcsp(e.args[1]))
             elif len(e.args) > 2:
-                return expr.LogicExpr("||", toHcsp(WLFunction(WLSymbol("Or"), *e.args[:-1])),
+                return expr.LogicExpr("|", toHcsp(WLFunction(WLSymbol("Or"), *e.args[:-1])),
                                             toHcsp(e.args[-1]))
             else:
                 raise AssertionError
         elif e.head == WLSymbol("Not"):
             assert len(e.args) == 1
-            return expr.LogicExpr('~', toHcsp(e.args[0]))
+            return expr.LogicExpr('!', toHcsp(e.args[0]))
         elif e.head == WLSymbol("Implies"):
             assert len(e.args) == 2
-            return expr.LogicExpr('-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            return expr.LogicExpr('->', toHcsp(e.args[0]), toHcsp(e.args[1]))
         elif e.head == WLSymbol("Equivalent"):
             assert len(e.args) == 2
-            return expr.LogicExpr('<-->', toHcsp(e.args[0]), toHcsp(e.args[1]))
+            return expr.LogicExpr('<->', toHcsp(e.args[0]), toHcsp(e.args[1]))
 
         else:
             return expr.FunExpr(str(e.head), [toHcsp(arg) for arg in e.args])

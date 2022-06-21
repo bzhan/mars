@@ -1,0 +1,140 @@
+%type: module
+
+module P():
+output a;
+procedure exec_Trig_SF begin
+  Trig_SF_done := 0;
+  Trig_SF_ret := 0;
+  if Trig_SF_st == "Trig_SF_A" then
+    Trig_SF_A_done := 0;
+    Trig_SFEL != [] && top(Trig_SFEL) == "event" -> (
+      a := 0;
+      Trig_SF_st == "Trig_SF_A" -> (
+        Trig_SF_st := "Trig_SF_B";
+        Trig_SF_B_st := "Trig_SF_B_B1";
+        Trig_SF_A_done := 1
+      )
+    );
+    Trig_SF_ret := Trig_SF_A_done
+  elif Trig_SF_st == "Trig_SF_B" then
+    Trig_SF_B_done := 0;
+    Trig_SFEL != [] && top(Trig_SFEL) == "event1" -> (
+      a := 1;
+      Trig_SF_st == "Trig_SF_B" -> (
+        if Trig_SF_B_st == "Trig_SF_B_B1" then
+          Trig_SF_B_st == "Trig_SF_B_B1" -> Trig_SF_B_st := ""
+        elif Trig_SF_B_st == "Trig_SF_B_B2" then
+          Trig_SF_B_st == "Trig_SF_B_B2" -> Trig_SF_B_st := ""
+        else
+          skip
+        endif;
+        Trig_SF_st == "Trig_SF_B" -> Trig_SF_st := "";
+        Trig_SF_st == "" -> Trig_SF_st := "Trig_SF_A";
+        Trig_SF_B_done := 1
+      )
+    );
+    Trig_SF_ret := Trig_SF_B_done;
+    Trig_SF_ret == 0 -> (
+      if Trig_SF_B_st == "Trig_SF_B_B1" then
+        Trig_SF_B_B1_done := 0;
+        Trig_SFEL != [] && top(Trig_SFEL) == "event2" -> (
+          a := 2;
+          Trig_SF_B_st == "Trig_SF_B_B1" -> (
+            Trig_SF_B_st := "";
+            Trig_SF_st == "Trig_SF_B" -> Trig_SF_B_st := "Trig_SF_B_B2";
+            Trig_SF_B_B1_done := 1
+          )
+        );
+        Trig_SF_ret := Trig_SF_B_B1_done
+      elif Trig_SF_B_st == "Trig_SF_B_B2" then
+        Trig_SF_B_B2_done := 0;
+        Trig_SFEL != [] && top(Trig_SFEL) == "event3" -> (
+          a := 3;
+          Trig_SF_B_st == "Trig_SF_B_B2" -> (
+            Trig_SF_B_st := "";
+            Trig_SF_st == "Trig_SF_B" -> Trig_SF_B_st := "Trig_SF_B_B1";
+            Trig_SF_B_B2_done := 1
+          )
+        );
+        Trig_SF_ret := Trig_SF_B_B2_done
+      else
+        skip
+      endif
+    )
+  else
+    skip
+  endif
+end
+
+begin
+  t := 0;
+  _tick := 0;
+  Trig_SFEL := [];
+  Trig_SF_B_st := "";
+  Trig_SF_st := "Trig_SF_A";
+  Pulse_Generator_tick := 0;
+  Pulse_Generator1_tick := 0;
+  Pulse_Generator2_tick := 0;
+  Pulse_Generator3_tick := 0;
+  pre_d := [0,0,0,0];
+  a := 0;
+  tt := 0;
+  (
+    if Pulse_Generator_tick % 10 >= 1 && Pulse_Generator_tick % 10 < 2 then
+      x := 1.0
+    else
+      x := 0.0
+    endif;
+    Pulse_Generator_tick := Pulse_Generator_tick + 1;
+    if Pulse_Generator1_tick % 10 >= 8 && Pulse_Generator1_tick % 10 < 9 then
+      y := 1.0
+    else
+      y := 0.0
+    endif;
+    Pulse_Generator1_tick := Pulse_Generator1_tick + 1;
+    if Pulse_Generator2_tick % 10 >= 3 && Pulse_Generator2_tick % 10 < 4 then
+      z := 1.0
+    else
+      z := 0.0
+    endif;
+    Pulse_Generator2_tick := Pulse_Generator2_tick + 1;
+    if Pulse_Generator3_tick % 10 >= 5 && Pulse_Generator3_tick % 10 < 6 then
+      w := 1.0
+    else
+      w := 0.0
+    endif;
+    Pulse_Generator3_tick := Pulse_Generator3_tick + 1;
+    b := push(x,y);
+    c := push(z,w);
+    d := push(b,c);
+    pre_d[0] < 0 && d[0] >= 0 || pre_d[0] == 0 && d[0] > 0 -> (
+      Trig_SFEL := push(Trig_SFEL,"event");
+      @exec_Trig_SF;
+      Trig_SFEL := pop(Trig_SFEL)
+    );
+    pre_d[1] < 0 && d[1] >= 0 || pre_d[1] == 0 && d[1] > 0 -> (
+      Trig_SFEL := push(Trig_SFEL,"event1");
+      @exec_Trig_SF;
+      Trig_SFEL := pop(Trig_SFEL)
+    );
+    pre_d[2] < 0 && d[2] >= 0 || pre_d[2] == 0 && d[2] > 0 -> (
+      Trig_SFEL := push(Trig_SFEL,"event2");
+      @exec_Trig_SF;
+      Trig_SFEL := pop(Trig_SFEL)
+    );
+    pre_d[3] < 0 && d[3] >= 0 || pre_d[3] == 0 && d[3] > 0 -> (
+      Trig_SFEL := push(Trig_SFEL,"event3");
+      @exec_Trig_SF;
+      Trig_SFEL := pop(Trig_SFEL)
+    );
+    pre_d := d;
+    <tt_dot = 1 & tt < 0.1>;
+    t := t + tt;
+    _tick := _tick + 1;
+    tt := 0
+  )**
+end
+endmodule
+system
+  P=P()
+endsystem

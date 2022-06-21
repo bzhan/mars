@@ -10,14 +10,12 @@ import math
 import random
 from decimal import Decimal
 from scipy.integrate import solve_ivp
-import matplotlib.pyplot as plt
 from ss2hcsp.hcsp.expr import AExpr, AVar, AConst, OpExpr, FunExpr, IfExpr, \
     ListExpr, DictExpr, ArrayIdxExpr, FieldNameExpr, BConst, LogicExpr, \
     RelExpr, true_expr, false_expr, opt_round, get_range, str_of_val
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import parser
 from ss2hcsp.hcsp import pprint
-from ss2hcsp.hcsp import graph_plot
 import numpy as np
 from ss2hcsp.matlab import function
 
@@ -247,15 +245,15 @@ def eval_expr(expr, state):
         return expr.value
 
     elif isinstance(expr, LogicExpr):
-        if expr.op == "&&":
+        if expr.op == "&":
             return eval_expr(expr.exprs[0], state) and eval_expr(expr.exprs[1], state)
-        elif expr.op == "||":
+        elif expr.op == "|":
             return eval_expr(expr.exprs[0], state) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "-->":
+        elif expr.op == "->":
             return (not eval_expr(expr.exprs[0], state)) or eval_expr(expr.exprs[1], state)
-        elif expr.op == "<-->":
+        elif expr.op == "<->":
             return eval_expr(expr.exprs[0], state) == eval_expr(expr.exprs[1], state)
-        elif expr.op == "~":
+        elif expr.op == "!":
             return not eval_expr(expr.exprs[0], state)
         else:
             raise NotImplementedError
@@ -391,12 +389,12 @@ def get_ode_delay(hp, state):
         return all(not occur_var(e, var_name) for var_name in changed_vars)
 
     def test_cond(e):
-        if isinstance(e, LogicExpr) and e.op == '||':
+        if isinstance(e, LogicExpr) and e.op == '|':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return max(delay1, delay2)
         
-        if isinstance(e, LogicExpr) and e.op == '&&':
+        if isinstance(e, LogicExpr) and e.op == '&':
             delay1 = test_cond(e.exprs[0])
             delay2 = test_cond(e.exprs[1])
             return min(delay1, delay2)
@@ -1500,38 +1498,6 @@ def exec_parallel(infos, *, num_io_events=None, num_steps=3000, num_show=None,
         statemap[value] = state
     res['statemap'] = statemap
     return res
-
-def graph(res, proc_name, tkplot=False, separate=True, variables=None):
-    DataState = {}
-    temp = res.get("time_series")
-    lst = temp.get(proc_name)
-    for t in lst:
-        state = t.get("state")
-        for key in state.keys():
-            if variables is not None and key not in variables:
-                continue
-            if key not in DataState.keys():
-                DataState.update({key:([],[])})
-            DataState.get(key)[0].append(state.get(key))
-            DataState.get(key)[1].append(t.get('time'))
-                
-    if tkplot:
-        app = graph_plot.Graphapp(res)
-        app.mainloop()
-    else:
-        if separate:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.show()
-        else:
-            for t in DataState.keys():
-                x = DataState.get(t)[1]
-                y = DataState.get(t)[0]
-                plt.plot(x, y, label=t)
-                plt.legend()
-
 
 def check_comms(infos):
     """Given a list of HCSP infos, check for potential mismatch of

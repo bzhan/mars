@@ -1,0 +1,64 @@
+%type: module
+
+module Chart():
+procedure exec_Chart begin
+  Chart_ret := 0;
+  if Chart_st == "Chart_S" then
+    Chart_S_done := 0;
+    ChartEL != [] && top(ChartEL) == "E" -> (
+      Chart_st == "Chart_S" -> (
+        s := "exS";
+        log("exS" + "\n");
+        Chart_st == "Chart_S" -> Chart_st := "";
+        Chart_st == "" -> (
+          Chart_st := "Chart_T";
+          s := "enT";
+          log("enT" + "\n")
+        );
+        Chart_ret := 1;
+        Chart_S_done := 1
+      )
+    );
+    Chart_st == "Chart_S" && Chart_S_done == 0 -> (
+      s := "duS";
+      log("duS" + "\n")
+    );
+    Chart_st == "Chart_S" && Chart_S_done == 0 -> (
+      s := "ca1";
+      log("ca1" + "\n");
+      Chart_st == "Chart_S" -> (
+        s := "ca2";
+        log("ca2" + "\n");
+        ChartEL := push(ChartEL,"E");
+        @exec_Chart;
+        ChartEL := pop(ChartEL);
+        Chart_st == "Chart_S" -> (
+          log("ta1" + "\n");
+          s := "ta2";
+          log("ta2" + "\n")
+        );
+        Chart_S_done := 1
+      )
+    );
+    Chart_ret := Chart_S_done
+  elif Chart_st == "Chart_T" then
+    Chart_ret := 0
+  else
+    skip
+  endif
+end
+
+begin
+  ChartEL := [];
+  Chart_st := "Chart_S";
+  s := "enS";
+  log("enS" + "\n");
+  (
+    @exec_Chart;
+    wait(0.1)
+  )**
+end
+endmodule
+system
+Chart = Chart()
+endsystem
