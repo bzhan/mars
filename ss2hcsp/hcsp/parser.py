@@ -122,7 +122,11 @@ grammar = r"""
     ?maybe_loop_invariant: ("invariant" loop_invariant+)? -> maybe_loop_invariant
     ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
     ?proof_method: (label ":")? method   -> proof_method
-    ?label: CNAME? SIGNED_NUMBER?        -> label
+    ?atom_label: CNAME | NUMBER
+    ?label: atom_label              ->label
+        | label ("." label)+
+        | atom_label "(" label ")"
+    
     ?method: "z3"        -> method_z3
       | "wolfram_engine" -> method_wolfram_engine
 
