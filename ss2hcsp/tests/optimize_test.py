@@ -39,8 +39,8 @@ class OptimizeTest(unittest.TestCase):
             ("if (0 == 0) { x := 1; }",
              "x := 1;"),
 
-            ("x := 1; y := 1; if (z == 0) {x := 2;} {y := 2;}",
-             "x := 1; y := 1; if (z == 0) {x := 2;} {y := 2;}")
+            ("x := 1; y := 1; if (z == 0) {x := 2;} y := 2;",
+             "x := 1; if (z == 0) {x := 2;} y := 2;")
         ]
 
         for s, res in test_data:

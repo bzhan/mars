@@ -387,6 +387,9 @@ class HCSPAnalysis:
                 if hp.else_hp is not None:
                     rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
 
+                if hp.else_hp is None:
+                    self.infos[cur_pos].exits.append(cur_pos)
+
                 # Possible entry into each branch
                 for i in range(len(hp.if_hps) + (0 if hp.else_hp is None else 1)):
                     self.add_edge(cur_pos, cur_pos + (i,))
