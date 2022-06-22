@@ -1,7 +1,7 @@
 
 // Capital letters indicate that the rule produces a node in the parse tree!
 // When changing this file, regenerate the grammar: 
-// lezer-generator hhlpy/gui/src/grammar/hcsp.grammar > hhlpy/gui/src/grammar/hcsp_parser.js
+// lezer-generator ./src/grammar/hcsp.grammar > ./src/grammar/hcsp_parser.js
 
 @precedence { conj @right, disj @right, equiv @right, imp @right, ite @left }
 
@@ -169,7 +169,7 @@ ichoice_cmd {
 }   // Priority: 80
 
 SeqCmd {
-  ichoice_cmd // Priority: 70
+  ichoice_cmd+ // Priority: 70
 }
 
 select_cmd {
