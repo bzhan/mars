@@ -20,8 +20,8 @@ begin
       } else {
         M := {};
       }
-      M != {} & M.data == 3 --> {
-        Chart_st == "Chart_A" --> {
+      if (M != {} & M.data == 3) {
+        if (Chart_st == "Chart_A") {
           Chart_st := "Chart_B";
           s := "en_B";
           log("en_B" + "\n");
@@ -38,8 +38,8 @@ begin
       } else {
         M := {};
       }
-      M != {} --> {
-        Chart_st == "Chart_B" --> {
+      if (M != {}) {
+        if (Chart_st == "Chart_B") {
           Chart_st := "Chart_C";
           s := "en_C";
           log("en_C" + "\n");
@@ -50,8 +50,6 @@ begin
       Chart_ret := Chart_B_done;
     } else if (Chart_st == "Chart_C") {
       Chart_ret := 0;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

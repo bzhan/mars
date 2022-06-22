@@ -19,7 +19,7 @@ begin
       v := global_x + 1;
       global_x := v;
       log("%d %d\n",global_x,global_y);
-      Chart_st == "Chart_A" --> {
+      if (Chart_st == "Chart_A") {
         Chart_st := "Chart_B";
         Chart_A_done := 1;
       }
@@ -29,13 +29,11 @@ begin
       v := global_y + 2;
       global_y := v;
       log("%d %d\n",global_x,global_y);
-      Chart_st == "Chart_B" --> {
+      if (Chart_st == "Chart_B") {
         Chart_st := "Chart_A";
         Chart_B_done := 1;
       }
       Chart_ret := Chart_B_done;
-    } else {
-      skip;
     }
     global_x_out!global_x;
     global_y_out!global_y;

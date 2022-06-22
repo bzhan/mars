@@ -10,11 +10,13 @@ procedure exec_Chart begin
     Chart_ret := 0;
     if (Chart_StopW_st == "Chart_StopW_Reset") {
       Chart_StopW_Reset_done := 0;
-      ChartEL != [] & top(ChartEL) == "START" --> {
-        Chart_StopW_st == "Chart_StopW_Reset" --> {
+      if (ChartEL != [] & top(ChartEL) == "START") {
+        if (Chart_StopW_st == "Chart_StopW_Reset") {
           Chart_StopW_st := "";
-          Chart_st == "Chart_StopW" --> Chart_st := "";
-          Chart_st == "" --> {
+          if (Chart_st == "Chart_StopW") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_RunW";
             Chart_RunW_st := "Chart_RunW_Running";
             s := "Running";
@@ -23,23 +25,27 @@ procedure exec_Chart begin
           Chart_StopW_Reset_done := 1;
         }
       }
-      Chart_StopW_st == "Chart_StopW_Reset" & Chart_StopW_Reset_done == 0 & ChartEL != [] & top(ChartEL) == "LAP" --> {
+      if (Chart_StopW_st == "Chart_StopW_Reset" & Chart_StopW_Reset_done == 0 & ChartEL != [] & top(ChartEL) == "LAP") {
         cent := 0;
         sec := 0;
         mins := 0;
         disp_cent := 0;
         disp_sec := 0;
         disp_min := 0;
-        Chart_StopW_st == "Chart_StopW_Reset" --> Chart_StopW_Reset_done := 0;
+        if (Chart_StopW_st == "Chart_StopW_Reset") {
+          Chart_StopW_Reset_done := 0;
+        }
       }
       Chart_ret := Chart_StopW_Reset_done;
     } else if (Chart_StopW_st == "Chart_StopW_LapStop") {
       Chart_StopW_LapStop_done := 0;
-      ChartEL != [] & top(ChartEL) == "START" --> {
-        Chart_StopW_st == "Chart_StopW_LapStop" --> {
+      if (ChartEL != [] & top(ChartEL) == "START") {
+        if (Chart_StopW_st == "Chart_StopW_LapStop") {
           Chart_StopW_st := "";
-          Chart_st == "Chart_StopW" --> Chart_st := "";
-          Chart_st == "" --> {
+          if (Chart_st == "Chart_StopW") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_RunW";
             Chart_RunW_st := "Chart_RunW_Lap";
             s := "Lap";
@@ -48,10 +54,10 @@ procedure exec_Chart begin
           Chart_StopW_LapStop_done := 1;
         }
       }
-      Chart_StopW_st == "Chart_StopW_LapStop" & Chart_StopW_LapStop_done == 0 & ChartEL != [] & top(ChartEL) == "LAP" --> {
-        Chart_StopW_st == "Chart_StopW_LapStop" --> {
+      if (Chart_StopW_st == "Chart_StopW_LapStop" & Chart_StopW_LapStop_done == 0 & ChartEL != [] & top(ChartEL) == "LAP") {
+        if (Chart_StopW_st == "Chart_StopW_LapStop") {
           Chart_StopW_st := "";
-          Chart_st == "Chart_StopW" --> {
+          if (Chart_st == "Chart_StopW") {
             Chart_StopW_st := "Chart_StopW_Reset";
             s := "Reset";
             log("Reset" + "\n");
@@ -60,18 +66,16 @@ procedure exec_Chart begin
         }
       }
       Chart_ret := Chart_StopW_LapStop_done;
-    } else {
-      skip;
     }
   } else if (Chart_st == "Chart_RunW") {
     Chart_RunW_done := 0;
-    Chart_st == "Chart_RunW" & ChartEL != [] & top(ChartEL) == "TIC" --> {
+    if (Chart_st == "Chart_RunW" & ChartEL != [] & top(ChartEL) == "TIC") {
       cent := cent + 1;
-      Chart_st == "Chart_RunW" --> {
-        cent == 100 --> {
+      if (Chart_st == "Chart_RunW") {
+        if (cent == 100) {
           cent := 0;
           sec := sec + 1;
-          sec == 60 --> {
+          if (sec == 60) {
             sec := 0;
             mins := mins + 1;
           }
@@ -84,11 +88,13 @@ procedure exec_Chart begin
     Chart_ret := 0;
     if (Chart_RunW_st == "Chart_RunW_Running") {
       Chart_RunW_Running_done := 0;
-      ChartEL != [] & top(ChartEL) == "START" --> {
-        Chart_RunW_st == "Chart_RunW_Running" --> {
+      if (ChartEL != [] & top(ChartEL) == "START") {
+        if (Chart_RunW_st == "Chart_RunW_Running") {
           Chart_RunW_st := "";
-          Chart_st == "Chart_RunW" --> Chart_st := "";
-          Chart_st == "" --> {
+          if (Chart_st == "Chart_RunW") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_StopW";
             log("en_StopW" + "\n");
             Chart_StopW_st := "Chart_StopW_Reset";
@@ -98,10 +104,10 @@ procedure exec_Chart begin
           Chart_RunW_Running_done := 1;
         }
       }
-      Chart_RunW_st == "Chart_RunW_Running" & Chart_RunW_Running_done == 0 & ChartEL != [] & top(ChartEL) == "LAP" --> {
-        Chart_RunW_st == "Chart_RunW_Running" --> {
+      if (Chart_RunW_st == "Chart_RunW_Running" & Chart_RunW_Running_done == 0 & ChartEL != [] & top(ChartEL) == "LAP") {
+        if (Chart_RunW_st == "Chart_RunW_Running") {
           Chart_RunW_st := "";
-          Chart_st == "Chart_RunW" --> {
+          if (Chart_st == "Chart_RunW") {
             Chart_RunW_st := "Chart_RunW_Lap";
             s := "Lap";
             log("Lap" + "\n");
@@ -109,7 +115,7 @@ procedure exec_Chart begin
           Chart_RunW_Running_done := 1;
         }
       }
-      Chart_RunW_st == "Chart_RunW_Running" & Chart_RunW_Running_done == 0 --> {
+      if (Chart_RunW_st == "Chart_RunW_Running" & Chart_RunW_Running_done == 0) {
         disp_cent := cent;
         disp_sec := sec;
         disp_min := mins;
@@ -117,11 +123,13 @@ procedure exec_Chart begin
       Chart_ret := Chart_RunW_Running_done;
     } else if (Chart_RunW_st == "Chart_RunW_Lap") {
       Chart_RunW_Lap_done := 0;
-      ChartEL != [] & top(ChartEL) == "START" --> {
-        Chart_RunW_st == "Chart_RunW_Lap" --> {
+      if (ChartEL != [] & top(ChartEL) == "START") {
+        if (Chart_RunW_st == "Chart_RunW_Lap") {
           Chart_RunW_st := "";
-          Chart_st == "Chart_RunW" --> Chart_st := "";
-          Chart_st == "" --> {
+          if (Chart_st == "Chart_RunW") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_StopW";
             log("en_StopW" + "\n");
             Chart_StopW_st := "Chart_StopW_LapStop";
@@ -131,10 +139,10 @@ procedure exec_Chart begin
           Chart_RunW_Lap_done := 1;
         }
       }
-      Chart_RunW_st == "Chart_RunW_Lap" & Chart_RunW_Lap_done == 0 & ChartEL != [] & top(ChartEL) == "LAP" --> {
-        Chart_RunW_st == "Chart_RunW_Lap" --> {
+      if (Chart_RunW_st == "Chart_RunW_Lap" & Chart_RunW_Lap_done == 0 & ChartEL != [] & top(ChartEL) == "LAP") {
+        if (Chart_RunW_st == "Chart_RunW_Lap") {
           Chart_RunW_st := "";
-          Chart_st == "Chart_RunW" --> {
+          if (Chart_st == "Chart_RunW") {
             Chart_RunW_st := "Chart_RunW_Running";
             s := "Running";
             log("Running" + "\n");
@@ -143,11 +151,7 @@ procedure exec_Chart begin
         }
       }
       Chart_ret := Chart_RunW_Lap_done;
-    } else {
-      skip;
     }
-  } else {
-    skip;
   }
 end
 
@@ -173,7 +177,7 @@ begin
   Pulse_Generator2_tick := 0;
   tt := 0;
   {
-    _tick % 6 == 0 --> {
+    if (_tick % 6 == 0) {
       if (Pulse_Generator_tick % 10 >= 1 & Pulse_Generator_tick % 10 < 4) {
         start := 1.0;
       } else {
@@ -181,7 +185,7 @@ begin
       }
       Pulse_Generator_tick := Pulse_Generator_tick + 1;
     }
-    _tick % 2 == 0 --> {
+    if (_tick % 2 == 0) {
       if (Pulse_Generator1_tick % 10 >= 5 & Pulse_Generator1_tick % 10 < 8) {
         lap := 1.0;
       } else {
@@ -196,17 +200,17 @@ begin
     }
     Pulse_Generator2_tick := Pulse_Generator2_tick + 1;
     x0 := push(push(start,lap),tick);
-    pre_x0[0] < 0 & x0[0] >= 0 | pre_x0[0] == 0 & x0[0] > 0 --> {
+    if (pre_x0[0] < 0 & x0[0] >= 0 | pre_x0[0] == 0 & x0[0] > 0) {
       ChartEL := push(ChartEL,"START");
       @exec_Chart;
       ChartEL := pop(ChartEL);
     }
-    pre_x0[1] < 0 & x0[1] >= 0 | pre_x0[1] == 0 & x0[1] > 0 --> {
+    if (pre_x0[1] < 0 & x0[1] >= 0 | pre_x0[1] == 0 & x0[1] > 0) {
       ChartEL := push(ChartEL,"LAP");
       @exec_Chart;
       ChartEL := pop(ChartEL);
     }
-    pre_x0[2] < 0 & x0[2] >= 0 | pre_x0[2] == 0 & x0[2] > 0 --> {
+    if (pre_x0[2] < 0 & x0[2] >= 0 | pre_x0[2] == 0 & x0[2] > 0) {
       ChartEL := push(ChartEL,"TIC");
       @exec_Chart;
       ChartEL := pop(ChartEL);

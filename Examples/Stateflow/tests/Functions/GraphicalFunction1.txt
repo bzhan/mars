@@ -3,16 +3,18 @@
 module Chart():
 procedure J2 begin
   J2_done := 0;
-  i <= N & a[i - 1] == 0 --> {
+  if (i <= N & a[i - 1] == 0) {
     i := i + 1;
     @J2;
     J2_done := 1;
   }
-  J2_done == 0 & i > N --> {
+  if (J2_done == 0 & i > N) {
     index := -1;
     J2_done := 1;
   }
-  J2_done == 0 --> index := i;
+  if (J2_done == 0) {
+    index := i;
+  }
 end
 
 begin
@@ -29,8 +31,8 @@ begin
       i := 1;
       @J2;
       find_index := index;
-      find_index == 3 --> {
-        Chart_st == "Chart_A" --> {
+      if (find_index == 3) {
+        if (Chart_st == "Chart_A") {
           Chart_st := "Chart_B";
           s := "en_B";
           log("en_B" + "\n");
@@ -40,8 +42,6 @@ begin
       Chart_ret := Chart_A_done;
     } else if (Chart_st == "Chart_B") {
       Chart_ret := 0;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

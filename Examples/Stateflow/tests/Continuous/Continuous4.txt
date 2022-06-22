@@ -13,15 +13,17 @@ begin
     Chart_ret := 0;
     if (Chart_st == "Chart_A") {
       Chart_A_done := 0;
-      y >= 1 --> {
+      if (y >= 1) {
         s := "conAB1";
         log("conAB1" + " %.3f %.3f\n",x,y);
-        Chart_st == "Chart_A" --> {
+        if (Chart_st == "Chart_A") {
           log("exA" + " %.3f %.3f\n",x,y);
-          Chart_st == "Chart_A" --> Chart_st := "";
+          if (Chart_st == "Chart_A") {
+            Chart_st := "";
+          }
           s := "tranAB1";
           log("tranAB1" + " %.3f %.3f\n",x,y);
-          Chart_st == "" --> {
+          if (Chart_st == "") {
             Chart_st := "Chart_B";
             log("enB" + " %.3f %.3f\n",x,y);
             x := 0;
@@ -32,15 +34,17 @@ begin
           Chart_A_done := 1;
         }
       }
-      Chart_st == "Chart_A" & Chart_A_done == 0 & x >= 1 --> {
+      if (Chart_st == "Chart_A" & Chart_A_done == 0 & x >= 1) {
         s := "conAB";
         log("conAB" + " %.3f %.3f\n",x,y);
-        Chart_st == "Chart_A" --> {
+        if (Chart_st == "Chart_A") {
           log("exA" + " %.3f %.3f\n",x,y);
-          Chart_st == "Chart_A" --> Chart_st := "";
+          if (Chart_st == "Chart_A") {
+            Chart_st := "";
+          }
           s := "tranAB";
           log("tranAB" + " %.3f %.3f\n",x,y);
-          Chart_st == "" --> {
+          if (Chart_st == "") {
             Chart_st := "Chart_B";
             log("enB" + " %.3f %.3f\n",x,y);
             x := 0;
@@ -54,15 +58,15 @@ begin
       Chart_ret := Chart_A_done;
     } else if (Chart_st == "Chart_B") {
       Chart_B_done := 0;
-      x >= 1 --> {
-        Chart_st == "Chart_B" --> {
+      if (x >= 1) {
+        if (Chart_st == "Chart_B") {
           if (Chart_B_st == "Chart_B_B1") {
-            Chart_B_st == "Chart_B_B1" --> Chart_B_st := "";
-          } else {
-            skip;
+            Chart_B_st := "";
           }
-          Chart_st == "Chart_B" --> Chart_st := "";
-          Chart_st == "" --> {
+          if (Chart_st == "Chart_B") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_B";
             log("enB" + " %.3f %.3f\n",x,y);
             x := 0;
@@ -74,15 +78,11 @@ begin
         }
       }
       Chart_ret := Chart_B_done;
-      Chart_ret == 0 --> {
+      if (Chart_ret == 0) {
         if (Chart_B_st == "Chart_B_B1") {
           Chart_ret := 0;
-        } else {
-          skip;
         }
       }
-    } else {
-      skip;
     }
     if (Chart_st == "Chart_A") {
       <x_dot = 1, y_dot = x &
@@ -92,11 +92,7 @@ begin
     } else if (Chart_st == "Chart_B") {
       if (Chart_B_st == "Chart_B_B1") {
         <x_dot = 1 & x < 1>
-      } else {
-        skip;
       }
-    } else {
-      skip;
     }
   }*
 end

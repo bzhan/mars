@@ -49,7 +49,7 @@ begin
     if (Chart2_st == "Chart2_A") {
       Chart2_A_done := 0;
       a := a + 1;
-      Chart2_st == "Chart2_A" --> {
+      if (Chart2_st == "Chart2_A") {
         Chart2_st := "Chart2_B";
         s := "en_B";
         log("en_B" + "\n");
@@ -59,15 +59,13 @@ begin
     } else if (Chart2_st == "Chart2_B") {
       Chart2_B_done := 0;
       b := b + 1;
-      Chart2_st == "Chart2_B" --> {
+      if (Chart2_st == "Chart2_B") {
         Chart2_st := "Chart2_A";
         s := "en_A";
         log("en_A" + "\n");
         Chart2_B_done := 1;
       }
       Chart2_ret := Chart2_B_done;
-    } else {
-      skip;
     }
     ch_x0_0_out!a;
     ch_x1_0_out!b;

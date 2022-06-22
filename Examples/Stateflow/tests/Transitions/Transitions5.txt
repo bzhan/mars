@@ -12,16 +12,18 @@ begin
     log("condInner" + "\n");
     if (Chart_S_st == "Chart_S_A") {
       log("exA" + "\n");
-      Chart_S_st == "Chart_S_A" --> Chart_S_st := "";
+      if (Chart_S_st == "Chart_S_A") {
+        Chart_S_st := "";
+      }
     } else if (Chart_S_st == "Chart_S_B") {
       log("exB" + "\n");
-      Chart_S_st == "Chart_S_B" --> Chart_S_st := "";
-    } else {
-      skip;
+      if (Chart_S_st == "Chart_S_B") {
+        Chart_S_st := "";
+      }
     }
     s := "tranInner";
     log("tranInner" + "\n");
-    Chart_S_st == "" --> {
+    if (Chart_S_st == "") {
       Chart_S_st := "Chart_S_A";
       s := "enA";
       log("enA" + "\n");

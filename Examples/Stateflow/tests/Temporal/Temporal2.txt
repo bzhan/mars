@@ -16,8 +16,8 @@ begin
     Chart_ret := 0;
     if (Chart_st == "Chart_A") {
       Chart_A_done := 0;
-      Chart_A_time >= ra --> {
-        Chart_st == "Chart_A" --> {
+      if (Chart_A_time >= ra) {
+        if (Chart_st == "Chart_A") {
           Chart_A_time := -1;
           Chart_st := "Chart_B";
           Chart_B_time := 0;
@@ -32,8 +32,8 @@ begin
       Chart_ret := Chart_A_done;
     } else if (Chart_st == "Chart_B") {
       Chart_B_done := 0;
-      Chart_B_time >= rb --> {
-        Chart_st == "Chart_B" --> {
+      if (Chart_B_time >= rb) {
+        if (Chart_st == "Chart_B") {
           Chart_B_time := -1;
           Chart_st := "Chart_A";
           Chart_A_time := 0;
@@ -46,12 +46,14 @@ begin
         }
       }
       Chart_ret := Chart_B_done;
-    } else {
-      skip;
     }
     wait(1);
-    Chart_A_time != -1 --> Chart_A_time := Chart_A_time + 1;
-    Chart_B_time != -1 --> Chart_B_time := Chart_B_time + 1;
+    if (Chart_A_time != -1) {
+      Chart_A_time := Chart_A_time + 1;
+    }
+    if (Chart_B_time != -1) {
+      Chart_B_time := Chart_B_time + 1;
+    }
   }*
 end
 endmodule

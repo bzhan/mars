@@ -1279,8 +1279,11 @@ class ITE(HCSP):
         return hash(("ITE", self.if_hps, self.else_hp))
 
     def sc_str(self):
-        assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and isinstance(self.else_hp, (Skip, Var))
-        return "if %s then %s else %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str(), self.else_hp.sc_str())
+        assert len(self.if_hps) == 1 and isinstance(self.if_hps[0][1], Var) and (self.else_hp is None or isinstance(self.else_hp, Var))
+        if self.else_hp is None:
+            return "if %s then %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str())
+        else:
+            return "if %s then %s else %s" % (self.if_hps[0][0], self.if_hps[0][1].sc_str(), self.else_hp.sc_str())
 
     def get_vars(self):
         var_set = set()

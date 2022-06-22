@@ -13,30 +13,28 @@ begin
     Chart_ret := 0;
     if (Chart_A_st == "Chart_A_A1") {
       Chart_A_A1_done := 0;
-      Chart_A_st == "Chart_A_A1" --> {
+      if (Chart_A_st == "Chart_A_A1") {
         s := "exA1";
         log("exA1" + "\n");
-        Chart_A_st == "Chart_A_A1" --> Chart_A_st := "";
-        Chart_A_st == "" --> {
+        if (Chart_A_st == "Chart_A_A1") {
+          Chart_A_st := "";
+        }
+        if (Chart_A_st == "") {
           Chart_A_st := "Chart_A_A2";
           s := "enA2";
           log("enA2" + "\n");
         }
         Chart_A_A1_done := 1;
       }
-      Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0 --> {
+      if (Chart_A_st == "Chart_A_A1" & Chart_A_A1_done == 0) {
         s := "duA1";
         log("duA1" + "\n");
       }
       Chart_ret := Chart_A_A1_done;
     } else if (Chart_A_st == "Chart_A_A2") {
-      Chart_A_st == "Chart_A_A2" --> {
-        s := "duA2";
-        log("duA2" + "\n");
-      }
+      s := "duA2";
+      log("duA2" + "\n");
       Chart_ret := 0;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

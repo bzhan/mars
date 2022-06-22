@@ -14,8 +14,8 @@ begin
       y := 3 + 1;
       z := y * y;
       y := z - 1;
-      y == 15 --> {
-        Chart_st == "Chart_A" --> {
+      if (y == 15) {
+        if (Chart_st == "Chart_A") {
           Chart_st := "Chart_B";
           s := "en_B";
           log("en_B" + "\n");
@@ -25,8 +25,6 @@ begin
       Chart_ret := Chart_A_done;
     } else if (Chart_st == "Chart_B") {
       Chart_ret := 0;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

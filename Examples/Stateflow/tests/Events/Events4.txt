@@ -4,18 +4,20 @@ module Chart():
 procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_A_st == "Chart_A_A1") {
-    ChartEL != [] & top(ChartEL) == "E" --> {
+    if (ChartEL != [] & top(ChartEL) == "E") {
       s := "a1";
       log("a1" + "\n");
       ChartEL := push(ChartEL,"F");
       @exec_Chart;
       ChartEL := pop(ChartEL);
-      Chart_A_st == "Chart_A_A1" --> {
-        ChartEL != [] & top(ChartEL) == "E" --> {
+      if (Chart_A_st == "Chart_A_A1") {
+        if (ChartEL != [] & top(ChartEL) == "E") {
           s := "a2";
           log("a2" + "\n");
-          Chart_A_st == "Chart_A_A1" --> Chart_A_st := "";
-          Chart_A_st == "" --> {
+          if (Chart_A_st == "Chart_A_A1") {
+            Chart_A_st := "";
+          }
+          if (Chart_A_st == "") {
             Chart_A_st := "Chart_A_A2";
             s := "en_A2";
             log("en_A2" + "\n");
@@ -23,42 +25,34 @@ procedure exec_Chart begin
         }
       }
     }
-  } else if (Chart_A_st == "Chart_A_A2") {
-    skip;
-  } else {
-    skip;
   }
   Chart_ret := 0;
   if (Chart_B_st == "Chart_B_B1") {
     s := "b";
     log("b" + "\n");
-    Chart_B_st == "Chart_B_B1" --> {
+    if (Chart_B_st == "Chart_B_B1") {
       Chart_B_st := "";
       ChartEL := push(ChartEL,"E");
       @exec_Chart;
       ChartEL := pop(ChartEL);
-      Chart_B_st == "" --> {
+      if (Chart_B_st == "") {
         s := "tb";
         log("tb" + "\n");
       }
-      Chart_B_st == "" --> {
+      if (Chart_B_st == "") {
         Chart_B_st := "Chart_B_B2";
         s := "en_B2";
         log("en_B2" + "\n");
       }
     }
-  } else if (Chart_B_st == "Chart_B_B2") {
-    skip;
-  } else {
-    skip;
   }
   Chart_ret := 0;
   if (Chart_C_st == "Chart_C_C1") {
     Chart_C_C1_done := 0;
-    ChartEL != [] & top(ChartEL) == "F" --> {
+    if (ChartEL != [] & top(ChartEL) == "F") {
       s := "c";
       log("c" + "\n");
-      Chart_C_st == "Chart_C_C1" --> {
+      if (Chart_C_st == "Chart_C_C1") {
         Chart_C_st := "Chart_C_C2";
         s := "en_C2";
         log("en_C2" + "\n");
@@ -68,8 +62,6 @@ procedure exec_Chart begin
     Chart_ret := Chart_C_C1_done;
   } else if (Chart_C_st == "Chart_C_C2") {
     Chart_ret := 0;
-  } else {
-    skip;
   }
 end
 
