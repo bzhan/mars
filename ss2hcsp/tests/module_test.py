@@ -170,8 +170,7 @@ class ModuleTest(unittest.TestCase):
 
     def testReadFile(self):
         decls = decls_parser.parse(read_file('channels.txt'))
-        print(type(decls))
-        self.assertEqual(str(decls), "asyncChannel(ch_out,ch_in)")
+        self.assertEqual(str(decls), "asyncChannel(ch_out,ch_in)\nNone")
 
     def testParseDecls3(self):
         decls = decls_parser.parse("""
