@@ -27,7 +27,7 @@ begin
     if (Chart1_st == "Chart1_A") {
       Chart1_A_done := 0;
       global_x := global_x + 1;
-      Chart1_st == "Chart1_A" --> {
+      if (Chart1_st == "Chart1_A") {
         Chart1_st := "Chart1_B";
         s := "B";
         log("B" + "%d\n",global_x);
@@ -36,15 +36,13 @@ begin
       Chart1_ret := Chart1_A_done;
     } else if (Chart1_st == "Chart1_B") {
       Chart1_B_done := 0;
-      Chart1_st == "Chart1_B" --> {
+      if (Chart1_st == "Chart1_B") {
         Chart1_st := "Chart1_A";
         s := "A";
         log("A" + "%d\n",global_x);
         Chart1_B_done := 1;
       }
       Chart1_ret := Chart1_B_done;
-    } else {
-      skip;
     }
     global_x_out!global_x;
     end_Chart1?;
@@ -69,7 +67,7 @@ begin
     if (Chart2_st == "Chart2_C") {
       Chart2_C_done := 0;
       global_x := global_x + 2;
-      Chart2_st == "Chart2_C" --> {
+      if (Chart2_st == "Chart2_C") {
         Chart2_st := "Chart2_B";
         s := "D";
         log("D" + "%d\n",global_x);
@@ -78,15 +76,13 @@ begin
       Chart2_ret := Chart2_C_done;
     } else if (Chart2_st == "Chart2_B") {
       Chart2_B_done := 0;
-      Chart2_st == "Chart2_B" --> {
+      if (Chart2_st == "Chart2_B") {
         Chart2_st := "Chart2_C";
         s := "C";
         log("C" + "%d\n",global_x);
         Chart2_B_done := 1;
       }
       Chart2_ret := Chart2_B_done;
-    } else {
-      skip;
     }
     global_x_out!global_x;
     end_Chart2?;

@@ -13,13 +13,13 @@ endmodule
 module Chart():
 procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
   Chart_model_RTPS_Writer_Writer_repair_repairing_done := 0;
-  cansend == 1 & repair_num[id - 1] <= request_num[id - 1] --> {
+  if (cansend == 1 & repair_num[id - 1] <= request_num[id - 1]) {
     sn := repair_num[id - 1];
     i := 1;
     @J47;
     i := repair_num[id - 1];
     J462_done := 0;
-    i == 1 --> {
+    if (i == 1) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
@@ -30,13 +30,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
         @during_Chart_model_channel_channel_1_delay_2;
       } else if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
         @during_Chart_model_channel_channel_1_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 2 --> {
+    if (J462_done == 0 & i == 2) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
@@ -47,13 +45,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
         @during_Chart_model_channel_channel_2_delay_2;
       } else if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
         @during_Chart_model_channel_channel_2_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 3 --> {
+    if (J462_done == 0 & i == 3) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
@@ -64,13 +60,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
         @during_Chart_model_channel_channel_3_delay_2;
       } else if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
         @during_Chart_model_channel_channel_3_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 4 --> {
+    if (J462_done == 0 & i == 4) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
@@ -81,13 +75,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
         @during_Chart_model_channel_channel_4_delay_2;
       } else if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
         @during_Chart_model_channel_channel_4_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 --> {
+    if (J462_done == 0) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
@@ -98,22 +90,24 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_repairing begin
         @during_Chart_model_channel_channel_5_delay_2;
       } else if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
         @during_Chart_model_channel_channel_5_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
     }
     repair_num[id - 1] := repair_num[id - 1] + 1;
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" --> {
+    if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
+      }
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1;
     }
   }
-  Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" & Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 & (cansend == 0 | repair_num[id - 1] > request_num[id - 1]) --> {
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" --> {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing" & Chart_model_RTPS_Writer_Writer_repair_repairing_done == 0 & (cansend == 0 | repair_num[id - 1] > request_num[id - 1])) {
+    if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_repairing") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
+      }
       Chart_model_RTPS_Writer_Writer_repair_repairing_done := 1;
     }
   }
@@ -122,10 +116,10 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
   Chart_model_RTPS_Writer_Writer_repair_waiting_done := 0;
-  id > 0 & request_num[id - 1] > acked_num[id - 1] --> {
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" --> {
+  if (id > 0 & request_num[id - 1] > acked_num[id - 1]) {
+    if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair";
         Chart_model_RTPS_Writer_Writer_repair_must_repair_time := 0;
         ackFlag := 0;
@@ -134,7 +128,7 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1;
     }
   }
-  Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" & Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 & (ChartEL != [] & top(ChartEL) == "ACKNACK2") & (id <= 0 | request_num[id - 1] <= acked_num[id - 1]) --> {
+  if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" & Chart_model_RTPS_Writer_Writer_repair_waiting_done == 0 & (ChartEL != [] & top(ChartEL) == "ACKNACK2") & (id <= 0 | request_num[id - 1] <= acked_num[id - 1])) {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -143,9 +137,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_waiting begin
     acked_num[id - 1] := an;
     request_num[id - 1] := rn;
     ackFlag := 1;
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting" --> {
+    if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_waiting") {
       Chart_model_RTPS_Writer_Writer_repair_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_waiting";
+      }
       Chart_model_RTPS_Writer_Writer_repair_waiting_done := 1;
     }
   }
@@ -154,20 +150,20 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair begin
   Chart_model_RTPS_Writer_Writer_repair_must_repair_done := 0;
-  Chart_model_RTPS_Writer_Writer_repair_must_repair_time >= heartbeatResponseDelay --> {
+  if (Chart_model_RTPS_Writer_Writer_repair_must_repair_time >= heartbeatResponseDelay) {
     repair_num[id - 1] := acked_num[id - 1] + 1;
     ackFlag := 0;
-    Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" --> {
+    if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
       if (Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en") {
-        Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" --> Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "";
-      } else {
-        skip;
+        Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "";
       }
-      Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" --> {
+      if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
         Chart_model_RTPS_Writer_Writer_repair_must_repair_time := -1;
         Chart_model_RTPS_Writer_Writer_repair_st := "";
       }
-      Chart_model_RTPS_Writer_Writer_repair_st == "" & Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
+      if (Chart_model_RTPS_Writer_Writer_repair_st == "" & Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_repair_st := "Chart_model_RTPS_Writer_Writer_repair_repairing";
+      }
       Chart_model_RTPS_Writer_Writer_repair_must_repair_done := 1;
     }
   }
@@ -176,7 +172,7 @@ end
 
 procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
   Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 0;
-  ChartEL != [] & top(ChartEL) == "ACKNACK2" --> {
+  if (ChartEL != [] & top(ChartEL) == "ACKNACK2") {
     id := ack_id;
     wid := WriterId;
     rid := id;
@@ -185,9 +181,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en begin
     acked_num[id - 1] := an;
     request_num[id - 1] := rn;
     ackFlag := 1;
-    Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en" --> {
+    if (Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en") {
       Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "";
-      Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair" --> Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en";
+      if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
+        Chart_model_RTPS_Writer_Writer_repair_must_repair_st := "Chart_model_RTPS_Writer_Writer_repair_must_repair_en";
+      }
       Chart_model_RTPS_Writer_Writer_repair_must_repair_en_done := 1;
     }
   }
@@ -199,10 +197,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  empty_flag == 1 --> {
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" --> {
+  if (empty_flag == 1) {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing") {
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_announcing";
         Chart_model_RTPS_Writer_Writer_send_announcing_time := 0;
       }
@@ -213,13 +211,13 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" & Chart_model_RTPS_Writer_Writer_send_pushing_done == 0 & cansend == 1 & empty_flag == 0 --> {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" & Chart_model_RTPS_Writer_Writer_send_pushing_done == 0 & cansend == 1 & empty_flag == 0) {
     sn := index;
     i := 1;
     @J47;
     i := index;
     J462_done := 0;
-    i == 1 --> {
+    if (i == 1) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
@@ -230,13 +228,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
         @during_Chart_model_channel_channel_1_delay_2;
       } else if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
         @during_Chart_model_channel_channel_1_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 2 --> {
+    if (J462_done == 0 & i == 2) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
@@ -247,13 +243,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
         @during_Chart_model_channel_channel_2_delay_2;
       } else if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
         @during_Chart_model_channel_channel_2_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 3 --> {
+    if (J462_done == 0 & i == 3) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
@@ -264,13 +258,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
         @during_Chart_model_channel_channel_3_delay_2;
       } else if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
         @during_Chart_model_channel_channel_3_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 & i == 4 --> {
+    if (J462_done == 0 & i == 4) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
@@ -281,13 +273,11 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
         @during_Chart_model_channel_channel_4_delay_2;
       } else if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
         @during_Chart_model_channel_channel_4_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
       J462_done := 1;
     }
-    J462_done == 0 --> {
+    if (J462_done == 0) {
       ChartEL := push(ChartEL,"TRY");
       Chart_ret := 0;
       if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
@@ -298,16 +288,16 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_pushing begin
         @during_Chart_model_channel_channel_5_delay_2;
       } else if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
         @during_Chart_model_channel_channel_5_next;
-      } else {
-        skip;
       }
       ChartEL := pop(ChartEL);
     }
     unsent[index - 1] := 0;
     index := index + 1;
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing" --> {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing") {
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing";
+      }
       Chart_model_RTPS_Writer_Writer_send_pushing_done := 1;
     }
   }
@@ -322,16 +312,16 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod & acked_all_flag == 0 & empty_flag == 1 --> {
+  if (Chart_model_RTPS_Writer_Writer_send_announcing_time >= heartbeatPeriod & acked_all_flag == 0 & empty_flag == 1) {
     wid := WriterId;
     count := hb_count;
     J33_done := 0;
-    count == 3 --> {
+    if (count == 3) {
       buffer_heartbeat[wid - 1][0] := NO_SET;
       count1 := 0;
       J33_done := 1;
     }
-    J33_done == 0 --> {
+    if (J33_done == 0) {
       buffer_heartbeat[wid - 1][0] := SET;
       count1 := count + 1;
     }
@@ -349,18 +339,18 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
       @during_Chart_model_channel_Heartbeat_try;
     } else if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_delay") {
       @during_Chart_model_channel_Heartbeat_delay;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" --> sendFlag := 1;
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" --> {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
+      sendFlag := 1;
+    }
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
       sendFlag := 0;
-      Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" --> {
+      if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
         Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
         Chart_model_RTPS_Writer_Writer_send_st := "";
       }
-      Chart_model_RTPS_Writer_Writer_send_st == "" & Chart_st == "Chart_model" --> {
+      if (Chart_model_RTPS_Writer_Writer_send_st == "" & Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_announcing";
         Chart_model_RTPS_Writer_Writer_send_announcing_time := 0;
       }
@@ -374,11 +364,13 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := first_SN;
   @J11;
   empty_flag := flag;
-  Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 0 & empty_flag == 0 --> {
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" --> {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 0 & empty_flag == 0) {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
       Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_pushing";
+      }
       Chart_ret := 1;
       Chart_model_RTPS_Writer_Writer_send_announcing_done := 1;
     }
@@ -386,12 +378,14 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_announcing begin
   i := 1;
   @J625;
   acked_all_flag := flag;
-  Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 1 --> {
+  if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" & Chart_model_RTPS_Writer_Writer_send_announcing_done == 0 & acked_all_flag == 1) {
     complete := 1;
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing" --> {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_announcing") {
       Chart_model_RTPS_Writer_Writer_send_announcing_time := -1;
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_idle";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_idle";
+      }
       Chart_model_RTPS_Writer_Writer_send_announcing_done := 1;
     }
   }
@@ -403,10 +397,10 @@ procedure during_Chart_model_RTPS_Writer_Writer_send_idle begin
   i := 1;
   @J625;
   acked_all_flag := flag;
-  acked_all_flag == 0 --> {
-    Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle" --> {
+  if (acked_all_flag == 0) {
+    if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle") {
       Chart_model_RTPS_Writer_Writer_send_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_RTPS_Writer_Writer_send_st := "Chart_model_RTPS_Writer_Writer_send_announcing";
         Chart_model_RTPS_Writer_Writer_send_announcing_time := 0;
       }
@@ -418,21 +412,23 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 0;
-  ChartEL != [] & top(ChartEL) == "HEARTBEAT2" --> {
+  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 1;
     firstSN := buffer_heartbeat[1 - 1][2];
     lastSN := buffer_heartbeat[1 - 1][3];
     get_heartbeatSN_lastSN := lastSN;
     missing_num := get_heartbeatSN_lastSN;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
+      }
       Chart_ret := 1;
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1;
     }
   }
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_1 > received_num --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_1 > received_num) {
     index := seq_num_1;
     received_set[WriterId - 1][index - 1] := 1;
     wid := WriterId;
@@ -451,9 +447,11 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready begi
     missing_num := check_missing_sn2;
     RHC[index - 1] := buffer_data[WriterId - 1][ReaderId_1 - 1][index - 1];
     buffer_data[WriterId - 1][ReaderId_1 - 1][index - 1] := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready_done := 1;
     }
   }
@@ -462,7 +460,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_done := 0;
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time >= nackResponseDelay --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time >= nackResponseDelay) {
     ack_id := ReaderId_1;
     wid := WriterId;
     rid := ack_id;
@@ -478,15 +476,17 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send
       @during_Chart_model_channel_Acknack_1_try;
     } else if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_delay") {
       @during_Chart_model_channel_Acknack_1_delay;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" --> hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
+      hFlag := 0;
+    }
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := -1;
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_done := 1;
     }
   }
@@ -495,27 +495,37 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting_done := 0;
-  ChartEL != [] & top(ChartEL) == "HEARTBEAT2" --> {
+  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
       J224_done := 0;
-      buffer_heartbeat[WriterId - 1][livelinessFlag - 1] == NO_SET --> {
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model" --> {
+      if (buffer_heartbeat[WriterId - 1][livelinessFlag - 1] == NO_SET) {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack";
           Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := 0;
         }
         J224_done := 1;
       }
-      J224_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET --> {
+      if (J224_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
         hFlag := 0;
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
+          Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+        }
         J224_done := 1;
       }
-      J224_done == 0 --> {
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack";
+      if (J224_done == 0) {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "" & Chart_st == "Chart_model") {
+          Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack";
+        }
         J224_done := 1;
       }
       Chart_ret := J224_done;
@@ -527,21 +537,23 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack begin
   Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 0;
-  missing_num > received_num --> {
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" --> {
+  if (missing_num > received_num) {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack";
         Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := 0;
       }
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 1;
     }
   }
-  Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done == 0 & missing_num <= received_num --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done == 0 & missing_num <= received_num) {
     hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack_done := 1;
     }
   }
@@ -550,21 +562,23 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 0;
-  ChartEL != [] & top(ChartEL) == "HEARTBEAT2" --> {
+  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
     wid := 1;
     rid := 2;
     firstSN := buffer_heartbeat[1 - 1][2];
     lastSN := buffer_heartbeat[1 - 1][3];
     get_heartbeatSN_lastSN := lastSN;
     missing_num2 := get_heartbeatSN_lastSN;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
+      }
       Chart_ret := 1;
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1;
     }
   }
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_2 > received_num2 --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done == 0 & (ChartEL != [] & top(ChartEL) == "SUCCESS") & seq_num_2 > received_num2) {
     index2 := seq_num_2;
     received_set[ReaderId_2 - 1][index2 - 1] := 1;
     wid := WriterId;
@@ -583,9 +597,11 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready begi
     missing_num2 := check_missing_sn2;
     RHC2[index2 - 1] := buffer_data[WriterId - 1][ReaderId_2 - 1][index2 - 1];
     buffer_data[WriterId - 1][ReaderId_2 - 1][index2 - 1] := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready_done := 1;
     }
   }
@@ -594,7 +610,7 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_done := 0;
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time >= nackResponseDelay --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time >= nackResponseDelay) {
     ack_id := ReaderId_2;
     wid := WriterId;
     rid := ack_id;
@@ -610,15 +626,17 @@ procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send
       @during_Chart_model_channel_Acknack_2_try;
     } else if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_delay") {
       @during_Chart_model_channel_Acknack_2_delay;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" --> hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
+      hFlag := 0;
+    }
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := -1;
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_done := 1;
     }
   }
@@ -627,21 +645,23 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 0;
-  missing_num2 > received_num2 --> {
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" --> {
+  if (missing_num2 > received_num2) {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack";
         Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := 0;
       }
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 1;
     }
   }
-  Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done == 0 & missing_num2 <= received_num2 --> {
+  if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" & Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done == 0 & missing_num2 <= received_num2) {
     hFlag := 0;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack") {
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-      Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+      if (Chart_st == "Chart_model") {
+        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+      }
       Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack_done := 1;
     }
   }
@@ -650,27 +670,37 @@ end
 
 procedure during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting begin
   Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting_done := 0;
-  ChartEL != [] & top(ChartEL) == "HEARTBEAT2" --> {
+  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT2") {
     hFlag := 1;
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" --> {
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       J191_done := 0;
-      buffer_heartbeat[WriterId - 1][livelinessFlag - 1] == NO_SET --> {
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model" --> {
+      if (buffer_heartbeat[WriterId - 1][livelinessFlag - 1] == NO_SET) {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack";
           Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := 0;
         }
         J191_done := 1;
       }
-      J191_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET --> {
+      if (J191_done == 0 & buffer_heartbeat[WriterId - 1][finalFlag - 1] == SET) {
         hFlag := 0;
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
+          Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting";
+        }
         J191_done := 1;
       }
-      J191_done == 0 --> {
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
-        Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model" --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack";
+      if (J191_done == 0) {
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
+          Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "";
+        }
+        if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "" & Chart_st == "Chart_model") {
+          Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st := "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack";
+        }
         J191_done := 1;
       }
       Chart_ret := J191_done;
@@ -682,8 +712,8 @@ end
 
 procedure during_Chart_model_channel_channel_1_try begin
   Chart_model_channel_channel_1_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "TRY" --> {
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "TRY") {
+    if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
       J360_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -691,20 +721,26 @@ procedure during_Chart_model_channel_channel_1_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d1 := y;
-        Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" --> Chart_model_channel_channel_1_st := "";
-        Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
+          Chart_model_channel_channel_1_st := "";
+        }
+        if (Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_1";
           Chart_model_channel_channel_1_delay_1_time := 0;
         }
         J360_done := 1;
       }
-      J360_done == 0 --> {
+      if (J360_done == 0) {
         buffer_data[WriterId - 1][ReaderId_2 - 1][0] := 0;
-        Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try" --> Chart_model_channel_channel_1_st := "";
-        Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next";
+        if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
+          Chart_model_channel_channel_1_st := "";
+        }
+        if (Chart_model_channel_channel_1_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next";
+        }
         J360_done := 1;
       }
       Chart_ret := J360_done;
@@ -716,14 +752,12 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_1 begin
   Chart_model_channel_channel_1_delay_1_done := 0;
-  Chart_model_channel_channel_1_delay_1_time >= d1 --> {
+  if (Chart_model_channel_channel_1_delay_1_time >= d1) {
     seq_num_1 := 1;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -732,14 +766,14 @@ procedure during_Chart_model_channel_channel_1_delay_1 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_1" --> {
+    if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_1") {
       Chart_model_channel_channel_1_delay_1_time := -1;
       Chart_model_channel_channel_1_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_next";
+      }
       Chart_model_channel_channel_1_delay_1_done := 1;
     }
   }
@@ -748,14 +782,12 @@ end
 
 procedure during_Chart_model_channel_channel_1_delay_2 begin
   Chart_model_channel_channel_1_delay_2_done := 0;
-  Chart_model_channel_channel_1_delay_2_time >= d1 --> {
+  if (Chart_model_channel_channel_1_delay_2_time >= d1) {
     seq_num_2 := 1;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -764,14 +796,14 @@ procedure during_Chart_model_channel_channel_1_delay_2 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_2" --> {
+    if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_delay_2") {
       Chart_model_channel_channel_1_delay_2_time := -1;
       Chart_model_channel_channel_1_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try";
+      }
       Chart_model_channel_channel_1_delay_2_done := 1;
     }
   }
@@ -786,23 +818,25 @@ procedure during_Chart_model_channel_channel_1_next begin
   } else {
     chan_r := 0;
   }
-  chan_r == 1 --> {
+  if (chan_r == 1) {
     y := uniform(0,1);
     d1 := y;
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" --> {
+    if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
       Chart_model_channel_channel_1_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_delay_2";
         Chart_model_channel_channel_1_delay_2_time := 0;
       }
       Chart_model_channel_channel_1_next_done := 1;
     }
   }
-  Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" & Chart_model_channel_channel_1_next_done == 0 --> {
+  if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" & Chart_model_channel_channel_1_next_done == 0) {
     buffer_data[WriterId - 1][ReaderId_1 - 1][0] := 0;
-    Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next" --> {
+    if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
       Chart_model_channel_channel_1_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_1_st := "Chart_model_channel_channel_1_try";
+      }
       Chart_model_channel_channel_1_next_done := 1;
     }
   }
@@ -811,8 +845,8 @@ end
 
 procedure during_Chart_model_channel_channel_2_try begin
   Chart_model_channel_channel_2_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "TRY" --> {
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "TRY") {
+    if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
       J517_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -820,20 +854,26 @@ procedure during_Chart_model_channel_channel_2_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d2 := y;
-        Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" --> Chart_model_channel_channel_2_st := "";
-        Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
+          Chart_model_channel_channel_2_st := "";
+        }
+        if (Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_1";
           Chart_model_channel_channel_2_delay_1_time := 0;
         }
         J517_done := 1;
       }
-      J517_done == 0 --> {
+      if (J517_done == 0) {
         buffer_data[WriterId - 1][0][1] := 0;
-        Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try" --> Chart_model_channel_channel_2_st := "";
-        Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next";
+        if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
+          Chart_model_channel_channel_2_st := "";
+        }
+        if (Chart_model_channel_channel_2_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next";
+        }
         J517_done := 1;
       }
       Chart_ret := J517_done;
@@ -845,14 +885,12 @@ end
 
 procedure during_Chart_model_channel_channel_2_delay_1 begin
   Chart_model_channel_channel_2_delay_1_done := 0;
-  Chart_model_channel_channel_2_delay_1_time >= d2 --> {
+  if (Chart_model_channel_channel_2_delay_1_time >= d2) {
     seq_num_1 := 2;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -861,14 +899,14 @@ procedure during_Chart_model_channel_channel_2_delay_1 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1" --> {
+    if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_1") {
       Chart_model_channel_channel_2_delay_1_time := -1;
       Chart_model_channel_channel_2_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_next";
+      }
       Chart_model_channel_channel_2_delay_1_done := 1;
     }
   }
@@ -877,14 +915,12 @@ end
 
 procedure during_Chart_model_channel_channel_2_delay_2 begin
   Chart_model_channel_channel_2_delay_2_done := 0;
-  Chart_model_channel_channel_2_delay_2_time >= d2 --> {
+  if (Chart_model_channel_channel_2_delay_2_time >= d2) {
     seq_num_2 := 2;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -893,14 +929,14 @@ procedure during_Chart_model_channel_channel_2_delay_2 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2" --> {
+    if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_delay_2") {
       Chart_model_channel_channel_2_delay_2_time := -1;
       Chart_model_channel_channel_2_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try";
+      }
       Chart_model_channel_channel_2_delay_2_done := 1;
     }
   }
@@ -915,23 +951,25 @@ procedure during_Chart_model_channel_channel_2_next begin
   } else {
     chan_r := 0;
   }
-  chan_r == 1 --> {
+  if (chan_r == 1) {
     y := uniform(0,1);
     d2 := y;
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" --> {
+    if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
       Chart_model_channel_channel_2_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_delay_2";
         Chart_model_channel_channel_2_delay_2_time := 0;
       }
       Chart_model_channel_channel_2_next_done := 1;
     }
   }
-  Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" & Chart_model_channel_channel_2_next_done == 0 --> {
+  if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" & Chart_model_channel_channel_2_next_done == 0) {
     buffer_data[WriterId - 1][1][1] := 0;
-    Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next" --> {
+    if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
       Chart_model_channel_channel_2_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_2_st := "Chart_model_channel_channel_2_try";
+      }
       Chart_model_channel_channel_2_next_done := 1;
     }
   }
@@ -940,8 +978,8 @@ end
 
 procedure during_Chart_model_channel_channel_3_try begin
   Chart_model_channel_channel_3_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "TRY" --> {
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "TRY") {
+    if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
       J535_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -949,20 +987,26 @@ procedure during_Chart_model_channel_channel_3_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d3 := y;
-        Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" --> Chart_model_channel_channel_3_st := "";
-        Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
+          Chart_model_channel_channel_3_st := "";
+        }
+        if (Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_1";
           Chart_model_channel_channel_3_delay_1_time := 0;
         }
         J535_done := 1;
       }
-      J535_done == 0 --> {
+      if (J535_done == 0) {
         buffer_data[WriterId - 1][0][2] := 0;
-        Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try" --> Chart_model_channel_channel_3_st := "";
-        Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next";
+        if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
+          Chart_model_channel_channel_3_st := "";
+        }
+        if (Chart_model_channel_channel_3_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next";
+        }
         J535_done := 1;
       }
       Chart_ret := J535_done;
@@ -974,14 +1018,12 @@ end
 
 procedure during_Chart_model_channel_channel_3_delay_1 begin
   Chart_model_channel_channel_3_delay_1_done := 0;
-  Chart_model_channel_channel_3_delay_1_time >= d3 --> {
+  if (Chart_model_channel_channel_3_delay_1_time >= d3) {
     seq_num_1 := 3;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -990,14 +1032,14 @@ procedure during_Chart_model_channel_channel_3_delay_1 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1" --> {
+    if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_1") {
       Chart_model_channel_channel_3_delay_1_time := -1;
       Chart_model_channel_channel_3_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_next";
+      }
       Chart_model_channel_channel_3_delay_1_done := 1;
     }
   }
@@ -1006,14 +1048,12 @@ end
 
 procedure during_Chart_model_channel_channel_3_delay_2 begin
   Chart_model_channel_channel_3_delay_2_done := 0;
-  Chart_model_channel_channel_3_delay_2_time >= d3 --> {
+  if (Chart_model_channel_channel_3_delay_2_time >= d3) {
     seq_num_2 := 3;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -1022,14 +1062,14 @@ procedure during_Chart_model_channel_channel_3_delay_2 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2" --> {
+    if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_delay_2") {
       Chart_model_channel_channel_3_delay_2_time := -1;
       Chart_model_channel_channel_3_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try";
+      }
       Chart_model_channel_channel_3_delay_2_done := 1;
     }
   }
@@ -1044,23 +1084,25 @@ procedure during_Chart_model_channel_channel_3_next begin
   } else {
     chan_r := 0;
   }
-  chan_r == 1 --> {
+  if (chan_r == 1) {
     y := uniform(0,1);
     d3 := y;
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" --> {
+    if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
       Chart_model_channel_channel_3_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_delay_2";
         Chart_model_channel_channel_3_delay_2_time := 0;
       }
       Chart_model_channel_channel_3_next_done := 1;
     }
   }
-  Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" & Chart_model_channel_channel_3_next_done == 0 --> {
+  if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" & Chart_model_channel_channel_3_next_done == 0) {
     buffer_data[WriterId - 1][1][2] := 0;
-    Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next" --> {
+    if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
       Chart_model_channel_channel_3_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_3_st := "Chart_model_channel_channel_3_try";
+      }
       Chart_model_channel_channel_3_next_done := 1;
     }
   }
@@ -1069,8 +1111,8 @@ end
 
 procedure during_Chart_model_channel_channel_4_try begin
   Chart_model_channel_channel_4_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "TRY" --> {
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "TRY") {
+    if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
       J553_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -1078,20 +1120,26 @@ procedure during_Chart_model_channel_channel_4_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d4 := y;
-        Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" --> Chart_model_channel_channel_4_st := "";
-        Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
+          Chart_model_channel_channel_4_st := "";
+        }
+        if (Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_1";
           Chart_model_channel_channel_4_delay_1_time := 0;
         }
         J553_done := 1;
       }
-      J553_done == 0 --> {
+      if (J553_done == 0) {
         buffer_data[WriterId - 1][0][3] := 0;
-        Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try" --> Chart_model_channel_channel_4_st := "";
-        Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next";
+        if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
+          Chart_model_channel_channel_4_st := "";
+        }
+        if (Chart_model_channel_channel_4_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next";
+        }
         J553_done := 1;
       }
       Chart_ret := J553_done;
@@ -1103,14 +1151,12 @@ end
 
 procedure during_Chart_model_channel_channel_4_delay_1 begin
   Chart_model_channel_channel_4_delay_1_done := 0;
-  Chart_model_channel_channel_4_delay_1_time >= d4 --> {
+  if (Chart_model_channel_channel_4_delay_1_time >= d4) {
     seq_num_1 := 4;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -1119,14 +1165,14 @@ procedure during_Chart_model_channel_channel_4_delay_1 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1" --> {
+    if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_1") {
       Chart_model_channel_channel_4_delay_1_time := -1;
       Chart_model_channel_channel_4_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_next";
+      }
       Chart_model_channel_channel_4_delay_1_done := 1;
     }
   }
@@ -1135,14 +1181,12 @@ end
 
 procedure during_Chart_model_channel_channel_4_delay_2 begin
   Chart_model_channel_channel_4_delay_2_done := 0;
-  Chart_model_channel_channel_4_delay_2_time >= d4 --> {
+  if (Chart_model_channel_channel_4_delay_2_time >= d4) {
     seq_num_2 := 4;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -1151,14 +1195,14 @@ procedure during_Chart_model_channel_channel_4_delay_2 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2" --> {
+    if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_delay_2") {
       Chart_model_channel_channel_4_delay_2_time := -1;
       Chart_model_channel_channel_4_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try";
+      }
       Chart_model_channel_channel_4_delay_2_done := 1;
     }
   }
@@ -1173,23 +1217,25 @@ procedure during_Chart_model_channel_channel_4_next begin
   } else {
     chan_r := 0;
   }
-  chan_r == 1 --> {
+  if (chan_r == 1) {
     y := uniform(0,1);
     d4 := y;
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" --> {
+    if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
       Chart_model_channel_channel_4_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_delay_2";
         Chart_model_channel_channel_4_delay_2_time := 0;
       }
       Chart_model_channel_channel_4_next_done := 1;
     }
   }
-  Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" & Chart_model_channel_channel_4_next_done == 0 --> {
+  if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" & Chart_model_channel_channel_4_next_done == 0) {
     buffer_data[WriterId - 1][1][3] := 0;
-    Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next" --> {
+    if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
       Chart_model_channel_channel_4_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_4_st := "Chart_model_channel_channel_4_try";
+      }
       Chart_model_channel_channel_4_next_done := 1;
     }
   }
@@ -1198,8 +1244,8 @@ end
 
 procedure during_Chart_model_channel_channel_5_try begin
   Chart_model_channel_channel_5_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "TRY" --> {
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "TRY") {
+    if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
       J571_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -1207,20 +1253,26 @@ procedure during_Chart_model_channel_channel_5_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d5 := y;
-        Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" --> Chart_model_channel_channel_5_st := "";
-        Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
+          Chart_model_channel_channel_5_st := "";
+        }
+        if (Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_1";
           Chart_model_channel_channel_5_delay_1_time := 0;
         }
         J571_done := 1;
       }
-      J571_done == 0 --> {
+      if (J571_done == 0) {
         buffer_data[WriterId - 1][0][4] := 0;
-        Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try" --> Chart_model_channel_channel_5_st := "";
-        Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next";
+        if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
+          Chart_model_channel_channel_5_st := "";
+        }
+        if (Chart_model_channel_channel_5_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next";
+        }
         J571_done := 1;
       }
       Chart_ret := J571_done;
@@ -1232,14 +1284,12 @@ end
 
 procedure during_Chart_model_channel_channel_5_delay_1 begin
   Chart_model_channel_channel_5_delay_1_done := 0;
-  Chart_model_channel_channel_5_delay_1_time >= d5 --> {
+  if (Chart_model_channel_channel_5_delay_1_time >= d5) {
     seq_num_1 := 5;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -1248,14 +1298,14 @@ procedure during_Chart_model_channel_channel_5_delay_1 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1" --> {
+    if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_1") {
       Chart_model_channel_channel_5_delay_1_time := -1;
       Chart_model_channel_channel_5_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_next";
+      }
       Chart_model_channel_channel_5_delay_1_done := 1;
     }
   }
@@ -1264,14 +1314,12 @@ end
 
 procedure during_Chart_model_channel_channel_5_delay_2 begin
   Chart_model_channel_channel_5_delay_2_done := 0;
-  Chart_model_channel_channel_5_delay_2_time >= d5 --> {
+  if (Chart_model_channel_channel_5_delay_2_time >= d5) {
     seq_num_2 := 5;
     ChartEL := push(ChartEL,"SUCCESS");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -1280,14 +1328,14 @@ procedure during_Chart_model_channel_channel_5_delay_2 begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2" --> {
+    if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_delay_2") {
       Chart_model_channel_channel_5_delay_2_time := -1;
       Chart_model_channel_channel_5_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try";
+      }
       Chart_model_channel_channel_5_delay_2_done := 1;
     }
   }
@@ -1302,23 +1350,25 @@ procedure during_Chart_model_channel_channel_5_next begin
   } else {
     chan_r := 0;
   }
-  chan_r == 1 --> {
+  if (chan_r == 1) {
     y := uniform(0,1);
     d5 := y;
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" --> {
+    if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
       Chart_model_channel_channel_5_st := "";
-      Chart_st == "Chart_model" --> {
+      if (Chart_st == "Chart_model") {
         Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_delay_2";
         Chart_model_channel_channel_5_delay_2_time := 0;
       }
       Chart_model_channel_channel_5_next_done := 1;
     }
   }
-  Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" & Chart_model_channel_channel_5_next_done == 0 --> {
+  if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" & Chart_model_channel_channel_5_next_done == 0) {
     buffer_data[WriterId - 1][1][4] := 0;
-    Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next" --> {
+    if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
       Chart_model_channel_channel_5_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_channel_5_st := "Chart_model_channel_channel_5_try";
+      }
       Chart_model_channel_channel_5_next_done := 1;
     }
   }
@@ -1327,8 +1377,8 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_try begin
   Chart_model_channel_Heartbeat_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "HEARTBEAT" --> {
-    Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "HEARTBEAT") {
+    if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
       J764_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -1336,19 +1386,25 @@ procedure during_Chart_model_channel_Heartbeat_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d_hb := y;
-        Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" --> Chart_model_channel_Heartbeat_st := "";
-        Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
+          Chart_model_channel_Heartbeat_st := "";
+        }
+        if (Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_delay";
           Chart_model_channel_Heartbeat_delay_time := 0;
         }
         J764_done := 1;
       }
-      J764_done == 0 --> {
-        Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try" --> Chart_model_channel_Heartbeat_st := "";
-        Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
+      if (J764_done == 0) {
+        if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
+          Chart_model_channel_Heartbeat_st := "";
+        }
+        if (Chart_model_channel_Heartbeat_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
+        }
         J764_done := 1;
       }
       Chart_ret := J764_done;
@@ -1360,13 +1416,11 @@ end
 
 procedure during_Chart_model_channel_Heartbeat_delay begin
   Chart_model_channel_Heartbeat_delay_done := 0;
-  Chart_model_channel_Heartbeat_delay_time >= d_hb --> {
+  if (Chart_model_channel_Heartbeat_delay_time >= d_hb) {
     ChartEL := push(ChartEL,"HEARTBEAT2");
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -1375,14 +1429,10 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -1391,14 +1441,14 @@ procedure during_Chart_model_channel_Heartbeat_delay begin
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
     } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
       @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_delay" --> {
+    if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_delay") {
       Chart_model_channel_Heartbeat_delay_time := -1;
       Chart_model_channel_Heartbeat_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_Heartbeat_st := "Chart_model_channel_Heartbeat_try";
+      }
       Chart_model_channel_Heartbeat_delay_done := 1;
     }
   }
@@ -1407,8 +1457,8 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_try begin
   Chart_model_channel_Acknack_1_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "ACKNACK" --> {
-    Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "ACKNACK") {
+    if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
       J723_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -1416,19 +1466,25 @@ procedure during_Chart_model_channel_Acknack_1_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d_ack1 := y;
-        Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" --> Chart_model_channel_Acknack_1_st := "";
-        Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
+          Chart_model_channel_Acknack_1_st := "";
+        }
+        if (Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_delay";
           Chart_model_channel_Acknack_1_delay_time := 0;
         }
         J723_done := 1;
       }
-      J723_done == 0 --> {
-        Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try" --> Chart_model_channel_Acknack_1_st := "";
-        Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
+      if (J723_done == 0) {
+        if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
+          Chart_model_channel_Acknack_1_st := "";
+        }
+        if (Chart_model_channel_Acknack_1_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
+        }
         J723_done := 1;
       }
       Chart_ret := J723_done;
@@ -1440,7 +1496,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_1_delay begin
   Chart_model_channel_Acknack_1_delay_done := 0;
-  Chart_model_channel_Acknack_1_delay_time >= d_ack1 --> {
+  if (Chart_model_channel_Acknack_1_delay_time >= d_ack1) {
     ack_id := ReaderId_1;
     ChartEL := push(ChartEL,"ACKNACK2");
     Chart_ret := 0;
@@ -1450,15 +1506,11 @@ procedure during_Chart_model_channel_Acknack_1_delay begin
       @during_Chart_model_RTPS_Writer_Writer_repair_waiting;
     } else if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
       @during_Chart_model_RTPS_Writer_Writer_repair_must_repair;
-      Chart_ret == 0 --> {
+      if (Chart_ret == 0) {
         if (Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en") {
           @during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-        } else {
-          skip;
         }
       }
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing") {
@@ -1467,14 +1519,14 @@ procedure during_Chart_model_channel_Acknack_1_delay begin
       @during_Chart_model_RTPS_Writer_Writer_send_announcing;
     } else if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle") {
       @during_Chart_model_RTPS_Writer_Writer_send_idle;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_delay" --> {
+    if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_delay") {
       Chart_model_channel_Acknack_1_delay_time := -1;
       Chart_model_channel_Acknack_1_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_Acknack_1_st := "Chart_model_channel_Acknack_1_try";
+      }
       Chart_model_channel_Acknack_1_delay_done := 1;
     }
   }
@@ -1483,8 +1535,8 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_try begin
   Chart_model_channel_Acknack_2_try_done := 0;
-  ChartEL != [] & top(ChartEL) == "ACKNACK" --> {
-    Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" --> {
+  if (ChartEL != [] & top(ChartEL) == "ACKNACK") {
+    if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
       J807_done := 0;
       x := uniform(0,1);
       if (x > 0.4) {
@@ -1492,19 +1544,25 @@ procedure during_Chart_model_channel_Acknack_2_try begin
       } else {
         chan_r := 0;
       }
-      chan_r == 1 --> {
+      if (chan_r == 1) {
         y := uniform(0,1);
         d_ack2 := y;
-        Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" --> Chart_model_channel_Acknack_2_st := "";
-        Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model" --> {
+        if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
+          Chart_model_channel_Acknack_2_st := "";
+        }
+        if (Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model") {
           Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_delay";
           Chart_model_channel_Acknack_2_delay_time := 0;
         }
         J807_done := 1;
       }
-      J807_done == 0 --> {
-        Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try" --> Chart_model_channel_Acknack_2_st := "";
-        Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model" --> Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
+      if (J807_done == 0) {
+        if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
+          Chart_model_channel_Acknack_2_st := "";
+        }
+        if (Chart_model_channel_Acknack_2_st == "" & Chart_st == "Chart_model") {
+          Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
+        }
         J807_done := 1;
       }
       Chart_ret := J807_done;
@@ -1516,7 +1574,7 @@ end
 
 procedure during_Chart_model_channel_Acknack_2_delay begin
   Chart_model_channel_Acknack_2_delay_done := 0;
-  Chart_model_channel_Acknack_2_delay_time >= d_ack2 --> {
+  if (Chart_model_channel_Acknack_2_delay_time >= d_ack2) {
     ack_id := ReaderId_2;
     ChartEL := push(ChartEL,"ACKNACK2");
     Chart_ret := 0;
@@ -1526,15 +1584,11 @@ procedure during_Chart_model_channel_Acknack_2_delay begin
       @during_Chart_model_RTPS_Writer_Writer_repair_waiting;
     } else if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
       @during_Chart_model_RTPS_Writer_Writer_repair_must_repair;
-      Chart_ret == 0 --> {
+      if (Chart_ret == 0) {
         if (Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en") {
           @during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-        } else {
-          skip;
         }
       }
-    } else {
-      skip;
     }
     Chart_ret := 0;
     if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing") {
@@ -1543,14 +1597,14 @@ procedure during_Chart_model_channel_Acknack_2_delay begin
       @during_Chart_model_RTPS_Writer_Writer_send_announcing;
     } else if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle") {
       @during_Chart_model_RTPS_Writer_Writer_send_idle;
-    } else {
-      skip;
     }
     ChartEL := pop(ChartEL);
-    Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_delay" --> {
+    if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_delay") {
       Chart_model_channel_Acknack_2_delay_time := -1;
       Chart_model_channel_Acknack_2_st := "";
-      Chart_st == "Chart_model" --> Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
+      if (Chart_st == "Chart_model") {
+        Chart_model_channel_Acknack_2_st := "Chart_model_channel_Acknack_2_try";
+      }
       Chart_model_channel_Acknack_2_delay_done := 1;
     }
   }
@@ -1559,34 +1613,38 @@ end
 
 procedure J625 begin
   J625_done := 0;
-  i > 2 --> {
+  if (i > 2) {
     flag := 1;
     J625_done := 1;
   }
-  J625_done == 0 & i <= 2 & buffer_acknack[i - 1][2] == 5 --> {
+  if (J625_done == 0 & i <= 2 & buffer_acknack[i - 1][2] == 5) {
     i := i + 1;
     @J625;
     J625_done := 1;
   }
-  J625_done == 0 --> flag := 0;
+  if (J625_done == 0) {
+    flag := 0;
+  }
 end
 
 procedure J11 begin
   J11_done := 0;
-  i > last_SN --> {
+  if (i > last_SN) {
     flag := 1;
     J11_done := 1;
   }
-  J11_done == 0 & i <= last_SN & unsent[i - 1] == 0 --> {
+  if (J11_done == 0 & i <= last_SN & unsent[i - 1] == 0) {
     i := i + 1;
     @J11;
     J11_done := 1;
   }
-  J11_done == 0 --> flag := 0;
+  if (J11_done == 0) {
+    flag := 0;
+  }
 end
 
 procedure J47 begin
-  i <= 2 --> {
+  if (i <= 2) {
     buffer_data[WriterId - 1][i - 1][sn - 1] := WHC[sn - 1];
     i := i + 1;
     @J47;
@@ -1595,22 +1653,26 @@ end
 
 procedure J123 begin
   J123_done := 0;
-  i >= 1 & received_set[rid - 1][i - 1] == 1 --> {
+  if (i >= 1 & received_set[rid - 1][i - 1] == 1) {
     i := i - 1;
     @J123;
     J123_done := 1;
   }
-  J123_done == 0 --> sn2 := i;
+  if (J123_done == 0) {
+    sn2 := i;
+  }
 end
 
 procedure J150 begin
   J150_done := 0;
-  i <= 5 & received_set[rid - 1][i - 1] == 1 --> {
+  if (i <= 5 & received_set[rid - 1][i - 1] == 1) {
     i := i + 1;
     @J150;
     J150_done := 1;
   }
-  J150_done == 0 --> sn2 := i - 1;
+  if (J150_done == 0) {
+    sn2 := i - 1;
+  }
 end
 
 begin
@@ -1720,15 +1782,11 @@ begin
         @during_Chart_model_RTPS_Writer_Writer_repair_waiting;
       } else if (Chart_model_RTPS_Writer_Writer_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair") {
         @during_Chart_model_RTPS_Writer_Writer_repair_must_repair;
-        Chart_ret == 0 --> {
+        if (Chart_ret == 0) {
           if (Chart_model_RTPS_Writer_Writer_repair_must_repair_st == "Chart_model_RTPS_Writer_Writer_repair_must_repair_en") {
             @during_Chart_model_RTPS_Writer_Writer_repair_must_repair_en;
-          } else {
-            skip;
           }
         }
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_pushing") {
@@ -1737,14 +1795,10 @@ begin
         @during_Chart_model_RTPS_Writer_Writer_send_announcing;
       } else if (Chart_model_RTPS_Writer_Writer_send_st == "Chart_model_RTPS_Writer_Writer_send_idle") {
         @during_Chart_model_RTPS_Writer_Writer_send_idle;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready") {
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_receive_ready;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack") {
@@ -1753,14 +1807,10 @@ begin
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_waiting;
       } else if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack") {
         @during_Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_may_send_ack;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready") {
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_receive_ready;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack") {
@@ -1769,8 +1819,6 @@ begin
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_may_send_ack;
       } else if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_st == "Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting") {
         @during_Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_waiting;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_try") {
@@ -1781,8 +1829,6 @@ begin
         @during_Chart_model_channel_channel_1_delay_2;
       } else if (Chart_model_channel_channel_1_st == "Chart_model_channel_channel_1_next") {
         @during_Chart_model_channel_channel_1_next;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_try") {
@@ -1793,8 +1839,6 @@ begin
         @during_Chart_model_channel_channel_2_delay_2;
       } else if (Chart_model_channel_channel_2_st == "Chart_model_channel_channel_2_next") {
         @during_Chart_model_channel_channel_2_next;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_try") {
@@ -1805,8 +1849,6 @@ begin
         @during_Chart_model_channel_channel_3_delay_2;
       } else if (Chart_model_channel_channel_3_st == "Chart_model_channel_channel_3_next") {
         @during_Chart_model_channel_channel_3_next;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_try") {
@@ -1817,8 +1859,6 @@ begin
         @during_Chart_model_channel_channel_4_delay_2;
       } else if (Chart_model_channel_channel_4_st == "Chart_model_channel_channel_4_next") {
         @during_Chart_model_channel_channel_4_next;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_try") {
@@ -1829,58 +1869,82 @@ begin
         @during_Chart_model_channel_channel_5_delay_2;
       } else if (Chart_model_channel_channel_5_st == "Chart_model_channel_channel_5_next") {
         @during_Chart_model_channel_channel_5_next;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_try") {
         @during_Chart_model_channel_Heartbeat_try;
       } else if (Chart_model_channel_Heartbeat_st == "Chart_model_channel_Heartbeat_delay") {
         @during_Chart_model_channel_Heartbeat_delay;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_try") {
         @during_Chart_model_channel_Acknack_1_try;
       } else if (Chart_model_channel_Acknack_1_st == "Chart_model_channel_Acknack_1_delay") {
         @during_Chart_model_channel_Acknack_1_delay;
-      } else {
-        skip;
       }
       Chart_ret := 0;
       if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_try") {
         @during_Chart_model_channel_Acknack_2_try;
       } else if (Chart_model_channel_Acknack_2_st == "Chart_model_channel_Acknack_2_delay") {
         @during_Chart_model_channel_Acknack_2_delay;
-      } else {
-        skip;
       }
-    } else {
-      skip;
     }
     RHC_out!RHC;
     WHC_out!WHC;
     RHC2_out!RHC2;
     end_Chart?;
     wait(0.1);
-    Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time != -1 --> Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time + 0.1;
-    Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time != -1 --> Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time + 0.1;
-    Chart_model_RTPS_Writer_Writer_send_announcing_time != -1 --> Chart_model_RTPS_Writer_Writer_send_announcing_time := Chart_model_RTPS_Writer_Writer_send_announcing_time + 0.1;
-    Chart_model_channel_channel_2_delay_2_time != -1 --> Chart_model_channel_channel_2_delay_2_time := Chart_model_channel_channel_2_delay_2_time + 0.1;
-    Chart_model_channel_channel_3_delay_2_time != -1 --> Chart_model_channel_channel_3_delay_2_time := Chart_model_channel_channel_3_delay_2_time + 0.1;
-    Chart_model_channel_channel_1_delay_2_time != -1 --> Chart_model_channel_channel_1_delay_2_time := Chart_model_channel_channel_1_delay_2_time + 0.1;
-    Chart_model_channel_channel_4_delay_2_time != -1 --> Chart_model_channel_channel_4_delay_2_time := Chart_model_channel_channel_4_delay_2_time + 0.1;
-    Chart_model_channel_channel_5_delay_2_time != -1 --> Chart_model_channel_channel_5_delay_2_time := Chart_model_channel_channel_5_delay_2_time + 0.1;
-    Chart_model_channel_channel_1_delay_1_time != -1 --> Chart_model_channel_channel_1_delay_1_time := Chart_model_channel_channel_1_delay_1_time + 0.1;
-    Chart_model_channel_channel_3_delay_1_time != -1 --> Chart_model_channel_channel_3_delay_1_time := Chart_model_channel_channel_3_delay_1_time + 0.1;
-    Chart_model_channel_channel_4_delay_1_time != -1 --> Chart_model_channel_channel_4_delay_1_time := Chart_model_channel_channel_4_delay_1_time + 0.1;
-    Chart_model_channel_channel_5_delay_1_time != -1 --> Chart_model_channel_channel_5_delay_1_time := Chart_model_channel_channel_5_delay_1_time + 0.1;
-    Chart_model_RTPS_Writer_Writer_repair_must_repair_time != -1 --> Chart_model_RTPS_Writer_Writer_repair_must_repair_time := Chart_model_RTPS_Writer_Writer_repair_must_repair_time + 0.1;
-    Chart_model_channel_channel_2_delay_1_time != -1 --> Chart_model_channel_channel_2_delay_1_time := Chart_model_channel_channel_2_delay_1_time + 0.1;
-    Chart_model_channel_Acknack_1_delay_time != -1 --> Chart_model_channel_Acknack_1_delay_time := Chart_model_channel_Acknack_1_delay_time + 0.1;
-    Chart_model_channel_Heartbeat_delay_time != -1 --> Chart_model_channel_Heartbeat_delay_time := Chart_model_channel_Heartbeat_delay_time + 0.1;
-    Chart_model_channel_Acknack_2_delay_time != -1 --> Chart_model_channel_Acknack_2_delay_time := Chart_model_channel_Acknack_2_delay_time + 0.1;
+    if (Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time != -1) {
+      Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_2_Reader_response_must_send_ack_time + 0.1;
+    }
+    if (Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time != -1) {
+      Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time := Chart_model_RTPS_Reader_RTPS_Reader_1_Reader_response_must_send_ack_time + 0.1;
+    }
+    if (Chart_model_RTPS_Writer_Writer_send_announcing_time != -1) {
+      Chart_model_RTPS_Writer_Writer_send_announcing_time := Chart_model_RTPS_Writer_Writer_send_announcing_time + 0.1;
+    }
+    if (Chart_model_channel_channel_2_delay_2_time != -1) {
+      Chart_model_channel_channel_2_delay_2_time := Chart_model_channel_channel_2_delay_2_time + 0.1;
+    }
+    if (Chart_model_channel_channel_3_delay_2_time != -1) {
+      Chart_model_channel_channel_3_delay_2_time := Chart_model_channel_channel_3_delay_2_time + 0.1;
+    }
+    if (Chart_model_channel_channel_1_delay_2_time != -1) {
+      Chart_model_channel_channel_1_delay_2_time := Chart_model_channel_channel_1_delay_2_time + 0.1;
+    }
+    if (Chart_model_channel_channel_4_delay_2_time != -1) {
+      Chart_model_channel_channel_4_delay_2_time := Chart_model_channel_channel_4_delay_2_time + 0.1;
+    }
+    if (Chart_model_channel_channel_5_delay_2_time != -1) {
+      Chart_model_channel_channel_5_delay_2_time := Chart_model_channel_channel_5_delay_2_time + 0.1;
+    }
+    if (Chart_model_channel_channel_1_delay_1_time != -1) {
+      Chart_model_channel_channel_1_delay_1_time := Chart_model_channel_channel_1_delay_1_time + 0.1;
+    }
+    if (Chart_model_channel_channel_3_delay_1_time != -1) {
+      Chart_model_channel_channel_3_delay_1_time := Chart_model_channel_channel_3_delay_1_time + 0.1;
+    }
+    if (Chart_model_channel_channel_4_delay_1_time != -1) {
+      Chart_model_channel_channel_4_delay_1_time := Chart_model_channel_channel_4_delay_1_time + 0.1;
+    }
+    if (Chart_model_channel_channel_5_delay_1_time != -1) {
+      Chart_model_channel_channel_5_delay_1_time := Chart_model_channel_channel_5_delay_1_time + 0.1;
+    }
+    if (Chart_model_RTPS_Writer_Writer_repair_must_repair_time != -1) {
+      Chart_model_RTPS_Writer_Writer_repair_must_repair_time := Chart_model_RTPS_Writer_Writer_repair_must_repair_time + 0.1;
+    }
+    if (Chart_model_channel_channel_2_delay_1_time != -1) {
+      Chart_model_channel_channel_2_delay_1_time := Chart_model_channel_channel_2_delay_1_time + 0.1;
+    }
+    if (Chart_model_channel_Acknack_1_delay_time != -1) {
+      Chart_model_channel_Acknack_1_delay_time := Chart_model_channel_Acknack_1_delay_time + 0.1;
+    }
+    if (Chart_model_channel_Heartbeat_delay_time != -1) {
+      Chart_model_channel_Heartbeat_delay_time := Chart_model_channel_Heartbeat_delay_time + 0.1;
+    }
+    if (Chart_model_channel_Acknack_2_delay_time != -1) {
+      Chart_model_channel_Acknack_2_delay_time := Chart_model_channel_Acknack_2_delay_time + 0.1;
+    }
   }*
 end
 endmodule
@@ -1906,7 +1970,7 @@ begin
     start_DDS_Writer?;
     WHC_in?WHC;
     DDS_Writer_add_done := 0;
-    DDS_Writer_add_time >= d & i <= 5 --> {
+    if (DDS_Writer_add_time >= d & i <= 5) {
       WHC[i - 1] := cachechanges[i - 1];
       first_SN := 1;
       last_SN := i;
@@ -1923,7 +1987,9 @@ begin
     ch_x3_0_out!last_SN;
     end_DDS_Writer?;
     wait(0.1);
-    DDS_Writer_add_time != -1 --> DDS_Writer_add_time := DDS_Writer_add_time + 0.1;
+    if (DDS_Writer_add_time != -1) {
+      DDS_Writer_add_time := DDS_Writer_add_time + 0.1;
+    }
   }*
 end
 endmodule

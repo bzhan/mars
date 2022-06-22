@@ -4,17 +4,17 @@ module Chart():
 procedure exec_Chart begin
   Chart_ret := 0;
   if (Chart_st == "Chart_S") {
-    ChartEL != [] & top(ChartEL) == "E" --> {
-      Chart_st == "Chart_S" --> {
+    if (ChartEL != [] & top(ChartEL) == "E") {
+      if (Chart_st == "Chart_S") {
         if (Chart_S_A1_st == "Chart_S_A1_A1a") {
-          Chart_S_A1_st == "Chart_S_A1_A1a" --> Chart_S_A1_st := "";
+          Chart_S_A1_st := "";
         } else if (Chart_S_A1_st == "Chart_S_A1_A1b") {
-          Chart_S_A1_st == "Chart_S_A1_A1b" --> Chart_S_A1_st := "";
-        } else {
-          skip;
+          Chart_S_A1_st := "";
         }
-        Chart_st == "Chart_S" --> Chart_st := "";
-        Chart_st == "" --> {
+        if (Chart_st == "Chart_S") {
+          Chart_st := "";
+        }
+        if (Chart_st == "") {
           Chart_st := "Chart_B";
           s := "enB";
           log("enB" + "\n");
@@ -25,31 +25,25 @@ procedure exec_Chart begin
     if (Chart_S_A1_st == "Chart_S_A1_A1a") {
       s := "ca";
       log("ca" + "\n");
-      Chart_S_A1_st == "Chart_S_A1_A1a" --> {
+      if (Chart_S_A1_st == "Chart_S_A1_A1a") {
         Chart_S_A1_st := "";
         ChartEL := push(ChartEL,"E");
         @exec_Chart;
         ChartEL := pop(ChartEL);
-        Chart_S_A1_st == "" & Chart_st == "Chart_S" --> {
+        if (Chart_S_A1_st == "" & Chart_st == "Chart_S") {
           s := "ta";
           log("ta" + "\n");
         }
-        Chart_S_A1_st == "" & Chart_st == "Chart_S" --> {
+        if (Chart_S_A1_st == "" & Chart_st == "Chart_S") {
           Chart_S_A1_st := "Chart_S_A1_A1b";
           s := "enA1b";
           log("enA1b" + "\n");
         }
       }
-    } else if (Chart_S_A1_st == "Chart_S_A1_A1b") {
-      skip;
-    } else {
-      skip;
     }
     Chart_ret := 0;
   } else if (Chart_st == "Chart_B") {
     Chart_ret := 0;
-  } else {
-    skip;
   }
 end
 

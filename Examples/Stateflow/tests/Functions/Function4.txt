@@ -18,11 +18,13 @@ begin
       w := max(5,3);
       a := v;
       b := w;
-      Chart_st == "Chart_A" --> {
+      if (Chart_st == "Chart_A") {
         J29_done := 0;
-        a == 3 & b == 5 --> {
-          Chart_st == "Chart_A" --> Chart_st := "";
-          Chart_st == "" --> {
+        if (a == 3 & b == 5) {
+          if (Chart_st == "Chart_A") {
+            Chart_st := "";
+          }
+          if (Chart_st == "") {
             Chart_st := "Chart_B";
             s := "en_B";
             log("en_B" + "\n");
@@ -35,8 +37,6 @@ begin
       Chart_ret := Chart_A_done;
     } else if (Chart_st == "Chart_B") {
       Chart_ret := 0;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

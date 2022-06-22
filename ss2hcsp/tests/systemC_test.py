@@ -31,7 +31,8 @@ class SystemCTest(unittest.TestCase):
                         _ = systemCform(_hp.else_hp, new_name_1)
 
                 _hp.if_hps = ((head_cond, hcsp.Var(new_name_0)),)
-                _hp.else_hp = hcsp.Var(new_name_1)
+                if _hp.else_hp is not None:
+                    _hp.else_hp = hcsp.Var(new_name_1)
 
             elif isinstance(_hp, hcsp.ODE_Comm):
                 io_comms = list()
