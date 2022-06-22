@@ -3,7 +3,7 @@
 // When changing this file, regenerate the grammar: 
 // lezer-generator ./src/grammar/hcsp.grammar > ./src/grammar/hcsp_parser.js
 
-@precedence { conj @right, disj @right, equiv @right, imp @right, ite @left }
+@precedence { conj @right, disj @right, equiv @right, imp @right }
 
 lname {
   var_expr { CNAME }
@@ -154,7 +154,7 @@ atom_cmd {
   | OdeCommConst { "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant}
   | OdeComm { "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant} 
   | RecCmd { "rec" CNAME "{" cmd "}" }
-  | IteCmd { "if" "(" cond ")" atom_cmd (!ite "else" atom_cmd)? }
+  | IteCmd { "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? }
   | ParenCmd { "{" cmd "}" }
 }
 

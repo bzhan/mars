@@ -1304,14 +1304,7 @@ class ITE(HCSP):
         assert isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
-        if isinstance(else_hp, ITE):
-            # Merge if (...) { ... } else { if (...) { ... } else { ... }} into one ITE object
-            self.if_hps += else_hp.if_hps
-            self.else_hp = else_hp.else_hp
-        else:
-            self.else_hp = else_hp
-        
-        #TODO(new-syntax):adjust meta data when merging
+        self.else_hp = else_hp
         self.meta = meta
 
     def __eq__(self, other):

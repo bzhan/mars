@@ -113,7 +113,7 @@ grammar = r"""
         | "<" "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm_const
         | "<" ode_seq "&" cond ">" "|>" "[]" "(" interrupt ")" maybe_ode_invariant -> ode_comm
         | "rec" CNAME "{" cmd "}" maybe_invariant -> rec_cmd
-        | "if" "(" cond ")" atom_cmd ("else" atom_cmd)? -> ite_cmd
+        | "if" "(" cond ")" "{" cmd "}" ("else" "if" "(" cond ")" "{" cmd "}")* ("else" "{" cmd "}")? -> ite_cmd
         | "{" cmd "}" -> paren_cmd
 
     ?maybe_invariant: ("invariant" invariant+ ";")? -> maybe_invariant
