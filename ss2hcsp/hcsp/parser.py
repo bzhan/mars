@@ -142,7 +142,7 @@ grammar = r"""
 
     ?ichoice_cmd: atom_cmd | ichoice_cmd "++" atom_cmd   // Priority: 80
 
-    ?seq_cmd: ichoice_cmd+  // Priority: 70
+    ?seq_cmd: ichoice_cmd*  // Priority: 70
 
     ?select_cmd: seq_cmd | comm_cmd "-->" seq_cmd ("$" comm_cmd "-->" seq_cmd)*  // Priority 50
 
@@ -366,7 +366,9 @@ class HPTransformer(Transformer):
         return hcsp.Log(args[0], exprs=args[1:], meta=meta)
 
     def seq_cmd(self, meta, *args):
-        if len(args) == 1:
+        if len(args) == 0:
+            return hcsp.Skip(meta=meta)
+        elif len(args) == 1:
             return args[0]
         else:
             return hcsp.Sequence(*args, meta=meta)

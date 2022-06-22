@@ -164,7 +164,7 @@ ichoice_cmd {
 }   // Priority: 80
 
 SeqCmd {
-  ichoice_cmd+ // Priority: 70
+  ichoice_cmd* // Priority: 70
 }
 
 select_cmd {
