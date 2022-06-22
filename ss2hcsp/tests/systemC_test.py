@@ -7,15 +7,7 @@ import re
 class SystemCTest(unittest.TestCase):
     def testSystemC(self):
         def systemCform(_hp, _name=""):
-            if isinstance(_hp, hcsp.Condition):
-                assert not isinstance(_hp.hp, hcsp.Skip)
-                if not isinstance(_hp.hp, hcsp.Var):
-                    new_name = "SC" + str(len(indices))
-                    indices.append(new_name)
-                    _ = systemCform(_hp.hp, new_name)
-                    _hp.hp = hcsp.Var(new_name)
-
-            elif isinstance(_hp, hcsp.ITE):
+            if isinstance(_hp, hcsp.ITE):
                 head_cond, head_hp = _hp.if_hps[0]
 
                 if isinstance(head_hp, hcsp.Var):
@@ -33,7 +25,7 @@ class SystemCTest(unittest.TestCase):
                     assert len(_hp.if_hps) == 1
                     if isinstance(_hp.else_hp, hcsp.Var):
                         new_name_1 = _hp.else_hp.name
-                    else:
+                    elif _hp.else_hp is not None:
                         new_name_1 = "SC" + str(len(indices))
                         indices.append(new_name_1)
                         _ = systemCform(_hp.else_hp, new_name_1)

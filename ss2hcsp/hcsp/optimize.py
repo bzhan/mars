@@ -41,20 +41,6 @@ def simplify(hp):
         return hcsp.seq([simplify(sub_hp) for sub_hp in hp.hps])
     elif hp.type == 'loop':
         return hcsp.Loop(simplify(hp.hp), constraint=hp.constraint)
-    elif hp.type == 'condition':
-        simp_cond = simplify_expr(hp.cond)
-        simp_sub_hp = simplify(hp.hp)
-        if simp_sub_hp.type == 'skip' or simp_cond == expr.false_expr:
-            return hcsp.Skip()
-        elif simp_cond == expr.true_expr:
-            return simp_sub_hp
-        elif simp_sub_hp.type == 'condition' and simp_sub_hp.cond == simp_cond:
-            return hcsp.Condition(simp_cond, simp_sub_hp.hp)
-        elif simp_sub_hp.type == 'sequence' and simp_sub_hp.hps[0].type == 'condition' \
-            and simp_sub_hp.hps[0].cond == simp_cond:
-            return hcsp.Condition(simp_cond, hcsp.Sequence(simp_sub_hp.hps[0].hp, *simp_sub_hp.hps[1:]))
-        else:
-            return hcsp.Condition(simp_cond, simp_sub_hp)
     elif hp.type == 'ode':
         return hcsp.ODE(hp.eqs, simplify(hp.constraint), out_hp=simplify(hp.out_hp))
     elif hp.type == 'ode_comm':
@@ -63,8 +49,27 @@ def simplify(hp):
     elif hp.type == 'select_comm':
         return hcsp.SelectComm(*((io, simplify(comm_hp)) for io, comm_hp in hp.io_comms))
     elif hp.type == 'ite':
-        new_if_hps = [(simplify_expr(cond), simplify(if_hp)) for cond, if_hp in hp.if_hps]
-        new_else_hp = hp.else_hp
+        new_if_hps = []
+        for cond, if_hp in hp.if_hps:
+            simp_cond = simplify_expr(cond)
+            simp_if_hp = simplify(if_hp)
+            if simp_if_hp.type == 'skip' or simp_cond == expr.false_expr:
+                continue
+            elif simp_cond == expr.true_expr:
+                if len(new_if_hps) > 0:
+                    return hcsp.ite(new_if_hps, simp_if_hp)
+                else:
+                    return simp_if_hp
+            elif simp_if_hp.type == 'ite' and simp_if_hp.if_hps[0][0] == simp_cond:
+                simp_if_hp = simp_if_hp.if_hps[0][1]
+            elif simp_if_hp.type == 'sequence' and simp_if_hp.hps[0].type == 'ite' \
+                and simp_if_hp.hps[0].if_hps[0][0] == simp_cond:
+                simp_if_hp = hcsp.Sequence(simp_if_hp.hps[0].if_hps[0][1], *simp_if_hp.hps[1:])
+            new_if_hps.append((simp_cond, simp_if_hp))
+        if hp.else_hp is None:
+            new_else_hp = None
+        else:
+            new_else_hp = simplify(hp.else_hp)
         return hcsp.ite(new_if_hps, new_else_hp)
     else:
         raise NotImplementedError
@@ -117,8 +122,6 @@ def get_read_vars(hp):
         return get_read_vars_lname(hp.var_name)
     elif hp.type == 'output_channel':
         return hp.get_vars()
-    elif hp.type == 'condition':
-        return hp.cond.get_vars()
     elif hp.type == 'ite':
         return set().union(*(if_cond.get_vars() for if_cond, _ in hp.if_hps))
     elif hp.type == 'ode':
@@ -226,12 +229,6 @@ def targeted_replace(hp, repls):
             for i, sub_hp in enumerate(hp.hps):
                 new_hps.append(rec(sub_hp, cur_pos + (i,)))
             return hcsp.Sequence(*new_hps)
-        elif hp.type == 'condition':
-            new_sub_hp = rec(hp.hp, cur_pos + (0,))
-            if cur_pos in repls:
-                return hcsp.Condition(hp.cond.subst(repls[cur_pos]), new_sub_hp)
-            else:
-                return hcsp.Condition(hp.cond, new_sub_hp)
         elif hp.type == 'ite':
             new_if_hps = []
             for i, (cond, if_hp) in enumerate(hp.if_hps):
@@ -240,7 +237,10 @@ def targeted_replace(hp, repls):
                     new_if_hps.append((cond.subst(repls[cur_pos]), new_if_hp))
                 else:
                     new_if_hps.append((cond, new_if_hp))
-            new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
+            if hp.else_hp is None:
+                new_else_hp = None
+            else:
+                new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
             return hcsp.Loop(rec(hp.hp, cur_pos), constraint=hp.constraint)
@@ -278,15 +278,15 @@ def targeted_remove(hp, remove_locs):
             for i, sub_hp in enumerate(hp.hps):
                 new_hps.append(rec(sub_hp, cur_pos + (i,)))
             return hcsp.Sequence(*new_hps)
-        elif hp.type == 'condition':
-            new_sub_hp = rec(hp.hp, cur_pos + (0,))
-            return hcsp.Condition(hp.cond, new_sub_hp)
         elif hp.type == 'ite':
             new_if_hps = []
             for i, (cond, if_hp) in enumerate(hp.if_hps):
                 new_if_hp = rec(if_hp, cur_pos + (i,))
                 new_if_hps.append((cond, new_if_hp))
-            new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
+            if hp.else_hp is None:
+                new_else_hp = None
+            else:
+                new_else_hp = rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
             return hcsp.ITE(new_if_hps, new_else_hp)
         elif hp.type == 'loop':
             return hcsp.Loop(rec(hp.hp, cur_pos), constraint=hp.constraint)
@@ -380,28 +380,19 @@ class HCSPAnalysis:
     
                 # Overall exit
                 self.infos[cur_pos].exits = self.infos[cur_pos + (len(hp.hps)-1,)].exits
-            
-            elif hp.type == 'condition':
-                rec(hp.hp, cur_pos + (0,))
-
-                # Path where condition holds
-                self.add_edge(cur_pos, cur_pos + (0,))
-                self.infos[cur_pos].exits = self.infos[cur_pos + (0,)].exits
-
-                # Path where condition does not hold
-                self.infos[cur_pos].exits.append(cur_pos)
 
             elif hp.type == 'ite':
                 for i, (cond, if_hp) in enumerate(hp.if_hps):
                     rec(if_hp, cur_pos + (i,))
-                rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
+                if hp.else_hp is not None:
+                    rec(hp.else_hp, cur_pos + (len(hp.if_hps),))
 
                 # Possible entry into each branch
-                for i in range(len(hp.if_hps) + 1):
+                for i in range(len(hp.if_hps) + (0 if hp.else_hp is None else 1)):
                     self.add_edge(cur_pos, cur_pos + (i,))
                 
                 # Possible exit from each branch
-                for i in range(len(hp.if_hps) + 1):
+                for i in range(len(hp.if_hps) + (0 if hp.else_hp is None else 1)):
                     self.infos[cur_pos].exits.extend(self.infos[cur_pos + (i,)].exits)
             
             elif hp.type == 'loop':
@@ -498,7 +489,7 @@ class HCSPAnalysis:
         """
         repls = dict()
         for loc, info in self.infos.items():
-            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):   
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('ite'):   
                 for var in get_read_vars(info.sub_hp):
                     # Count number of occurrences in var
                     reach_defs = [prev_val for prev_var, prev_val in info.reach_before
@@ -548,7 +539,7 @@ class HCSPAnalysis:
 
         # Live variables for commands
         for loc, info in self.infos.items():
-            if is_atomic(info.sub_hp) or info.sub_hp.type in ('condition', 'ite'):
+            if is_atomic(info.sub_hp) or info.sub_hp.type in ('ite'):
                 for var in get_read_vars(info.sub_hp):
                     self.infos[loc].live_before.add(var)
         

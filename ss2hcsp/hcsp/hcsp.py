@@ -101,8 +101,6 @@ class HCSP:
             return 70
         elif self.type == "ichoice":
             return 80
-        elif self.type == "condition":
-            return 90
         else:
             return 100
 
@@ -113,14 +111,15 @@ class HCSP:
             return 1
         elif isinstance(self, (Sequence, Parallel)):
             return 1 + sum([hp.size() for hp in self.hps])
-        elif isinstance(self, (Loop, Condition, Recursion)):
+        elif isinstance(self, (Loop, Recursion)):
             return 1 + self.hp.size()
         elif isinstance(self, ODE):
             return 1
         elif isinstance(self, (ODE_Comm, SelectComm)):
             return 1 + sum([1 + out_hp.size() for comm_hp, out_hp in self.io_comms])
         elif isinstance(self, ITE):
-            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + self.else_hp.size()
+            return 1 + sum([1 + hp.size() for cond, hp in self.if_hps]) + \
+              (self.else_hp.size() if self.else_hp else 0)
         else:
             raise NotImplementedError
 
@@ -144,7 +143,7 @@ class HCSP:
                 if io_comm[1].contain_hp(name):
                     return True
         elif isinstance(self, ITE):
-            if self.else_hp.contain_hp(name):
+            if self.else_hp.else_hp is not None and self.else_hp.contain_hp(name):
                 return True
             for sub_hp in [hp for cond, hp in self.if_hps]:
                 if sub_hp.contain_hp(name):
@@ -169,7 +168,7 @@ class HCSP:
             elif isinstance(hp, (Sequence, Parallel)):
                 for sub_hp in hp.hps:
                     rec(sub_hp)
-            elif isinstance(hp, (Loop, Condition, Recursion)):
+            elif isinstance(hp, (Loop, Recursion)):
                 rec(hp.hp)
             elif isinstance(hp, ODE):
                 rec(hp.out_hp)
@@ -179,7 +178,8 @@ class HCSP:
             elif isinstance(hp, ITE):
                 for _, sub_hp in hp.if_hps:
                     rec(sub_hp)
-                rec(hp.else_hp)
+                if hp.else_hp is not None:
+                    rec(hp.else_hp)
             else:
                 raise NotImplementedError
         rec(self)
@@ -229,14 +229,13 @@ class HCSP:
                             [subst_io_comm(io_comm) for io_comm in self.io_comms])
         elif self.type == 'loop':
             return Loop(self.hp.subst_comm(inst), constraint=self.constraint)
-        elif self.type == 'condition':
-            return Condition(self.cond.subst(inst), self.hp.subst_comm(inst))
         elif self.type == 'select_comm':
             return SelectComm(*(subst_io_comm(io_comm) for io_comm in self.io_comms))
         elif self.type == 'recursion':
             return Recursion(self.hp.subst_comm(inst), entry=self.entry)
         elif self.type == 'ite':
-            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], self.else_hp.subst_comm(inst))
+            return ITE([subst_if_hp(if_hp) for if_hp in self.if_hps], 
+              self.else_hp.subst_comm(inst) if self.else_hp is not None else None)
         else:
             print(self.type)
             raise NotImplementedError
@@ -1076,52 +1075,6 @@ class Loop(HCSP):
     def get_chs(self):
         return self.hp.get_chs()
 
-# TODO(new-syntax): Remove
-class Condition(HCSP):
-    """The alternative cond -> hp behaves as hp if cond is true, otherwise,
-    it terminates immediately.
-     
-    """
-    def __init__(self, cond, hp, meta=None):
-        super(Condition, self).__init__()
-        assert isinstance(cond, BExpr) and isinstance(hp, HCSP)
-        self.type = "condition"
-        self.cond = cond
-        self.hp = hp
-        self.meta = meta
-
-    def __eq__(self, other):
-        return self.type == other.type and self.cond == other.cond and self.hp == other.hp
-
-    def __repr__(self):
-        return "Condition(%s, %s)" % (str(self.cond), repr(self.hp))
-
-    def __str__(self):
-        return str(self.cond) + " --> " + \
-            (str(self.hp) if self.hp.priority() > self.priority() else "{" + str(self.hp) + "}")
-
-    def __hash__(self):
-        return hash(("Condition", self.cond, self.hp))
-
-    def sc_str(self):
-        assert isinstance(self.hp, Var)
-        if_hps = ((self.cond, self.hp),)
-        else_hp = Skip()
-        return ITE(if_hps, else_hp).sc_str()
-
-    def get_vars(self):
-        return self.cond.get_vars().union(self.hp.get_vars())
-
-    def get_fun_names(self):
-        return self.cond.get_fun_names().union(self.hp.get_fun_names())
-    
-    def get_zero_arity_funcs(self):
-        return self.cond.get_zero_arity_funcs().union(self.hp.get_zero_arity_funcs())
-
-    def get_chs(self):
-        return self.hp.get_chs()
-
-
 class Parallel(HCSP):
     def __init__(self, *hps, meta=None):
         """hps is a list of hybrid programs."""
@@ -1299,9 +1252,7 @@ class ITE(HCSP):
         assert all(isinstance(cond, (BExpr,LogicExpr,RelExpr)) and isinstance(hp, (HCSP,function.Assign)) for cond, hp in if_hps)
         # assert all(isinstance(cond, BExpr) and isinstance(hp, HCSP) for cond, hp in if_hps)
         assert len(if_hps) > 0, "ITE: must have at least one if branch"
-        if else_hp is None:
-            else_hp = Skip()
-        assert isinstance(else_hp, HCSP)
+        assert else_hp is None or isinstance(else_hp, HCSP)
         self.type = "ite"
         self.if_hps = tuple(tuple(p) for p in if_hps)
         self.else_hp = else_hp
@@ -1318,7 +1269,10 @@ class ITE(HCSP):
         res = "if (%s) { %s " % (self.if_hps[0][0], self.if_hps[0][1])
         for cond, hp in self.if_hps[1:]:
             res += "} else if (%s) { %s " % (cond, hp)
-        res += "} else { %s }" % self.else_hp
+        if self.else_hp is None:
+            res += "}"
+        else:
+            res += "} else { %s }" % self.else_hp
         return res
 
     def __hash__(self):
@@ -1333,7 +1287,8 @@ class ITE(HCSP):
         for cond, hp in self.if_hps:
             var_set.update(cond.get_vars())
             var_set.update(hp.get_vars())
-        var_set.update(self.else_hp.get_vars())
+        if self.else_hp is not None:
+            var_set.update(self.else_hp.get_vars())
         return var_set
 
     def get_fun_names(self):
@@ -1341,7 +1296,8 @@ class ITE(HCSP):
         for cond, hp in self.if_hps:
             fun_set.update(cond.get_fun_names())
             fun_set.update(hp.get_fun_names())
-        fun_set.update(self.else_hp.get_fun_names())
+        if self.else_hp is not None:
+            fun_set.update(self.else_hp.get_fun_names())
         return fun_set
 
     def get_zero_arity_funcs(self):
@@ -1349,14 +1305,16 @@ class ITE(HCSP):
         for cond, hp in self.if_hps:
             fun_set.update(cond.get_zero_arity_funcs())
             fun_set.update(hp.get_zero_arity_funcs())
-        fun_set.update(self.else_hp.get_zero_arity_funcs())
+        if self.else_hp is not None:
+            fun_set.update(self.else_hp.get_zero_arity_funcs())
         return fun_set
 
     def get_chs(self):
         ch_set = set()
         for _, hp in self.if_hps:
             ch_set.update(hp.get_chs())
-        ch_set.update(self.else_hp.get_chs())
+        if self.else_hp is not None:
+            ch_set.update(self.else_hp.get_chs())
         return ch_set
 
 def ite(if_hps, else_hp):
@@ -1371,6 +1329,8 @@ def ite(if_hps, else_hp):
         else:
             new_if_hps.append((cond, if_hp))
     if len(new_if_hps) == 0:
+        if new_else_hp is None:
+            return Skip()
         return new_else_hp
     else:
         return ITE(new_if_hps, new_else_hp)
@@ -1399,12 +1359,13 @@ def get_comm_chs(hp):
             for comm_hp, out_hp in _hp.io_comms:
                 rec(comm_hp)
                 rec(out_hp)
-        elif _hp.type in ('loop', 'condition', 'recursion'):
+        elif _hp.type in ('loop', 'recursion'):
             rec(_hp.hp)
         elif _hp.type == 'ite':
             for _, sub_hp in _hp.if_hps:
                 rec(sub_hp)
-            rec(_hp.else_hp)
+            if _hp.else_hp is not None:
+                rec(_hp.else_hp)
     
     rec(hp)
     return list(OrderedDict.fromkeys(collect))
@@ -1487,7 +1448,7 @@ def HCSP_subst(hp, inst):
             return hp
     elif isinstance(hp, (Skip, Wait, Assign, Assert, Test, Log, InputChannel, OutputChannel)):
         return hp
-    elif isinstance(hp, (Loop, Recursion, Condition)):
+    elif isinstance(hp, (Loop, Recursion)):
         hp.hp = HCSP_subst(hp.hp, inst)
         return hp
     elif isinstance(hp, Sequence):
@@ -1501,7 +1462,8 @@ def HCSP_subst(hp, inst):
         return hp
     elif isinstance(hp, ITE):
         hp.if_hps = tuple((e[0], HCSP_subst(e[1], inst)) for e in hp.if_hps)
-        hp.else_hp = HCSP_subst(hp.else_hp, inst)
+        if hp.else_hp is not None:
+            hp.else_hp = HCSP_subst(hp.else_hp, inst)
         return hp
     else:
         print(hp)
@@ -1647,7 +1609,8 @@ class HCSPProcess:
                 _hp.io_comms = tuple((io_comm[0], _substitute(io_comm[1])) for io_comm in _hp.io_comms)
             elif isinstance(_hp, ITE):
                 _hp.if_hps = tuple((e[0], _substitute(e[1])) for e in _hp.if_hps)
-                _hp.else_hp = _substitute(_hp.else_hp)
+                if _hp.else_hp is not None:
+                    _hp.else_hp = _substitute(_hp.else_hp)
             return _hp
 
         hps_dict = {name: hp for name, hp in self.hps}

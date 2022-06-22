@@ -57,23 +57,6 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
                 else:
                     rec(sub_hp, indent, pos+(i,))
 
-        elif hp.type == 'condition':
-            new_line(indent)
-            start_pos(pos)
-            if hp.hp.type in ('condition', 'sequence', 'select_comm', 'ite', 'ode_comm'):
-                add_str(str(hp.cond) + " --> {")
-                start_pos(pos+(0,))
-                rec(hp.hp, indent+2, pos+(0,))
-                end_pos(pos+(0,))
-                new_line(indent)
-                add_str("}")
-            else:
-                add_str(str(hp.cond) + " --> ")
-                start_pos(pos+(0,))
-                add_str(str(hp.hp))
-                end_pos(pos+(0,))
-            end_pos(pos)
-
         elif hp.type == 'select_comm':
             new_line(indent)
             start_pos(pos)
@@ -160,9 +143,10 @@ def pprint_lines(hp, *, max_line=None, record_pos=False):
                 add_str("} else if (%s) {" % cond)
                 rec(sub_hp, indent+2, pos+(i,))
                 new_line(indent)
-            add_str("} else {")
-            rec(hp.else_hp, indent+2, pos+(len(hp.if_hps),))
-            new_line(indent)
+            if hp.else_hp is not None:
+                add_str("} else {")
+                rec(hp.else_hp, indent+2, pos+(len(hp.if_hps),))
+                new_line(indent)
             add_str("}")
             end_pos(pos)
             

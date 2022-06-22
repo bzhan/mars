@@ -461,7 +461,7 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify40(self):
         # Condition rule
         # {x >= 0} x >= -2 -> (x := x+1 ++ x := x+2; x := x+1) {x >= 2}
-        runVerify(self, pre="x >= 0", hp="x >= -2 --> { x := x+1; ++ x := x+2; x := x+1;}", post="x >= 2")
+        runVerify(self, pre="x >= 0", hp="if (x >= -2) { x := x+1; ++ x := x+2; x := x+1;}", post="x >= 2")
 
     def testVerify41(self):
         # Benchmark, problem 33
@@ -482,8 +482,8 @@ class BasicHHLPyTest(unittest.TestCase):
                   hp="t := 0; \
                       <x_dot = y, y_dot = -w^2 * x - 2 * d * w * y, t_dot = 1 & t < 10> \
                       invariant [w >= 0 & d >= 0] [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3]; \
-                      {x == y * a --> {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
-                      ++ x == y * b --> {w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2);} \
+                      {if (x == y * a) {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
+                      ++ if (x == y * b) {w := w/2; d := 2 * d; c := c * (w^2 + 1^2) / ((2 * w^2) + 1^2);} \
                       ++ skip;}* \
                       invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3];",
                   post="w^2 * x^2 + y^2 <= c")
@@ -492,8 +492,8 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self,
                   pre="w >= 0 & d >= 0 & -2 <= a & a <= 2 & b^2 >= 1/3 & w^2 * x^2 + y^2 <= c",
                   hp=
-                   "{x == y * a --> {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
-                  ++ x == y * b --> {w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2);}}*\
+                   "{if (x == y * a) {w := 2 * w; d := d/2; c := c * ((2 * w)^2 + 1^2) / (w^2 + 1^2);}\
+                  ++ if (x == y * b) {w := w/2; d := 2*d; c := c * (w^2+1^2) / ((2*w^2)+1^2);}}*\
                   invariant [w^2 * x^2 + y^2 <= c] [d >= 0] [w >= 0] [-2 <= a] [a <= 2] [b^2 >= 1/3];",
                   post="w^2 * x^2 + y^2 <= c")
 

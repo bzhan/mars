@@ -140,9 +140,7 @@ grammar = r"""
       | "dw" -> ode_rule_dw
       | "sln" -> ode_rule_sln
 
-    ?cond_cmd: atom_cmd | cond "-->" atom_cmd       // Priority: 90
-
-    ?ichoice_cmd: cond_cmd | ichoice_cmd "++" cond_cmd   // Priority: 80
+    ?ichoice_cmd: atom_cmd | ichoice_cmd "++" atom_cmd   // Priority: 80
 
     ?seq_cmd: ichoice_cmd+  // Priority: 70
 
@@ -494,11 +492,13 @@ class HPTransformer(Transformer):
         return hcsp.Recursion(c, entry=var_name, meta=meta)
 
     def ite_cmd(self, meta, *args):
-        assert len(args) % 2 == 1 and len(args) >= 3
         if_hps = []
-        for i in range(0, len(args)-1, 2):
-            if_hps.append((args[i], args[i+1]))
-        else_hp = args[-1]
+        for i in range(0, len(args)//2):
+            if_hps.append((args[2*i], args[2*i+1]))
+        if len(args) % 2 == 1:
+            else_hp = args[-1]
+        else:
+            else_hp = None
         return hcsp.ITE(if_hps, else_hp, meta=meta)
 
     def paren_cmd(self, meta, c):

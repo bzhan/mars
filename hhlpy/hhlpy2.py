@@ -1372,11 +1372,12 @@ class CmdVerifier:
                     self.get_i_pos(if_hp, sub_pos)
 
             # else_hp:
-            sub_pos = pos + (i + 1, )
-            if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
-                self.pos2i_hp[sub_pos] = hp.else_hp.meta
-            else:
-                self.get_i_pos(hp.else_hp, sub_pos)
+            if hp.else_hp is not None:
+                sub_pos = pos + (i + 1, )
+                if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
+                    self.pos2i_hp[sub_pos] = hp.else_hp.meta
+                else:
+                    self.get_i_pos(hp.else_hp, sub_pos)
 
         elif isinstance(hp, hcsp.IChoice):
             sub_hps = [hp.hp1, hp.hp2]

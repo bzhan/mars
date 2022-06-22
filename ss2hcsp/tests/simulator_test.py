@@ -144,10 +144,10 @@ class SimulatorTest(unittest.TestCase):
             ("{ x := 2; x := x + 1; }*", (0, 0), {"x": 1}, (0, 1), {"x": 2}),
             ("{ x := 2; x := x + 1; }*", (0, 1), {"x": 2}, (0, 0), {"x": 3}),
             ("{ <x_dot = 1 & true> |> [] (p2c!x --> skip;) c2p?x; }*", (0, 0, 0), {}, (0, 1), {}),
-            ("x == 0 --> { x := 2; } x := 3;", (0,), {"x": 0}, (0, 0), {"x": 0}),
-            ("x == 0 --> { x := 2; } x := 3;", (0,), {"x": 1}, (1,), {"x": 1}),
-            ("x == 0 --> { x := 2; }", (), {"x": 0}, (0,), {"x": 0}),
-            ("x == 0 --> { x := 2; }", (), {"x": 1}, None, {"x": 1}),
+            ("if (x == 0) { x := 2; } x := 3;", (0,), {"x": 0}, (0, 0), {"x": 0}),
+            ("if (x == 0) { x := 2; } x := 3;", (0,), {"x": 1}, (1,), {"x": 1}),
+            ("if (x == 0) { x := 2; }", (), {"x": 0}, (0,), {"x": 0}),
+            ("if (x == 0) { x := 2; }", (), {"x": 1}, None, {"x": 1}),
             ("rec X { x := 1; wait(1); @X; }", (), {"x": 1}, (0, 0), {"x": 1}),
             ("rec X { x := 1; wait(1); @X; }", (0, 0), {"x": 1}, (0, 1, 0), {"x": 1}),
             ("rec X { x := 1; wait(1); @X; }", (0, 2), {"x": 1}, (0, 2, 0), {"x": 1}),
@@ -200,9 +200,9 @@ class SimulatorTest(unittest.TestCase):
             ("x := x + 1; c!x;", (0,), {"x": 2}, (1,), {"x": 3}, {"comm": [(Channel("c"), "!")]}),
             ("wait(3);", (0,), {}, (0,), {}, {"delay": 3}),
             ("{ x := x + 1; wait(3); }*", (0, 0), {"x": 2}, (0, 1, 0), {"x": 3}, {"delay": 3}),
-            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": 0}, None, {"x": 0}, "end"),
-            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": 2}, None, {"x": 1}, "end"),
-            ("x > 0 --> { x := 1; } x < 0 --> { x := -1; }", (0,), {"x": -2}, None, {"x": -1}, "end"),
+            ("if (x > 0) { x := 1; } if (x < 0) { x := -1; }", (0,), {"x": 0}, None, {"x": 0}, "end"),
+            ("if (x > 0) { x := 1; } if (x < 0) { x := -1; }", (0,), {"x": 2}, None, {"x": 1}, "end"),
+            ("if (x > 0) { x := 1; } if (x < 0) { x := -1; }", (0,), {"x": -2}, None, {"x": -1}, "end"),
         ]
 
         for cmd, pos, state, pos2, state2, reason in test_data:
@@ -408,7 +408,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel14(self):
         run_test(self, [
-            "x := 0; rec X {x := x + 1; wait(1); x < 3 --> { @X; } } c!x;",
+            "x := 0; rec X {x := x + 1; wait(1); if (x < 3) { @X; } } c!x;",
             "c?x;"
         ], 5, ["delay 1", "delay 1", "delay 1", "IO c 3", "deadlock"])
 
@@ -432,7 +432,7 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel18(self):
         run_test(self, [
-            "num := 0; num == 0 --> { E := \"e\"; num := 1; } ch!E;",
+            "num := 0; if (num == 0) { E := \"e\"; num := 1; } ch!E;",
             "ch?E;"
         ], 2, ['IO ch "e"', 'deadlock'])
 
@@ -456,14 +456,14 @@ class SimulatorTest(unittest.TestCase):
 
     def testExecParallel22(self):
         run_test(self, [
-            "rec X {ch_a?x; x == 0 --> { @X; } ch_b!x;}",
+            "rec X {ch_a?x; if (x == 0) { @X; } ch_b!x;}",
             "ch_a!0; ch_a!1; ch_b?y; ch_b?y;"
         ], 5, ['IO ch_a 0', 'IO ch_a 1', 'IO ch_b 1', 'IO ch_b 1', 'deadlock'])
 
     def testExecParallel23(self):
         run_test(self, [
-            'num := 0; {num == 0 --> { E := "e"; EL := ["e"]; NL := [1]; num := 1; } num == 1 --> { BC1!E --> skip; $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1; $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1);} num == 2 --> {EL := pop(EL); NL := pop(NL); EL == [] --> { num := 0; } EL != [] --> {E := top(EL); num := top(NL);}}}*',
-            'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X {BC1?E; if (a_A == 1) { done := 0; done == 0 --> {BR1!"e"; @X; a_S1 == 1 --> {a_A := 0; BR1!"e"; @X; (a_S1 == 1) --> {a_B := 1; done := 1;}}} done == 0 --> { skip; } } else if (a_B == 1) { skip; } else { skip; } BO1!;}'
+            'num := 0; { if (num == 0) { E := "e"; EL := ["e"]; NL := [1]; num := 1; } if (num == 1) { BC1!E --> skip; $ BR1?E --> EL := push(EL, E); NL := push(NL, 1); num := 1; $ BO1? --> num := num+1; NL := pop(NL); NL := push(NL, 1);} if (num == 2) {EL := pop(EL); NL := pop(NL); if (EL == []) { num := 0; } if (EL != []) {E := top(EL); num := top(NL);}}}*',
+            'a_S1 := 0; a_A := 0; a_B := 0; a_S1 := 1; a_A := 1; rec X {BC1?E; if (a_A == 1) { done := 0; if (done == 0) {BR1!"e"; @X; if (a_S1 == 1) {a_A := 0; BR1!"e"; @X; if (a_S1 == 1) {a_B := 1; done := 1;}}} if (done == 0) { skip; } } else if (a_B == 1) { skip; } else { skip; } BO1!;}'
         ], 5, ['IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"', 'IO BR1 "e"', 'IO BC1 "e"'])
 
     def testExecParallel24(self):
