@@ -141,9 +141,9 @@ atom_cmd {
   VarCmd { "@" CNAME ";" }
   | SkipCmd { "skip" ";" }
   | WaitCmd { "wait" "(" expr ")" ";" }
-  | AssignCmd { atom_expr ":=" expr ";" }
+  | AssignCmd { lname ":=" expr ";" }
   | MultiAssignCmd { "(" lname ("," lname)+ ")" ":=" expr ";" } // TODO: used + instead * here to avoid abiguity
-  | RandomAssignCmd { atom_expr ":=" "*" "(" cond ")" ";" }
+  | RandomAssignCmd { lname ":=" "*" "(" cond ")" ";" }
   | AssertCmd { "assert" "(" cond ("," expr)* ")"  ";" }
   | TestCmd { "test" "(" cond ("," expr)* ")" ";" }
   | LogCmd { "log" "(" expr ("," expr)* ")" ";" }

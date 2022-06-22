@@ -100,9 +100,9 @@ grammar = r"""
     ?atom_cmd: "@" CNAME ";" -> var_cmd
         | "skip" ";" -> skip_cmd
         | "wait" "(" expr ")" ";" -> wait_cmd
-        | atom_expr ":=" expr ";" -> assign_cmd
+        | lname ":=" expr ";" -> assign_cmd
         | "(" lname ("," lname)* ")" ":=" expr ";" -> multi_assign_cmd
-        | atom_expr ":=" "*" "(" cond ")" ";" -> random_assign_cmd
+        | lname ":=" "*" "(" cond ")" ";" -> random_assign_cmd
         | "assert" "(" cond ("," expr)* ")" ";" -> assert_cmd
         | "test" "(" cond ("," expr)* ")" ";" -> test_cmd
         | "log" "(" expr ("," expr)* ")" ";" -> log_cmd
