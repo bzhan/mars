@@ -1002,6 +1002,7 @@ class SimInfo:
             if cur_hp.else_hp is None:
                 # If no else branch exists, skip the ITE block
                 self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
+                self.reason = None
             else:
                 # Otherwise, go to the else branch
                 pos=self.callstack.top_pos() + (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
