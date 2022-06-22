@@ -3,38 +3,38 @@
 module Chart():
 procedure during_Chart_AM_B_B1 begin
   Chart_AM_B_B1_done := 0;
-  ChartEL != [] && top(ChartEL) == "E_one" -> (
-    Chart_AM_B_st == "Chart_AM_B_B1" -> (
+  ChartEL != [] & top(ChartEL) == "E_one" --> {
+    Chart_AM_B_st == "Chart_AM_B_B1" --> {
       s := "ex_B1";
       log("ex_B1" + "\n");
-      Chart_AM_B_st == "Chart_AM_B_B1" -> Chart_AM_B_st := "";
-      Chart_AM_B_st == "" && Chart_st == "Chart_AM" -> (
+      Chart_AM_B_st == "Chart_AM_B_B1" --> Chart_AM_B_st := "";
+      Chart_AM_B_st == "" & Chart_st == "Chart_AM" --> {
         Chart_AM_B_st := "Chart_AM_B_B2";
         s := "en_B2";
-        log("en_B2" + "\n")
-      );
-      Chart_AM_B_B1_done := 1
-    )
-  );
-  Chart_ret := Chart_AM_B_B1_done
+        log("en_B2" + "\n");
+      }
+      Chart_AM_B_B1_done := 1;
+    }
+  }
+  Chart_ret := Chart_AM_B_B1_done;
 end
 
 procedure during_Chart_AM_B_B2 begin
   Chart_AM_B_B2_done := 0;
-  ChartEL != [] && top(ChartEL) == "E_two" -> (
-    Chart_AM_B_st == "Chart_AM_B_B2" -> (
+  ChartEL != [] & top(ChartEL) == "E_two" --> {
+    Chart_AM_B_st == "Chart_AM_B_B2" --> {
       s := "ex_B2";
       log("ex_B2" + "\n");
-      Chart_AM_B_st == "Chart_AM_B_B2" -> Chart_AM_B_st := "";
-      Chart_AM_B_st == "" && Chart_st == "Chart_AM" -> (
+      Chart_AM_B_st == "Chart_AM_B_B2" --> Chart_AM_B_st := "";
+      Chart_AM_B_st == "" & Chart_st == "Chart_AM" --> {
         Chart_AM_B_st := "Chart_AM_B_B1";
         s := "en_B1";
-        log("en_B1" + "\n")
-      );
-      Chart_AM_B_B2_done := 1
-    )
-  );
-  Chart_ret := Chart_AM_B_B2_done
+        log("en_B1" + "\n");
+      }
+      Chart_AM_B_B2_done := 1;
+    }
+  }
+  Chart_ret := Chart_AM_B_B2_done;
 end
 
 begin
@@ -46,63 +46,63 @@ begin
   Chart_AM_B_st := "Chart_AM_B_B1";
   s := "en_B1";
   log("en_B1" + "\n");
-  (
+  {
     Chart_ret := 0;
-    if Chart_st == "Chart_AM" then
-      if Chart_AM_A_st == "Chart_AM_A_A1" then
-        data == 1 -> (
+    if (Chart_st == "Chart_AM") {
+      if (Chart_AM_A_st == "Chart_AM_A_A1") {
+        data == 1 --> {
           ChartEL := push(ChartEL,"E_one");
           Chart_ret := 0;
-          if Chart_AM_B_st == "Chart_AM_B_B1" then
-            @during_Chart_AM_B_B1
-          elif Chart_AM_B_st == "Chart_AM_B_B2" then
-            @during_Chart_AM_B_B2
-          else
-            skip
-          endif;
+          if (Chart_AM_B_st == "Chart_AM_B_B1") {
+            @during_Chart_AM_B_B1;
+          } else if (Chart_AM_B_st == "Chart_AM_B_B2") {
+            @during_Chart_AM_B_B2;
+          } else {
+            skip;
+          }
           ChartEL := pop(ChartEL);
-          Chart_AM_A_st == "Chart_AM_A_A1" -> (
+          Chart_AM_A_st == "Chart_AM_A_A1" --> {
             s := "ex_A1";
             log("ex_A1" + "\n");
-            Chart_AM_A_st == "Chart_AM_A_A1" -> Chart_AM_A_st := "";
-            Chart_AM_A_st == "" && Chart_st == "Chart_AM" -> (
+            Chart_AM_A_st == "Chart_AM_A_A1" --> Chart_AM_A_st := "";
+            Chart_AM_A_st == "" & Chart_st == "Chart_AM" --> {
               Chart_AM_A_st := "Chart_AM_A_A2";
               s := "en_A2";
-              log("en_A2" + "\n")
-            )
-          )
-        )
-      elif Chart_AM_A_st == "Chart_AM_A_A2" then
-        ChartEL != [] && top(ChartEL) == "E_two" -> (
-          Chart_AM_A_st == "Chart_AM_A_A2" -> (
+              log("en_A2" + "\n");
+            }
+          }
+        }
+      } else if (Chart_AM_A_st == "Chart_AM_A_A2") {
+        ChartEL != [] & top(ChartEL) == "E_two" --> {
+          Chart_AM_A_st == "Chart_AM_A_A2" --> {
             s := "ex_A2";
             log("ex_A2" + "\n");
-            Chart_AM_A_st == "Chart_AM_A_A2" -> Chart_AM_A_st := "";
-            Chart_AM_A_st == "" && Chart_st == "Chart_AM" -> (
+            Chart_AM_A_st == "Chart_AM_A_A2" --> Chart_AM_A_st := "";
+            Chart_AM_A_st == "" & Chart_st == "Chart_AM" --> {
               Chart_AM_A_st := "Chart_AM_A_A1";
               s := "en_A1";
-              log("en_A1" + "\n")
-            )
-          )
-        )
-      else
-        skip
-      endif;
+              log("en_A1" + "\n");
+            }
+          }
+        }
+      } else {
+        skip;
+      }
       Chart_ret := 0;
-      if Chart_AM_B_st == "Chart_AM_B_B1" then
-        @during_Chart_AM_B_B1
-      elif Chart_AM_B_st == "Chart_AM_B_B2" then
-        @during_Chart_AM_B_B2
-      else
-        skip
-      endif
-    else
-      skip
-    endif;
-    wait(0.1)
-  )**
+      if (Chart_AM_B_st == "Chart_AM_B_B1") {
+        @during_Chart_AM_B_B1;
+      } else if (Chart_AM_B_st == "Chart_AM_B_B2") {
+        @during_Chart_AM_B_B2;
+      } else {
+        skip;
+      }
+    } else {
+      skip;
+    }
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem

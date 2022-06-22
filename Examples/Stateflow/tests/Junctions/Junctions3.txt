@@ -6,54 +6,54 @@ procedure J4_1 begin
   s := "t1";
   log("t1" + "\n");
   J5_done := 0;
-  x == 1 -> (
+  x == 1 --> {
     s := "t4";
     log("t4" + "\n");
-    Chart_st == "Chart_A" -> Chart_st := "";
-    Chart_st == "" -> Chart_st := "Chart_A";
+    Chart_st == "Chart_A" --> Chart_st := "";
+    Chart_st == "" --> Chart_st := "Chart_A";
     Chart_ret := 1;
-    J5_done := 1
-  );
-  J5_done == 0 && x > 0 -> (
+    J5_done := 1;
+  }
+  J5_done == 0 & x > 0 --> {
     s := "t2";
     log("t2" + "\n");
     @J4_1;
-    J5_done := Chart_ret
-  );
-  J5_done == 0 -> (
+    J5_done := Chart_ret;
+  }
+  J5_done == 0 --> {
     s := "t3";
     log("t3" + "\n");
-    Chart_st == "Chart_A" -> Chart_st := "";
-    Chart_st == "" -> Chart_st := "Chart_B";
-    J5_done := 1
-  );
+    Chart_st == "Chart_A" --> Chart_st := "";
+    Chart_st == "" --> Chart_st := "Chart_B";
+    J5_done := 1;
+  }
   Chart_ret := J5_done;
   J4_done := Chart_ret;
-  Chart_ret := J4_done
+  Chart_ret := J4_done;
 end
 
 begin
   ChartEL := [];
   x := 5;
   Chart_st := "Chart_A";
-  (
+  {
     Chart_ret := 0;
-    if Chart_st == "Chart_A" then
+    if (Chart_st == "Chart_A") {
       Chart_A_done := 0;
-      Chart_st == "Chart_A" -> (
+      Chart_st == "Chart_A" --> {
         @J4_1;
-        Chart_A_done := Chart_ret
-      );
-      Chart_ret := Chart_A_done
-    elif Chart_st == "Chart_B" then
-      Chart_ret := 0
-    else
-      skip
-    endif;
-    wait(0.1)
-  )**
+        Chart_A_done := Chart_ret;
+      }
+      Chart_ret := Chart_A_done;
+    } else if (Chart_st == "Chart_B") {
+      Chart_ret := 0;
+    } else {
+      skip;
+    }
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem

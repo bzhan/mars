@@ -4,23 +4,23 @@ module Chart():
 begin
   ChartEL := [];
   x := 1;
-  (
+  {
     log("B\n");
     ChartEL := push(ChartEL,"E");
     log("D\n");
-    ChartEL != [] && top(ChartEL) == "E" -> log("A\n");
+    ChartEL != [] & top(ChartEL) == "E" --> log("A\n");
     ChartEL := pop(ChartEL);
     Chart_B_done := 0;
     log("D\n");
-    ChartEL != [] && top(ChartEL) == "E" -> (
+    ChartEL != [] & top(ChartEL) == "E" --> {
       log("A\n");
-      Chart_B_done := 1
-    );
+      Chart_B_done := 1;
+    }
     Chart_ret := Chart_B_done;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem

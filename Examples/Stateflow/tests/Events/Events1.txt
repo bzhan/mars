@@ -2,58 +2,58 @@
 
 module Chart():
 procedure exec_Chart begin
-  if Chart_A_st == "Chart_A_A1" then
-    ChartEL != [] && top(ChartEL) == "E" -> (
+  if (Chart_A_st == "Chart_A_A1") {
+    ChartEL != [] & top(ChartEL) == "E" --> {
       s := "a";
       log("a" + "\n");
-      Chart_A_st == "Chart_A_A1" -> (
+      Chart_A_st == "Chart_A_A1" --> {
         Chart_A_st := "Chart_A_A2";
         s := "en_A2";
-        log("en_A2" + "\n")
-      )
-    )
-  elif Chart_A_st == "Chart_A_A2" then
-    ChartEL != [] && top(ChartEL) == "E" -> (
+        log("en_A2" + "\n");
+      }
+    }
+  } else if (Chart_A_st == "Chart_A_A2") {
+    ChartEL != [] & top(ChartEL) == "E" --> {
       s := "a2";
       log("a2" + "\n");
-      Chart_A_st == "Chart_A_A2" -> (
+      Chart_A_st == "Chart_A_A2" --> {
         Chart_A_st := "Chart_A_A3";
         s := "en_A3";
-        log("en_A3" + "\n")
-      )
-    )
-  elif Chart_A_st == "Chart_A_A3" then
-    skip
-  else
-    skip
-  endif;
+        log("en_A3" + "\n");
+      }
+    }
+  } else if (Chart_A_st == "Chart_A_A3") {
+    skip;
+  } else {
+    skip;
+  }
   Chart_ret := 0;
-  if Chart_B_st == "Chart_B_B1" then
+  if (Chart_B_st == "Chart_B_B1") {
     Chart_B_B1_done := 0;
     s := "b";
     log("b" + "\n");
-    Chart_B_st == "Chart_B_B1" -> (
+    Chart_B_st == "Chart_B_B1" --> {
       Chart_B_st := "";
       ChartEL := push(ChartEL,"E");
       @exec_Chart;
       ChartEL := pop(ChartEL);
-      Chart_B_st == "" -> (
+      Chart_B_st == "" --> {
         s := "tb";
-        log("tb" + "\n")
-      );
-      Chart_B_st == "" -> (
+        log("tb" + "\n");
+      }
+      Chart_B_st == "" --> {
         Chart_B_st := "Chart_B_B2";
         s := "en_B2";
-        log("en_B2" + "\n")
-      );
-      Chart_B_B1_done := 1
-    );
-    Chart_ret := Chart_B_B1_done
-  elif Chart_B_st == "Chart_B_B2" then
-    Chart_ret := 0
-  else
-    skip
-  endif
+        log("en_B2" + "\n");
+      }
+      Chart_B_B1_done := 1;
+    }
+    Chart_ret := Chart_B_B1_done;
+  } else if (Chart_B_st == "Chart_B_B2") {
+    Chart_ret := 0;
+  } else {
+    skip;
+  }
 end
 
 begin
@@ -61,12 +61,12 @@ begin
   x := -1;
   Chart_A_st := "Chart_A_A1";
   Chart_B_st := "Chart_B_B1";
-  (
+  {
     @exec_Chart;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem

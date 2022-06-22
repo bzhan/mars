@@ -2,12 +2,12 @@
 
 module order_ctrl():
 begin
-  (
+  {
     start_MessageSender!;
     end_MessageSender!;
     start_MessageReceiver!;
-    end_MessageReceiver!
-  )**
+    end_MessageReceiver!;
+  }*
 end
 endmodule
 module MessageReceiver():
@@ -21,70 +21,70 @@ begin
   s := "en_A0";
   log("en_A0" + "\n");
   end_MessageReceiver?;
-  (
+  {
     start_MessageReceiver?;
     MessageReceiver_ret := 0;
-    if MessageReceiver_st == "MessageReceiver_A0" then
+    if (MessageReceiver_st == "MessageReceiver_A0") {
       MessageReceiver_A0_done := 0;
-      MessageReceiver_A0_time >= 3 -> (
-        MessageReceiver_st == "MessageReceiver_A0" -> (
+      MessageReceiver_A0_time >= 3 --> {
+        MessageReceiver_st == "MessageReceiver_A0" --> {
           MessageReceiver_A0_time := -1;
           MessageReceiver_st := "MessageReceiver_A1";
           s := "en_A1";
           log("en_A1" + "\n");
-          MessageReceiver_A0_done := 1
-        )
-      );
-      MessageReceiver_ret := MessageReceiver_A0_done
-    elif MessageReceiver_st == "MessageReceiver_A1" then
+          MessageReceiver_A0_done := 1;
+        }
+      }
+      MessageReceiver_ret := MessageReceiver_A0_done;
+    } else if (MessageReceiver_st == "MessageReceiver_A1") {
       MessageReceiver_A1_done := 0;
       ch_x0_0_in?M;
       ch_x0_0_out!"";
-      M != "" -> MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
-      if MessageReceiver_M_queue_input != [] then
+      M != "" --> MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
+      if (MessageReceiver_M_queue_input != []) {
         M := bottom(MessageReceiver_M_queue_input);
-        MessageReceiver_M_queue_input := get(MessageReceiver_M_queue_input)
-      else
-        M := {}
-      endif;
-      M != {} && M.data == 2 -> (
-        MessageReceiver_st == "MessageReceiver_A1" -> (
+        MessageReceiver_M_queue_input := get(MessageReceiver_M_queue_input);
+      } else {
+        M := {};
+      }
+      M != {} & M.data == 2 --> {
+        MessageReceiver_st == "MessageReceiver_A1" --> {
           MessageReceiver_st := "MessageReceiver_A2";
           s := "en_A2";
           log("en_A2" + "\n");
-          MessageReceiver_A1_done := 1
-        )
-      );
-      MessageReceiver_ret := MessageReceiver_A1_done
-    elif MessageReceiver_st == "MessageReceiver_A2" then
+          MessageReceiver_A1_done := 1;
+        }
+      }
+      MessageReceiver_ret := MessageReceiver_A1_done;
+    } else if (MessageReceiver_st == "MessageReceiver_A2") {
       MessageReceiver_A2_done := 0;
       ch_x1_0_in?M1;
       ch_x1_0_out!"";
-      M1 != "" -> MessageReceiver_M1_queue_input := push(MessageReceiver_M1_queue_input,M1);
-      if MessageReceiver_M1_queue_input != [] then
+      M1 != "" --> MessageReceiver_M1_queue_input := push(MessageReceiver_M1_queue_input,M1);
+      if (MessageReceiver_M1_queue_input != []) {
         M1 := bottom(MessageReceiver_M1_queue_input);
-        MessageReceiver_M1_queue_input := get(MessageReceiver_M1_queue_input)
-      else
-        M1 := {}
-      endif;
-      M1 != {} && M1.data == 3 -> (
-        MessageReceiver_st == "MessageReceiver_A2" -> (
+        MessageReceiver_M1_queue_input := get(MessageReceiver_M1_queue_input);
+      } else {
+        M1 := {};
+      }
+      M1 != {} & M1.data == 3 --> {
+        MessageReceiver_st == "MessageReceiver_A2" --> {
           MessageReceiver_st := "MessageReceiver_A3";
           s := "en_A3";
           log("en_A3" + "\n");
-          MessageReceiver_A2_done := 1
-        )
-      );
-      MessageReceiver_ret := MessageReceiver_A2_done
-    elif MessageReceiver_st == "MessageReceiver_A3" then
-      MessageReceiver_ret := 0
-    else
-      skip
-    endif;
+          MessageReceiver_A2_done := 1;
+        }
+      }
+      MessageReceiver_ret := MessageReceiver_A2_done;
+    } else if (MessageReceiver_st == "MessageReceiver_A3") {
+      MessageReceiver_ret := 0;
+    } else {
+      skip;
+    }
     end_MessageReceiver?;
     wait(1);
-    MessageReceiver_A0_time != -1 -> MessageReceiver_A0_time := MessageReceiver_A0_time + 1
-  )**
+    MessageReceiver_A0_time != -1 --> MessageReceiver_A0_time := MessageReceiver_A0_time + 1;
+  }*
 end
 endmodule
 module MessageSender():
@@ -103,31 +103,31 @@ begin
   M1.data := 3;
   ch_x1_0_out!M1;
   end_MessageSender?;
-  (
+  {
     start_MessageSender?;
     MessageSender_ret := 0;
     end_MessageSender?;
-    wait(1)
-  )**
+    wait(1);
+  }*
 end
 endmodule
 module data_ctrl():
 begin
-  (
+  {
     ch_x0_0_in!ch_x0_0 -->
-      skip $
+      skip; $
     ch_x0_0_out?ch_x0_0 -->
-      skip $
+      skip; $
     ch_x1_0_in!ch_x1_0 -->
-      skip $
+      skip; $
     ch_x1_0_out?ch_x1_0 -->
-      skip
-  )**
+      skip;
+  }*
 end
 endmodule
 system
-order_ctrl = order_ctrl() ||
-MessageReceiver = MessageReceiver() ||
-MessageSender = MessageSender() ||
-data_ctrl = data_ctrl()
+order_ctrl() ||
+MessageReceiver() ||
+MessageSender() ||
+data_ctrl()
 endsystem

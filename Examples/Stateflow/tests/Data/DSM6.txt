@@ -2,12 +2,12 @@
 
 module order_ctrl():
 begin
-  (
+  {
     start_Chart1!;
     end_Chart1!;
     start_Chart2!;
-    end_Chart2!
-  )**
+    end_Chart2!;
+  }*
 end
 endmodule
 module Chart1():
@@ -23,42 +23,42 @@ begin
   myglobal[0] := 3;
   myglobal_out!myglobal;
   end_Chart1?;
-  (
+  {
     start_Chart1?;
     myglobal_in?myglobal;
     Chart1_ret := 0;
-    if Chart1_st == "Chart1_A" then
+    if (Chart1_st == "Chart1_A") {
       Chart1_A_done := 0;
       myglobal[0] := myglobal[0] + 1;
       y := myglobal[0];
-      Chart1_st == "Chart1_A" -> (
+      Chart1_st == "Chart1_A" --> {
         Chart1_st := "Chart1_B";
         s := "en_B";
         log("en_B" + " %d %d\n",myglobal[0],myglobal[1]);
         myglobal[1] := 0;
-        Chart1_A_done := 1
-      );
-      Chart1_ret := Chart1_A_done
-    elif Chart1_st == "Chart1_B" then
+        Chart1_A_done := 1;
+      }
+      Chart1_ret := Chart1_A_done;
+    } else if (Chart1_st == "Chart1_B") {
       Chart1_B_done := 0;
       myglobal[1] := myglobal[1] - 1;
       y := myglobal[1];
-      Chart1_st == "Chart1_B" -> (
+      Chart1_st == "Chart1_B" --> {
         Chart1_st := "Chart1_A";
         s := "en_A";
         log("en_A" + " %d %d\n",myglobal[0],myglobal[1]);
         y1 := 3;
         myglobal[0] := 3;
-        Chart1_B_done := 1
-      );
-      Chart1_ret := Chart1_B_done
-    else
-      skip
-    endif;
+        Chart1_B_done := 1;
+      }
+      Chart1_ret := Chart1_B_done;
+    } else {
+      skip;
+    }
     myglobal_out!myglobal;
     end_Chart1?;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 module Chart2():
@@ -71,7 +71,7 @@ begin
   myglobal[1] := 4;
   myglobal_out!myglobal;
   end_Chart2?;
-  (
+  {
     start_Chart2?;
     myglobal_in?myglobal;
     s := "du_A1";
@@ -79,24 +79,24 @@ begin
     Chart2_ret := 0;
     myglobal_out!myglobal;
     end_Chart2?;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 module data_ctrl():
 begin
   myglobal := [0,0];
-  (
+  {
     myglobal_in!myglobal -->
-      skip $
+      skip; $
     myglobal_out?myglobal -->
-      skip
-  )**
+      skip;
+  }*
 end
 endmodule
 system
-order_ctrl = order_ctrl() ||
-Chart1 = Chart1() ||
-Chart2 = Chart2() ||
-data_ctrl = data_ctrl()
+order_ctrl() ||
+Chart1() ||
+Chart2() ||
+data_ctrl()
 endsystem

@@ -3,32 +3,32 @@
 module Chart():
 procedure J40 begin
   J40_done := 0;
-  i > 5 -> (
+  i > 5 --> {
     flag := 1;
-    J40_done := 1
-  );
-  J40_done == 0 && i <= 5 -> (
+    J40_done := 1;
+  }
+  J40_done == 0 & i <= 5 --> {
     i := i + 1;
     s := "ack";
     log("ack" + "\n");
     @J40;
-    J40_done := 1
-  );
-  J40_done == 0 -> flag := 0
+    J40_done := 1;
+  }
+  J40_done == 0 --> flag := 0;
 end
 
 procedure J61 begin
   J61_done := 0;
-  i > 5 -> (
+  i > 5 --> {
     flag := 1;
-    J61_done := 1
-  );
-  J61_done == 0 && i <= 5 && a[i - 1] == 0 -> (
+    J61_done := 1;
+  }
+  J61_done == 0 & i <= 5 & a[i - 1] == 0 --> {
     i := i + 1;
     @J61;
-    J61_done := 1
-  );
-  J61_done == 0 -> flag := 0
+    J61_done := 1;
+  }
+  J61_done == 0 --> flag := 0;
 end
 
 begin
@@ -37,11 +37,11 @@ begin
   Chart_st := "Chart_A";
   s := "en_A";
   log("en_A" + "\n");
-  (
+  {
     Chart_ret := 0;
-    if Chart_st == "Chart_B" then
-      Chart_ret := 0
-    elif Chart_st == "Chart_A" then
+    if (Chart_st == "Chart_B") {
+      Chart_ret := 0;
+    } else if (Chart_st == "Chart_A") {
       Chart_A_done := 0;
       i := 1;
       @J40;
@@ -49,22 +49,22 @@ begin
       i := 1;
       @J61;
       empty_flag := flag;
-      acked_all_flag == 1 && empty_flag == 0 -> (
-        Chart_st == "Chart_A" -> (
+      acked_all_flag == 1 & empty_flag == 0 --> {
+        Chart_st == "Chart_A" --> {
           Chart_st := "Chart_B";
           s := "en_B";
           log("en_B" + "\n");
-          Chart_A_done := 1
-        )
-      );
-      Chart_ret := Chart_A_done
-    else
-      skip
-    endif;
-    wait(0.1)
-  )**
+          Chart_A_done := 1;
+        }
+      }
+      Chart_ret := Chart_A_done;
+    } else {
+      skip;
+    }
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem

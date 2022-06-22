@@ -2,12 +2,12 @@
 
 module order_ctrl():
 begin
-  (
+  {
     start_Chart1!;
     end_Chart1!;
     start_Chart2!;
-    end_Chart2!
-  )**
+    end_Chart2!;
+  }*
 end
 endmodule
 module Chart1():
@@ -22,37 +22,37 @@ begin
   ch_x0_0_out!1;
   ch_x1_0_out!1;
   end_Chart1?;
-  (
+  {
     start_Chart1?;
     Chart1_ret := 0;
-    if Chart1_st == "Chart1_A" then
+    if (Chart1_st == "Chart1_A") {
       Chart1_A_done := 0;
       a := a + 1;
-      Chart1_st == "Chart1_A" -> (
+      Chart1_st == "Chart1_A" --> {
         Chart1_st := "Chart1_B";
         s := "en_B";
         log("en_B" + "\n");
-        Chart1_A_done := 1
-      );
-      Chart1_ret := Chart1_A_done
-    elif Chart1_st == "Chart1_B" then
+        Chart1_A_done := 1;
+      }
+      Chart1_ret := Chart1_A_done;
+    } else if (Chart1_st == "Chart1_B") {
       Chart1_B_done := 0;
       b := b + 1;
-      Chart1_st == "Chart1_B" -> (
+      Chart1_st == "Chart1_B" --> {
         Chart1_st := "Chart1_A";
         s := "en_A";
         log("en_A" + "\n");
-        Chart1_B_done := 1
-      );
-      Chart1_ret := Chart1_B_done
-    else
-      skip
-    endif;
+        Chart1_B_done := 1;
+      }
+      Chart1_ret := Chart1_B_done;
+    } else {
+      skip;
+    }
     ch_x0_0_out!a;
     ch_x1_0_out!b;
     end_Chart1?;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 module Chart2():
@@ -65,34 +65,34 @@ begin
   s := "en_A1";
   log("en_A1" + "\n");
   end_Chart2?;
-  (
+  {
     start_Chart2?;
     ch_x0_0_in?a_in;
     ch_x1_0_in?b_in;
     log("%.0f %.0f\n",a_in,b_in);
     Chart2_ret := 0;
     end_Chart2?;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 module data_ctrl():
 begin
-  (
+  {
     ch_x0_0_in!ch_x0_0 -->
-      skip $
+      skip; $
     ch_x0_0_out?ch_x0_0 -->
-      skip $
+      skip; $
     ch_x1_0_in!ch_x1_0 -->
-      skip $
+      skip; $
     ch_x1_0_out?ch_x1_0 -->
-      skip
-  )**
+      skip;
+  }*
 end
 endmodule
 system
-order_ctrl = order_ctrl() ||
-Chart1 = Chart1() ||
-Chart2 = Chart2() ||
-data_ctrl = data_ctrl()
+order_ctrl() ||
+Chart1() ||
+Chart2() ||
+data_ctrl()
 endsystem

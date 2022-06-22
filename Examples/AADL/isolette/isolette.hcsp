@@ -1,0 +1,99 @@
+systemDef isollete ::= babybox || ACT_sensor || COM_sensor || ACT_actuator || COM_actuator || ACT_controller || COM_controller || heatSW_Conn_0 || heatSW_Conn_1 || heatSW_Conn_2 || heatSW_Conn_3 || isollete_Conn_0 || isollete_Conn_1
+
+variableDef ::= run_prior; run_queue; diff; boxTemp; measuredTemp; prior; e; InitFlag; gain; heatCommand; c; state; x0; q; ready_num; run_now; x; t
+
+channelDef ::= actuator_data_diff; act_actuator; tran_sensor; sensor_measuredTemp; controller_data_measuredTemp; heatSW_heatCommand; run_sensor; busy_controller; sensor_boxTemp; act_sensor; free; run_controller; actuator_diff; babybox_boxTemp; babybox_heatCommand; controller_measuredTemp; tran_actuator; act_controller; controller_diff; tran_controller; busy_sensor; heatSW_boxTemp; busy_actuator; run_actuator; actuator_heatCommand
+
+processDef SC0 ::= heatSW_boxTemp??x;; sensor_boxTemp!!x;
+processDef heatSW_Conn_0 ::= SC0**
+processDef SC1 ::= sensor_measuredTemp??x;; controller_measuredTemp!!x;
+processDef heatSW_Conn_1 ::= SC1**
+processDef SC2 ::= actuator_heatCommand??x;; heatSW_heatCommand!!x;
+processDef heatSW_Conn_2 ::= SC2**
+processDef SC3 ::= controller_diff??x;; actuator_diff!!x;
+processDef heatSW_Conn_3 ::= SC3**
+processDef SC4 ::= babybox_boxTemp??x;; heatSW_boxTemp!!x;; wait(1.0);
+processDef isollete_Conn_0 ::= SC4**
+processDef SC5 ::= heatSW_heatCommand??x;; babybox_heatCommand!!x;
+processDef isollete_Conn_1 ::= SC5**
+processDef SC6 ::= actuator_diff??diff;; act_actuator!!;; actuator_data_diff!!diff;
+processDef ACT_actuator ::= SC6**
+processDef SC8 ::= act_actuator??;; t = 0;; InitFlag = 0;; state = "ready";
+processDef SC11 ::= state = "running";
+processDef SC12 ::= state = "dispatch";
+processDef SC10 ::= tran_actuator!!prior;; DOT(t)={1} DOMAIN(t < 1.0) INTERRUPT({run_actuator??;}{SC11}); if t == 1.0 then SC12 else skip;
+processDef SC15 ::= heatCommand = -1.0;
+processDef SC16 ::= heatCommand = 1.0;
+processDef SC14 ::= c = 0;; actuator_data_diff??diff;; if diff > 0.0 then SC15 else SC16; InitFlag = 1;
+processDef SC18 ::= state = "ready";
+processDef SC19 ::= free!!;; state = "dispatch";
+processDef SC20 ::= actuator_heatCommand!!heatCommand;; free!!;; state = "dispatch";
+processDef SC17 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.03 & t < 1.0) INTERRUPT({busy_actuator??;}{SC18}); if t == 1.0 then SC19 else skip;; if c == 0.03 then SC20 else skip;
+processDef SC13 ::= if InitFlag == 0 then SC14 else skip;; if InitFlag == 1 then SC17 else skip;
+processDef SC9 ::= if state == "ready" then SC10 else SC13
+processDef SC7 ::= if state == "dispatch" then SC8 else SC9
+processDef COM_actuator ::= state = "dispatch";; prior = 6;; SC7**
+processDef SC22 ::= skip;
+processDef SC23 ::= skip;
+processDef SC24 ::= skip;
+processDef SC25 ::= skip;
+processDef SC21 ::= DOT(q, c)={-1, (-q + c) * -0.026} DOMAIN(x0 <= 0) INTERRUPT({babybox_heatCommand??x0;, babybox_boxTemp!!c;}{SC22, SC23}); DOT(q, c)={1, (-q + c) * -0.026} DOMAIN(x0 > 0) INTERRUPT({babybox_heatCommand??x0;, babybox_boxTemp!!c;}{SC24, SC25})
+processDef babybox ::= q = 75;; c = 75;; x0 = 1;; SC21**
+processDef SC26 ::= controller_measuredTemp??measuredTemp;; act_controller!!;; controller_data_measuredTemp!!measuredTemp;
+processDef ACT_controller ::= SC26**
+processDef SC28 ::= act_controller??;; t = 0;; InitFlag = 0;; state = "ready";
+processDef SC31 ::= state = "running";
+processDef SC32 ::= state = "dispatch";
+processDef SC30 ::= tran_controller!!prior;; DOT(t)={1} DOMAIN(t < 1.0) INTERRUPT({run_controller??;}{SC31}); if t == 1.0 then SC32 else skip;
+processDef SC35 ::= diff = gain * (measuredTemp - 100.0);
+processDef SC37 ::= diff = gain * (measuredTemp - 97.0);
+processDef SC38 ::= diff = 0.0;
+processDef SC36 ::= if measuredTemp < 97.0 then SC37 else SC38
+processDef SC34 ::= c = 0;; controller_data_measuredTemp??measuredTemp;; gain = 10.0;; if measuredTemp > 100.0 then SC35 else SC36; InitFlag = 1;
+processDef SC40 ::= state = "ready";
+processDef SC41 ::= free!!;; state = "dispatch";
+processDef SC42 ::= controller_diff!!diff;; free!!;; state = "dispatch";
+processDef SC39 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 & t < 1.0) INTERRUPT({busy_controller??;}{SC40}); if t == 1.0 then SC41 else skip;; if c == 0.01 then SC42 else skip;
+processDef SC33 ::= if InitFlag == 0 then SC34 else skip;; if InitFlag == 1 then SC39 else skip;
+processDef SC29 ::= if state == "ready" then SC30 else SC33
+processDef SC27 ::= if state == "dispatch" then SC28 else SC29
+processDef COM_controller ::= state = "dispatch";; prior = 8;; SC27**
+processDef SC44 ::= run_queue = push(run_queue,[prior,"sensor"]);
+processDef SC46 ::= busy_sensor!!;
+processDef SC47 ::= busy_actuator!!;
+processDef SC48 ::= busy_controller!!;
+processDef SC45 ::= if run_now == "sensor" then SC46 else skip;; if run_now == "actuator" then SC47 else skip;; if run_now == "controller" then SC48 else skip;; run_now = "sensor";; run_prior = prior;; run_sensor!!;
+processDef SC49 ::= run_queue = push(run_queue,[prior,"actuator"]);
+processDef SC51 ::= busy_sensor!!;
+processDef SC52 ::= busy_actuator!!;
+processDef SC53 ::= busy_controller!!;
+processDef SC50 ::= if run_now == "sensor" then SC51 else skip;; if run_now == "actuator" then SC52 else skip;; if run_now == "controller" then SC53 else skip;; run_now = "actuator";; run_prior = prior;; run_actuator!!;
+processDef SC54 ::= run_queue = push(run_queue,[prior,"controller"]);
+processDef SC56 ::= busy_sensor!!;
+processDef SC57 ::= busy_actuator!!;
+processDef SC58 ::= busy_controller!!;
+processDef SC55 ::= if run_now == "sensor" then SC56 else skip;; if run_now == "actuator" then SC57 else skip;; if run_now == "controller" then SC58 else skip;; run_now = "controller";; run_prior = prior;; run_controller!!;
+processDef SC59 ::= run_now = 0;; run_prior = 0;
+processDef SC61 ::= run_sensor!!;
+processDef SC62 ::= run_actuator!!;
+processDef SC63 ::= run_controller!!;
+processDef SC60 ::= (run_prior, run_now) = get_max(run_queue);; run_queue = pop_max(run_queue);; if run_now == "sensor" then SC61 else skip;; if run_now == "actuator" then SC62 else skip;; if run_now == "controller" then SC63 else skip;
+processDef SC43 ::= (tran_sensor??prior;; if run_prior >= prior then SC44 else skip;; if run_prior < prior then SC45 else skip;) [[ (tran_actuator??prior;; if run_prior >= prior then SC49 else skip;; if run_prior < prior then SC50 else skip;) [[ (tran_controller??prior;; if run_prior >= prior then SC54 else skip;; if run_prior < prior then SC55 else skip;) [[ (free??;; ready_num = len(run_queue);; if ready_num == 0 then SC59 else SC60)
+processDef SCHEDULE_heatSW ::= run_queue = [];; run_now = 0;; run_prior = 0;; SC43**
+processDef SC64 ::= act_sensor!!;; wait(1.0);
+processDef ACT_sensor ::= SC64**
+processDef SC66 ::= act_sensor??;; t = 0;; InitFlag = 0;; state = "ready";
+processDef SC69 ::= state = "running";
+processDef SC70 ::= state = "dispatch";
+processDef SC68 ::= tran_sensor!!prior;; DOT(t)={1} DOMAIN(t < 1.0) INTERRUPT({run_sensor??;}{SC69}); if t == 1.0 then SC70 else skip;
+processDef SC73 ::= e = 1.0;; measuredTemp = boxTemp + e;; InitFlag = 1;
+processDef SC74 ::= state = "ready";
+processDef SC72 ::= c = 0;; DOT(t)={1} DOMAIN(t < 1.0) INTERRUPT({sensor_boxTemp??boxTemp;, busy_sensor??;}{SC73, SC74})
+processDef SC76 ::= state = "ready";
+processDef SC77 ::= free!!;; state = "dispatch";
+processDef SC78 ::= sensor_measuredTemp!!measuredTemp;; free!!;; state = "dispatch";
+processDef SC75 ::= DOT(t, c)={1, 1} DOMAIN(c < 0.01 & t < 1.0) INTERRUPT({busy_sensor??;}{SC76}); if t == 1.0 then SC77 else skip;; if c == 0.01 then SC78 else skip;
+processDef SC71 ::= if InitFlag == 0 then SC72 else skip;; if InitFlag == 1 then SC75 else skip;
+processDef SC67 ::= if state == "ready" then SC68 else SC71
+processDef SC65 ::= if state == "dispatch" then SC66 else SC67
+processDef COM_sensor ::= state = "dispatch";; prior = 10;; SC65**

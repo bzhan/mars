@@ -3,54 +3,54 @@
 module Chart():
 procedure exec_Chart begin
   Chart_ret := 0;
-  if Chart_st == "Chart_S" then
-    ChartEL != [] && top(ChartEL) == "E" -> (
-      Chart_st == "Chart_S" -> (
-        if Chart_S_A1_st == "Chart_S_A1_A1a" then
-          Chart_S_A1_st == "Chart_S_A1_A1a" -> Chart_S_A1_st := ""
-        elif Chart_S_A1_st == "Chart_S_A1_A1b" then
-          Chart_S_A1_st == "Chart_S_A1_A1b" -> Chart_S_A1_st := ""
-        else
-          skip
-        endif;
-        Chart_st == "Chart_S" -> Chart_st := "";
-        Chart_st == "" -> (
+  if (Chart_st == "Chart_S") {
+    ChartEL != [] & top(ChartEL) == "E" --> {
+      Chart_st == "Chart_S" --> {
+        if (Chart_S_A1_st == "Chart_S_A1_A1a") {
+          Chart_S_A1_st == "Chart_S_A1_A1a" --> Chart_S_A1_st := "";
+        } else if (Chart_S_A1_st == "Chart_S_A1_A1b") {
+          Chart_S_A1_st == "Chart_S_A1_A1b" --> Chart_S_A1_st := "";
+        } else {
+          skip;
+        }
+        Chart_st == "Chart_S" --> Chart_st := "";
+        Chart_st == "" --> {
           Chart_st := "Chart_B";
           s := "enB";
-          log("enB" + "\n")
-        )
-      )
-    );
+          log("enB" + "\n");
+        }
+      }
+    }
     Chart_ret := 0;
-    if Chart_S_A1_st == "Chart_S_A1_A1a" then
+    if (Chart_S_A1_st == "Chart_S_A1_A1a") {
       s := "ca";
       log("ca" + "\n");
-      Chart_S_A1_st == "Chart_S_A1_A1a" -> (
+      Chart_S_A1_st == "Chart_S_A1_A1a" --> {
         Chart_S_A1_st := "";
         ChartEL := push(ChartEL,"E");
         @exec_Chart;
         ChartEL := pop(ChartEL);
-        Chart_S_A1_st == "" && Chart_st == "Chart_S" -> (
+        Chart_S_A1_st == "" & Chart_st == "Chart_S" --> {
           s := "ta";
-          log("ta" + "\n")
-        );
-        Chart_S_A1_st == "" && Chart_st == "Chart_S" -> (
+          log("ta" + "\n");
+        }
+        Chart_S_A1_st == "" & Chart_st == "Chart_S" --> {
           Chart_S_A1_st := "Chart_S_A1_A1b";
           s := "enA1b";
-          log("enA1b" + "\n")
-        )
-      )
-    elif Chart_S_A1_st == "Chart_S_A1_A1b" then
-      skip
-    else
-      skip
-    endif;
-    Chart_ret := 0
-  elif Chart_st == "Chart_B" then
-    Chart_ret := 0
-  else
-    skip
-  endif
+          log("enA1b" + "\n");
+        }
+      }
+    } else if (Chart_S_A1_st == "Chart_S_A1_A1b") {
+      skip;
+    } else {
+      skip;
+    }
+    Chart_ret := 0;
+  } else if (Chart_st == "Chart_B") {
+    Chart_ret := 0;
+  } else {
+    skip;
+  }
 end
 
 begin
@@ -62,12 +62,12 @@ begin
   log("enA1a" + "\n");
   s := "enA2";
   log("enA2" + "\n");
-  (
+  {
     @exec_Chart;
-    wait(0.1)
-  )**
+    wait(0.1);
+  }*
 end
 endmodule
 system
-Chart = Chart()
+Chart()
 endsystem
