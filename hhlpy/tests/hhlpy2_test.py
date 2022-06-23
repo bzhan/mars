@@ -2210,6 +2210,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
                   post="!(0.5<=x1 & x1<=2 & -2<=x2 & x2<=-1.5 & -2<=x3 & x3<=-1.5)",
                   constants={"u1", "u2", "u3", "u4"})
 
+    # TODO: Program 86 should also be proved by dbx automatically. 
+    # But now it can only proved by dI or by offering the parameter g.
     def testNonlinear86(self):
         # Nonlinear benchmark, problem 86
         # {x1^2 + x2^2 + x3^2 >= 5}
@@ -2224,7 +2226,8 @@ class NonlinearHHLPyTest(unittest.TestCase):
                      <x1_dot = 2*x1+x2, \
                       x2_dot = x1+3*x2-x3, \
                       x3_dot = -x1+2*x2+3*x3, \
-                      t_dot = 1 & t < 10>",
+                      t_dot = 1 & t < 10> \
+                      invariant [x1^2+x2^2+x3^2 >= 1] {di};",
                   post="!(x1^2+x2^2+x3^2 < 1)")
 
     def testNonlinear87(self):
