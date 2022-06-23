@@ -427,12 +427,8 @@ class CmdVerifier:
             for name, _ in cur_hp.eqs:
                 self.variable_names.add(name)
 
-        elif isinstance(cur_hp, hcsp.Condition):
-            sub_pos = pos + (0,)
-            self.compute_variable_set(sub_pos)
-
         elif isinstance(cur_hp, hcsp.ITE):
-            for i in range(len(cur_hp.if_hps) + 1):
+            for i in range(len(cur_hp.if_hps) + (0 if cur_hp.else_hp is None else 1)):
                 sub_pos = pos + (i,)
                 self.compute_variable_set(sub_pos)
 
@@ -1207,23 +1203,6 @@ class CmdVerifier:
                 pre = [VerificationCondition(pre_dw, [pos], [])]
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
 
-        elif isinstance(cur_hp, hcsp.Condition):
-            # Condition, {P} cond -> c {Q}
-            # the wp of Condition is cond -> wp of c
-            cond = cur_hp.cond
-            if not isinstance(cond, expr.BExpr):
-                raise NotImplementedError
-
-            sub_pos = (pos[0] + (0,), pos[1])
-            if sub_pos not in self.infos:
-                self.infos[sub_pos] = CmdInfo()
-            self.infos[sub_pos].post = post
-            self.compute_wp(pos=sub_pos)
-
-            pre = [VerificationCondition(
-                expr.imp(cond, vc.expr), vc.pos + [pos], vc.path) 
-                for vc in self.infos[sub_pos].pre]
-
         elif isinstance(cur_hp, hcsp.ITE):
             # ITE, if b then c1 else c2 endif
             #                       {P1} c1 {Q}  {P2} c2 {Q}  {P3} c3 {Q}
@@ -1242,10 +1221,13 @@ class CmdVerifier:
                 self.infos[sub_pos].post = post
                 self.infos[sub_pos].assume += self.infos[pos].assume
 
-                # Compute the sub-pre-condition for each sub_hp, 
-                # e.g. P1, P2, P3 for c1, c2 and c3
-                self.compute_wp(pos=sub_pos)
-                sub_pre = self.infos[sub_pos].pre
+                if i == len(if_hps) and cur_hp.else_hp is None:
+                    sub_pre = post
+                else:
+                    # Compute the sub-pre-condition for each sub_hp, 
+                    # e.g. P1, P2, P3 for c1, c2 and c3
+                    self.compute_wp(pos=sub_pos)
+                    sub_pre = self.infos[sub_pos].pre
 
                 # Collect the all if conditions.
                 if i < len(if_hps):
@@ -1372,11 +1354,12 @@ class CmdVerifier:
                     self.get_i_pos(if_hp, sub_pos)
 
             # else_hp:
-            sub_pos = pos + (i + 1, )
-            if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
-                self.pos2i_hp[sub_pos] = hp.else_hp.meta
-            else:
-                self.get_i_pos(hp.else_hp, sub_pos)
+            if hp.else_hp is not None:
+                sub_pos = pos + (i + 1, )
+                if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
+                    self.pos2i_hp[sub_pos] = hp.else_hp.meta
+                else:
+                    self.get_i_pos(hp.else_hp, sub_pos)
 
         elif isinstance(hp, hcsp.IChoice):
             sub_hps = [hp.hp1, hp.hp2]

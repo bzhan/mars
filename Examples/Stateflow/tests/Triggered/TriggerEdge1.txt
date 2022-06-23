@@ -18,7 +18,7 @@ begin
       signal := 0.0;
     }
     Pulse_Generator_tick := Pulse_Generator_tick + 1;
-    pre_signal < 0 & signal >= 0 | pre_signal == 0 & signal > 0 --> {
+    if (pre_signal < 0 & signal >= 0 | pre_signal == 0 & signal > 0) {
       Chart1EL := push(Chart1EL,"out_cmd");
       Chart1_done := 0;
       Chart1_AA_done := 0;

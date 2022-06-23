@@ -9,7 +9,7 @@ begin
   Chart_st := "Chart_add";
   {
     Chart_add_done := 0;
-    i <= 5 --> {
+    if (i <= 5) {
       a[i - 1] := b[i - 1];
       i := i + 1;
       s := "loop";
@@ -17,7 +17,9 @@ begin
       Chart_st := "Chart_add";
       Chart_add_done := 1;
     }
-    Chart_add_done == 0 --> log("%.0f,%.0f,%.0f,%.0f,%.0f\n",a[0],a[1],a[2],a[3],a[4]);
+    if (Chart_add_done == 0) {
+      log("%.0f,%.0f,%.0f,%.0f,%.0f\n",a[0],a[1],a[2],a[3],a[4]);
+    }
     Chart_ret := Chart_add_done;
     wait(0.1);
   }*

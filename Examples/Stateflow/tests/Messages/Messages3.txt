@@ -25,8 +25,8 @@ begin
     MessageReceiver_ret := 0;
     if (MessageReceiver_st == "MessageReceiver_A0") {
       MessageReceiver_A0_done := 0;
-      MessageReceiver_A0_time >= 3 --> {
-        MessageReceiver_st == "MessageReceiver_A0" --> {
+      if (MessageReceiver_A0_time >= 3) {
+        if (MessageReceiver_st == "MessageReceiver_A0") {
           MessageReceiver_A0_time := -1;
           MessageReceiver_st := "MessageReceiver_A1";
           s := "en_A1";
@@ -39,15 +39,17 @@ begin
       MessageReceiver_A1_done := 0;
       ch_x0_0_in?M;
       ch_x0_0_out!"";
-      M != "" --> MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
+      if (M != "") {
+        MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
+      }
       if (MessageReceiver_M_queue_input != []) {
         M := bottom(MessageReceiver_M_queue_input);
         MessageReceiver_M_queue_input := get(MessageReceiver_M_queue_input);
       } else {
         M := {};
       }
-      M != {} --> {
-        MessageReceiver_st == "MessageReceiver_A1" --> {
+      if (M != {}) {
+        if (MessageReceiver_st == "MessageReceiver_A1") {
           MessageReceiver_st := "MessageReceiver_A2";
           s := "en_A2";
           log("en_A2" + "\n");
@@ -59,15 +61,17 @@ begin
       MessageReceiver_A2_done := 0;
       ch_x0_0_in?M;
       ch_x0_0_out!"";
-      M != "" --> MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
+      if (M != "") {
+        MessageReceiver_M_queue_input := push(MessageReceiver_M_queue_input,M);
+      }
       if (MessageReceiver_M_queue_input != []) {
         M := bottom(MessageReceiver_M_queue_input);
         MessageReceiver_M_queue_input := get(MessageReceiver_M_queue_input);
       } else {
         M := {};
       }
-      M != {} --> {
-        MessageReceiver_st == "MessageReceiver_A2" --> {
+      if (M != {}) {
+        if (MessageReceiver_st == "MessageReceiver_A2") {
           MessageReceiver_st := "MessageReceiver_A3";
           s := "en_A3";
           log("en_A3" + "\n");
@@ -77,12 +81,12 @@ begin
       MessageReceiver_ret := MessageReceiver_A2_done;
     } else if (MessageReceiver_st == "MessageReceiver_A3") {
       MessageReceiver_ret := 0;
-    } else {
-      skip;
     }
     end_MessageReceiver?;
     wait(1);
-    MessageReceiver_A0_time != -1 --> MessageReceiver_A0_time := MessageReceiver_A0_time + 1;
+    if (MessageReceiver_A0_time != -1) {
+      MessageReceiver_A0_time := MessageReceiver_A0_time + 1;
+    }
   }*
 end
 endmodule

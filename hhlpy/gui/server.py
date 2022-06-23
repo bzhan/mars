@@ -38,13 +38,20 @@ def runCompute(pre, hp, post, constants=set()):
         for vc in vcs:
             # Use the bottom-most position `vc.pos[0]` to attach the VC to
             meta = get_pos(hp, vc.pos[0][0]).meta
-
+            if meta.empty:
+                # LARK can't determine position of empty elements
+                meta.column = 0
+                meta.start_pos = 0
+                meta.end_line = 1
+                meta.end_pos = 0
+            
             # Map origin positions in syntax tree to positions on the character level
             origin = []
             for originPos in vc.pos:
                 if originPos[0] != ():
                     originMeta = get_pos(hp, originPos[0]).meta
-                    origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
+                    if not originMeta.empty:
+                        origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
             verificationConditions.append({
                 "line": meta.end_line,

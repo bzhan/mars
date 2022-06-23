@@ -590,12 +590,6 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         else:
             _, out_hp = hp.io_comms[pos[0]]
             return get_pos(out_hp, pos[1:], rec_vars, procs)
-    elif hp.type == 'condition':
-        if len(pos) == 0:
-            return hp
-        else:
-            assert pos[0] == 0
-            return get_pos(hp.hp, pos[1:], rec_vars, procs)
     elif hp.type == 'select_comm':
         if len(pos) == 0:
             return hp
@@ -614,7 +608,7 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
         elif pos[0] < len(hp.if_hps):
             return get_pos(hp.if_hps[pos[0]][1], pos[1:], rec_vars, procs)
         else:
-            assert pos[0] == len(hp.if_hps)
+            assert pos[0] == len(hp.if_hps) and hp.else_hp is not None
             return get_pos(hp.else_hp, pos[1:], rec_vars, procs)
     elif hp.type == 'var':
         if len(pos) == 0:
@@ -683,14 +677,6 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
                     return (0,) + start_pos(hp.hp)
             else:
                 return (0,) + sub_step
-        elif hp.type == 'condition':
-            if len(pos) == 0:
-                return None
-            sub_step = helper(hp.hp, pos[1:])
-            if sub_step is None:
-                return None
-            else:
-                return (0,) + sub_step
         elif hp.type == 'delay':
             assert len(pos) == 1
             return None
@@ -725,12 +711,13 @@ def step_pos(hp, callstack, state, rec_vars=None, procs=None):
             else:
                 return (pos[0],) + sub_step
         elif hp.type == 'ite':
-            assert len(pos) > 0
+            if len(pos) == 0:
+                return None
             if pos[0] < len(hp.if_hps):
                 _, sub_hp = hp.if_hps[pos[0]]
                 sub_step = helper(sub_hp, pos[1:])
             else:
-                assert pos[0] == len(hp.if_hps)
+                assert pos[0] == len(hp.if_hps) and hp.else_hp is not None
                 sub_step = helper(hp.else_hp, pos[1:])
         
             if sub_step is None:
@@ -929,15 +916,6 @@ class SimInfo:
                     % (str_pat, vals))
             self.reason = {"log": log_expr}
 
-        elif cur_hp.type == "condition":
-            # Evaluate the condition, either go inside or step to next
-            if eval_expr(cur_hp.cond, self.state):
-                pos=self.callstack.top_pos() + (0,) + start_pos(cur_hp.hp)
-                self.callstack.renew(pos, rec_vars)
-            else:
-                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
-            self.reason = None
-
         elif cur_hp.type == "recursion":
             # Enter into recursion
             pos=self.callstack.top_pos() + (0,) + start_pos(cur_hp.hp)
@@ -1021,10 +999,16 @@ class SimInfo:
                     self.reason = None
                     return
 
-            # Otherwise, go to the else branch
-            pos=self.callstack.top_pos() + (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
-            self.callstack.renew(pos, rec_vars)
-            self.reason = None
+            if cur_hp.else_hp is None:
+                # If no else branch exists, skip the ITE block
+                self.callstack=step_pos(self.hp, self.callstack, self.state, rec_vars, procedures_list)
+                self.reason = None
+            else:
+                # Otherwise, go to the else branch
+                pos=self.callstack.top_pos() + (len(cur_hp.if_hps),) + start_pos(cur_hp.else_hp)
+                self.callstack.renew(pos, rec_vars)
+                self.reason = None
+
 
         else:
             raise NotImplementedError

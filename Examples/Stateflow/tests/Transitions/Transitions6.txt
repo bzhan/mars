@@ -13,11 +13,13 @@ begin
     Chart_ret := 0;
     if (Chart_S_st == "Chart_S_A") {
       Chart_S_A_done := 0;
-      Chart_S_st == "Chart_S_A" --> {
+      if (Chart_S_st == "Chart_S_A") {
         s := "exA";
         log("exA" + "\n");
-        Chart_S_st == "Chart_S_A" --> Chart_S_st := "";
-        Chart_S_st == "" --> {
+        if (Chart_S_st == "Chart_S_A") {
+          Chart_S_st := "";
+        }
+        if (Chart_S_st == "") {
           Chart_S_st := "Chart_S_B";
           s := "enB";
           log("enB" + "\n");
@@ -29,12 +31,14 @@ begin
       Chart_S_B_done := 0;
       s := "innerCond";
       log("innerCond" + "\n");
-      Chart_S_st == "Chart_S_B" --> {
+      if (Chart_S_st == "Chart_S_B") {
         log("exB" + "\n");
-        Chart_S_st == "Chart_S_B" --> Chart_S_st := "";
+        if (Chart_S_st == "Chart_S_B") {
+          Chart_S_st := "";
+        }
         s := "innerTran";
         log("innerTran" + "\n");
-        Chart_S_st == "" --> {
+        if (Chart_S_st == "") {
           Chart_S_st := "Chart_S_A";
           s := "enA";
           log("enA" + "\n");
@@ -42,8 +46,6 @@ begin
         Chart_S_B_done := 1;
       }
       Chart_ret := Chart_S_B_done;
-    } else {
-      skip;
     }
     wait(0.1);
   }*

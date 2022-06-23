@@ -158,18 +158,13 @@ atom_cmd {
   | ParenCmd { "{" cmd "}" }
 }
 
-cond_cmd {
-  atom_cmd 
-  | CondCmd { cond "-->" atom_cmd }      // Priority: 90
-}
-
 ichoice_cmd {
-  cond_cmd 
-  | IchoiceCmd { ichoice_cmd "++" cond_cmd }
+  atom_cmd 
+  | IchoiceCmd { ichoice_cmd "++" atom_cmd }
 }   // Priority: 80
 
 SeqCmd {
-  ichoice_cmd+ // Priority: 70
+  ichoice_cmd* // Priority: 70
 }
 
 select_cmd {

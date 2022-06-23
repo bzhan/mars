@@ -22,7 +22,7 @@ begin
       Signal_Builder_Signal_1 := 0.0;
     }
     Signal_Builder_tick := Signal_Builder_tick + 1;
-    pre_Signal_Builder_Signal_1 < 0 & Signal_Builder_Signal_1 >= 0 | pre_Signal_Builder_Signal_1 == 0 & Signal_Builder_Signal_1 > 0 --> {
+    if (pre_Signal_Builder_Signal_1 < 0 & Signal_Builder_Signal_1 >= 0 | pre_Signal_Builder_Signal_1 == 0 & Signal_Builder_Signal_1 > 0) {
       Chart1EL := push(Chart1EL,"out_cmd");
       Chart1_done := 0;
       Chart1_AA_done := 0;

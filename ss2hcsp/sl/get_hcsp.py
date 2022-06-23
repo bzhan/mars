@@ -459,9 +459,9 @@ def new_translate_discrete(diagram, chart_parameters):
         else:
             assert block.st % sample_time == 0
             period = block.st // sample_time
-            output_hps.append(hp.Condition(
+            output_hps.append(hp.ITE([(
                 RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
-                block.get_output_hp()))
+                block.get_output_hp())]))
 
         if block.type == "unit_delay":
             if block.st == sample_time:
@@ -469,9 +469,9 @@ def new_translate_discrete(diagram, chart_parameters):
             else:
                 assert block.st % sample_time == 0
                 period = block.st // sample_time
-                update_hps.append(hp.Condition(
+                update_hps.append(hp.ITE([(
                     RelExpr("==", OpExpr("%", AVar("_tick"), AConst(period)), AConst(0)),
-                    block.get_update_hp()))
+                    block.get_update_hp())]))
     return init_hps, procedures, output_hps, update_hps, sample_time
 
 
@@ -563,9 +563,9 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
         for _, sys_name in trig_procs:
             name_triggered = sys_name.name + "_triggered"
             names_triggered.append(
-                hp.Condition(cond=RelExpr(">", AVar(name_triggered), AConst(0)),
-                             hp=hp.Assign(var_name=name_triggered,
-                                          expr=OpExpr("-", AVar(name_triggered), AConst(1)))))
+                hp.ITE([(RelExpr(">", AVar(name_triggered), AConst(0)),
+                        hp.Assign(var_name=name_triggered,
+                                          expr=OpExpr("-", AVar(name_triggered), AConst(1))))]))
         names_triggered = hp.seq(names_triggered)
         trig_proc = list()
         for cond, sys_name in trig_procs:
@@ -573,7 +573,7 @@ def new_get_hcsp(discrete_diagram, continuous_diagram, chart_parameters, outputs
                                             hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(1)))],
                                    else_hp=hp.Assign(var_name=sys_name.name+"_triggered", expr=AConst(2))
                                    )
-            trig_proc.append(hp.Condition(cond=cond, hp=hp.Sequence(sys_name, set_triggered)))
+            trig_proc.append(hp.ITE([(cond, hp.Sequence(sys_name, set_triggered))]))
         trig_proc = hp.Sequence(*trig_proc) if len(trig_proc) >= 2 else trig_proc[0]
         continuous_hp = hp.Loop(hp=hp.Sequence(continuous_hp, trig_proc), constraint=time_constraint)
 
