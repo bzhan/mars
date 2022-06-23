@@ -1373,6 +1373,13 @@ def get_comm_chs(hp):
     rec(hp)
     return list(OrderedDict.fromkeys(collect))
 
+class HoareTriple:
+    """A program with pre- and post-conditions"""
+    def __init__(self, pre, hp, post, meta=None):
+        self.pre = list(pre)
+        self.post = list(post)
+        self.hp = hp
+        self.meta = meta
 
 class Procedure:
     """Declared procedure within a process."""

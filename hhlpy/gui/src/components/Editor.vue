@@ -1,9 +1,7 @@
 <template>
   <div class="editor">
     <h1>HHLPy</h1>
-    <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
-    <div><input type="text" v-model="post"></div>
 
     <button v-on:click="compute">Compute</button>
     <button v-on:click="verify">Verify</button>
@@ -37,7 +35,7 @@ function initEditorState(doc){
 
 function initEditor(doc){
   if (!doc){
-    doc = test_examples.e4.hp
+    doc = test_examples.e4
   }
   const editorView = new EditorView({
     state: initEditorState(doc),
@@ -49,8 +47,6 @@ function initEditor(doc){
 export default {
   name: 'Editor',
   data: () => { return {
-    pre : test_examples.e4.pre,
-    post : test_examples.e4.post,
     vcs: "",
     vc_infos: {}
   }},
@@ -107,12 +103,9 @@ export default {
       )
     },
     compute: function () {
-      let pre = this.pre
-      let post = this.post
-      let hp = this.editorView.state.doc.toString();
+      let code = this.editorView.state.doc.toString();
       
-      this.socket.send(JSON.stringify({pre: pre, hp: hp, post:post, type: "compute"}));
-      console.log({pre: pre, hp: hp, post:post});
+      this.socket.send(JSON.stringify({code: code, type: "compute"}));
     },
     verify: function () {
       for (let vc in this.vc_infos) {
