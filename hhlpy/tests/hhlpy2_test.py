@@ -157,7 +157,9 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify9(self):
         # Basic benchmark, problem 4
         # {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
-        runVerify(self, pre="x >= 0", hp="x := x+1; <x_dot=2 & x < 10> invariant [x >= 1];", post="x >= 1")
+        runVerify(self, pre="x >= 0", 
+                  hp="x := x+1; <x_dot=2 & x < 10> invariant [x >= 1];", 
+                  post="x >= 1")
 
     def testVerify10(self):
         # Basic Benchmark, problem5
@@ -218,8 +220,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # dG Rule
         # {x > 0} <x_dot = -x> {x > 0}
         runVerify(self, pre="x > 0", hp="t := 0; <x_dot = -x, t_dot=1 & t < 1> invariant ghost y [x * y * y == 1];", post="x > 0",
-                expected_vcs={((), ()): ["x > 0 -> (0 < 1 -> (\exists y. x * y * y == 1))\
-                                                    & (0 >= 1 -> x > 0)"],
+                expected_vcs={((), ()): ["x > 0 -> 0 < 1 -> (\exists y. x * y * y == 1)", \
+                                         "x > 0 -> 0 >= 1 -> x > 0"],
                               ((1,), ()): ["(\exists y. x * y * y == 1) & t == 1 -> x > 0"]})
 
     def testVerify17(self):
@@ -253,6 +255,16 @@ class BasicHHLPyTest(unittest.TestCase):
                       <x_dot = x & x < 5> invariant ghost y [x * y * y == 1] [x > 0];",
                   post="x > 0")
 
+    def testVerify18_1(self):
+        # Basic bencmark, problem10
+        # Several ODEs in sequence.
+        # {x > 0} <x_dot = 5>; <x_dot = 2> {x > 0}
+        runVerify(self, pre="x > 0",
+                  hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
+                      <x_dot = 2 & x < 2> invariant [x > 0];",
+                  post="x > 0",
+                  print_vcs=True)
+
     def testVerify19(self):
         # Basic benchmark, problem11
         # {x = 0} <x_dot = 1 & x < 10> {x >= 0}
@@ -266,8 +278,9 @@ class BasicHHLPyTest(unittest.TestCase):
                   hp="<x_dot = y & x < 10> invariant [y >= 0] [x >= 0];", 
                   post="x >= 0",
                   expected_vcs={((), ()): ["y >= 0 -> x >= 0 & y >= 0 -> \
-                                           (x < 10 -> y >= 0 & x >= 0) & \
-                                           (x >= 10 -> x >= 0)",
+                                            x < 10 -> y >= 0 & x >= 0",
+                                           "y >= 0 -> x >= 0 & y >= 0 -> \
+                                            x >= 10 -> x >= 0",
                                            "y >= 0 -> (y >= 0 & x >= 0) & x == 10 ->\
                                             x >= 0"]})
 
@@ -306,7 +319,8 @@ class BasicHHLPyTest(unittest.TestCase):
                       invariant ghost z [x * z * z == 1];", 
                   post="x > 0",
                   expected_vcs={((), ()): ["y > 0 -> x > 0 & y > 0 -> \
-                                            (0 < 10 -> (\exists z. x * z * z == 1)) & \
+                                            (0 < 10 -> (\exists z. x * z * z == 1))",
+                                            "y > 0 -> x > 0 & y > 0 -> \
                                             (0 >= 10 -> x > 0)"],
                                 ((1,), ()): ["y > 0 -> (\exists z. x * z * z == 1) & t == 10 \
                                               -> x > 0"]})
@@ -416,7 +430,9 @@ class BasicHHLPyTest(unittest.TestCase):
                                           "z == -2 -> y > 0 -> y >= 0", 
                                           # This is from dI (condition implies differential of invariant)
                                           "z == -2 -> x >= 1 & y == 10 & z == -2 ->\
-                                          (y > 0 -> x >= 1) & (y <= 0 -> x >= 1 & y >= 0)"]}) 
+                                          (y > 0 -> x >= 1)", 
+                                          "z == -2 -> x >= 1 & y == 10 & z == -2 -> \
+                                          (y <= 0 -> x >= 1 & y >= 0)"]}) 
                                           # `y <= 0 -> x >= 1 & y >= 0` is the dW precondition
 
     def testVerify35(self):

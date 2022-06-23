@@ -646,7 +646,9 @@ class CmdVerifier:
                 pre = self.infos[pos].inv
 
         elif isinstance(cur_hp, hcsp.ODE):
-            # ODE, use the differential invariant rule, differential cut rule and differential ghost rule.
+            # ODE, use differential weakening rule first to prove the hoare triple, 
+            # then use other rules to prove invariant.
+
             # Currently assume out_hp is Skip.
             constraint = cur_hp.constraint
             # The pre-condition computed for invariant and for dw rule is set None initially.
@@ -701,16 +703,28 @@ class CmdVerifier:
                 #   {I & P} <x_dot = f(x) & D> { I }      (I & Boundary of D -> Q)  
                 #-----------------------------------------------------------------------
                 #           {P & (D -> I) & (!D -> Q)} <x_dot = f(x) & D> {Q}
-                post_conj = expr.conj(*[vc.expr for vc in post])
-                pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
-                                   expr.imp(expr.neg_expr(constraint), post_conj)
-                                    )
+                # post_conj = expr.conj(*[vc.expr for vc in post])
+                # pre_dw = expr.conj(expr.imp(constraint, subposts[-1]),
+                #                    expr.imp(expr.neg_expr(constraint), post_conj)
+                #                     )
+                pre_dw = [VerificationCondition(expr=expr.imp(constraint, subposts[-1]), 
+                                                pos=[pos],
+                                                path=[],
+                                                )] \
+                        + \
+                         [VerificationCondition(expr=expr.imp(expr.neg_expr(constraint), 
+                                                     subpost.expr),
+                                                pos=subpost.pos + [pos],
+                                                path=subpost.path)
+                          for subpost in post]
                 boundary = compute_boundary(constraint)
                 # When I is false_expr, (I & Boundary of D -> Q) is true_expr, which can be omitted. 
                 if subposts[-1] is not expr.false_expr:
                     for vc in post:
                         e = expr.imp(expr.conj(subposts[-1], boundary), vc.expr)
                         self.infos[pos].vcs.append(VerificationCondition(e, vc.pos + [pos], vc.path))
+
+                # Post below is the postcondition of the invariant triple.
                 post = [VerificationCondition(subposts[-1], [pos], [])]
 
                 # Add ghost variables and cuts to self.infos:
@@ -1198,9 +1212,9 @@ class CmdVerifier:
                 raise AssertionError("No invariant set at position %s." % str(pos))
 
             if pre is not None and pre_dw is not None:
-                pre = [VerificationCondition(pre, [pos], []), VerificationCondition(pre_dw, [pos], [])]
+                pre = [VerificationCondition(pre, [pos], [])] + pre_dw
             elif pre_dw is not None:
-                pre = [VerificationCondition(pre_dw, [pos], [])]
+                pre = pre_dw
             # If pre is None and pre_dw is None, no pre is computed, so pre is still None.
 
         elif isinstance(cur_hp, hcsp.ITE):
