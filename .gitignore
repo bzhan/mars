@@ -20,3 +20,4 @@ simulator_events.txt
 ss2hcsp/event_output.json
 ss2hcsp/import_path.txt
 hhlpy/gui/package-lock.json
+hhlpy/wolframpath.txt
