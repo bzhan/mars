@@ -38,7 +38,8 @@ def runVerify(self, *, pre, hp, post, constants=set(),
         for pos, vcs in verifier.get_all_vcs().items():
             print("%s:" % str(pos))
             for vc in vcs:
-                print(vc.expr, "pos:", vc.pos, "path:", vc.path, "annot_pos:", vc.annot_pos)
+                print(vc.expr, "pos:", vc.pos, "path:", vc.path, "annot_pos:", vc.annot_pos,
+                      "categ:", vc.categ)
 
     # Use SMT to verify all verification conditions
     self.assertTrue(verifier.verify())
@@ -80,7 +81,8 @@ class BasicHHLPyTest(unittest.TestCase):
     def testVerify2(self):
         # {x >= 0} x := x+1 ++ x := x+2 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; ++ x := x+2;", post="x >= 1",
-                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 2 >= 1"]})
+                  expected_vcs={((), ()): ["x >= 0 -> x + 1 >= 1", "x >= 0 -> x + 2 >= 1"]},
+                  print_vcs=False)
 
     def testVerify3(self):
         # {x >= 0} x := x+1; y := x+2 {x >= 1 & y >= 3}
@@ -92,6 +94,36 @@ class BasicHHLPyTest(unittest.TestCase):
         # {x >= 0} x := x+1; x := x+1 ++ y := x+1 {x >= 1}
         runVerify(self, pre="x >= 0", hp="x := x+1; x := x+1; ++ y := x+1;", post="x >= 1",
                   expected_vcs={((), ()): ["x >= 0 -> x + 1 + 1 >= 1", "x >= 0 -> x + 1 >= 1"]})
+
+    def testVerify4_1(self):
+        # ITE
+        # {x == 1}
+        # if (x > 0){
+        #   if (x > 1){
+        #        x := x - 1;
+        #   }
+        #    else{
+        #        skip;
+        #    }
+        # }
+        # else {
+        #    x := x + 1;
+        # }
+        # {x >= 0}
+        runVerify(self, pre="x == 1",
+                  hp="if (x > 0){ \
+                        if (x > 1){ \
+                            x := x - 1; \
+                        } \
+                        else {\
+                            skip; \
+                        } \
+                      } \
+                      else { \
+                        x := x + 1; \
+                      }",
+                  post="x >= 0",
+                  print_vcs=False)
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
@@ -133,7 +165,7 @@ class BasicHHLPyTest(unittest.TestCase):
         # {x >= 0} <x_dot=2 & x < 10> {x >= 0}
         # Use the boundary x == 10 to imply the post x >= 0.
         # No invariant attached.
-        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0")
+        runVerify(self, pre="x >= 0", hp="<x_dot=2 & x < 10>", post="x >= 0", print_vcs=False)
 
     # TODO: 
     # def testVerify7_1(self):
@@ -144,7 +176,8 @@ class BasicHHLPyTest(unittest.TestCase):
         # {x > 2} <x_dot = 1 & x < 1> {x > 2}
         runVerify(self, pre="x > 2",    
                   hp="<x_dot = 1 & x < 1> invariant [false];", 
-                  post="x > 2")
+                  post="x > 2",
+                  print_vcs=False)
 
     def testVerify8(self):
         # {x * x + y * y == 1} <x_dot=y, y_dot=-x & x > 0> {x * x + y * y = 1}
@@ -152,14 +185,26 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x * x + y * y == 1", 
                   hp="<x_dot=y, y_dot=-x & x > 0> \
                       invariant [x * x + y * y == 1] {di};",
-                  post="x * x + y * y == 1")
+                  post="x * x + y * y == 1",
+                  print_vcs=False)
 
     def testVerify9(self):
         # Basic benchmark, problem 4
         # {x >= 0} x := x+1; <x_dot=2 & x < 10> {x >= 1}
         runVerify(self, pre="x >= 0", 
                   hp="x := x+1; <x_dot=2 & x < 10> invariant [x >= 1];", 
-                  post="x >= 1")
+                  post="x >= 1",
+                  print_vcs=False)
+
+    def testVerify9_1(self):
+        # Basic bencmark, problem10
+        # Several ODEs in sequence.
+        # {x > 0} <x_dot = 5>; <x_dot = 2> {x > 0}
+        runVerify(self, pre="x > 0",
+                  hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
+                      <x_dot = 2 & x < 2> invariant [x > 0];",
+                  post="x > 0",
+                  print_vcs=False)
 
     def testVerify10(self):
         # Basic Benchmark, problem5
@@ -252,16 +297,7 @@ class BasicHHLPyTest(unittest.TestCase):
         runVerify(self, pre="x > 0",
                   hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
                       <x_dot = 2 & x < 2> invariant [x > 0]; \
-                      <x_dot = x & x < 5> invariant ghost y [x * y * y == 1] [x > 0];",
-                  post="x > 0")
-
-    def testVerify18_1(self):
-        # Basic bencmark, problem10
-        # Several ODEs in sequence.
-        # {x > 0} <x_dot = 5>; <x_dot = 2> {x > 0}
-        runVerify(self, pre="x > 0",
-                  hp="<x_dot = 5 & x < 1> invariant [x > 0]; \
-                      <x_dot = 2 & x < 2> invariant [x > 0];",
+                      <x_dot = x & x < 5> invariant ghost y [x * y * y == 1];",
                   post="x > 0",
                   print_vcs=True)
 

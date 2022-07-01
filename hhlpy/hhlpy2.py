@@ -275,9 +275,8 @@ class CmdVerifier:
         # The HCSP program to be verified.
         self.hp = hp
         
-        # Map postion to hcsp program, only counting ITE and IChoice
-        self.pos2i_hp = dict()
-        self.get_i_pos(hp)
+        # Record the history of position visited.
+        self.pos_hist = []
 
         # The prover used to verify conditions.
         # Use z3 by default.
@@ -442,6 +441,9 @@ class CmdVerifier:
         # Obtain the hp at the given position
         cur_hp = get_pos(self.hp, pos[0])
 
+        # Append the given position.
+        self.pos_hist.append(pos[0])
+
         # The post-condition at the given position should already be
         # available.
         # assert pos in self.infos and self.infos[pos].post is not None
@@ -517,7 +519,7 @@ class CmdVerifier:
                     for vc in self.infos[pos0].pre] + \
                   [Predicate(vc.expr, vc.pos, vc.path + [1], vc.annot_pos, vc.categ) 
                     for vc in self.infos[pos1].pre]
-        
+
         elif isinstance(cur_hp, hcsp.Sequence):
             # Sequence of several commands, apply compute_wp from bottom to top
             cur_post = post
@@ -1326,49 +1328,6 @@ class CmdVerifier:
         else:
             raise AssertionError("Please choose an arithmetic solver.")
 
-    def get_i_pos(self, hp, pos=()):
-        """Obtain a dictory, only ITE and IChoice are counted:
-            key: position
-            value: hcsp program
-        hp: the given hcsp program
-        pos: the postion of hp
-        """
-        if isinstance(hp, hcsp.ITE):
-            for i, (_, if_hp) in enumerate(hp.if_hps):
-                sub_pos = pos + (i,)
-                if not isinstance(if_hp, (hcsp.ITE, hcsp.IChoice)):
-                    self.pos2i_hp[sub_pos] = if_hp.meta
-                else:
-                    self.get_i_pos(if_hp, sub_pos)
-
-            # else_hp:
-            if hp.else_hp is not None:
-                sub_pos = pos + (i + 1, )
-                if not isinstance(hp.else_hp, (hcsp.ITE, hcsp.IChoice)):    
-                    self.pos2i_hp[sub_pos] = hp.else_hp.meta
-                else:
-                    self.get_i_pos(hp.else_hp, sub_pos)
-
-        elif isinstance(hp, hcsp.IChoice):
-            sub_hps = [hp.hp1, hp.hp2]
-            for i, sub_hp in enumerate(sub_hps):
-                sub_pos = pos + (i,)
-                if not isinstance(sub_hp, (hcsp.ITE, hcsp.IChoice)):
-                    self.pos2i_hp[sub_pos] = sub_hp.meta
-                else:
-                    self.get_i_pos(sub_hp, sub_pos)
-
-        elif isinstance(hp, hcsp.Sequence):
-            i = 0
-            for sub_hp in hp.hps:
-                if isinstance(sub_hp, (hcsp.ITE, hcsp.IChoice)):
-                    sub_pos = pos + (i,)
-                    self.get_i_pos(sub_hp, sub_pos)
-                    i = i + 1
-
-
-        else:
-            pass
 
     def f(self, hp):
         assert isinstance(hp, hcsp.Loop)
