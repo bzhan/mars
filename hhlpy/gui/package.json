@@ -12,7 +12,7 @@
     "@codemirror/highlight": "^0.19.7",
     "@codemirror/language": "^0.19.7",
     "@codemirror/view": "^0.19.39",
-    "concurrently": "^7.0.0",
+    "concurrently": "^7.2.2",
     "core-js": "^3.6.5",
     "vue": "^2.6.11",
     "vue-awesome": "^4.5.0"

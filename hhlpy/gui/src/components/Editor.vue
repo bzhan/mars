@@ -1,21 +1,18 @@
 <template>
   <div class="editor">
-    <h1>HHLPy</h1>
-    <div><input type="text" v-model="pre"></div>
     <div id="code"></div>
-    <div><input type="text" v-model="post"></div>
-
-    <button v-on:click="compute">Compute</button>
-    <button v-on:click="verify">Verify</button>
-
-    <br/>
-    <br/>
-    <form class="open_file">
-      <label for="open_file">Open file</label>
-      <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
-    </form>
-
-    <div>{{ vcs }}</div>
+    <div class="toolbar">
+      <div class="group">
+        <form class="open_file">
+          <label for="open_file">Open file</label>
+          <input type="file" id="open_file" name="open_file" accept=".hhl" v-on:change="openFile">
+        </form>
+      </div>
+      <div class="group">
+        <button v-on:click="compute">Compute</button>
+        <button v-on:click="verify">Verify</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -28,16 +25,21 @@ import { displayVerificationCondition, getPosition, removeVerificationCondition 
 import { test_examples } from "../test_examples/examples"
 import { originTheme, originField } from '../decoration/origin'
 
+const fixedHeightEditor = EditorView.theme({
+  "&": {height: "100%", overflow: "hidden"},
+  ".cm-scroller": {overflow: "auto"}
+})
+
 function initEditorState(doc){
   return EditorState.create({
     doc: doc,
-    extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme]
+    extensions: [basicSetup, keymap.of([indentWithTab]), HCSP(), originField, originTheme, fixedHeightEditor]
   })
 }
 
 function initEditor(doc){
   if (!doc){
-    doc = test_examples.e4.hp
+    doc = test_examples.e4
   }
   const editorView = new EditorView({
     state: initEditorState(doc),
@@ -49,8 +51,6 @@ function initEditor(doc){
 export default {
   name: 'Editor',
   data: () => { return {
-    pre : test_examples.e4.pre,
-    post : test_examples.e4.post,
     vcs: "",
     vc_infos: {}
   }},
@@ -107,12 +107,9 @@ export default {
       )
     },
     compute: function () {
-      let pre = this.pre
-      let post = this.post
-      let hp = this.editorView.state.doc.toString();
+      let code = this.editorView.state.doc.toString();
       
-      this.socket.send(JSON.stringify({pre: pre, hp: hp, post:post, type: "compute"}));
-      console.log({pre: pre, hp: hp, post:post});
+      this.socket.send(JSON.stringify({code: code, type: "compute"}));
     },
     verify: function () {
       for (let vc in this.vc_infos) {
@@ -152,36 +149,58 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .editor {
-  width: 900px;
-  height: 300px;
-  text-align: left;
-  margin: auto;
+  display: flex;
+  flex-flow: column;
+  height: 100%;
   font-size: 20pt;
 }
 
-input {
-  font-family: monospace;
-  font-size: 20pt;
+.toolbar {
+  flex: 0 1 auto;
+  background: rgb(67, 67, 67);
 }
 
-button {
+#code {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.toolbar form {
+  display: inline;
+}
+
+.toolbar .group {
+  display: inline-block;
+  margin-right: 20px;
+} 
+
+.toolbar button, 
+.toolbar .open_file label {
   font-size: 20pt;
+  margin: 2px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  border: solid 2px #ddd;
+  color: #ddd;
+  background: rgb(67, 67, 67);
+  font-family: sans-serif;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.toolbar button:hover, 
+.toolbar .open_file label:hover {
+  color: white;
+  border: solid 2px #fff;
+}
+
+.open_file input {
+  opacity: 0;
+  width: 0;
 }
 
 .vcs {
   margin-top: 20px;
   font-family: monospace;
-}
-
-.open_file input {
-  opacity: 0;
-}
-
-.open_file label {
-  background-color: #bcbcbc;
-  padding: 5px 10px;
-  border-radius: 5px;
-  border: 1px ridge black;
-  height: auto;
 }
 </style>

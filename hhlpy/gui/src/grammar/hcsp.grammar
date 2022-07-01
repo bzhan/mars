@@ -203,7 +203,11 @@ ode_rule {
   "di" | "dbx" | "bc" | "dw" | "sln"
 }
 
-@top parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
+hoare_pre { "pre" ("[" cond "]")* ";" }
+hoare_post { "post" ("[" cond "]")* ";" }
+@top hoare_triple { hoare_pre cmd hoare_post }
+
+parallel_cmd { cmd ("||" cmd)* }  // Priority 30, outermost level only
 
 ModuleSig { 
   CNAME "(" (CNAME | "$" CNAME) ("," (CNAME | "$" CNAME))* ")"  
@@ -282,12 +286,12 @@ Decls {
 
   "(" ")" "[" "]" "{" "}" "*(" "){" "invariant" "|>" "[]" ".("
   "if" "then" "else" "elif" "endif"
-  "true" "false"
+  "true" "false" "pre" "post"
   "gcd" "log" "max" "min" "rec" "skip" "test" "wait" "\\exists" "\\forall" "assert"
   "output"  "module" "begin" "end" "endmodule" "system" "endsystem" "import" "%type: module"
   
   @precedence { 
-    SIGNED_NUMBER, "-",
+    SIGNED_NUMBER, "-", "pre", "post",
     "true", "false", "gcd", "if", "else", "log", "max", "min", "rec", "skip", 
     "test", "wait", "\\exists", "\\forall", "assert", "invariant", CNAME }
 }

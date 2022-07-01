@@ -5,7 +5,7 @@ import sys
 from operator import pos
 
 from ss2hcsp.hcsp import expr, hcsp
-from ss2hcsp.hcsp.parser import parse_aexpr_with_meta, parse_bexpr_with_meta, parse_hp_with_meta
+from ss2hcsp.hcsp.parser import parse_hoare_triple_with_meta, parse_bexpr_with_meta
 from ss2hcsp.hcsp.simulator import get_pos
 from hhlpy.hhlpy2 import CmdVerifier
 from hhlpy.wolframengine_wrapper import wl_prove
@@ -17,15 +17,15 @@ from hhlpy.wolframengine_wrapper import session
 import json
 
 
-def runCompute(pre, hp, post, constants=set()):
-    pre = parse_bexpr_with_meta(pre)
-
-    hp = parse_hp_with_meta(hp)
-    post = parse_bexpr_with_meta(post)
-
+def runCompute(code, constants=set()):
+    hoare_triple = parse_hoare_triple_with_meta(code)
 
     # Initialize the verifier
-    verifier = CmdVerifier(pre=pre, hp=hp, post=post, constants=constants)
+    verifier = CmdVerifier(
+        pre=expr.list_conj(*hoare_triple.pre), 
+        hp=hoare_triple.hp,
+        post=expr.list_conj(*hoare_triple.post), 
+        constants=constants)
 
     # Compute wp and verify
     verifier.compute_wp()
@@ -37,7 +37,8 @@ def runCompute(pre, hp, post, constants=set()):
 
         for vc in vcs:
             # Use the bottom-most position `vc.pos[0]` to attach the VC to
-            meta = get_pos(hp, vc.pos[0][0]).meta
+
+            meta = get_pos(hoare_triple.hp, vc.pos[0][0]).meta
             if meta.empty:
                 # LARK can't determine position of empty elements
                 meta.column = 0
@@ -49,7 +50,7 @@ def runCompute(pre, hp, post, constants=set()):
             origin = []
             for originPos in vc.pos:
                 if originPos[0] != ():
-                    originMeta = get_pos(hp, originPos[0]).meta
+                    originMeta = get_pos(hoare_triple.hp, originPos[0]).meta
                     if not originMeta.empty:
                         origin.append({"from": originMeta.start_pos, "to": originMeta.end_pos})
 
@@ -91,7 +92,7 @@ class HHLPyApplication(WebSocketApplication):
                 msg = json.loads(message)
                 print(msg, flush=True)
                 if msg["type"] == "compute":
-                    vcs = runCompute(pre=msg["pre"], hp=msg["hp"], post=msg["post"])
+                    vcs = runCompute(code=msg["code"])
                     vcs_dict = {"vcs": vcs, "type": "computed"}
                     self.ws.send(json.dumps(vcs_dict))
 

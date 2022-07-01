@@ -148,7 +148,9 @@ grammar = r"""
 
     ?cmd: select_cmd
 
-    ?hoare_triple: "PRE" ("[" cond "]")* cmd "POST" ("[" cond "]")*
+    ?hoare_pre : "pre" ("[" cond "]")* ";" -> hoare_pre
+    ?hoare_post : "post" ("[" cond "]")* ";" -> hoare_post
+    ?hoare_triple: hoare_pre cmd hoare_post
 
     ?procedure: "procedure" CNAME "begin" cmd "end"
 
@@ -515,6 +517,15 @@ class HPTransformer(Transformer):
         else:
             return hcsp.Parallel(*args, meta=meta)
 
+    def hoare_pre(self, meta, *args):
+        return list(args)
+
+    def hoare_post(self, meta, *args):
+        return list(args)
+
+    def hoare_triple(self, meta, pre, hp, post):
+        return hcsp.HoareTriple(pre, hp, post, meta=meta)
+
     def module_sig(self, meta, *args):
         return tuple(str(arg) for arg in args)
 
@@ -606,6 +617,7 @@ decls_parser = Lark(grammar, start="decls", parser="lalr", transformer=hp_transf
 aexpr_tree_parser = Lark(grammar, start="expr", parser="lalr", propagate_positions=True)
 bexpr_tree_parser = Lark(grammar, start="cond", parser="lalr", propagate_positions=True)
 hp_tree_parser = Lark(grammar, start="parallel_cmd", parser="lalr", propagate_positions=True)
+hoare_triple_tree_parser = Lark(grammar, start="hoare_triple", parser="lalr", propagate_positions=True)
 module_tree_parser = Lark(grammar, start="module", parser="lalr", propagate_positions=True)
 system_tree_parser = Lark(grammar, start="system", parser="lalr", propagate_positions=True)
 decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positions=True)
@@ -613,6 +625,7 @@ decls_tree_parser = Lark(grammar, start="decls", parser="lalr", propagate_positi
 def parse_aexpr_with_meta(text): return hp_transformer.transform(aexpr_tree_parser.parse(text))
 def parse_bexpr_with_meta(text): return hp_transformer.transform(bexpr_tree_parser.parse(text))
 def parse_hp_with_meta(text): return hp_transformer.transform(hp_tree_parser.parse(text))
+def parse_hoare_triple_with_meta(text): return hp_transformer.transform(hoare_triple_tree_parser.parse(text))
 def parse_module_with_meta(text): return hp_transformer.transform(module_tree_parser.parse(text))
 def parse_system_with_meta(text): return hp_transformer.transform(system_tree_parser.parse(text))
 def parse_decls_with_meta(text): return hp_transformer.transform(decls_tree_parser.parse(text))
