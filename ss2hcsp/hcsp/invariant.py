@@ -1,4 +1,5 @@
 from ss2hcsp.hcsp import expr
+from ss2hcsp.hcsp.label import Label
 
 class Invariant:
     """Arithmetic expression."""
@@ -40,10 +41,12 @@ class ProofMethod:
     For example, label: 1.1
                  method: z3            
     """
-    def __init__(self, label, method, meta=None):
+    def __init__(self, method, label=None, meta=None):
         self.meta = meta
-        assert isinstance(label, str)
+        # label can be None
+        if label:
+            assert isinstance(label, Label)
+            self.label = label
         assert isinstance(method, str)
-        self.label = label
         self.method = method
         

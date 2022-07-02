@@ -813,35 +813,48 @@ def seq(hps):
 
 
 class IChoice(HCSP):
-    """Represents internal choice of the form P ++ Q."""
-    def __init__(self, hp1, hp2, meta=None):
+    """Represents internal choice of the form P ++ Q ++ N."""
+    def __init__(self, *hps, meta=None):
         super(IChoice, self).__init__()
         self.type = "ichoice"
-        assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
-        self.hp1 = hp1
-        self.hp2 = hp2
+        assert all(isinstance(hp, HCSP) for hp in hps)
+        assert len(hps) >= 1
+        self.hps = tuple(hps)
+        # assert isinstance(hp1, HCSP) and isinstance(hp2, HCSP)
+        # self.hp1 = hp1
+        # self.hp2 = hp2
         self.meta = meta
 
     def __eq__(self, other):
-        return self.hp1 == other.hp1 and self.hp2 == other.hp2
+        return self.type == other.type and self.hps == other.hps
 
     def __str__(self):
-        return "%s ++ %s" % (str(self.hp1), str(self.hp2))
+        return " ++ ".join(str(hp) if hp.priority() > self.priority() else "(" + str(hp) + ")"
+                for hp in self.hps)
 
     def __repr__(self):
-        return "IChoice(%s,%s)" % (repr(self.hp1), repr(self.hp2))
+        return "IChoice(%s)" % ", ".join(repr(hp) for hp in self.hps)
 
     def __hash__(self):
-        return hash(("ICHOICE", self.hp1, self.hp2))
+        return hash(("ICHOICE", self.hps))
 
     def get_vars(self):
-        return self.hp1.get_vars().union(self.hp2.get_vars())
+        var_set = set()
+        for hp in self.hps:
+            var_set.update(hp.get_vars())
+        return var_set
 
     def get_fun_names(self):
-        return self.hp1.get_fun_names().union(self.hp2.get_fun_names())
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_fun_names())
+        return fun_set
 
     def get_zero_arity_funcs(self):
-        return self.hp1.get_zero_arity_funcs().union(self.hp2.get_zero_arity_funcs())
+        fun_set = set()
+        for hp in self.hps:
+            fun_set.update(hp.get_zero_arity_funcs())
+        return fun_set
 
 class ODE(HCSP):
     """Represents an ODE program of the form

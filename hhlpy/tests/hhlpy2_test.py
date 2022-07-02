@@ -127,7 +127,7 @@ class BasicHHLPyTest(unittest.TestCase):
 
     def testVerify5(self):
         # {x >= 0} (x := x+1)** {x >= 0}
-        runVerify(self, pre="x >= 0", hp="{x := x+1;}* invariant [x >= 0]{{inv: z3}};", post="x >= 0", print_vcs=False,
+        runVerify(self, pre="x >= 0", hp="{x := x+1;}* invariant [x >= 0]{{init1.1(2): z3}};", post="x >= 0", print_vcs=False,
                   expected_vcs={((), (0,)): ["x >= 0 -> x + 1 >= 0"]})
 
     def testVerify5_1(self):
@@ -299,7 +299,7 @@ class BasicHHLPyTest(unittest.TestCase):
                       <x_dot = 2 & x < 2> invariant [x > 0]; \
                       <x_dot = x & x < 5> invariant ghost y [x * y * y == 1];",
                   post="x > 0",
-                  print_vcs=True)
+                  print_vcs=False)
 
     def testVerify19(self):
         # Basic benchmark, problem11

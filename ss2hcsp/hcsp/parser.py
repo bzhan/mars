@@ -3,7 +3,7 @@
 from lark import Lark, Transformer, v_args, exceptions
 from lark.tree import Meta
 from ss2hcsp.hcsp import expr
-from ss2hcsp.hcsp import invariant
+from ss2hcsp.hcsp import invariant, label
 from ss2hcsp.hcsp import hcsp
 from ss2hcsp.hcsp import module
 from decimal import Decimal
@@ -122,10 +122,18 @@ grammar = r"""
     ?maybe_loop_invariant: ("invariant" loop_invariant+ ";")? -> maybe_loop_invariant
     ?loop_invariant: "[" cond "]" ("{{" proof_method ("," proof_method)* "}}")? -> loop_invariant
     ?proof_method: (label ":")? method   -> proof_method
-    ?atom_label: CNAME | NUMBER
-    ?label: atom_label              ->label
-        | label ("." label)+
-        | atom_label "(" label ")"
+
+    ?label_category: "init"             -> label_categ_init
+        | "maintain"                    -> label_categ_maintain
+
+    ?atom_branch_label: ESCAPED_STRING | INT
+    ?branch_label: atom_branch_label                 -> atom_branch_label
+        | branch_label ("." branch_label)+           -> seq_branch_label
+        | atom_branch_label "(" branch_label ")"     -> rec_branch_label
+
+    ?label: label_category                  ->categ_label 
+        | branch_label
+        | label_category branch_label       ->comp_label
     
     ?method: "z3"        -> method_z3
       | "wolfram_engine" -> method_wolfram_engine
@@ -140,7 +148,7 @@ grammar = r"""
       | "dw" -> ode_rule_dw
       | "sln" -> ode_rule_sln
 
-    ?ichoice_cmd: atom_cmd | ichoice_cmd "++" atom_cmd   // Priority: 80
+    ?ichoice_cmd: atom_cmd ("++" atom_cmd)*  // Priority: 80
 
     ?seq_cmd: ichoice_cmd*  // Priority: 70
 
@@ -445,11 +453,30 @@ class HPTransformer(Transformer):
     def method_z3(self, meta): return "z3"
     def method_wolfram_engine(self, meta): return "wolfram_engine"
 
-    def proof_method(self, meta, label, method):
-        return invariant.ProofMethod(label=label, method=method, meta=meta)
+    def label_categ_init(self, meta): return "init"
+    def label_categ_maintain(self, meta): return "maintain"
 
-    def label(self, meta, *args):
-        return "".join(str(arg) for arg in args)
+    def atom_branch_label(self, meta, value):
+        return label.BranchLabel(value=value)
+
+    def seq_branch_label(self, meta, *args):
+        return label.BranchLabel(None, *args)
+
+    def rec_branch_label(self, meta, *args):
+        return label.BranchLabel(args[0], *args[1:])
+
+    def categ_label(self, meta, categ):
+        return label.CompLabel(categ=categ)
+
+    def comp_label(self, meta, categ, branch_label):
+        return label.CompLabel(categ=categ, branch_label=branch_label)
+
+    def proof_method(self, meta, *args):
+        assert(len(args) == 1 or len(args) == 2)
+        if len(args) == 1:
+            return invariant.ProofMethod(method=args[0], meta=meta)
+        else:
+            return invariant.ProofMethod(label=args[0], method=args[1], meta=meta)
             
     def repeat_cmd(self, meta, cmd, inv):
         return hcsp.Loop(cmd, meta=meta, inv=inv)
@@ -482,8 +509,11 @@ class HPTransformer(Transformer):
     def cond_cmd(self, meta, cond, cmd):
         return hcsp.Condition(cond=cond, hp=cmd, meta=meta)
 
-    def ichoice_cmd(self, meta, cmd1, cmd2):
-        return hcsp.IChoice(cmd1, cmd2, meta=meta)
+    def ichoice_cmd(self, meta, *args):
+        if len(args) == 1:
+            return args[0]
+        else:
+            return hcsp.IChoice(*args, meta=meta)
 
     def select_cmd(self, meta, *args):
         assert len(args) % 2 == 0 and len(args) >= 4

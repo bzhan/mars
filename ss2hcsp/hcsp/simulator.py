@@ -625,11 +625,7 @@ def get_pos(hp, pos, rec_vars=None, procs=None):
     elif hp.type == 'ichoice':
         if len(pos) == 0:
             return hp
-        assert pos[0] == 0 or pos[0] == 1
-        if pos[0] == 0:
-            return get_pos(hp.hp1, pos[1:], rec_vars, procs)
-        elif pos[0] == 1:
-            return get_pos(hp.hp2, pos[1:], rec_vars, procs)
+        return get_pos(hp.hps[pos[0]], pos[1:], rec_vars, procs)
     else:
         assert len(pos) == 0
         return hp
